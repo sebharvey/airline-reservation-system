@@ -147,6 +147,8 @@ Key components:
 
 ## Offer
 
+### Search
+
 The search flow is built around the concept of a **slice** — a single directional search (outbound or inbound). The customer searches for each slice independently. Each search returns a set of offers; those offers are persisted immediately to the `StoredOffer` table so that pricing is locked at the point of offer creation. The customer selects one offer per slice, and the resulting `OfferIds` are passed through to the basket and ultimately to the Order API.
 
 This ensures price integrity: the Order API retrieves the stored offer by `OfferId` rather than re-pricing, so the fare the customer saw is guaranteed to be the fare charged — regardless of how much time elapses during payment.
@@ -197,7 +199,7 @@ The Offer domain maintains three tables. `FlightInventory` tracks available seat
 -- One row per flight leg per cabin class
 CREATE TABLE offer.FlightInventory (
     InventoryId       UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    FlightNumber      VARCHAR(10)       NOT NULL,   -- e.g. VS001
+    FlightNumber      VARCHAR(10)       NOT NULL,   -- e.g. AX001
     DepartureDate     DATE              NOT NULL,
     Origin            CHAR(3)           NOT NULL,   -- IATA airport code
     Destination       CHAR(3)           NOT NULL,
@@ -368,18 +370,18 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       {
         "passengerId": "PAX-1",
         "type": "ADT",
-        "givenName": "James",
-        "surname": "Harvey",
+        "givenName": "Alex",
+        "surname": "Taylor",
         "dateOfBirth": "1985-03-12",
         "gender": "Male",
-        "loyaltyNumber": "VS9876543",
+        "loyaltyNumber": "AX9876543",
         "contacts": {
-          "email": "james.harvey@example.com",
-          "phone": "+447700900123"
+          "email": "alex.taylor@example.com",
+          "phone": "+447700900100"
         },
         "travelDocument": {
           "type": "PASSPORT",
-          "number": "987654321",
+          "number": "PA1234567",
           "issuingCountry": "GBR",
           "expiryDate": "2030-01-01",
           "nationality": "GBR"
@@ -388,15 +390,15 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       {
         "passengerId": "PAX-2",
         "type": "ADT",
-        "givenName": "Sarah",
-        "surname": "Harvey",
+        "givenName": "Jordan",
+        "surname": "Taylor",
         "dateOfBirth": "1987-07-22",
         "gender": "Female",
         "loyaltyNumber": null,
         "contacts": null,
         "travelDocument": {
           "type": "PASSPORT",
-          "number": "123456789",
+          "number": "PA7654321",
           "issuingCountry": "GBR",
           "expiryDate": "2028-06-30",
           "nationality": "GBR"
@@ -406,27 +408,27 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
     "flightSegments": [
       {
         "segmentId": "SEG-1",
-        "flightNumber": "VS003",
+        "flightNumber": "AX003",
         "origin": "LHR",
         "destination": "JFK",
         "departureDateTime": "2025-08-15T11:00:00Z",
         "arrivalDateTime": "2025-08-15T14:10:00Z",
         "aircraftType": "A351",
-        "operatingCarrier": "VS",
-        "marketingCarrier": "VS",
+        "operatingCarrier": "AX",
+        "marketingCarrier": "AX",
         "cabinCode": "J",
         "bookingClass": "J"
       },
       {
         "segmentId": "SEG-2",
-        "flightNumber": "VS004",
+        "flightNumber": "AX004",
         "origin": "JFK",
         "destination": "LHR",
         "departureDateTime": "2025-08-25T22:00:00Z",
         "arrivalDateTime": "2025-08-26T10:15:00Z",
         "aircraftType": "A351",
-        "operatingCarrier": "VS",
-        "marketingCarrier": "VS",
+        "operatingCarrier": "AX",
+        "marketingCarrier": "AX",
         "cabinCode": "J",
         "bookingClass": "J"
       }
@@ -503,6 +505,8 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 
 ### Manage booking - update PAX details
 
+Allows a traveller to correct or update passenger information on a confirmed booking — such as a name correction, updated passport details, or a change of contact information — triggering e-ticket reissuance where required.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
@@ -511,10 +515,10 @@ sequenceDiagram
     participant ServicingMS as Servicing [MS]
     participant DeliveryMS as Delivery [MS]
 
-    Traveller->>Web: Navigate to manage booking (booking reference)
+    Traveller->>Web: Navigate to manage booking
 
-    Web->>RetailAPI: GET /order/{bookingRef}
-    RetailAPI->>ServicingMS: Retrieve order (booking reference)
+    Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>ServicingMS: Retrieve order (bookingReference, givenName, surname)
     ServicingMS-->>RetailAPI: Order details (PAX details, itinerary, e-tickets)
     RetailAPI-->>Web: Display current booking details
 
@@ -533,6 +537,8 @@ sequenceDiagram
 
 ### Manage booking - select or update seat selection
 
+Enables a traveller to choose or change their seat assignment after booking, presenting the live seatmap with real-time availability overlaid, and updating the manifest and e-tickets upon confirmation.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
@@ -544,10 +550,10 @@ sequenceDiagram
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
-    Traveller->>Web: Navigate to manage booking (booking reference)
+    Traveller->>Web: Navigate to manage booking
 
-    Web->>RetailAPI: GET /order/{bookingRef}
-    RetailAPI->>ServicingMS: Retrieve order (booking reference)
+    Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>ServicingMS: Retrieve order (bookingReference, givenName, surname)
     ServicingMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
     RetailAPI-->>Web: Display current booking and seat map
 
@@ -585,6 +591,8 @@ sequenceDiagram
 
 ### Online Check In
 
+Allows a traveller to check in for their flight from 24 hours before departure, confirming or updating travel document details for each passenger and receiving boarding cards upon completion.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
@@ -594,10 +602,10 @@ sequenceDiagram
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
 
-    Traveller->>Web: Navigate to online check-in (booking reference, surname)
+    Traveller->>Web: Navigate to online check-in
 
-    Web->>RetailAPI: GET /order/{bookingRef}/checkin
-    RetailAPI->>ServicingMS: Retrieve order and eligibility (booking reference)
+    Web->>RetailAPI: POST /order/checkin/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>ServicingMS: Retrieve order and eligibility (bookingReference, givenName, surname)
     ServicingMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
     RetailAPI-->>Web: Display PAX list and pre-flight details
 
@@ -615,11 +623,45 @@ sequenceDiagram
     DeliveryMS-->>RetailAPI: Manifest entries updated
 
     RetailAPI->>DeliveryMS: Generate boarding cards (booking reference, PAX list, seats, flights)
-    DeliveryMS-->>RetailAPI: Boarding cards generated (one per PAX per flight)
+    DeliveryMS-->>RetailAPI: Boarding cards generated (one per PAX per flight) including boarding pass barcode string
 
     RetailAPI-->>Web: Check-in confirmed (boarding cards)
     Web-->>Traveller: Display and offer download of boarding cards
 ```
+
+### Boarding Pass Barcode String
+
+Each boarding card issued by the Delivery microservice includes a barcode string compliant with **IATA Resolution 792** (Bar Coded Boarding Pass — BCBP). This string is used directly to generate the physical barcode on printed boarding passes and the QR code displayed in the mobile app. Both formats encode identical data; the presentation layer determines the rendering.
+
+The format is a structured plaintext string with fixed-width and positional fields. An example for a single-leg boarding pass:
+
+```
+M1TAYLOR/ALEX        EAB1234 LHRJFKAX 0003 042J001A0001 156>518 W6042 AX 2A00000012345678 JAX7KLP2NZR901A
+```
+
+The fields break down as follows:
+
+| Segment | Value in example | Description |
+|---|---|---|
+| `M1` | `M1` | Format code (`M`) + number of legs encoded (`1`) |
+| `TAYLOR/ALEX` | `TAYLOR/ALEX` | Passenger name — surname / given name, padded to 20 chars |
+| `EAB1234` | `EAB1234` | Electronic ticket indicator (`E`) + PNR / booking reference |
+| `LHR` | `LHR` | Origin IATA airport code |
+| `JFK` | `JFK` | Destination IATA airport code |
+| `AX` | `AX` | Operating carrier IATA code (Apex Air) |
+| `0003` | `0003` | Flight number, padded to 4 chars |
+| `042` | `042` | Julian date of flight departure |
+| `J` | `J` | Cabin / booking class code |
+| `001A` | `001A` | Seat number, padded to 4 chars |
+| `0001` | `0001` | Sequence / check-in number |
+| `1` | `1` | Passenger status code (`1` = checked in) |
+| `56>518` | `56>518` | Conditional item size indicator and version number (BCBP version 6) |
+| `W6042` | `W6042` | Julian date of issue + ticket issuer code |
+| `AX` | `AX` | Operating carrier for this leg (repeated in conditional section) |
+| `2A00000012345678` | `2A00000012345678` | Frequent flyer / loyalty number |
+| `JAX7KLP2NZR901A` | `JAX7KLP2NZR901A` | Airline-specific free-text data (selectee indicator, document verification, etc.) |
+
+The Delivery microservice is responsible for assembling this string at the point of boarding card generation, drawing on data from the `FlightManifest` row and the confirmed order. The barcode string is returned in the boarding card payload alongside human-readable fields; channels render it using their preferred barcode library (e.g. PDF417 for print, QR for mobile).
 
 ### Data Schema — Delivery
 
@@ -636,7 +678,7 @@ Seat number integrity is enforced at the application layer: before any insert or
 CREATE TABLE delivery.FlightManifest (
     ManifestId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
     InventoryId       UNIQUEIDENTIFIER  NOT NULL,               -- FK ref to offer.FlightInventory (cross-schema; not enforced as DB constraint)
-    FlightNumber      VARCHAR(10)       NOT NULL,               -- denormalised for query convenience, e.g. VS003
+    FlightNumber      VARCHAR(10)       NOT NULL,               -- denormalised for query convenience, e.g. AX003
     DepartureDate     DATE              NOT NULL,               -- denormalised for query convenience
     AircraftType      CHAR(4)           NOT NULL,               -- used for seatmap validation at write time
     SeatNumber        VARCHAR(5)        NOT NULL,               -- e.g. 1A, 22K — must exist on active seatmap for AircraftType
@@ -1015,15 +1057,86 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It no longer reads from or writes to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 
+# Security Principles
+
+All services and data stores in this system must adhere to the following baseline security standards. These apply across all environments (development, staging, production) unless explicitly noted.
+
+## Transport Security
+
+All communication between clients and the platform, and between internal services, must use TLS 1.2 or higher. Unencrypted HTTP must not be accepted on any endpoint in any environment. API Gateway and orchestration layer endpoints must enforce HTTPS and reject downgrade attempts. Internal service-to-service communication within the Azure private network must also use TLS.
+
+## Encryption at Rest
+
+All databases and storage accounts must have encryption at rest enabled using platform-managed keys as a minimum, with customer-managed keys (CMK) via Azure Key Vault required for any store holding personally identifiable information (PII) or payment data. This includes all SQL databases in the shared schema, the Delivery DB, and any blob storage used for boarding card generation or document storage.
+
+## Authentication and Authorisation
+
+Customer-facing APIs (Retail API, Loyalty API) must authenticate travellers using OAuth 2.0 / OpenID Connect with short-lived access tokens. Booking retrieval endpoints (manage booking, check-in) require the traveller to supply booking reference, given name, and surname — these three factors together form the access credential for unauthenticated (guest) flows and must all be validated server-side before any order data is returned. Internal service-to-service calls (orchestration layer to microservices) must use managed identities or scoped API keys; no service should be reachable without authentication. Role-based access control (RBAC) must be applied to internal tooling and airport/contact centre apps.
+
+## PII Handling
+
+Passenger personal data (names, dates of birth, passport numbers, contact details) must be treated as PII and handled in accordance with UK GDPR and any applicable destination-country regulations. PII must not be logged in plain text in application logs or telemetry. Log entries referencing passengers should use anonymised identifiers (e.g. `PassengerId`, `BookingReference`) rather than names or document numbers. Data retention policies must be defined per domain and enforced via automated purge jobs.
+
+## Payment Data
+
+Card data must never be stored or logged by any service other than the Payment microservice and its downstream payment processor. The platform must achieve and maintain PCI DSS compliance for the payment flow. Only the last four digits of a card number and the card type may be stored on the order (as currently defined in `OrderData`). Full card numbers, CVV codes, and raw authorisation tokens must not persist beyond the payment transaction.
+
+## Input Validation and API Hardening
+
+All API inputs must be validated at the orchestration layer before being forwarded to microservices. SQL injection and injection attacks must be mitigated through parameterised queries — no dynamic SQL construction from user input. API rate limiting must be applied to all public-facing endpoints. CORS policies must be explicitly configured and restricted to known channel origins. API contracts must reject unexpected fields (strict schema validation) to prevent mass assignment vulnerabilities.
+
+## Secrets Management
+
+Connection strings, API keys, and credentials must not be stored in source code, configuration files, or environment variables in plain text. All secrets must be stored in Azure Key Vault and accessed at runtime via managed identity. Secret rotation must be supported without requiring redeployment.
+
+## Audit Logging
+
+All state-changing operations (order creation, payment, check-in, manifest writes, PAX updates) must produce an audit log entry including the actor, timestamp, and a summary of the change. Audit logs must be immutable and retained for a minimum of 7 years in line with airline regulatory requirements. Audit logs must be stored separately from application logs and must not be accessible to application-layer services for modification.
+
+## Vulnerability and Dependency Management
+
+All service dependencies (NuGet packages, npm packages) must be kept up to date and scanned for known vulnerabilities as part of the CI/CD pipeline. Critical and high-severity vulnerabilities must block deployment. Penetration testing must be conducted at least annually and after significant architectural changes.
+
+---
+
+# Airline Context — Apex Air
+
+This document describes the reservation system for **Apex Air**, IATA carrier code **AX**. All examples, flight numbers, carrier codes, and loyalty references throughout this document use the `AX` designator.
+
+Apex Air is a premium transatlantic and long-haul carrier operating a fleet of approximately 50 aircraft across three types:
+
+- **Boeing 787-9** (`B789`) — primary long-haul workhorse, used on transatlantic and Asia-Pacific routes
+- **Airbus A330-900** (`A339`) — medium-to-long-haul, used on Caribbean and secondary transatlantic routes
+- **Airbus A350-1000** (`A351`) — flagship widebody, used on high-demand transatlantic and key Asia routes
+
+Apex Air's network is focused on the following key markets:
+
+- **North America** — major gateway cities including New York (JFK), Los Angeles (LAX), Miami (MIA), Chicago (ORD), and Boston (BOS)
+- **Caribbean** — leisure and VFR routes to destinations including Barbados (BGI), Jamaica (KIN), and the Bahamas (NAS)
+- **East Asia** — Hong Kong (HKG), Tokyo (NRT), Shanghai (PVG), and Beijing (PEK)
+- **South-East Asia** — Singapore (SIN)
+- **South Asia** — key Indian cities including Mumbai (BOM), Delhi (DEL), and Bangalore (BLR)
+
+All flights operate from a single UK hub. Apex Air participates in the IATA ONE Order standard and operates a modern retailing architecture as described in this document.
+
+---
+
 # Glossary
 
-- PAX - passenger
-- NDC - New distribution capability (IATA standard)
-- OLCI - Online Check In
-- IROPS - Irregular Operations
-- APIS - Advance Passenger Information System
-- ONE Order - IATA standard for unified order management, replacing the traditional PNR + e-ticket + EMD model
-- Fare Basis Code - an alphanumeric code identifying the rules and pricing of a fare (e.g. YLOWUK, JFLEXGB)
-- Slice - a single directional flight search (outbound or inbound); a return journey comprises two slices
-- OfferId - a unique identifier for a stored offer snapshot returned from a slice search, used to guarantee price integrity through to order creation
-- FlightManifest - the definitive list of passengers on a given flight, including their seat assignments and e-ticket numbers, owned by the Delivery microservice
+- **APIS** — Advance Passenger Information System
+- **BCBP** — Bar Coded Boarding Pass (IATA Resolution 792 standard for boarding pass barcode encoding)
+- **CMK** — Customer-Managed Key
+- **CORS** — Cross-Origin Resource Sharing
+- **GDS** — Global Distribution System
+- **IATA** — International Air Transport Association
+- **IROPS** — Irregular Operations
+- **NDC** — New Distribution Capability (IATA standard)
+- **OLCI** — Online Check In
+- **OTA** — Online Travel Agent
+- **PAX** — Passenger
+- **PCI DSS** — Payment Card Industry Data Security Standard
+- **PII** — Personally Identifiable Information
+- **PNR** — Passenger Name Record
+- **RBAC** — Role-Based Access Control
+- **TLS** — Transport Layer Security
+- **UK GDPR** — United Kingdom General Data Protection Regulation
