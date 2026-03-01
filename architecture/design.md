@@ -593,7 +593,7 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
       "cabinCode": "J",
       "price": 0.00,
       "currency": "GBP",
-      "note": "Upper Class — no charge"
+      "note": "Business Class — no charge"
     },
     {
       "basketItemId": "BI-4",
@@ -1167,7 +1167,7 @@ CREATE INDEX IX_FlightManifest_BookingReference
 
 ### Retrieve Seatmap and Seat Offers
 
-The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing. It provides the physical layout, seat attributes (class, position, extra legroom, etc.), cabin configuration, and the seat offer price for each position type. Seat prices are defined fleet-wide by position — not per flight — and apply uniformly across Premium Economy and Economy cabins. Upper Class seat selection is included in the fare and carries no ancillary charge.
+The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing. It provides the physical layout, seat attributes (class, position, extra legroom, etc.), cabin configuration, and the seat offer price for each position type. Seat prices are defined fleet-wide by position — not per flight — and apply uniformly across Premium Economy and Economy cabins. Business Class seat selection is included in the fare and carries no ancillary charge.
 
 Seat prices are:
 
@@ -1226,7 +1226,7 @@ CREATE INDEX IX_Seatmap_AircraftType
 -- seat.SeatPricing
 -- Fleet-wide seat pricing rules by cabin and seat position.
 -- Applied uniformly across all aircraft and all flights.
--- Upper Class (J/F) seats carry no ancillary charge (included in fare).
+-- Business Class (J/F) seats carry no ancillary charge (included in fare).
 CREATE TABLE seat.SeatPricing (
     SeatPricingId     UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
     CabinCode         CHAR(1)           NOT NULL,   -- W (Premium Economy) | Y (Economy)
@@ -1254,7 +1254,7 @@ CREATE TABLE seat.SeatPricing (
 
 **Example `CabinLayout` JSON document**
 
-The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, physical attributes, and a `seatPrice` derived from `seat.SeatPricing` at the time of seatmap generation. Upper Class seats carry a `seatPrice` of `null` as selection is included in the fare. This structure is consumed directly by the front-end seat picker UI, which overlays real-time availability from the Offer microservice at query time.
+The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, physical attributes, and a `seatPrice` derived from `seat.SeatPricing` at the time of seatmap generation. Business Class seats carry a `seatPrice` of `null` as selection is included in the fare. This structure is consumed directly by the front-end seat picker UI, which overlays real-time availability from the Offer microservice at query time.
 
 ```json
 {
@@ -1264,7 +1264,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
   "cabins": [
     {
       "cabinCode": "J",
-      "cabinName": "Upper Class",
+      "cabinName": "Business Class",
       "deckLevel": "Main",
       "startRow": 1,
       "endRow": 8,
@@ -1749,7 +1749,7 @@ CREATE INDEX IX_RefreshToken_UserAccount
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
 - **Basket lifecycle:** The basket is the authoritative pre-sale state and lives entirely in the Order DB (`order.Basket`). It is created at the start of checkout, accumulates flight offers, seat offers, and PAX details, and is hard-deleted on successful order confirmation. If abandoned or expired, a background job releases held inventory and marks the basket `Expired`. The `TicketingTimeLimit` (default 24 hours, configurable via `order.BasketConfig`) is the latest time by which payment must complete; the `ExpiresAt` is the latest time the basket itself is considered valid. Both are evaluated before authorisation is attempted.
 - **Payment DB:** The Payment microservice owns its own `payment.*` schema. The `PaymentReference` (e.g. `AXPAY-0001`) is the shared key between the Payment DB and the Order microservice — it is stored on each `orderItem` in `OrderData` to link order lines to their payment transactions. Multiple `PaymentReference` values may exist per booking (one per ancillary payment type). The full card token used during authorisation is never persisted; only `CardLast4` and `CardType` are stored.
-- **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Upper Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
+- **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 
