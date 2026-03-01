@@ -4,15 +4,16 @@
 
 This outlines the design for an airline reservation system based on offer and order capability (Modern Airline Retailing).
 
-The system will ahve the following core concepts.
+The system will have the following core concepts.
 
-- Offer - returngs availability and pricing of the airlines flights
+- Offer - returns availability and pricing of the airlines flights
 - Order - creates orders (bookings on the plane) based on the offer, with passenger information included, and takes payment
 - Payment - payment orchestration, supporting at first credit card payments but in future other payment methods like PayPal and ApplePay.
-- Servicing - chagne and cancel of orders
+- Servicing - change and cancel of orders
 - Delivery - Akin to departure control, including online check in (OLCI), irregular operations (IROPS), seat allocation, gate management
 - Customer - loyalty accounts for customers - with customer details, points balances, and transaction (historical and future orders)
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
+- Seat - manages seatmap definitions per aircraft type; provides seatmap views to other services and channels (does not manage seat selection or inventory)
 
 Please note (these one-name capability 'domain names' should be used for domain naming in the code)
 
@@ -71,6 +72,11 @@ graph TB
             ACCOUNTING[Accounting]
             ACCOUNTING_DB[(Accounting DB)]
         end
+
+        subgraph SEAT_SVC["Seat Service"]
+            SEAT[Seat]
+            SEAT_DB[(Seat DB)]
+        end
     end
 
     subgraph Events["Event Bus"]
@@ -84,9 +90,9 @@ graph TB
     ACCT_CH --> ACCOUNTING_API
 
     %% Orchestration → Microservices
-    RETAIL_API --> OFFER & ORDER & PAYMENT & SERVICING & DELIVERY & CUSTOMER
+    RETAIL_API --> OFFER & ORDER & PAYMENT & SERVICING & DELIVERY & CUSTOMER & SEAT
     LOYALTY_API --> CUSTOMER
-    AIRPORT_API --> SERVICING & DELIVERY & CUSTOMER
+    AIRPORT_API --> SERVICING & DELIVERY & CUSTOMER & SEAT
     ACCOUNTING_API --> ACCOUNTING
 
     %% Microservice → DB
@@ -97,6 +103,7 @@ graph TB
     DELIVERY --> ORDER_DB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
+    SEAT --> SEAT_DB
 
     %% Eventing to Accounting
     ORDER & SERVICING --> EVT
@@ -106,15 +113,15 @@ graph TB
 
 Key components:
 
-- Cannels
+- Channels
   - Web
-  - App 
+  - App
   - NDC (XML APIs based on IATA NDC standard for GDS and other airlines (OTAs) to connect to)
-  - Kisok (self service airport check in terminals)
+  - Kiosk (self service airport check in terminals)
   - Contact Centre App (for new bookings, IROPS management, customer account management)
   - Airport App (for airport staff to manage non-OLCI check in, and gate management, seat assignment, etc)
   - Accounting System App
-- Orchestration APIs (these act as the APIS to connect the channels to the microservices)
+- Orchestration APIs (these act as the APIs to connect the channels to the microservices)
   - Retail API (for web, app, NDC, kiosk, contact centre app, airport app)
   - Loyalty API (for web, app, contact centre)
   - Airport API (for Airport App)
@@ -123,18 +130,19 @@ Key components:
   - Offer
     - Inventory DB
   - Order
-     - Order DB
+    - Order DB
   - Payment
     - Payment DB
   - Servicing
-     - CUses Order DB
+    - Uses Order DB
   - Delivery
-     - CUses Order DB
+    - Uses Order DB
   - Customer
-     - Custtomer DB
-  - Accounting (orders and changes should be evented to this microserivce from Order and Servicing microservuces)
-     - Accounting DB
-   
+    - Customer DB
+  - Accounting (orders and changes should be evented to this microservice from Order and Servicing microservices)
+    - Accounting DB
+  - Seat (manages seatmap definitions per aircraft type; provides seatmap views only — seat selection and inventory remain with Offer)
+    - Seat DB
 
 
 # Capability
@@ -227,7 +235,7 @@ sequenceDiagram
 
 ```
 
-## Servicing 
+## Servicing
 
 ### Manage booking - update PAX details
 
@@ -270,6 +278,7 @@ sequenceDiagram
     participant Web
     participant RetailAPI as Retail API
     participant ServicingMS as Servicing [MS]
+    participant SeatMS as Seat [MS]
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
@@ -282,9 +291,11 @@ sequenceDiagram
     RetailAPI-->>Web: Display current booking and seat map
 
     Web->>RetailAPI: GET /flights/{flightId}/seatmap
-    RetailAPI->>OfferMS: Retrieve seat map and availability (flight ID)
-    OfferMS-->>RetailAPI: Seat map with available and occupied seats
-    RetailAPI-->>Web: Display seat map
+    RetailAPI->>SeatMS: Retrieve seatmap definition (aircraft type)
+    SeatMS-->>RetailAPI: Seatmap layout and configuration
+    RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
+    OfferMS-->>RetailAPI: Available and occupied seats
+    RetailAPI-->>Web: Display seat map (layout from Seat MS, availability from Offer MS)
 
     Traveller->>Web: Select seat(s) for each PAX
 
@@ -346,13 +357,36 @@ sequenceDiagram
 
 ```
 
+## Seat
+
+### Retrieve Seatmap
+
+The Seat microservice is the system of record for aircraft seatmap definitions, organised by aircraft type (e.g. A350, B787). It provides the physical layout, seat attributes (class, position, extra legroom, etc.) and cabin configuration. It does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
+
+```mermaid
+
+sequenceDiagram
+    participant RetailAPI as Retail API
+    participant SeatMS as Seat [MS]
+    participant SeatDB as Seat DB
+
+    RetailAPI->>SeatMS: GET /seatmap/{aircraftType}
+    SeatMS->>SeatDB: Retrieve seatmap definition (aircraft type)
+    SeatDB-->>SeatMS: Seatmap rows, seats, cabin zones, seat attributes
+    SeatMS-->>RetailAPI: Seatmap definition (layout, cabin config, seat metadata)
+
+```
+
 # Technical Considerations
 
 - Microservices built in C# as Azure Functions (isolated)
-- Databases will be built in Microsoft SQL.  Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains seperated logically using the domain names and the schema.
-- Font end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
+- Databases will be built in Microsoft SQL. Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains separated logically using the domain names and the schema.
+- Front end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
 
 # Glossary
 
 - PAX - passenger
 - NDC - New distribution capability (IATA standard)
+- OLCI - Online Check In
+- IROPS - Irregular Operations
+- APIS - Advance Passenger Information System
