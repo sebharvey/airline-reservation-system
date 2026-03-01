@@ -15,12 +15,11 @@ The system will have the following core concepts.
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
 - Seat - manages seatmap definitions per aircraft type; provides seatmap views to other services and channels (does not manage seat selection or inventory)
 
-Please note (these one-name capability 'domain names' should be used for domain naming in the code)
+Please note (these one-name capability ‘domain names’ should be used for domain naming in the code)
 
 ## High level system architecture
 
 ```mermaid
-
 graph TB
     subgraph Channels
         WEB[🌐 Web]
@@ -108,7 +107,6 @@ graph TB
     %% Eventing to Accounting
     ORDER & SERVICING --> EVT
     EVT --> ACCOUNTING
-
 ```
 
 Key components:
@@ -144,13 +142,11 @@ Key components:
   - Seat (manages seatmap definitions per aircraft type; provides seatmap views only — seat selection and inventory remain with Offer)
     - Seat DB
 
-
 # Capability
 
 ## Offer
 
 ```mermaid
-
 sequenceDiagram
     actor Traveller
     participant Web
@@ -181,7 +177,6 @@ sequenceDiagram
     RetailAPI-->>Web: Basket confirmed (Basket ID, itinerary, total price)
 
     Web-->>Traveller: Display basket summary — ready to proceed to booking
-
 ```
 
 ### Data Schema — Offer
@@ -197,7 +192,7 @@ CREATE TABLE offer.FlightInventory (
     DepartureDate     DATE              NOT NULL,
     Origin            CHAR(3)           NOT NULL,   -- IATA airport code
     Destination       CHAR(3)           NOT NULL,
-    AircraftType      VARCHAR(10)       NOT NULL,   -- e.g. A350, B787
+    AircraftType      VARCHAR(4)        NOT NULL,   -- IATA-style 4-char code: manufacturer prefix + 3-digit variant, e.g. A351, B789
     CabinCode         CHAR(1)           NOT NULL,   -- F, J, W, Y
     TotalSeats        SMALLINT          NOT NULL,
     SeatsAvailable    SMALLINT          NOT NULL,
@@ -230,14 +225,13 @@ CREATE TABLE offer.Fare (
 );
 ```
 
----
+-----
 
 ## Order
 
 ### Create
 
 ```mermaid
-
 sequenceDiagram
     actor Traveller
     participant Web
@@ -280,7 +274,6 @@ sequenceDiagram
 
     RetailAPI-->>Web: Booking confirmed (booking reference, e-ticket numbers)
     Web-->>Traveller: Display booking confirmation
-
 ```
 
 ### Data Schema — Order
@@ -371,7 +364,7 @@ The JSON structure is aligned to IATA ONE Order concepts: an Order contains one 
         "destination": "JFK",
         "departureDateTime": "2025-08-15T11:00:00Z",
         "arrivalDateTime": "2025-08-15T14:10:00Z",
-        "aircraftType": "A350",
+        "aircraftType": "A351",
         "operatingCarrier": "VS",
         "marketingCarrier": "VS",
         "cabinCode": "J",
@@ -384,7 +377,7 @@ The JSON structure is aligned to IATA ONE Order concepts: an Order contains one 
         "destination": "LHR",
         "departureDateTime": "2025-08-25T22:00:00Z",
         "arrivalDateTime": "2025-08-26T10:15:00Z",
-        "aircraftType": "A350",
+        "aircraftType": "A351",
         "operatingCarrier": "VS",
         "marketingCarrier": "VS",
         "cabinCode": "J",
@@ -455,14 +448,13 @@ The JSON structure is aligned to IATA ONE Order concepts: an Order contains one 
 }
 ```
 
----
+-----
 
 ## Servicing
 
 ### Manage booking - update PAX details
 
 ```mermaid
-
 sequenceDiagram
     actor Traveller
     participant Web
@@ -488,13 +480,11 @@ sequenceDiagram
 
     RetailAPI-->>Web: Update confirmed (booking reference, updated e-ticket numbers)
     Web-->>Traveller: Display updated booking confirmation
-
 ```
 
 ### Manage booking - select or update seat selection
 
 ```mermaid
-
 sequenceDiagram
     actor Traveller
     participant Web
@@ -537,7 +527,6 @@ sequenceDiagram
 
     Note over ServicingMS, AccountingMS: Async event
     ServicingMS-)AccountingMS: OrderServiced event (booking reference, seat change details)
-
 ```
 
 ## Delivery
@@ -545,7 +534,6 @@ sequenceDiagram
 ### Online Check In
 
 ```mermaid
-
 sequenceDiagram
     actor Traveller
     participant Web
@@ -576,17 +564,15 @@ sequenceDiagram
 
     RetailAPI-->>Web: Check-in confirmed (boarding cards)
     Web-->>Traveller: Display and offer download of boarding cards
-
 ```
 
 ## Seat
 
 ### Retrieve Seatmap
 
-The Seat microservice is the system of record for aircraft seatmap definitions, organised by aircraft type (e.g. A350, B787). It provides the physical layout, seat attributes (class, position, extra legroom, etc.) and cabin configuration. It does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
+The Seat microservice is the system of record for aircraft seatmap definitions, organised by aircraft type (e.g. A351, B789). It provides the physical layout, seat attributes (class, position, extra legroom, etc.) and cabin configuration. It does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
 
 ```mermaid
-
 sequenceDiagram
     participant RetailAPI as Retail API
     participant SeatMS as Seat [MS]
@@ -596,20 +582,19 @@ sequenceDiagram
     SeatMS->>SeatDB: Retrieve seatmap definition (aircraft type)
     SeatDB-->>SeatMS: Seatmap rows, seats, cabin zones, seat attributes
     SeatMS-->>RetailAPI: Seatmap definition (layout, cabin config, seat metadata)
-
 ```
 
 ### Data Schema — Seat
 
-The Seat domain uses two relational tables: `AircraftType` as the root reference record, and `Seatmap` which holds one row per active aircraft configuration. The cabin layout and all seat definitions are stored as a JSON document in the `CabinLayout` column. This is well-suited to JSON storage as the layout is a hierarchical, read-heavy document that varies significantly by aircraft type and is consumed whole by the front-end seat picker rather than queried row-by-row.
+The Seat domain uses two relational tables: `AircraftType` as the root reference record, and `Seatmap` which holds one row per active aircraft configuration. The cabin layout and all seat definitions are stored as a JSON document in the `CabinLayout` column. This is well-suited to JSON storage as the layout is a hierarchical, read-heavy document that varies significantly by aircraft type and is consumed whole by the front-end seat picker rather than queried row-by-row. Aircraft type codes follow the 4-character convention defined in Technical Considerations (e.g. `A351`, `B789`).
 
 ```sql
 -- seat.AircraftType
 -- Reference table of aircraft types operated by the airline
 CREATE TABLE seat.AircraftType (
-    AircraftTypeCode  VARCHAR(10)       NOT NULL PRIMARY KEY,  -- e.g. A350, B787-9
+    AircraftTypeCode  CHAR(4)           NOT NULL PRIMARY KEY,  -- 4-char code: manufacturer prefix + 3-digit variant, e.g. A351 (A350-1000), B789 (B787-900)
     Manufacturer      VARCHAR(50)       NOT NULL,              -- e.g. Airbus, Boeing
-    FriendlyName      VARCHAR(100)      NULL,                  -- e.g. Airbus A350-1000
+    FriendlyName      VARCHAR(100)      NULL,                  -- e.g. Airbus A350-1000, Boeing 787-900
     TotalSeats        SMALLINT          NOT NULL,
     IsActive          BIT               NOT NULL DEFAULT 1
 );
@@ -618,7 +603,7 @@ CREATE TABLE seat.AircraftType (
 -- One row per active aircraft configuration. CabinLayout holds the full seatmap as JSON.
 CREATE TABLE seat.Seatmap (
     SeatmapId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    AircraftTypeCode  VARCHAR(10)       NOT NULL REFERENCES seat.AircraftType(AircraftTypeCode),
+    AircraftTypeCode  CHAR(4)           NOT NULL REFERENCES seat.AircraftType(AircraftTypeCode),
     Version           INT               NOT NULL DEFAULT 1,
     IsActive          BIT               NOT NULL DEFAULT 1,
     UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
@@ -638,7 +623,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 
 ```json
 {
-  "aircraftType": "A350",
+  "aircraftType": "A351",
   "version": 1,
   "totalSeats": 258,
   "cabins": [
@@ -909,14 +894,15 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 
 > **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is overlaid at query time from `offer.FlightInventory` and is never stored here.
 
----
+-----
 
 # Technical Considerations
 
 - Microservices built in C# as Azure Functions (isolated)
 - Databases will be built in Microsoft SQL. Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains separated logically using the domain names and the schema.
 - Front end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
-- JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
+- **Aircraft type codes** are represented as a 4-character code consisting of the manufacturer prefix followed by a 3-digit variant number. The third digit encodes the specific variant. For example: A350-1000 → `A351`, A350-900 → `A359`, B787-900 → `B789`, B787-10 → `B781`. This convention is consistent with IATA SSIM aircraft designator standards and must be used uniformly across all services, databases, and API contracts.
+- JSON columns (`OrderData`, `CabinLayout`) use SQL Server’s native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 
 # Glossary
 
