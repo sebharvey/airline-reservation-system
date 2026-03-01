@@ -60,6 +60,7 @@ graph TB
 
         subgraph DELIVERY_SVC["Delivery Service"]
             DELIVERY[Delivery]
+            DELIVERY_DB[(Delivery DB)]
         end
 
         subgraph CUSTOMER_SVC["Customer Service"]
@@ -99,7 +100,7 @@ graph TB
     ORDER --> ORDER_DB
     PAYMENT --> PAYMENT_DB
     SERVICING --> ORDER_DB
-    DELIVERY --> ORDER_DB
+    DELIVERY --> DELIVERY_DB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
     SEAT --> SEAT_DB
@@ -134,7 +135,7 @@ Key components:
   - Servicing
     - Uses Order DB
   - Delivery
-    - Uses Order DB
+    - Delivery DB
   - Customer
     - Customer DB
   - Accounting (orders and changes should be evented to this microservice from Order and Servicing microservices)
@@ -316,6 +317,9 @@ sequenceDiagram
 
     RetailAPI->>OrderMS: Confirm order (e-ticket numbers, booking reference)
     OrderMS-->>RetailAPI: Order confirmed (6-digit booking reference)
+
+    RetailAPI->>DeliveryMS: Write manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per flight segment)
+    DeliveryMS-->>RetailAPI: Manifest entries written
 
     Note over OrderMS, AccountingMS: Async event
     OrderMS-)AccountingMS: OrderConfirmed event (booking reference, amount, e-tickets)
@@ -567,6 +571,9 @@ sequenceDiagram
     RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated seat assignments)
     DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
 
+    RetailAPI->>DeliveryMS: Update manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per affected PAX per flight segment)
+    DeliveryMS-->>RetailAPI: Manifest entries updated
+
     RetailAPI-->>Web: Seat selection confirmed (booking reference, updated e-tickets)
     Web-->>Traveller: Display updated booking confirmation with seat assignments
 
@@ -610,6 +617,58 @@ sequenceDiagram
     RetailAPI-->>Web: Check-in confirmed (boarding cards)
     Web-->>Traveller: Display and offer download of boarding cards
 ```
+
+### Data Schema — Delivery
+
+The Delivery domain owns its own `Delivery DB` and is the system of record for who is on each flight and where they are sitting. The `FlightManifest` table holds one row per passenger per flight segment, populated at the point of booking confirmation and updated whenever a seat is changed post-purchase. It provides a clean, queryable view of the passenger load for a given flight — used for gate management, check-in verification, IROPS, and regulatory APIS submissions.
+
+Seat number integrity is enforced at the application layer: before any insert or update, the Delivery microservice calls the Seat microservice to validate that the given `SeatNumber` exists on the active seatmap for the relevant aircraft type. Rows may not be written with a seat number that does not appear in the seatmap definition. This prevents manifest corruption from downstream data entry errors or stale seat references.
+
+```sql
+-- delivery.FlightManifest
+-- One row per passenger per flight segment. Written at booking confirmation;
+-- updated on any post-purchase seat change. SeatNumber must be a valid seat
+-- from the active seatmap for the aircraft type — validated at application layer
+-- before insert or update.
+CREATE TABLE delivery.FlightManifest (
+    ManifestId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    InventoryId       UNIQUEIDENTIFIER  NOT NULL,               -- FK ref to offer.FlightInventory (cross-schema; not enforced as DB constraint)
+    FlightNumber      VARCHAR(10)       NOT NULL,               -- denormalised for query convenience, e.g. VS003
+    DepartureDate     DATE              NOT NULL,               -- denormalised for query convenience
+    AircraftType      CHAR(4)           NOT NULL,               -- used for seatmap validation at write time
+    SeatNumber        VARCHAR(5)        NOT NULL,               -- e.g. 1A, 22K — must exist on active seatmap for AircraftType
+    CabinCode         CHAR(1)           NOT NULL,               -- F, J, W, Y
+    BookingReference  CHAR(6)           NOT NULL,               -- e.g. AB1234
+    ETicketNumber     VARCHAR(20)       NOT NULL,               -- e.g. 932-1234567890
+    PassengerId       VARCHAR(20)       NOT NULL,               -- PAX reference from the order, e.g. PAX-1
+    GivenName         VARCHAR(100)      NOT NULL,               -- denormalised for manifest readability
+    Surname           VARCHAR(100)      NOT NULL,               -- denormalised for manifest readability
+    CheckedIn         BIT               NOT NULL DEFAULT 0,
+    CheckedInAt       DATETIME2         NULL,
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+-- Unique constraint: one seat per flight per manifest (prevents double-assignment)
+CREATE UNIQUE INDEX IX_FlightManifest_Seat
+    ON delivery.FlightManifest (InventoryId, SeatNumber);
+
+-- Unique constraint: one manifest entry per PAX per flight
+CREATE UNIQUE INDEX IX_FlightManifest_Pax
+    ON delivery.FlightManifest (InventoryId, ETicketNumber);
+
+-- Index to support fast flight-level manifest retrieval (gate staff, IROPS)
+CREATE INDEX IX_FlightManifest_Flight
+    ON delivery.FlightManifest (FlightNumber, DepartureDate);
+
+-- Index to support lookup by booking reference (customer servicing, check-in)
+CREATE INDEX IX_FlightManifest_BookingReference
+    ON delivery.FlightManifest (BookingReference);
+```
+
+> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
+
+> **Seatmap validation:** The Delivery microservice must call `GET /seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
 
 ## Seat
 
@@ -950,6 +1009,8 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 - **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
+- **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It no longer reads from or writes to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
+- **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 
 # Glossary
 
@@ -962,3 +1023,4 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - Fare Basis Code - an alphanumeric code identifying the rules and pricing of a fare (e.g. YLOWUK, JFLEXGB)
 - Slice - a single directional flight search (outbound or inbound); a return journey comprises two slices
 - OfferId - a unique identifier for a stored offer snapshot returned from a slice search, used to guarantee price integrity through to order creation
+- FlightManifest - the definitive list of passengers on a given flight, including their seat assignments and e-ticket numbers, owned by the Delivery microservice
