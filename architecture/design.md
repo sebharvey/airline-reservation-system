@@ -611,6 +611,9 @@ sequenceDiagram
     RetailAPI->>OfferMS: Update seat inventory status to checked-in (flight ID, seat numbers)
     OfferMS-->>RetailAPI: Inventory updated
 
+    RetailAPI->>DeliveryMS: Update manifest check-in status (bookingReference, PAX IDs, checkedIn=true, checkedInAt=now)
+    DeliveryMS-->>RetailAPI: Manifest entries updated
+
     RetailAPI->>DeliveryMS: Generate boarding cards (booking reference, PAX list, seats, flights)
     DeliveryMS-->>RetailAPI: Boarding cards generated (one per PAX per flight)
 
