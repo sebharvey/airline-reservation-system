@@ -1,1 +1,353 @@
 
+{
+  "aircraftType": "A339",
+  "version": 1,
+  "totalSeats": 326,
+  "cabins": [
+    {
+      "cabinCode": "J",
+      "cabinName": "Business Class",
+      "deckLevel": "Main",
+      "startRow": 1,
+      "endRow": 10,
+      "columns": ["A", "D", "G", "K"],
+      "layout": "1-2-1",
+      "facilitiesForward": [
+        { "type": "Galley", "position": "Forward" },
+        { "type": "Toilet", "position": "Forward-Left" },
+        { "type": "Toilet", "position": "Forward-Right" },
+        { "type": "Exit", "position": "Forward-Left" },
+        { "type": "Exit", "position": "Forward-Right" }
+      ],
+      "facilitiesAft": [
+        { "type": "Toilet", "position": "Aft-Left" },
+        { "type": "Toilet", "position": "Aft-Right" },
+        { "type": "Galley", "position": "Aft" }
+      ],
+      "rows": [
+        {
+          "rowNumber": 1,
+          "seats": [
+            { "seatNumber": "1A", "column": "A", "type": "Suite", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "1D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "1G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "1K", "column": "K", "type": "Suite", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "seats": [
+            { "seatNumber": "2A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "2D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "2G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "2K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 3,
+          "seats": [
+            { "seatNumber": "3A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "3D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "3G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "3K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 4,
+          "seats": [
+            { "seatNumber": "4A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "4D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "4G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "4K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 5,
+          "seats": [
+            { "seatNumber": "5A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "5D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "5G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "5K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 6,
+          "seats": [
+            { "seatNumber": "6A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "6D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "6G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "6K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 7,
+          "seats": [
+            { "seatNumber": "7A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "7D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "7G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "7K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 8,
+          "seats": [
+            { "seatNumber": "8A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "8D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "8G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "8K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 9,
+          "seats": [
+            { "seatNumber": "9A", "column": "A", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "9D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "9G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "9K", "column": "K", "type": "Suite", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        },
+        {
+          "rowNumber": 10,
+          "seats": [
+            { "seatNumber": "10A", "column": "A", "type": "Suite", "position": "Window", "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "10D", "column": "D", "type": "Suite", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "10G", "column": "G", "type": "Suite", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": null, "seatPrice": null },
+            { "seatNumber": "10K", "column": "K", "type": "Suite", "position": "Window", "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": null, "seatPrice": null }
+          ]
+        }
+      ]
+    },
+    {
+      "cabinCode": "W",
+      "cabinName": "Premium Economy",
+      "deckLevel": "Main",
+      "startRow": 20,
+      "endRow": 27,
+      "columns": ["A", "B", "D", "E", "F", "H", "K"],
+      "layout": "2-3-2",
+      "facilitiesForward": [
+        { "type": "Galley", "position": "Forward-Left" },
+        { "type": "Galley", "position": "Forward-Right" },
+        { "type": "Toilet", "position": "Forward-Left" },
+        { "type": "Toilet", "position": "Forward-Right" },
+        { "type": "Exit", "position": "Forward-Left" },
+        { "type": "Exit", "position": "Forward-Right" }
+      ],
+      "facilitiesAft": [
+        { "type": "Galley", "position": "Aft" },
+        { "type": "Toilet", "position": "Aft-Left" },
+        { "type": "Toilet", "position": "Aft-Right" }
+      ],
+      "rows": [
+        {
+          "rowNumber": 20,
+          "seats": [
+            { "seatNumber": "20A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "20B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "20D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "20E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "20F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "20H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "20K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-20K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 21,
+          "seats": [
+            { "seatNumber": "21A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "21B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "21D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "21E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "21F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "21H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "21K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-21K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 22,
+          "seats": [
+            { "seatNumber": "22A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "22B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "22D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "22E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "22F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "22H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "22K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-22K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 23,
+          "seats": [
+            { "seatNumber": "23A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "23B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "23D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "23E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "23F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "23H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "23K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-23K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 24,
+          "seats": [
+            { "seatNumber": "24A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "24B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "24D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "24E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "24F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "24H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "24K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-24K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 25,
+          "seats": [
+            { "seatNumber": "25A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "25B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "25D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "25E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "25F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "25H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "25K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-25K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 26,
+          "seats": [
+            { "seatNumber": "26A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "26B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "26D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "26E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "26F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "26H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "26K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-26K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 27,
+          "seats": [
+            { "seatNumber": "27A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "27B", "column": "B", "type": "Standard", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27B-v1", "seatPrice": 50.00 },
+            { "seatNumber": "27D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "27E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "27F", "column": "F", "type": "Standard", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27F-v1", "seatPrice": 50.00 },
+            { "seatNumber": "27H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "27K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-27K-v1", "seatPrice": 70.00 }
+          ]
+        }
+      ]
+    },
+    {
+      "cabinCode": "Y",
+      "cabinName": "Economy",
+      "deckLevel": "Main",
+      "startRow": 33,
+      "endRow": 55,
+      "columns": ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K"],
+      "layout": "3-4-3",
+      "facilitiesForward": [
+        { "type": "Galley", "position": "Forward-Left" },
+        { "type": "Galley", "position": "Forward-Right" },
+        { "type": "Toilet", "position": "Forward-Left" },
+        { "type": "Toilet", "position": "Forward-Right" },
+        { "type": "Exit", "position": "Forward-Left" },
+        { "type": "Exit", "position": "Forward-Right" }
+      ],
+      "facilitiesMidCabin": [
+        { "type": "Exit", "position": "Mid-Left", "atRow": 44 },
+        { "type": "Exit", "position": "Mid-Right", "atRow": 44 },
+        { "type": "Toilet", "position": "Mid-Left", "atRow": 44 },
+        { "type": "Toilet", "position": "Mid-Right", "atRow": 44 }
+      ],
+      "facilitiesAft": [
+        { "type": "Galley", "position": "Aft-Left" },
+        { "type": "Galley", "position": "Aft-Right" },
+        { "type": "Toilet", "position": "Aft-Left" },
+        { "type": "Toilet", "position": "Aft-Centre-Left" },
+        { "type": "Toilet", "position": "Aft-Centre-Right" },
+        { "type": "Toilet", "position": "Aft-Right" }
+      ],
+      "rows": [
+        {
+          "rowNumber": 33,
+          "seats": [
+            { "seatNumber": "33A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "33B", "column": "B", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33B-v1", "seatPrice": 20.00 },
+            { "seatNumber": "33C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33C-v1", "seatPrice": 50.00 },
+            { "seatNumber": "33D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "33E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "33F", "column": "F", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33F-v1", "seatPrice": 20.00 },
+            { "seatNumber": "33G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33G-v1", "seatPrice": 50.00 },
+            { "seatNumber": "33H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "33J", "column": "J", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33J-v1", "seatPrice": 20.00 },
+            { "seatNumber": "33K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "BulkheadForward"], "isSelectable": true, "seatOfferId": "so-a339-33K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        { "rowNumber": 34, "seats": [ { "seatNumber": "34A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34A-v1", "seatPrice": 70.00 }, { "seatNumber": "34B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34B-v1", "seatPrice": 20.00 }, { "seatNumber": "34C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34C-v1", "seatPrice": 50.00 }, { "seatNumber": "34D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34D-v1", "seatPrice": 50.00 }, { "seatNumber": "34E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34E-v1", "seatPrice": 20.00 }, { "seatNumber": "34F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34F-v1", "seatPrice": 20.00 }, { "seatNumber": "34G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34G-v1", "seatPrice": 50.00 }, { "seatNumber": "34H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34H-v1", "seatPrice": 50.00 }, { "seatNumber": "34J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34J-v1", "seatPrice": 20.00 }, { "seatNumber": "34K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-34K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 35, "seats": [ { "seatNumber": "35A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35A-v1", "seatPrice": 70.00 }, { "seatNumber": "35B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35B-v1", "seatPrice": 20.00 }, { "seatNumber": "35C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35C-v1", "seatPrice": 50.00 }, { "seatNumber": "35D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35D-v1", "seatPrice": 50.00 }, { "seatNumber": "35E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35E-v1", "seatPrice": 20.00 }, { "seatNumber": "35F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35F-v1", "seatPrice": 20.00 }, { "seatNumber": "35G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35G-v1", "seatPrice": 50.00 }, { "seatNumber": "35H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35H-v1", "seatPrice": 50.00 }, { "seatNumber": "35J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35J-v1", "seatPrice": 20.00 }, { "seatNumber": "35K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-35K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 36, "seats": [ { "seatNumber": "36A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36A-v1", "seatPrice": 70.00 }, { "seatNumber": "36B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36B-v1", "seatPrice": 20.00 }, { "seatNumber": "36C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36C-v1", "seatPrice": 50.00 }, { "seatNumber": "36D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36D-v1", "seatPrice": 50.00 }, { "seatNumber": "36E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36E-v1", "seatPrice": 20.00 }, { "seatNumber": "36F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36F-v1", "seatPrice": 20.00 }, { "seatNumber": "36G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36G-v1", "seatPrice": 50.00 }, { "seatNumber": "36H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36H-v1", "seatPrice": 50.00 }, { "seatNumber": "36J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36J-v1", "seatPrice": 20.00 }, { "seatNumber": "36K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-36K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 37, "seats": [ { "seatNumber": "37A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37A-v1", "seatPrice": 70.00 }, { "seatNumber": "37B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37B-v1", "seatPrice": 20.00 }, { "seatNumber": "37C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37C-v1", "seatPrice": 50.00 }, { "seatNumber": "37D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37D-v1", "seatPrice": 50.00 }, { "seatNumber": "37E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37E-v1", "seatPrice": 20.00 }, { "seatNumber": "37F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37F-v1", "seatPrice": 20.00 }, { "seatNumber": "37G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37G-v1", "seatPrice": 50.00 }, { "seatNumber": "37H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37H-v1", "seatPrice": 50.00 }, { "seatNumber": "37J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37J-v1", "seatPrice": 20.00 }, { "seatNumber": "37K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-37K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 38, "seats": [ { "seatNumber": "38A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38A-v1", "seatPrice": 70.00 }, { "seatNumber": "38B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38B-v1", "seatPrice": 20.00 }, { "seatNumber": "38C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38C-v1", "seatPrice": 50.00 }, { "seatNumber": "38D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38D-v1", "seatPrice": 50.00 }, { "seatNumber": "38E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38E-v1", "seatPrice": 20.00 }, { "seatNumber": "38F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38F-v1", "seatPrice": 20.00 }, { "seatNumber": "38G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38G-v1", "seatPrice": 50.00 }, { "seatNumber": "38H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38H-v1", "seatPrice": 50.00 }, { "seatNumber": "38J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38J-v1", "seatPrice": 20.00 }, { "seatNumber": "38K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-38K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 39, "seats": [ { "seatNumber": "39A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39A-v1", "seatPrice": 70.00 }, { "seatNumber": "39B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39B-v1", "seatPrice": 20.00 }, { "seatNumber": "39C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39C-v1", "seatPrice": 50.00 }, { "seatNumber": "39D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39D-v1", "seatPrice": 50.00 }, { "seatNumber": "39E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39E-v1", "seatPrice": 20.00 }, { "seatNumber": "39F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39F-v1", "seatPrice": 20.00 }, { "seatNumber": "39G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39G-v1", "seatPrice": 50.00 }, { "seatNumber": "39H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39H-v1", "seatPrice": 50.00 }, { "seatNumber": "39J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39J-v1", "seatPrice": 20.00 }, { "seatNumber": "39K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-39K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 40, "seats": [ { "seatNumber": "40A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40A-v1", "seatPrice": 70.00 }, { "seatNumber": "40B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40B-v1", "seatPrice": 20.00 }, { "seatNumber": "40C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40C-v1", "seatPrice": 50.00 }, { "seatNumber": "40D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40D-v1", "seatPrice": 50.00 }, { "seatNumber": "40E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40E-v1", "seatPrice": 20.00 }, { "seatNumber": "40F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40F-v1", "seatPrice": 20.00 }, { "seatNumber": "40G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40G-v1", "seatPrice": 50.00 }, { "seatNumber": "40H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40H-v1", "seatPrice": 50.00 }, { "seatNumber": "40J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40J-v1", "seatPrice": 20.00 }, { "seatNumber": "40K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-40K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 41, "seats": [ { "seatNumber": "41A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41A-v1", "seatPrice": 70.00 }, { "seatNumber": "41B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41B-v1", "seatPrice": 20.00 }, { "seatNumber": "41C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41C-v1", "seatPrice": 50.00 }, { "seatNumber": "41D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41D-v1", "seatPrice": 50.00 }, { "seatNumber": "41E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41E-v1", "seatPrice": 20.00 }, { "seatNumber": "41F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41F-v1", "seatPrice": 20.00 }, { "seatNumber": "41G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41G-v1", "seatPrice": 50.00 }, { "seatNumber": "41H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41H-v1", "seatPrice": 50.00 }, { "seatNumber": "41J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41J-v1", "seatPrice": 20.00 }, { "seatNumber": "41K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-41K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 42, "seats": [ { "seatNumber": "42A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42A-v1", "seatPrice": 70.00 }, { "seatNumber": "42B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42B-v1", "seatPrice": 20.00 }, { "seatNumber": "42C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42C-v1", "seatPrice": 50.00 }, { "seatNumber": "42D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42D-v1", "seatPrice": 50.00 }, { "seatNumber": "42E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42E-v1", "seatPrice": 20.00 }, { "seatNumber": "42F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42F-v1", "seatPrice": 20.00 }, { "seatNumber": "42G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42G-v1", "seatPrice": 50.00 }, { "seatNumber": "42H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42H-v1", "seatPrice": 50.00 }, { "seatNumber": "42J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42J-v1", "seatPrice": 20.00 }, { "seatNumber": "42K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-42K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 43, "seats": [ { "seatNumber": "43A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43A-v1", "seatPrice": 70.00 }, { "seatNumber": "43B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43B-v1", "seatPrice": 20.00 }, { "seatNumber": "43C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43C-v1", "seatPrice": 50.00 }, { "seatNumber": "43D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43D-v1", "seatPrice": 50.00 }, { "seatNumber": "43E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43E-v1", "seatPrice": 20.00 }, { "seatNumber": "43F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43F-v1", "seatPrice": 20.00 }, { "seatNumber": "43G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43G-v1", "seatPrice": 50.00 }, { "seatNumber": "43H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43H-v1", "seatPrice": 50.00 }, { "seatNumber": "43J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43J-v1", "seatPrice": 20.00 }, { "seatNumber": "43K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-43K-v1", "seatPrice": 70.00 } ] },
+        {
+          "rowNumber": 44,
+          "seats": [
+            { "seatNumber": "44A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "44B", "column": "B", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44B-v1", "seatPrice": 20.00 },
+            { "seatNumber": "44C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44C-v1", "seatPrice": 50.00 },
+            { "seatNumber": "44D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "44E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "44F", "column": "F", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44F-v1", "seatPrice": 20.00 },
+            { "seatNumber": "44G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44G-v1", "seatPrice": 50.00 },
+            { "seatNumber": "44H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "44J", "column": "J", "type": "Standard", "position": "Middle", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44J-v1", "seatPrice": 20.00 },
+            { "seatNumber": "44K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["ExtraLegroom", "ExitRow"], "isSelectable": true, "seatOfferId": "so-a339-44K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        { "rowNumber": 45, "seats": [ { "seatNumber": "45A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45A-v1", "seatPrice": 70.00 }, { "seatNumber": "45B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45B-v1", "seatPrice": 20.00 }, { "seatNumber": "45C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45C-v1", "seatPrice": 50.00 }, { "seatNumber": "45D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45D-v1", "seatPrice": 50.00 }, { "seatNumber": "45E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45E-v1", "seatPrice": 20.00 }, { "seatNumber": "45F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45F-v1", "seatPrice": 20.00 }, { "seatNumber": "45G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45G-v1", "seatPrice": 50.00 }, { "seatNumber": "45H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45H-v1", "seatPrice": 50.00 }, { "seatNumber": "45J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45J-v1", "seatPrice": 20.00 }, { "seatNumber": "45K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-45K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 46, "seats": [ { "seatNumber": "46A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46A-v1", "seatPrice": 70.00 }, { "seatNumber": "46B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46B-v1", "seatPrice": 20.00 }, { "seatNumber": "46C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46C-v1", "seatPrice": 50.00 }, { "seatNumber": "46D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46D-v1", "seatPrice": 50.00 }, { "seatNumber": "46E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46E-v1", "seatPrice": 20.00 }, { "seatNumber": "46F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46F-v1", "seatPrice": 20.00 }, { "seatNumber": "46G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46G-v1", "seatPrice": 50.00 }, { "seatNumber": "46H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46H-v1", "seatPrice": 50.00 }, { "seatNumber": "46J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46J-v1", "seatPrice": 20.00 }, { "seatNumber": "46K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-46K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 47, "seats": [ { "seatNumber": "47A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47A-v1", "seatPrice": 70.00 }, { "seatNumber": "47B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47B-v1", "seatPrice": 20.00 }, { "seatNumber": "47C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47C-v1", "seatPrice": 50.00 }, { "seatNumber": "47D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47D-v1", "seatPrice": 50.00 }, { "seatNumber": "47E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47E-v1", "seatPrice": 20.00 }, { "seatNumber": "47F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47F-v1", "seatPrice": 20.00 }, { "seatNumber": "47G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47G-v1", "seatPrice": 50.00 }, { "seatNumber": "47H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47H-v1", "seatPrice": 50.00 }, { "seatNumber": "47J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47J-v1", "seatPrice": 20.00 }, { "seatNumber": "47K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-47K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 48, "seats": [ { "seatNumber": "48A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48A-v1", "seatPrice": 70.00 }, { "seatNumber": "48B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48B-v1", "seatPrice": 20.00 }, { "seatNumber": "48C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48C-v1", "seatPrice": 50.00 }, { "seatNumber": "48D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48D-v1", "seatPrice": 50.00 }, { "seatNumber": "48E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48E-v1", "seatPrice": 20.00 }, { "seatNumber": "48F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48F-v1", "seatPrice": 20.00 }, { "seatNumber": "48G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48G-v1", "seatPrice": 50.00 }, { "seatNumber": "48H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48H-v1", "seatPrice": 50.00 }, { "seatNumber": "48J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48J-v1", "seatPrice": 20.00 }, { "seatNumber": "48K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-48K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 49, "seats": [ { "seatNumber": "49A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49A-v1", "seatPrice": 70.00 }, { "seatNumber": "49B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49B-v1", "seatPrice": 20.00 }, { "seatNumber": "49C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49C-v1", "seatPrice": 50.00 }, { "seatNumber": "49D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49D-v1", "seatPrice": 50.00 }, { "seatNumber": "49E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49E-v1", "seatPrice": 20.00 }, { "seatNumber": "49F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49F-v1", "seatPrice": 20.00 }, { "seatNumber": "49G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49G-v1", "seatPrice": 50.00 }, { "seatNumber": "49H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49H-v1", "seatPrice": 50.00 }, { "seatNumber": "49J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49J-v1", "seatPrice": 20.00 }, { "seatNumber": "49K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-49K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 50, "seats": [ { "seatNumber": "50A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50A-v1", "seatPrice": 70.00 }, { "seatNumber": "50B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50B-v1", "seatPrice": 20.00 }, { "seatNumber": "50C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50C-v1", "seatPrice": 50.00 }, { "seatNumber": "50D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50D-v1", "seatPrice": 50.00 }, { "seatNumber": "50E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50E-v1", "seatPrice": 20.00 }, { "seatNumber": "50F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50F-v1", "seatPrice": 20.00 }, { "seatNumber": "50G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50G-v1", "seatPrice": 50.00 }, { "seatNumber": "50H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50H-v1", "seatPrice": 50.00 }, { "seatNumber": "50J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50J-v1", "seatPrice": 20.00 }, { "seatNumber": "50K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-50K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 51, "seats": [ { "seatNumber": "51A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51A-v1", "seatPrice": 70.00 }, { "seatNumber": "51B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51B-v1", "seatPrice": 20.00 }, { "seatNumber": "51C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51C-v1", "seatPrice": 50.00 }, { "seatNumber": "51D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51D-v1", "seatPrice": 50.00 }, { "seatNumber": "51E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51E-v1", "seatPrice": 20.00 }, { "seatNumber": "51F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51F-v1", "seatPrice": 20.00 }, { "seatNumber": "51G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51G-v1", "seatPrice": 50.00 }, { "seatNumber": "51H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51H-v1", "seatPrice": 50.00 }, { "seatNumber": "51J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51J-v1", "seatPrice": 20.00 }, { "seatNumber": "51K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-51K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 52, "seats": [ { "seatNumber": "52A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52A-v1", "seatPrice": 70.00 }, { "seatNumber": "52B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52B-v1", "seatPrice": 20.00 }, { "seatNumber": "52C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52C-v1", "seatPrice": 50.00 }, { "seatNumber": "52D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52D-v1", "seatPrice": 50.00 }, { "seatNumber": "52E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52E-v1", "seatPrice": 20.00 }, { "seatNumber": "52F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52F-v1", "seatPrice": 20.00 }, { "seatNumber": "52G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52G-v1", "seatPrice": 50.00 }, { "seatNumber": "52H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52H-v1", "seatPrice": 50.00 }, { "seatNumber": "52J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52J-v1", "seatPrice": 20.00 }, { "seatNumber": "52K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-52K-v1", "seatPrice": 70.00 } ] },
+        { "rowNumber": 53, "seats": [ { "seatNumber": "53A", "column": "A", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53A-v1", "seatPrice": 70.00 }, { "seatNumber": "53B", "column": "B", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53B-v1", "seatPrice": 20.00 }, { "seatNumber": "53C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53C-v1", "seatPrice": 50.00 }, { "seatNumber": "53D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53D-v1", "seatPrice": 50.00 }, { "seatNumber": "53E", "column": "E", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53E-v1", "seatPrice": 20.00 }, { "seatNumber": "53F", "column": "F", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53F-v1", "seatPrice": 20.00 }, { "seatNumber": "53G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53G-v1", "seatPrice": 50.00 }, { "seatNumber": "53H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53H-v1", "seatPrice": 50.00 }, { "seatNumber": "53J", "column": "J", "type": "Standard", "position": "Middle", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53J-v1", "seatPrice": 20.00 }, { "seatNumber": "53K", "column": "K", "type": "Standard", "position": "Window", "attributes": [], "isSelectable": true, "seatOfferId": "so-a339-53K-v1", "seatPrice": 70.00 } ] },
+        {
+          "rowNumber": 54,
+          "seats": [
+            { "seatNumber": "54A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "54B", "column": "B", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54B-v1", "seatPrice": 20.00 },
+            { "seatNumber": "54C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54C-v1", "seatPrice": 50.00 },
+            { "seatNumber": "54D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "54E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "54F", "column": "F", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54F-v1", "seatPrice": 20.00 },
+            { "seatNumber": "54G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54G-v1", "seatPrice": 50.00 },
+            { "seatNumber": "54H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "54J", "column": "J", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54J-v1", "seatPrice": 20.00 },
+            { "seatNumber": "54K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["ReducedRecline"], "isSelectable": true, "seatOfferId": "so-a339-54K-v1", "seatPrice": 70.00 }
+          ]
+        },
+        {
+          "rowNumber": 55,
+          "seats": [
+            { "seatNumber": "55A", "column": "A", "type": "Standard", "position": "Window", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55A-v1", "seatPrice": 70.00 },
+            { "seatNumber": "55B", "column": "B", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55B-v1", "seatPrice": 20.00 },
+            { "seatNumber": "55C", "column": "C", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55C-v1", "seatPrice": 50.00 },
+            { "seatNumber": "55D", "column": "D", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55D-v1", "seatPrice": 50.00 },
+            { "seatNumber": "55E", "column": "E", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55E-v1", "seatPrice": 20.00 },
+            { "seatNumber": "55F", "column": "F", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55F-v1", "seatPrice": 20.00 },
+            { "seatNumber": "55G", "column": "G", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55G-v1", "seatPrice": 50.00 },
+            { "seatNumber": "55H", "column": "H", "type": "Standard", "position": "Aisle",  "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55H-v1", "seatPrice": 50.00 },
+            { "seatNumber": "55J", "column": "J", "type": "Standard", "position": "Middle", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55J-v1", "seatPrice": 20.00 },
+            { "seatNumber": "55K", "column": "K", "type": "Standard", "position": "Window", "attributes": ["ReducedRecline", "BulkheadAft"], "isSelectable": true, "seatOfferId": "so-a339-55K-v1", "seatPrice": 70.00 }
+          ]
+        }
+      ]
+    }
+  ]
+}
