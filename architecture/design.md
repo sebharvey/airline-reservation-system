@@ -184,6 +184,54 @@ sequenceDiagram
 
 ```
 
+### Data Schema — Offer
+
+The Offer domain maintains two primary tables: flight inventory and fare pricing. Inventory tracks available seat capacity per flight and cabin; pricing records the fare basis, base amount, taxes, and total per offering. These are kept separate to allow fares to be updated independently of inventory levels.
+
+```sql
+-- offer.FlightInventory
+-- One row per flight leg per cabin class
+CREATE TABLE offer.FlightInventory (
+    InventoryId       UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    FlightNumber      VARCHAR(10)       NOT NULL,   -- e.g. VS001
+    DepartureDate     DATE              NOT NULL,
+    Origin            CHAR(3)           NOT NULL,   -- IATA airport code
+    Destination       CHAR(3)           NOT NULL,
+    AircraftType      VARCHAR(10)       NOT NULL,   -- e.g. A350, B787
+    CabinCode         CHAR(1)           NOT NULL,   -- F, J, W, Y
+    TotalSeats        SMALLINT          NOT NULL,
+    SeatsAvailable    SMALLINT          NOT NULL,
+    SeatsSold         SMALLINT          NOT NULL DEFAULT 0,
+    SeatsHeld         SMALLINT          NOT NULL DEFAULT 0,  -- seats held in baskets, not yet ticketed
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_FlightInventory_Flight
+    ON offer.FlightInventory (FlightNumber, DepartureDate, CabinCode);
+
+-- offer.Fare
+-- One row per fare offering, linked to a flight inventory record.
+-- Pricing is broken into base fare, taxes, and total for accounting clarity.
+CREATE TABLE offer.Fare (
+    FareId            UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    InventoryId       UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.FlightInventory(InventoryId),
+    FareBasisCode     VARCHAR(20)       NOT NULL,   -- e.g. YLOWUK, JFLEXGB
+    FareFamily        VARCHAR(50)       NULL,       -- e.g. Economy Light, Business Flex
+    CabinCode         CHAR(1)           NOT NULL,
+    BookingClass      CHAR(2)           NOT NULL,   -- revenue management booking class, e.g. Y, B, J
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    BaseFareAmount    DECIMAL(10,2)     NOT NULL,
+    TaxAmount         DECIMAL(10,2)     NOT NULL,
+    TotalAmount       DECIMAL(10,2)     NOT NULL,   -- BaseFareAmount + TaxAmount
+    IsRefundable      BIT               NOT NULL DEFAULT 0,
+    IsChangeable      BIT               NOT NULL DEFAULT 0,
+    ValidFrom         DATETIME2         NOT NULL,
+    ValidTo           DATETIME2         NOT NULL
+);
+```
+
+---
+
 ## Order
 
 ### Create
@@ -234,6 +282,180 @@ sequenceDiagram
     Web-->>Traveller: Display booking confirmation
 
 ```
+
+### Data Schema — Order
+
+The Order domain follows the IATA ONE Order model. The `Order` table holds the root record with scalar fields used for querying, routing, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a single JSON document in the `OrderData` column. This avoids a deeply normalised schema for what is a largely read-once, write-once document after confirmation, whilst keeping key identifiers available for indexed lookups.
+
+```sql
+-- order.Order
+-- Root order record. OrderData holds the full ONE Order document as JSON.
+CREATE TABLE order.Order (
+    OrderId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    BookingReference  CHAR(6)           NULL,        -- populated on confirmation, e.g. AB1234
+    OrderStatus       VARCHAR(20)       NOT NULL DEFAULT 'Draft',
+                                                     -- Draft | Confirmed | Cancelled | Changed
+    ChannelCode       VARCHAR(20)       NOT NULL,    -- WEB | APP | NDC | KIOSK | CC | AIRPORT
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    TotalAmount       DECIMAL(10,2)     NULL,
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    OrderData         NVARCHAR(MAX)     NOT NULL     -- JSON: full ONE Order document (see below)
+
+    CONSTRAINT CHK_OrderData CHECK (ISJSON(OrderData) = 1)
+);
+
+CREATE UNIQUE INDEX IX_Order_BookingReference
+    ON order.Order (BookingReference)
+    WHERE BookingReference IS NOT NULL;
+```
+
+**Example `OrderData` JSON document**
+
+The JSON structure is aligned to IATA ONE Order concepts: an Order contains one or more `orderItems` (each representing a priced service such as a flight segment), a `dataLists` section carrying shared PAX and flight segment references to avoid repetition, and a `payments` section. An `history` array provides a lightweight audit trail of status transitions.
+
+```json
+{
+  "orderId": "e3a1c2d4-0001-4f2a-b123-000000000001",
+  "bookingReference": "AB1234",
+  "orderStatus": "Confirmed",
+  "channel": "WEB",
+  "createdAt": "2025-06-01T10:30:00Z",
+  "currency": "GBP",
+  "totalAmount": 874.50,
+  "dataLists": {
+    "passengers": [
+      {
+        "passengerId": "PAX-1",
+        "type": "ADT",
+        "givenName": "James",
+        "surname": "Harvey",
+        "dateOfBirth": "1985-03-12",
+        "gender": "Male",
+        "loyaltyNumber": "VS9876543",
+        "contacts": {
+          "email": "james.harvey@example.com",
+          "phone": "+447700900123"
+        },
+        "travelDocument": {
+          "type": "PASSPORT",
+          "number": "987654321",
+          "issuingCountry": "GBR",
+          "expiryDate": "2030-01-01",
+          "nationality": "GBR"
+        }
+      },
+      {
+        "passengerId": "PAX-2",
+        "type": "ADT",
+        "givenName": "Sarah",
+        "surname": "Harvey",
+        "dateOfBirth": "1987-07-22",
+        "gender": "Female",
+        "loyaltyNumber": null,
+        "contacts": null,
+        "travelDocument": {
+          "type": "PASSPORT",
+          "number": "123456789",
+          "issuingCountry": "GBR",
+          "expiryDate": "2028-06-30",
+          "nationality": "GBR"
+        }
+      }
+    ],
+    "flightSegments": [
+      {
+        "segmentId": "SEG-1",
+        "flightNumber": "VS003",
+        "origin": "LHR",
+        "destination": "JFK",
+        "departureDateTime": "2025-08-15T11:00:00Z",
+        "arrivalDateTime": "2025-08-15T14:10:00Z",
+        "aircraftType": "A350",
+        "operatingCarrier": "VS",
+        "marketingCarrier": "VS",
+        "cabinCode": "J",
+        "bookingClass": "J"
+      },
+      {
+        "segmentId": "SEG-2",
+        "flightNumber": "VS004",
+        "origin": "JFK",
+        "destination": "LHR",
+        "departureDateTime": "2025-08-25T22:00:00Z",
+        "arrivalDateTime": "2025-08-26T10:15:00Z",
+        "aircraftType": "A350",
+        "operatingCarrier": "VS",
+        "marketingCarrier": "VS",
+        "cabinCode": "J",
+        "bookingClass": "J"
+      }
+    ]
+  },
+  "orderItems": [
+    {
+      "orderItemId": "OI-1",
+      "type": "Flight",
+      "segmentRef": "SEG-1",
+      "passengerRefs": ["PAX-1", "PAX-2"],
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "unitPrice": 350.00,
+      "taxes": 87.25,
+      "totalPrice": 437.25,
+      "isRefundable": true,
+      "isChangeable": true,
+      "eTickets": [
+        { "passengerId": "PAX-1", "eTicketNumber": "932-1234567890" },
+        { "passengerId": "PAX-2", "eTicketNumber": "932-1234567891" }
+      ],
+      "seatAssignments": [
+        { "passengerId": "PAX-1", "seatNumber": "1A" },
+        { "passengerId": "PAX-2", "seatNumber": "1B" }
+      ]
+    },
+    {
+      "orderItemId": "OI-2",
+      "type": "Flight",
+      "segmentRef": "SEG-2",
+      "passengerRefs": ["PAX-1", "PAX-2"],
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "unitPrice": 350.00,
+      "taxes": 87.25,
+      "totalPrice": 437.25,
+      "isRefundable": true,
+      "isChangeable": true,
+      "eTickets": [
+        { "passengerId": "PAX-1", "eTicketNumber": "932-1234567892" },
+        { "passengerId": "PAX-2", "eTicketNumber": "932-1234567893" }
+      ],
+      "seatAssignments": [
+        { "passengerId": "PAX-1", "seatNumber": "2A" },
+        { "passengerId": "PAX-2", "seatNumber": "2B" }
+      ]
+    }
+  ],
+  "payments": [
+    {
+      "paymentId": "PMT-1",
+      "method": "CreditCard",
+      "amount": 874.50,
+      "currency": "GBP",
+      "status": "Settled",
+      "cardLast4": "4242",
+      "cardType": "Visa",
+      "settledAt": "2025-06-01T10:32:00Z"
+    }
+  ],
+  "history": [
+    { "event": "OrderCreated",   "at": "2025-06-01T10:30:00Z", "by": "WEB" },
+    { "event": "OrderConfirmed", "at": "2025-06-01T10:32:00Z", "by": "WEB" }
+  ]
+}
+```
+
+---
 
 ## Servicing
 
@@ -377,11 +599,324 @@ sequenceDiagram
 
 ```
 
+### Data Schema — Seat
+
+The Seat domain uses two relational tables: `AircraftType` as the root reference record, and `Seatmap` which holds one row per active aircraft configuration. The cabin layout and all seat definitions are stored as a JSON document in the `CabinLayout` column. This is well-suited to JSON storage as the layout is a hierarchical, read-heavy document that varies significantly by aircraft type and is consumed whole by the front-end seat picker rather than queried row-by-row.
+
+```sql
+-- seat.AircraftType
+-- Reference table of aircraft types operated by the airline
+CREATE TABLE seat.AircraftType (
+    AircraftTypeCode  VARCHAR(10)       NOT NULL PRIMARY KEY,  -- e.g. A350, B787-9
+    Manufacturer      VARCHAR(50)       NOT NULL,              -- e.g. Airbus, Boeing
+    FriendlyName      VARCHAR(100)      NULL,                  -- e.g. Airbus A350-1000
+    TotalSeats        SMALLINT          NOT NULL,
+    IsActive          BIT               NOT NULL DEFAULT 1
+);
+
+-- seat.Seatmap
+-- One row per active aircraft configuration. CabinLayout holds the full seatmap as JSON.
+CREATE TABLE seat.Seatmap (
+    SeatmapId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    AircraftTypeCode  VARCHAR(10)       NOT NULL REFERENCES seat.AircraftType(AircraftTypeCode),
+    Version           INT               NOT NULL DEFAULT 1,
+    IsActive          BIT               NOT NULL DEFAULT 1,
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    CabinLayout       NVARCHAR(MAX)     NOT NULL   -- JSON: full cabin and seat definitions (see below)
+
+    CONSTRAINT CHK_CabinLayout CHECK (ISJSON(CabinLayout) = 1)
+);
+
+CREATE INDEX IX_Seatmap_AircraftType
+    ON seat.Seatmap (AircraftTypeCode)
+    WHERE IsActive = 1;
+```
+
+**Example `CabinLayout` JSON document**
+
+The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, and a set of physical attributes. This structure is consumed directly by the front-end seat picker UI, which overlays real-time availability from the Offer microservice at query time.
+
+```json
+{
+  "aircraftType": "A350",
+  "version": 1,
+  "totalSeats": 258,
+  "cabins": [
+    {
+      "cabinCode": "J",
+      "cabinName": "Upper Class",
+      "deckLevel": "Main",
+      "startRow": 1,
+      "endRow": 8,
+      "columns": ["A", "D", "G", "K"],
+      "layout": "1-1-1-1",
+      "rows": [
+        {
+          "rowNumber": 1,
+          "seats": [
+            {
+              "seatNumber": "1A",
+              "column": "A",
+              "type": "Suite",
+              "position": "Window",
+              "attributes": ["ExtraLegroom", "BlockedForCrew"],
+              "isSelectable": false
+            },
+            {
+              "seatNumber": "1D",
+              "column": "D",
+              "type": "Suite",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "1G",
+              "column": "G",
+              "type": "Suite",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "1K",
+              "column": "K",
+              "type": "Suite",
+              "position": "Window",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            }
+          ]
+        },
+        {
+          "rowNumber": 2,
+          "seats": [
+            {
+              "seatNumber": "2A",
+              "column": "A",
+              "type": "Suite",
+              "position": "Window",
+              "attributes": [],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "2D",
+              "column": "D",
+              "type": "Suite",
+              "position": "Middle",
+              "attributes": [],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "2G",
+              "column": "G",
+              "type": "Suite",
+              "position": "Middle",
+              "attributes": [],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "2K",
+              "column": "K",
+              "type": "Suite",
+              "position": "Window",
+              "attributes": [],
+              "isSelectable": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cabinCode": "W",
+      "cabinName": "Premium Economy",
+      "deckLevel": "Main",
+      "startRow": 11,
+      "endRow": 18,
+      "columns": ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
+      "layout": "3-3-3",
+      "rows": [
+        {
+          "rowNumber": 11,
+          "seats": [
+            {
+              "seatNumber": "11A",
+              "column": "A",
+              "type": "Standard",
+              "position": "Window",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11B",
+              "column": "B",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11C",
+              "column": "C",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11D",
+              "column": "D",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11E",
+              "column": "E",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11F",
+              "column": "F",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11G",
+              "column": "G",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11H",
+              "column": "H",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "11K",
+              "column": "K",
+              "type": "Standard",
+              "position": "Window",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cabinCode": "Y",
+      "cabinName": "Economy",
+      "deckLevel": "Main",
+      "startRow": 22,
+      "endRow": 54,
+      "columns": ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
+      "layout": "3-3-3",
+      "rows": [
+        {
+          "rowNumber": 22,
+          "seats": [
+            {
+              "seatNumber": "22A",
+              "column": "A",
+              "type": "Standard",
+              "position": "Window",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22B",
+              "column": "B",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22C",
+              "column": "C",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22D",
+              "column": "D",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22E",
+              "column": "E",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22F",
+              "column": "F",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22G",
+              "column": "G",
+              "type": "Standard",
+              "position": "Aisle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22H",
+              "column": "H",
+              "type": "Standard",
+              "position": "Middle",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            },
+            {
+              "seatNumber": "22K",
+              "column": "K",
+              "type": "Standard",
+              "position": "Window",
+              "attributes": ["ExtraLegroom"],
+              "isSelectable": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+> **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is overlaid at query time from `offer.FlightInventory` and is never stored here.
+
+---
+
 # Technical Considerations
 
 - Microservices built in C# as Azure Functions (isolated)
 - Databases will be built in Microsoft SQL. Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains separated logically using the domain names and the schema.
 - Front end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
+- JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 
 # Glossary
 
@@ -390,3 +925,5 @@ sequenceDiagram
 - OLCI - Online Check In
 - IROPS - Irregular Operations
 - APIS - Advance Passenger Information System
+- ONE Order - IATA standard for unified order management, replacing the traditional PNR + e-ticket + EMD model
+- Fare Basis Code - an alphanumeric code identifying the rules and pricing of a fare (e.g. YLOWUK, JFLEXGB)
