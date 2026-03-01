@@ -7,9 +7,8 @@ This outlines the design for an airline reservation system based on offer and or
 The system will have the following core concepts.
 
 - Offer - returns availability and pricing of the airlines flights
-- Order - creates orders (bookings on the plane) based on the offer, with passenger information included, and takes payment
+- Order - creates, modifies, and cancels orders (bookings on the plane) based on the offer, with passenger information included, takes payment, and manages all post-booking changes including passenger detail updates, seat changes, and cancellations
 - Payment - payment orchestration, supporting at first credit card payments but in future other payment methods like PayPal and ApplePay.
-- Servicing - change and cancel of orders
 - Delivery - Akin to departure control, including online check in (OLCI), irregular operations (IROPS), seat allocation, gate management
 - Customer - loyalty accounts for customers - with customer details, points balances, and transaction (historical and future orders)
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
@@ -54,10 +53,6 @@ graph TB
             PAYMENT_DB[(Payment DB)]
         end
 
-        subgraph SERVICING_SVC["Servicing Service"]
-            SERVICING[Servicing]
-        end
-
         subgraph DELIVERY_SVC["Delivery Service"]
             DELIVERY[Delivery]
             DELIVERY_DB[(Delivery DB)]
@@ -80,7 +75,7 @@ graph TB
     end
 
     subgraph Events["Event Bus"]
-        EVT[Order & Servicing Events]
+        EVT[Order Events]
     end
 
     %% Channel → Orchestration
@@ -90,23 +85,22 @@ graph TB
     ACCT_CH --> ACCOUNTING_API
 
     %% Orchestration → Microservices
-    RETAIL_API --> OFFER & ORDER & PAYMENT & SERVICING & DELIVERY & CUSTOMER & SEAT
+    RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT
     LOYALTY_API --> CUSTOMER
-    AIRPORT_API --> SERVICING & DELIVERY & CUSTOMER & SEAT
+    AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT
     ACCOUNTING_API --> ACCOUNTING
 
     %% Microservice → DB
     OFFER --> INV_DB
     ORDER --> ORDER_DB
     PAYMENT --> PAYMENT_DB
-    SERVICING --> ORDER_DB
     DELIVERY --> DELIVERY_DB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
     SEAT --> SEAT_DB
 
     %% Eventing to Accounting
-    ORDER & SERVICING --> EVT
+    ORDER --> EVT
     EVT --> ACCOUNTING
 ```
 
@@ -128,17 +122,15 @@ Key components:
 - Microservices (and their data-bound databases)
   - Offer
     - Inventory DB
-  - Order
+  - Order (handles creating, modifying, and cancelling orders; owns all post-booking changes including PAX updates, seat changes, and cancellations)
     - Order DB
   - Payment
     - Payment DB
-  - Servicing
-    - Uses Order DB
   - Delivery
     - Delivery DB
   - Customer
     - Customer DB
-  - Accounting (orders and changes should be evented to this microservice from Order and Servicing microservices)
+  - Accounting (order events are published by the Order microservice to this service via the event bus)
     - Accounting DB
   - Seat (manages seatmap definitions per aircraft type; provides seatmap views only — seat selection and inventory remain with Offer)
     - Seat DB
@@ -276,6 +268,8 @@ CREATE INDEX IX_StoredOffer_Expiry
 
 The Order API accepts an array of `OfferIds` from the basket (one per slice). For each `OfferId`, it calls the Offer microservice to retrieve the stored offer snapshot, using that data to populate the order items. This ensures the price and fare conditions recorded on the order exactly match what the customer was shown at search time.
 
+The Order microservice is the single owner of order state throughout its full lifecycle — from draft through to confirmation, post-booking changes (PAX updates, seat changes), and cancellation. All state-changing operations publish events to the event bus for downstream consumption by the Accounting microservice.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
@@ -343,7 +337,7 @@ CREATE TABLE order.Order (
     OrderId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
     BookingReference  CHAR(6)           NULL,        -- populated on confirmation, e.g. AB1234
     OrderStatus       VARCHAR(20)       NOT NULL DEFAULT 'Draft',
-                                                     -- Draft | Confirmed | Cancelled | Changed
+                                                     -- Draft | Confirmed | Changed | Cancelled
     ChannelCode       VARCHAR(20)       NOT NULL,    -- WEB | APP | NDC | KIOSK | CC | AIRPORT
     CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
     TotalAmount       DECIMAL(10,2)     NULL,
@@ -501,8 +495,6 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 
 -----
 
-## Servicing
-
 ### Manage booking - update PAX details
 
 Allows a traveller to correct or update passenger information on a confirmed booking — such as a name correction, updated passport details, or a change of contact information — triggering e-ticket reissuance where required.
@@ -512,21 +504,21 @@ sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
-    participant ServicingMS as Servicing [MS]
+    participant OrderMS as Order [MS]
     participant DeliveryMS as Delivery [MS]
 
     Traveller->>Web: Navigate to manage booking
 
     Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>ServicingMS: Retrieve order (bookingReference, givenName, surname)
-    ServicingMS-->>RetailAPI: Order details (PAX details, itinerary, e-tickets)
+    RetailAPI->>OrderMS: Retrieve order (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: Order details (PAX details, itinerary, e-tickets)
     RetailAPI-->>Web: Display current booking details
 
     Traveller->>Web: Update passenger details (e.g. name, passport, contact info)
 
     Web->>RetailAPI: PATCH /order/{bookingRef}/passengers (updated PAX details)
-    RetailAPI->>ServicingMS: Update PAX details on order (booking reference, updated PAX)
-    ServicingMS-->>RetailAPI: Order updated
+    RetailAPI->>OrderMS: Update PAX details on order (booking reference, updated PAX)
+    OrderMS-->>RetailAPI: Order updated
 
     RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated PAX details)
     DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
@@ -544,7 +536,7 @@ sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
-    participant ServicingMS as Servicing [MS]
+    participant OrderMS as Order [MS]
     participant SeatMS as Seat [MS]
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
@@ -553,8 +545,8 @@ sequenceDiagram
     Traveller->>Web: Navigate to manage booking
 
     Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>ServicingMS: Retrieve order (bookingReference, givenName, surname)
-    ServicingMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
+    RetailAPI->>OrderMS: Retrieve order (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
     RetailAPI-->>Web: Display current booking and seat map
 
     Web->>RetailAPI: GET /flights/{flightId}/seatmap
@@ -571,8 +563,8 @@ sequenceDiagram
     RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
     OfferMS-->>RetailAPI: Seats reserved
 
-    RetailAPI->>ServicingMS: Update seat assignment on order (booking reference, PAX seats)
-    ServicingMS-->>RetailAPI: Order updated
+    RetailAPI->>OrderMS: Update seat assignment on order (booking reference, PAX seats)
+    OrderMS-->>RetailAPI: Order updated
 
     RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated seat assignments)
     DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
@@ -583,8 +575,8 @@ sequenceDiagram
     RetailAPI-->>Web: Seat selection confirmed (booking reference, updated e-tickets)
     Web-->>Traveller: Display updated booking confirmation with seat assignments
 
-    Note over ServicingMS, AccountingMS: Async event
-    ServicingMS-)AccountingMS: OrderServiced event (booking reference, seat change details)
+    Note over OrderMS, AccountingMS: Async event
+    OrderMS-)AccountingMS: OrderChanged event (booking reference, seat change details)
 ```
 
 ## Delivery
@@ -598,23 +590,23 @@ sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
-    participant ServicingMS as Servicing [MS]
+    participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
 
     Traveller->>Web: Navigate to online check-in
 
     Web->>RetailAPI: POST /order/checkin/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>ServicingMS: Retrieve order and eligibility (bookingReference, givenName, surname)
-    ServicingMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
+    RetailAPI->>OrderMS: Retrieve order and eligibility (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
     RetailAPI-->>Web: Display PAX list and pre-flight details
 
     Traveller->>Web: Confirm / update travel document details for each PAX
 
     Web->>RetailAPI: POST /order/{bookingRef}/checkin (PAX IDs, travel document details)
 
-    RetailAPI->>ServicingMS: Check in all PAX (booking reference, travel document details)
-    ServicingMS-->>RetailAPI: PAX checked in, APIS data recorded
+    RetailAPI->>OrderMS: Check in all PAX (booking reference, travel document details)
+    OrderMS-->>RetailAPI: PAX checked in, APIS data recorded
 
     RetailAPI->>OfferMS: Update seat inventory status to checked-in (flight ID, seat numbers)
     OfferMS-->>RetailAPI: Inventory updated
@@ -1054,7 +1046,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 - **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
-- **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It no longer reads from or writes to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
+- **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 
 # Security Principles
