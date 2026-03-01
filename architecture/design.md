@@ -261,7 +261,7 @@ sequenceDiagram
 
 ```
 
-### Maange booking - select or update seat selection
+### Manage booking - select or update seat selection
 
 ```mermaid
 
