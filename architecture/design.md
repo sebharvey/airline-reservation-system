@@ -15,7 +15,7 @@ The system will have the following core concepts.
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
 - Seat - manages seatmap definitions per aircraft type; provides seatmap views to other services and channels (does not manage seat selection or inventory)
 
-Please note (these one-name capability ‘domain names’ should be used for domain naming in the code)
+Please note (these one-name capability 'domain names' should be used for domain naming in the code)
 
 ## High level system architecture
 
@@ -146,6 +146,10 @@ Key components:
 
 ## Offer
 
+The search flow is built around the concept of a **slice** — a single directional search (outbound or inbound). The customer searches for each slice independently. Each search returns a set of offers; those offers are persisted immediately to the `StoredOffer` table so that pricing is locked at the point of offer creation. The customer selects one offer per slice, and the resulting `OfferIds` are passed through to the basket and ultimately to the Order API.
+
+This ensures price integrity: the Order API retrieves the stored offer by `OfferId` rather than re-pricing, so the fare the customer saw is guaranteed to be the fare charged — regardless of how much time elapses during payment.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
@@ -154,34 +158,38 @@ sequenceDiagram
     participant OfferMS as Offer [MS]
     participant OrderMS as Order [MS]
 
-    Traveller->>Web: Search for return flights (origin, destination, dates, pax)
+    Traveller->>Web: Search for outbound flight (origin, destination, date, pax)
 
-    Web->>RetailAPI: POST /search (origin, destination, outbound date, inbound date, pax)
+    Web->>RetailAPI: POST /search/slice (origin, destination, date, pax, direction=outbound)
+    RetailAPI->>OfferMS: Search availability (outbound slice)
+    OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
+    OfferMS-->>RetailAPI: Outbound offer options (each with OfferId, flight details, fare, price)
+    RetailAPI-->>Web: Display outbound options
 
-    RetailAPI->>OfferMS: Search availability (outbound)
-    OfferMS-->>RetailAPI: Outbound flight options + fares
+    Traveller->>Web: Select preferred outbound offer
 
-    RetailAPI->>OfferMS: Search availability (inbound)
-    OfferMS-->>RetailAPI: Inbound flight options + fares
+    opt Traveller wants a return flight
+        Traveller->>Web: Search for inbound flight (origin, destination, date, pax)
+        Web->>RetailAPI: POST /search/slice (origin, destination, date, pax, direction=inbound)
+        RetailAPI->>OfferMS: Search availability (inbound slice)
+        OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
+        OfferMS-->>RetailAPI: Inbound offer options (each with OfferId, flight details, fare, price)
+        RetailAPI-->>Web: Display inbound options
+        Traveller->>Web: Select preferred inbound offer
+    end
 
-    RetailAPI-->>Web: Return combined outbound + inbound options
+    Note over Web, RetailAPI: Basket contains one or more OfferIds (outbound mandatory, inbound optional)
 
-    Traveller->>Web: Select outbound flight + fare
-    Traveller->>Web: Select inbound flight + fare
-
-    Web->>RetailAPI: POST /basket (selected outbound + inbound flights, fares, pax details)
-
-    RetailAPI->>OrderMS: Create basket (outbound, inbound, fares, pax)
+    Web->>RetailAPI: POST /basket (offerIds: [OfferId-Out, OfferId-In?], pax details)
+    RetailAPI->>OrderMS: Create basket (offerIds, pax)
     OrderMS-->>RetailAPI: Basket ID + basket summary
-
     RetailAPI-->>Web: Basket confirmed (Basket ID, itinerary, total price)
-
     Web-->>Traveller: Display basket summary — ready to proceed to booking
 ```
 
 ### Data Schema — Offer
 
-The Offer domain maintains two primary tables: flight inventory and fare pricing. Inventory tracks available seat capacity per flight and cabin; pricing records the fare basis, base amount, taxes, and total per offering. These are kept separate to allow fares to be updated independently of inventory levels.
+The Offer domain maintains three tables. `FlightInventory` tracks available seat capacity per flight and cabin. `Fare` records fare basis, pricing, and conditions per inventory record. `StoredOffer` persists the specific offer returned to a customer at search time, capturing the exact fare, flight, and pricing snapshot so that price integrity is maintained through to order creation.
 
 ```sql
 -- offer.FlightInventory
@@ -223,6 +231,38 @@ CREATE TABLE offer.Fare (
     ValidFrom         DATETIME2         NOT NULL,
     ValidTo           DATETIME2         NOT NULL
 );
+
+-- offer.StoredOffer
+-- One row per offer presented to a customer during search. Captures a point-in-time
+-- snapshot of the flight and fare so that price is honoured when the order is placed,
+-- regardless of subsequent fare changes. OfferIds are passed into the basket and Order API.
+CREATE TABLE offer.StoredOffer (
+    OfferId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    InventoryId       UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.FlightInventory(InventoryId),
+    FareId            UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.Fare(FareId),
+    FlightNumber      VARCHAR(10)       NOT NULL,
+    DepartureDate     DATE              NOT NULL,
+    Origin            CHAR(3)           NOT NULL,
+    Destination       CHAR(3)           NOT NULL,
+    AircraftType      VARCHAR(4)        NOT NULL,
+    CabinCode         CHAR(1)           NOT NULL,
+    BookingClass      CHAR(2)           NOT NULL,
+    FareBasisCode     VARCHAR(20)       NOT NULL,
+    FareFamily        VARCHAR(50)       NULL,
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    BaseFareAmount    DECIMAL(10,2)     NOT NULL,
+    TaxAmount         DECIMAL(10,2)     NOT NULL,
+    TotalAmount       DECIMAL(10,2)     NOT NULL,
+    IsRefundable      BIT               NOT NULL DEFAULT 0,
+    IsChangeable      BIT               NOT NULL DEFAULT 0,
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    ExpiresAt         DATETIME2         NOT NULL,   -- offer expiry; Order API should reject expired offers
+    IsConsumed        BIT               NOT NULL DEFAULT 0  -- set to 1 once retrieved by Order API
+);
+
+CREATE INDEX IX_StoredOffer_Expiry
+    ON offer.StoredOffer (ExpiresAt)
+    WHERE IsConsumed = 0;
 ```
 
 -----
@@ -231,22 +271,30 @@ CREATE TABLE offer.Fare (
 
 ### Create
 
+The Order API accepts an array of `OfferIds` from the basket (one per slice). For each `OfferId`, it calls the Offer microservice to retrieve the stored offer snapshot, using that data to populate the order items. This ensures the price and fare conditions recorded on the order exactly match what the customer was shown at search time.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
-    participant PaymentMS as Payment [MS]
     participant OfferMS as Offer [MS]
+    participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
     Traveller->>Web: Enter passenger details
 
-    Web->>RetailAPI: POST /order (basket ID, passenger details)
-    RetailAPI->>OrderMS: Create order (basket, passenger details)
-    OrderMS-->>RetailAPI: Order created (draft order ID)
+    Web->>RetailAPI: POST /order (basket ID, offerIds: [OfferId-Out, OfferId-In?], passenger details)
+    RetailAPI->>OrderMS: Create order (offerIds, passenger details)
+
+    loop For each OfferId
+        OrderMS->>OfferMS: GET /offer/{offerId} (retrieve stored offer)
+        OfferMS-->>OrderMS: Stored offer snapshot (flight, fare, pricing)
+    end
+
+    OrderMS-->>RetailAPI: Order created (draft order ID, itinerary, total price)
     RetailAPI-->>Web: Order summary (draft order ID, itinerary, total price)
 
     Traveller->>Web: Enter payment details and confirm booking
@@ -257,7 +305,7 @@ sequenceDiagram
 
     Note over RetailAPI, OfferMS: Ticketing process begins
 
-    RetailAPI->>OfferMS: Remove seats from inventory
+    RetailAPI->>OfferMS: Remove seats from inventory (per stored offer)
     OfferMS-->>RetailAPI: Inventory updated
 
     RetailAPI->>DeliveryMS: Create e-tickets (order ID, passenger details, flights)
@@ -278,11 +326,13 @@ sequenceDiagram
 
 ### Data Schema — Order
 
-The Order domain follows the IATA ONE Order model. The `Order` table holds the root record with scalar fields used for querying, routing, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a single JSON document in the `OrderData` column. This avoids a deeply normalised schema for what is a largely read-once, write-once document after confirmation, whilst keeping key identifiers available for indexed lookups.
+The Order domain follows the IATA ONE Order model. The `Order` table holds scalar fields used for querying, routing, reporting, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a JSON document in the `OrderData` column. Fields that exist as typed columns on the table (such as `OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, and `TotalAmount`) are intentionally excluded from the JSON document to avoid duplication.
 
 ```sql
 -- order.Order
 -- Root order record. OrderData holds the full ONE Order document as JSON.
+-- Scalar fields used for indexed lookups, routing, and eventing are stored as columns.
+-- Fields present as columns are NOT duplicated inside OrderData.
 CREATE TABLE order.Order (
     OrderId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
     BookingReference  CHAR(6)           NULL,        -- populated on confirmation, e.g. AB1234
@@ -305,17 +355,10 @@ CREATE UNIQUE INDEX IX_Order_BookingReference
 
 **Example `OrderData` JSON document**
 
-The JSON structure is aligned to IATA ONE Order concepts: an Order contains one or more `orderItems` (each representing a priced service such as a flight segment), a `dataLists` section carrying shared PAX and flight segment references to avoid repetition, and a `payments` section. An `history` array provides a lightweight audit trail of status transitions.
+The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and status fields that exist as typed columns on the `order.Order` table (`orderId`, `bookingReference`, `orderStatus`, `channel`, `currency`, `totalAmount`, `createdAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the relational detail: passengers, flight segments, order items, payments, and audit history.
 
 ```json
 {
-  "orderId": "e3a1c2d4-0001-4f2a-b123-000000000001",
-  "bookingReference": "AB1234",
-  "orderStatus": "Confirmed",
-  "channel": "WEB",
-  "createdAt": "2025-06-01T10:30:00Z",
-  "currency": "GBP",
-  "totalAmount": 874.50,
   "dataLists": {
     "passengers": [
       {
@@ -391,6 +434,7 @@ The JSON structure is aligned to IATA ONE Order concepts: an Order contains one 
       "type": "Flight",
       "segmentRef": "SEG-1",
       "passengerRefs": ["PAX-1", "PAX-2"],
+      "offerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "fareBasisCode": "JFLEXGB",
       "fareFamily": "Business Flex",
       "unitPrice": 350.00,
@@ -412,6 +456,7 @@ The JSON structure is aligned to IATA ONE Order concepts: an Order contains one 
       "type": "Flight",
       "segmentRef": "SEG-2",
       "passengerRefs": ["PAX-1", "PAX-2"],
+      "offerId": "7cb87a21-1234-4abc-9def-1a2b3c4d5e6f",
       "fareBasisCode": "JFLEXGB",
       "fareFamily": "Business Flex",
       "unitPrice": 350.00,
@@ -902,7 +947,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - Databases will be built in Microsoft SQL. Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains separated logically using the domain names and the schema.
 - Front end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
 - **Aircraft type codes** are represented as a 4-character code consisting of the manufacturer prefix followed by a 3-digit variant number. The third digit encodes the specific variant. For example: A350-1000 → `A351`, A350-900 → `A359`, B787-900 → `B789`, B787-10 → `B781`. This convention is consistent with IATA SSIM aircraft designator standards and must be used uniformly across all services, databases, and API contracts.
-- JSON columns (`OrderData`, `CabinLayout`) use SQL Server’s native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
+- JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
+- **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
+- **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
 
 # Glossary
 
@@ -913,3 +960,5 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - APIS - Advance Passenger Information System
 - ONE Order - IATA standard for unified order management, replacing the traditional PNR + e-ticket + EMD model
 - Fare Basis Code - an alphanumeric code identifying the rules and pricing of a fare (e.g. YLOWUK, JFLEXGB)
+- Slice - a single directional flight search (outbound or inbound); a return journey comprises two slices
+- OfferId - a unique identifier for a stored offer snapshot returned from a slice search, used to guarantee price integrity through to order creation
