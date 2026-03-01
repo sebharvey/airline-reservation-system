@@ -350,6 +350,7 @@ sequenceDiagram
 
 - Microservices built in C# as Azure Functions (isolated)
 - Databases will be built in Microsoft SQL.  Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains seperated logically using the domain names and the schema.
+- Font end websites, app and contact centre apps (including others) will be built using the latest version of Angular, hosted as Static Web Apps on Azure.
 
 # Glossary
 
