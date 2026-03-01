@@ -8,11 +8,11 @@ The system will have the following core concepts.
 
 - Offer - returns availability and pricing of the airlines flights
 - Order - creates, modifies, and cancels orders (bookings on the plane) based on the offer, with passenger information included, takes payment, and manages all post-booking changes including passenger detail updates, seat changes, and cancellations
-- Payment - payment orchestration, supporting at first credit card payments but in future other payment methods like PayPal and ApplePay.
+- Payment - payment orchestration, supporting credit card payments and in future other methods like PayPal and ApplePay; handles multiple separate authorisations and settlements within a single booking (e.g. fares ticketed separately from ancillary seat purchases)
 - Delivery - Akin to departure control, including online check in (OLCI), irregular operations (IROPS), seat allocation, gate management
 - Customer - loyalty accounts for customers - with customer details, points balances, and transaction (historical and future orders)
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
-- Seat - manages seatmap definitions per aircraft type; provides seatmap views to other services and channels (does not manage seat selection or inventory)
+- Seat - manages seatmap definitions per aircraft type; provides seatmap views and seat pricing to other services and channels (does not manage seat selection or inventory)
 
 Please note (these one-name capability 'domain names' should be used for domain naming in the code)
 
@@ -132,7 +132,7 @@ Key components:
     - Customer DB
   - Accounting (order events are published by the Order microservice to this service via the event bus)
     - Accounting DB
-  - Seat (manages seatmap definitions per aircraft type; provides seatmap views only — seat selection and inventory remain with Offer)
+  - Seat (manages seatmap definitions and seat pricing per aircraft type; provides seatmap views and seat offers to channels — seat selection and inventory remain with Offer)
     - Seat DB
 
 # Capability
@@ -277,6 +277,7 @@ sequenceDiagram
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
+    participant SeatMS as Seat [MS]
     participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
@@ -286,32 +287,51 @@ sequenceDiagram
     Web->>RetailAPI: POST /order (basket ID, offerIds: [OfferId-Out, OfferId-In?], passenger details)
     RetailAPI->>OrderMS: Create order (offerIds, passenger details)
 
-    loop For each OfferId
+    loop For each flight OfferId
         OrderMS->>OfferMS: GET /offer/{offerId} (retrieve stored offer)
         OfferMS-->>OrderMS: Stored offer snapshot (flight, fare, pricing)
     end
 
-    OrderMS-->>RetailAPI: Order created (draft order ID, itinerary, total price)
-    RetailAPI-->>Web: Order summary (draft order ID, itinerary, total price)
+    OrderMS-->>RetailAPI: Order created (draft order ID, itinerary, total fare price)
+    RetailAPI-->>Web: Order summary (draft order ID, itinerary, total fare price)
+
+    opt Traveller selects seats during booking
+        Web->>RetailAPI: GET /flights/{flightId}/seatmap (with pricing)
+        RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
+        SeatMS-->>RetailAPI: Seatmap layout + seat offers (each with SeatOfferId and price)
+        RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
+        OfferMS-->>RetailAPI: Available and occupied seats
+        RetailAPI-->>Web: Display seat map with pricing and availability
+        Traveller->>Web: Select seat(s) for each PAX
+        Web->>RetailAPI: POST /order/{id}/seats (seatOfferIds per PAX per flight)
+        RetailAPI->>OrderMS: Add seat order items (seatOfferIds, PAX assignments)
+        OrderMS-->>RetailAPI: Order updated (seat order items added, revised total)
+        RetailAPI-->>Web: Seats reserved, show revised total
+    end
 
     Traveller->>Web: Enter payment details and confirm booking
 
     Web->>RetailAPI: POST /order/{id}/pay (payment details)
-    RetailAPI->>PaymentMS: Authorise card (amount, card details)
-    PaymentMS-->>RetailAPI: Authorisation confirmed (auth token)
 
-    Note over RetailAPI, OfferMS: Ticketing process begins
-
-    RetailAPI->>OfferMS: Remove seats from inventory (per stored offer)
+    Note over RetailAPI, PaymentMS: Authorise and settle fare payment
+    RetailAPI->>PaymentMS: Authorise card for fare total (amount, card details)
+    PaymentMS-->>RetailAPI: Fare authorisation confirmed (paymentReference-1)
+    RetailAPI->>OfferMS: Remove seats from inventory (per stored flight offers)
     OfferMS-->>RetailAPI: Inventory updated
-
     RetailAPI->>DeliveryMS: Create e-tickets (order ID, passenger details, flights)
     DeliveryMS-->>RetailAPI: E-ticket numbers issued
+    RetailAPI->>PaymentMS: Settle fare payment (paymentReference-1)
+    PaymentMS-->>RetailAPI: Fare payment settled
 
-    RetailAPI->>PaymentMS: Settle payment (auth token, amount)
-    PaymentMS-->>RetailAPI: Payment settled
+    opt Seats were selected
+        Note over RetailAPI, PaymentMS: Authorise and settle seat ancillary payment
+        RetailAPI->>PaymentMS: Authorise card for seat total (amount, paymentReference-1 card token)
+        PaymentMS-->>RetailAPI: Seat authorisation confirmed (paymentReference-2)
+        RetailAPI->>PaymentMS: Settle seat payment (paymentReference-2)
+        PaymentMS-->>RetailAPI: Seat payment settled
+    end
 
-    RetailAPI->>OrderMS: Confirm order (e-ticket numbers, booking reference)
+    RetailAPI->>OrderMS: Confirm order (e-ticket numbers, booking reference, paymentReferences)
     OrderMS-->>RetailAPI: Order confirmed (6-digit booking reference)
 
     RetailAPI->>DeliveryMS: Write manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per flight segment)
@@ -442,13 +462,14 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "totalPrice": 437.25,
       "isRefundable": true,
       "isChangeable": true,
+      "paymentReference": "AXPAY-0001",
       "eTickets": [
         { "passengerId": "PAX-1", "eTicketNumber": "932-1234567890" },
         { "passengerId": "PAX-2", "eTicketNumber": "932-1234567891" }
       ],
       "seatAssignments": [
         { "passengerId": "PAX-1", "seatNumber": "1A" },
-        { "passengerId": "PAX-2", "seatNumber": "1B" }
+        { "passengerId": "PAX-2", "seatNumber": "1D" }
       ]
     },
     {
@@ -464,26 +485,69 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "totalPrice": 437.25,
       "isRefundable": true,
       "isChangeable": true,
+      "paymentReference": "AXPAY-0001",
       "eTickets": [
         { "passengerId": "PAX-1", "eTicketNumber": "932-1234567892" },
         { "passengerId": "PAX-2", "eTicketNumber": "932-1234567893" }
       ],
       "seatAssignments": [
         { "passengerId": "PAX-1", "seatNumber": "2A" },
-        { "passengerId": "PAX-2", "seatNumber": "2B" }
+        { "passengerId": "PAX-2", "seatNumber": "2D" }
       ]
+    },
+    {
+      "orderItemId": "OI-3",
+      "type": "Seat",
+      "segmentRef": "SEG-1",
+      "passengerRefs": ["PAX-1"],
+      "offerId": "a1b2c3d4-seat-4562-b3fc-000000000001",
+      "seatNumber": "1A",
+      "seatPosition": "Window",
+      "unitPrice": 70.00,
+      "taxes": 0.00,
+      "totalPrice": 70.00,
+      "paymentReference": "AXPAY-0002"
+    },
+    {
+      "orderItemId": "OI-4",
+      "type": "Seat",
+      "segmentRef": "SEG-1",
+      "passengerRefs": ["PAX-2"],
+      "offerId": "a1b2c3d4-seat-4562-b3fc-000000000002",
+      "seatNumber": "1D",
+      "seatPosition": "Middle",
+      "unitPrice": 20.00,
+      "taxes": 0.00,
+      "totalPrice": 20.00,
+      "paymentReference": "AXPAY-0002"
     }
   ],
   "payments": [
     {
-      "paymentId": "PMT-1",
+      "paymentReference": "AXPAY-0001",
+      "description": "Fare — LHR-JFK-LHR, 2 PAX",
       "method": "CreditCard",
-      "amount": 874.50,
-      "currency": "GBP",
-      "status": "Settled",
       "cardLast4": "4242",
       "cardType": "Visa",
+      "authorisedAmount": 1749.00,
+      "settledAmount": 1749.00,
+      "currency": "GBP",
+      "status": "Settled",
+      "authorisedAt": "2025-06-01T10:31:00Z",
       "settledAt": "2025-06-01T10:32:00Z"
+    },
+    {
+      "paymentReference": "AXPAY-0002",
+      "description": "Seat ancillary — SEG-1, PAX-1 seat 1A, PAX-2 seat 1D",
+      "method": "CreditCard",
+      "cardLast4": "4242",
+      "cardType": "Visa",
+      "authorisedAmount": 90.00,
+      "settledAmount": 90.00,
+      "currency": "GBP",
+      "status": "Settled",
+      "authorisedAt": "2025-06-01T10:31:30Z",
+      "settledAt": "2025-06-01T10:32:30Z"
     }
   ],
   "history": [
@@ -539,6 +603,7 @@ sequenceDiagram
     participant OrderMS as Order [MS]
     participant SeatMS as Seat [MS]
     participant OfferMS as Offer [MS]
+    participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
@@ -547,23 +612,29 @@ sequenceDiagram
     Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: Retrieve order (bookingReference, givenName, surname)
     OrderMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
-    RetailAPI-->>Web: Display current booking and seat map
+    RetailAPI-->>Web: Display current booking
 
-    Web->>RetailAPI: GET /flights/{flightId}/seatmap
-    RetailAPI->>SeatMS: Retrieve seatmap definition (aircraft type)
-    SeatMS-->>RetailAPI: Seatmap layout and configuration
+    Web->>RetailAPI: GET /flights/{flightId}/seatmap (with pricing)
+    RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
+    SeatMS-->>RetailAPI: Seatmap layout + seat offers (each with SeatOfferId, position, price)
     RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
     OfferMS-->>RetailAPI: Available and occupied seats
-    RetailAPI-->>Web: Display seat map (layout from Seat MS, availability from Offer MS)
+    RetailAPI-->>Web: Display seat map with pricing and availability
 
     Traveller->>Web: Select seat(s) for each PAX
 
-    Web->>RetailAPI: PATCH /order/{bookingRef}/seats (PAX ID, selected seat per flight)
+    Web->>RetailAPI: PATCH /order/{bookingRef}/seats (seatOfferIds per PAX per flight)
 
     RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
     OfferMS-->>RetailAPI: Seats reserved
 
-    RetailAPI->>OrderMS: Update seat assignment on order (booking reference, PAX seats)
+    Note over RetailAPI, PaymentMS: Take payment for seat ancillary
+    RetailAPI->>PaymentMS: Authorise card for seat total (amount, card details)
+    PaymentMS-->>RetailAPI: Seat authorisation confirmed (paymentReference)
+    RetailAPI->>PaymentMS: Settle seat payment (paymentReference)
+    PaymentMS-->>RetailAPI: Seat payment settled
+
+    RetailAPI->>OrderMS: Update seat order items and assignment (bookingRef, seatOfferIds, PAX seats, paymentReference)
     OrderMS-->>RetailAPI: Order updated
 
     RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated seat assignments)
@@ -579,6 +650,86 @@ sequenceDiagram
     OrderMS-)AccountingMS: OrderChanged event (booking reference, seat change details)
 ```
 
+## Payment
+
+### Authorise and Settle
+
+The Payment microservice handles all card authorisation and settlement for Apex Air transactions. A single booking may generate multiple independent payment transactions — fares are authorised and settled during ticketing, while ancillary purchases such as seat selections are authorised and settled as separate transactions. Each transaction is tracked by a unique `PaymentReference`, which is returned to the Retail API and stored against the relevant order items in the Order microservice.
+
+The Payment DB owns the full audit trail of every authorisation and settlement event, making it the system of record for financial transactions independent of the order.
+
+```mermaid
+sequenceDiagram
+    participant RetailAPI as Retail API
+    participant PaymentMS as Payment [MS]
+    participant PaymentDB as Payment DB
+
+    RetailAPI->>PaymentMS: POST /payment/authorise (amount, currency, card details, description)
+    PaymentMS->>PaymentDB: Create Payment record (status=Authorised)
+    PaymentDB-->>PaymentMS: PaymentReference generated
+    PaymentMS-->>RetailAPI: Authorisation confirmed (paymentReference, authorisedAmount)
+
+    RetailAPI->>PaymentMS: POST /payment/{paymentReference}/settle (settledAmount)
+    PaymentMS->>PaymentDB: Record Settlement (status=Settled, settledAt)
+    PaymentDB-->>PaymentMS: Settlement recorded
+    PaymentMS-->>RetailAPI: Settlement confirmed (paymentReference, settledAmount)
+```
+
+### Data Schema — Payment
+
+The Payment domain uses two tables. `Payment` holds one row per payment transaction, tracking its lifecycle from authorisation through to settlement. `PaymentEvent` records every individual event (authorised, settled, refunded, declined) against a payment as an immutable append-only log, providing a complete audit trail. A single `Payment` may have multiple `PaymentEvent` rows — for example where a partial settlement is followed by a second settlement, or where a refund is issued.
+
+```sql
+-- payment.Payment
+-- One row per payment transaction. Created at authorisation; updated at settlement.
+-- PaymentReference is the external identifier shared with the Order microservice.
+CREATE TABLE payment.Payment (
+    PaymentId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    PaymentReference  VARCHAR(20)       NOT NULL UNIQUE,  -- human-readable ref, e.g. AXPAY-0001
+    BookingReference  CHAR(6)           NULL,             -- set once order is confirmed; may be null during initial auth
+    PaymentType       VARCHAR(30)       NOT NULL,         -- Fare | SeatAncillary | Cancellation | Refund
+    Method            VARCHAR(20)       NOT NULL,         -- CreditCard | DebitCard | PayPal | ApplePay
+    CardType          VARCHAR(20)       NULL,             -- Visa | Mastercard | Amex | etc.
+    CardLast4         CHAR(4)           NULL,             -- last 4 digits only; never store full PAN
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    AuthorisedAmount  DECIMAL(10,2)     NOT NULL,
+    SettledAmount     DECIMAL(10,2)     NULL,             -- null until settled
+    Status            VARCHAR(20)       NOT NULL,         -- Authorised | Settled | PartiallySettled | Refunded | Declined | Voided
+    AuthorisedAt      DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    SettledAt         DATETIME2         NULL,
+    Description       VARCHAR(255)      NULL,             -- human-readable description, e.g. 'Fare LHR-JFK-LHR, 2 PAX'
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_Payment_BookingReference
+    ON payment.Payment (BookingReference)
+    WHERE BookingReference IS NOT NULL;
+
+CREATE INDEX IX_Payment_PaymentReference
+    ON payment.Payment (PaymentReference);
+
+-- payment.PaymentEvent
+-- Immutable append-only log of every event on a Payment record.
+-- Provides full audit trail including partial settlements, refunds, and declines.
+CREATE TABLE payment.PaymentEvent (
+    PaymentEventId    UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    PaymentId         UNIQUEIDENTIFIER  NOT NULL REFERENCES payment.Payment(PaymentId),
+    EventType         VARCHAR(20)       NOT NULL,         -- Authorised | Settled | PartialSettlement | Refunded | Declined | Voided
+    Amount            DECIMAL(10,2)     NOT NULL,
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    Notes             VARCHAR(255)      NULL,             -- optional context, e.g. 'Partial seat refund row 1A'
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_PaymentEvent_PaymentId
+    ON payment.PaymentEvent (PaymentId);
+```
+
+> **PaymentReference format:** `PaymentReference` values follow the format `AXPAY-{sequence}` (e.g. `AXPAY-0001`). The sequence is generated by the Payment microservice at authorisation time and is guaranteed unique within the system. This reference is passed back to the Retail API and stored on each `orderItem` in `OrderData`, linking financial records to the order line items they cover.
+
+> **PCI DSS:** Full card numbers, CVV codes, and raw processor tokens must never be stored in the Payment DB. Only `CardLast4` and `CardType` are retained. The payment processor token used during the transaction lifetime is held in memory only and discarded after settlement.
+
 ## Delivery
 
 ### Online Check In
@@ -591,6 +742,7 @@ sequenceDiagram
     participant Web
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
+    participant SeatMS as Seat [MS]
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
 
@@ -600,6 +752,22 @@ sequenceDiagram
     RetailAPI->>OrderMS: Retrieve order and eligibility (bookingReference, givenName, surname)
     OrderMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
     RetailAPI-->>Web: Display PAX list and pre-flight details
+
+    opt Traveller has no seat assigned or wishes to change seat at check-in
+        Note over Web, SeatMS: Seat selection at check-in is free of charge — no payment taken
+        Web->>RetailAPI: GET /flights/{flightId}/seatmap
+        RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
+        SeatMS-->>RetailAPI: Seatmap layout + seat offers (SeatOfferId, position, price shown for info only)
+        RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
+        OfferMS-->>RetailAPI: Available and occupied seats
+        RetailAPI-->>Web: Display seat map (pricing shown but not charged at OLCI)
+        Traveller->>Web: Select seat(s) for each PAX
+        Web->>RetailAPI: PATCH /order/{bookingRef}/checkin/seats (seatOfferIds per PAX)
+        RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
+        OfferMS-->>RetailAPI: Seats reserved
+        RetailAPI->>OrderMS: Update seat assignment on order (booking reference, PAX seats)
+        OrderMS-->>RetailAPI: Order updated
+    end
 
     Traveller->>Web: Confirm / update travel document details for each PAX
 
@@ -709,9 +877,19 @@ CREATE INDEX IX_FlightManifest_BookingReference
 
 ## Seat
 
-### Retrieve Seatmap
+### Retrieve Seatmap and Seat Offers
 
-The Seat microservice is the system of record for aircraft seatmap definitions, organised by aircraft type (e.g. A351, B789). It provides the physical layout, seat attributes (class, position, extra legroom, etc.) and cabin configuration. It does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
+The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing. It provides the physical layout, seat attributes (class, position, extra legroom, etc.), cabin configuration, and the seat offer price for each position type. Seat prices are defined fleet-wide by position — not per flight — and apply uniformly across Premium Economy and Economy cabins. Upper Class seat selection is included in the fare and carries no ancillary charge.
+
+Seat prices are:
+
+| Position | Price |
+|---|---|
+| Window | £70.00 |
+| Aisle | £50.00 |
+| Middle | £20.00 |
+
+When a channel requests a seatmap, the Seat microservice returns both the layout (consumed by the front-end seat picker) and a `seatOffer` for each selectable seat, containing a `SeatOfferId` and price. The `SeatOfferId` is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer. The Seat microservice does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
 
 ```mermaid
 sequenceDiagram
@@ -719,15 +897,15 @@ sequenceDiagram
     participant SeatMS as Seat [MS]
     participant SeatDB as Seat DB
 
-    RetailAPI->>SeatMS: GET /seatmap/{aircraftType}
-    SeatMS->>SeatDB: Retrieve seatmap definition (aircraft type)
-    SeatDB-->>SeatMS: Seatmap rows, seats, cabin zones, seat attributes
-    SeatMS-->>RetailAPI: Seatmap definition (layout, cabin config, seat metadata)
+    RetailAPI->>SeatMS: GET /seatmap/{aircraftType}?flightId={flightId}
+    SeatMS->>SeatDB: Retrieve seatmap definition and pricing (aircraft type)
+    SeatDB-->>SeatMS: Seatmap rows, seats, cabin zones, seat attributes, pricing rules
+    SeatMS-->>RetailAPI: Seatmap definition (layout, cabin config, seat metadata) + seat offers (SeatOfferId, price per selectable seat)
 ```
 
 ### Data Schema — Seat
 
-The Seat domain uses two relational tables: `AircraftType` as the root reference record, and `Seatmap` which holds one row per active aircraft configuration. The cabin layout and all seat definitions are stored as a JSON document in the `CabinLayout` column. This is well-suited to JSON storage as the layout is a hierarchical, read-heavy document that varies significantly by aircraft type and is consumed whole by the front-end seat picker rather than queried row-by-row. Aircraft type codes follow the 4-character convention defined in Technical Considerations (e.g. `A351`, `B789`).
+The Seat domain uses three tables. `AircraftType` is the root reference record. `Seatmap` holds one row per active aircraft configuration with the full cabin layout as JSON. `SeatPricing` holds the fleet-wide pricing rules by seat position and cabin, from which the Seat microservice derives the `seatOffer` price returned with each seatmap response.
 
 ```sql
 -- seat.AircraftType
@@ -756,11 +934,39 @@ CREATE TABLE seat.Seatmap (
 CREATE INDEX IX_Seatmap_AircraftType
     ON seat.Seatmap (AircraftTypeCode)
     WHERE IsActive = 1;
+
+-- seat.SeatPricing
+-- Fleet-wide seat pricing rules by cabin and seat position.
+-- Applied uniformly across all aircraft and all flights.
+-- Upper Class (J/F) seats carry no ancillary charge (included in fare).
+CREATE TABLE seat.SeatPricing (
+    SeatPricingId     UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    CabinCode         CHAR(1)           NOT NULL,   -- W (Premium Economy) | Y (Economy)
+    SeatPosition      VARCHAR(10)       NOT NULL,   -- Window | Aisle | Middle
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    Price             DECIMAL(10,2)     NOT NULL,
+    IsActive          BIT               NOT NULL DEFAULT 1,
+    ValidFrom         DATETIME2         NOT NULL,
+    ValidTo           DATETIME2         NULL,       -- null = open-ended / currently active
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+
+    CONSTRAINT UQ_SeatPricing_CabinPosition UNIQUE (CabinCode, SeatPosition, CurrencyCode)
+);
+
+-- Example seed data (reflecting fleet-wide pricing):
+-- ('W', 'Window', 'GBP', 70.00)
+-- ('W', 'Aisle',  'GBP', 50.00)
+-- ('W', 'Middle', 'GBP', 20.00)
+-- ('Y', 'Window', 'GBP', 70.00)
+-- ('Y', 'Aisle',  'GBP', 50.00)
+-- ('Y', 'Middle', 'GBP', 20.00)
 ```
+
+> **Seat offer generation:** When building the seatmap response, the Seat microservice joins each seat's `position` attribute against `seat.SeatPricing` for the relevant `cabinCode` to derive the price, then generates a `SeatOfferId` (a deterministic UUID based on `SeatmapId` + `SeatNumber` + current pricing version) for each selectable seat. These `SeatOfferIds` are short-lived in the same way as flight `OfferIds` — they should be treated as valid only for the duration of the current session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
 
 **Example `CabinLayout` JSON document**
 
-The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, and a set of physical attributes. This structure is consumed directly by the front-end seat picker UI, which overlays real-time availability from the Offer microservice at query time.
+The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, physical attributes, and a `seatPrice` derived from `seat.SeatPricing` at the time of seatmap generation. Upper Class seats carry a `seatPrice` of `null` as selection is included in the fare. This structure is consumed directly by the front-end seat picker UI, which overlays real-time availability from the Offer microservice at query time.
 
 ```json
 {
@@ -786,7 +992,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom", "BlockedForCrew"],
-              "isSelectable": false
+              "isSelectable": false,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1D",
@@ -794,7 +1002,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1G",
@@ -802,7 +1012,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1K",
@@ -810,44 +1022,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
-            }
-          ]
-        },
-        {
-          "rowNumber": 2,
-          "seats": [
-            {
-              "seatNumber": "2A",
-              "column": "A",
-              "type": "Suite",
-              "position": "Window",
-              "attributes": [],
-              "isSelectable": true
-            },
-            {
-              "seatNumber": "2D",
-              "column": "D",
-              "type": "Suite",
-              "position": "Middle",
-              "attributes": [],
-              "isSelectable": true
-            },
-            {
-              "seatNumber": "2G",
-              "column": "G",
-              "type": "Suite",
-              "position": "Middle",
-              "attributes": [],
-              "isSelectable": true
-            },
-            {
-              "seatNumber": "2K",
-              "column": "K",
-              "type": "Suite",
-              "position": "Window",
-              "attributes": [],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             }
           ]
         }
@@ -871,7 +1048,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11A-v1",
+              "seatPrice": 70.00
             },
             {
               "seatNumber": "11B",
@@ -879,7 +1058,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11B-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "11C",
@@ -887,7 +1068,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11C-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "11D",
@@ -895,7 +1078,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11D-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "11E",
@@ -903,7 +1088,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11E-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "11F",
@@ -911,7 +1098,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11F-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "11G",
@@ -919,7 +1108,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11G-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "11H",
@@ -927,7 +1118,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11H-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "11K",
@@ -935,7 +1128,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11K-v1",
+              "seatPrice": 70.00
             }
           ]
         }
@@ -959,7 +1154,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22A-v1",
+              "seatPrice": 70.00
             },
             {
               "seatNumber": "22B",
@@ -967,7 +1164,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22B-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "22C",
@@ -975,7 +1174,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22C-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "22D",
@@ -983,7 +1184,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22D-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "22E",
@@ -991,7 +1194,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22E-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "22F",
@@ -999,7 +1204,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22F-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "22G",
@@ -1007,7 +1214,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22G-v1",
+              "seatPrice": 50.00
             },
             {
               "seatNumber": "22H",
@@ -1015,7 +1224,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22H-v1",
+              "seatPrice": 20.00
             },
             {
               "seatNumber": "22K",
@@ -1023,7 +1234,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22K-v1",
+              "seatPrice": 70.00
             }
           ]
         }
@@ -1046,6 +1259,8 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 - **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
+- **Payment DB:** The Payment microservice owns its own `payment.*` schema. The `PaymentReference` (e.g. `AXPAY-0001`) is the shared key between the Payment DB and the Order microservice — it is stored on each `orderItem` in `OrderData` to link order lines to their payment transactions. Multiple `PaymentReference` values may exist per booking (one per ancillary payment type). The full card token used during authorisation is never persisted; only `CardLast4` and `CardType` are stored.
+- **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Upper Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 
