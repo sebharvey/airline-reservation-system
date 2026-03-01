@@ -363,6 +363,79 @@ sequenceDiagram
     Web-->>Traveller: Display booking confirmation
 ```
 
+### Ticketing
+
+Ticketing is the process by which a confirmed basket is converted into a legally valid air travel contract. It is triggered by the Retail API immediately after successful payment authorisation and must complete within the same synchronous flow as order confirmation. The e-ticket number is the IATA-standard identifier for this contract and is required before any manifest entries or boarding passes can be issued.
+
+#### What is an E-Ticket?
+
+- An e-ticket (electronic ticket) is the passenger's legal entitlement to travel, replacing the legacy paper ticket
+- Each e-ticket covers **one passenger on one flight segment** — a return booking for two passengers generates four e-ticket numbers
+- E-ticket numbers follow the IATA format: a **3-digit airline code prefix** followed by a **10-digit serial number**, e.g. `932-1234567890` (Apex Air prefix: `932`)
+- E-ticket numbers are issued and owned by the **Delivery microservice**, which is the system of record for all issued tickets
+- Once issued, an e-ticket number is immutable — post-booking changes (PAX updates, seat changes) trigger **reissuance** of a new e-ticket number against the same order item, not amendment of the existing one
+
+#### Ticketing Flow
+
+Ticketing occurs as part of the order confirmation sequence, orchestrated by the Retail API after fare payment has been authorised:
+
+- **Pre-ticketing checks** (performed by the Retail API before calling Delivery):
+  - Basket is in `Active` status
+  - `now < TicketingTimeLimit` — if elapsed, basket must be marked `Expired` and inventory released
+  - All stored offers referenced in the basket are unconsumed and not expired
+  - Fare payment has been successfully authorised (`paymentReference` held)
+
+- **E-ticket issuance** (Retail API → Delivery MS):
+  - Retail API calls `POST /tickets` on the Delivery microservice, passing: basket ID, passenger details, and flight segments
+  - Delivery MS generates one e-ticket number per passenger per flight segment
+  - E-ticket numbers are returned synchronously to the Retail API
+
+- **Inventory removal** (Retail API → Offer MS):
+  - Retail API calls the Offer microservice to decrement `SeatsAvailable` and increment `SeatsSold` for each flight/cabin combination
+  - `SeatsHeld` is decremented (seats were held against the basket)
+  - This step must complete before order confirmation is written
+
+- **Fare payment settlement** (Retail API → Payment MS):
+  - Retail API calls `POST /payment/{paymentReference}/settle` to move the authorised fare payment to `Settled`
+
+- **Order confirmation** (Retail API → Order MS):
+  - Retail API calls the Order microservice to convert the basket into a confirmed `order.Order` record
+  - Payload includes: basket ID, all e-ticket numbers (per PAX per segment), and all payment references
+  - Order MS writes the `order.Order` row with `OrderStatus = Confirmed` and a generated 6-character `BookingReference`
+  - Order MS hard-deletes the basket row
+  - Order MS publishes `OrderConfirmed` event to the event bus
+
+- **Manifest population** (Retail API → Delivery MS):
+  - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment
+  - Delivery MS validates each seat number against the active seatmap before writing (calls Seat MS)
+
+- **Ancillary settlement** (if seats were pre-selected):
+  - After the manifest is written, Retail API calls `POST /payment/{paymentReference}/settle` for the seat ancillary payment reference
+  - This is settled after fare settlement — the two are independent payment transactions
+
+#### Reissuance
+
+E-tickets must be reissued (new number generated, old number voided) in the following scenarios:
+
+- **PAX name correction** — name changes invalidate the existing ticket as the passenger name is encoded in the BCBP barcode string
+- **Seat change post-booking** — seat number is encoded on the boarding pass; if the e-ticket record references a specific seat, reissuance ensures consistency
+- **Schedule change by the airline** — if the operating flight details change materially (departure time, routing), affected tickets are reissued
+
+Reissuance is always performed by the Delivery microservice. The Order microservice is updated with the new e-ticket numbers via the Retail API orchestration layer, and new manifest entries replace the previous ones.
+
+#### Failure Handling
+
+Ticketing involves multiple sequential calls; partial failures must be handled explicitly:
+
+| Failure point | Behaviour |
+|---|---|
+| Delivery MS fails to issue tickets | Abort — do not settle payment, do not confirm order; return error to channel |
+| Offer MS fails to remove inventory | Retry up to 3 times; if still failing, void payment authorisation and return error |
+| Payment settlement fails after inventory removed | Flag order for manual reconciliation; order is not confirmed until settlement succeeds |
+| Order MS fails to confirm | Attempt compensation: void payment, reinstate inventory, void e-tickets; alert ops team if compensation also fails |
+
+> All state-changing steps should be logged with sufficient detail to support manual reconciliation in the event of a partial failure that cannot be automatically compensated.
+
 ### Data Schema — Order
 
 The Order domain owns three structures in the Order DB: the `Basket` tables (transient pre-sale state), the `Order` table (confirmed post-sale state), and the `BasketConfig` table (system configuration for expiry and ticketing time limits).
