@@ -266,9 +266,11 @@ CREATE INDEX IX_StoredOffer_Expiry
 
 ### Create
 
-The Order API accepts an array of `OfferIds` from the basket (one per slice). For each `OfferId`, it calls the Offer microservice to retrieve the stored offer snapshot, using that data to populate the order items. This ensures the price and fare conditions recorded on the order exactly match what the customer was shown at search time.
+The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, and passenger details as the traveller builds their booking. The basket is created when the traveller begins the purchase journey and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the journey, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
 
-The Order microservice is the single owner of order state throughout its full lifecycle — from draft through to confirmation, post-booking changes (PAX updates, seat changes), and cancellation. All state-changing operations publish events to the event bus for downstream consumption by the Accounting microservice.
+For each flight `OfferId` in the basket, the Order microservice retrieves the stored offer snapshot from the Offer microservice. This ensures the price and fare conditions recorded on the confirmed order exactly match what the customer was shown at search time.
+
+The Order microservice is the single owner of order state throughout its full lifecycle — from basket creation through to confirmation, post-booking changes (PAX updates, seat changes), and cancellation. All state-changing operations publish events to the event bus for downstream consumption by the Accounting microservice.
 
 ```mermaid
 sequenceDiagram
@@ -284,16 +286,23 @@ sequenceDiagram
 
     Traveller->>Web: Enter passenger details
 
-    Web->>RetailAPI: POST /order (basket ID, offerIds: [OfferId-Out, OfferId-In?], passenger details)
-    RetailAPI->>OrderMS: Create order (offerIds, passenger details)
+    Web->>RetailAPI: POST /basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
+    RetailAPI->>OrderMS: Create basket (offerIds, channel, currency)
+    Note over OrderMS: Basket created with ExpiresAt = now + 24hr<br/>TicketingTimeLimit = now + 24hr (configurable)
 
     loop For each flight OfferId
         OrderMS->>OfferMS: GET /offer/{offerId} (retrieve stored offer)
         OfferMS-->>OrderMS: Stored offer snapshot (flight, fare, pricing)
+        OrderMS->>OrderMS: Add flight offer to basket (BasketItem)
     end
 
-    OrderMS-->>RetailAPI: Order created (draft order ID, itinerary, total fare price)
-    RetailAPI-->>Web: Order summary (draft order ID, itinerary, total fare price)
+    OrderMS-->>RetailAPI: Basket created (basketId, itinerary, total fare price, ticketingTimeLimit)
+    RetailAPI-->>Web: Basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
+
+    Traveller->>Web: Enter passenger details
+    Web->>RetailAPI: PUT /basket/{basketId}/passengers (PAX details)
+    RetailAPI->>OrderMS: Update basket with passenger details
+    OrderMS-->>RetailAPI: Basket updated
 
     opt Traveller selects seats during booking
         Web->>RetailAPI: GET /flights/{flightId}/seatmap (with pricing)
@@ -303,22 +312,23 @@ sequenceDiagram
         OfferMS-->>RetailAPI: Available and occupied seats
         RetailAPI-->>Web: Display seat map with pricing and availability
         Traveller->>Web: Select seat(s) for each PAX
-        Web->>RetailAPI: POST /order/{id}/seats (seatOfferIds per PAX per flight)
-        RetailAPI->>OrderMS: Add seat order items (seatOfferIds, PAX assignments)
-        OrderMS-->>RetailAPI: Order updated (seat order items added, revised total)
-        RetailAPI-->>Web: Seats reserved, show revised total
+        Web->>RetailAPI: PUT /basket/{basketId}/seats (seatOfferIds per PAX per flight)
+        RetailAPI->>OrderMS: Add seat offers to basket (seatOfferIds, PAX assignments)
+        OrderMS-->>RetailAPI: Basket updated (seat items added, revised total)
+        RetailAPI-->>Web: Seats reserved in basket, show revised total
     end
 
     Traveller->>Web: Enter payment details and confirm booking
 
-    Web->>RetailAPI: POST /order/{id}/pay (payment details)
+    Web->>RetailAPI: POST /basket/{basketId}/confirm (payment details)
+    Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
     Note over RetailAPI, PaymentMS: Authorise and settle fare payment
     RetailAPI->>PaymentMS: Authorise card for fare total (amount, card details)
     PaymentMS-->>RetailAPI: Fare authorisation confirmed (paymentReference-1)
     RetailAPI->>OfferMS: Remove seats from inventory (per stored flight offers)
     OfferMS-->>RetailAPI: Inventory updated
-    RetailAPI->>DeliveryMS: Create e-tickets (order ID, passenger details, flights)
+    RetailAPI->>DeliveryMS: Create e-tickets (basketId, passenger details, flights)
     DeliveryMS-->>RetailAPI: E-ticket numbers issued
     RetailAPI->>PaymentMS: Settle fare payment (paymentReference-1)
     PaymentMS-->>RetailAPI: Fare payment settled
@@ -331,8 +341,9 @@ sequenceDiagram
         PaymentMS-->>RetailAPI: Seat payment settled
     end
 
-    RetailAPI->>OrderMS: Confirm order (e-ticket numbers, booking reference, paymentReferences)
+    RetailAPI->>OrderMS: Confirm order from basket (basketId, e-ticket numbers, paymentReferences)
     OrderMS-->>RetailAPI: Order confirmed (6-digit booking reference)
+    Note over OrderMS: Basket record deleted on successful order confirmation
 
     RetailAPI->>DeliveryMS: Write manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per flight segment)
     DeliveryMS-->>RetailAPI: Manifest entries written
@@ -346,7 +357,203 @@ sequenceDiagram
 
 ### Data Schema — Order
 
-The Order domain follows the IATA ONE Order model. The `Order` table holds scalar fields used for querying, routing, reporting, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a JSON document in the `OrderData` column. Fields that exist as typed columns on the table (such as `OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, and `TotalAmount`) are intentionally excluded from the JSON document to avoid duplication.
+The Order domain owns three structures in the Order DB: the `Basket` tables (transient pre-sale state), the `Order` table (confirmed post-sale state), and the `BasketConfig` table (system configuration for expiry and ticketing time limits).
+
+#### Basket
+
+The basket is the in-progress accumulation of everything a traveller has selected before payment. It is created when a purchase journey begins and holds flight offers, seat offers, passenger details, and payment intent. It deliberately contains no PNR, booking reference, or e-ticket numbers — these do not exist until the sale completes. On successful order confirmation the basket row is hard-deleted. If the basket is abandoned or the ticketing time limit elapses without payment, the basket is marked `Expired` and held inventory is released by a background cleanup job.
+
+The `BasketData` column holds the full basket state as a JSON document. Scalar fields used for indexed lookups and lifecycle management are stored as typed columns.
+
+```sql
+-- order.BasketConfig
+-- System-wide configurable defaults for basket lifecycle.
+-- A single active row defines the current defaults; rows are never deleted, only superseded.
+CREATE TABLE order.BasketConfig (
+    BasketConfigId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    BasketExpiryHours     SMALLINT          NOT NULL DEFAULT 24,    -- hours until an unpaid basket is expired
+    TicketingTimeLimitHours SMALLINT        NOT NULL DEFAULT 24,    -- hours from basket creation within which ticketing must complete
+    IsActive              BIT               NOT NULL DEFAULT 1,
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    Notes                 VARCHAR(255)      NULL                    -- e.g. 'Reduced to 2hr for peak season test'
+);
+
+-- Only one active config at a time
+CREATE UNIQUE INDEX IX_BasketConfig_Active
+    ON order.BasketConfig (IsActive)
+    WHERE IsActive = 1;
+
+-- order.Basket
+-- One row per in-progress purchase journey. Created when the traveller begins checkout.
+-- Deleted immediately on successful order confirmation.
+-- Marked Expired by background job if ExpiresAt or TicketingTimeLimit elapses without payment.
+CREATE TABLE order.Basket (
+    BasketId              UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    ChannelCode           VARCHAR(20)       NOT NULL,               -- WEB | APP | NDC | KIOSK | CC | AIRPORT
+    CurrencyCode          CHAR(3)           NOT NULL DEFAULT 'GBP',
+    BasketStatus          VARCHAR(20)       NOT NULL DEFAULT 'Active',
+                                                                    -- Active | Expired | Abandoned | Confirmed
+    TotalFareAmount       DECIMAL(10,2)     NULL,                   -- sum of flight offer prices; updated as basket is built
+    TotalSeatAmount       DECIMAL(10,2)     NULL DEFAULT 0.00,      -- sum of seat offer prices; updated as seats are added
+    TotalAmount           DECIMAL(10,2)     NULL,                   -- TotalFareAmount + TotalSeatAmount
+    ExpiresAt             DATETIME2         NOT NULL,               -- basket hard expiry: now + BasketExpiryHours
+    TicketingTimeLimit    DATETIME2         NOT NULL,               -- must ticket by this time: now + TicketingTimeLimitHours
+    ConfirmedOrderId      UNIQUEIDENTIFIER  NULL,                   -- set on confirmation; FK to order.Order
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    BasketData            NVARCHAR(MAX)     NOT NULL                -- JSON: full basket document (see below)
+
+    CONSTRAINT CHK_BasketData CHECK (ISJSON(BasketData) = 1)
+);
+
+CREATE INDEX IX_Basket_Status_Expiry
+    ON order.Basket (BasketStatus, ExpiresAt)
+    WHERE BasketStatus = 'Active';   -- used by background expiry job
+
+CREATE INDEX IX_Basket_TicketingTimeLimit
+    ON order.Basket (TicketingTimeLimit)
+    WHERE BasketStatus = 'Active';   -- used to flag baskets approaching TTL
+```
+
+**Example `BasketData` JSON document**
+
+The JSON captures the full in-progress state. It mirrors the eventual shape of `OrderData` for passengers and flight segments, but uses `offerSnapshots` rather than confirmed order items, and has no `eTickets`, booking reference, or payment settlement data.
+
+```json
+{
+  "channel": "WEB",
+  "currency": "GBP",
+  "ticketingTimeLimit": "2025-06-02T10:30:00Z",
+  "passengers": [
+    {
+      "passengerId": "PAX-1",
+      "type": "ADT",
+      "givenName": "Alex",
+      "surname": "Taylor",
+      "dateOfBirth": "1985-03-12",
+      "gender": "Male",
+      "loyaltyNumber": "AX9876543",
+      "contacts": {
+        "email": "alex.taylor@example.com",
+        "phone": "+447700900100"
+      },
+      "travelDocument": {
+        "type": "PASSPORT",
+        "number": "PA1234567",
+        "issuingCountry": "GBR",
+        "expiryDate": "2030-01-01",
+        "nationality": "GBR"
+      }
+    },
+    {
+      "passengerId": "PAX-2",
+      "type": "ADT",
+      "givenName": "Jordan",
+      "surname": "Taylor",
+      "dateOfBirth": "1987-07-22",
+      "gender": "Female",
+      "loyaltyNumber": null,
+      "contacts": null,
+      "travelDocument": null
+    }
+  ],
+  "flightOffers": [
+    {
+      "basketItemId": "BI-1",
+      "offerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "flightNumber": "AX003",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departureDateTime": "2025-08-15T11:00:00Z",
+      "arrivalDateTime": "2025-08-15T14:10:00Z",
+      "aircraftType": "A351",
+      "cabinCode": "J",
+      "bookingClass": "J",
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "passengerRefs": ["PAX-1", "PAX-2"],
+      "unitPrice": 350.00,
+      "taxes": 87.25,
+      "totalPrice": 437.25,
+      "isRefundable": true,
+      "isChangeable": true,
+      "offerExpiresAt": "2025-06-01T11:00:00Z"
+    },
+    {
+      "basketItemId": "BI-2",
+      "offerId": "7cb87a21-1234-4abc-9def-1a2b3c4d5e6f",
+      "flightNumber": "AX004",
+      "origin": "JFK",
+      "destination": "LHR",
+      "departureDateTime": "2025-08-25T22:00:00Z",
+      "arrivalDateTime": "2025-08-26T10:15:00Z",
+      "aircraftType": "A351",
+      "cabinCode": "J",
+      "bookingClass": "J",
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "passengerRefs": ["PAX-1", "PAX-2"],
+      "unitPrice": 350.00,
+      "taxes": 87.25,
+      "totalPrice": 437.25,
+      "isRefundable": true,
+      "isChangeable": true,
+      "offerExpiresAt": "2025-06-01T11:00:00Z"
+    }
+  ],
+  "seatOffers": [
+    {
+      "basketItemId": "BI-3",
+      "seatOfferId": "so-a351-1A-v1",
+      "basketItemRef": "BI-1",
+      "passengerRef": "PAX-1",
+      "seatNumber": "1A",
+      "seatPosition": "Window",
+      "cabinCode": "J",
+      "price": 0.00,
+      "currency": "GBP",
+      "note": "Upper Class — no charge"
+    },
+    {
+      "basketItemId": "BI-4",
+      "seatOfferId": "so-a351-11A-v1",
+      "basketItemRef": "BI-1",
+      "passengerRef": "PAX-2",
+      "seatNumber": "11A",
+      "seatPosition": "Window",
+      "cabinCode": "W",
+      "price": 70.00,
+      "currency": "GBP"
+    }
+  ],
+  "paymentIntent": {
+    "method": "CreditCard",
+    "cardType": "Visa",
+    "cardLast4": "4242",
+    "totalFareAmount": 1749.00,
+    "totalSeatAmount": 70.00,
+    "grandTotal": 1819.00,
+    "currency": "GBP",
+    "status": "PendingAuthorisation"
+  },
+  "history": [
+    { "event": "BasketCreated",          "at": "2025-06-01T10:30:00Z", "by": "WEB" },
+    { "event": "PassengersAdded",        "at": "2025-06-01T10:31:00Z", "by": "WEB" },
+    { "event": "SeatsAdded",             "at": "2025-06-01T10:32:00Z", "by": "WEB" },
+    { "event": "PaymentIntentRecorded",  "at": "2025-06-01T10:33:00Z", "by": "WEB" }
+  ]
+}
+```
+
+> **Ticketing time limit:** The `TicketingTimeLimit` is set at basket creation from the active `BasketConfig` row and is included in the basket summary returned to the channel so it can display a countdown to the traveller. The Retail API must validate that `now < TicketingTimeLimit` before attempting authorisation. If the limit has elapsed, the basket must be marked `Expired`, inventory released, and the traveller directed to start a new search.
+
+> **Basket expiry job:** A background process runs on a schedule (e.g. every 5 minutes) and queries `order.Basket WHERE BasketStatus = 'Active' AND ExpiresAt <= now`. For each expired basket it sets `BasketStatus = 'Expired'` and fires a compensating call to the Offer microservice to release any held inventory. Expired baskets are retained for a short period (e.g. 7 days) for diagnostic purposes before being purged.
+
+> **Basket deletion on sale:** When the Retail API receives a successful order confirmation response from the Order microservice, it immediately issues a hard delete of the basket row. The confirmed `OrderData` JSON is the authoritative post-sale record; the basket is no longer needed.
+
+#### Order
+
+The `Order` table is written once the basket has been confirmed — payment taken, inventory removed, and e-tickets issued. It follows the IATA ONE Order model. The `Order` table holds scalar fields used for querying, routing, reporting, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a JSON document in the `OrderData` column. Fields that exist as typed columns on the table (such as `OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, and `TotalAmount`) are intentionally excluded from the JSON document to avoid duplication.
 
 ```sql
 -- order.Order
@@ -1259,6 +1466,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 - JSON columns (`OrderData`, `CabinLayout`) use SQL Server's native `NVARCHAR(MAX)` with `ISJSON` check constraints to enforce structural validity. Where query performance requires filtering or sorting on JSON properties, SQL Server computed columns with JSON path expressions should be used to create targeted indexes.
 - **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
+- **Basket lifecycle:** The basket is the authoritative pre-sale state and lives entirely in the Order DB (`order.Basket`). It is created at the start of checkout, accumulates flight offers, seat offers, and PAX details, and is hard-deleted on successful order confirmation. If abandoned or expired, a background job releases held inventory and marks the basket `Expired`. The `TicketingTimeLimit` (default 24 hours, configurable via `order.BasketConfig`) is the latest time by which payment must complete; the `ExpiresAt` is the latest time the basket itself is considered valid. Both are evaluated before authorisation is attempted.
 - **Payment DB:** The Payment microservice owns its own `payment.*` schema. The `PaymentReference` (e.g. `AXPAY-0001`) is the shared key between the Payment DB and the Order microservice — it is stored on each `orderItem` in `OrderData` to link order lines to their payment transactions. Multiple `PaymentReference` values may exist per booking (one per ancillary payment type). The full card token used during authorisation is never persisted; only `CardLast4` and `CardType` are stored.
 - **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Upper Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
