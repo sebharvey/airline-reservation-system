@@ -229,7 +229,7 @@ sequenceDiagram
 
 ## Servicing 
 
-### Manage booking - udpate PAX details
+### Manage booking - update PAX details
 
 ```mermaid
 
@@ -304,6 +304,45 @@ sequenceDiagram
 
     Note over ServicingMS, AccountingMS: Async event
     ServicingMS-)AccountingMS: OrderServiced event (booking reference, seat change details)
+
+```
+
+## Delivery
+
+### Online Check In
+
+```mermaid
+
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant ServicingMS as Servicing [MS]
+    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Traveller->>Web: Navigate to online check-in (booking reference, surname)
+
+    Web->>RetailAPI: GET /order/{bookingRef}/checkin
+    RetailAPI->>ServicingMS: Retrieve order and eligibility (booking reference)
+    ServicingMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
+    RetailAPI-->>Web: Display PAX list and pre-flight details
+
+    Traveller->>Web: Confirm / update travel document details for each PAX
+
+    Web->>RetailAPI: POST /order/{bookingRef}/checkin (PAX IDs, travel document details)
+
+    RetailAPI->>ServicingMS: Check in all PAX (booking reference, travel document details)
+    ServicingMS-->>RetailAPI: PAX checked in, APIS data recorded
+
+    RetailAPI->>OfferMS: Update seat inventory status to checked-in (flight ID, seat numbers)
+    OfferMS-->>RetailAPI: Inventory updated
+
+    RetailAPI->>DeliveryMS: Generate boarding cards (booking reference, PAX list, seats, flights)
+    DeliveryMS-->>RetailAPI: Boarding cards generated (one per PAX per flight)
+
+    RetailAPI-->>Web: Check-in confirmed (boarding cards)
+    Web-->>Traveller: Display and offer download of boarding cards
 
 ```
 
