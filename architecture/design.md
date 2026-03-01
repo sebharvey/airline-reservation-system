@@ -137,7 +137,44 @@ Key components:
    
 
 
+# Capability
 
+## Offer
+
+```mermaid
+
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OfferMS as Offer [MS]
+    participant OrderMS as Order [MS]
+
+    Traveller->>Web: Search for return flights (origin, destination, dates, pax)
+
+    Web->>RetailAPI: POST /search (origin, destination, outbound date, inbound date, pax)
+
+    RetailAPI->>OfferMS: Search availability (outbound)
+    OfferMS-->>RetailAPI: Outbound flight options + fares
+
+    RetailAPI->>OfferMS: Search availability (inbound)
+    OfferMS-->>RetailAPI: Inbound flight options + fares
+
+    RetailAPI-->>Web: Return combined outbound + inbound options
+
+    Traveller->>Web: Select outbound flight + fare
+    Traveller->>Web: Select inbound flight + fare
+
+    Web->>RetailAPI: POST /basket (selected outbound + inbound flights, fares, pax details)
+
+    RetailAPI->>OrderMS: Create basket (outbound, inbound, fares, pax)
+    OrderMS-->>RetailAPI: Basket ID + basket summary
+
+    RetailAPI-->>Web: Basket confirmed (Basket ID, itinerary, total price)
+
+    Web-->>Traveller: Display basket summary — ready to proceed to booking
+
+```
 
 
 
