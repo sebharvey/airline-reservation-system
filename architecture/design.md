@@ -176,7 +176,90 @@ sequenceDiagram
 
 ```
 
+## Order
 
+### Create
+
+```mermaid
+
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant PaymentMS as Payment [MS]
+    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
+    participant AccountingMS as Accounting [MS]
+
+    Traveller->>Web: Enter passenger details
+
+    Web->>RetailAPI: POST /order (basket ID, passenger details)
+    RetailAPI->>OrderMS: Create order (basket, passenger details)
+    OrderMS-->>RetailAPI: Order created (draft order ID)
+    RetailAPI-->>Web: Order summary (draft order ID, itinerary, total price)
+
+    Traveller->>Web: Enter payment details and confirm booking
+
+    Web->>RetailAPI: POST /order/{id}/pay (payment details)
+    RetailAPI->>PaymentMS: Authorise card (amount, card details)
+    PaymentMS-->>RetailAPI: Authorisation confirmed (auth token)
+
+    Note over RetailAPI, OfferMS: Ticketing process begins
+
+    RetailAPI->>OfferMS: Remove seats from inventory
+    OfferMS-->>RetailAPI: Inventory updated
+
+    RetailAPI->>DeliveryMS: Create e-tickets (order ID, passenger details, flights)
+    DeliveryMS-->>RetailAPI: E-ticket numbers issued
+
+    RetailAPI->>PaymentMS: Settle payment (auth token, amount)
+    PaymentMS-->>RetailAPI: Payment settled
+
+    RetailAPI->>OrderMS: Confirm order (e-ticket numbers, booking reference)
+    OrderMS-->>RetailAPI: Order confirmed (6-digit booking reference)
+
+    Note over OrderMS, AccountingMS: Async event
+    OrderMS-)AccountingMS: OrderConfirmed event (booking reference, amount, e-tickets)
+
+    RetailAPI-->>Web: Booking confirmed (booking reference, e-ticket numbers)
+    Web-->>Traveller: Display booking confirmation
+
+```
+
+## Servicing 
+
+### Manage booking
+
+```mermaid
+
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant ServicingMS as Servicing [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Traveller->>Web: Navigate to manage booking (booking reference)
+
+    Web->>RetailAPI: GET /order/{bookingRef}
+    RetailAPI->>ServicingMS: Retrieve order (booking reference)
+    ServicingMS-->>RetailAPI: Order details (PAX details, itinerary, e-tickets)
+    RetailAPI-->>Web: Display current booking details
+
+    Traveller->>Web: Update passenger details (e.g. name, passport, contact info)
+
+    Web->>RetailAPI: PATCH /order/{bookingRef}/passengers (updated PAX details)
+    RetailAPI->>ServicingMS: Update PAX details on order (booking reference, updated PAX)
+    ServicingMS-->>RetailAPI: Order updated
+
+    RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated PAX details)
+    DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
+
+    RetailAPI-->>Web: Update confirmed (booking reference, updated e-ticket numbers)
+    Web-->>Traveller: Display updated booking confirmation
+
+```
 
 # Technical Considerations
 
