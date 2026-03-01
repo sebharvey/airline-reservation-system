@@ -1324,8 +1324,8 @@ The JSON is structured as an ordered array of cabins, each containing a column c
       "deckLevel": "Main",
       "startRow": 11,
       "endRow": 18,
-      "columns": ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
-      "layout": "3-3-3",
+      "columns": ["A", "B", "D", "E", "F", "H", "K"],
+      "layout": "2-3-2",
       "rows": [
         {
           "rowNumber": 11,
@@ -1344,21 +1344,11 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "seatNumber": "11B",
               "column": "B",
               "type": "Standard",
-              "position": "Middle",
+              "position": "Aisle",
               "attributes": ["ExtraLegroom"],
               "isSelectable": true,
               "seatOfferId": "so-a351-11B-v1",
               "seatPrice": 20.00
-            },
-            {
-              "seatNumber": "11C",
-              "column": "C",
-              "type": "Standard",
-              "position": "Aisle",
-              "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11C-v1",
-              "seatPrice": 50.00
             },
             {
               "seatNumber": "11D",
@@ -1391,20 +1381,10 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "seatPrice": 50.00
             },
             {
-              "seatNumber": "11G",
-              "column": "G",
-              "type": "Standard",
-              "position": "Aisle",
-              "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11G-v1",
-              "seatPrice": 50.00
-            },
-            {
               "seatNumber": "11H",
               "column": "H",
               "type": "Standard",
-              "position": "Middle",
+              "position": "Aisle",
               "attributes": ["ExtraLegroom"],
               "isSelectable": true,
               "seatOfferId": "so-a351-11H-v1",
