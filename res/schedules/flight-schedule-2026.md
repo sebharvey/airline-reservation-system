@@ -137,7 +137,3 @@
 | AX201–AX299 | East Asia |
 | AX301–AX399 | South-East Asia |
 | AX401–AX499 | South Asia |
-
----
-
-> **Note:** SFO (San Francisco) has been added to the network as a logical extension of Apex Air's North America coverage, consistent with its premium transatlantic positioning. All other routes are as defined in the Apex Air network specification.
