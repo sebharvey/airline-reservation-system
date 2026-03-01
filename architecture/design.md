@@ -6,13 +6,14 @@ This outlines the design for an airline reservation system based on offer and or
 
 The system will have the following core concepts.
 
-- Offer - returns availability and pricing of the airlines flights
-- Order - creates, modifies, and cancels orders (bookings on the plane) based on the offer, with passenger information included, takes payment, and manages all post-booking changes including passenger detail updates, seat changes, and cancellations
-- Payment - payment orchestration, supporting credit card payments and in future other methods like PayPal and ApplePay; handles multiple separate authorisations and settlements within a single booking (e.g. fares ticketed separately from ancillary seat purchases)
-- Delivery - Akin to departure control, including online check in (OLCI), irregular operations (IROPS), seat allocation, gate management
-- Customer - loyalty accounts for customers - with customer details, points balances, and transaction (historical and future orders)
+- Offer - returns availability and pricing of the airlines flights.
+- Order - creates, modifies, and cancels orders (bookings on the plane) based on the offer, with passenger information included, takes payment, and manages all post-booking changes including passenger detail updates, seat changes, and cancellations.
+- Payment - payment orchestration, supporting credit card payments and in future other methods like PayPal and ApplePay; handles multiple separate authorisations and settlements within a single booking (e.g. fares ticketed separately from ancillary seat purchases).
+- Delivery - Akin to departure control, including online check in (OLCI), irregular operations (IROPS), seat allocation, gate management.
+- Customer - loyalty accounts for customers - with customer details, points balances, and transaction (historical and future orders).
+- Identity - stores login credential for the customer accounts.
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
-- Seat - manages seatmap definitions per aircraft type; provides seatmap views and seat pricing to other services and channels (does not manage seat selection or inventory)
+- Seat - manages seatmap definitions per aircraft type; provides seatmap views and seat pricing to other services and channels (does not manage seat selection or inventory).
 
 Please note (these one-name capability 'domain names' should be used for domain naming in the code)
 
@@ -23,7 +24,7 @@ graph TB
     subgraph Channels
         WEB[🌐 Web]
         APP[📱 App]
-        NDC[✈️ NDC / GDS / OTA]
+        NDC[✈️ NDC]
         KIOSK[🖥️ Kiosk]
         CC[🎧 Contact Centre App]
         AIRPORT[🛫 Airport App]
@@ -58,6 +59,11 @@ graph TB
             DELIVERY_DB[(Delivery DB)]
         end
 
+        subgraph IDENTITY_SVC["Identity Service"]
+            IDENTITY[Identity]
+            IDENTITY_DB[(Identity DB)]
+        end
+
         subgraph CUSTOMER_SVC["Customer Service"]
             CUSTOMER[Customer]
             CUSTOMER_DB[(Customer DB)]
@@ -86,11 +92,12 @@ graph TB
 
     %% Orchestration → Microservices
     RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT
-    LOYALTY_API --> CUSTOMER
+    LOYALTY_API --> IDENTITY & CUSTOMER
     AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT
     ACCOUNTING_API --> ACCOUNTING
 
     %% Microservice → DB
+    IDENTITY --> IDENTITY_DB
     OFFER --> INV_DB
     ORDER --> ORDER_DB
     PAYMENT --> PAYMENT_DB
@@ -99,9 +106,10 @@ graph TB
     ACCOUNTING --> ACCOUNTING_DB
     SEAT --> SEAT_DB
 
-    %% Eventing to Accounting
+    %% Eventing to Accounting and Customer
     ORDER --> EVT
     EVT --> ACCOUNTING
+    EVT --> CUSTOMER
 ```
 
 Key components:
@@ -1454,6 +1462,226 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 ```
 
 > **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is overlaid at query time from `offer.FlightInventory` and is never stored here.
+
+## Customer
+
+The Customer microservice is the system of record for customer accounts and loyalty programme membership. Each account holds the customer's profile, tier status, current points balance, and a full transaction history of points earned and redeemed. Accounts are identified by a unique loyalty number issued at registration.
+
+Authentication credentials (email address and password) are owned by a separate **Identity microservice** with its own Identity DB. The Customer DB holds only an `IdentityReference` — the opaque identifier that links a Customer record to its corresponding Identity account. This separation means the Customer microservice never handles credentials directly, and the Identity microservice never holds loyalty or profile data.
+
+### Retrieve Account and Points Balance
+
+A traveller retrieves their account details and current points balance — used on the loyalty dashboard and during booking to display available points.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
+
+    Traveller->>Web: Navigate to loyalty account
+
+    Web->>LoyaltyAPI: GET /customer/{loyaltyNumber}
+    LoyaltyAPI->>CustomerMS: Retrieve customer account (loyaltyNumber)
+    CustomerMS-->>LoyaltyAPI: Customer profile (name, tier, pointsBalance, tierProgressPoints)
+    LoyaltyAPI-->>Web: Display account summary
+    Web-->>Traveller: Show profile, tier status, and points balance
+```
+
+---
+
+### Retrieve Transaction History
+
+Returns the full ordered list of points transactions — both earnings (accruals) and redemptions — for display on the account statement page.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
+
+    Traveller->>Web: Navigate to points statement
+
+    Web->>LoyaltyAPI: GET /customer/{loyaltyNumber}/transactions?page=1&pageSize=20
+    LoyaltyAPI->>CustomerMS: Retrieve transaction history (loyaltyNumber, page, pageSize)
+    CustomerMS-->>LoyaltyAPI: Paginated transaction list (transactionId, type, points, description, bookingReference, transactionDate)
+    LoyaltyAPI-->>Web: Display statement
+    Web-->>Traveller: Show paginated points history
+```
+
+---
+
+### Earn Points on Booking Confirmation
+
+When an order is confirmed, the Order microservice publishes an `OrderConfirmed` event to the event bus. If the booking includes a loyalty number on any passenger, the Customer microservice consumes this event and accrues the appropriate points to the customer's account. Points are calculated based on the fare paid, cabin class, and tier at time of travel.
+
+> **Points calculation** rules (multipliers, bonus tiers, partner earn rates) are the responsibility of the Customer microservice and are not defined in this document. The event payload provides the inputs; the calculation logic is encapsulated within the service.
+
+```mermaid
+sequenceDiagram
+    participant OrderMS as Order [MS]
+    participant EventBus as Event Bus
+    participant CustomerMS as Customer [MS]
+
+    Note over OrderMS, EventBus: Async — triggered on order confirmation
+    OrderMS-)EventBus: OrderConfirmed event (bookingReference, loyaltyNumber, flights, fareAmount, cabinCode, passengerType)
+
+    EventBus-)CustomerMS: OrderConfirmed event received
+
+    CustomerMS->>CustomerMS: Calculate points to earn (fareAmount, cabinCode, tierStatus)
+    CustomerMS->>CustomerMS: Append LoyaltyTransaction (type=Earn, points, bookingReference)
+    CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
+    Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
+```
+
+---
+
+### Data Schema — Customer
+
+The Customer domain uses three tables. `Customer` holds one row per loyalty account, containing profile information, tier status, and running points balances. `LoyaltyTransaction` records every points movement as an immutable append-only log — earnings from flights and redemptions against future bookings. `TierConfig` holds the qualifying thresholds for each tier level, used when evaluating tier upgrades.
+
+#### Identity separation
+
+The `Customer` table stores an `IdentityReference` — the unique identifier issued by the Identity microservice when the customer's login account is created. This reference is the only link between the two domains. The Customer microservice never stores email addresses or passwords; the Identity microservice never stores loyalty or profile data. The `IdentityReference` column is nullable to support legacy or manually created accounts that predate the Identity microservice, or future scenarios where a customer has a loyalty account without a login.
+
+```sql
+-- customer.TierConfig
+-- Defines the qualifying thresholds for each loyalty tier.
+-- A single active version of each tier is maintained; rows are never deleted, only superseded.
+CREATE TABLE customer.TierConfig (
+    TierConfigId          UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    TierCode              VARCHAR(20)       NOT NULL,   -- e.g. Blue, Silver, Gold, Platinum
+    TierLabel             VARCHAR(50)       NOT NULL,   -- display name, e.g. 'Apex Silver'
+    MinQualifyingPoints   INT               NOT NULL,   -- minimum tier progress points to hold this tier
+    IsActive              BIT               NOT NULL DEFAULT 1,
+    ValidFrom             DATETIME2         NOT NULL,
+    ValidTo               DATETIME2         NULL,       -- null = currently active
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_TierConfig_Active
+    ON customer.TierConfig (TierCode)
+    WHERE IsActive = 1;
+
+-- customer.Customer
+-- One row per loyalty account. IdentityReference links to the Identity DB; nullable
+-- to support accounts created before or outside the Identity microservice.
+CREATE TABLE customer.Customer (
+    CustomerId            UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    LoyaltyNumber         VARCHAR(20)       NOT NULL UNIQUE,        -- issued at account creation, e.g. AX9876543
+    IdentityReference     UNIQUEIDENTIFIER  NULL UNIQUE,            -- opaque ref to Identity DB; null if no login account
+    GivenName             VARCHAR(100)      NOT NULL,
+    Surname               VARCHAR(100)      NOT NULL,
+    DateOfBirth           DATE              NULL,
+    Nationality           CHAR(3)           NULL,                   -- ISO 3166-1 alpha-3
+    PreferredLanguage     CHAR(5)           NULL DEFAULT 'en-GB',   -- BCP 47 language tag
+    PhoneNumber           VARCHAR(30)       NULL,
+    TierCode              VARCHAR(20)       NOT NULL DEFAULT 'Blue', -- FK ref to customer.TierConfig (enforced at app layer)
+    PointsBalance         INT               NOT NULL DEFAULT 0,     -- current redeemable points balance
+    TierProgressPoints    INT               NOT NULL DEFAULT 0,     -- qualifying points for tier evaluation (may differ from PointsBalance)
+    IsActive              BIT               NOT NULL DEFAULT 1,
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_Customer_LoyaltyNumber
+    ON customer.Customer (LoyaltyNumber);
+
+CREATE INDEX IX_Customer_Surname
+    ON customer.Customer (Surname, GivenName);
+
+-- customer.LoyaltyTransaction
+-- Immutable append-only log of every points movement on a customer account.
+-- Supports both earning (accrual on flight completion) and redemptions (future phase).
+-- PointsDelta is positive for earnings, negative for redemptions or expiry.
+CREATE TABLE customer.LoyaltyTransaction (
+    TransactionId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    CustomerId            UNIQUEIDENTIFIER  NOT NULL REFERENCES customer.Customer(CustomerId),
+    TransactionType       VARCHAR(20)       NOT NULL,               -- Earn | Redeem | Adjustment | Expiry | Reinstate
+    PointsDelta           INT               NOT NULL,               -- positive = earned, negative = redeemed/expired
+    BalanceAfter          INT               NOT NULL,               -- running pointsBalance snapshot after this transaction
+    BookingReference      CHAR(6)           NULL,                   -- associated booking reference where applicable
+    FlightNumber          VARCHAR(10)       NULL,                   -- associated flight where applicable (Earn transactions)
+    Description           VARCHAR(255)      NOT NULL,               -- e.g. 'Points earned — AX003 LHR-JFK, Business Flex'
+    TransactionDate       DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_LoyaltyTransaction_Customer
+    ON customer.LoyaltyTransaction (CustomerId, TransactionDate DESC);
+
+CREATE INDEX IX_LoyaltyTransaction_BookingReference
+    ON customer.LoyaltyTransaction (BookingReference)
+    WHERE BookingReference IS NOT NULL;
+```
+
+> **Points balance integrity:** `PointsBalance` and `TierProgressPoints` on `customer.Customer` are updated atomically within the same database transaction as the `LoyaltyTransaction` insert. The `BalanceAfter` column on each transaction row records the running balance snapshot at that point, providing a self-consistent audit trail independent of the current balance column. In the event of a discrepancy, `BalanceAfter` on the most recent transaction is the source of truth.
+
+> **TierProgressPoints vs PointsBalance:** These two values are tracked separately. `PointsBalance` is the redeemable balance available to spend. `TierProgressPoints` accumulates qualifying activity for tier evaluation and may be reset annually or per programme rules — it is not decremented when points are redeemed. Tier evaluation logic (when to upgrade or downgrade a member) is the responsibility of the Customer microservice and runs as a background process or is triggered by each `Earn` transaction.
+
+> **Transaction types:** `Earn` — points accrued from a completed flight. `Redeem` — points redeemed against a future booking (award bookings, future phase). `Adjustment` — manual correction applied by a customer service agent with a reason. `Expiry` — points removed due to account inactivity or programme rules. `Reinstate` — reversal of an expiry or erroneous redemption.
+
+---
+
+## Identity
+
+### Data Schema — Identity
+
+The Identity microservice owns its own `identity.*` schema and is the sole store of authentication credentials. It holds one row per login account, linked to the Customer domain via `IdentityReference`. Passwords are stored as salted hashes only — plain text passwords are never persisted.
+
+The Identity microservice exposes authentication and credential management endpoints consumed by the Loyalty API. It does not expose any loyalty or profile data; it returns only a validated `IdentityReference` on successful authentication, which the Loyalty API uses to look up the corresponding Customer account.
+
+```sql
+-- identity.UserAccount
+-- One row per registered login account. PasswordHash stores a salted hash only —
+-- never plain text. IdentityReference is the shared key passed to the Customer domain.
+CREATE TABLE identity.UserAccount (
+    UserAccountId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    IdentityReference     UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() UNIQUE,  -- shared key passed to Customer MS
+    Email                 VARCHAR(254)      NOT NULL UNIQUE,                  -- RFC 5321 max length
+    PasswordHash          VARCHAR(255)      NOT NULL,                         -- Argon2id hash; never plain text
+    IsEmailVerified       BIT               NOT NULL DEFAULT 0,
+    IsLocked              BIT               NOT NULL DEFAULT 0,               -- set after repeated failed login attempts
+    FailedLoginAttempts   TINYINT           NOT NULL DEFAULT 0,
+    LastLoginAt           DATETIME2         NULL,
+    PasswordChangedAt     DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_UserAccount_Email
+    ON identity.UserAccount (Email);
+
+-- identity.RefreshToken
+-- Stores active refresh tokens for session management.
+-- Short-lived access tokens are not persisted; only refresh tokens are stored here.
+CREATE TABLE identity.RefreshToken (
+    RefreshTokenId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    UserAccountId         UNIQUEIDENTIFIER  NOT NULL REFERENCES identity.UserAccount(UserAccountId),
+    TokenHash             VARCHAR(255)      NOT NULL,               -- hashed token; raw token returned to client only
+    DeviceHint            VARCHAR(100)      NULL,                   -- optional user-agent label for session management UI
+    IsRevoked             BIT               NOT NULL DEFAULT 0,
+    ExpiresAt             DATETIME2         NOT NULL,
+    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE INDEX IX_RefreshToken_UserAccount
+    ON identity.RefreshToken (UserAccountId)
+    WHERE IsRevoked = 0;
+```
+
+> **Password hashing:** Passwords must be hashed using Argon2id (bcrypt acceptable as fallback). The raw password must not be stored, logged, or transmitted after the initial hash operation. Salt is embedded within the hash string.
+
+> **Account lockout:** After a configurable number of consecutive failed login attempts (default: 5), `IsLocked` is set to `1` and further authentication attempts are rejected until an administrator or automated unlock process resets the flag. Failed attempt counts reset to zero on successful authentication.
+
+> **Refresh token rotation:** On each use of a refresh token, the existing token is revoked and a new one issued, providing single-use semantics. All tokens for a `UserAccountId` can be revoked simultaneously to force logout across all sessions.
+
+> **Access tokens:** Short-lived JWT access tokens (recommended TTL: 15 minutes) are issued at authentication time and are not persisted in the Identity DB. The Loyalty API and Retail API validate access tokens using the Identity microservice's public signing key without a database round-trip on each request.
+
+> **IdentityReference:** The Identity microservice issues the `IdentityReference` UUID at login account creation and passes it to the Customer microservice for storage. The Customer microservice does not call the Identity microservice to validate credentials — authentication is handled upstream by the Loyalty API before any Customer calls are made.
+
 
 -----
 
