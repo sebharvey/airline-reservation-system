@@ -229,7 +229,7 @@ sequenceDiagram
 
 ## Servicing 
 
-### Manage booking
+### Manage booking - udpate PAX details
 
 ```mermaid
 
@@ -261,7 +261,58 @@ sequenceDiagram
 
 ```
 
+### Maange booking - select or update seat selection
+
+```mermaid
+
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant ServicingMS as Servicing [MS]
+    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
+    participant AccountingMS as Accounting [MS]
+
+    Traveller->>Web: Navigate to manage booking (booking reference)
+
+    Web->>RetailAPI: GET /order/{bookingRef}
+    RetailAPI->>ServicingMS: Retrieve order (booking reference)
+    ServicingMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
+    RetailAPI-->>Web: Display current booking and seat map
+
+    Web->>RetailAPI: GET /flights/{flightId}/seatmap
+    RetailAPI->>OfferMS: Retrieve seat map and availability (flight ID)
+    OfferMS-->>RetailAPI: Seat map with available and occupied seats
+    RetailAPI-->>Web: Display seat map
+
+    Traveller->>Web: Select seat(s) for each PAX
+
+    Web->>RetailAPI: PATCH /order/{bookingRef}/seats (PAX ID, selected seat per flight)
+
+    RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
+    OfferMS-->>RetailAPI: Seats reserved
+
+    RetailAPI->>ServicingMS: Update seat assignment on order (booking reference, PAX seats)
+    ServicingMS-->>RetailAPI: Order updated
+
+    RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated seat assignments)
+    DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
+
+    RetailAPI-->>Web: Seat selection confirmed (booking reference, updated e-tickets)
+    Web-->>Traveller: Display updated booking confirmation with seat assignments
+
+    Note over ServicingMS, AccountingMS: Async event
+    ServicingMS-)AccountingMS: OrderServiced event (booking reference, seat change details)
+
+```
+
 # Technical Considerations
 
 - Microservices built in C# as Azure Functions (isolated)
 - Databases will be built in Microsoft SQL.  Ideally these would be individual, isolated, database instances, but for this project, we will use one database with key domains seperated logically using the domain names and the schema.
+
+# Glossary
+
+- PAX - passenger
+- NDC - New distribution capability (IATA standard)
