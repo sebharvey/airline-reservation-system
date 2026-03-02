@@ -1280,9 +1280,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom", "BlockedForCrew"],
-              "isSelectable": false,
-              "seatOfferId": null,
-              "seatPrice": null
+              "isSelectable": false
             },
             {
               "seatNumber": "1D",
@@ -1290,9 +1288,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": null,
-              "seatPrice": null
+              "isSelectable": true
             },
             {
               "seatNumber": "1G",
@@ -1300,9 +1296,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": null,
-              "seatPrice": null
+              "isSelectable": true
             },
             {
               "seatNumber": "1K",
@@ -1310,9 +1304,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": null,
-              "seatPrice": null
+              "isSelectable": true
             }
           ]
         }
@@ -1336,9 +1328,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11A-v1",
-              "seatPrice": 70.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11B",
@@ -1346,9 +1336,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11B-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11D",
@@ -1356,9 +1344,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11D-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11E",
@@ -1366,9 +1352,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11E-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11F",
@@ -1376,9 +1360,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11F-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11H",
@@ -1386,9 +1368,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11H-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "11K",
@@ -1396,9 +1376,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-11K-v1",
-              "seatPrice": 70.00
+              "isSelectable": true
             }
           ]
         }
@@ -1422,9 +1400,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22A-v1",
-              "seatPrice": 70.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22B",
@@ -1432,9 +1408,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22B-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22C",
@@ -1442,9 +1416,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22C-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22D",
@@ -1452,9 +1424,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22D-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22E",
@@ -1462,9 +1432,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22E-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22F",
@@ -1472,9 +1440,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22F-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22G",
@@ -1482,9 +1448,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22G-v1",
-              "seatPrice": 50.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22H",
@@ -1492,9 +1456,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22H-v1",
-              "seatPrice": 20.00
+              "isSelectable": true
             },
             {
               "seatNumber": "22K",
@@ -1502,9 +1464,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true,
-              "seatOfferId": "so-a351-22K-v1",
-              "seatPrice": 70.00
+              "isSelectable": true
             }
           ]
         }
