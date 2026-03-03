@@ -163,30 +163,30 @@ sequenceDiagram
 
     Traveller->>Web: Search for outbound flight (origin, destination, date, pax)
 
-    Web->>RetailAPI: POST /search/slice (origin, destination, date, pax, direction=outbound)
-    RetailAPI->>OfferMS: Search availability (outbound slice)
+    Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=outbound)
+    RetailAPI->>OfferMS: POST /v1/search (outbound slice params)
     OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
-    OfferMS-->>RetailAPI: Outbound offer options (each with OfferId, flight details, fare, price)
-    RetailAPI-->>Web: Display outbound options
+    OfferMS-->>RetailAPI: 200 OK — outbound offer options (each with OfferId, flight details, fare, price)
+    RetailAPI-->>Web: 200 OK — display outbound options
 
     Traveller->>Web: Select preferred outbound offer
 
     opt Traveller wants a return flight
         Traveller->>Web: Search for inbound flight (origin, destination, date, pax)
-        Web->>RetailAPI: POST /search/slice (origin, destination, date, pax, direction=inbound)
-        RetailAPI->>OfferMS: Search availability (inbound slice)
+        Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=inbound)
+        RetailAPI->>OfferMS: POST /v1/search (inbound slice params)
         OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
-        OfferMS-->>RetailAPI: Inbound offer options (each with OfferId, flight details, fare, price)
-        RetailAPI-->>Web: Display inbound options
+        OfferMS-->>RetailAPI: 200 OK — inbound offer options (each with OfferId, flight details, fare, price)
+        RetailAPI-->>Web: 200 OK — display inbound options
         Traveller->>Web: Select preferred inbound offer
     end
 
     Note over Web, RetailAPI: Basket contains one or more OfferIds (outbound mandatory, inbound optional)
 
-    Web->>RetailAPI: POST /basket (offerIds: [OfferId-Out, OfferId-In?], pax details)
-    RetailAPI->>OrderMS: Create basket (offerIds, pax)
-    OrderMS-->>RetailAPI: Basket ID + basket summary
-    RetailAPI-->>Web: Basket confirmed (Basket ID, itinerary, total price)
+    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], pax details)
+    RetailAPI->>OrderMS: POST /v1/basket (offerIds, pax)
+    OrderMS-->>RetailAPI: 201 Created — basket ID + basket summary
+    RetailAPI-->>Web: 201 Created — basket confirmed (basketId, itinerary, total price)
     Web-->>Traveller: Display basket summary — ready to proceed to booking
 ```
 
@@ -294,72 +294,72 @@ sequenceDiagram
 
     Traveller->>Web: Enter passenger details
 
-    Web->>RetailAPI: POST /basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
-    RetailAPI->>OrderMS: Create basket (offerIds, channel, currency)
+    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
+    RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
     Note over OrderMS: Basket created with ExpiresAt = now + 24hr<br/>TicketingTimeLimit = now + 24hr (configurable)
 
     loop For each flight OfferId
-        OrderMS->>OfferMS: GET /offer/{offerId} (retrieve stored offer)
-        OfferMS-->>OrderMS: Stored offer snapshot (flight, fare, pricing)
+        OrderMS->>OfferMS: GET /v1/offers/{offerId}
+        OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing)
         OrderMS->>OrderMS: Add flight offer to basket (BasketItem)
     end
 
-    OrderMS-->>RetailAPI: Basket created (basketId, itinerary, total fare price, ticketingTimeLimit)
-    RetailAPI-->>Web: Basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
+    OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
+    RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
 
     Traveller->>Web: Enter passenger details
-    Web->>RetailAPI: PUT /basket/{basketId}/passengers (PAX details)
-    RetailAPI->>OrderMS: Update basket with passenger details
-    OrderMS-->>RetailAPI: Basket updated
+    Web->>RetailAPI: PUT /v1/basket/{basketId}/passengers (PAX details)
+    RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers (PAX details)
+    OrderMS-->>RetailAPI: 200 OK — basket updated
 
     opt Traveller selects seats during booking
-        Web->>RetailAPI: GET /flights/{flightId}/seatmap (with pricing)
-        RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
-        SeatMS-->>RetailAPI: Seatmap layout + seat offers (each with SeatOfferId and price)
-        RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
-        OfferMS-->>RetailAPI: Available and occupied seats
-        RetailAPI-->>Web: Display seat map with pricing and availability
+        Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
+        RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
+        SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId and price)
+        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
+        OfferMS-->>RetailAPI: 200 OK — available and occupied seats
+        RetailAPI-->>Web: 200 OK — seat map with pricing and availability
         Traveller->>Web: Select seat(s) for each PAX
-        Web->>RetailAPI: PUT /basket/{basketId}/seats (seatOfferIds per PAX per flight)
-        RetailAPI->>OrderMS: Add seat offers to basket (seatOfferIds, PAX assignments)
-        OrderMS-->>RetailAPI: Basket updated (seat items added, revised total)
-        RetailAPI-->>Web: Seats reserved in basket, show revised total
+        Web->>RetailAPI: PUT /v1/basket/{basketId}/seats (seatOfferIds per PAX per flight)
+        RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/seats (seatOfferIds, PAX assignments)
+        OrderMS-->>RetailAPI: 200 OK — basket updated (seat items added, revised total)
+        RetailAPI-->>Web: 200 OK — seats reserved in basket, revised total
     end
 
     Traveller->>Web: Enter payment details and confirm booking
 
-    Web->>RetailAPI: POST /basket/{basketId}/confirm (payment details)
+    Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
     Note over RetailAPI, PaymentMS: Authorise and settle fare payment
-    RetailAPI->>PaymentMS: Authorise card for fare total (amount, card details)
-    PaymentMS-->>RetailAPI: Fare authorisation confirmed (paymentReference-1)
-    RetailAPI->>OfferMS: Remove seats from inventory (per stored flight offers)
-    OfferMS-->>RetailAPI: Inventory updated
-    RetailAPI->>DeliveryMS: Create e-tickets (basketId, passenger details, flights)
-    DeliveryMS-->>RetailAPI: E-ticket numbers issued
-    RetailAPI->>PaymentMS: Settle fare payment (paymentReference-1)
-    PaymentMS-->>RetailAPI: Fare payment settled
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, currency, card details, description)
+    PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+    RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryIds from stored flight offers)
+    OfferMS-->>RetailAPI: 200 OK — inventory updated
+    RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
+    DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
     opt Seats were selected
         Note over RetailAPI, PaymentMS: Authorise and settle seat ancillary payment
-        RetailAPI->>PaymentMS: Authorise card for seat total (amount, paymentReference-1 card token)
-        PaymentMS-->>RetailAPI: Seat authorisation confirmed (paymentReference-2)
-        RetailAPI->>PaymentMS: Settle seat payment (paymentReference-2)
-        PaymentMS-->>RetailAPI: Seat payment settled
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, card token from paymentReference-1)
+        PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference-2)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-2}/settle (settledAmount)
+        PaymentMS-->>RetailAPI: 200 OK — seat payment settled
     end
 
-    RetailAPI->>OrderMS: Confirm order from basket (basketId, e-ticket numbers, paymentReferences)
-    OrderMS-->>RetailAPI: Order confirmed (6-digit booking reference)
+    RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences)
+    OrderMS-->>RetailAPI: 201 Created — order confirmed (6-digit bookingReference)
     Note over OrderMS: Basket record deleted on successful order confirmation
 
-    RetailAPI->>DeliveryMS: Write manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per flight segment)
-    DeliveryMS-->>RetailAPI: Manifest entries written
+    RetailAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per segment)
+    DeliveryMS-->>RetailAPI: 201 Created — manifest entries written
 
     Note over OrderMS, AccountingMS: Async event
-    OrderMS-)AccountingMS: OrderConfirmed event (booking reference, amount, e-tickets)
+    OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, amount, e-tickets)
 
-    RetailAPI-->>Web: Booking confirmed (booking reference, e-ticket numbers)
+    RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-ticket numbers)
     Web-->>Traveller: Display booking confirmation
 ```
 
@@ -386,7 +386,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Fare payment has been successfully authorised (`paymentReference` held)
 
 - **E-ticket issuance** (Retail API → Delivery MS):
-  - Retail API calls `POST /tickets` on the Delivery microservice, passing: basket ID, passenger details, and flight segments
+  - Retail API calls `POST /v1/tickets` on the Delivery microservice, passing: basket ID, passenger details, and flight segments
   - Delivery MS generates one e-ticket number per passenger per flight segment
   - E-ticket numbers are returned synchronously to the Retail API
 
@@ -396,7 +396,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - This step must complete before order confirmation is written
 
 - **Fare payment settlement** (Retail API → Payment MS):
-  - Retail API calls `POST /payment/{paymentReference}/settle` to move the authorised fare payment to `Settled`
+  - Retail API calls `POST /v1/payment/{paymentReference}/settle` to move the authorised fare payment to `Settled`
 
 - **Order confirmation** (Retail API → Order MS):
   - Retail API calls the Order microservice to convert the basket into a confirmed `order.Order` record
@@ -410,7 +410,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Delivery MS validates each seat number against the active seatmap before writing (calls Seat MS)
 
 - **Ancillary settlement** (if seats were pre-selected):
-  - After the manifest is written, Retail API calls `POST /payment/{paymentReference}/settle` for the seat ancillary payment reference
+  - After the manifest is written, Retail API calls `POST /v1/payment/{paymentReference}/settle` for the seat ancillary payment reference
   - This is settled after fare settlement — the two are independent payment transactions
 
 #### Reissuance
@@ -861,21 +861,21 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to manage booking
 
-    Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: Retrieve order (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: Order details (PAX details, itinerary, e-tickets)
-    RetailAPI-->>Web: Display current booking details
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: 200 OK — order details (PAX details, itinerary, e-tickets)
+    RetailAPI-->>Web: 200 OK — display current booking details
 
     Traveller->>Web: Update passenger details (e.g. name, passport, contact info)
 
-    Web->>RetailAPI: PATCH /order/{bookingRef}/passengers (updated PAX details)
-    RetailAPI->>OrderMS: Update PAX details on order (booking reference, updated PAX)
-    OrderMS-->>RetailAPI: Order updated
+    Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/passengers (updated PAX details)
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/passengers (updated PAX details)
+    OrderMS-->>RetailAPI: 200 OK — order updated
 
-    RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated PAX details)
-    DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
+    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated PAX details)
+    DeliveryMS-->>RetailAPI: 200 OK — updated e-ticket numbers issued
 
-    RetailAPI-->>Web: Update confirmed (booking reference, updated e-ticket numbers)
+    RetailAPI-->>Web: 200 OK — update confirmed (bookingReference, updated e-ticket numbers)
     Web-->>Traveller: Display updated booking confirmation
 ```
 
@@ -897,45 +897,45 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to manage booking
 
-    Web->>RetailAPI: POST /order/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: Retrieve order (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: Order details (PAX list, current seat assignments, itinerary)
-    RetailAPI-->>Web: Display current booking
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, current seat assignments, itinerary)
+    RetailAPI-->>Web: 200 OK — display current booking
 
-    Web->>RetailAPI: GET /flights/{flightId}/seatmap (with pricing)
-    RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
-    SeatMS-->>RetailAPI: Seatmap layout + seat offers (each with SeatOfferId, position, price)
-    RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
-    OfferMS-->>RetailAPI: Available and occupied seats
-    RetailAPI-->>Web: Display seat map with pricing and availability
+    Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
+    RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
+    SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId, position, price)
+    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
+    OfferMS-->>RetailAPI: 200 OK — available and occupied seats
+    RetailAPI-->>Web: 200 OK — seat map with pricing and availability
 
     Traveller->>Web: Select seat(s) for each PAX
 
-    Web->>RetailAPI: PATCH /order/{bookingRef}/seats (seatOfferIds per PAX per flight)
+    Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds per PAX per flight)
 
-    RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
-    OfferMS-->>RetailAPI: Seats reserved
+    RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
+    OfferMS-->>RetailAPI: 200 OK — seats reserved
 
     Note over RetailAPI, PaymentMS: Take payment for seat ancillary
-    RetailAPI->>PaymentMS: Authorise card for seat total (amount, card details)
-    PaymentMS-->>RetailAPI: Seat authorisation confirmed (paymentReference)
-    RetailAPI->>PaymentMS: Settle seat payment (paymentReference)
-    PaymentMS-->>RetailAPI: Seat payment settled
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, card details, description)
+    PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — seat payment settled
 
-    RetailAPI->>OrderMS: Update seat order items and assignment (bookingRef, seatOfferIds, PAX seats, paymentReference)
-    OrderMS-->>RetailAPI: Order updated
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds, PAX seats, paymentReference)
+    OrderMS-->>RetailAPI: 200 OK — order updated
 
-    RetailAPI->>DeliveryMS: Reissue e-tickets (booking reference, updated seat assignments)
-    DeliveryMS-->>RetailAPI: Updated e-ticket numbers issued
+    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated seat assignments)
+    DeliveryMS-->>RetailAPI: 200 OK — updated e-ticket numbers issued
 
-    RetailAPI->>DeliveryMS: Update manifest entries (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per affected PAX per flight segment)
-    DeliveryMS-->>RetailAPI: Manifest entries updated
+    RetailAPI->>DeliveryMS: PUT /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per affected PAX per segment)
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries updated
 
-    RetailAPI-->>Web: Seat selection confirmed (booking reference, updated e-tickets)
+    RetailAPI-->>Web: 200 OK — seat selection confirmed (bookingReference, updated e-tickets)
     Web-->>Traveller: Display updated booking confirmation with seat assignments
 
     Note over OrderMS, AccountingMS: Async event
-    OrderMS-)AccountingMS: OrderChanged event (booking reference, seat change details)
+    OrderMS-)AccountingMS: OrderChanged event (bookingReference, seat change details)
 ```
 
 ## Payment
@@ -952,15 +952,15 @@ sequenceDiagram
     participant PaymentMS as Payment [MS]
     participant PaymentDB as Payment DB
 
-    RetailAPI->>PaymentMS: POST /payment/authorise (amount, currency, card details, description)
-    PaymentMS->>PaymentDB: Create Payment record (status=Authorised)
-    PaymentDB-->>PaymentMS: PaymentReference generated
-    PaymentMS-->>RetailAPI: Authorisation confirmed (paymentReference, authorisedAmount)
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, currency, card details, description)
+    PaymentMS->>PaymentDB: Insert Payment record (status=Authorised)
+    PaymentDB-->>PaymentMS: 201 Created — paymentReference generated
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference, authorisedAmount)
 
-    RetailAPI->>PaymentMS: POST /payment/{paymentReference}/settle (settledAmount)
-    PaymentMS->>PaymentDB: Record Settlement (status=Settled, settledAt)
-    PaymentDB-->>PaymentMS: Settlement recorded
-    PaymentMS-->>RetailAPI: Settlement confirmed (paymentReference, settledAmount)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS->>PaymentDB: Update Payment record (status=Settled, settledAt)
+    PaymentDB-->>PaymentMS: 200 OK — settlement recorded
+    PaymentMS-->>RetailAPI: 200 OK — settlement confirmed (paymentReference, settledAmount)
 ```
 
 ### Data Schema — Payment
@@ -1036,44 +1036,44 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to online check-in
 
-    Web->>RetailAPI: POST /order/checkin/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: Retrieve order and eligibility (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: Order details (PAX list, flights, seat assignments, e-tickets)
-    RetailAPI-->>Web: Display PAX list and pre-flight details
+    Web->>RetailAPI: POST /v1/checkin/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, flights, seat assignments, e-tickets)
+    RetailAPI-->>Web: 200 OK — PAX list and pre-flight details
 
     opt Traveller has no seat assigned or wishes to change seat at check-in
         Note over Web, SeatMS: Seat selection at check-in is free of charge — no payment taken
-        Web->>RetailAPI: GET /flights/{flightId}/seatmap
-        RetailAPI->>SeatMS: Retrieve seatmap with seat offers (aircraft type, flight ID)
-        SeatMS-->>RetailAPI: Seatmap layout + seat offers (SeatOfferId, position, price shown for info only)
-        RetailAPI->>OfferMS: Retrieve seat availability (flight ID)
-        OfferMS-->>RetailAPI: Available and occupied seats
-        RetailAPI-->>Web: Display seat map (pricing shown but not charged at OLCI)
+        Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
+        RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
+        SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (SeatOfferId, position, price shown for info only)
+        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
+        OfferMS-->>RetailAPI: 200 OK — available and occupied seats
+        RetailAPI-->>Web: 200 OK — seat map (pricing shown but not charged at OLCI)
         Traveller->>Web: Select seat(s) for each PAX
-        Web->>RetailAPI: PATCH /order/{bookingRef}/checkin/seats (seatOfferIds per PAX)
-        RetailAPI->>OfferMS: Reserve selected seats in inventory (flight ID, seat numbers)
-        OfferMS-->>RetailAPI: Seats reserved
-        RetailAPI->>OrderMS: Update seat assignment on order (booking reference, PAX seats)
-        OrderMS-->>RetailAPI: Order updated
+        Web->>RetailAPI: PATCH /v1/checkin/{bookingRef}/seats (seatOfferIds per PAX)
+        RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
+        OfferMS-->>RetailAPI: 200 OK — seats reserved
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (PAX seat assignments)
+        OrderMS-->>RetailAPI: 200 OK — order updated
     end
 
     Traveller->>Web: Confirm / update travel document details for each PAX
 
-    Web->>RetailAPI: POST /order/{bookingRef}/checkin (PAX IDs, travel document details)
+    Web->>RetailAPI: POST /v1/checkin/{bookingRef} (PAX IDs, travel document details)
 
-    RetailAPI->>OrderMS: Check in all PAX (booking reference, travel document details)
-    OrderMS-->>RetailAPI: PAX checked in, APIS data recorded
+    RetailAPI->>OrderMS: POST /v1/orders/{bookingRef}/checkin (travel document details)
+    OrderMS-->>RetailAPI: 200 OK — PAX checked in, APIS data recorded
 
-    RetailAPI->>OfferMS: Update seat inventory status to checked-in (flight ID, seat numbers)
-    OfferMS-->>RetailAPI: Inventory updated
+    RetailAPI->>OfferMS: PATCH /v1/flights/{flightId}/seat-availability (flightId, seatNumbers, status=checked-in)
+    OfferMS-->>RetailAPI: 200 OK — inventory updated
 
-    RetailAPI->>DeliveryMS: Update manifest check-in status (bookingReference, PAX IDs, checkedIn=true, checkedInAt=now)
-    DeliveryMS-->>RetailAPI: Manifest entries updated
+    RetailAPI->>DeliveryMS: PATCH /v1/manifest/{bookingRef} (PAX IDs, checkedIn=true, checkedInAt=now)
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries updated
 
-    RetailAPI->>DeliveryMS: Generate boarding cards (booking reference, PAX list, seats, flights)
-    DeliveryMS-->>RetailAPI: Boarding cards generated (one per PAX per flight) including boarding pass barcode string
+    RetailAPI->>DeliveryMS: POST /v1/boarding-cards (bookingReference, PAX list, seats, flights)
+    DeliveryMS-->>RetailAPI: 201 Created — boarding cards (one per PAX per flight) including BCBP barcode string
 
-    RetailAPI-->>Web: Check-in confirmed (boarding cards)
+    RetailAPI-->>Web: 200 OK — check-in confirmed (boarding cards)
     Web-->>Traveller: Display and offer download of boarding cards
 ```
 
@@ -1161,7 +1161,7 @@ CREATE INDEX IX_FlightManifest_BookingReference
 
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
 
-> **Seatmap validation:** The Delivery microservice must call `GET /seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
+> **Seatmap validation:** The Delivery microservice must call `GET /v1/seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
 
 ## Seat
 
@@ -1185,10 +1185,10 @@ sequenceDiagram
     participant SeatMS as Seat [MS]
     participant SeatDB as Seat DB
 
-    RetailAPI->>SeatMS: GET /seatmap/{aircraftType}?flightId={flightId}
-    SeatMS->>SeatDB: Retrieve seatmap definition and pricing (aircraft type)
-    SeatDB-->>SeatMS: Seatmap rows, seats, cabin zones, seat attributes, pricing rules
-    SeatMS-->>RetailAPI: Seatmap definition (layout, cabin config, seat metadata) + seat offers (SeatOfferId, price per selectable seat)
+    RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
+    SeatMS->>SeatDB: SELECT seatmap, pricing WHERE aircraftType = {aircraftType} AND isActive = 1
+    SeatDB-->>SeatMS: 200 OK — seatmap rows, seats, cabin zones, seat attributes, pricing rules
+    SeatMS-->>RetailAPI: 200 OK — seatmap definition (layout, cabin config, seat metadata) + seat offers (SeatOfferId, price per selectable seat)
 ```
 
 ### Data Schema — Seat
@@ -1482,6 +1482,46 @@ The Customer microservice is the system of record for customer accounts and loya
 
 Authentication credentials (email address and password) are owned by a separate **Identity microservice** with its own Identity DB. The Customer DB holds only an `IdentityReference` — the opaque identifier that links a Customer record to its corresponding Identity account. This separation means the Customer microservice never handles credentials directly, and the Identity microservice never holds loyalty or profile data.
 
+### Register for the Loyalty Programme
+
+A new customer registers for the Apex Air loyalty programme via the web. Registration creates two linked records: a login account in the Identity microservice (which owns the email and password), and a loyalty account in the Customer microservice (which owns the profile and points balance). The two are joined by an `IdentityReference` UUID, which the Identity microservice generates and passes back so the Loyalty API can store it on the Customer record.
+
+On successful registration the customer receives a unique loyalty number and is automatically assigned to the base tier (`Blue`). A confirmation email is triggered from the Loyalty API once both records are created.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity [MS]
+    participant CustomerMS as Customer [MS]
+
+    Customer->>Web: Navigate to Join page and complete registration form
+    Note over Web: Form collects: givenName, surname, dateOfBirth,<br/>email, password, preferredLanguage, marketingOptIn
+
+    Web->>LoyaltyAPI: POST /v1/register (givenName, surname, dateOfBirth, email, password, preferredLanguage)
+    Note over LoyaltyAPI: Validate all required fields, email format, password strength
+
+    LoyaltyAPI->>IdentityMS: POST /v1/accounts (email, passwordHash)
+    Note over IdentityMS: Hash password with Argon2id<br/>Generate IdentityReference UUID
+    IdentityMS-->>LoyaltyAPI: 201 Created — identityReference, userAccountId
+
+    LoyaltyAPI->>CustomerMS: POST /v1/customers (givenName, surname, dateOfBirth, preferredLanguage, identityReference)
+    Note over CustomerMS: Generate unique loyaltyNumber (e.g. AX9876543)<br/>Set tierCode = Blue, pointsBalance = 0
+    CustomerMS-->>LoyaltyAPI: 201 Created — customerId, loyaltyNumber, tierCode
+
+    LoyaltyAPI->>LoyaltyAPI: Trigger confirmation email (email, givenName, loyaltyNumber)
+
+    LoyaltyAPI-->>Web: 201 Created — registration successful (loyaltyNumber, givenName, tierCode)
+    Web-->>Customer: Display welcome screen with loyalty number and next steps
+```
+
+> **Email verification:** The `IsEmailVerified` flag on `identity.UserAccount` is set to `0` at registration. The confirmation email contains a one-time verification link. On click, a separate `POST /v1/accounts/{userAccountId}/verify-email` call is made to the Identity microservice to set `IsEmailVerified = 1`. Unverified accounts may still log in but are restricted from certain actions (e.g. redemptions) until verified.
+
+> **Duplicate email handling:** The Identity microservice enforces a unique constraint on `Email`. If a registration attempt arrives for an address that already exists, the Identity microservice returns `409 Conflict`. The Loyalty API surfaces this as a validation error to the channel — it must not reveal whether the email belongs to an existing account (to prevent account enumeration).
+
+> **Failure handling:** If the Identity microservice call succeeds but the subsequent Customer microservice call fails, the Loyalty API must call `DELETE /v1/accounts/{userAccountId}` on the Identity microservice to clean up the orphaned login account before returning an error to the channel. Partial registration states must not be left in the system.
+
 ### Retrieve Account and Points Balance
 
 A traveller retrieves their account details and current points balance — used on the loyalty dashboard and during booking to display available points.
@@ -1495,10 +1535,10 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to loyalty account
 
-    Web->>LoyaltyAPI: GET /customer/{loyaltyNumber}
-    LoyaltyAPI->>CustomerMS: Retrieve customer account (loyaltyNumber)
-    CustomerMS-->>LoyaltyAPI: Customer profile (name, tier, pointsBalance, tierProgressPoints)
-    LoyaltyAPI-->>Web: Display account summary
+    Web->>LoyaltyAPI: GET /v1/customers/{loyaltyNumber}
+    LoyaltyAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
+    CustomerMS-->>LoyaltyAPI: 200 OK — customer profile (name, tier, pointsBalance, tierProgressPoints)
+    LoyaltyAPI-->>Web: 200 OK — account summary
     Web-->>Traveller: Show profile, tier status, and points balance
 ```
 
@@ -1517,10 +1557,10 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to points statement
 
-    Web->>LoyaltyAPI: GET /customer/{loyaltyNumber}/transactions?page=1&pageSize=20
-    LoyaltyAPI->>CustomerMS: Retrieve transaction history (loyaltyNumber, page, pageSize)
-    CustomerMS-->>LoyaltyAPI: Paginated transaction list (transactionId, type, points, description, bookingReference, transactionDate)
-    LoyaltyAPI-->>Web: Display statement
+    Web->>LoyaltyAPI: GET /v1/customers/{loyaltyNumber}/transactions?page=1&pageSize=20
+    LoyaltyAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}/transactions?page=1&pageSize=20
+    CustomerMS-->>LoyaltyAPI: 200 OK — paginated transaction list (transactionId, type, points, description, bookingReference, transactionDate)
+    LoyaltyAPI-->>Web: 200 OK — statement
     Web-->>Traveller: Show paginated points history
 ```
 
@@ -1712,48 +1752,6 @@ CREATE INDEX IX_RefreshToken_UserAccount
 - **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
-
-# Security Principles
-
-All services and data stores in this system must adhere to the following baseline security standards. These apply across all environments (development, staging, production) unless explicitly noted.
-
-## Transport Security
-
-All communication between clients and the platform, and between internal services, must use TLS 1.2 or higher. Unencrypted HTTP must not be accepted on any endpoint in any environment. API Gateway and orchestration layer endpoints must enforce HTTPS and reject downgrade attempts. Internal service-to-service communication within the Azure private network must also use TLS.
-
-## Encryption at Rest
-
-All databases and storage accounts must have encryption at rest enabled using platform-managed keys as a minimum, with customer-managed keys (CMK) via Azure Key Vault required for any store holding personally identifiable information (PII) or payment data. This includes all SQL databases in the shared schema, the Delivery DB, and any blob storage used for boarding card generation or document storage.
-
-## Authentication and Authorisation
-
-Customer-facing APIs (Retail API, Loyalty API) must authenticate travellers using OAuth 2.0 / OpenID Connect with short-lived access tokens. Booking retrieval endpoints (manage booking, check-in) require the traveller to supply booking reference, given name, and surname — these three factors together form the access credential for unauthenticated (guest) flows and must all be validated server-side before any order data is returned. Internal service-to-service calls (orchestration layer to microservices) must use managed identities or scoped API keys; no service should be reachable without authentication. Role-based access control (RBAC) must be applied to internal tooling and airport/contact centre apps.
-
-## PII Handling
-
-Passenger personal data (names, dates of birth, passport numbers, contact details) must be treated as PII and handled in accordance with UK GDPR and any applicable destination-country regulations. PII must not be logged in plain text in application logs or telemetry. Log entries referencing passengers should use anonymised identifiers (e.g. `PassengerId`, `BookingReference`) rather than names or document numbers. Data retention policies must be defined per domain and enforced via automated purge jobs.
-
-## Payment Data
-
-Card data must never be stored or logged by any service other than the Payment microservice and its downstream payment processor. The platform must achieve and maintain PCI DSS compliance for the payment flow. Only the last four digits of a card number and the card type may be stored on the order (as currently defined in `OrderData`). Full card numbers, CVV codes, and raw authorisation tokens must not persist beyond the payment transaction.
-
-## Input Validation and API Hardening
-
-All API inputs must be validated at the orchestration layer before being forwarded to microservices. SQL injection and injection attacks must be mitigated through parameterised queries — no dynamic SQL construction from user input. API rate limiting must be applied to all public-facing endpoints. CORS policies must be explicitly configured and restricted to known channel origins. API contracts must reject unexpected fields (strict schema validation) to prevent mass assignment vulnerabilities.
-
-## Secrets Management
-
-Connection strings, API keys, and credentials must not be stored in source code, configuration files, or environment variables in plain text. All secrets must be stored in Azure Key Vault and accessed at runtime via managed identity. Secret rotation must be supported without requiring redeployment.
-
-## Audit Logging
-
-All state-changing operations (order creation, payment, check-in, manifest writes, PAX updates) must produce an audit log entry including the actor, timestamp, and a summary of the change. Audit logs must be immutable and retained for a minimum of 7 years in line with airline regulatory requirements. Audit logs must be stored separately from application logs and must not be accessible to application-layer services for modification.
-
-## Vulnerability and Dependency Management
-
-All service dependencies (NuGet packages, npm packages) must be kept up to date and scanned for known vulnerabilities as part of the CI/CD pipeline. Critical and high-severity vulnerabilities must block deployment. Penetration testing must be conducted at least annually and after significant architectural changes.
-
----
 
 # Airline Context — Apex Air
 
