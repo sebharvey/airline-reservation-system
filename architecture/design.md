@@ -14,6 +14,7 @@ The system will have the following core concepts.
 - Identity - stores login credential for the customer accounts.
 - Accounting - accounting system - keeping a track of all orders, refunds, balance sheets, profit and loss.
 - Seat - manages seatmap definitions per aircraft type; provides seatmap views and seat pricing to other services and channels (does not manage seat selection or inventory).
+- Disruption - orchestrates the response to irregular operations (IROPS) events notified by the airline's Flight Operations System (FOS). Handles flight delays (updating departure times across all affected bookings) and flight cancellations (rebooking all affected passengers onto the next available flight).
 
 Please note (these one-name capability 'domain names' should be used for domain naming in the code)
 
@@ -21,6 +22,10 @@ Please note (these one-name capability 'domain names' should be used for domain 
 
 ```mermaid
 graph TB
+    subgraph ExternalSystems["External Systems"]
+        FOS[✈️ Flight Operations System]
+    end
+
     subgraph Channels
         WEB[🌐 Web]
         APP[📱 App]
@@ -36,6 +41,7 @@ graph TB
         LOYALTY_API[Loyalty API]
         AIRPORT_API[Airport API]
         ACCOUNTING_API[Accounting API]
+        DISRUPTION_API[Disruption API]
     end
 
     subgraph Microservices
@@ -84,6 +90,9 @@ graph TB
         EVT[Order Events]
     end
 
+    %% External → Orchestration
+    FOS --> DISRUPTION_API
+
     %% Channel → Orchestration
     WEB & APP & NDC & KIOSK & CC & AIRPORT --> RETAIL_API
     WEB & APP & CC --> LOYALTY_API
@@ -95,6 +104,7 @@ graph TB
     LOYALTY_API --> IDENTITY & CUSTOMER
     AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT
     ACCOUNTING_API --> ACCOUNTING
+    DISRUPTION_API --> OFFER & ORDER & DELIVERY
 
     %% Microservice → DB
     IDENTITY --> IDENTITY_DB
@@ -122,11 +132,14 @@ Key components:
   - Contact Centre App (for new bookings, IROPS management, customer account management)
   - Airport App (for airport staff to manage non-OLCI check in, and gate management, seat assignment, etc)
   - Accounting System App
+- External Systems
+  - Flight Operations System (FOS) — the airline's operational system responsible for managing the live flight schedule; it notifies the reservation system of disruption events (delays and cancellations) via the Disruption API
 - Orchestration APIs (these act as the APIs to connect the channels to the microservices)
   - Retail API (for web, app, NDC, kiosk, contact centre app, airport app)
   - Loyalty API (for web, app, contact centre)
   - Airport API (for Airport App)
   - Accounting API (for accounting system app)
+  - Disruption API (receives disruption events from the FOS and orchestrates the response across the Offer, Order, and Delivery microservices)
 - Microservices (and their data-bound databases)
   - Offer
     - Inventory DB
@@ -1163,6 +1176,155 @@ CREATE INDEX IX_FlightManifest_BookingReference
 
 > **Seatmap validation:** The Delivery microservice must call `GET /v1/seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
 
+## Disruption API
+
+### Overview
+
+The Disruption API is an orchestration layer that sits between the airline's **Flight Operations System (FOS)** and the reservation system microservices. When a flight is disrupted — either delayed or cancelled — the FOS sends a notification to the Disruption API, which then coordinates the appropriate response across the **Offer** (inventory), **Order**, and **Delivery** microservices to ensure all affected bookings are updated and, where necessary, passengers are rebooked.
+
+The Disruption API is a write-only inbound interface from the FOS's perspective: the FOS fires a disruption event and the reservation system handles everything downstream. No synchronous response about individual passenger outcomes is expected by the FOS; operational status updates are surfaced via the Contact Centre App and Airport App through the existing Retail and Airport APIs.
+
+```mermaid
+graph LR
+    FOS[Flight Operations System] -->|POST disruption event| DISRUPTION_API[Disruption API]
+    DISRUPTION_API -->|Search available inventory| OFFER[Offer MS]
+    DISRUPTION_API -->|Update / rebook orders| ORDER[Order MS]
+    DISRUPTION_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
+```
+
+---
+
+### Flight Delay
+
+When the FOS notifies the Disruption API that a flight has been delayed, the API retrieves all confirmed orders containing that flight segment and updates the scheduled departure and arrival times on each affected booking. Passengers are notified of the change.
+
+> **Future consideration — missed connections due to delay:** If a delayed flight causes a passenger to miss a connecting flight in their itinerary, the system will need to detect this and trigger a rebooking flow for the affected connection. This is not in scope for the current phase but must be addressed in a future design iteration before connecting-itinerary bookings are supported operationally.
+
+```mermaid
+sequenceDiagram
+    participant FOS as Flight Operations System
+    participant DisruptionAPI as Disruption API
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    FOS->>DisruptionAPI: POST /v1/disruptions/delay (flightNumber, departureDate, newDepartureTime, newArrivalTime, delayMinutes, reason)
+    DisruptionAPI->>DisruptionAPI: Validate payload; idempotency check (deduplicate repeated FOS events)
+
+    DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
+    OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments)
+
+    loop For each affected order
+        DisruptionAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/segments (segmentId, newDepartureTime, newArrivalTime)
+        OrderMS-->>DisruptionAPI: 200 OK — order segment updated
+
+        DisruptionAPI->>DeliveryMS: PATCH /v1/manifest/{bookingRef}/flight (flightNumber, departureDate, newDepartureTime, newArrivalTime)
+        DeliveryMS-->>DisruptionAPI: 200 OK — manifest updated
+
+        Note over DisruptionAPI: Trigger passenger notification (email/push) for each booking
+    end
+
+    DisruptionAPI-->>FOS: 202 Accepted — disruption event received and processing
+```
+
+**Delay handling rules:**
+
+- The departure and arrival times on every confirmed `order.Order` segment record for the affected flight are updated to reflect the new scheduled times.
+- The `delivery.FlightManifest` records are updated to reflect the new departure time for gate management and check-in purposes.
+- E-ticket reissuance is required if the delay constitutes a "material schedule change" under IATA ticketing rules (typically a change of more than 60 minutes). The threshold is configurable. Where reissuance is required, the Disruption API calls the Delivery microservice to reissue and the Order microservice is updated with new e-ticket numbers.
+- An `OrderChanged` event is published by the Order microservice to the event bus so downstream services (Accounting, Customer) are aware of the change.
+- Passengers whose check-in window has already opened (within 24 hours of the original departure) are notified immediately.
+
+---
+
+### Flight Cancellation and Passenger Rebooking
+
+When the FOS notifies the Disruption API that a flight has been cancelled, the API must rebook every passenger who was confirmed on that flight onto the next available alternative. The rebooking logic works as follows:
+
+1. The next available **direct** flight on the same origin–destination route with sufficient cabin availability is identified first.
+2. If no direct flight can accommodate the passengers within an acceptable timeframe, a **connecting itinerary** via an intermediate point is considered.
+3. Each passenger is rebooked into the same cabin class where possible. If the same cabin is unavailable, the passenger is upgraded to the next available cabin (no downgrade without consent).
+4. All e-tickets for the cancelled flight are voided and new e-tickets are issued for the replacement flight(s).
+5. The `delivery.FlightManifest` records for the cancelled flight are removed and new manifest entries are created for the replacement flight.
+6. Passengers are notified of their new itinerary.
+
+> **Future consideration — missed connections resulting from cancellation rebooking:** When a passenger is rebooked onto a connecting itinerary (because no viable direct flight is available), there is a risk that a disruption to either leg of that connecting journey could result in a missed connection. Additionally, where minimum connection times at the transit airport are tight, the system must validate that the layover is operationally feasible. Detection and handling of these scenarios requires additional logic — similar in nature to the delay/missed-connection case noted above — and must be addressed in a future design phase before widespread use of connecting rebooking in an IROPS context.
+
+```mermaid
+sequenceDiagram
+    participant FOS as Flight Operations System
+    participant DisruptionAPI as Disruption API
+    participant OfferMS as Offer [MS]
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    FOS->>DisruptionAPI: POST /v1/disruptions/cancellation (flightNumber, departureDate, origin, destination, reason)
+    DisruptionAPI->>DisruptionAPI: Validate payload; idempotency check
+
+    DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
+    OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments, cabinCode)
+
+    DisruptionAPI->>DeliveryMS: GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}
+    DeliveryMS-->>DisruptionAPI: 200 OK — full passenger manifest for the cancelled flight
+
+    Note over DisruptionAPI: Search for replacement flight options
+
+    DisruptionAPI->>OfferMS: POST /v1/search (origin, destination, date=earliest available, cabinCode, paxCount)
+    OfferMS-->>DisruptionAPI: 200 OK — available direct flight options with inventory (OfferId, flightNumber, departureTime, seatsAvailable per cabin)
+
+    alt Direct replacement flight available
+        Note over DisruptionAPI: Allocate passengers to direct replacement flight
+    else No direct flight — seek connecting itinerary
+        DisruptionAPI->>OfferMS: POST /v1/search/connecting (origin, destination, date=earliest available, cabinCode, paxCount)
+        OfferMS-->>DisruptionAPI: 200 OK — connecting itinerary options (leg 1 OfferId + leg 2 OfferId, transit point, total journey time)
+        Note over DisruptionAPI: Allocate passengers to connecting itinerary
+    end
+
+    loop For each affected order
+        DisruptionAPI->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=passengerCount)
+        OfferMS-->>DisruptionAPI: 200 OK — seats held on replacement flight
+
+        DisruptionAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (cancelledSegmentId, replacementOfferIds, reason=FlightCancellation)
+        OrderMS-->>DisruptionAPI: 200 OK — order updated with replacement segment(s); OrderChanged event published
+
+        DisruptionAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}
+        DeliveryMS-->>DisruptionAPI: 200 OK — manifest entries removed for cancelled flight
+
+        DisruptionAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, cancelledETicketNumbers, replacementSegments)
+        DeliveryMS-->>DisruptionAPI: 200 OK — new e-ticket numbers issued
+
+        DisruptionAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per new segment)
+        DeliveryMS-->>DisruptionAPI: 201 Created — manifest entries written for replacement flight
+
+        Note over DisruptionAPI: Trigger passenger notification (email/push) with new itinerary details
+    end
+
+    DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
+    OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
+
+    DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
+```
+
+**Cancellation handling rules:**
+
+- The Disruption API processes passengers in priority order: higher cabin class first, then loyalty tier (Platinum → Gold → Silver → Blue), then booking date (earliest first). This ensures the best available seats go to the highest-value passengers.
+- Seat assignments on the replacement flight are not pre-assigned by the Disruption API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
+- If no replacement flight is found within a configurable lookahead window (default: 72 hours), the booking is flagged for manual handling by the Contact Centre rather than left in an unresolved state.
+- Where the original fare conditions do not permit free rebooking (e.g. non-changeable fares), the airline's IROPS policy overrides these conditions — all passengers on a cancelled flight are entitled to free rebooking regardless of fare type. This waiver is applied by the Order microservice when the `reason=FlightCancellation` flag is present.
+- A single `OrderChanged` event (with `changeType=IROPSRebook`) is published by the Order microservice per affected booking, consumed by the Accounting microservice for revenue accounting adjustments.
+- Inventory on the cancelled flight is marked as closed by updating the `offer.FlightInventory` record (`SeatsAvailable = 0`). No further bookings may be placed against it.
+
+---
+
+### Disruption API — Idempotency and Reliability
+
+The FOS may send the same disruption event more than once (e.g. due to retries on its side or network failures). The Disruption API must be idempotent: processing the same event twice must not result in duplicate updates.
+
+Each disruption event from the FOS must include a unique `disruptionEventId`. The Disruption API stores a log of processed event IDs; if an event arrives with an ID already in the log, it is acknowledged (`202 Accepted`) and no further processing is performed.
+
+For long-running cancellation rebooking operations (large passenger loads), the Disruption API processes bookings asynchronously and returns `202 Accepted` immediately to the FOS. The FOS is not expected to poll for completion; operational progress is visible to Contact Centre agents via the existing order management tools in the Retail API.
+
+---
+
 ## Seat
 
 ### Retrieve Seatmap and Seat Offers
@@ -1752,6 +1914,9 @@ CREATE INDEX IX_RefreshToken_UserAccount
 - **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice derives `seatPrice` and `seatOfferId` at seatmap generation time by joining seat position to the active pricing rules. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
 - **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
+- **Disruption API idempotency:** The Disruption API must store a log of processed `disruptionEventId` values from the FOS and de-duplicate repeat submissions. The FOS is an external system and may retry events on network failure; duplicate processing of the same cancellation or delay event would result in corrupt order state.
+- **IROPS fare override:** The Order microservice must recognise a `reason=FlightCancellation` flag on rebook requests originating from the Disruption API and waive fare change restrictions regardless of the original fare conditions. This override must be logged on the order history for audit purposes.
+- **Disruption rebooking prioritisation:** Cancellation rebooking is processed in priority order (cabin class → loyalty tier → booking date). The Disruption API is responsible for sorting the affected passenger list before iterating. This ordering must be preserved in the processing queue even for large passenger loads handled asynchronously.
 
 # Airline Context — Apex Air
 
@@ -1781,9 +1946,11 @@ All flights operate from a single UK hub. Apex Air participates in the IATA ONE 
 - **BCBP** — Bar Coded Boarding Pass (IATA Resolution 792 standard for boarding pass barcode encoding)
 - **CMK** — Customer-Managed Key
 - **CORS** — Cross-Origin Resource Sharing
+- **FOS** — Flight Operations System; the airline's operational system that manages the live flight schedule and notifies the reservation system of disruption events (delays and cancellations) via the Disruption API
 - **GDS** — Global Distribution System
 - **IATA** — International Air Transport Association
-- **IROPS** — Irregular Operations
+- **IROPS** — Irregular Operations; collective term for disruption events including delays, cancellations, diversions, and aircraft swaps that require operational intervention in the reservation system
+- **MCT** — Minimum Connection Time; the minimum layover time required at an airport for a passenger to transfer between two flights, as defined by the airport authority; connections below MCT are not legally valid itineraries
 - **NDC** — New Distribution Capability (IATA standard)
 - **OLCI** — Online Check In
 - **OTA** — Online Travel Agent
