@@ -1754,6 +1754,100 @@ sequenceDiagram
 
 ---
 
+### Update Profile Details
+
+A customer's loyalty profile holds the personal and contact information Apex Air maintains on record: legal name, date of birth, nationality, preferred language, and telephone number. Customers may update any of these fields at any time through the loyalty web portal. The Loyalty API validates the JWT access token on each request using the Identity microservice's public signing key — no database round-trip is required — before forwarding the change to the Customer microservice.
+
+A key industry constraint applies to name changes. The passenger name on an issued e-ticket must match the holder's travel document exactly, as required under IATA Resolution 735 and individual carrier fare rules. Updating a name on the loyalty profile does **not** retroactively amend the name recorded on any confirmed booking or issued e-ticket; those are independent records owned by the Order and Delivery microservices respectively. Minor typographical corrections on an existing ticket (e.g. a single transposed character) are typically granted as a waiver; anything beyond that may require a ticket reissue and the application of the fare's change conditions. Customers needing to correct a name on a confirmed booking must use the manage-booking flow via the Retail API.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
+    participant CustomerDB as Customer DB
+
+    Customer->>Web: Submit updated profile fields (givenName, surname, dateOfBirth, nationality, phoneNumber, preferredLanguage)
+    Web->>LoyaltyAPI: PATCH /v1/customers/{loyaltyNumber}/profile — Bearer {accessToken}
+
+    LoyaltyAPI->>LoyaltyAPI: Validate JWT using Identity MS public signing key
+
+    alt Token invalid or expired
+        LoyaltyAPI-->>Web: 401 Unauthorized
+        Web-->>Customer: Session expired — please log in again
+    end
+
+    LoyaltyAPI->>CustomerMS: PATCH /v1/customers/{loyaltyNumber} (changed fields only)
+    CustomerMS->>CustomerDB: UPDATE customer.Customer SET ... WHERE LoyaltyNumber = {loyaltyNumber}
+    CustomerDB-->>CustomerMS: Row updated; UpdatedAt refreshed
+    CustomerMS-->>LoyaltyAPI: 200 OK — updated customer record
+    LoyaltyAPI-->>Web: 200 OK — profile updated
+    Web-->>Customer: Confirmation — details have been saved
+```
+
+---
+
+### Update Email Address
+
+The email address on a loyalty account serves two purposes: it is the login credential held by the Identity microservice and the primary address for account and operational notifications. Because a change to the login credential is a security-sensitive operation, the update follows a two-step verification flow rather than taking effect immediately. A time-limited verification link is sent to the **new** address; the existing address and credentials remain active until the customer demonstrates ownership of the new one by clicking that link. On successful verification, all active refresh tokens for the account are invalidated, requiring the customer to re-authenticate with the new address. This mirrors standard practice in the industry for credential changes, protecting against account takeover via an unverified address substitution.
+
+Because the email address is owned entirely by the Identity microservice (the Customer microservice holds no email field), this flow does not require an update to the Customer DB.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity [MS]
+
+    Customer->>Web: Request email address change (newEmail)
+    Web->>LoyaltyAPI: POST /v1/customers/{loyaltyNumber}/email/change-request { newEmail } — Bearer {accessToken}
+
+    LoyaltyAPI->>LoyaltyAPI: Validate JWT using Identity MS public signing key
+
+    alt Token invalid or expired
+        LoyaltyAPI-->>Web: 401 Unauthorized
+        Web-->>Customer: Session expired — please log in again
+    end
+
+    LoyaltyAPI->>IdentityMS: POST /v1/accounts/{identityReference}/email/change-request { newEmail }
+    IdentityMS->>IdentityMS: Check newEmail is not already registered on another account
+
+    alt Email already in use
+        IdentityMS-->>LoyaltyAPI: 409 Conflict
+        LoyaltyAPI-->>Web: 409 Conflict — email already associated with another account
+        Web-->>Customer: That email address is already in use
+    end
+
+    IdentityMS->>IdentityMS: Store pending email change; generate time-limited single-use verification token
+    IdentityMS->>IdentityMS: Send verification email to newEmail containing token link
+    IdentityMS-->>LoyaltyAPI: 202 Accepted
+    LoyaltyAPI-->>Web: 202 Accepted
+    Web-->>Customer: Check your new inbox for a verification link
+
+    Note over Customer,IdentityMS: Customer receives the verification email and follows the link
+
+    Customer->>Web: Follow verification link (token)
+    Web->>LoyaltyAPI: POST /v1/email/verify { token }
+    LoyaltyAPI->>IdentityMS: POST /v1/email/verify { token }
+    IdentityMS->>IdentityMS: Validate token (not expired, not previously used)
+
+    alt Token invalid or expired
+        IdentityMS-->>LoyaltyAPI: 400 Bad Request — token invalid or expired
+        LoyaltyAPI-->>Web: 400 Bad Request
+        Web-->>Customer: Verification link has expired — please request a new one
+    end
+
+    IdentityMS->>IdentityMS: Update UserAccount.Email to newEmail
+    IdentityMS->>IdentityMS: Invalidate all active refresh tokens for this account (force re-login)
+    IdentityMS-->>LoyaltyAPI: 200 OK — email updated
+    LoyaltyAPI-->>Web: 200 OK — email address changed successfully
+    Web-->>Customer: Email updated — please log in again with your new address
+```
+
+---
+
 ### Data Schema — Customer
 
 The Customer domain uses three tables. `Customer` holds one row per loyalty account, containing profile information, tier status, and running points balances. `LoyaltyTransaction` records every points movement as an immutable append-only log — earnings from flights and redemptions against future bookings. `TierConfig` holds the qualifying thresholds for each tier level, used when evaluating tier upgrades.
