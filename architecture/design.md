@@ -933,7 +933,7 @@ sequenceDiagram
     RetailAPI->>OfferMS: POST /v1/search/slice (origin, destination, newDate, cabinCode, paxCount)
     OfferMS-->>RetailAPI: 200 OK — available flights with live fares (newOfferId, newBaseFare, newTaxes, newTotal, isChangeable)
     RetailAPI-->>Web: 200 OK — available replacement flights and fares
-    Web-->>Traveller: Display replacement options; traveller selects new flight
+    Web-->>Traveller: Display replacement options- traveller selects new flight
 
     Note over RetailAPI: Calculate add-collect
     Note over RetailAPI: addCollect = max(0, newBaseFare − originalBaseFare)
@@ -963,10 +963,10 @@ sequenceDiagram
     DeliveryMS-->>RetailAPI: 200 OK — manifest entries removed for original flight
 
     RetailAPI->>OfferMS: POST /v1/inventory/release (originalInventoryId, cabinCode, seats=paxCount)
-    OfferMS-->>RetailAPI: 200 OK — seats released from original flight; SeatsAvailable incremented
+    OfferMS-->>RetailAPI: 200 OK — seats released from original flight- SeatsAvailable incremented
 
     RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentReference)
-    OrderMS-->>RetailAPI: 200 OK — order updated (OrderStatus=Changed); OrderChanged event published
+    OrderMS-->>RetailAPI: 200 OK — order updated (OrderStatus=Changed)- OrderChanged event published
 
     RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, voidedETicketNumbers, newSegments)
     DeliveryMS-->>RetailAPI: 200 OK — new e-ticket numbers issued
@@ -1019,18 +1019,18 @@ sequenceDiagram
     DeliveryMS-->>RetailAPI: 200 OK — manifest entries removed
 
     RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryId, cabinCode, seats=paxCount)
-    OfferMS-->>RetailAPI: 200 OK — seats released; SeatsAvailable incremented
+    OfferMS-->>RetailAPI: 200 OK — seats released- SeatsAvailable incremented
 
     RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/cancel (reason=VoluntaryCancellation, cancellationFee)
-    OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled; OrderChanged event published
+    OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled- OrderChanged event published
 
     alt Refund is due (isRefundable = true)
         RetailAPI->>PaymentMS: POST /v1/payment/{originalPaymentReference}/refund (refundAmount=totalPaid−cancellationFee)
         PaymentMS-->>RetailAPI: 200 OK — refund initiated (refundReference, refundAmount)
-        RetailAPI-->>Web: 200 OK — booking cancelled; refund of {refundAmount} initiated to original payment method
+        RetailAPI-->>Web: 200 OK — booking cancelled- refund of {refundAmount} initiated to original payment method
         Web-->>Traveller: Booking cancelled — refund will appear within 5–10 business days
     else Non-refundable fare (isRefundable = false)
-        RetailAPI-->>Web: 200 OK — booking cancelled; no refund applicable for this fare type
+        RetailAPI-->>Web: 200 OK — booking cancelled- no refund applicable for this fare type
         Web-->>Traveller: Booking cancelled — no refund will be issued
     end
 ```
@@ -1153,7 +1153,7 @@ sequenceDiagram
     end
 
     opt Traveller wishes to add or purchase additional bags at check-in
-        Note over Web, BagMS: Free allowance confirmed automatically; payment required for additional bags only
+        Note over Web, BagMS: Free allowance confirmed automatically- payment required for additional bags only
         RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
         BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers for additional bags
         RetailAPI-->>Web: Free allowance and additional bag options
@@ -1288,7 +1288,7 @@ sequenceDiagram
     participant DeliveryMS as Delivery [MS]
 
     FOS->>DisruptionAPI: POST /v1/disruptions/delay (flightNumber, departureDate, newDepartureTime, newArrivalTime, delayMinutes, reason)
-    DisruptionAPI->>DisruptionAPI: Validate payload; idempotency check (deduplicate repeated FOS events)
+    DisruptionAPI->>DisruptionAPI: Validate payload- idempotency check (deduplicate repeated FOS events)
 
     DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
     OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments)
@@ -1338,7 +1338,7 @@ sequenceDiagram
     participant DeliveryMS as Delivery [MS]
 
     FOS->>DisruptionAPI: POST /v1/disruptions/cancellation (flightNumber, departureDate, origin, destination, reason)
-    DisruptionAPI->>DisruptionAPI: Validate payload; idempotency check
+    DisruptionAPI->>DisruptionAPI: Validate payload- idempotency check
 
     Note over DisruptionAPI,OfferMS: Take the flight off sale immediately — before any rebooking begins
     DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
@@ -1368,7 +1368,7 @@ sequenceDiagram
         OfferMS-->>DisruptionAPI: 200 OK — seats held on replacement flight
 
         DisruptionAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (cancelledSegmentId, replacementOfferIds, reason=FlightCancellation)
-        OrderMS-->>DisruptionAPI: 200 OK — order updated with replacement segment(s); OrderChanged event published
+        OrderMS-->>DisruptionAPI: 200 OK — order updated with replacement segment(s)- OrderChanged event published
 
         DisruptionAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}
         DeliveryMS-->>DisruptionAPI: 200 OK — manifest entries removed for cancelled flight
@@ -1857,7 +1857,7 @@ sequenceDiagram
     PaymentMS-->>RetailAPI: 200 OK — bag payment settled
 
     RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentReference)
-    OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items; OrderChanged event published
+    OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items- OrderChanged event published
 
     RetailAPI-->>Web: 200 OK — bags confirmed (bookingReference, updated order summary)
     Web-->>Traveller: Bag selection confirmed — updated itinerary summary displayed
@@ -2058,7 +2058,7 @@ sequenceDiagram
 
     LoyaltyAPI->>CustomerMS: PATCH /v1/customers/{loyaltyNumber} (changed fields only)
     CustomerMS->>CustomerDB: UPDATE customer.Customer SET ... WHERE LoyaltyNumber = {loyaltyNumber}
-    CustomerDB-->>CustomerMS: Row updated; UpdatedAt refreshed
+    CustomerDB-->>CustomerMS: Row updated- UpdatedAt refreshed
     CustomerMS-->>LoyaltyAPI: 200 OK — updated customer record
     LoyaltyAPI-->>Web: 200 OK — profile updated
     Web-->>Customer: Confirmation — details have been saved
@@ -2098,7 +2098,7 @@ sequenceDiagram
         Web-->>Customer: That email address is already in use
     end
 
-    IdentityMS->>IdentityMS: Store pending email change; generate time-limited single-use verification token
+    IdentityMS->>IdentityMS: Store pending email change- generate time-limited single-use verification token
     IdentityMS->>IdentityMS: Send verification email to newEmail containing token link
     IdentityMS-->>LoyaltyAPI: 202 Accepted
     LoyaltyAPI-->>Web: 202 Accepted
