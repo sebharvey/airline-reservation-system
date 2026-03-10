@@ -821,6 +821,20 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "taxes": 0.00,
       "totalPrice": 20.00,
       "paymentReference": "AXPAY-0002"
+    },
+    {
+      "orderItemId": "OI-5",
+      "type": "Bag",
+      "segmentRef": "SEG-1",
+      "passengerRefs": ["PAX-1"],
+      "bagOfferId": "bo-economy-bag1-v1",
+      "freeBagsIncluded": 1,
+      "additionalBags": 1,
+      "bagSequence": 1,
+      "unitPrice": 60.00,
+      "taxes": 0.00,
+      "totalPrice": 60.00,
+      "paymentReference": "AXPAY-0003"
     }
   ],
   "payments": [
@@ -849,11 +863,25 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "status": "Settled",
       "authorisedAt": "2025-06-01T10:31:30Z",
       "settledAt": "2025-06-01T10:32:30Z"
+    },
+    {
+      "paymentReference": "AXPAY-0003",
+      "description": "Bag ancillary — SEG-1, PAX-1, 1 additional bag",
+      "method": "CreditCard",
+      "cardLast4": "4242",
+      "cardType": "Visa",
+      "authorisedAmount": 60.00,
+      "settledAmount": 60.00,
+      "currency": "GBP",
+      "status": "Settled",
+      "authorisedAt": "2025-06-01T10:45:00Z",
+      "settledAt": "2025-06-01T10:45:10Z"
     }
   ],
   "history": [
     { "event": "OrderCreated",   "at": "2025-06-01T10:30:00Z", "by": "WEB" },
-    { "event": "OrderConfirmed", "at": "2025-06-01T10:32:00Z", "by": "WEB" }
+    { "event": "OrderConfirmed", "at": "2025-06-01T10:32:00Z", "by": "WEB" },
+    { "event": "BagAncillaryAdded", "at": "2025-06-01T10:45:00Z", "by": "WEB" }
   ]
 }
 ```
@@ -890,65 +918,6 @@ sequenceDiagram
 
     RetailAPI-->>Web: 200 OK — update confirmed (bookingReference, updated e-ticket numbers)
     Web-->>Traveller: Display updated booking confirmation
-```
-
-### Manage booking - select or update seat selection
-
-Enables a traveller to choose or change their seat assignment after booking, presenting the live seatmap with real-time availability overlaid, and updating the manifest and e-tickets upon confirmation.
-
-```mermaid
-sequenceDiagram
-    actor Traveller
-    participant Web
-    participant RetailAPI as Retail API
-    participant OrderMS as Order [MS]
-    participant SeatMS as Seat [MS]
-    participant OfferMS as Offer [MS]
-    participant PaymentMS as Payment [MS]
-    participant DeliveryMS as Delivery [MS]
-    participant AccountingMS as Accounting [MS]
-
-    Traveller->>Web: Navigate to manage booking
-
-    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, current seat assignments, itinerary)
-    RetailAPI-->>Web: 200 OK — display current booking
-
-    Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
-    RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
-    SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId, position, price)
-    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
-    OfferMS-->>RetailAPI: 200 OK — available and occupied seats
-    RetailAPI-->>Web: 200 OK — seat map with pricing and availability
-
-    Traveller->>Web: Select seat(s) for each PAX
-
-    Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds per PAX per flight)
-
-    RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
-    OfferMS-->>RetailAPI: 200 OK — seats reserved
-
-    Note over RetailAPI, PaymentMS: Take payment for seat ancillary
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, card details, description)
-    PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference)
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
-    PaymentMS-->>RetailAPI: 200 OK — seat payment settled
-
-    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds, PAX seats, paymentReference)
-    OrderMS-->>RetailAPI: 200 OK — order updated
-
-    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated seat assignments)
-    DeliveryMS-->>RetailAPI: 200 OK — updated e-ticket numbers issued
-
-    RetailAPI->>DeliveryMS: PUT /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per affected PAX per segment)
-    DeliveryMS-->>RetailAPI: 200 OK — manifest entries updated
-
-    RetailAPI-->>Web: 200 OK — seat selection confirmed (bookingReference, updated e-tickets)
-    Web-->>Traveller: Display updated booking confirmation with seat assignments
-
-    Note over OrderMS, AccountingMS: Async event
-    OrderMS-)AccountingMS: OrderChanged event (bookingReference, seat change details)
 ```
 
 ### Manage Booking — Change Flight
@@ -1180,15 +1149,17 @@ sequenceDiagram
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
     participant SeatMS as Seat [MS]
+    participant BagMS as Bag [MS]
     participant OfferMS as Offer [MS]
+    participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
 
     Traveller->>Web: Navigate to online check-in
 
     Web->>RetailAPI: POST /v1/checkin/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, flights, seat assignments, e-tickets)
-    RetailAPI-->>Web: 200 OK — PAX list and pre-flight details
+    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, flights, cabinCode, seat assignments, bag order items, e-tickets)
+    RetailAPI-->>Web: 200 OK — PAX list, pre-flight details, existing ancillary summary
 
     opt Traveller has no seat assigned or wishes to change seat at check-in
         Note over Web, SeatMS: Seat selection at check-in is free of charge — no payment taken
@@ -1204,6 +1175,21 @@ sequenceDiagram
         OfferMS-->>RetailAPI: 200 OK — seats reserved
         RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (PAX seat assignments)
         OrderMS-->>RetailAPI: 200 OK — order updated
+    end
+
+    opt Traveller wishes to add or purchase additional bags at check-in
+        Note over Web, BagMS: Free allowance confirmed automatically; payment required for additional bags only
+        RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
+        BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers for additional bags
+        RetailAPI-->>Web: Free allowance and additional bag options
+        Traveller->>Web: Select additional bag(s) if required and provide payment details
+        Web->>RetailAPI: POST /v1/orders/{bookingRef}/bags (bagOfferIds per PAX per segment, paymentDetails)
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — paymentReference
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+        PaymentMS-->>RetailAPI: 200 OK — bag payment settled
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentReference)
+        OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items
     end
 
     Traveller->>Web: Confirm / update travel document details for each PAX
@@ -1462,9 +1448,17 @@ For long-running cancellation rebooking operations (large passenger loads), the 
 
 ---
 
-## Seat
+## Ancillary
 
-### Retrieve Seatmap and Seat Offers
+Ancillary products are optional add-ons sold in addition to the core flight fare. Apex Air currently offers two ancillary product types: **seat selection** and **checked baggage**. Both are priced by dedicated microservices — the Seat microservice and the Bag microservice respectively — and each purchased ancillary is recorded as a separate order item of type `Seat` or `Bag` within the ONE Order structure, carrying its own offer identifier and payment reference. This allows ancillary revenue to be tracked and accounted for independently from fare revenue in the Accounting microservice.
+
+Free entitlements — such as the checked bag allowance included with a fare family, or complimentary seat selection in Business Class — are not order items and carry no price. They are policy attributes returned by the respective microservices and presented to the customer as part of the ancillary offer response.
+
+Ancillary products may be purchased post-sale through the manage-booking flow, or at the time of online check-in. Both channels follow the same underlying offer-retrieve, payment-authorise, order-update pattern.
+
+---
+
+### Seat
 
 The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing. It provides the physical layout, seat attributes (class, position, extra legroom, etc.), cabin configuration, and the seat offer price for each position type. Seat prices are defined fleet-wide by position — not per flight — and apply uniformly across Premium Economy and Economy cabins. Business Class seat selection is included in the fare and carries no ancillary charge.
 
@@ -1478,6 +1472,8 @@ Seat prices are:
 
 When a channel requests a seatmap, the Seat microservice returns both the layout (consumed by the front-end seat picker) and a `seatOffer` for each selectable seat, containing a `SeatOfferId` and price. The `SeatOfferId` is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer. The Seat microservice does **not** manage seat availability or inventory — that remains the responsibility of the Offer microservice.
 
+#### Retrieve Seatmap and Seat Offers
+
 ```mermaid
 sequenceDiagram
     participant RetailAPI as Retail API
@@ -1490,7 +1486,66 @@ sequenceDiagram
     SeatMS-->>RetailAPI: 200 OK — seatmap definition (layout, cabin config, seat metadata) + seat offers (SeatOfferId, price per selectable seat)
 ```
 
-### Data Schema — Seat
+#### Post-Sale Seat Selection
+
+Enables a traveller to choose or change their seat assignment after booking, presenting the live seatmap with real-time availability overlaid, and updating the manifest and e-tickets upon confirmation. Seat selection made post-sale carries the full ancillary charge. If a seat was not selected at booking, seats assigned at check-in are free of charge (see the Online Check-In flow in the Delivery section).
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant SeatMS as Seat [MS]
+    participant OfferMS as Offer [MS]
+    participant PaymentMS as Payment [MS]
+    participant DeliveryMS as Delivery [MS]
+    participant AccountingMS as Accounting [MS]
+
+    Traveller->>Web: Navigate to manage booking
+
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, current seat assignments, itinerary)
+    RetailAPI-->>Web: 200 OK — display current booking
+
+    Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
+    RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
+    SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId, position, price)
+    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
+    OfferMS-->>RetailAPI: 200 OK — available and occupied seats
+    RetailAPI-->>Web: 200 OK — seat map with pricing and availability
+
+    Traveller->>Web: Select seat(s) for each PAX
+
+    Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds per PAX per flight)
+
+    RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
+    OfferMS-->>RetailAPI: 200 OK — seats reserved
+
+    Note over RetailAPI, PaymentMS: Take payment for seat ancillary
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=SeatAncillary)
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — seat payment settled
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds, PAX seats, paymentReference)
+    OrderMS-->>RetailAPI: 200 OK — order updated with Seat order items
+
+    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated seat assignments)
+    DeliveryMS-->>RetailAPI: 200 OK — updated e-ticket numbers issued
+
+    RetailAPI->>DeliveryMS: PUT /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per affected PAX per segment)
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries updated
+
+    RetailAPI-->>Web: 200 OK — seat selection confirmed (bookingReference, updated e-tickets)
+    Web-->>Traveller: Display updated booking confirmation with seat assignments
+
+    Note over OrderMS, AccountingMS: Async event
+    OrderMS-)AccountingMS: OrderChanged event (bookingReference, seat ancillary details)
+```
+
+#### Data Schema — Seat
 
 The Seat domain uses three tables. `AircraftType` is the root reference record. `Seatmap` holds one row per active aircraft configuration with the full cabin layout as JSON. `SeatPricing` holds the fleet-wide pricing rules by seat position and cabin, from which the Seat microservice derives the `seatOffer` price returned with each seatmap response.
 
@@ -1774,6 +1829,159 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 ```
 
 > **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is overlaid at query time from `offer.FlightInventory` and is never stored here.
+
+---
+
+### Bag
+
+The Bag microservice is the system of record for checked baggage policies and ancillary bag pricing. Every fare includes a **free bag allowance** determined by the cabin class of travel; the Bag microservice owns this policy table and returns it alongside priced offers for any additional bags the customer wishes to purchase. Bag prices are defined fleet-wide and apply uniformly across all routes — the same model used by the Seat microservice for seat pricing.
+
+Free checked bag allowances by cabin:
+
+| Cabin | Free Bags Included | Max Weight per Bag |
+|---|---|---|
+| Economy (Y) | 1 bag | 23 kg |
+| Premium Economy (W) | 2 bags | 23 kg |
+| Business / First (J/F) | 2 bags | 32 kg |
+
+Additional bag pricing (per bag, per segment):
+
+| Additional Bag | Price |
+|---|---|
+| 1st additional bag | £60.00 |
+| 2nd additional bag | £80.00 |
+| 3rd+ additional bag | £100.00 |
+
+When a channel requests bag offers for a flight, the Bag microservice returns both the free allowance applicable to the passenger's cabin and a `BagOffer` for each purchasable additional bag, each containing a `BagOfferId` and price. The `BagOfferId` is passed to the Order microservice when additional bags are purchased, linking the bag order item to the priced offer. The Bag microservice does **not** manage operational baggage handling or departure control — those functions sit within the airline's wider DCS (Departure Control System) and are outside the scope of this design.
+
+#### Retrieve Bag Allowance and Bag Offers
+
+```mermaid
+sequenceDiagram
+    participant RetailAPI as Retail API
+    participant BagMS as Bag [MS]
+    participant BagDB as Bag DB
+
+    RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
+    BagMS->>BagDB: SELECT policy WHERE cabinCode = {cabinCode} AND isActive = 1
+    BagDB-->>BagMS: free bag allowance (freeBagsIncluded, maxWeightKg)
+    BagMS->>BagDB: SELECT pricing WHERE isActive = 1 ORDER BY bagSequence
+    BagDB-->>BagMS: additional bag pricing rows (bagSequence, price)
+    BagMS->>BagMS: Generate BagOffer per additional bag slot (BagOfferId, bagSequence, price)
+    BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers (BagOfferId, bagSequence, price per additional bag)
+```
+
+#### Post-Sale Bag Selection
+
+Customers may add checked bags to a confirmed booking at any time before online check-in opens through the manage-booking flow. The free bag allowance for the booked cabin is displayed automatically; the customer may then purchase one or more additional bags beyond that allowance. In IATA one-order terms, each additional bag purchased creates a separate `Bag` order item carrying its own `BagOfferId` and payment reference. Free bags carry no charge and do not generate order items.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant BagMS as Bag [MS]
+    participant PaymentMS as Payment [MS]
+    participant AccountingMS as Accounting [MS]
+
+    Traveller->>Web: Navigate to manage booking and select Add Bags
+
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, cabinCode per segment, existing bag order items if any)
+    RetailAPI-->>Web: 200 OK — current booking including any previously purchased bags
+
+    loop For each flight segment
+        RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
+        BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers per additional bag
+    end
+
+    RetailAPI-->>Web: Bag allowance summary and additional bag offers per segment per PAX
+    Web-->>Traveller: Display free allowance and options to purchase additional bags
+
+    Traveller->>Web: Select additional bag(s) per PAX per segment
+
+    Note over RetailAPI, PaymentMS: Take payment for bag ancillary
+    Web->>RetailAPI: POST /v1/orders/{bookingRef}/bags (bagOfferIds per PAX per segment, paymentDetails)
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — bag payment settled
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentReference)
+    OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items; OrderChanged event published
+
+    RetailAPI-->>Web: 200 OK — bags confirmed (bookingReference, updated order summary)
+    Web-->>Traveller: Bag selection confirmed — updated itinerary summary displayed
+
+    Note over OrderMS, AccountingMS: Async event
+    OrderMS-)AccountingMS: OrderChanged event (bookingReference, bag ancillary details)
+```
+
+#### Data Schema — Bag
+
+```sql
+-- bag.BagPolicy
+-- One row per active cabin code defining the free checked bag entitlement.
+CREATE TABLE bag.BagPolicy (
+    PolicyId          UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    CabinCode         CHAR(1)           NOT NULL UNIQUE,   -- F, J, W, Y
+    FreeBagsIncluded  TINYINT           NOT NULL,          -- number of free checked bags included in fare
+    MaxWeightKgPerBag TINYINT           NOT NULL,          -- maximum weight per individual bag (kg)
+    IsActive          BIT               NOT NULL DEFAULT 1,
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+-- Example seed data:
+-- ('J', 2, 32), ('F', 2, 32), ('W', 2, 23), ('Y', 1, 23)
+
+-- bag.BagPricing
+-- Fleet-wide pricing for additional checked bags, applied uniformly across all routes and aircraft.
+-- BagSequence indicates which additional bag this row prices:
+--   1 = first bag beyond the free allowance, 2 = second additional, etc.
+-- A catch-all row (BagSequence = 99) may be used for 3rd bag and beyond.
+CREATE TABLE bag.BagPricing (
+    PricingId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    BagSequence       TINYINT           NOT NULL,          -- 1 = 1st additional, 2 = 2nd additional, 99 = 3rd+
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    Price             DECIMAL(10,2)     NOT NULL,
+    IsActive          BIT               NOT NULL DEFAULT 1,
+    ValidFrom         DATETIME2         NOT NULL,
+    ValidTo           DATETIME2         NULL,              -- null = open-ended / currently active
+    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_BagPricing_Sequence UNIQUE (BagSequence, CurrencyCode)
+);
+
+-- Example seed data:
+-- (1, 'GBP', 60.00), (2, 'GBP', 80.00), (99, 'GBP', 100.00)
+
+-- bag.StoredBagOffer
+-- Offer snapshot generated at retrieval time and passed back to channels as BagOfferId.
+-- The BagOfferId is submitted to the Order microservice when the customer purchases additional bags,
+-- linking the Bag order item to the priced offer at the time of sale.
+CREATE TABLE bag.StoredBagOffer (
+    BagOfferId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    InventoryId       UNIQUEIDENTIFIER  NOT NULL,          -- FK ref to offer.FlightInventory (cross-schema)
+    CabinCode         CHAR(1)           NOT NULL,
+    BagSequence       TINYINT           NOT NULL,          -- which additional bag this offer prices
+    FreeBagsIncluded  TINYINT           NOT NULL,          -- free allowance applicable to this cabin at time of offer
+    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
+    PriceAmount       DECIMAL(10,2)     NOT NULL,
+    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+    ExpiresAt         DATETIME2         NOT NULL,
+    IsConsumed        BIT               NOT NULL DEFAULT 0  -- set to 1 once purchased
+);
+
+CREATE INDEX IX_StoredBagOffer_Inventory
+    ON bag.StoredBagOffer (InventoryId, CabinCode);
+
+CREATE INDEX IX_StoredBagOffer_Expiry
+    ON bag.StoredBagOffer (ExpiresAt)
+    WHERE IsConsumed = 0;
+```
 
 ## Customer
 
