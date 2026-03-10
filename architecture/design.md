@@ -951,6 +951,142 @@ sequenceDiagram
     OrderMS-)AccountingMS: OrderChanged event (bookingReference, seat change details)
 ```
 
+### Manage Booking — Change Flight
+
+A voluntary flight change is a customer-initiated modification to a confirmed itinerary, as distinct from a carrier-initiated involuntary change triggered by an IROPS event. Whether a change is permitted, and under what conditions, is governed entirely by the fare conditions of the originally purchased ticket: some fares are wholly non-changeable; others are changeable subject to a change fee; and fully flexible fares (such as Business Flex) permit changes at no charge.
+
+When a customer selects a new flight, the Offer microservice is called to obtain a live fare for the new itinerary — a process known as a **reshop**. The fare returned reflects market pricing at the time of the change request, not the original purchase price. If the reshopped base fare exceeds the original base fare paid, an **add-collect** is required: the Retail API calculates the fare difference and adds any applicable change fee to produce the total amount due before confirming the change. Where the new fare is equal to or lower than the original, no residual value is returned on a voluntary change; the customer pays the change fee only (if any applies). On confirmation, the original e-ticket is voided and a new e-ticket is issued against the replacement itinerary. Seat ancillaries purchased for the original flight are not automatically transferred and must be reselected through the normal seat management flow.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
+    participant PaymentMS as Payment [MS]
+
+    Traveller->>Web: Navigate to manage booking and request a flight change
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentReference)
+    RetailAPI-->>Web: 200 OK — current booking with change conditions
+
+    alt Fare is not changeable (isChangeable = false)
+        RetailAPI-->>Web: 422 Unprocessable — fare conditions do not permit a voluntary change
+        Web-->>Traveller: This fare cannot be changed
+    end
+
+    Web-->>Traveller: Display current booking; traveller selects new date and/or flight
+
+    Note over RetailAPI,OfferMS: Reshop — obtain live fare for the new itinerary at the same cabin class
+    Web->>RetailAPI: POST /v1/search/slice (origin, destination, newDate, cabinCode, paxCount)
+    RetailAPI->>OfferMS: POST /v1/search/slice (origin, destination, newDate, cabinCode, paxCount)
+    OfferMS-->>RetailAPI: 200 OK — available flights with live fares (newOfferId, newBaseFare, newTaxes, newTotal, isChangeable)
+    RetailAPI-->>Web: 200 OK — available replacement flights and fares
+    Web-->>Traveller: Display replacement options; traveller selects new flight
+
+    Note over RetailAPI: Calculate add-collect
+    Note over RetailAPI: addCollect = max(0, newBaseFare − originalBaseFare)
+    Note over RetailAPI: totalDue = changeFee + addCollect
+
+    alt Add-collect or change fee applies (totalDue > 0)
+        RetailAPI-->>Web: Fare summary (originalFare, newFare, changeFee, addCollect, totalDue)
+        Web-->>Traveller: Confirm change and provide payment details
+        Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId, totalDue, paymentDetails)
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalDue, currency, cardDetails, description=FareChange)
+        PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
+    else No additional charge (totalDue = 0 — fully flexible fare, new fare equal or lower)
+        RetailAPI-->>Web: Change summary — no additional payment required
+        Web-->>Traveller: Confirm change
+        Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId)
+    end
+
+    RetailAPI->>OfferMS: POST /v1/inventory/hold (newInventoryId, cabinCode, seats=paxCount)
+    OfferMS-->>RetailAPI: 200 OK — seats held on new flight
+
+    loop For each e-ticket on the changed segment
+        RetailAPI->>DeliveryMS: PATCH /v1/tickets/{eTicketNumber}/void
+        DeliveryMS-->>RetailAPI: 200 OK — original e-ticket voided
+    end
+
+    RetailAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{originalFlightNumber}/{originalDepartureDate}
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries removed for original flight
+
+    RetailAPI->>OfferMS: POST /v1/inventory/release (originalInventoryId, cabinCode, seats=paxCount)
+    OfferMS-->>RetailAPI: 200 OK — seats released from original flight; SeatsAvailable incremented
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentReference)
+    OrderMS-->>RetailAPI: 200 OK — order updated (OrderStatus=Changed); OrderChanged event published
+
+    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, voidedETicketNumbers, newSegments)
+    DeliveryMS-->>RetailAPI: 200 OK — new e-ticket numbers issued
+
+    RetailAPI->>DeliveryMS: POST /v1/manifest (newInventoryId, bookingReference, newETicketNumbers, passengerIds)
+    DeliveryMS-->>RetailAPI: 201 Created — manifest entries written for new flight
+
+    alt Payment was collected (totalDue > 0)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=totalDue)
+        PaymentMS-->>RetailAPI: 200 OK — add-collect and change fee settled
+    end
+
+    RetailAPI-->>Web: 200 OK — change confirmed (new itinerary, new e-ticket numbers)
+    Web-->>Traveller: Change confirmed — new itinerary and updated e-ticket details displayed
+```
+
+### Manage Booking — Cancel Booking
+
+A voluntary cancellation is a customer-initiated request to cancel a confirmed booking. Entitlement to a refund, and any cancellation penalty that reduces it, is determined entirely by the fare conditions of the originally issued ticket. Fares broadly fall into three categories: non-refundable (the fare value is forfeited in full on cancellation); partially refundable (a fixed cancellation fee is deducted from the amount returned); and fully refundable (the total amount paid is returned). In all cases the e-ticket must be voided and inventory released back to the Offer microservice regardless of refundability — a cancelled booking must not continue to hold seat inventory.
+
+Where a refund is due, it is returned to the original payment method via the Payment microservice and is subject to the card issuer's standard processing timeline, typically 5–10 business days. Government-imposed, non-carrier taxes (such as UK Air Passenger Duty) may be refundable even on otherwise non-refundable fares; detailed tax disaggregation and selective refund handling is a future consideration outside the scope of this phase.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
+    participant PaymentMS as Payment [MS]
+
+    Traveller->>Web: Navigate to manage booking and request cancellation
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentReference)
+    Note over RetailAPI: refundableAmount = isRefundable ? (totalPaid − cancellationFee) : 0
+    RetailAPI-->>Web: 200 OK — booking with cancellation conditions and refundable amount
+
+    Web-->>Traveller: Display cancellation terms (refundableAmount, cancellationFee if applicable, or no refund notice)
+    Traveller->>Web: Confirm cancellation
+    Web->>RetailAPI: POST /v1/orders/{bookingRef}/cancel
+
+    loop For each e-ticket on the booking
+        RetailAPI->>DeliveryMS: PATCH /v1/tickets/{eTicketNumber}/void
+        DeliveryMS-->>RetailAPI: 200 OK — e-ticket voided
+    end
+
+    RetailAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries removed
+
+    RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryId, cabinCode, seats=paxCount)
+    OfferMS-->>RetailAPI: 200 OK — seats released; SeatsAvailable incremented
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/cancel (reason=VoluntaryCancellation, cancellationFee)
+    OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled; OrderChanged event published
+
+    alt Refund is due (isRefundable = true)
+        RetailAPI->>PaymentMS: POST /v1/payment/{originalPaymentReference}/refund (refundAmount=totalPaid−cancellationFee)
+        PaymentMS-->>RetailAPI: 200 OK — refund initiated (refundReference, refundAmount)
+        RetailAPI-->>Web: 200 OK — booking cancelled; refund of {refundAmount} initiated to original payment method
+        Web-->>Traveller: Booking cancelled — refund will appear within 5–10 business days
+    else Non-refundable fare (isRefundable = false)
+        RetailAPI-->>Web: 200 OK — booking cancelled; no refund applicable for this fare type
+        Web-->>Traveller: Booking cancelled — no refund will be issued
+    end
+```
+
 ## Payment
 
 ### Authorise and Settle
