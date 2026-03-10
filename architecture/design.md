@@ -1260,6 +1260,10 @@ sequenceDiagram
     FOS->>DisruptionAPI: POST /v1/disruptions/cancellation (flightNumber, departureDate, origin, destination, reason)
     DisruptionAPI->>DisruptionAPI: Validate payload; idempotency check
 
+    Note over DisruptionAPI,OfferMS: Take the flight off sale immediately — before any rebooking begins
+    DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
+    OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
+
     DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
     OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments, cabinCode)
 
@@ -1298,20 +1302,17 @@ sequenceDiagram
         Note over DisruptionAPI: Trigger passenger notification (email/push) with new itinerary details
     end
 
-    DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
-    OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
-
     DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
 ```
 
 **Cancellation handling rules:**
 
+- **The cancelled flight is taken off sale immediately** — as the very first action after validating the event, before retrieving affected orders or searching for alternatives. This prevents new bookings from being accepted on the flight while rebooking is in progress. The `offer.FlightInventory` record is updated to `SeatsAvailable = 0` with a status of `Cancelled`.
 - The Disruption API processes passengers in priority order: higher cabin class first, then loyalty tier (Platinum → Gold → Silver → Blue), then booking date (earliest first). This ensures the best available seats go to the highest-value passengers.
 - Seat assignments on the replacement flight are not pre-assigned by the Disruption API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
 - If no replacement flight is found within a configurable lookahead window (default: 72 hours), the booking is flagged for manual handling by the Contact Centre rather than left in an unresolved state.
 - Where the original fare conditions do not permit free rebooking (e.g. non-changeable fares), the airline's IROPS policy overrides these conditions — all passengers on a cancelled flight are entitled to free rebooking regardless of fare type. This waiver is applied by the Order microservice when the `reason=FlightCancellation` flag is present.
 - A single `OrderChanged` event (with `changeType=IROPSRebook`) is published by the Order microservice per affected booking, consumed by the Accounting microservice for revenue accounting adjustments.
-- Inventory on the cancelled flight is marked as closed by updating the `offer.FlightInventory` record (`SeatsAvailable = 0`). No further bookings may be placed against it.
 
 ---
 
