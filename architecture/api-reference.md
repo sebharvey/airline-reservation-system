@@ -8,7 +8,8 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/search/slice` | Search for available flights for a single directional slice |
+| `POST` | `/v1/search/slice` | Search for available flights for a single directional slice (outbound or inbound) |
+| `POST` | `/v1/search/connecting` | Search for connecting itinerary options via an intermediate point (IROPS use) |
 | `POST` | `/v1/basket` | Create a new basket with one or more offer IDs |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket |
@@ -20,21 +21,31 @@
 |--------|----------|-------------|
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
 | `PATCH` | `/v1/orders/{bookingRef}/passengers` | Correct or update passenger details on a confirmed order |
-| `PATCH` | `/v1/orders/{bookingRef}/seats` | Add or change seat selection on a confirmed order |
+| `PATCH` | `/v1/orders/{bookingRef}/seats` | Add or change seat selection on a confirmed order (post-sale, charged) |
+| `POST` | `/v1/orders/{bookingRef}/change` | Change a confirmed flight to a new itinerary; collects add-collect and change fee if applicable |
+| `POST` | `/v1/orders/{bookingRef}/cancel` | Cancel a confirmed booking; initiates refund if fare conditions permit |
+| `POST` | `/v1/orders/{bookingRef}/bags` | Add or update checked bag selection on a confirmed order |
 
 ### Flights & Seatmaps
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/flights/{flightId}/seatmap` | Retrieve seatmap with pricing and availability for a flight |
+| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve real-time seat availability overlay for a flight |
 
 ### Check-in
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/checkin/retrieve` | Retrieve booking details to begin the check-in flow |
-| `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge) |
-| `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data |
+| `POST` | `/v1/checkin/retrieve` | Retrieve booking details to begin the online check-in flow |
+| `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
+| `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
+
+### Email Verification
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow) |
 
 ---
 
@@ -42,9 +53,20 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/register` | Register a new loyalty programme member |
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile and points balance |
+| `POST` | `/v1/register` | Register a new loyalty programme member, creating linked Identity and Customer records |
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile, tier status, and points balance |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
+| `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
+| `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address |
+
+---
+
+## Disruption API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests |
+| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; takes flight off sale and rebooking all affected passengers |
 
 ---
 
@@ -52,12 +74,14 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/search` | Search flight inventory and return priced offers |
-| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID |
+| `POST` | `/v1/search` | Search flight inventory and return priced, storedoffer-snapshotted offers |
+| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation) |
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability for a flight |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
-| `POST` | `/v1/inventory/release` | Decrement available inventory and mark seats as sold |
-| `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status (e.g. to checked-in) |
+| `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
+| `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld) |
+| `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (used on cancel or change) |
+| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled) |
 
 ---
 
@@ -70,8 +94,14 @@
 | `PUT` | `/v1/basket/{basketId}/seats` | Update seat selections on a basket |
 | `POST` | `/v1/orders` | Confirm a basket and create a permanent order record |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
+| `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |
 | `PATCH` | `/v1/orders/{bookingRef}/passengers` | Update passenger details on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/seats` | Update seat assignments on a confirmed order |
+| `PATCH` | `/v1/orders/{bookingRef}/segments` | Update segment departure/arrival times (used by Disruption API for delays) |
+| `PATCH` | `/v1/orders/{bookingRef}/change` | Apply a confirmed flight change, recording new segment, add-collect, and payment reference |
+| `PATCH` | `/v1/orders/{bookingRef}/cancel` | Mark an order as cancelled with reason and any cancellation fee |
+| `PATCH` | `/v1/orders/{bookingRef}/rebook` | Rebook a passenger onto a replacement flight (used by Disruption API for cancellations) |
+| `PATCH` | `/v1/orders/{bookingRef}/bags` | Add or update bag order items on a confirmed order |
 | `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS data for passengers |
 
 ---
@@ -80,8 +110,9 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/payment/authorise` | Authorise a card payment |
+| `POST` | `/v1/payment/authorise` | Authorise a card payment; returns a PaymentReference |
 | `POST` | `/v1/payment/{paymentReference}/settle` | Settle a previously authorised payment |
+| `POST` | `/v1/payment/{paymentReference}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
 
 ---
 
@@ -90,11 +121,15 @@
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/tickets` | Issue e-tickets for all passengers and flight segments in a basket |
-| `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a name correction or seat change |
-| `POST` | `/v1/manifest` | Write flight manifest entries at booking confirmation |
+| `PATCH` | `/v1/tickets/{eTicketNumber}/void` | Void an issued e-ticket (used on flight change, cancellation, or IROPS) |
+| `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change |
+| `POST` | `/v1/manifest` | Write flight manifest entries at booking confirmation or after rebooking |
 | `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
 | `PATCH` | `/v1/manifest/{bookingRef}` | Update check-in status on manifest entries |
-| `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings |
+| `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Disruption API for delays) |
+| `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
+| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking) |
+| `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings for checked-in passengers |
 
 ---
 
@@ -102,7 +137,15 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and seat offers for an aircraft type |
+| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition, cabin layout, and seat offers for an aircraft type |
+
+---
+
+## Bag Microservice
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bags/offers` | Retrieve the free bag policy and priced bag offers for a flight and cabin (`?inventoryId=&cabinCode=`) |
 
 ---
 
@@ -110,9 +153,11 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/accounts` | Create a new login account |
-| `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback) |
+| `POST` | `/v1/accounts` | Create a new login account (called by Loyalty API during registration) |
+| `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback on Customer MS failure) |
 | `POST` | `/v1/accounts/{userAccountId}/verify-email` | Mark an email address as verified |
+| `POST` | `/v1/accounts/{identityReference}/email/change-request` | Initiate an email change; generates verification token and sends link to new address |
+| `POST` | `/v1/email/verify` | Validate a change-request token; updates email and invalidates all active refresh tokens |
 
 ---
 
@@ -120,6 +165,7 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/customers` | Create a new loyalty account |
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile and points balance |
+| `POST` | `/v1/customers` | Create a new loyalty account (called by Loyalty API during registration) |
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile, tier status, and points balance |
+| `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language) |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |

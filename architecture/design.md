@@ -285,6 +285,10 @@ CREATE INDEX IX_StoredOffer_Expiry
 
 ## Order
 
+The Order microservice sits at the heart of the reservation system, managing the complete lifecycle of every booking from initial basket creation through confirmation, post-sale changes, and cancellation. It is built around the **IATA One Order** standard, which replaces the traditional separation of PNR (Passenger Name Record) and e-ticket with a single, evolving order record — the `OrderData` document — that holds the full booking state at any point in time. All confirmed bookings are identified by a six-character **booking reference** (equivalent to the PNR in legacy systems), and every state-changing operation publishes an event to the event bus for downstream consumption by the Accounting microservice.
+
+The Order microservice is the sole owner of order state. No other microservice modifies an order directly; all booking changes — passenger updates, seat changes, flight changes, ancillary additions, and cancellations — are orchestrated through the Retail API and applied to the order by the Order microservice.
+
 ### Create
 
 The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, and passenger details as the traveller builds their booking. The basket is created when the traveller begins the purchase journey and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the journey, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
@@ -888,9 +892,9 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 
 -----
 
-### Manage booking - update PAX details
+### Manage Booking — Update Passenger Details
 
-Allows a traveller to correct or update passenger information on a confirmed booking — such as a name correction, updated passport details, or a change of contact information — triggering e-ticket reissuance where required.
+Customers regularly need to update passenger information after booking: a newly issued passport, a correction to a misspelt name, or updated contact details. In airline industry terms, accurate **Advance Passenger Information (API)** — passport number, nationality, date of birth, and document expiry — is a regulatory requirement for international travel and must match the document presented at the border. The Delivery microservice treats e-tickets as immutable documents: any change to the passenger's name or identity details triggers a **reissuance**, generating a new e-ticket number while the booking reference remains unchanged. Minor name corrections (a single transposed character) are typically applied as a waiver; anything beyond that is subject to the fare's change conditions.
 
 ```mermaid
 sequenceDiagram
@@ -1058,6 +1062,8 @@ sequenceDiagram
 
 ## Payment
 
+The Payment microservice is the financial orchestration layer for all Apex Air transactions, interfacing with the external card payment processor on behalf of all channels. In a modern airline retailing context a single booking commonly generates multiple independent payment transactions: the flight fare is authorised and settled at ticketing, and each ancillary product — seat selection, additional baggage — is authorised and settled as its own transaction with a separate `PaymentReference`. This granular structure enables precise revenue attribution per product type, supports targeted partial refunds on cancellation or change, and satisfies PCI DSS requirements by ensuring card data is handled and discarded within the Payment microservice boundary without touching any other domain.
+
 ### Authorise and Settle
 
 The Payment microservice handles all card authorisation and settlement for Apex Air transactions. A single booking may generate multiple independent payment transactions — fares are authorised and settled during ticketing, while ancillary purchases such as seat selections are authorised and settled as separate transactions. Each transaction is tracked by a unique `PaymentReference`, which is returned to the Retail API and stored against the relevant order items in the Order microservice.
@@ -1093,7 +1099,7 @@ CREATE TABLE payment.Payment (
     PaymentId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
     PaymentReference  VARCHAR(20)       NOT NULL UNIQUE,  -- human-readable ref, e.g. AXPAY-0001
     BookingReference  CHAR(6)           NULL,             -- set once order is confirmed; may be null during initial auth
-    PaymentType       VARCHAR(30)       NOT NULL,         -- Fare | SeatAncillary | Cancellation | Refund
+    PaymentType       VARCHAR(30)       NOT NULL,         -- Fare | SeatAncillary | BagAncillary | FareChange | Cancellation | Refund
     Method            VARCHAR(20)       NOT NULL,         -- CreditCard | DebitCard | PayPal | ApplePay
     CardType          VARCHAR(20)       NULL,             -- Visa | Mastercard | Amex | etc.
     CardLast4         CHAR(4)           NULL,             -- last 4 digits only; never store full PAN
@@ -1138,9 +1144,11 @@ CREATE INDEX IX_PaymentEvent_PaymentId
 
 ## Delivery
 
+The Delivery microservice is the airline's system of record for issued travel documents and the departure-facing layer of the reservation system. Its name reflects its role in the **IATA One Order** model: once an order is confirmed by the Order microservice, the Delivery microservice materialises that booking into actionable travel documents — e-tickets, boarding passes, and the flight manifest. Where the Order microservice owns the commercial booking record, the Delivery microservice owns the operational record that gate and ground staff use to manage the flight. Its data underpins check-in, seat assignment, gate management, and the APIS (Advance Passenger Information System) submission process required for international departures.
+
 ### Online Check In
 
-Allows a traveller to check in for their flight from 24 hours before departure, confirming or updating travel document details for each passenger and receiving boarding cards upon completion.
+Online check-in (OLCI) opens 24 hours before departure and is the primary self-service channel through which passengers submit their **Advance Passenger Information (API)** data — passport numbers, nationality, and document expiry dates required for APIS transmission to destination country border agencies. Completing OLCI moves each passenger to a `checkedIn` status on the flight manifest, enabling boarding pass generation. The check-in window is intentionally limited to 24 hours before departure to align with airline operational cut-off times for APIS data submission and to prevent passengers checking in so far in advance that their travel document details become stale. Seat assignment and bag additions are both available within the OLCI flow, allowing last-minute ancillary changes before the passenger proceeds to boarding.
 
 ```mermaid
 sequenceDiagram
@@ -1318,7 +1326,7 @@ graph LR
 
 ### Flight Delay
 
-When the FOS notifies the Disruption API that a flight has been delayed, the API retrieves all confirmed orders containing that flight segment and updates the scheduled departure and arrival times on each affected booking. Passengers are notified of the change.
+A flight delay is an operational event in which the scheduled departure (and typically arrival) time of a flight changes after bookings have already been confirmed. Unlike a cancellation, a delay does not invalidate the underlying booking or e-ticket — the passenger's reservation on the same flight remains valid and no rebooking is required. The system's responsibility is to propagate the revised schedule to every affected order and manifest record so that customers, contact centre agents, and gate staff all see consistent, up-to-date times. Passengers are notified proactively of the change. Under **EU Regulation 261/2004** and equivalent frameworks, significant delays may entitle passengers to compensation or care; however, eligibility assessment and compensation fulfilment are handled operationally outside this system.
 
 > **Future consideration — missed connections due to delay:** If a delayed flight causes a passenger to miss a connecting flight in their itinerary, the system will need to detect this and trigger a rebooking flow for the affected connection. This is not in scope for the current phase but must be addressed in a future design iteration before connecting-itinerary bookings are supported operationally.
 
@@ -1856,6 +1864,8 @@ When a channel requests bag offers for a flight, the Bag microservice returns bo
 
 #### Retrieve Bag Allowance and Bag Offers
 
+Before presenting bag options to a customer, the Retail API queries the Bag microservice to obtain both the free entitlement applicable to the passenger's cabin and a set of priced `BagOffer` objects for any additional bags they may wish to purchase. This mirrors the seatmap retrieval pattern: pricing is locked at offer-generation time by snapshotting each `BagOffer` into the `StoredBagOffer` table, and the returned `BagOfferId` is passed to the Order microservice at point of purchase to guarantee price integrity regardless of how much time elapses before the customer confirms.
+
 ```mermaid
 sequenceDiagram
     participant RetailAPI as Retail API
@@ -2031,7 +2041,7 @@ sequenceDiagram
 
 ### Retrieve Account and Points Balance
 
-A traveller retrieves their account details and current points balance — used on the loyalty dashboard and during booking to display available points.
+The loyalty dashboard is typically the first screen a member sees after logging in, and also the source of loyalty context shown during the booking flow. It surfaces the two key values the programme tracks separately: **PointsBalance** (the redeemable currency available to spend on award bookings) and **TierProgressPoints** (the qualifying activity accumulated towards tier status). A member's tier — Blue, Silver, Gold, or Platinum — determines the benefits they receive on every flight, including lounge access, priority boarding, and earn-rate multipliers. Displaying tier progress alongside the redeemable balance is a deliberate engagement mechanism common to FFP (Frequent Flyer Programme) designs, giving members visibility of how close they are to the next tier threshold.
 
 ```mermaid
 sequenceDiagram
@@ -2053,7 +2063,7 @@ sequenceDiagram
 
 ### Retrieve Transaction History
 
-Returns the full ordered list of points transactions — both earnings (accruals) and redemptions — for display on the account statement page.
+The points statement is the audit trail of every points movement on a loyalty account. In FFP (Frequent Flyer Programme) terms this is an important trust mechanism: members expect full visibility of when points were earned for each completed flight, when redemptions were processed, and any manual adjustments applied by customer services. The `LoyaltyTransaction` table is an immutable append-only log — each row is a permanent record of a points movement with a running `BalanceAfter` snapshot. Transactions are returned in reverse-chronological order and paginated; channels should implement pagination controls appropriate for long-standing members whose history may span hundreds of entries.
 
 ```mermaid
 sequenceDiagram
@@ -2280,6 +2290,10 @@ CREATE INDEX IX_LoyaltyTransaction_BookingReference
 ---
 
 ## Identity
+
+The Identity microservice is the security boundary for all authentication and credential management in the Apex Air system. It is the sole owner of email addresses and hashed passwords — no other microservice stores or has access to authentication credentials. The separation between Identity (authentication) and Customer (loyalty profile) is a deliberate architectural boundary: the Identity microservice knows nothing about points or tier status, and the Customer microservice knows nothing about passwords. The two domains are linked only by an opaque `IdentityReference` UUID, which means the Identity microservice can be hardened, replaced, or scaled independently of the rest of the system without any change to customer profile data.
+
+Customer-facing authentication flows — login, logout, and session refresh — are consumed by the Loyalty API. Short-lived JWT access tokens are issued at login and validated by downstream APIs using the Identity microservice's public signing key, avoiding a database round-trip on every request. Longer-lived refresh tokens are stored in the Identity DB with single-use semantics; rotation on each use limits the exposure window if a token is ever compromised.
 
 ### Data Schema — Identity
 
