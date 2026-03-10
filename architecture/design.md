@@ -207,79 +207,75 @@ sequenceDiagram
 
 The Offer domain maintains three tables. `FlightInventory` tracks available seat capacity per flight and cabin. `Fare` records fare basis, pricing, and conditions per inventory record. `StoredOffer` persists the specific offer returned to a customer at search time, capturing the exact fare, flight, and pricing snapshot so that price integrity is maintained through to order creation.
 
-```sql
--- offer.FlightInventory
--- One row per flight leg per cabin class
-CREATE TABLE offer.FlightInventory (
-    InventoryId       UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    FlightNumber      VARCHAR(10)       NOT NULL,   -- e.g. AX001
-    DepartureDate     DATE              NOT NULL,
-    Origin            CHAR(3)           NOT NULL,   -- IATA airport code
-    Destination       CHAR(3)           NOT NULL,
-    AircraftType      VARCHAR(4)        NOT NULL,   -- IATA-style 4-char code: manufacturer prefix + 3-digit variant, e.g. A351, B789
-    CabinCode         CHAR(1)           NOT NULL,   -- F, J, W, Y
-    TotalSeats        SMALLINT          NOT NULL,
-    SeatsAvailable    SMALLINT          NOT NULL,
-    SeatsSold         SMALLINT          NOT NULL DEFAULT 0,
-    SeatsHeld         SMALLINT          NOT NULL DEFAULT 0,  -- seats held in baskets, not yet ticketed
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `offer.FlightInventory`
 
-CREATE INDEX IX_FlightInventory_Flight
-    ON offer.FlightInventory (FlightNumber, DepartureDate, CabinCode);
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| InventoryId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| FlightNumber | VARCHAR(10) | No | | | e.g. `AX001` |
+| DepartureDate | DATE | No | | | |
+| Origin | CHAR(3) | No | | | IATA airport code |
+| Destination | CHAR(3) | No | | | IATA airport code |
+| AircraftType | VARCHAR(4) | No | | | IATA-style 4-char code, e.g. `A351`, `B789` |
+| CabinCode | CHAR(1) | No | | | `F` First · `J` Business · `W` Premium Economy · `Y` Economy |
+| TotalSeats | SMALLINT | No | | | Physical seat count for this cabin on this flight |
+| SeatsAvailable | SMALLINT | No | | | Decremented on hold; incremented on release |
+| SeatsSold | SMALLINT | No | 0 | | Incremented on ticket issuance |
+| SeatsHeld | SMALLINT | No | 0 | | Seats held in active baskets, not yet ticketed |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- offer.Fare
--- One row per fare offering, linked to a flight inventory record.
--- Pricing is broken into base fare, taxes, and total for accounting clarity.
-CREATE TABLE offer.Fare (
-    FareId            UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    InventoryId       UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.FlightInventory(InventoryId),
-    FareBasisCode     VARCHAR(20)       NOT NULL,   -- e.g. YLOWUK, JFLEXGB
-    FareFamily        VARCHAR(50)       NULL,       -- e.g. Economy Light, Business Flex
-    CabinCode         CHAR(1)           NOT NULL,
-    BookingClass      CHAR(2)           NOT NULL,   -- revenue management booking class, e.g. Y, B, J
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    BaseFareAmount    DECIMAL(10,2)     NOT NULL,
-    TaxAmount         DECIMAL(10,2)     NOT NULL,
-    TotalAmount       DECIMAL(10,2)     NOT NULL,   -- BaseFareAmount + TaxAmount
-    IsRefundable      BIT               NOT NULL DEFAULT 0,
-    IsChangeable      BIT               NOT NULL DEFAULT 0,
-    ValidFrom         DATETIME2         NOT NULL,
-    ValidTo           DATETIME2         NOT NULL
-);
+> **Indexes:** `IX_FlightInventory_Flight` on `(FlightNumber, DepartureDate, CabinCode)`.
+> **Inventory integrity:** `SeatsAvailable + SeatsSold + SeatsHeld = TotalSeats` must be maintained by the Offer microservice on every inventory mutation. There is no DB-level check constraint enforcing this; the application layer is solely responsible for keeping these counts consistent.
 
--- offer.StoredOffer
--- One row per offer presented to a customer during search. Captures a point-in-time
--- snapshot of the flight and fare so that price is honoured when the order is placed,
--- regardless of subsequent fare changes. OfferIds are passed into the basket and Order API.
-CREATE TABLE offer.StoredOffer (
-    OfferId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    InventoryId       UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.FlightInventory(InventoryId),
-    FareId            UNIQUEIDENTIFIER  NOT NULL REFERENCES offer.Fare(FareId),
-    FlightNumber      VARCHAR(10)       NOT NULL,
-    DepartureDate     DATE              NOT NULL,
-    Origin            CHAR(3)           NOT NULL,
-    Destination       CHAR(3)           NOT NULL,
-    AircraftType      VARCHAR(4)        NOT NULL,
-    CabinCode         CHAR(1)           NOT NULL,
-    BookingClass      CHAR(2)           NOT NULL,
-    FareBasisCode     VARCHAR(20)       NOT NULL,
-    FareFamily        VARCHAR(50)       NULL,
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    BaseFareAmount    DECIMAL(10,2)     NOT NULL,
-    TaxAmount         DECIMAL(10,2)     NOT NULL,
-    TotalAmount       DECIMAL(10,2)     NOT NULL,
-    IsRefundable      BIT               NOT NULL DEFAULT 0,
-    IsChangeable      BIT               NOT NULL DEFAULT 0,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    ExpiresAt         DATETIME2         NOT NULL,   -- offer expiry; Order API should reject expired offers
-    IsConsumed        BIT               NOT NULL DEFAULT 0  -- set to 1 once retrieved by Order API
-);
+#### `offer.Fare`
 
-CREATE INDEX IX_StoredOffer_Expiry
-    ON offer.StoredOffer (ExpiresAt)
-    WHERE IsConsumed = 0;
-```
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| FareId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| InventoryId | UNIQUEIDENTIFIER | No | | FK → `offer.FlightInventory(InventoryId)` | |
+| FareBasisCode | VARCHAR(20) | No | | | Revenue management fare basis code, e.g. `YLOWUK`, `JFLEXGB` |
+| FareFamily | VARCHAR(50) | Yes | | | Commercial product name, e.g. `Economy Light`, `Business Flex` |
+| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
+| BookingClass | CHAR(2) | No | | | Revenue management booking class, e.g. `Y`, `B`, `J` |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
+| BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare, excluding taxes |
+| TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
+| TotalAmount | DECIMAL(10,2) | No | | | `BaseFareAmount + TaxAmount`; stored explicitly for query efficiency |
+| IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
+| IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
+| ValidFrom | DATETIME2 | No | | | Fare validity window start |
+| ValidTo | DATETIME2 | No | | | Fare validity window end |
+
+> **Note:** `ChangeFee` and `CancellationFee` amounts are not currently stored on this table. If fine-grained fee amounts are required at query time (rather than being looked up from external fare rules), additional columns should be added here.
+
+#### `offer.StoredOffer`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| OfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | Returned to channel at search time; passed to basket and Order MS to lock pricing |
+| InventoryId | UNIQUEIDENTIFIER | No | | FK → `offer.FlightInventory(InventoryId)` | |
+| FareId | UNIQUEIDENTIFIER | No | | FK → `offer.Fare(FareId)` | |
+| FlightNumber | VARCHAR(10) | No | | | Denormalised snapshot |
+| DepartureDate | DATE | No | | | Denormalised snapshot |
+| Origin | CHAR(3) | No | | | Denormalised snapshot, IATA code |
+| Destination | CHAR(3) | No | | | Denormalised snapshot, IATA code |
+| AircraftType | VARCHAR(4) | No | | | Denormalised snapshot |
+| CabinCode | CHAR(1) | No | | | Denormalised snapshot |
+| BookingClass | CHAR(2) | No | | | Denormalised snapshot |
+| FareBasisCode | VARCHAR(20) | No | | | Denormalised snapshot |
+| FareFamily | VARCHAR(50) | Yes | | | Denormalised snapshot |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
+| BaseFareAmount | DECIMAL(10,2) | No | | | Price at time offer was created |
+| TaxAmount | DECIMAL(10,2) | No | | | Taxes at time offer was created |
+| TotalAmount | DECIMAL(10,2) | No | | | Total at time offer was created |
+| IsRefundable | BIT | No | 0 | | Fare conditions at time of offer creation |
+| IsChangeable | BIT | No | 0 | | Fare conditions at time of offer creation |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| ExpiresAt | DATETIME2 | No | | | Offer must be rejected by Order MS if `now > ExpiresAt` |
+| IsConsumed | BIT | No | 0 | | Set to `1` once retrieved and locked by Order MS |
+
+> **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job to purge expired unconsumed offers.
+> **Design note:** Flight and fare fields are deliberately denormalised into this table so that the offer snapshot is fully self-contained. If `offer.Fare` is later updated or withdrawn, stored offers retain the exact price and conditions that were presented to the customer.
 
 -----
 
@@ -463,55 +459,41 @@ The basket is the in-progress accumulation of everything a traveller has selecte
 
 The `BasketData` column holds the full basket state as a JSON document. Scalar fields used for indexed lookups and lifecycle management are stored as typed columns.
 
-```sql
--- order.BasketConfig
--- System-wide configurable defaults for basket lifecycle.
--- A single active row defines the current defaults; rows are never deleted, only superseded.
-CREATE TABLE order.BasketConfig (
-    BasketConfigId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    BasketExpiryHours     SMALLINT          NOT NULL DEFAULT 24,    -- hours until an unpaid basket is expired
-    TicketingTimeLimitHours SMALLINT        NOT NULL DEFAULT 24,    -- hours from basket creation within which ticketing must complete
-    IsActive              BIT               NOT NULL DEFAULT 1,
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    Notes                 VARCHAR(255)      NULL                    -- e.g. 'Reduced to 2hr for peak season test'
-);
+#### `order.BasketConfig`
 
--- Only one active config at a time
-CREATE UNIQUE INDEX IX_BasketConfig_Active
-    ON order.BasketConfig (IsActive)
-    WHERE IsActive = 1;
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| BasketConfigId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| BasketExpiryHours | SMALLINT | No | `24` | | Hours until an unpaid basket is expired |
+| TicketingTimeLimitHours | SMALLINT | No | `24` | | Hours from basket creation within which ticketing must complete |
+| IsActive | BIT | No | `1` | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Notes | VARCHAR(255) | Yes | | | Optional change annotation, e.g. `'Reduced to 2hr for peak season test'` |
 
--- order.Basket
--- One row per in-progress purchase journey. Created when the traveller begins checkout.
--- Deleted immediately on successful order confirmation.
--- Marked Expired by background job if ExpiresAt or TicketingTimeLimit elapses without payment.
-CREATE TABLE order.Basket (
-    BasketId              UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    ChannelCode           VARCHAR(20)       NOT NULL,               -- WEB | APP | NDC | KIOSK | CC | AIRPORT
-    CurrencyCode          CHAR(3)           NOT NULL DEFAULT 'GBP',
-    BasketStatus          VARCHAR(20)       NOT NULL DEFAULT 'Active',
-                                                                    -- Active | Expired | Abandoned | Confirmed
-    TotalFareAmount       DECIMAL(10,2)     NULL,                   -- sum of flight offer prices; updated as basket is built
-    TotalSeatAmount       DECIMAL(10,2)     NULL DEFAULT 0.00,      -- sum of seat offer prices; updated as seats are added
-    TotalAmount           DECIMAL(10,2)     NULL,                   -- TotalFareAmount + TotalSeatAmount
-    ExpiresAt             DATETIME2         NOT NULL,               -- basket hard expiry: now + BasketExpiryHours
-    TicketingTimeLimit    DATETIME2         NOT NULL,               -- must ticket by this time: now + TicketingTimeLimitHours
-    ConfirmedOrderId      UNIQUEIDENTIFIER  NULL,                   -- set on confirmation; FK to order.Order
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    BasketData            NVARCHAR(MAX)     NOT NULL                -- JSON: full basket document (see below)
+> **Indexes:** `IX_BasketConfig_Active` (unique) on `(IsActive)` WHERE `IsActive = 1`.
+> **Single active row:** Only one row may have `IsActive = 1` at any time. To change configuration, insert a new row with `IsActive = 1` and set the previous row to `IsActive = 0`. Rows are never deleted, only superseded.
 
-    CONSTRAINT CHK_BasketData CHECK (ISJSON(BasketData) = 1)
-);
+#### `order.Basket`
 
-CREATE INDEX IX_Basket_Status_Expiry
-    ON order.Basket (BasketStatus, ExpiresAt)
-    WHERE BasketStatus = 'Active';   -- used by background expiry job
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| BasketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `KIOSK` · `CC` · `AIRPORT` |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| BasketStatus | VARCHAR(20) | No | `'Active'` | | `Active` · `Expired` · `Abandoned` · `Confirmed` |
+| TotalFareAmount | DECIMAL(10,2) | Yes | | | Sum of flight offer prices; updated as basket is built |
+| TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added |
+| TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount |
+| ExpiresAt | DATETIME2 | No | | | Basket hard expiry: creation time + `BasketExpiryHours` |
+| TicketingTimeLimit | DATETIME2 | No | | | Must ticket by this time: creation time + `TicketingTimeLimitHours` |
+| ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| BasketData | NVARCHAR(MAX) | No | | | JSON document containing the full basket state (see example below) |
 
-CREATE INDEX IX_Basket_TicketingTimeLimit
-    ON order.Basket (TicketingTimeLimit)
-    WHERE BasketStatus = 'Active';   -- used to flag baskets approaching TTL
-```
+> **Indexes:** `IX_Basket_Status_Expiry` on `(BasketStatus, ExpiresAt)` WHERE `BasketStatus = 'Active'` — used by background expiry job. `IX_Basket_TicketingTimeLimit` on `(TicketingTimeLimit)` WHERE `BasketStatus = 'Active'` — used to flag baskets approaching TTL.
+> **Constraints:** `CHK_BasketData` — `ISJSON(BasketData) = 1`; `BasketData` must be a valid JSON document.
+> **Basket lifecycle:** A basket is hard-deleted immediately when an order is confirmed. Expired and abandoned baskets are retained for 7 days for diagnostics before being purged.
 
 **Example `BasketData` JSON document**
 
@@ -653,30 +635,23 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
 
 The `Order` table is written once the basket has been confirmed — payment taken, inventory removed, and e-tickets issued. It follows the IATA ONE Order model. The `Order` table holds scalar fields used for querying, routing, reporting, and event publishing. The full order detail — passengers, flight segments, order items, fares, seat assignments, e-tickets, payments, and audit history — is stored as a JSON document in the `OrderData` column. Fields that exist as typed columns on the table (such as `OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, and `TotalAmount`) are intentionally excluded from the JSON document to avoid duplication.
 
-```sql
--- order.Order
--- Root order record. OrderData holds the full ONE Order document as JSON.
--- Scalar fields used for indexed lookups, routing, and eventing are stored as columns.
--- Fields present as columns are NOT duplicated inside OrderData.
-CREATE TABLE order.Order (
-    OrderId           UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    BookingReference  CHAR(6)           NULL,        -- populated on confirmation, e.g. AB1234
-    OrderStatus       VARCHAR(20)       NOT NULL DEFAULT 'Draft',
-                                                     -- Draft | Confirmed | Changed | Cancelled
-    ChannelCode       VARCHAR(20)       NOT NULL,    -- WEB | APP | NDC | KIOSK | CC | AIRPORT
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    TotalAmount       DECIMAL(10,2)     NULL,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    OrderData         NVARCHAR(MAX)     NOT NULL     -- JSON: full ONE Order document (see below)
+#### `order.Order`
 
-    CONSTRAINT CHK_OrderData CHECK (ISJSON(OrderData) = 1)
-);
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| OrderId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| BookingReference | CHAR(6) | Yes | | UK | Populated on confirmation, e.g. `AB1234`; null in `Draft` state |
+| OrderStatus | VARCHAR(20) | No | `'Draft'` | | `Draft` · `Confirmed` · `Changed` · `Cancelled` |
+| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `KIOSK` · `CC` · `AIRPORT` |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| TotalAmount | DECIMAL(10,2) | Yes | | | Total order value including all order items; null until confirmed |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
 
-CREATE UNIQUE INDEX IX_Order_BookingReference
-    ON order.Order (BookingReference)
-    WHERE BookingReference IS NOT NULL;
-```
+> **Indexes:** `IX_Order_BookingReference` (unique) on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
+> **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
+> **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
 
 **Example `OrderData` JSON document**
 
@@ -1091,52 +1066,44 @@ sequenceDiagram
 
 The Payment domain uses two tables. `Payment` holds one row per payment transaction, tracking its lifecycle from authorisation through to settlement. `PaymentEvent` records every individual event (authorised, settled, refunded, declined) against a payment as an immutable append-only log, providing a complete audit trail. A single `Payment` may have multiple `PaymentEvent` rows — for example where a partial settlement is followed by a second settlement, or where a refund is issued.
 
-```sql
--- payment.Payment
--- One row per payment transaction. Created at authorisation; updated at settlement.
--- PaymentReference is the external identifier shared with the Order microservice.
-CREATE TABLE payment.Payment (
-    PaymentId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    PaymentReference  VARCHAR(20)       NOT NULL UNIQUE,  -- human-readable ref, e.g. AXPAY-0001
-    BookingReference  CHAR(6)           NULL,             -- set once order is confirmed; may be null during initial auth
-    PaymentType       VARCHAR(30)       NOT NULL,         -- Fare | SeatAncillary | BagAncillary | FareChange | Cancellation | Refund
-    Method            VARCHAR(20)       NOT NULL,         -- CreditCard | DebitCard | PayPal | ApplePay
-    CardType          VARCHAR(20)       NULL,             -- Visa | Mastercard | Amex | etc.
-    CardLast4         CHAR(4)           NULL,             -- last 4 digits only; never store full PAN
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    AuthorisedAmount  DECIMAL(10,2)     NOT NULL,
-    SettledAmount     DECIMAL(10,2)     NULL,             -- null until settled
-    Status            VARCHAR(20)       NOT NULL,         -- Authorised | Settled | PartiallySettled | Refunded | Declined | Voided
-    AuthorisedAt      DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    SettledAt         DATETIME2         NULL,
-    Description       VARCHAR(255)      NULL,             -- human-readable description, e.g. 'Fare LHR-JFK-LHR, 2 PAX'
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `payment.Payment`
 
-CREATE INDEX IX_Payment_BookingReference
-    ON payment.Payment (BookingReference)
-    WHERE BookingReference IS NOT NULL;
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| PaymentId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| PaymentReference | VARCHAR(20) | No | | UK | Human-readable reference, e.g. `AXPAY-0001`; generated at authorisation |
+| BookingReference | CHAR(6) | Yes | | | Set once the order is confirmed; null during initial authorisation |
+| PaymentType | VARCHAR(30) | No | | | `Fare` · `SeatAncillary` · `BagAncillary` · `FareChange` · `Cancellation` · `Refund` |
+| Method | VARCHAR(20) | No | | | `CreditCard` · `DebitCard` · `PayPal` · `ApplePay` |
+| CardType | VARCHAR(20) | Yes | | | `Visa` · `Mastercard` · `Amex` · etc.; null for non-card methods |
+| CardLast4 | CHAR(4) | Yes | | | Last 4 digits only — full PAN must never be stored |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| AuthorisedAmount | DECIMAL(10,2) | No | | | Amount approved by the payment processor |
+| SettledAmount | DECIMAL(10,2) | Yes | | | Null until settlement; may differ from `AuthorisedAmount` on partial settlement |
+| Status | VARCHAR(20) | No | | | `Authorised` · `Settled` · `PartiallySettled` · `Refunded` · `Declined` · `Voided` |
+| AuthorisedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| SettledAt | DATETIME2 | Yes | | | Null until settlement |
+| Description | VARCHAR(255) | Yes | | | Human-readable description, e.g. `'Fare LHR-JFK-LHR, 2 PAX'` |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-CREATE INDEX IX_Payment_PaymentReference
-    ON payment.Payment (PaymentReference);
+> **Indexes:** `IX_Payment_BookingReference` on `(BookingReference)` WHERE `BookingReference IS NOT NULL`. `IX_Payment_PaymentReference` on `(PaymentReference)`.
+> **PCI DSS:** Full card numbers, CVV codes, and raw processor tokens must never be stored. Only `CardLast4` and `CardType` are retained. The processor token used during the transaction lifetime is held in memory only and discarded after settlement.
 
--- payment.PaymentEvent
--- Immutable append-only log of every event on a Payment record.
--- Provides full audit trail including partial settlements, refunds, and declines.
-CREATE TABLE payment.PaymentEvent (
-    PaymentEventId    UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    PaymentId         UNIQUEIDENTIFIER  NOT NULL REFERENCES payment.Payment(PaymentId),
-    EventType         VARCHAR(20)       NOT NULL,         -- Authorised | Settled | PartialSettlement | Refunded | Declined | Voided
-    Amount            DECIMAL(10,2)     NOT NULL,
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    Notes             VARCHAR(255)      NULL,             -- optional context, e.g. 'Partial seat refund row 1A'
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `payment.PaymentEvent`
 
-CREATE INDEX IX_PaymentEvent_PaymentId
-    ON payment.PaymentEvent (PaymentId);
-```
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| PaymentEventId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| PaymentId | UNIQUEIDENTIFIER | No | | FK → `payment.Payment(PaymentId)` | |
+| EventType | VARCHAR(20) | No | | | `Authorised` · `Settled` · `PartialSettlement` · `Refunded` · `Declined` · `Voided` |
+| Amount | DECIMAL(10,2) | No | | | Amount associated with this event |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| Notes | VARCHAR(255) | Yes | | | Optional context, e.g. `'Partial seat refund row 1A'` |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Indexes:** `IX_PaymentEvent_PaymentId` on `(PaymentId)`.
+> **Immutability:** `PaymentEvent` rows are append-only and must never be updated or deleted. They form the authoritative audit trail for every financial event in the system.
 
 > **PaymentReference format:** `PaymentReference` values follow the format `AXPAY-{sequence}` (e.g. `AXPAY-0001`). The sequence is generated by the Payment microservice at authorisation time and is guaranteed unique within the system. This reference is passed back to the Retail API and stored on each `orderItem` in `OrderData`, linking financial records to the order line items they cover.
 
@@ -1260,47 +1227,30 @@ The Delivery domain owns its own `Delivery DB` and is the system of record for w
 
 Seat number integrity is enforced at the application layer: before any insert or update, the Delivery microservice calls the Seat microservice to validate that the given `SeatNumber` exists on the active seatmap for the relevant aircraft type. Rows may not be written with a seat number that does not appear in the seatmap definition. This prevents manifest corruption from downstream data entry errors or stale seat references.
 
-```sql
--- delivery.FlightManifest
--- One row per passenger per flight segment. Written at booking confirmation;
--- updated on any post-purchase seat change. SeatNumber must be a valid seat
--- from the active seatmap for the aircraft type — validated at application layer
--- before insert or update.
-CREATE TABLE delivery.FlightManifest (
-    ManifestId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    InventoryId       UNIQUEIDENTIFIER  NOT NULL,               -- FK ref to offer.FlightInventory (cross-schema; not enforced as DB constraint)
-    FlightNumber      VARCHAR(10)       NOT NULL,               -- denormalised for query convenience, e.g. AX003
-    DepartureDate     DATE              NOT NULL,               -- denormalised for query convenience
-    AircraftType      CHAR(4)           NOT NULL,               -- used for seatmap validation at write time
-    SeatNumber        VARCHAR(5)        NOT NULL,               -- e.g. 1A, 22K — must exist on active seatmap for AircraftType
-    CabinCode         CHAR(1)           NOT NULL,               -- F, J, W, Y
-    BookingReference  CHAR(6)           NOT NULL,               -- e.g. AB1234
-    ETicketNumber     VARCHAR(20)       NOT NULL,               -- e.g. 932-1234567890
-    PassengerId       VARCHAR(20)       NOT NULL,               -- PAX reference from the order, e.g. PAX-1
-    GivenName         VARCHAR(100)      NOT NULL,               -- denormalised for manifest readability
-    Surname           VARCHAR(100)      NOT NULL,               -- denormalised for manifest readability
-    CheckedIn         BIT               NOT NULL DEFAULT 0,
-    CheckedInAt       DATETIME2         NULL,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `delivery.FlightManifest`
 
--- Unique constraint: one seat per flight per manifest (prevents double-assignment)
-CREATE UNIQUE INDEX IX_FlightManifest_Seat
-    ON delivery.FlightManifest (InventoryId, SeatNumber);
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| ManifestId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
+| FlightNumber | VARCHAR(10) | No | | | Denormalised for query convenience, e.g. `AX003` |
+| DepartureDate | DATE | No | | | Denormalised for query convenience |
+| AircraftType | CHAR(4) | No | | | Used for seatmap validation at write time |
+| SeatNumber | VARCHAR(5) | No | | | e.g. `1A`, `22K` — must exist on active seatmap for `AircraftType` |
+| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
+| BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
+| ETicketNumber | VARCHAR(20) | No | | | e.g. `932-1234567890` |
+| PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
+| GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
+| Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
+| CheckedIn | BIT | No | `0` | | |
+| CheckedInAt | DATETIME2 | Yes | | | Null until check-in is completed |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- Unique constraint: one manifest entry per PAX per flight
-CREATE UNIQUE INDEX IX_FlightManifest_Pax
-    ON delivery.FlightManifest (InventoryId, ETicketNumber);
-
--- Index to support fast flight-level manifest retrieval (gate staff, IROPS)
-CREATE INDEX IX_FlightManifest_Flight
-    ON delivery.FlightManifest (FlightNumber, DepartureDate);
-
--- Index to support lookup by booking reference (customer servicing, check-in)
-CREATE INDEX IX_FlightManifest_BookingReference
-    ON delivery.FlightManifest (BookingReference);
-```
+> **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
+> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not a DB foreign key constraint, as the Delivery and Offer domains are logically separated. Referential integrity is the responsibility of the Retail API orchestration layer.
+> **Seatmap validation:** Before any insert or update, the Delivery microservice must call `GET /v1/seatmap/{aircraftType}` and confirm `SeatNumber` exists on the active seatmap. If not found, the write must be rejected.
 
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
 
@@ -1557,60 +1507,47 @@ sequenceDiagram
 
 The Seat domain uses three tables. `AircraftType` is the root reference record. `Seatmap` holds one row per active aircraft configuration with the full cabin layout as JSON. `SeatPricing` holds the fleet-wide pricing rules by seat position and cabin, from which the Seat microservice derives the `seatOffer` price returned with each seatmap response.
 
-```sql
--- seat.AircraftType
--- Reference table of aircraft types operated by the airline
-CREATE TABLE seat.AircraftType (
-    AircraftTypeCode  CHAR(4)           NOT NULL PRIMARY KEY,  -- 4-char code: manufacturer prefix + 3-digit variant, e.g. A351 (A350-1000), B789 (B787-900)
-    Manufacturer      VARCHAR(50)       NOT NULL,              -- e.g. Airbus, Boeing
-    FriendlyName      VARCHAR(100)      NULL,                  -- e.g. Airbus A350-1000, Boeing 787-900
-    TotalSeats        SMALLINT          NOT NULL,
-    IsActive          BIT               NOT NULL DEFAULT 1
-);
+#### `seat.AircraftType`
 
--- seat.Seatmap
--- One row per active aircraft configuration. CabinLayout holds the full seatmap as JSON.
-CREATE TABLE seat.Seatmap (
-    SeatmapId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    AircraftTypeCode  CHAR(4)           NOT NULL REFERENCES seat.AircraftType(AircraftTypeCode),
-    Version           INT               NOT NULL DEFAULT 1,
-    IsActive          BIT               NOT NULL DEFAULT 1,
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    CabinLayout       NVARCHAR(MAX)     NOT NULL   -- JSON: full cabin and seat definitions (see below)
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| AircraftTypeCode | CHAR(4) | No | | PK | 4-char code: manufacturer prefix + 3-digit variant, e.g. `A351` (A350-1000), `B789` (B787-900) |
+| Manufacturer | VARCHAR(50) | No | | | e.g. `Airbus`, `Boeing` |
+| FriendlyName | VARCHAR(100) | Yes | | | e.g. `Airbus A350-1000`, `Boeing 787-900` |
+| TotalSeats | SMALLINT | No | | | Total seat count across all cabins |
+| IsActive | BIT | No | `1` | | |
 
-    CONSTRAINT CHK_CabinLayout CHECK (ISJSON(CabinLayout) = 1)
-);
+#### `seat.Seatmap`
 
-CREATE INDEX IX_Seatmap_AircraftType
-    ON seat.Seatmap (AircraftTypeCode)
-    WHERE IsActive = 1;
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| SeatmapId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| AircraftTypeCode | CHAR(4) | No | | FK → `seat.AircraftType(AircraftTypeCode)` | |
+| Version | INT | No | `1` | | Incremented when the layout is updated |
+| IsActive | BIT | No | `1` | | Only one active seatmap per aircraft type at any time |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| CabinLayout | NVARCHAR(MAX) | No | | | JSON document containing full cabin and seat definitions (see example below) |
 
--- seat.SeatPricing
--- Fleet-wide seat pricing rules by cabin and seat position.
--- Applied uniformly across all aircraft and all flights.
--- Business Class (J/F) seats carry no ancillary charge (included in fare).
-CREATE TABLE seat.SeatPricing (
-    SeatPricingId     UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    CabinCode         CHAR(1)           NOT NULL,   -- W (Premium Economy) | Y (Economy)
-    SeatPosition      VARCHAR(10)       NOT NULL,   -- Window | Aisle | Middle
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    Price             DECIMAL(10,2)     NOT NULL,
-    IsActive          BIT               NOT NULL DEFAULT 1,
-    ValidFrom         DATETIME2         NOT NULL,
-    ValidTo           DATETIME2         NULL,       -- null = open-ended / currently active
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
+> **Indexes:** `IX_Seatmap_AircraftType` on `(AircraftTypeCode)` WHERE `IsActive = 1`.
+> **Constraints:** `CHK_CabinLayout` — `ISJSON(CabinLayout) = 1`; `CabinLayout` must be a valid JSON document.
 
-    CONSTRAINT UQ_SeatPricing_CabinPosition UNIQUE (CabinCode, SeatPosition, CurrencyCode)
-);
+#### `seat.SeatPricing`
 
--- Example seed data (reflecting fleet-wide pricing):
--- ('W', 'Window', 'GBP', 70.00)
--- ('W', 'Aisle',  'GBP', 50.00)
--- ('W', 'Middle', 'GBP', 20.00)
--- ('Y', 'Window', 'GBP', 70.00)
--- ('Y', 'Aisle',  'GBP', 50.00)
--- ('Y', 'Middle', 'GBP', 20.00)
-```
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| SeatPricingId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| CabinCode | CHAR(1) | No | | UK (with SeatPosition, CurrencyCode) | `W` (Premium Economy) · `Y` (Economy); Business Class (J/F) seats carry no ancillary charge |
+| SeatPosition | VARCHAR(10) | No | | UK (with CabinCode, CurrencyCode) | `Window` · `Aisle` · `Middle` |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | UK (with CabinCode, SeatPosition) | ISO 4217 currency code |
+| Price | DECIMAL(10,2) | No | | | |
+| IsActive | BIT | No | `1` | | |
+| ValidFrom | DATETIME2 | No | | | Effective start of this pricing rule |
+| ValidTo | DATETIME2 | Yes | | | Null = open-ended / currently active |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Constraints:** `UQ_SeatPricing_CabinPosition` (unique) on `(CabinCode, SeatPosition, CurrencyCode)` — enforces one active price per cabin/position/currency combination.
+> **Pricing scope:** Pricing is fleet-wide and applied uniformly across all aircraft and routes. Business Class and First Class seats (cabin codes `J` and `F`) are excluded from `SeatPricing` — selection is included in the fare with no ancillary charge.
+> **Example seed data:** `('W', 'Window', 'GBP', 70.00)` · `('W', 'Aisle', 'GBP', 50.00)` · `('W', 'Middle', 'GBP', 20.00)` · `('Y', 'Window', 'GBP', 70.00)` · `('Y', 'Aisle', 'GBP', 50.00)` · `('Y', 'Middle', 'GBP', 20.00)`.
 
 > **Seat offer generation:** When building the seatmap response, the Seat microservice joins each seat's `position` attribute against `seat.SeatPricing` for the relevant `cabinCode` to derive the price, then generates a `SeatOfferId` (a deterministic UUID based on `SeatmapId` + `SeatNumber` + current pricing version) for each selectable seat. These `SeatOfferIds` are short-lived in the same way as flight `OfferIds` — they should be treated as valid only for the duration of the current session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
 
@@ -1931,67 +1868,54 @@ sequenceDiagram
 
 #### Data Schema — Bag
 
-```sql
--- bag.BagPolicy
--- One row per active cabin code defining the free checked bag entitlement.
-CREATE TABLE bag.BagPolicy (
-    PolicyId          UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    CabinCode         CHAR(1)           NOT NULL UNIQUE,   -- F, J, W, Y
-    FreeBagsIncluded  TINYINT           NOT NULL,          -- number of free checked bags included in fare
-    MaxWeightKgPerBag TINYINT           NOT NULL,          -- maximum weight per individual bag (kg)
-    IsActive          BIT               NOT NULL DEFAULT 1,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `bag.BagPolicy`
 
--- Example seed data:
--- ('J', 2, 32), ('F', 2, 32), ('W', 2, 23), ('Y', 1, 23)
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| PolicyId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| CabinCode | CHAR(1) | No | | UK | `F` · `J` · `W` · `Y` |
+| FreeBagsIncluded | TINYINT | No | | | Number of free checked bags included in fare for this cabin |
+| MaxWeightKgPerBag | TINYINT | No | | | Maximum weight per individual bag in kilograms |
+| IsActive | BIT | No | `1` | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- bag.BagPricing
--- Fleet-wide pricing for additional checked bags, applied uniformly across all routes and aircraft.
--- BagSequence indicates which additional bag this row prices:
---   1 = first bag beyond the free allowance, 2 = second additional, etc.
--- A catch-all row (BagSequence = 99) may be used for 3rd bag and beyond.
-CREATE TABLE bag.BagPricing (
-    PricingId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    BagSequence       TINYINT           NOT NULL,          -- 1 = 1st additional, 2 = 2nd additional, 99 = 3rd+
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    Price             DECIMAL(10,2)     NOT NULL,
-    IsActive          BIT               NOT NULL DEFAULT 1,
-    ValidFrom         DATETIME2         NOT NULL,
-    ValidTo           DATETIME2         NULL,              -- null = open-ended / currently active
-    UpdatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
+> **Example seed data:** `('J', 2, 32)` · `('F', 2, 32)` · `('W', 2, 23)` · `('Y', 1, 23)`.
+> **One active policy per cabin:** The `UNIQUE` constraint on `CabinCode` enforces a single active bag policy per cabin code. Policy changes should be managed by updating the existing row rather than inserting new rows.
 
-    CONSTRAINT UQ_BagPricing_Sequence UNIQUE (BagSequence, CurrencyCode)
-);
+#### `bag.BagPricing`
 
--- Example seed data:
--- (1, 'GBP', 60.00), (2, 'GBP', 80.00), (99, 'GBP', 100.00)
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| PricingId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| BagSequence | TINYINT | No | | UK (with CurrencyCode) | `1` = 1st additional bag beyond free allowance · `2` = 2nd additional · `99` = 3rd and beyond (catch-all) |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | UK (with BagSequence) | ISO 4217 currency code |
+| Price | DECIMAL(10,2) | No | | | |
+| IsActive | BIT | No | `1` | | |
+| ValidFrom | DATETIME2 | No | | | Effective start of this pricing rule |
+| ValidTo | DATETIME2 | Yes | | | Null = open-ended / currently active |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- bag.StoredBagOffer
--- Offer snapshot generated at retrieval time and passed back to channels as BagOfferId.
--- The BagOfferId is submitted to the Order microservice when the customer purchases additional bags,
--- linking the Bag order item to the priced offer at the time of sale.
-CREATE TABLE bag.StoredBagOffer (
-    BagOfferId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    InventoryId       UNIQUEIDENTIFIER  NOT NULL,          -- FK ref to offer.FlightInventory (cross-schema)
-    CabinCode         CHAR(1)           NOT NULL,
-    BagSequence       TINYINT           NOT NULL,          -- which additional bag this offer prices
-    FreeBagsIncluded  TINYINT           NOT NULL,          -- free allowance applicable to this cabin at time of offer
-    CurrencyCode      CHAR(3)           NOT NULL DEFAULT 'GBP',
-    PriceAmount       DECIMAL(10,2)     NOT NULL,
-    CreatedAt         DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    ExpiresAt         DATETIME2         NOT NULL,
-    IsConsumed        BIT               NOT NULL DEFAULT 0  -- set to 1 once purchased
-);
+> **Constraints:** `UQ_BagPricing_Sequence` (unique) on `(BagSequence, CurrencyCode)` — enforces one active price per bag sequence/currency combination.
+> **Example seed data:** `(1, 'GBP', 60.00)` · `(2, 'GBP', 80.00)` · `(99, 'GBP', 100.00)`.
 
-CREATE INDEX IX_StoredBagOffer_Inventory
-    ON bag.StoredBagOffer (InventoryId, CabinCode);
+#### `bag.StoredBagOffer`
 
-CREATE INDEX IX_StoredBagOffer_Expiry
-    ON bag.StoredBagOffer (ExpiresAt)
-    WHERE IsConsumed = 0;
-```
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| BagOfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | Short-lived snapshot; passed to channels as the bag offer identifier |
+| InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
+| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
+| BagSequence | TINYINT | No | | | Which additional bag this offer prices (mirrors `bag.BagPricing.BagSequence`) |
+| FreeBagsIncluded | TINYINT | No | | | Free allowance applicable to this cabin at time of offer generation |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| PriceAmount | DECIMAL(10,2) | No | | | Price locked at offer creation time |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| ExpiresAt | DATETIME2 | No | | | Offer expiry; channels must not submit expired `BagOfferId` values |
+| IsConsumed | BIT | No | `0` | | Set to `1` once purchased; prevents reuse |
+
+> **Indexes:** `IX_StoredBagOffer_Inventory` on `(InventoryId, CabinCode)`. `IX_StoredBagOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job.
+> **Offer lifecycle:** `StoredBagOffer` rows are short-lived snapshots generated at retrieval time and consumed at purchase. Unconsumed, expired offers should be purged by a background job.
 
 ## Customer
 
@@ -2210,76 +2134,62 @@ The Customer domain uses three tables. `Customer` holds one row per loyalty acco
 
 The `Customer` table stores an `IdentityReference` — the unique identifier issued by the Identity microservice when the customer's login account is created. This reference is the only link between the two domains. The Customer microservice never stores email addresses or passwords; the Identity microservice never stores loyalty or profile data. The `IdentityReference` column is nullable to support legacy or manually created accounts that predate the Identity microservice, or future scenarios where a customer has a loyalty account without a login.
 
-```sql
--- customer.TierConfig
--- Defines the qualifying thresholds for each loyalty tier.
--- A single active version of each tier is maintained; rows are never deleted, only superseded.
-CREATE TABLE customer.TierConfig (
-    TierConfigId          UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    TierCode              VARCHAR(20)       NOT NULL,   -- e.g. Blue, Silver, Gold, Platinum
-    TierLabel             VARCHAR(50)       NOT NULL,   -- display name, e.g. 'Apex Silver'
-    MinQualifyingPoints   INT               NOT NULL,   -- minimum tier progress points to hold this tier
-    IsActive              BIT               NOT NULL DEFAULT 1,
-    ValidFrom             DATETIME2         NOT NULL,
-    ValidTo               DATETIME2         NULL,       -- null = currently active
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `customer.TierConfig`
 
-CREATE INDEX IX_TierConfig_Active
-    ON customer.TierConfig (TierCode)
-    WHERE IsActive = 1;
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| TierConfigId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| TierCode | VARCHAR(20) | No | | | `Blue` · `Silver` · `Gold` · `Platinum` |
+| TierLabel | VARCHAR(50) | No | | | Display name, e.g. `Apex Silver` |
+| MinQualifyingPoints | INT | No | | | Minimum tier progress points required to hold this tier |
+| IsActive | BIT | No | `1` | | |
+| ValidFrom | DATETIME2 | No | | | Effective start of this tier configuration |
+| ValidTo | DATETIME2 | Yes | | | Null = currently active |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- customer.Customer
--- One row per loyalty account. IdentityReference links to the Identity DB; nullable
--- to support accounts created before or outside the Identity microservice.
-CREATE TABLE customer.Customer (
-    CustomerId            UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    LoyaltyNumber         VARCHAR(20)       NOT NULL UNIQUE,        -- issued at account creation, e.g. AX9876543
-    IdentityReference     UNIQUEIDENTIFIER  NULL UNIQUE,            -- opaque ref to Identity DB; null if no login account
-    GivenName             VARCHAR(100)      NOT NULL,
-    Surname               VARCHAR(100)      NOT NULL,
-    DateOfBirth           DATE              NULL,
-    Nationality           CHAR(3)           NULL,                   -- ISO 3166-1 alpha-3
-    PreferredLanguage     CHAR(5)           NULL DEFAULT 'en-GB',   -- BCP 47 language tag
-    PhoneNumber           VARCHAR(30)       NULL,
-    TierCode              VARCHAR(20)       NOT NULL DEFAULT 'Blue', -- FK ref to customer.TierConfig (enforced at app layer)
-    PointsBalance         INT               NOT NULL DEFAULT 0,     -- current redeemable points balance
-    TierProgressPoints    INT               NOT NULL DEFAULT 0,     -- qualifying points for tier evaluation (may differ from PointsBalance)
-    IsActive              BIT               NOT NULL DEFAULT 1,
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+> **Indexes:** `IX_TierConfig_Active` on `(TierCode)` WHERE `IsActive = 1`.
+> **Versioning:** Rows are never deleted, only superseded. To change tier thresholds, insert a new row with `IsActive = 1` and set `ValidTo` on the previous row.
 
-CREATE INDEX IX_Customer_LoyaltyNumber
-    ON customer.Customer (LoyaltyNumber);
+#### `customer.Customer`
 
-CREATE INDEX IX_Customer_Surname
-    ON customer.Customer (Surname, GivenName);
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| CustomerId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| LoyaltyNumber | VARCHAR(20) | No | | UK | Issued at account creation, e.g. `AX9876543` |
+| IdentityReference | UNIQUEIDENTIFIER | Yes | | UK | Opaque ref to Identity DB; null if no login account (e.g. pre-Identity legacy accounts) |
+| GivenName | VARCHAR(100) | No | | | |
+| Surname | VARCHAR(100) | No | | | |
+| DateOfBirth | DATE | Yes | | | |
+| Nationality | CHAR(3) | Yes | | | ISO 3166-1 alpha-3 |
+| PreferredLanguage | CHAR(5) | Yes | `'en-GB'` | | BCP 47 language tag |
+| PhoneNumber | VARCHAR(30) | Yes | | | |
+| TierCode | VARCHAR(20) | No | `'Blue'` | | FK ref to `customer.TierConfig(TierCode)` enforced at application layer |
+| PointsBalance | INT | No | `0` | | Current redeemable points balance |
+| TierProgressPoints | INT | No | `0` | | Qualifying points for tier evaluation; not decremented on redemption |
+| IsActive | BIT | No | `1` | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- customer.LoyaltyTransaction
--- Immutable append-only log of every points movement on a customer account.
--- Supports both earning (accrual on flight completion) and redemptions (future phase).
--- PointsDelta is positive for earnings, negative for redemptions or expiry.
-CREATE TABLE customer.LoyaltyTransaction (
-    TransactionId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    CustomerId            UNIQUEIDENTIFIER  NOT NULL REFERENCES customer.Customer(CustomerId),
-    TransactionType       VARCHAR(20)       NOT NULL,               -- Earn | Redeem | Adjustment | Expiry | Reinstate
-    PointsDelta           INT               NOT NULL,               -- positive = earned, negative = redeemed/expired
-    BalanceAfter          INT               NOT NULL,               -- running pointsBalance snapshot after this transaction
-    BookingReference      CHAR(6)           NULL,                   -- associated booking reference where applicable
-    FlightNumber          VARCHAR(10)       NULL,                   -- associated flight where applicable (Earn transactions)
-    Description           VARCHAR(255)      NOT NULL,               -- e.g. 'Points earned — AX003 LHR-JFK, Business Flex'
-    TransactionDate       DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+> **Indexes:** `IX_Customer_LoyaltyNumber` on `(LoyaltyNumber)`. `IX_Customer_Surname` on `(Surname, GivenName)`.
+> **Identity separation:** The Customer table stores only `IdentityReference` — it never stores email addresses or passwords. The FK to `customer.TierConfig` is enforced at the application layer rather than as a DB constraint to avoid cross-table coupling during tier configuration changes.
 
-CREATE INDEX IX_LoyaltyTransaction_Customer
-    ON customer.LoyaltyTransaction (CustomerId, TransactionDate DESC);
+#### `customer.LoyaltyTransaction`
 
-CREATE INDEX IX_LoyaltyTransaction_BookingReference
-    ON customer.LoyaltyTransaction (BookingReference)
-    WHERE BookingReference IS NOT NULL;
-```
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| TransactionId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| CustomerId | UNIQUEIDENTIFIER | No | | FK → `customer.Customer(CustomerId)` | |
+| TransactionType | VARCHAR(20) | No | | | `Earn` · `Redeem` · `Adjustment` · `Expiry` · `Reinstate` |
+| PointsDelta | INT | No | | | Positive = earned; negative = redeemed or expired |
+| BalanceAfter | INT | No | | | Running `PointsBalance` snapshot after this transaction |
+| BookingReference | CHAR(6) | Yes | | | Associated booking reference where applicable |
+| FlightNumber | VARCHAR(10) | Yes | | | Associated flight where applicable (Earn transactions) |
+| Description | VARCHAR(255) | No | | | e.g. `'Points earned — AX003 LHR-JFK, Business Flex'` |
+| TransactionDate | DATETIME2 | No | SYSUTCDATETIME() | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Indexes:** `IX_LoyaltyTransaction_Customer` on `(CustomerId, TransactionDate DESC)`. `IX_LoyaltyTransaction_BookingReference` on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
+> **Immutability:** `LoyaltyTransaction` rows are append-only and must never be updated or deleted. `BalanceAfter` on the most recent transaction is the source of truth for a customer's points balance in the event of any discrepancy with the `PointsBalance` column.
 
 > **Points balance integrity:** `PointsBalance` and `TierProgressPoints` on `customer.Customer` are updated atomically within the same database transaction as the `LoyaltyTransaction` insert. The `BalanceAfter` column on each transaction row records the running balance snapshot at that point, providing a self-consistent audit trail independent of the current balance column. In the event of a discrepancy, `BalanceAfter` on the most recent transaction is the source of truth.
 
@@ -2301,44 +2211,41 @@ The Identity microservice owns its own `identity.*` schema and is the sole store
 
 The Identity microservice exposes authentication and credential management endpoints consumed by the Loyalty API. It does not expose any loyalty or profile data; it returns only a validated `IdentityReference` on successful authentication, which the Loyalty API uses to look up the corresponding Customer account.
 
-```sql
--- identity.UserAccount
--- One row per registered login account. PasswordHash stores a salted hash only —
--- never plain text. IdentityReference is the shared key passed to the Customer domain.
-CREATE TABLE identity.UserAccount (
-    UserAccountId         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    IdentityReference     UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() UNIQUE,  -- shared key passed to Customer MS
-    Email                 VARCHAR(254)      NOT NULL UNIQUE,                  -- RFC 5321 max length
-    PasswordHash          VARCHAR(255)      NOT NULL,                         -- Argon2id hash; never plain text
-    IsEmailVerified       BIT               NOT NULL DEFAULT 0,
-    IsLocked              BIT               NOT NULL DEFAULT 0,               -- set after repeated failed login attempts
-    FailedLoginAttempts   TINYINT           NOT NULL DEFAULT 0,
-    LastLoginAt           DATETIME2         NULL,
-    PasswordChangedAt     DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+#### `identity.UserAccount`
 
-CREATE INDEX IX_UserAccount_Email
-    ON identity.UserAccount (Email);
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| UserAccountId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| IdentityReference | UNIQUEIDENTIFIER | No | NEWID() | UK | Shared key passed to the Customer microservice at registration |
+| Email | VARCHAR(254) | No | | UK | RFC 5321 maximum length |
+| PasswordHash | VARCHAR(255) | No | | | Argon2id hash; salt embedded in hash string; plain text must never be stored |
+| IsEmailVerified | BIT | No | `0` | | Set to `1` after the customer clicks the verification link |
+| IsLocked | BIT | No | `0` | | Set to `1` after repeated failed login attempts |
+| FailedLoginAttempts | TINYINT | No | `0` | | Reset to `0` on successful authentication |
+| LastLoginAt | DATETIME2 | Yes | | | Null until first successful login |
+| PasswordChangedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
--- identity.RefreshToken
--- Stores active refresh tokens for session management.
--- Short-lived access tokens are not persisted; only refresh tokens are stored here.
-CREATE TABLE identity.RefreshToken (
-    RefreshTokenId        UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    UserAccountId         UNIQUEIDENTIFIER  NOT NULL REFERENCES identity.UserAccount(UserAccountId),
-    TokenHash             VARCHAR(255)      NOT NULL,               -- hashed token; raw token returned to client only
-    DeviceHint            VARCHAR(100)      NULL,                   -- optional user-agent label for session management UI
-    IsRevoked             BIT               NOT NULL DEFAULT 0,
-    ExpiresAt             DATETIME2         NOT NULL,
-    CreatedAt             DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
-);
+> **Indexes:** `IX_UserAccount_Email` on `(Email)`.
+> **Account lockout:** After a configurable number of consecutive failed login attempts (default: 5), `IsLocked` is set to `1`. Further authentication attempts are rejected until the flag is reset. `FailedLoginAttempts` resets to `0` on successful authentication.
+> **Password hashing:** Passwords must be hashed using Argon2id (bcrypt acceptable as fallback). The raw password must not be stored, logged, or transmitted after the initial hash operation.
 
-CREATE INDEX IX_RefreshToken_UserAccount
-    ON identity.RefreshToken (UserAccountId)
-    WHERE IsRevoked = 0;
-```
+#### `identity.RefreshToken`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| RefreshTokenId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| UserAccountId | UNIQUEIDENTIFIER | No | | FK → `identity.UserAccount(UserAccountId)` | |
+| TokenHash | VARCHAR(255) | No | | | Hashed token value; raw token returned to client at issuance only |
+| DeviceHint | VARCHAR(100) | Yes | | | Optional user-agent label for session management UI |
+| IsRevoked | BIT | No | `0` | | Set to `1` on use (single-use semantics) or explicit logout |
+| ExpiresAt | DATETIME2 | No | | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Indexes:** `IX_RefreshToken_UserAccount` on `(UserAccountId)` WHERE `IsRevoked = 0`.
+> **Token rotation:** On each use, the existing token is revoked (`IsRevoked = 1`) and a new one issued, providing single-use semantics. All tokens for a `UserAccountId` can be revoked simultaneously to force logout across all sessions.
+> **Access tokens:** Short-lived JWT access tokens (recommended TTL: 15 minutes) are not persisted. Validation uses the Identity microservice's public signing key without a database round-trip.
 
 > **Password hashing:** Passwords must be hashed using Argon2id (bcrypt acceptable as fallback). The raw password must not be stored, logged, or transmitted after the initial hash operation. Salt is embedded within the hash string.
 
