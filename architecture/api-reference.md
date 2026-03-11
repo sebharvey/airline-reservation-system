@@ -1,5 +1,7 @@
 # API Endpoint Reference
 
+> **HTTP verb convention for Retail API vs microservice endpoints:** The Retail API is the channel-facing orchestration layer. Where the Retail API and an internal microservice share the same URL path (e.g. `/v1/orders/{bookingRef}/cancel`), the Retail API endpoint uses `POST` (initiating the orchestration flow) while the corresponding internal microservice endpoint uses `PATCH` (applying a partial state update). These are distinct endpoints on distinct services; the verb difference is intentional and consistent throughout.
+
 ---
 
 ## Retail API
@@ -42,12 +44,6 @@
 | `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
 | `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
 
-### Email Verification
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow) |
-
 ---
 
 ## Loyalty API
@@ -58,7 +54,8 @@
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile, tier status, and points balance |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
 | `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
-| `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address |
+| `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
+| `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
 
 ---
 
@@ -81,12 +78,14 @@ The Offer microservice operates on individual flight **segments** only. It has n
 |--------|----------|-------------|
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
-| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability for a flight |
+| `GET` | `/v1/flights/{flightId}/seat-offers` | Retrieve priced seat offers for a flight — consults `seat.SeatPricing` for position-based prices and `offer.FlightInventory` for real-time availability; returns one `SeatOfferId` and price per selectable, available seat; used by Retail API to overlay pricing and availability on the seatmap layout returned by the Seat MS |
+| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight (available, held, sold) without pricing; used for internal status checks and operational queries where offer pricing is not required |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
-| `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld) |
-| `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (used on cancel or change) |
-| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled) |
+| `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld; decrements SeatsAvailable) |
+| `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
+| `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel, flight change rollback, and basket expiry) |
+| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Disruption API on flight cancellation) |
 
 ---
 
@@ -143,7 +142,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition, cabin layout, and seat offers for an aircraft type |
+| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability; both are served by the Offer MS) |
 
 ---
 
