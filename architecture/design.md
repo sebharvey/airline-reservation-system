@@ -160,6 +160,26 @@ Key components:
 
 ## Offer
 
+### Flight Network
+
+Apex Air (IATA code: **AX**) operates a **hub-and-spoke** network centred on London Heathrow (**LHR**). The 2026 schedule covers five regions with the following direct routes from LHR:
+
+| Region | Destinations | Flight Block | Aircraft |
+|--------|-------------|--------------|----------|
+| North America | New York JFK, Los Angeles LAX, Miami MIA, San Francisco SFO, Chicago ORD, Boston BOS | AX001–AX099 | A351, B789 |
+| Caribbean | Bridgetown BGI, Kingston KIN, Nassau NAS | AX101–AX199 | A339 |
+| East Asia | Hong Kong HKG, Tokyo NRT, Shanghai PVG, Beijing PEK | AX201–AX299 | A351, B789 |
+| South-East Asia | Singapore SIN | AX301–AX399 | A351 |
+| South Asia | Mumbai BOM, Delhi DEL, Bangalore BLR | AX401–AX499 | B789 |
+
+Fleet summary:
+
+- **A351** (Airbus A350-1000) — flagship widebody on highest-demand routes (LHR–JFK ×2 daily, LHR–LAX morning, LHR–SFO morning, LHR–HKG, LHR–NRT, LHR–SIN)
+- **B789** (Boeing 787-9) — long-haul workhorse on remaining transatlantic, China, and India routes
+- **A339** (Airbus A330-900) — medium-to-long-haul on Caribbean leisure routes
+
+Because all scheduled routes radiate from LHR, the hub is also the natural connection point for passengers travelling between any two non-LHR cities (see [Direct and Connecting Itineraries](#direct-and-connecting-itineraries) below).
+
 ### Search
 
 The search flow is built around the concept of a **slice** — a single directional search (outbound or inbound). The customer searches for each slice independently. Each search returns a set of offers; those offers are persisted immediately to the `StoredOffer` table so that pricing is locked at the point of offer creation. The customer selects one offer per slice, and the resulting `OfferIds` are passed through to the basket and ultimately to the Order API.
@@ -202,6 +222,80 @@ sequenceDiagram
     RetailAPI-->>Web: 201 Created — basket confirmed (basketId, itinerary, total price)
     Web-->>Traveller: Display basket summary — ready to proceed to booking
 ```
+
+### Direct and Connecting Itineraries
+
+#### Direct Flights
+
+A **direct flight** is a single-segment journey served by a single Apex Air flight number. All 2026 scheduled routes operate direct from or to LHR, so any customer departing from or arriving at LHR travels on a single segment. Examples:
+
+| Journey | Flight | Departure (local) | Arrival (local) | Aircraft |
+|---------|--------|-------------------|-----------------|----------|
+| LHR → JFK | AX001 | 08:00 | 11:10 | A351 |
+| JFK → LHR | AX002 | 13:00 | 01:15+1 | A351 |
+| LHR → DEL | AX411 | 20:30 | 09:00+1 | B789 |
+| DEL → LHR | AX412 | 03:30 | 08:00 | B789 |
+| LHR → SIN | AX301 | 21:30 | 17:45+1 | A351 |
+
+For a direct flight, the Offer microservice creates one `StoredOffer` record per available cabin class, linked to a single `FlightInventory` row. The `OfferId` returned to the channel represents the complete single-segment journey.
+
+#### Connecting Flights (Hub-and-Spoke)
+
+A **connecting itinerary** combines two direct flights via LHR. Because the entire Apex Air network radiates from LHR, all connections must transit through the hub. For example, a passenger travelling from Delhi to New York:
+
+```
+DEL → LHR   AX412  departs DEL 03:30, arrives LHR 08:00
+LHR → JFK   AX001  departs LHR 08:00, arrives JFK 11:10
+```
+
+Or in the return direction:
+
+```
+JFK → LHR   AX002  departs JFK 13:00, arrives LHR 01:15+1
+LHR → DEL   AX411  departs LHR 20:30, arrives DEL 09:00+1 (+1)
+```
+
+**How connecting itineraries are modelled:** Each leg is treated as an independent offer — two `StoredOffer` records are created, one per segment, each with its own `OfferId`. The Retail API's `POST /v1/search/connecting` endpoint orchestrates the assembly: it calls the Offer MS twice (once per segment), applies minimum connect time validation, and returns the composite itinerary with two `OfferIds` to the channel. Both `OfferIds` are then placed into the basket together.
+
+**Minimum connect time at LHR:** The Retail API enforces a minimum connection window of **60 minutes** between the inbound arrival and the outbound departure. Connecting pairs that fall below this threshold are not returned to the customer.
+
+**Inventory:** Each leg independently tracks its own seat inventory in `offer.FlightInventory`. Holding seats for a connecting itinerary requires two separate `POST /v1/inventory/hold` calls (one per leg). If either hold fails, both must be rolled back to avoid partial reservations.
+
+The connecting assembly logic (pairing legs, checking connect times, combining prices) is an orchestration responsibility of the Retail API layer. The Offer microservice has no concept of a multi-segment composite offer; it operates purely on individual flight segments.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OfferMS as Offer [MS]
+
+    Traveller->>Web: Search connecting itinerary (DEL → JFK, date, pax)
+
+    Web->>RetailAPI: POST /v1/search/connecting (origin=DEL, destination=JFK, date, pax)
+    RetailAPI->>OfferMS: POST /v1/search (origin=DEL, destination=LHR, date, pax)
+    OfferMS-->>RetailAPI: Inbound leg options with OfferIds (e.g. AX412)
+    RetailAPI->>OfferMS: POST /v1/search (origin=LHR, destination=JFK, connectDate, pax)
+    OfferMS-->>RetailAPI: Outbound leg options with OfferIds (e.g. AX001)
+    RetailAPI->>RetailAPI: Pair legs, apply 60-min MCT filter, combine prices
+    RetailAPI-->>Web: 200 OK — connecting itinerary options (each with [OfferId-Leg1, OfferId-Leg2], combined price)
+    Traveller->>Web: Select preferred connecting itinerary
+    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
+```
+
+#### Code Share Flights (Future Scope)
+
+Code share arrangements — where a flight operated by one carrier is marketed and sold under another carrier's flight number — are **not in scope for the initial release**. However, the data model should be designed now to accommodate them, to avoid breaking changes later.
+
+When code share is introduced, the following additions will be required:
+
+- `offer.FlightInventory`: add `OperatingCarrier CHAR(2)` and `OperatingFlightNumber VARCHAR(10)` columns to distinguish the carrier actually operating the aircraft from the marketing carrier (Apex Air, `AX`). For own-metal flights both values will be `AX` / the Apex flight number.
+- `offer.StoredOffer`: add `MarketingCarrier CHAR(2)` and `OperatingCarrier CHAR(2)` snapshot columns so the offer record is fully self-contained.
+- **API response schema:** The Offer MS search response and the Retail API search response should include optional `operatingCarrier` and `operatingFlightNumber` fields from day one (omitted or `null` for own-metal flights). Front-end clients must be built to handle and display the operating carrier distinction from launch, even though the values will always match the marketing carrier initially.
+- **Ticketing and delivery:** E-tickets issued by the Delivery microservice will need to carry the operating carrier designator; no schema change to `delivery.FlightManifest` is anticipated as the manifest records the flight number already, but the field semantics documentation should clarify that it carries the **marketing** flight number.
+- **Inventory partitioning:** When Apex Air sells seats on a partner carrier's aircraft, the inventory source will be external. A future `InventorySource` field (e.g. `OwnMetal` / `Interline` / `CodeShare`) on `FlightInventory` will be needed to route inventory queries to the correct system.
+
+No code share work is required now, but all new schema columns and API fields introduced in this release should be named to leave clean extension points for the above.
 
 ### Data Schema — Offer
 

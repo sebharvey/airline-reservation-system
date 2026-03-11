@@ -8,8 +8,8 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/search/slice` | Search for available flights for a single directional slice (outbound or inbound) |
-| `POST` | `/v1/search/connecting` | Search for connecting itinerary options via an intermediate point (IROPS use) |
+| `POST` | `/v1/search/slice` | Search for available direct flights for a single directional slice (outbound or inbound); returns one offer per available cabin class, each with a unique `OfferId` |
+| `POST` | `/v1/search/connecting` | Search for connecting itinerary options via the LHR hub (e.g. DEL → JFK via LHR); assembles pairs of per-segment offers from the Offer MS, applies minimum connect time (60 min), and returns combined itinerary options each carrying two `OfferIds` — one per leg |
 | `POST` | `/v1/basket` | Create a new basket with one or more offer IDs |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket |
@@ -72,10 +72,14 @@
 
 ## Offer Microservice
 
+The Offer microservice operates on individual flight **segments** only. It has no concept of a multi-segment connecting itinerary; connecting itinerary assembly (pairing legs, enforcing minimum connect time, combining prices) is the responsibility of the Retail API orchestration layer.
+
+> **Code share (future):** When code share flights are introduced, `POST /v1/search` responses will include optional `operatingCarrier` and `operatingFlightNumber` fields alongside the marketing flight details. These fields are intentionally omitted for own-metal flights in the initial release but must be handled by all consumers from launch.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/search` | Search flight inventory and return priced, storedoffer-snapshotted offers |
-| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation) |
+| `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
+| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability for a flight |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
