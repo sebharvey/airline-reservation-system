@@ -1076,7 +1076,7 @@ sequenceDiagram
         Web-->>Traveller: This fare cannot be changed
     end
 
-    Web-->>Traveller: Display current booking; traveller selects new date and/or flight
+    Web-->>Traveller: Display current booking- traveller selects new date and/or flight
 
     Note over RetailAPI,OfferMS: Reshop — obtain live fare for the new itinerary at the same cabin class
     Web->>RetailAPI: POST /v1/search/slice (origin, destination, newDate, cabinCode, paxCount)
