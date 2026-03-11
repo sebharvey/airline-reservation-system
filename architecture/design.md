@@ -506,7 +506,7 @@ sequenceDiagram
     RetailAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per segment)
     DeliveryMS-->>RetailAPI: 201 Created — manifest entries written
 
-    Note over RetailAPI, PaymentMS: Settle ancillary payments after order confirmation; failure does not roll back the booking but must be flagged for manual reconciliation
+    Note over RetailAPI, PaymentMS: Settle ancillary payments after order confirmation - failure does not roll back the booking but must be flagged for manual reconciliation
     opt Seats were selected during bookflow
         RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-2}/settle (settledAmount)
         PaymentMS-->>RetailAPI: 200 OK — seat payment settled
