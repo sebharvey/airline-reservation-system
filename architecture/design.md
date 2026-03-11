@@ -2122,6 +2122,113 @@ sequenceDiagram
 > **Indexes:** `IX_StoredBagOffer_Inventory` on `(InventoryId, CabinCode)`. `IX_StoredBagOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job.
 > **Offer lifecycle:** `StoredBagOffer` rows are short-lived snapshots generated at retrieval time and consumed at purchase. Unconsumed, expired offers should be purged by a background job.
 
+---
+
+### SSR — Special Service Requests
+
+Special Service Requests (SSRs) are IATA-standardised four-character codes placed on a booking to communicate individual passenger service needs to the airline's operations, ground handlers, and cabin crew. They fall into two operationally distinct categories: **dietary and meal requests** — such as vegetarian (VGML), halal/Muslim (MOML), or diabetic (DBML) meals — and **mobility and accessibility assistance** — such as wheelchair boarding (WCHR, WCHS, WCHC) or notifications for visually impaired (BLND) and hearing-impaired (DEAF) passengers. Standard special meals and all disability or accessibility assistance services carry no ancillary charge; **EU Regulation 1107/2006** obliges carriers to accept and accommodate disabled persons and persons with reduced mobility without surcharge and to ensure the relevant instructions reach ground operations and cabin crew ahead of departure. SSRs are segment-specific: a passenger connecting via LHR requires independent SSR entries on each leg of their itinerary. Meal SSRs must typically be submitted at least 24 hours before departure to allow the catering uplift to be adjusted; accessibility SSRs are accepted up to check-in close but benefit from as much advance notice as possible for ground handling preparation. Where a passenger is rebooked onto a replacement flight due to an IROPS event, the Disruption API must carry all SSR items from the cancelled segment across to the new itinerary.
+
+The SSR catalogue — the set of codes Apex Air supports — is a configuration resource owned and served by the Retail API; no separate microservice is required. SSR selections are stored as typed items inside the `OrderData` JSON document per passenger per segment, following the same ONE Order pattern used for seat and bag order items, and are included in the manifest payload written to the Delivery microservice so that `FlightManifest` records carry the operational codes needed for crew briefings, catering orders, and ground assistance pre-arrangement.
+
+**Supported SSR codes**
+
+| Code | Category | Service |
+|---|---|---|
+| `VGML` | Meal | Vegetarian meal (lacto-ovo) |
+| `HNML` | Meal | Hindu meal |
+| `MOML` | Meal | Muslim / halal meal |
+| `KSML` | Meal | Kosher meal |
+| `DBML` | Meal | Diabetic meal |
+| `GFML` | Meal | Gluten-free meal |
+| `CHML` | Meal | Child meal |
+| `BBML` | Meal | Baby / infant meal |
+| `WCHR` | Mobility | Wheelchair — can walk but needs assistance over distances; cannot manage aircraft steps |
+| `WCHS` | Mobility | Wheelchair — cannot manage steps; mobile on level ground |
+| `WCHC` | Mobility | Wheelchair — fully immobile; requires cabin-seat assistance throughout |
+| `BLND` | Accessibility | Blind or severely visually impaired passenger |
+| `DEAF` | Accessibility | Deaf or severely hearing-impaired passenger |
+| `DPNA` | Accessibility | Disabled passenger needing assistance (general; use where a more specific code does not apply) |
+
+#### SSR Selection — Bookflow
+
+SSR selection is an optional step offered after passenger details have been captured, sitting alongside seat and bag selection in the basket-building phase. The Retail API serves the SSR catalogue directly from its own configuration; no downstream microservice call is required to populate the options. Because SSRs carry no charge, no payment authorisation is triggered — the selection is simply appended to the basket as a set of SSR items and committed to `OrderData` at order confirmation alongside flight, seat, and bag items. The SSR codes are then included in the payload when the Retail API writes manifest entries to the Delivery microservice, ensuring operational visibility from the moment the booking is confirmed.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Note over Traveller, Web: Bookflow — passenger details entered; basket active
+
+    Web->>RetailAPI: GET /v1/ssr/options
+    RetailAPI-->>Web: 200 OK — supported SSR codes and labels by category (Meal, Mobility, Accessibility)
+    Web-->>Traveller: Display SSR options per passenger per segment
+
+    opt Traveller selects SSRs
+        Traveller->>Web: Select SSR(s) per passenger per segment (e.g. VGML for PAX-1 on SEG-1; WCHR for PAX-2 on all segments)
+        Web->>RetailAPI: PUT /v1/basket/{basketId}/ssrs (ssrSelections: [{ssrCode, passengerRef, segmentRef}])
+        RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/ssrs (ssrSelections)
+        OrderMS-->>RetailAPI: 200 OK — basket updated with SSR items (no charge — basket total unchanged)
+        RetailAPI-->>Web: 200 OK — SSRs recorded in basket
+    end
+
+    Note over Traveller, DeliveryMS: Payment and order confirmation proceed as per the standard bookflow
+    Note over RetailAPI, OrderMS: SSR items are written into OrderData on order confirmation (no separate payment reference)
+
+    RetailAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId, ssrCodes — per PAX per segment)
+    DeliveryMS-->>RetailAPI: 201 Created — manifest entries written with SSR codes recorded
+```
+
+*Ref: SSR — selection during bookflow with basket update and manifest population at order confirmation*
+
+#### SSR Management — Self-Serve
+
+After a booking is confirmed, passengers may add, change, or remove SSRs through the manage-booking flow up to the airline's amendment cut-off (typically 24 hours before departure for meal requests; the same threshold is applied to accessibility requests for consistency, though ground handlers should be contacted directly for late-notified mobility requirements). The Retail API is responsible for evaluating the cut-off window before forwarding any change to the Order microservice. Because SSR codes are not encoded in the BCBP barcode string and are not carried on the e-ticket record itself, an SSR change does not trigger e-ticket reissuance — the update applies only to `OrderData` and the flight manifest. The `OrderChanged` event published by the Order microservice carries the updated SSR state for any downstream consumer that needs visibility of service commitments (for example, a future notifications service).
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Traveller->>Web: Navigate to manage booking and select Special Requests
+
+    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    OrderMS-->>RetailAPI: 200 OK — order detail (PAX list, segments, existing SSR items per PAX per segment)
+    RetailAPI-->>Web: 200 OK — current SSRs displayed per passenger per segment
+
+    Web->>RetailAPI: GET /v1/ssr/options
+    RetailAPI-->>Web: 200 OK — supported SSR codes by category (Meal, Mobility, Accessibility)
+
+    Traveller->>Web: Add, update, or remove SSR(s)
+
+    Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/ssrs (ssrSelections: [{ssrCode, passengerRef, segmentRef, action: add|remove}])
+
+    alt SSR amendment window has closed (within cut-off period of departure — typically 24 hours)
+        RetailAPI-->>Web: 422 Unprocessable — SSR amendment window has closed for this departure
+        Web-->>Traveller: Service requests cannot be changed within 24 hours of departure
+    end
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/ssrs (ssrSelections)
+    OrderMS-->>RetailAPI: 200 OK — order updated (SSR items added or removed — OrderChanged event published)
+
+    RetailAPI->>DeliveryMS: PATCH /v1/manifest/{bookingRef} (passengerId, ssrCodes — per affected PAX per segment)
+    DeliveryMS-->>RetailAPI: 200 OK — manifest SSR fields updated
+
+    RetailAPI-->>Web: 200 OK — special requests updated (bookingReference, updated SSR summary per PAX)
+    Web-->>Traveller: Updated service requests confirmed
+```
+
+*Ref: SSR — self-serve add, update, and remove via manage-booking flow with cut-off validation and manifest update*
+
+---
+
 ## Customer
 
 The Customer microservice is the system of record for customer accounts and loyalty programme membership. Each account holds the customer's profile, tier status, current points balance, and a full transaction history of points earned and redeemed. Accounts are identified by a unique loyalty number issued at registration.
@@ -2527,5 +2634,6 @@ All flights operate from a single UK hub. Apex Air participates in the IATA ONE 
 - **PII** — Personally Identifiable Information
 - **PNR** — Passenger Name Record
 - **RBAC** — Role-Based Access Control
+- **SSR** — Special Service Request; an IATA-standardised four-character code (e.g. `WCHR`, `VGML`) placed on a booking to communicate individual passenger service needs — such as meal preferences or mobility assistance — to the airline's operations, ground handlers, and cabin crew
 - **TLS** — Transport Layer Security
 - **UK GDPR** — United Kingdom General Data Protection Regulation
