@@ -10,10 +10,11 @@
 |--------|----------|-------------|
 | `POST` | `/v1/search/slice` | Search for available direct flights for a single directional slice (outbound or inbound); returns one offer per available cabin class, each with a unique `OfferId` |
 | `POST` | `/v1/search/connecting` | Search for connecting itinerary options via the LHR hub (e.g. DEL → JFK via LHR); assembles pairs of per-segment offers from the Offer MS, applies minimum connect time (60 min), and returns combined itinerary options each carrying two `OfferIds` — one per leg |
-| `POST` | `/v1/basket` | Create a new basket with one or more offer IDs |
+| `POST` | `/v1/basket` | Create a new basket with one or more flight offer IDs; initiates the bookflow |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
-| `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket |
-| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment, ticketing, and order creation |
+| `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket during the bookflow |
+| `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; accepts bag offer IDs per passenger per segment; updates `TotalBagAmount` on the basket |
+| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation |
 
 ### Orders
 
@@ -95,7 +96,8 @@ The Offer microservice operates on individual flight **segments** only. It has n
 |--------|----------|-------------|
 | `POST` | `/v1/basket` | Create a new basket |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Update passenger details on a basket |
-| `PUT` | `/v1/basket/{basketId}/seats` | Update seat selections on a basket |
+| `PUT` | `/v1/basket/{basketId}/seats` | Update seat selections on a basket during the bookflow |
+| `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; updates `TotalBagAmount` |
 | `POST` | `/v1/orders` | Confirm a basket and create a permanent order record |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
 | `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |

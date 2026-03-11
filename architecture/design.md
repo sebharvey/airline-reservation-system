@@ -158,6 +158,21 @@ Key components:
 
 # Capability
 
+## Cabin Classes
+
+All Apex Air aircraft are configured with up to four cabin classes. Cabin codes are single-character identifiers used uniformly across all services, databases, and API contracts.
+
+| Code | Name | Notes |
+|------|------|-------|
+| `F` | First Class | Available on selected A350-1000 (A351) long-haul routes |
+| `J` | Business Class | All long-haul aircraft; seat selection included in fare at no ancillary charge |
+| `W` | Premium Economy | A350-1000 (A351) and Boeing 787-9 (B789) aircraft |
+| `Y` | Economy | All aircraft |
+
+Where a cabin code appears in a schema column, API field, or JSON document, it must always be one of these four values. The `CabinCode` field is consistently typed as `CHAR(1)` across all domains.
+
+---
+
 ## Offer
 
 ### Flight Network
@@ -379,9 +394,11 @@ The Order microservice sits at the heart of the reservation system, managing the
 
 The Order microservice is the sole owner of order state. No other microservice modifies an order directly; all booking changes — passenger updates, seat changes, flight changes, ancillary additions, and cancellations — are orchestrated through the Retail API and applied to the order by the Order microservice.
 
-### Create
+### Create — Bookflow
 
-The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, and passenger details as the traveller builds their booking. The basket is created when the traveller begins the purchase journey and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the journey, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
+The **bookflow** is the end-to-end initial purchase journey: from flight search through to a confirmed, ticketed order. It covers flight offer selection, basket creation, passenger details capture, ancillary selection (seats and bags), payment, and order confirmation. Everything within this flow happens within a single basket session, bounded by the ticketing time limit.
+
+The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, bag offers, and passenger details as the traveller builds their booking during the bookflow. The basket is created when the bookflow begins and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the bookflow, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
 
 For each flight `OfferId` in the basket, the Order microservice retrieves the stored offer snapshot from the Offer microservice. This ensures the price and fare conditions recorded on the confirmed order exactly match what the customer was shown at search time.
 
@@ -395,11 +412,12 @@ sequenceDiagram
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant SeatMS as Seat [MS]
+    participant BagMS as Bag [MS]
     participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
-    Traveller->>Web: Enter passenger details
+    Note over Traveller, Web: Bookflow begins — flight selection already complete (see Offer / Search)
 
     Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
     RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
@@ -408,7 +426,7 @@ sequenceDiagram
     loop For each flight OfferId
         OrderMS->>OfferMS: GET /v1/offers/{offerId}
         OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing)
-        OrderMS->>OrderMS: Add flight offer to basket (BasketItem)
+        OrderMS->>OrderMS: Add flight offer to basket
     end
 
     OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
@@ -419,7 +437,7 @@ sequenceDiagram
     RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers (PAX details)
     OrderMS-->>RetailAPI: 200 OK — basket updated
 
-    opt Traveller selects seats during booking
+    opt Traveller selects seats during bookflow
         Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
         RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
         SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId and price)
@@ -433,13 +451,26 @@ sequenceDiagram
         RetailAPI-->>Web: 200 OK — seats reserved in basket, revised total
     end
 
+    opt Traveller selects bags during bookflow
+        loop For each flight segment
+            RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
+            BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers (BagOfferId, price per additional bag)
+        end
+        RetailAPI-->>Web: 200 OK — free bag allowance and additional bag offers per segment
+        Traveller->>Web: Select additional bag(s) per PAX per segment (if desired)
+        Web->>RetailAPI: PUT /v1/basket/{basketId}/bags (bagOfferIds per PAX per segment)
+        RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/bags (bagOfferIds, PAX assignments)
+        OrderMS-->>RetailAPI: 200 OK — basket updated (bag items added, revised total)
+        RetailAPI-->>Web: 200 OK — bags added to basket, revised total
+    end
+
     Traveller->>Web: Enter payment details and confirm booking
 
     Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
     Note over RetailAPI, PaymentMS: Authorise and settle fare payment
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, currency, card details, description)
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
     PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
     RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryIds from stored flight offers)
     OfferMS-->>RetailAPI: 200 OK — inventory updated
@@ -448,12 +479,20 @@ sequenceDiagram
     RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
-    opt Seats were selected
+    opt Seats were selected during bookflow
         Note over RetailAPI, PaymentMS: Authorise and settle seat ancillary payment
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, card token from paymentReference-1)
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount, card token from paymentReference-1, description=SeatAncillary)
         PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference-2)
         RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-2}/settle (settledAmount)
         PaymentMS-->>RetailAPI: 200 OK — seat payment settled
+    end
+
+    opt Bags were selected during bookflow
+        Note over RetailAPI, PaymentMS: Authorise and settle bag ancillary payment
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalBagAmount, card token from paymentReference-1, description=BagAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — bag authorisation confirmed (paymentReference-3)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-3}/settle (settledAmount)
+        PaymentMS-->>RetailAPI: 200 OK — bag payment settled
     end
 
     RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences)
@@ -472,7 +511,7 @@ sequenceDiagram
 
 ### Ticketing
 
-Ticketing is the process by which a confirmed basket is converted into a legally valid air travel contract. It is triggered by the Retail API immediately after successful payment authorisation and must complete within the same synchronous flow as order confirmation. The e-ticket number is the IATA-standard identifier for this contract and is required before any manifest entries or boarding passes can be issued.
+Ticketing is the process by which a confirmed basket is converted into a legally valid air travel contract. It is the final step of the **bookflow**, triggered by the Retail API immediately after successful payment authorisation and must complete within the same synchronous flow as order confirmation. The e-ticket number is the IATA-standard identifier for this contract and is required before any manifest entries or boarding passes can be issued.
 
 #### What is an E-Ticket?
 
@@ -516,9 +555,9 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment
   - Delivery MS validates each seat number against the active seatmap before writing (calls Seat MS)
 
-- **Ancillary settlement** (if seats were pre-selected):
-  - After the manifest is written, Retail API calls `POST /v1/payment/{paymentReference}/settle` for the seat ancillary payment reference
-  - This is settled after fare settlement — the two are independent payment transactions
+- **Ancillary settlement** (if seats or bags were selected during the bookflow):
+  - After fare settlement, the Retail API settles each ancillary payment independently: `POST /v1/payment/{paymentReference}/settle` is called once for seat ancillary and once for bag ancillary, each with their own `PaymentReference`
+  - Ancillary payments are independent transactions and are settled after fare settlement; failure of an ancillary settlement does not roll back the confirmed booking, but must be flagged for manual reconciliation
 
 #### Reissuance
 
@@ -576,8 +615,9 @@ The `BasketData` column holds the full basket state as a JSON document. Scalar f
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | BasketStatus | VARCHAR(20) | No | `'Active'` | | `Active` · `Expired` · `Abandoned` · `Confirmed` |
 | TotalFareAmount | DECIMAL(10,2) | Yes | | | Sum of flight offer prices; updated as basket is built |
-| TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added |
-| TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount |
+| TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added during bookflow |
+| TotalBagAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of bag offer prices; updated as bags are added during bookflow |
+| TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount + TotalBagAmount |
 | ExpiresAt | DATETIME2 | No | | | Basket hard expiry: creation time + `BasketExpiryHours` |
 | TicketingTimeLimit | DATETIME2 | No | | | Must ticket by this time: creation time + `TicketingTimeLimitHours` |
 | ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
@@ -700,13 +740,28 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
       "currency": "GBP"
     }
   ],
+  "bagOffers": [
+    {
+      "basketItemId": "BI-5",
+      "bagOfferId": "bo-economy-bag1-v1",
+      "basketItemRef": "BI-1",
+      "passengerRef": "PAX-1",
+      "bagSequence": 1,
+      "freeBagsIncluded": 1,
+      "additionalBags": 1,
+      "price": 60.00,
+      "currency": "GBP",
+      "note": "1st additional bag — LHR→JFK segment"
+    }
+  ],
   "paymentIntent": {
     "method": "CreditCard",
     "cardType": "Visa",
     "cardLast4": "4242",
     "totalFareAmount": 1749.00,
     "totalSeatAmount": 70.00,
-    "grandTotal": 1819.00,
+    "totalBagAmount": 60.00,
+    "grandTotal": 1879.00,
     "currency": "GBP",
     "status": "PendingAuthorisation"
   },
@@ -714,7 +769,8 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
     { "event": "BasketCreated",          "at": "2025-06-01T10:30:00Z", "by": "WEB" },
     { "event": "PassengersAdded",        "at": "2025-06-01T10:31:00Z", "by": "WEB" },
     { "event": "SeatsAdded",             "at": "2025-06-01T10:32:00Z", "by": "WEB" },
-    { "event": "PaymentIntentRecorded",  "at": "2025-06-01T10:33:00Z", "by": "WEB" }
+    { "event": "BagsAdded",              "at": "2025-06-01T10:33:00Z", "by": "WEB" },
+    { "event": "PaymentIntentRecorded",  "at": "2025-06-01T10:34:00Z", "by": "WEB" }
   ]
 }
 ```
@@ -1506,7 +1562,11 @@ Ancillary products are optional add-ons sold in addition to the core flight fare
 
 Free entitlements — such as the checked bag allowance included with a fare family, or complimentary seat selection in Business Class — are not order items and carry no price. They are policy attributes returned by the respective microservices and presented to the customer as part of the ancillary offer response.
 
-Ancillary products may be purchased post-sale through the manage-booking flow, or at the time of online check-in. Both channels follow the same underlying offer-retrieve, payment-authorise, order-update pattern.
+Ancillary products may be purchased at three points in the customer journey:
+
+1. **During the bookflow** — seat and bag selection are offered as optional steps within the basket before payment. Both are settled as separate payment transactions alongside the fare at confirmation. Ancillaries selected during the bookflow are written as order items at the point of order creation.
+2. **Post-sale (manage booking)** — after a booking is confirmed, customers may add or change seats and add additional bags through the manage-booking flow. Both follow the same underlying offer-retrieve, payment-authorise, order-update pattern as the bookflow ancillary steps.
+3. **At online check-in** — seat assignment (free of charge at OLCI) is available during the check-in flow. See the Delivery section for the OLCI flow.
 
 ---
 
