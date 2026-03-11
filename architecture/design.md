@@ -158,7 +158,42 @@ Key components:
 
 # Capability
 
+## Cabin Classes
+
+All Apex Air aircraft are configured with up to four cabin classes. Cabin codes are single-character identifiers used uniformly across all services, databases, and API contracts.
+
+| Code | Name | Notes |
+|------|------|-------|
+| `F` | First Class | Available on selected A350-1000 (A351) long-haul routes |
+| `J` | Business Class | All long-haul aircraft; seat selection included in fare at no ancillary charge |
+| `W` | Premium Economy | A350-1000 (A351) and Boeing 787-9 (B789) aircraft |
+| `Y` | Economy | All aircraft |
+
+Where a cabin code appears in a schema column, API field, or JSON document, it must always be one of these four values. The `CabinCode` field is consistently typed as `CHAR(1)` across all domains.
+
+---
+
 ## Offer
+
+### Flight Network
+
+Apex Air (IATA code: **AX**) operates a **hub-and-spoke** network centred on London Heathrow (**LHR**). The 2026 schedule covers five regions with the following direct routes from LHR:
+
+| Region | Destinations | Flight Block | Aircraft |
+|--------|-------------|--------------|----------|
+| North America | New York JFK, Los Angeles LAX, Miami MIA, San Francisco SFO, Chicago ORD, Boston BOS | AX001–AX099 | A351, B789 |
+| Caribbean | Bridgetown BGI, Kingston KIN, Nassau NAS | AX101–AX199 | A339 |
+| East Asia | Hong Kong HKG, Tokyo NRT, Shanghai PVG, Beijing PEK | AX201–AX299 | A351, B789 |
+| South-East Asia | Singapore SIN | AX301–AX399 | A351 |
+| South Asia | Mumbai BOM, Delhi DEL, Bangalore BLR | AX401–AX499 | B789 |
+
+Fleet summary:
+
+- **A351** (Airbus A350-1000) — flagship widebody on highest-demand routes (LHR–JFK ×2 daily, LHR–LAX morning, LHR–SFO morning, LHR–HKG, LHR–NRT, LHR–SIN)
+- **B789** (Boeing 787-9) — long-haul workhorse on remaining transatlantic, China, and India routes
+- **A339** (Airbus A330-900) — medium-to-long-haul on Caribbean leisure routes
+
+Because all scheduled routes radiate from LHR, the hub is also the natural connection point for passengers travelling between any two non-LHR cities (see [Direct and Connecting Itineraries](#direct-and-connecting-itineraries) below).
 
 ### Search
 
@@ -202,6 +237,80 @@ sequenceDiagram
     RetailAPI-->>Web: 201 Created — basket confirmed (basketId, itinerary, total price)
     Web-->>Traveller: Display basket summary — ready to proceed to booking
 ```
+
+### Direct and Connecting Itineraries
+
+#### Direct Flights
+
+A **direct flight** is a single-segment journey served by a single Apex Air flight number. All 2026 scheduled routes operate direct from or to LHR, so any customer departing from or arriving at LHR travels on a single segment. Examples:
+
+| Journey | Flight | Departure (local) | Arrival (local) | Aircraft |
+|---------|--------|-------------------|-----------------|----------|
+| LHR → JFK | AX001 | 08:00 | 11:10 | A351 |
+| JFK → LHR | AX002 | 13:00 | 01:15+1 | A351 |
+| LHR → DEL | AX411 | 20:30 | 09:00+1 | B789 |
+| DEL → LHR | AX412 | 03:30 | 08:00 | B789 |
+| LHR → SIN | AX301 | 21:30 | 17:45+1 | A351 |
+
+For a direct flight, the Offer microservice creates one `StoredOffer` record per available cabin class, linked to a single `FlightInventory` row. The `OfferId` returned to the channel represents the complete single-segment journey.
+
+#### Connecting Flights (Hub-and-Spoke)
+
+A **connecting itinerary** combines two direct flights via LHR. Because the entire Apex Air network radiates from LHR, all connections must transit through the hub. For example, a passenger travelling from Delhi to New York:
+
+```
+DEL → LHR   AX412  departs DEL 03:30, arrives LHR 08:00
+LHR → JFK   AX001  departs LHR 08:00, arrives JFK 11:10
+```
+
+Or in the return direction:
+
+```
+JFK → LHR   AX002  departs JFK 13:00, arrives LHR 01:15+1
+LHR → DEL   AX411  departs LHR 20:30, arrives DEL 09:00+1 (+1)
+```
+
+**How connecting itineraries are modelled:** Each leg is treated as an independent offer — two `StoredOffer` records are created, one per segment, each with its own `OfferId`. The Retail API's `POST /v1/search/connecting` endpoint orchestrates the assembly: it calls the Offer MS twice (once per segment), applies minimum connect time validation, and returns the composite itinerary with two `OfferIds` to the channel. Both `OfferIds` are then placed into the basket together.
+
+**Minimum connect time at LHR:** The Retail API enforces a minimum connection window of **60 minutes** between the inbound arrival and the outbound departure. Connecting pairs that fall below this threshold are not returned to the customer.
+
+**Inventory:** Each leg independently tracks its own seat inventory in `offer.FlightInventory`. Holding seats for a connecting itinerary requires two separate `POST /v1/inventory/hold` calls (one per leg). If either hold fails, both must be rolled back to avoid partial reservations.
+
+The connecting assembly logic (pairing legs, checking connect times, combining prices) is an orchestration responsibility of the Retail API layer. The Offer microservice has no concept of a multi-segment composite offer; it operates purely on individual flight segments.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OfferMS as Offer [MS]
+
+    Traveller->>Web: Search connecting itinerary (DEL → JFK, date, pax)
+
+    Web->>RetailAPI: POST /v1/search/connecting (origin=DEL, destination=JFK, date, pax)
+    RetailAPI->>OfferMS: POST /v1/search (origin=DEL, destination=LHR, date, pax)
+    OfferMS-->>RetailAPI: Inbound leg options with OfferIds (e.g. AX412)
+    RetailAPI->>OfferMS: POST /v1/search (origin=LHR, destination=JFK, connectDate, pax)
+    OfferMS-->>RetailAPI: Outbound leg options with OfferIds (e.g. AX001)
+    RetailAPI->>RetailAPI: Pair legs, apply 60-min MCT filter, combine prices
+    RetailAPI-->>Web: 200 OK — connecting itinerary options (each with [OfferId-Leg1, OfferId-Leg2], combined price)
+    Traveller->>Web: Select preferred connecting itinerary
+    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
+```
+
+#### Code Share Flights (Future Scope)
+
+Code share arrangements — where a flight operated by one carrier is marketed and sold under another carrier's flight number — are **not in scope for the initial release**. However, the data model should be designed now to accommodate them, to avoid breaking changes later.
+
+When code share is introduced, the following additions will be required:
+
+- `offer.FlightInventory`: add `OperatingCarrier CHAR(2)` and `OperatingFlightNumber VARCHAR(10)` columns to distinguish the carrier actually operating the aircraft from the marketing carrier (Apex Air, `AX`). For own-metal flights both values will be `AX` / the Apex flight number.
+- `offer.StoredOffer`: add `MarketingCarrier CHAR(2)` and `OperatingCarrier CHAR(2)` snapshot columns so the offer record is fully self-contained.
+- **API response schema:** The Offer MS search response and the Retail API search response should include optional `operatingCarrier` and `operatingFlightNumber` fields from day one (omitted or `null` for own-metal flights). Front-end clients must be built to handle and display the operating carrier distinction from launch, even though the values will always match the marketing carrier initially.
+- **Ticketing and delivery:** E-tickets issued by the Delivery microservice will need to carry the operating carrier designator; no schema change to `delivery.FlightManifest` is anticipated as the manifest records the flight number already, but the field semantics documentation should clarify that it carries the **marketing** flight number.
+- **Inventory partitioning:** When Apex Air sells seats on a partner carrier's aircraft, the inventory source will be external. A future `InventorySource` field (e.g. `OwnMetal` / `Interline` / `CodeShare`) on `FlightInventory` will be needed to route inventory queries to the correct system.
+
+No code share work is required now, but all new schema columns and API fields introduced in this release should be named to leave clean extension points for the above.
 
 ### Data Schema — Offer
 
@@ -285,9 +394,11 @@ The Order microservice sits at the heart of the reservation system, managing the
 
 The Order microservice is the sole owner of order state. No other microservice modifies an order directly; all booking changes — passenger updates, seat changes, flight changes, ancillary additions, and cancellations — are orchestrated through the Retail API and applied to the order by the Order microservice.
 
-### Create
+### Create — Bookflow
 
-The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, and passenger details as the traveller builds their booking. The basket is created when the traveller begins the purchase journey and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the journey, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
+The **bookflow** is the end-to-end initial purchase journey: from flight search through to a confirmed, ticketed order. It covers flight offer selection, basket creation, passenger details capture, ancillary selection (seats and bags), payment, and order confirmation. Everything within this flow happens within a single basket session, bounded by the ticketing time limit.
+
+The Order API is backed by a `Basket` — a transient record in the Order DB that accumulates flight offers, seat offers, bag offers, and passenger details as the traveller builds their booking during the bookflow. The basket is created when the bookflow begins and acts as the authoritative in-progress state until payment completes. On successful sale, basket data is deleted; if the traveller abandons the bookflow, the basket expires automatically after 24 hours. A configurable ticketing time limit (TTL) — defaulting to 24 hours — is set at basket creation and defines the deadline by which payment must be taken and tickets issued. If the TTL elapses before ticketing completes, any held inventory is released and the basket is marked expired.
 
 For each flight `OfferId` in the basket, the Order microservice retrieves the stored offer snapshot from the Offer microservice. This ensures the price and fare conditions recorded on the confirmed order exactly match what the customer was shown at search time.
 
@@ -301,11 +412,12 @@ sequenceDiagram
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant SeatMS as Seat [MS]
+    participant BagMS as Bag [MS]
     participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
-    Traveller->>Web: Enter passenger details
+    Note over Traveller, Web: Bookflow begins — flight selection already complete (see Offer / Search)
 
     Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
     RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
@@ -314,7 +426,7 @@ sequenceDiagram
     loop For each flight OfferId
         OrderMS->>OfferMS: GET /v1/offers/{offerId}
         OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing)
-        OrderMS->>OrderMS: Add flight offer to basket (BasketItem)
+        OrderMS->>OrderMS: Add flight offer to basket
     end
 
     OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
@@ -325,7 +437,7 @@ sequenceDiagram
     RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers (PAX details)
     OrderMS-->>RetailAPI: 200 OK — basket updated
 
-    opt Traveller selects seats during booking
+    opt Traveller selects seats during bookflow
         Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
         RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}?flightId={flightId}
         SeatMS-->>RetailAPI: 200 OK — seatmap layout + seat offers (each with SeatOfferId and price)
@@ -339,13 +451,26 @@ sequenceDiagram
         RetailAPI-->>Web: 200 OK — seats reserved in basket, revised total
     end
 
+    opt Traveller selects bags during bookflow
+        loop For each flight segment
+            RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
+            BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers (BagOfferId, price per additional bag)
+        end
+        RetailAPI-->>Web: 200 OK — free bag allowance and additional bag offers per segment
+        Traveller->>Web: Select additional bag(s) per PAX per segment (if desired)
+        Web->>RetailAPI: PUT /v1/basket/{basketId}/bags (bagOfferIds per PAX per segment)
+        RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/bags (bagOfferIds, PAX assignments)
+        OrderMS-->>RetailAPI: 200 OK — basket updated (bag items added, revised total)
+        RetailAPI-->>Web: 200 OK — bags added to basket, revised total
+    end
+
     Traveller->>Web: Enter payment details and confirm booking
 
     Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
     Note over RetailAPI, PaymentMS: Authorise and settle fare payment
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, currency, card details, description)
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
     PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
     RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryIds from stored flight offers)
     OfferMS-->>RetailAPI: 200 OK — inventory updated
@@ -354,12 +479,20 @@ sequenceDiagram
     RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
-    opt Seats were selected
+    opt Seats were selected during bookflow
         Note over RetailAPI, PaymentMS: Authorise and settle seat ancillary payment
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, card token from paymentReference-1)
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount, card token from paymentReference-1, description=SeatAncillary)
         PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference-2)
         RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-2}/settle (settledAmount)
         PaymentMS-->>RetailAPI: 200 OK — seat payment settled
+    end
+
+    opt Bags were selected during bookflow
+        Note over RetailAPI, PaymentMS: Authorise and settle bag ancillary payment
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalBagAmount, card token from paymentReference-1, description=BagAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — bag authorisation confirmed (paymentReference-3)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-3}/settle (settledAmount)
+        PaymentMS-->>RetailAPI: 200 OK — bag payment settled
     end
 
     RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences)
@@ -378,7 +511,7 @@ sequenceDiagram
 
 ### Ticketing
 
-Ticketing is the process by which a confirmed basket is converted into a legally valid air travel contract. It is triggered by the Retail API immediately after successful payment authorisation and must complete within the same synchronous flow as order confirmation. The e-ticket number is the IATA-standard identifier for this contract and is required before any manifest entries or boarding passes can be issued.
+Ticketing is the process by which a confirmed basket is converted into a legally valid air travel contract. It is the final step of the **bookflow**, triggered by the Retail API immediately after successful payment authorisation and must complete within the same synchronous flow as order confirmation. The e-ticket number is the IATA-standard identifier for this contract and is required before any manifest entries or boarding passes can be issued.
 
 #### What is an E-Ticket?
 
@@ -422,9 +555,9 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment
   - Delivery MS validates each seat number against the active seatmap before writing (calls Seat MS)
 
-- **Ancillary settlement** (if seats were pre-selected):
-  - After the manifest is written, Retail API calls `POST /v1/payment/{paymentReference}/settle` for the seat ancillary payment reference
-  - This is settled after fare settlement — the two are independent payment transactions
+- **Ancillary settlement** (if seats or bags were selected during the bookflow):
+  - After fare settlement, the Retail API settles each ancillary payment independently: `POST /v1/payment/{paymentReference}/settle` is called once for seat ancillary and once for bag ancillary, each with their own `PaymentReference`
+  - Ancillary payments are independent transactions and are settled after fare settlement; failure of an ancillary settlement does not roll back the confirmed booking, but must be flagged for manual reconciliation
 
 #### Reissuance
 
@@ -482,8 +615,9 @@ The `BasketData` column holds the full basket state as a JSON document. Scalar f
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | BasketStatus | VARCHAR(20) | No | `'Active'` | | `Active` · `Expired` · `Abandoned` · `Confirmed` |
 | TotalFareAmount | DECIMAL(10,2) | Yes | | | Sum of flight offer prices; updated as basket is built |
-| TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added |
-| TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount |
+| TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added during bookflow |
+| TotalBagAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of bag offer prices; updated as bags are added during bookflow |
+| TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount + TotalBagAmount |
 | ExpiresAt | DATETIME2 | No | | | Basket hard expiry: creation time + `BasketExpiryHours` |
 | TicketingTimeLimit | DATETIME2 | No | | | Must ticket by this time: creation time + `TicketingTimeLimitHours` |
 | ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
@@ -606,13 +740,28 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
       "currency": "GBP"
     }
   ],
+  "bagOffers": [
+    {
+      "basketItemId": "BI-5",
+      "bagOfferId": "bo-economy-bag1-v1",
+      "basketItemRef": "BI-1",
+      "passengerRef": "PAX-1",
+      "bagSequence": 1,
+      "freeBagsIncluded": 1,
+      "additionalBags": 1,
+      "price": 60.00,
+      "currency": "GBP",
+      "note": "1st additional bag — LHR→JFK segment"
+    }
+  ],
   "paymentIntent": {
     "method": "CreditCard",
     "cardType": "Visa",
     "cardLast4": "4242",
     "totalFareAmount": 1749.00,
     "totalSeatAmount": 70.00,
-    "grandTotal": 1819.00,
+    "totalBagAmount": 60.00,
+    "grandTotal": 1879.00,
     "currency": "GBP",
     "status": "PendingAuthorisation"
   },
@@ -620,7 +769,8 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
     { "event": "BasketCreated",          "at": "2025-06-01T10:30:00Z", "by": "WEB" },
     { "event": "PassengersAdded",        "at": "2025-06-01T10:31:00Z", "by": "WEB" },
     { "event": "SeatsAdded",             "at": "2025-06-01T10:32:00Z", "by": "WEB" },
-    { "event": "PaymentIntentRecorded",  "at": "2025-06-01T10:33:00Z", "by": "WEB" }
+    { "event": "BagsAdded",              "at": "2025-06-01T10:33:00Z", "by": "WEB" },
+    { "event": "PaymentIntentRecorded",  "at": "2025-06-01T10:34:00Z", "by": "WEB" }
   ]
 }
 ```
@@ -1412,7 +1562,11 @@ Ancillary products are optional add-ons sold in addition to the core flight fare
 
 Free entitlements — such as the checked bag allowance included with a fare family, or complimentary seat selection in Business Class — are not order items and carry no price. They are policy attributes returned by the respective microservices and presented to the customer as part of the ancillary offer response.
 
-Ancillary products may be purchased post-sale through the manage-booking flow, or at the time of online check-in. Both channels follow the same underlying offer-retrieve, payment-authorise, order-update pattern.
+Ancillary products may be purchased at three points in the customer journey:
+
+1. **During the bookflow** — seat and bag selection are offered as optional steps within the basket before payment. Both are settled as separate payment transactions alongside the fare at confirmation. Ancillaries selected during the bookflow are written as order items at the point of order creation.
+2. **Post-sale (manage booking)** — after a booking is confirmed, customers may add or change seats and add additional bags through the manage-booking flow. Both follow the same underlying offer-retrieve, payment-authorise, order-update pattern as the bookflow ancillary steps.
+3. **At online check-in** — seat assignment (free of charge at OLCI) is available during the check-in flow. See the Delivery section for the OLCI flow.
 
 ---
 
