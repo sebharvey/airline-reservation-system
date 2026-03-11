@@ -16,6 +16,7 @@
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; accepts bag offer IDs per passenger per segment; updates `TotalBagAmount` on the basket |
+| `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update Special Service Request selections on a basket during the bookflow; accepts SSR code, passenger reference, and segment reference per selection; no charge — basket total is unchanged |
 | `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation |
 
 ### Orders
@@ -28,6 +29,13 @@
 | `POST` | `/v1/orders/{bookingRef}/change` | Change a confirmed flight to a new itinerary; collects add-collect and change fee if applicable |
 | `POST` | `/v1/orders/{bookingRef}/cancel` | Cancel a confirmed booking; initiates refund if fare conditions permit |
 | `POST` | `/v1/orders/{bookingRef}/bags` | Add or update checked bag selection on a confirmed order |
+| `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove Special Service Requests on a confirmed order (self-serve); rejected with `422` if within the SSR amendment cut-off window for the departure |
+
+### SSR
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/ssr/options` | Retrieve the airline's supported SSR catalogue — SSR codes, labels, and category (Meal, Mobility, Accessibility) — served from Retail API configuration; accepts optional `cabinCode` and `flightNumbers` query parameters |
 
 ### Flights & Seatmaps
 
@@ -97,6 +105,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `PUT` | `/v1/basket/{basketId}/passengers` | Update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; updates `TotalBagAmount` |
+| `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update SSR selections on a basket during the bookflow; no charge — basket total is unchanged |
 | `POST` | `/v1/orders` | Confirm a basket and create a permanent order record |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
 | `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |
@@ -107,6 +116,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `PATCH` | `/v1/orders/{bookingRef}/cancel` | Mark an order as cancelled with reason and any cancellation fee |
 | `PATCH` | `/v1/orders/{bookingRef}/rebook` | Rebook a passenger onto a replacement flight (used by Disruption API for cancellations) |
 | `PATCH` | `/v1/orders/{bookingRef}/bags` | Add or update bag order items on a confirmed order |
+| `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove SSR items on a confirmed order; publishes `OrderChanged` event |
 | `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS data for passengers |
 
 ---
@@ -130,7 +140,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change |
 | `POST` | `/v1/manifest` | Write flight manifest entries at booking confirmation or after rebooking |
 | `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
-| `PATCH` | `/v1/manifest/{bookingRef}` | Update check-in status on manifest entries |
+| `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; used to record check-in status (OLCI) and to update SSR codes following a self-serve SSR change |
 | `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Disruption API for delays) |
 | `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
 | `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking) |
