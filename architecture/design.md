@@ -122,6 +122,8 @@ graph TB
     EVT --> CUSTOMER
 ```
 
+*Ref: system architecture - high-level microservices, orchestration APIs, and channel overview*
+
 Key components:
 
 - Channels
@@ -238,6 +240,8 @@ sequenceDiagram
     Web-->>Traveller: Display basket summary — ready to proceed to booking
 ```
 
+*Ref: offer search - outbound and inbound slice search and basket creation flow*
+
 ### Direct and Connecting Itineraries
 
 #### Direct Flights
@@ -297,6 +301,8 @@ sequenceDiagram
     Traveller->>Web: Select preferred connecting itinerary
     Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
 ```
+
+*Ref: offer search - connecting itinerary assembly via LHR hub with minimum connect time filtering*
 
 #### Code Share Flights (Future Scope)
 
@@ -517,6 +523,8 @@ sequenceDiagram
     RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-ticket numbers)
     Web-->>Traveller: Display booking confirmation
 ```
+
+*Ref: order bookflow - end-to-end flight selection, ancillary addition, payment, ticketing, and order confirmation*
 
 ### Ticketing
 
@@ -1058,6 +1066,8 @@ sequenceDiagram
     Web-->>Traveller: Display updated booking confirmation
 ```
 
+*Ref: manage booking - update passenger details with e-ticket reissuance*
+
 ### Manage Booking — Change Flight
 
 A voluntary flight change is a customer-initiated modification to a confirmed itinerary, as distinct from a carrier-initiated involuntary change triggered by an IROPS event. Whether a change is permitted, and under what conditions, is governed entirely by the fare conditions of the originally purchased ticket: some fares are wholly non-changeable; others are changeable subject to a change fee; and fully flexible fares (such as Business Flex) permit changes at no charge.
@@ -1142,6 +1152,8 @@ sequenceDiagram
     Web-->>Traveller: Change confirmed — new itinerary and updated e-ticket details displayed
 ```
 
+*Ref: manage booking - voluntary flight change with reshop, add-collect calculation, and e-ticket reissuance*
+
 ### Manage Booking — Cancel Booking
 
 A voluntary cancellation is a customer-initiated request to cancel a confirmed booking. Entitlement to a refund, and any cancellation penalty that reduces it, is determined entirely by the fare conditions of the originally issued ticket. Fares broadly fall into three categories: non-refundable (the fare value is forfeited in full on cancellation); partially refundable (a fixed cancellation fee is deducted from the amount returned); and fully refundable (the total amount paid is returned). In all cases the e-ticket must be voided and inventory released back to the Offer microservice regardless of refundability — a cancelled booking must not continue to hold seat inventory.
@@ -1194,6 +1206,8 @@ sequenceDiagram
     end
 ```
 
+*Ref: manage booking - voluntary cancellation with inventory release and conditional refund flow*
+
 ## Payment
 
 The Payment microservice is the financial orchestration layer for all Apex Air transactions, interfacing with the external card payment processor on behalf of all channels. In a modern airline retailing context a single booking commonly generates multiple independent payment transactions: the flight fare is authorised and settled at ticketing, and each ancillary product — seat selection, additional baggage — is authorised and settled as its own transaction with a separate `PaymentReference`. This granular structure enables precise revenue attribution per product type, supports targeted partial refunds on cancellation or change, and satisfies PCI DSS requirements by ensuring card data is handled and discarded within the Payment microservice boundary without touching any other domain.
@@ -1220,6 +1234,8 @@ sequenceDiagram
     PaymentDB-->>PaymentMS: 200 OK — settlement recorded
     PaymentMS-->>RetailAPI: 200 OK — settlement confirmed (paymentReference, settledAmount)
 ```
+
+*Ref: payment - card authorisation and settlement sequence*
 
 ### Data Schema — Payment
 
@@ -1346,6 +1362,8 @@ sequenceDiagram
     Web-->>Traveller: Display and offer download of boarding cards
 ```
 
+*Ref: delivery - online check-in flow including seat selection, bag addition, and boarding card generation*
+
 ### Boarding Pass Barcode String
 
 Each boarding card issued by the Delivery microservice includes a barcode string compliant with **IATA Resolution 792** (Bar Coded Boarding Pass — BCBP). This string is used directly to generate the physical barcode on printed boarding passes and the QR code displayed in the mobile app. Both formats encode identical data; the presentation layer determines the rendering.
@@ -1427,6 +1445,8 @@ graph LR
     DISRUPTION_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
 ```
 
+*Ref: disruption API - FOS integration and downstream microservice orchestration overview*
+
 ---
 
 ### Flight Delay
@@ -1460,6 +1480,8 @@ sequenceDiagram
 
     DisruptionAPI-->>FOS: 202 Accepted — disruption event received and processing
 ```
+
+*Ref: disruption - flight delay schedule propagation across affected orders and manifests*
 
 **Delay handling rules:**
 
@@ -1544,6 +1566,8 @@ sequenceDiagram
     DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
 ```
 
+*Ref: disruption - flight cancellation handling with passenger rebooking onto direct or connecting replacement flights*
+
 **Cancellation handling rules:**
 
 - **The cancelled flight is taken off sale immediately** — as the very first action after validating the event, before retrieving affected orders or searching for alternatives. This prevents new bookings from being accepted on the flight while rebooking is in progress. The `offer.FlightInventory` record is updated to `SeatsAvailable = 0` with a status of `Cancelled`.
@@ -1617,6 +1641,8 @@ sequenceDiagram
     Note over RetailAPI: Merge layout with seat offers before returning to channel
 ```
 
+*Ref: ancillary seat - seatmap layout retrieval merged with live seat offers and pricing*
+
 #### Post-Sale Seat Selection
 
 Enables a traveller to choose or change their seat assignment after booking, presenting the live seatmap with real-time availability overlaid, and updating the manifest and e-tickets upon confirmation. Seat selection made post-sale carries the full ancillary charge. If a seat was not selected at booking, seats assigned at check-in are free of charge (see the Online Check-In flow in the Delivery section).
@@ -1675,6 +1701,8 @@ sequenceDiagram
     Note over OrderMS, AccountingMS: Async event
     OrderMS-)AccountingMS: OrderChanged event (bookingReference, seat ancillary details)
 ```
+
+*Ref: ancillary seat - post-sale seat selection with payment, e-ticket reissuance, and manifest update*
 
 #### Data Schema — Seat
 
@@ -1991,6 +2019,8 @@ sequenceDiagram
     BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers (BagOfferId, bagSequence, price per additional bag)
 ```
 
+*Ref: ancillary bag - bag allowance policy and priced bag offer retrieval*
+
 #### Post-Sale Bag Selection
 
 Customers may add checked bags to a confirmed booking at any time before online check-in opens through the manage-booking flow. The free bag allowance for the booked cabin is displayed automatically; the customer may then purchase one or more additional bags beyond that allowance. In IATA one-order terms, each additional bag purchased creates a separate `Bag` order item carrying its own `BagOfferId` and payment reference. Free bags carry no charge and do not generate order items.
@@ -2038,6 +2068,8 @@ sequenceDiagram
     Note over OrderMS, AccountingMS: Async event
     OrderMS-)AccountingMS: OrderChanged event (bookingReference, bag ancillary details)
 ```
+
+*Ref: ancillary bag - post-sale additional bag purchase with payment and order update*
 
 #### Data Schema — Bag
 
@@ -2130,6 +2162,8 @@ sequenceDiagram
     Web-->>Customer: Display welcome screen with loyalty number and next steps
 ```
 
+*Ref: customer loyalty - registration flow creating linked identity and loyalty accounts*
+
 > **Email verification:** The `IsEmailVerified` flag on `identity.UserAccount` is set to `0` at registration. The confirmation email contains a one-time verification link. On click, a separate `POST /v1/accounts/{userAccountId}/verify-email` call is made to the Identity microservice to set `IsEmailVerified = 1`. Unverified accounts may still log in but are restricted from certain actions (e.g. redemptions) until verified.
 
 > **Duplicate email handling:** The Identity microservice enforces a unique constraint on `Email`. If a registration attempt arrives for an address that already exists, the Identity microservice returns `409 Conflict`. The Loyalty API surfaces this as a validation error to the channel — it must not reveal whether the email belongs to an existing account (to prevent account enumeration).
@@ -2156,6 +2190,8 @@ sequenceDiagram
     Web-->>Traveller: Show profile, tier status, and points balance
 ```
 
+*Ref: customer loyalty - retrieve account profile, tier status, and points balance*
+
 ---
 
 ### Retrieve Transaction History
@@ -2177,6 +2213,8 @@ sequenceDiagram
     LoyaltyAPI-->>Web: 200 OK — statement
     Web-->>Traveller: Show paginated points history
 ```
+
+*Ref: customer loyalty - retrieve paginated points transaction history*
 
 ---
 
@@ -2202,6 +2240,8 @@ sequenceDiagram
     CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
     Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
 ```
+
+*Ref: customer loyalty - async points accrual triggered by OrderConfirmed event on booking confirmation*
 
 ---
 
@@ -2236,6 +2276,8 @@ sequenceDiagram
     LoyaltyAPI-->>Web: 200 OK — profile updated
     Web-->>Customer: Confirmation — details have been saved
 ```
+
+*Ref: customer loyalty - update profile details via Loyalty API with JWT validation*
 
 ---
 
@@ -2296,6 +2338,8 @@ sequenceDiagram
     LoyaltyAPI-->>Web: 200 OK — email address changed successfully
     Web-->>Customer: Email updated — please log in again with your new address
 ```
+
+*Ref: customer loyalty - two-step email address change with verification token and session invalidation*
 
 ---
 
