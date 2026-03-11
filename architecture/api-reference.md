@@ -42,12 +42,6 @@
 | `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
 | `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
 
-### Email Verification
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow) |
-
 ---
 
 ## Loyalty API
@@ -58,7 +52,8 @@
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile, tier status, and points balance |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
 | `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
-| `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address |
+| `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
+| `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
 
 ---
 
@@ -84,9 +79,10 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability for a flight |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
-| `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld) |
-| `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (used on cancel or change) |
-| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled) |
+| `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld; decrements SeatsAvailable) |
+| `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
+| `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel or flight change rollback) |
+| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Disruption API on flight cancellation) |
 
 ---
 

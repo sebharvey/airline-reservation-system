@@ -425,9 +425,12 @@ sequenceDiagram
 
     loop For each flight OfferId
         OrderMS->>OfferMS: GET /v1/offers/{offerId}
-        OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing)
+        OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing, inventoryId)
+        OrderMS->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
+        OfferMS-->>OrderMS: 200 OK — seats held (SeatsHeld incremented, SeatsAvailable decremented)
         OrderMS->>OrderMS: Add flight offer to basket
     end
+    Note over OrderMS: If any hold fails, release all previously held inventory and return error
 
     OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
     RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
@@ -469,13 +472,13 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
-    Note over RetailAPI, PaymentMS: Authorise and settle fare payment
+    Note over RetailAPI, PaymentMS: Authorise fare payment
     RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
     PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
-    RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryIds from stored flight offers)
-    OfferMS-->>RetailAPI: 200 OK — inventory updated
     RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
     DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
+    RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds — convert SeatsHeld to SeatsSold)
+    OfferMS-->>RetailAPI: 200 OK — inventory updated (SeatsSold incremented, SeatsHeld decremented)
     RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
@@ -536,9 +539,8 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Delivery MS generates one e-ticket number per passenger per flight segment
   - E-ticket numbers are returned synchronously to the Retail API
 
-- **Inventory removal** (Retail API → Offer MS):
-  - Retail API calls the Offer microservice to decrement `SeatsAvailable` and increment `SeatsSold` for each flight/cabin combination
-  - `SeatsHeld` is decremented (seats were held against the basket)
+- **Inventory settlement** (Retail API → Offer MS):
+  - Retail API calls `POST /v1/inventory/sell` on the Offer microservice to convert held seats to sold: `SeatsHeld` is decremented and `SeatsSold` is incremented for each flight/cabin combination; `SeatsAvailable` is unchanged (it was already decremented when the basket hold was placed)
   - This step must complete before order confirmation is written
 
 - **Fare payment settlement** (Retail API → Payment MS):
@@ -576,7 +578,7 @@ Ticketing involves multiple sequential calls; partial failures must be handled e
 | Failure point | Behaviour |
 |---|---|
 | Delivery MS fails to issue tickets | Abort — do not settle payment, do not confirm order; return error to channel |
-| Offer MS fails to remove inventory | Retry up to 3 times; if still failing, void payment authorisation and return error |
+| Offer MS fails to settle inventory (convert held to sold) | Retry up to 3 times; if still failing, void payment authorisation and return error |
 | Payment settlement fails after inventory removed | Flag order for manual reconciliation; order is not confirmed until settlement succeeds |
 | Order MS fails to confirm | Attempt compensation: void payment, reinstate inventory, void e-tickets; alert ops team if compensation also fails |
 
@@ -1399,11 +1401,7 @@ Seat number integrity is enforced at the application layer: before any insert or
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
-> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not a DB foreign key constraint, as the Delivery and Offer domains are logically separated. Referential integrity is the responsibility of the Retail API orchestration layer.
-> **Seatmap validation:** Before any insert or update, the Delivery microservice must call `GET /v1/seatmap/{aircraftType}` and confirm `SeatNumber` exists on the active seatmap. If not found, the write must be rejected.
-
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
-
 > **Seatmap validation:** The Delivery microservice must call `GET /v1/seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
 
 ## Disruption API
@@ -1507,9 +1505,13 @@ sequenceDiagram
 
     alt Direct replacement flight available
         Note over DisruptionAPI: Allocate passengers to direct replacement flight
-    else No direct flight — seek connecting itinerary
-        DisruptionAPI->>OfferMS: POST /v1/search/connecting (origin, destination, date=earliest available, cabinCode, paxCount)
-        OfferMS-->>DisruptionAPI: 200 OK — connecting itinerary options (leg 1 OfferId + leg 2 OfferId, transit point, total journey time)
+    else No direct flight — assemble connecting itinerary via LHR hub
+        Note over DisruptionAPI,OfferMS: Offer MS has no concept of connecting itineraries — call POST /v1/search twice (one per leg) and pair results here, exactly as the Retail API does for /v1/search/connecting
+        DisruptionAPI->>OfferMS: POST /v1/search (origin=origin, destination=LHR, date=earliest available, cabinCode, paxCount)
+        OfferMS-->>DisruptionAPI: Leg 1 options (OfferId, flightNumber, arrivalTimeAtLHR)
+        DisruptionAPI->>OfferMS: POST /v1/search (origin=LHR, destination=destination, date=connectDate, cabinCode, paxCount)
+        OfferMS-->>DisruptionAPI: Leg 2 options (OfferId, flightNumber, departureTimeFromLHR)
+        DisruptionAPI->>DisruptionAPI: Pair legs, apply 60-min MCT filter, select best option
         Note over DisruptionAPI: Allocate passengers to connecting itinerary
     end
 
@@ -1733,7 +1735,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom", "BlockedForCrew"],
-              "isSelectable": false
+              "isSelectable": false,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1D",
@@ -1741,7 +1745,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1G",
@@ -1749,7 +1755,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             },
             {
               "seatNumber": "1K",
@@ -1757,7 +1765,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Suite",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": null,
+              "seatPrice": null
             }
           ]
         }
@@ -1781,7 +1791,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11A-v1",
+              "seatPrice": { "amount": 70.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11B",
@@ -1789,7 +1801,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11B-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11D",
@@ -1797,7 +1811,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11D-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11E",
@@ -1805,7 +1821,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11E-v1",
+              "seatPrice": { "amount": 20.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11F",
@@ -1813,7 +1831,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11F-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11H",
@@ -1821,7 +1841,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11H-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "11K",
@@ -1829,7 +1851,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-11K-v1",
+              "seatPrice": { "amount": 70.00, "currency": "GBP" }
             }
           ]
         }
@@ -1853,7 +1877,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22A-v1",
+              "seatPrice": { "amount": 70.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22B",
@@ -1861,7 +1887,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22B-v1",
+              "seatPrice": { "amount": 20.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22C",
@@ -1869,7 +1897,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22C-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22D",
@@ -1877,7 +1907,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22D-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22E",
@@ -1885,7 +1917,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22E-v1",
+              "seatPrice": { "amount": 20.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22F",
@@ -1893,7 +1927,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22F-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22G",
@@ -1901,7 +1937,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Aisle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22G-v1",
+              "seatPrice": { "amount": 50.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22H",
@@ -1909,7 +1947,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Middle",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22H-v1",
+              "seatPrice": { "amount": 20.00, "currency": "GBP" }
             },
             {
               "seatNumber": "22K",
@@ -1917,7 +1957,9 @@ The JSON is structured as an ordered array of cabins, each containing a column c
               "type": "Standard",
               "position": "Window",
               "attributes": ["ExtraLegroom"],
-              "isSelectable": true
+              "isSelectable": true,
+              "seatOfferId": "so-a351-22K-v1",
+              "seatPrice": { "amount": 70.00, "currency": "GBP" }
             }
           ]
         }
