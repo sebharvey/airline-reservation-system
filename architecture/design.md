@@ -12,6 +12,7 @@ A Modern Airline Retailing system built on offer and order capability, structure
 - **Identity** — stores and manages login credentials for customer accounts.
 - **Accounting** — financial records: orders, refunds, balance sheets, and P&L.
 - **Seat** — seatmap definitions per aircraft type; provides layouts and pricing to other services and channels (does not manage selection or inventory).
+- **Schedule** — manages flight schedule definitions and generates individual flight inventory records in the Offer domain for every operating date within the schedule window.
 - **Disruption** — orchestrates IROPS event responses (delays and cancellations) notified by the Flight Operations System (FOS).
 
 ## High level system architecture
@@ -30,6 +31,7 @@ graph TB
         CC[🎧 Contact Centre App]
         AIRPORT[🛫 Airport App]
         ACCT_CH[📊 Accounting System App]
+        OPS_APP[🗓️ Ops Admin App]
     end
 
     subgraph Orchestration["Orchestration APIs"]
@@ -38,6 +40,7 @@ graph TB
         AIRPORT_API[Airport API]
         ACCOUNTING_API[Accounting API]
         DISRUPTION_API[Disruption API]
+        SCHEDULE_API[Schedule API]
     end
 
     subgraph Microservices
@@ -80,6 +83,11 @@ graph TB
             SEAT[Seat]
             SEAT_DB[(Seat DB)]
         end
+
+        subgraph SCHEDULE_SVC["Schedule Service"]
+            SCHEDULE[Schedule]
+            SCHEDULE_DB[(Schedule DB)]
+        end
     end
 
     subgraph Events["Event Bus"]
@@ -94,6 +102,7 @@ graph TB
     WEB & APP & CC --> LOYALTY_API
     AIRPORT --> AIRPORT_API
     ACCT_CH --> ACCOUNTING_API
+    OPS_APP --> SCHEDULE_API
 
     %% Orchestration → Microservices
     RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT
@@ -101,6 +110,7 @@ graph TB
     AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT
     ACCOUNTING_API --> ACCOUNTING
     DISRUPTION_API --> OFFER & ORDER & DELIVERY
+    SCHEDULE_API --> SCHEDULE & OFFER
 
     %% Microservice → DB
     IDENTITY --> IDENTITY_DB
@@ -111,6 +121,7 @@ graph TB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
     SEAT --> SEAT_DB
+    SCHEDULE --> SCHEDULE_DB
 
     %% Eventing to Accounting and Customer
     ORDER --> EVT
@@ -130,6 +141,7 @@ Key components:
   - Contact Centre App (for new bookings, IROPS management, customer account management)
   - Airport App (for airport staff to manage non-OLCI check in, and gate management, seat assignment, etc)
   - Accounting System App
+  - Ops Admin App (for operations staff to manage flight schedules and inventory creation)
 - External Systems
   - Flight Operations System (FOS) — the airline's operational system responsible for managing the live flight schedule; it notifies the reservation system of disruption events (delays and cancellations) via the Disruption API
 - Orchestration APIs (these act as the APIs to connect the channels to the microservices)
@@ -138,6 +150,7 @@ Key components:
   - Airport API (for Airport App)
   - Accounting API (for accounting system app)
   - Disruption API (receives disruption events from the FOS and orchestrates the response across the Offer, Order, and Delivery microservices)
+  - Schedule API (receives schedule definitions from the Ops Admin App; creates the schedule record and generates bulk flight inventory and fares in the Offer domain)
 - Microservices (and their data-bound databases)
   - Offer
     - Inventory DB
@@ -153,6 +166,8 @@ Key components:
     - Accounting DB
   - Seat (manages seatmap definitions and seat pricing per aircraft type; provides seatmap views and seat offers to channels — seat selection and inventory remain with Offer)
     - Seat DB
+  - Schedule (stores flight schedule definitions and generates `FlightInventory` and `Fare` records in the Offer domain for every operating date in the schedule window)
+    - Schedule DB
 
 # Capability
 
@@ -168,6 +183,103 @@ All Apex Air aircraft are configured with up to four cabin classes. Cabin codes 
 | `Y` | Economy | All aircraft |
 
 Where a cabin code appears in a schema column, API field, or JSON document, it must always be one of these four values. The `CabinCode` field is consistently typed as `CHAR(1)` across all domains.
+
+---
+
+## Schedule
+
+The Schedule capability allows airline operations staff to define repeating flight schedules across a date window; the system automatically generates the individual flight inventory and fare records in the Offer domain for every operating date.
+
+- A schedule captures a single flight pattern: flight number, route, scheduled departure and arrival times, operating days of the week, aircraft type, per-cabin seat allocation, and one or more fares per cabin.
+- A single `POST /v1/schedules` call creates the schedule record and triggers bulk `FlightInventory` and `Fare` generation in the Offer domain for every date in the `ValidFrom`–`ValidTo` window that matches the operating days bitmask.
+- Generated inventory is immediately live for offer search with no additional activation step required.
+- The schedule record persists in the Schedule domain as the operational source of truth; subsequent modifications or extensions to an existing schedule require a new schedule definition.
+- Pricing (base fare, taxes, refundability, changeability) is supplied at schedule creation time and written directly to `offer.Fare` — one row per fare per operating date per cabin.
+
+### Data Schema — Schedule
+
+#### `schedule.FlightSchedule`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| ScheduleId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| FlightNumber | VARCHAR(10) | No | | | e.g. `AX001` |
+| Origin | CHAR(3) | No | | | IATA airport code |
+| Destination | CHAR(3) | No | | | IATA airport code |
+| DepartureTime | TIME | No | | | Local time at origin airport |
+| ArrivalTime | TIME | No | | | Local time at destination airport |
+| ArrivalDayOffset | TINYINT | No | 0 | | `0` = same calendar day; `1` = next day at destination |
+| DaysOfWeek | TINYINT | No | | | Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64; daily = 127 |
+| AircraftType | VARCHAR(4) | No | | | IATA 4-char code, e.g. `A351`, `B789`, `A339` |
+| ValidFrom | DATE | No | | | First operating date (inclusive) |
+| ValidTo | DATE | No | | | Last operating date (inclusive) |
+| FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
+
+> **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
+> **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
+
+#### `schedule.ScheduleCabin`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| ScheduleCabinId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| ScheduleId | UNIQUEIDENTIFIER | No | | FK → `schedule.FlightSchedule(ScheduleId)` | |
+| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
+| TotalSeats | SMALLINT | No | | | Seat count for this cabin from the aircraft configuration |
+
+#### `schedule.ScheduleFare`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| ScheduleFareId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| ScheduleCabinId | UNIQUEIDENTIFIER | No | | FK → `schedule.ScheduleCabin(ScheduleCabinId)` | |
+| FareBasisCode | VARCHAR(20) | No | | | e.g. `YLOWUK`, `JFLEXGB` |
+| FareFamily | VARCHAR(50) | Yes | | | e.g. `Economy Light`, `Business Flex` |
+| BookingClass | CHAR(2) | No | | | Revenue management booking class, e.g. `Y`, `B`, `J` |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
+| BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare excluding taxes |
+| TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
+| IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
+| IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
+
+### Create Schedule
+
+```mermaid
+sequenceDiagram
+    actor OpsUser as Operations User
+    participant OpsApp as Ops Admin App
+    participant ScheduleAPI as Schedule API
+    participant ScheduleMS as Schedule [MS]
+    participant OfferMS as Offer [MS]
+
+    OpsUser->>OpsApp: Define schedule (flightNumber, route, times, days, aircraft, window, cabins, fares)
+    OpsApp->>ScheduleAPI: POST /v1/schedules
+
+    ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
+    ScheduleMS->>ScheduleMS: Persist FlightSchedule, ScheduleCabin, ScheduleFare records
+    ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
+
+    loop For each operating date × cabin
+        ScheduleMS->>OfferMS: POST /v1/flights (flightNumber, departureDate, origin, destination, aircraftType, cabinCode, totalSeats)
+        OfferMS->>OfferMS: Insert offer.FlightInventory (SeatsAvailable = TotalSeats, SeatsHeld = 0, SeatsSold = 0)
+        OfferMS-->>ScheduleMS: 201 Created — inventoryId
+
+        loop For each fare defined for this cabin
+            ScheduleMS->>OfferMS: POST /v1/flights/{inventoryId}/fares (fareBasisCode, fareFamily, bookingClass, baseFareAmount, taxAmount, isRefundable, isChangeable)
+            OfferMS->>OfferMS: Insert offer.Fare linked to InventoryId
+            OfferMS-->>ScheduleMS: 201 Created — fareId
+        end
+    end
+
+    ScheduleMS->>ScheduleMS: Update FlightsCreated count on FlightSchedule record
+    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, flightsCreated
+    ScheduleAPI-->>OpsApp: 201 Created — scheduleId, flightsCreated
+    OpsApp-->>OpsUser: Schedule created — N flights added to inventory
+```
+
+*Ref: schedule creation — schedule definition persisted and bulk flight inventory generated in the Offer domain*
 
 ---
 

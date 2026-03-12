@@ -88,6 +88,14 @@
 
 ---
 
+## Schedule API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/schedules` | Create a flight schedule; persists the schedule definition and generates `FlightInventory` and `Fare` records in the Offer domain for every operating date within the `ValidFrom`–`ValidTo` window that matches the `daysOfWeek` pattern; returns `scheduleId` and the count of flights created |
+
+---
+
 ## Offer Microservice
 
 The Offer microservice operates on individual flight **segments** only. It has no concept of a multi-segment connecting itinerary; connecting itinerary assembly (pairing legs, enforcing minimum connect time, combining prices) is the responsibility of the Retail API orchestration layer.
@@ -96,6 +104,8 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `POST` | `/v1/flights` | Create a new flight inventory record for a specific operating date and cabin; called by the Schedule MS during schedule generation; initialises `SeatsAvailable = TotalSeats`, `SeatsHeld = 0`, `SeatsSold = 0`; returns `inventoryId` |
+| `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Schedule MS once per fare per cabin per operating date during schedule generation; returns `fareId` |
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
 | `GET` | `/v1/flights/{flightId}/seat-offers` | Retrieve priced seat offers for a flight — consults `seat.SeatPricing` for position-based prices and `offer.FlightInventory` for real-time availability; returns one `SeatOfferId` and price per selectable, available seat; used by Retail API to overlay pricing and availability on the seatmap layout returned by the Seat MS |
