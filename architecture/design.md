@@ -1172,7 +1172,7 @@ A voluntary cancellation is a customer-initiated request governed by the fare co
 
 - Fares are non-refundable (full forfeiture), partially refundable (fixed cancellation fee deducted), or fully refundable (total amount returned).
 - Regardless of refundability, the e-ticket must be voided and inventory released — a cancelled booking must not hold seat inventory.
-- Refunds are returned to the original payment method via the Payment MS; card issuer processing typically takes 5–10 business days.
+- When a refund is due, the Order MS publishes a `RefundIdentified` event to the Accounting system; the Accounting system is responsible for issuing the refund and is outside the scope of the reservation system.
 - Government-imposed taxes (e.g. UK Air Passenger Duty) may be refundable even on non-refundable fares; selective tax refund handling is out of scope for this phase.
 
 ```mermaid
@@ -1183,7 +1183,7 @@ sequenceDiagram
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant DeliveryMS as Delivery [MS]
-    participant PaymentMS as Payment [MS]
+    participant AccountingMS as Accounting [MS]
 
     Traveller->>Web: Navigate to manage booking and request cancellation
     Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
@@ -1211,17 +1211,16 @@ sequenceDiagram
     OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled- OrderChanged event published
 
     alt Refund is due (isRefundable = true)
-        RetailAPI->>PaymentMS: POST /v1/payment/{originalPaymentReference}/refund (refundAmount=totalPaid−cancellationFee)
-        PaymentMS-->>RetailAPI: 200 OK — refund initiated (refundReference, refundAmount)
-        RetailAPI-->>Web: 200 OK — booking cancelled- refund of {refundAmount} initiated to original payment method
-        Web-->>Traveller: Booking cancelled — refund will appear within 5–10 business days
+        OrderMS->>AccountingMS: RefundIdentified event (bookingRef, refundableAmount=totalPaid−cancellationFee, originalPaymentReference)
+        RetailAPI-->>Web: 200 OK — booking cancelled- refund raised with Accounting system
+        Web-->>Traveller: Booking cancelled — your refund will be processed by the Accounting team
     else Non-refundable fare (isRefundable = false)
         RetailAPI-->>Web: 200 OK — booking cancelled- no refund applicable for this fare type
         Web-->>Traveller: Booking cancelled — no refund will be issued
     end
 ```
 
-*Ref: manage booking - voluntary cancellation with inventory release and conditional refund flow*
+*Ref: manage booking - voluntary cancellation with inventory release and accounting refund event*
 
 ## Payment
 
