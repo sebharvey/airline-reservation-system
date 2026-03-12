@@ -2161,14 +2161,14 @@ sequenceDiagram
     participant OrderMS as Order [MS]
     participant DeliveryMS as Delivery [MS]
 
-    Note over Traveller, Web: Bookflow — passenger details entered; basket active
+    Note over Traveller, Web: Bookflow — passenger details entered - basket active
 
     Web->>RetailAPI: GET /v1/ssr/options
     RetailAPI-->>Web: 200 OK — supported SSR codes and labels by category (Meal, Mobility, Accessibility)
     Web-->>Traveller: Display SSR options per passenger per segment
 
     opt Traveller selects SSRs
-        Traveller->>Web: Select SSR(s) per passenger per segment (e.g. VGML for PAX-1 on SEG-1; WCHR for PAX-2 on all segments)
+        Traveller->>Web: Select SSR(s) per passenger per segment (e.g. VGML for PAX-1 on SEG-1 - WCHR for PAX-2 on all segments)
         Web->>RetailAPI: PUT /v1/basket/{basketId}/ssrs (ssrSelections: [{ssrCode, passengerRef, segmentRef}])
         RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/ssrs (ssrSelections)
         OrderMS-->>RetailAPI: 200 OK — basket updated with SSR items (no charge — basket total unchanged)
@@ -2558,13 +2558,13 @@ sequenceDiagram
     IdentityMS->>IdentityMS: Verify password against Argon2id hash
 
     alt Invalid credentials
-        IdentityMS->>IdentityDB: INCREMENT FailedLoginAttempts; lock account if threshold reached
+        IdentityMS->>IdentityDB: INCREMENT FailedLoginAttempts - lock account if threshold reached
         IdentityMS-->>LoyaltyAPI: 401 Unauthorised — invalid credentials
         LoyaltyAPI-->>Web: 401 Unauthorised
         Web-->>Customer: Email or password incorrect
     end
 
-    IdentityMS->>IdentityDB: RESET FailedLoginAttempts = 0; UPDATE LastLoginAt = now
+    IdentityMS->>IdentityDB: RESET FailedLoginAttempts = 0 - UPDATE LastLoginAt = now
     IdentityMS->>IdentityDB: INSERT RefreshToken (tokenHash, expiresAt, deviceHint)
     IdentityMS-->>LoyaltyAPI: 200 OK — accessToken (JWT, 15 min TTL), refreshToken, identityReference
     LoyaltyAPI->>LoyaltyAPI: Look up Customer record by identityReference
