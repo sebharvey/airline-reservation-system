@@ -56,6 +56,18 @@
 
 ## Loyalty API
 
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/auth/login` | Authenticate with email and password; returns a short-lived JWT access token, a refresh token, and a customer profile summary |
+| `POST` | `/v1/auth/refresh` | Exchange a valid refresh token for a new access token and rotated refresh token (single-use semantics) |
+| `POST` | `/v1/auth/logout` | Revoke the current refresh token and invalidate the session |
+| `POST` | `/v1/auth/password/reset-request` | Request a password reset link; dispatched to the registered email address if found — response is identical regardless to prevent account enumeration |
+| `POST` | `/v1/auth/password/reset` | Submit a new password using a valid single-use reset token; invalidates all active refresh tokens on success |
+
+### Account & Profile
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/register` | Register a new loyalty programme member, creating linked Identity and Customer records |
@@ -165,6 +177,18 @@ The Offer microservice operates on individual flight **segments** only. It has n
 ---
 
 ## Identity Microservice
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/auth/login` | Validate credentials (email and Argon2id password hash); returns JWT access token, refresh token, and `identityReference` on success; increments failed attempt counter and locks account at threshold on failure |
+| `POST` | `/v1/auth/refresh` | Validate and rotate a refresh token (single-use); returns new access token and replacement refresh token |
+| `POST` | `/v1/auth/logout` | Revoke the active refresh token for a session |
+| `POST` | `/v1/auth/password/reset-request` | Generate a time-limited single-use reset token (1-hour TTL) and dispatch to the registered email if found; always returns `202 Accepted` to prevent account enumeration |
+| `POST` | `/v1/auth/password/reset` | Validate a reset token, update the password hash, unlock the account, and revoke all active refresh tokens |
+
+### Account Management
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
