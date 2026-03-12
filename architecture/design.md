@@ -2529,6 +2529,147 @@ The Identity microservice is the security boundary for all authentication and cr
 
 Customer-facing authentication flows — login, logout, and session refresh — are consumed by the Loyalty API. Short-lived JWT access tokens are issued at login and validated by downstream APIs using the Identity microservice's public signing key, avoiding a database round-trip on every request. Longer-lived refresh tokens are stored in the Identity DB with single-use semantics; rotation on each use limits the exposure window if a token is ever compromised.
 
+### Login, Logout, and Token Refresh
+
+Authentication is the entry point to all customer-facing loyalty and booking flows. When a customer submits their credentials, the Identity microservice validates them and issues a short-lived JWT access token alongside a longer-lived refresh token. The access token is used by downstream APIs (Loyalty API, Retail API) to authorise requests without a round-trip to the Identity DB — they validate the token's signature using the Identity microservice's public signing key. When the access token expires, the channel uses the refresh token to obtain a new pair silently, maintaining the session without requiring the customer to re-enter their password. On logout, the active refresh token is revoked, invalidating the session.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity [MS]
+    participant IdentityDB as Identity DB
+
+    %% ── LOGIN ──
+    Customer->>Web: Enter email and password
+    Web->>LoyaltyAPI: POST /v1/auth/login (email, password)
+    LoyaltyAPI->>IdentityMS: POST /v1/auth/login (email, password)
+
+    IdentityMS->>IdentityDB: SELECT UserAccount WHERE Email = {email}
+    IdentityDB-->>IdentityMS: UserAccount row (passwordHash, isLocked, failedLoginAttempts)
+
+    alt Account locked
+        IdentityMS-->>LoyaltyAPI: 403 Forbidden — account locked
+        LoyaltyAPI-->>Web: 403 Forbidden
+        Web-->>Customer: Account locked — please reset your password
+    end
+
+    IdentityMS->>IdentityMS: Verify password against Argon2id hash
+
+    alt Invalid credentials
+        IdentityMS->>IdentityDB: INCREMENT FailedLoginAttempts; lock account if threshold reached
+        IdentityMS-->>LoyaltyAPI: 401 Unauthorised — invalid credentials
+        LoyaltyAPI-->>Web: 401 Unauthorised
+        Web-->>Customer: Email or password incorrect
+    end
+
+    IdentityMS->>IdentityDB: RESET FailedLoginAttempts = 0; UPDATE LastLoginAt = now
+    IdentityMS->>IdentityDB: INSERT RefreshToken (tokenHash, expiresAt, deviceHint)
+    IdentityMS-->>LoyaltyAPI: 200 OK — accessToken (JWT, 15 min TTL), refreshToken, identityReference
+    LoyaltyAPI->>LoyaltyAPI: Look up Customer record by identityReference
+    LoyaltyAPI-->>Web: 200 OK — accessToken, refreshToken, customer profile summary
+    Web-->>Customer: Logged in — redirect to account dashboard
+
+    %% ── TOKEN REFRESH ──
+    Note over Web, IdentityMS: Access token nearing expiry — channel refreshes silently
+    Web->>LoyaltyAPI: POST /v1/auth/refresh (refreshToken)
+    LoyaltyAPI->>IdentityMS: POST /v1/auth/refresh (refreshToken)
+    IdentityMS->>IdentityDB: SELECT RefreshToken WHERE tokenHash = hash({refreshToken}) AND IsRevoked = 0
+    IdentityDB-->>IdentityMS: RefreshToken row
+
+    alt Token not found, revoked, or expired
+        IdentityMS-->>LoyaltyAPI: 401 Unauthorised — refresh token invalid
+        LoyaltyAPI-->>Web: 401 Unauthorised
+        Web-->>Customer: Session expired — please log in again
+    end
+
+    IdentityMS->>IdentityDB: SET IsRevoked = 1 on consumed token (single-use rotation)
+    IdentityMS->>IdentityDB: INSERT new RefreshToken
+    IdentityMS-->>LoyaltyAPI: 200 OK — new accessToken, new refreshToken
+    LoyaltyAPI-->>Web: 200 OK — refreshed tokens
+
+    %% ── LOGOUT ──
+    Customer->>Web: Click logout
+    Web->>LoyaltyAPI: POST /v1/auth/logout — Bearer {accessToken}
+    LoyaltyAPI->>IdentityMS: POST /v1/auth/logout (refreshToken)
+    IdentityMS->>IdentityDB: SET IsRevoked = 1 on active RefreshToken for this session
+    IdentityDB-->>IdentityMS: Updated
+    IdentityMS-->>LoyaltyAPI: 200 OK
+    LoyaltyAPI-->>Web: 200 OK
+    Web-->>Customer: Logged out
+```
+
+*Ref: identity — login with credential validation and account lockout, silent token refresh with single-use rotation, and logout with refresh token revocation*
+
+---
+
+### Password Reset
+
+Password reset follows a zero-knowledge flow: the Identity microservice never reveals whether a given email address is registered, preventing account enumeration. A time-limited, single-use token is generated and dispatched to the supplied email address; only if that address is known to the system does an email arrive. The customer follows the link, submits a new password, and the hash is updated. All active refresh tokens for the account are invalidated on completion, requiring re-authentication across all sessions — consistent with the approach used for email address changes.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity [MS]
+    participant IdentityDB as Identity DB
+
+    %% ── REQUEST RESET ──
+    Customer->>Web: Navigate to Forgotten Password and enter email address
+    Web->>LoyaltyAPI: POST /v1/auth/password/reset-request (email)
+    LoyaltyAPI->>IdentityMS: POST /v1/auth/password/reset-request (email)
+
+    IdentityMS->>IdentityDB: SELECT UserAccount WHERE Email = {email}
+
+    alt Email not found
+        Note over IdentityMS: No action taken — response is identical to success to prevent account enumeration
+    end
+
+    alt Email found
+        IdentityMS->>IdentityMS: Generate time-limited single-use reset token (TTL: 1 hour)
+        IdentityMS->>IdentityDB: Store hashed reset token against UserAccountId with ExpiresAt
+        IdentityMS->>IdentityMS: Send password reset email to {email} containing token link
+    end
+
+    IdentityMS-->>LoyaltyAPI: 202 Accepted
+    LoyaltyAPI-->>Web: 202 Accepted
+    Web-->>Customer: If that address is registered, a reset link has been sent
+
+    %% ── SUBMIT NEW PASSWORD ──
+    Note over Customer, IdentityMS: Customer receives the email and follows the reset link
+
+    Customer->>Web: Submit new password via reset link (token, newPassword)
+    Web->>LoyaltyAPI: POST /v1/auth/password/reset (token, newPassword)
+    LoyaltyAPI->>IdentityMS: POST /v1/auth/password/reset (token, newPassword)
+
+    IdentityMS->>IdentityDB: SELECT reset token WHERE tokenHash = hash({token}) AND IsUsed = 0
+    IdentityDB-->>IdentityMS: Reset token row (userAccountId, expiresAt)
+
+    alt Token not found, already used, or expired
+        IdentityMS-->>LoyaltyAPI: 400 Bad Request — token invalid or expired
+        LoyaltyAPI-->>Web: 400 Bad Request
+        Web-->>Customer: Reset link has expired or already been used — please request a new one
+    end
+
+    IdentityMS->>IdentityMS: Hash newPassword with Argon2id
+    IdentityMS->>IdentityDB: UPDATE UserAccount SET PasswordHash = {newHash}, PasswordChangedAt = now, IsLocked = 0, FailedLoginAttempts = 0
+    IdentityMS->>IdentityDB: Mark reset token as used (IsUsed = 1)
+    IdentityMS->>IdentityDB: SET IsRevoked = 1 on all active RefreshTokens for this UserAccountId
+    IdentityDB-->>IdentityMS: All updates applied
+
+    IdentityMS-->>LoyaltyAPI: 200 OK — password reset successful
+    LoyaltyAPI-->>Web: 200 OK
+    Web-->>Customer: Password updated — please log in with your new password
+```
+
+*Ref: identity — password reset request with account enumeration protection, token validation, hash update, and full session invalidation*
+
+> **Account lockout reset:** Setting `IsLocked = 0` and `FailedLoginAttempts = 0` as part of a successful password reset is intentional — a legitimate account owner who recovers access via password reset should be unblocked in the same flow, rather than requiring a separate administrator action.
+
+> **Enumeration protection:** The identical `202 Accepted` response for both known and unknown email addresses in the reset-request flow is a deliberate security control, consistent with the duplicate-email handling behaviour described in the Register section above.
+
 ### Data Schema — Identity
 
 The Identity microservice owns its own `identity.*` schema and is the sole store of authentication credentials. It holds one row per login account, linked to the Customer domain via `IdentityReference`. Passwords are stored as salted hashes only — plain text passwords are never persisted.
