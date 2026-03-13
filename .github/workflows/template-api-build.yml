@@ -29,13 +29,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore src/API/Template/TemplateApi/TemplateApi.csproj
+        run: dotnet restore src/API/Template/ReservationSystem.Template.TemplateApi/ReservationSystem.Template.TemplateApi.csproj
 
       - name: Build
-        run: dotnet build src/API/Template/TemplateApi/TemplateApi.csproj --configuration Release --no-restore
+        run: dotnet build src/API/Template/ReservationSystem.Template.TemplateApi/ReservationSystem.Template.TemplateApi.csproj --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish src/API/Template/TemplateApi/TemplateApi.csproj --configuration Release --no-build --output ./publish/template-api
+        run: dotnet publish src/API/Template/ReservationSystem.Template.TemplateApi/ReservationSystem.Template.TemplateApi.csproj --configuration Release --no-build --output ./publish/template-api
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
