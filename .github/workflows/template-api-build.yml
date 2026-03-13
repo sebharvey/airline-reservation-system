@@ -1,18 +1,14 @@
-name: Template API Build
+name: Template API - Build
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main ]
     paths:
       - 'src/API/Template/**'
       - 'src/API/ReservationSystem.sln'
       - '.github/workflows/template-api-build.yml'
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [ main ]
     paths:
       - 'src/API/Template/**'
       - 'src/API/ReservationSystem.sln'
