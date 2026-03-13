@@ -9,12 +9,10 @@ namespace ReservationSystem.Template.TemplateApi.Functions;
 public class HealthCheckFunction
 {
     private readonly ILogger<HealthCheckFunction> _logger;
-    private readonly TimetableService _timetableService;
 
-    public HealthCheckFunction(ILogger<HealthCheckFunction> logger, TimetableService timetableService)
+    public HealthCheckFunction(ILogger<HealthCheckFunction> logger)
     {
         _logger = logger;
-        _timetableService = timetableService;
     }
 
     [Function("HealthCheck")]
@@ -25,7 +23,7 @@ public class HealthCheckFunction
 
         try
         {
-            // Check if we can access timetables directory
+            // Check if we can access directory
             // TODO implement a call to a service inside this function to check it works
             
             var healthStatus = new
