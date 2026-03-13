@@ -5,15 +5,20 @@ Create a new Azure Functions microservice API for the Reservation System, based 
 ## Usage
 
 ```
-/new-api <ApiName> <EntityName>
+/new-api <ApiName> <EntityName> <ApiType>
 ```
 
 - `<ApiName>` — the domain name, PascalCase (e.g. `Offer`, `Order`, `Payment`, `Seat`)
 - `<EntityName>` — the primary entity for this domain, PascalCase (e.g. `Offer`, `Order`, `PaymentRecord`, `SeatMap`)
+- `<ApiType>` — the category directory for this API, either `Microservice` or `Orchestration`
 
-These are often the same word but can differ (e.g. API `Payment`, entity `PaymentRecord`).
+`<ApiName>` and `<EntityName>` are often the same word but can differ (e.g. API `Payment`, entity `PaymentRecord`).
 
-**Example:** `/new-api Offer Offer`
+`<ApiType>` controls which top-level grouping directory the API is placed under alongside `Template/`. Use `Microservice` for standalone domain APIs that own their data, and `Orchestration` for APIs that coordinate across multiple microservices.
+
+**Examples:**
+- `/new-api Offer Offer Microservice`
+- `/new-api Booking BookingRecord Orchestration`
 
 ---
 
@@ -23,9 +28,9 @@ You are creating a new API project by copying and adapting the TemplateApi struc
 
 ### Step 1 — Derive naming variants
 
-From the two arguments, derive all the naming forms you will need throughout the files:
+From the three arguments, derive all the naming forms you will need throughout the files:
 
-| Variant | Example (Offer / Offer) | Example (Payment / PaymentRecord) |
+| Variant | Example (Offer / Offer / Microservice) | Example (Payment / PaymentRecord / Orchestration) |
 |---|---|---|
 | Api name PascalCase | `Offer` | `Payment` |
 | Entity name PascalCase | `Offer` | `PaymentRecord` |
@@ -33,16 +38,19 @@ From the two arguments, derive all the naming forms you will need throughout the
 | Entity name kebab-case | `offer` | `payment-record` |
 | Entity name lower (schema) | `offer` | `payment` |
 | Table name (plural PascalCase) | `Offers` | `PaymentRecords` |
+| Api type directory | `Microservice` | `Orchestration` |
 
 ### Step 2 — Create the project directory
 
-Create the directory:
+Create the directory under the appropriate `<ApiType>` grouping folder:
 
 ```
-src/API/<ApiName>/<ApiName>Api/
+src/API/<ApiType>/<ApiName>/<ApiName>Api/
 ```
 
-e.g. `src/API/Offer/OfferApi/`
+e.g. `src/API/Microservice/Offer/OfferApi/` or `src/API/Orchestration/Booking/BookingApi/`
+
+The `<ApiType>` directory (`Microservice` or `Orchestration`) will be created automatically if it does not yet exist — it sits at the same level as the `Template/` directory.
 
 ### Step 3 — Create all files
 
@@ -157,8 +165,10 @@ Add a new `Project(...)...EndProject` block to `src/API/ReservationSystem.sln` u
 
 The path should be relative to the `.sln` file location:
 ```
-<ApiName>/<ApiName>Api/<ApiName>Api.csproj
+<ApiType>/<ApiName>/<ApiName>Api/<ApiName>Api.csproj
 ```
+
+e.g. `Microservice/Offer/OfferApi/OfferApi.csproj` or `Orchestration/Booking/BookingApi/BookingApi.csproj`
 
 ### Step 8 — Verify the structure
 
@@ -182,7 +192,8 @@ Push to the current working branch.
 ## Rules and constraints
 
 - **Never modify** `src/API/Template/` — it is the reference template, not a working API
-- **Namespaces** must follow the pattern `ReservationSystem.<ApiName>.<ApiName>Api.<Layer>.<SubLayer>`
+- **`<ApiType>` must be exactly** `Microservice` or `Orchestration` — reject any other value and ask the user to correct it
+- **Namespaces** must follow the pattern `ReservationSystem.<ApiName>.<ApiName>Api.<Layer>.<SubLayer>` — the `<ApiType>` directory is a filesystem grouping only and does not appear in namespaces
 - **No new NuGet packages** beyond what TemplateApi already uses unless the domain genuinely requires it
 - **Static mappers only** — do not introduce AutoMapper or other mapping libraries
 - **No MediatR** — handlers are registered directly in DI as scoped services
