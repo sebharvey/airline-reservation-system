@@ -14,7 +14,7 @@ Create a new Azure Functions microservice API for the Reservation System, based 
 
 `<ApiName>` and `<EntityName>` are often the same word but can differ (e.g. API `Payment`, entity `PaymentRecord`).
 
-`<ApiType>` controls which top-level grouping directory the API is placed under alongside `Template/`. Use `Microservice` for standalone domain APIs that own their data, and `Orchestration` for APIs that coordinate across multiple microservices.
+`<ApiType>` controls which top-level grouping directory the API is placed under alongside `Template/`. Use `Microservices` for standalone domain APIs that own their data, and `Orchestration` for APIs that coordinate across multiple microservices.
 
 **Examples:**
 - `/new-api Offer Offer Microservices`
@@ -30,7 +30,7 @@ You are creating a new API project by copying and adapting the TemplateApi struc
 
 From the three arguments, derive all the naming forms you will need throughout the files:
 
-| Variant | Example (Offer / Offer / Microservice) | Example (Payment / PaymentRecord / Orchestration) |
+| Variant | Example (Offer / Offer / Microservices) | Example (Payment / PaymentRecord / Orchestration) |
 |---|---|---|
 | Api name PascalCase | `Offer` | `Payment` |
 | Entity name PascalCase | `Offer` | `PaymentRecord` |
@@ -45,10 +45,10 @@ From the three arguments, derive all the naming forms you will need throughout t
 Create the directory under the appropriate `<ApiType>` grouping folder:
 
 ```
-src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>Api/
+src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>/
 ```
 
-e.g. `src/API/Microservices/ReservationSystem.Microservice.OfferApi/` or `src/API/Orchestration/ReservationSystem.Orchestration.BookingApi/`
+e.g. `src/API/Microservices/ReservationSystem.Microservices.Offer/` or `src/API/Orchestration/ReservationSystem.Orchestration.Booking/`
 
 The `<ApiType>` directory (`Microservices` or `Orchestration`) will be created automatically if it does not yet exist — it sits at the same level as the `Template/` directory.
 
@@ -56,9 +56,9 @@ The `<ApiType>` directory (`Microservices` or `Orchestration`) will be created a
 
 Create every file listed below. Base each file on the corresponding TemplateApi file at `src/API/Template/ReservationSystem.Template.TemplateApi/`, substituting:
 
-- Every occurrence of `ReservationSystem.Template.TemplateApi` → `ReservationSystem.<ApiType>.<ApiName>Api` (in namespaces, project file names)
-- Every occurrence of `Template` (as namespace segment) → `<ApiType>` (e.g. `Microservice`)
-- Every occurrence of `TemplateApi` (as namespace segment) → `<ApiName>Api` (e.g. `OfferApi`)
+- Every occurrence of `ReservationSystem.Template.TemplateApi` → `ReservationSystem.<ApiType>.<ApiName>` (in namespaces, project file names)
+- Every occurrence of `Template` (as namespace segment) → `<ApiType>` (e.g. `Microservices`)
+- Every occurrence of `TemplateApi` (as namespace segment) → `<ApiName>` (e.g. `Offer`)
 - Every occurrence of `TemplateItem` → `<EntityName>` (in class names, method names, variable names)
 - Every occurrence of `templateItem` → entity camelCase variant
 - Every occurrence of `template-items` → entity kebab-case plural in route paths
@@ -69,9 +69,9 @@ Create every file listed below. Base each file on the corresponding TemplateApi 
 #### Files to create
 
 ```
-ReservationSystem.<ApiType>.<ApiName>Api/
+ReservationSystem.<ApiType>.<ApiName>/
 │
-├── ReservationSystem.<ApiType>.<ApiName>Api.csproj
+├── ReservationSystem.<ApiType>.<ApiName>.csproj
 ├── Program.cs
 ├── host.json
 ├── local.settings.json
@@ -100,10 +100,7 @@ ReservationSystem.<ApiType>.<ApiName>Api/
 │           └── Delete<EntityName>Handler.cs
 │
 ├── Infrastructure/
-│   ├── Configuration/
-│   │   └── DatabaseOptions.cs
 │   └── Persistence/
-│       ├── SqlConnectionFactory.cs
 │       ├── Sql<EntityName>Repository.cs
 │       └── Scripts/
 │           └── schema.sql
@@ -126,7 +123,7 @@ ReservationSystem.<ApiType>.<ApiName>Api/
     └── <EntityName>Function.cs
 ```
 
-**Note:** `DatabaseOptions.cs` and `SqlConnectionFactory.cs` are identical across all APIs — copy them verbatim, changing only the namespace.
+**Note:** `DatabaseOptions` and `SqlConnectionFactory` come from the shared `ReservationSystem.Shared.Common` project — do not create duplicates. The project references this via `<ProjectReference>`.
 
 ### Step 4 — Domain-specific entity fields
 
@@ -167,25 +164,25 @@ Add a new `Project(...)...EndProject` block to `src/API/ReservationSystem.sln` u
 
 The path should be relative to the `.sln` file location:
 ```
-<ApiType>/ReservationSystem.<ApiType>.<ApiName>Api/ReservationSystem.<ApiType>.<ApiName>Api.csproj
+<ApiType>/ReservationSystem.<ApiType>.<ApiName>/ReservationSystem.<ApiType>.<ApiName>.csproj
 ```
 
-e.g. `Microservices/ReservationSystem.Microservice.OfferApi/ReservationSystem.Microservice.OfferApi.csproj` or `Orchestration/ReservationSystem.Orchestration.BookingApi/ReservationSystem.Orchestration.BookingApi.csproj`
+e.g. `Microservices/ReservationSystem.Microservices.Offer/ReservationSystem.Microservices.Offer.csproj` or `Orchestration/ReservationSystem.Orchestration.Booking/ReservationSystem.Orchestration.Booking.csproj`
 
 ### Step 8 — Create the GitHub Actions build workflow
 
 Create the file `.github/workflows/<api-name-lowercase>-api-build.yml` (e.g. `offer-api-build.yml`, `booking-api-build.yml`).
 
 The workflow must:
-- Be named `<ApiName> API Build`
+- Be named `<ApiName> API - Build`
 - Trigger on `push` and `pull_request` to `main` and `master`, path-filtered to:
-  - `src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>Api/**`
+  - `src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>/**`
   - `src/API/ReservationSystem.sln`
   - `.github/workflows/<api-name-lowercase>-api-build.yml`
 - Have a single job named `build` running on `ubuntu-latest` with these steps:
   1. `actions/checkout@v4`
   2. `actions/setup-dotnet@v4` with `dotnet-version: '8.0.x'`
-  3. `dotnet restore` targeting `src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>Api/ReservationSystem.<ApiType>.<ApiName>Api.csproj`
+  3. `dotnet restore` targeting `src/API/<ApiType>/ReservationSystem.<ApiType>.<ApiName>/ReservationSystem.<ApiType>.<ApiName>.csproj`
   4. `dotnet build` with `--configuration Release --no-restore`
   5. `dotnet publish` with `--configuration Release --no-build --output ./publish/<api-name-lowercase>-api`
   6. `actions/upload-artifact@v4` — artifact name `<api-name-lowercase>-api`, path `./publish/<api-name-lowercase>-api`, `retention-days: 7`
@@ -201,7 +198,7 @@ After creating all files, print a tree of the new project directory so the user 
 Stage all new files, including the workflow file. Commit with a message following this format:
 
 ```
-Add <ApiName>Api — clean architecture scaffold for <domain description>
+Add <ApiName> — clean architecture scaffold for <domain description>
 
 <2–3 bullet points describing the domain entity fields chosen and any
 notable decisions made for this specific domain>
@@ -215,7 +212,7 @@ Push to the current working branch.
 
 - **Never modify** `src/API/Template/` — it is the reference template, not a working API
 - **`<ApiType>` must be exactly** `Microservices` or `Orchestration` — reject any other value and ask the user to correct it
-- **Namespaces** must follow the pattern `ReservationSystem.<ApiType>.<ApiName>Api.<Layer>.<SubLayer>` — matching the project name convention (e.g. `ReservationSystem.Microservice.OfferApi.Domain.Entities`)
+- **Namespaces** must follow the pattern `ReservationSystem.<ApiType>.<ApiName>.<Layer>.<SubLayer>` — matching the project name convention (e.g. `ReservationSystem.Microservices.Offer.Domain.Entities`)
 - **No new NuGet packages** beyond what TemplateApi already uses unless the domain genuinely requires it
 - **Static mappers only** — do not introduce AutoMapper or other mapping libraries
 - **No MediatR** — handlers are registered directly in DI as scoped services
