@@ -1461,7 +1461,7 @@ sequenceDiagram
         SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price — shown for info only)
         RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
         OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
-        RetailAPI-->>Web: 200 OK — seat map (pricing displayed for reference but not charged at OLCI; merged by Retail API)
+        RetailAPI-->>Web: 200 OK — seat map with pricing for reference only (not charged at OLCI — merged by Retail API)
         Traveller->>Web: Select seat(s) for each PAX
         Web->>RetailAPI: PATCH /v1/checkin/{bookingRef}/seats (seatOfferIds per PAX)
         RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)

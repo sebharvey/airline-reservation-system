@@ -89,12 +89,6 @@ Orchestration APIs are the only layer permitted to call multiple microservices w
 - Timeouts configured on all outbound service calls; values fail fast enough to allow the orchestration layer to execute compensation before its own timeout.
 - Consumer-driven contract tests maintained by each orchestration API run in CI to catch microservice breaking changes before deployment.
 
-**Correct orchestration patterns (examples):**
-
-- **Schedule creation:** The Schedule API (not the Schedule MS) calls the Offer MS to create `FlightInventory` and `Fare` records for each operating date. The Schedule MS persists the schedule definition and returns operating dates and cabin/fare definitions to the Schedule API, which then iterates and calls the Offer MS directly.
-- **Manifest seatmap validation:** The orchestration layer (Retail API, Airport API, or Disruption API) validates a seat number against the active seatmap via the Seat MS before calling the Delivery MS to write a `FlightManifest` row. The Delivery MS trusts the seat number provided by its caller and does not call the Seat MS.
-- **Seat offer pricing:** The Retail API retrieves seatmap layout and pricing rules from the Seat MS, retrieves per-seat availability status from the Offer MS, and merges all three datasets into the seat offer response. The Offer MS does not call the Seat MS for pricing.
-
 ---
 
 ## Data Formats and Conventions

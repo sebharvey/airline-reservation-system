@@ -38,15 +38,9 @@ Complex synchronous flows are orchestrated by the API layer; decoupled downstrea
 
 Microservices must not call other microservices. This constraint applies without exception.
 
-Microservices are isolated units of capability. They expose APIs to be called by orchestration layers and publish events to the event bus for async consumption. A microservice must never call another microservice directly. All synchronous interactions between two or more microservices are the exclusive responsibility of the orchestration API layer. This applies without exception — including internal platform calls, validation lookups, and data enrichment.
+Direct service-to-service calls create tight coupling, make independent deployment harder, obscure system behaviour in distributed traces, and undermine the orchestration layer as the single point of control for cross-domain flows. All cross-microservice coordination must pass through an orchestration API.
 
-**Why this matters:** Direct service-to-service calls create tight coupling, make independent deployment harder, obscure system behaviour in distributed traces, and undermine the orchestration layer as the single point of control for cross-domain flows. All cross-microservice coordination must pass through an orchestration API.
-
-**Canonical examples of the correct pattern:**
-
-- **Schedule creation:** The Schedule API (not the Schedule MS) calls the Offer MS to create `FlightInventory` and `Fare` records. The Schedule MS persists the definition and returns operating dates to the Schedule API, which orchestrates all downstream Offer MS calls.
-- **Manifest seatmap validation:** The calling orchestration API (Retail API, Airport API, or Disruption API) validates seat numbers against the Seat MS before calling Delivery MS. The Delivery MS trusts its caller and never calls Seat MS.
-- **Seat offer pricing:** The Retail API retrieves seatmap layout and pricing from the Seat MS, retrieves availability from the Offer MS, and assembles the merged seat offer response. The Offer MS does not call the Seat MS.
+See the Integration Principles for the authoritative statement of this rule and its application to service-to-service communication patterns.
 
 ---
 
