@@ -8,17 +8,25 @@ namespace ReservationSystem.Template.TemplateApi.Functions;
 
 public class HelloWorldFunction
 {
-    private readonly ILogger<HealthCheckFunction> _logger;
+    private readonly ILogger<HelloWorldFunction> _logger;
 
-    public HealthCheckFunction(ILogger<HealthCheckFunction> logger)
+    public HelloWorldFunction(ILogger<HelloWorldFunction> logger)
     {
         _logger = logger;
     }
 
-    [Function("HealthCheck")]
+    [Function("HelloWorld")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/hello")] HttpRequestData req)
     {
-        
+        _logger.LogInformation("HelloWorld function triggered.");
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+
+        var result = new { Message = "Hello, World!" };
+        await response.WriteStringAsync(JsonSerializer.Serialize(result));
+
+        return response;
     }
 }
