@@ -1,7 +1,7 @@
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
+using Offer = ReservationSystem.Microservices.Offer.Domain.Entities.Offer;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Offer.Models.Database;

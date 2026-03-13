@@ -1,4 +1,4 @@
-using ReservationSystem.Microservices.Offer.Domain.Entities;
+using Offer = ReservationSystem.Microservices.Offer.Domain.Entities.Offer;
 
 namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 

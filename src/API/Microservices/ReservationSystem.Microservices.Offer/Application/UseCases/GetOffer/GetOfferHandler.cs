@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
+using Offer = ReservationSystem.Microservices.Offer.Domain.Entities.Offer;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.UseCases.GetOffer;

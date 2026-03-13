@@ -1,5 +1,5 @@
 using ReservationSystem.Microservices.Offer.Application.UseCases.CreateOffer;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
+using Offer = ReservationSystem.Microservices.Offer.Domain.Entities.Offer;
 using ReservationSystem.Microservices.Offer.Domain.ValueObjects;
 using ReservationSystem.Microservices.Offer.Models.Database;
 using ReservationSystem.Microservices.Offer.Models.Database.JsonFields;
