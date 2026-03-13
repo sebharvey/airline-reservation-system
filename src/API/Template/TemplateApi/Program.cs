@@ -14,7 +14,7 @@ var host = new HostBuilder()
         services.ConfigureFunctionsApplicationInsights();
         
         // Register TimetableService as singleton for caching
-        services.AddSingleton<TimetableService>();
+        //services.AddSingleton<ExampleService>();
     })
     .Build();
 
