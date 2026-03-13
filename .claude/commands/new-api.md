@@ -54,7 +54,7 @@ The `<ApiType>` directory (`Microservice` or `Orchestration`) will be created au
 
 ### Step 3 — Create all files
 
-Create every file listed below. Base each file on the corresponding TemplateApi file at `src/API/Template/TemplateApi/`, substituting:
+Create every file listed below. Base each file on the corresponding TemplateApi file at `src/API/Template/ReservationSystem.Template.TemplateApi/`, substituting:
 
 - Every occurrence of `Template` → `<ApiName>` (in namespaces, class names, folder paths)
 - Every occurrence of `TemplateItem` → `<EntityName>` (in class names, method names, variable names)
