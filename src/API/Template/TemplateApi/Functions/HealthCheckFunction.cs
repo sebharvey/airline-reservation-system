@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
 
@@ -43,11 +44,7 @@ public class HealthCheckFunction
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
             
-            await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
-            }));
+            await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, SharedJsonOptions.CamelCase));
 
             return response;
         }
@@ -73,11 +70,7 @@ public class HealthCheckFunction
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
             
-            await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true
-            }));
+            await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, SharedJsonOptions.CamelCase));
 
             return response;
         }

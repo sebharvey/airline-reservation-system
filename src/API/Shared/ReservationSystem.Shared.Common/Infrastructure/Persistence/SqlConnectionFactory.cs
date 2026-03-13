@@ -1,9 +1,9 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
-using ReservationSystem.Template.TemplateApi.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using System.Data;
 
-namespace ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
+namespace ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 /// <summary>
 /// Creates and opens SQL connections using the configured connection string.
