@@ -170,13 +170,33 @@ The path should be relative to the `.sln` file location:
 
 e.g. `Microservice/Offer/OfferApi/OfferApi.csproj` or `Orchestration/Booking/BookingApi/BookingApi.csproj`
 
-### Step 8 — Verify the structure
+### Step 8 — Create the GitHub Actions build workflow
+
+Create the file `.github/workflows/<api-name-lowercase>-api-build.yml` (e.g. `offer-api-build.yml`, `booking-api-build.yml`).
+
+The workflow must:
+- Be named `<ApiName> API Build`
+- Trigger on `push` and `pull_request` to `main` and `master`, path-filtered to:
+  - `src/API/<ApiType>/<ApiName>/**`
+  - `src/API/ReservationSystem.sln`
+  - `.github/workflows/<api-name-lowercase>-api-build.yml`
+- Have a single job named `build` running on `ubuntu-latest` with these steps:
+  1. `actions/checkout@v4`
+  2. `actions/setup-dotnet@v4` with `dotnet-version: '8.0.x'`
+  3. `dotnet restore` targeting `src/API/<ApiType>/<ApiName>/<ApiName>Api/<ApiName>Api.csproj`
+  4. `dotnet build` with `--configuration Release --no-restore`
+  5. `dotnet publish` with `--configuration Release --no-build --output ./publish/<api-name-lowercase>-api`
+  6. `actions/upload-artifact@v4` — artifact name `<api-name-lowercase>-api`, path `./publish/<api-name-lowercase>-api`, `retention-days: 7`
+
+Use the existing `.github/workflows/template-api-build.yml` as a reference for the exact YAML structure.
+
+### Step 9 — Verify the structure
 
 After creating all files, print a tree of the new project directory so the user can confirm everything looks right before committing.
 
-### Step 9 — Commit and push
+### Step 10 — Commit and push
 
-Stage all new files. Commit with a message following this format:
+Stage all new files, including the workflow file. Commit with a message following this format:
 
 ```
 Add <ApiName>Api — clean architecture scaffold for <domain description>
