@@ -260,26 +260,28 @@ sequenceDiagram
     ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
     ScheduleMS->>ScheduleMS: Persist FlightSchedule, ScheduleCabin, ScheduleFare records
     ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
+    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[], cabinFareDefinitions[]
 
     loop For each operating date × cabin
-        ScheduleMS->>OfferMS: POST /v1/flights (flightNumber, departureDate, origin, destination, aircraftType, cabinCode, totalSeats)
+        ScheduleAPI->>OfferMS: POST /v1/flights (flightNumber, departureDate, origin, destination, aircraftType, cabinCode, totalSeats)
         OfferMS->>OfferMS: Insert offer.FlightInventory (SeatsAvailable = TotalSeats, SeatsHeld = 0, SeatsSold = 0)
-        OfferMS-->>ScheduleMS: 201 Created — inventoryId
+        OfferMS-->>ScheduleAPI: 201 Created — inventoryId
 
         loop For each fare defined for this cabin
-            ScheduleMS->>OfferMS: POST /v1/flights/{inventoryId}/fares (fareBasisCode, fareFamily, bookingClass, baseFareAmount, taxAmount, isRefundable, isChangeable)
+            ScheduleAPI->>OfferMS: POST /v1/flights/{inventoryId}/fares (fareBasisCode, fareFamily, bookingClass, baseFareAmount, taxAmount, isRefundable, isChangeable)
             OfferMS->>OfferMS: Insert offer.Fare linked to InventoryId
-            OfferMS-->>ScheduleMS: 201 Created — fareId
+            OfferMS-->>ScheduleAPI: 201 Created — fareId
         end
     end
 
+    ScheduleAPI->>ScheduleMS: PATCH /v1/schedules/{scheduleId} (flightsCreated=N)
     ScheduleMS->>ScheduleMS: Update FlightsCreated count on FlightSchedule record
-    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, flightsCreated
+    ScheduleMS-->>ScheduleAPI: 200 OK
     ScheduleAPI-->>OpsApp: 201 Created — scheduleId, flightsCreated
     OpsApp-->>OpsUser: Schedule created — N flights added to inventory
 ```
 
-*Ref: schedule creation — schedule definition persisted and bulk flight inventory generated in the Offer domain*
+*Ref: schedule creation — Schedule API orchestrates: Schedule MS persists the schedule and returns operating dates, Schedule API calls Offer MS directly to create FlightInventory and Fare records, then updates the FlightsCreated count via Schedule MS*
 
 ---
 
@@ -559,9 +561,11 @@ sequenceDiagram
         Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
         RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
         SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
+        RetailAPI->>SeatMS: GET /v1/seat-pricing?aircraftType={aircraftType}
+        SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price)
         RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
-        OfferMS-->>RetailAPI: 200 OK — seat offers per selectable seat (SeatOfferId, price, availability status)
-        RetailAPI-->>Web: 200 OK — seat map with pricing and availability
+        OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
+        RetailAPI-->>Web: 200 OK — seat map with pricing and availability (merged by Retail API)
         Traveller->>Web: Select seat(s) for each PAX
         Web->>RetailAPI: PUT /v1/basket/{basketId}/seats (seatOfferIds per PAX per flight)
         RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/seats (seatOfferIds, PAX assignments)
@@ -679,8 +683,8 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Order MS publishes `OrderConfirmed` event to the event bus
 
 - **Manifest population** (Retail API → Delivery MS):
-  - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment
-  - Delivery MS validates each seat number against the active seatmap before writing (calls Seat MS)
+  - Retail API validates each seat number against the active seatmap via the Seat MS before calling Delivery MS
+  - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment, passing seat numbers that have already been validated
 
 - **Ancillary settlement** (if seats or bags were selected during the bookflow):
   - Ancillary payments are authorised during the bookflow basket-confirm step, **before** order confirmation is written, so that all payment authorisations are in place when the order is created
@@ -1453,9 +1457,11 @@ sequenceDiagram
         Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
         RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
         SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
+        RetailAPI->>SeatMS: GET /v1/seat-pricing?aircraftType={aircraftType}
+        SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price — shown for info only)
         RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
-        OfferMS-->>RetailAPI: 200 OK — seat offers (SeatOfferId, price shown for info only, availability status)
-        RetailAPI-->>Web: 200 OK — seat map (pricing displayed for reference but not charged at OLCI)
+        OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
+        RetailAPI-->>Web: 200 OK — seat map (pricing displayed for reference but not charged at OLCI; merged by Retail API)
         Traveller->>Web: Select seat(s) for each PAX
         Web->>RetailAPI: PATCH /v1/checkin/{bookingRef}/seats (seatOfferIds per PAX)
         RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
@@ -1540,7 +1546,7 @@ The Delivery microservice is responsible for assembling this string at the point
 The Delivery domain's `FlightManifest` table holds one row per passenger per flight segment — populated at booking confirmation and updated on post-purchase seat changes.
 
 - Provides a queryable view of passenger load per flight — used for gate management, check-in verification, IROPS, and APIS submissions.
-- Seat number integrity enforced at the application layer: Delivery MS validates `SeatNumber` against the active seatmap (via Seat MS) before any insert or update.
+- Seat number integrity enforced at the orchestration layer: the calling orchestration API (Retail API, Airport API, or Disruption API) validates `SeatNumber` against the active seatmap via the Seat MS before calling the Delivery MS. The Delivery MS trusts the seat number provided by its caller.
 
 #### `delivery.FlightManifest`
 
@@ -1565,7 +1571,7 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 
 > **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
-> **Seatmap validation:** The Delivery microservice must call `GET /v1/seatmap/{aircraftType}` on the Seat microservice and confirm the `SeatNumber` exists in the returned cabin layout before writing any `FlightManifest` row. If the seat is not present on the active seatmap, the write must be rejected with an appropriate error. This check applies to both initial inserts (at booking confirmation) and updates (at seat changes).
+> **Seatmap validation:** The orchestration layer is responsible for validating the `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery microservice. The Delivery MS trusts the seat number provided by its caller. This validation responsibility applies to both initial writes (at booking confirmation) and updates (at seat changes) — the orchestration API (Retail API, Airport API, or Disruption API) must call `GET /v1/seatmap/{aircraftType}` on the Seat MS and confirm the seat number exists in the returned cabin layout before calling Delivery MS. If the seat is not present on the active seatmap, the orchestration layer must reject the request before it reaches the Delivery MS.
 
 ## Disruption API
 
@@ -1753,8 +1759,8 @@ Ancillary products may be purchased at three points in the customer journey:
 The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing rules — its sole responsibility is serving the **physical cabin layout**.
 
 - Provides cabin configuration, seat positions, seat attributes (class, position, extra legroom), and position-based pricing rules.
-- Does **not** generate seat offers, assign `SeatOfferId` values, or manage availability/inventory — those belong to the Offer MS.
-- When a channel requests a seatmap, the Retail API combines the Seat MS layout response with the Offer MS seat offers (pricing + availability) before returning to the channel.
+- Does **not** generate seat offers, assign `SeatOfferId` values, or manage availability/inventory — availability belongs to the Offer MS; `SeatOfferId` generation and the merged seat offer response belong to the Retail API orchestration layer.
+- When a channel requests a seatmap, the Retail API retrieves the seatmap layout and pricing rules from the Seat MS, retrieves per-seat availability status from the Offer MS, and merges all three datasets before returning the seat offer response to the channel.
 
 Seat prices are fleet-wide and position-based (not per flight):
 
@@ -1764,11 +1770,11 @@ Seat prices are fleet-wide and position-based (not per flight):
 | Aisle | £50.00 |
 | Middle | £20.00 |
 
-Business Class seat selection is included in the fare with no ancillary charge. The `SeatOfferId` returned by the Offer MS is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer.
+Business Class seat selection is included in the fare with no ancillary charge. The `SeatOfferId` is generated by the Offer MS based on `InventoryId` + `SeatNumber` (data it owns independently, without needing to call the Seat MS). It is returned to the channel as part of the merged seat offer response assembled by the Retail API, and is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer.
 
 #### Retrieve Seatmap Layout
 
-The Seat microservice returns the physical cabin layout only. Seat offers (with `SeatOfferId`, price, and availability per seat) are a separate concern served by the Offer microservice via `GET /v1/flights/{flightId}/seat-offers`. The Retail API combines both responses before returning the seatmap to the channel.
+The Seat microservice returns the physical cabin layout and seat pricing rules. Seat availability (with `SeatOfferId` and availability status per seat) is a separate concern served by the Offer microservice via `GET /v1/flights/{flightId}/seat-offers` — the Offer MS returns availability status only and does not call the Seat MS for pricing. The Retail API retrieves layout and pricing from the Seat MS, availability from the Offer MS, and merges all three datasets before returning the seat offer response to the channel.
 
 ```mermaid
 sequenceDiagram
@@ -1782,13 +1788,18 @@ sequenceDiagram
     SeatDB-->>SeatMS: seatmap rows, cabin zones, seat attributes
     SeatMS-->>RetailAPI: 200 OK — seatmap definition (layout, cabin config, seat metadata)
 
-    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
-    OfferMS-->>RetailAPI: 200 OK — seat offers (SeatOfferId, price, availability status per selectable seat)
+    RetailAPI->>SeatMS: GET /v1/seat-pricing?aircraftType={aircraftType}
+    SeatMS->>SeatDB: SELECT SeatPricing WHERE isActive = 1
+    SeatDB-->>SeatMS: pricing rows (cabinCode, seatPosition, price)
+    SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price per cabin/position)
 
-    Note over RetailAPI: Merge layout with seat offers before returning to channel
+    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
+    OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
+
+    Note over RetailAPI: Merge seatmap layout + pricing rules + availability into seat offer response before returning to channel
 ```
 
-*Ref: ancillary seat - seatmap layout retrieval merged with live seat offers and pricing*
+*Ref: ancillary seat - Retail API retrieves seatmap layout and pricing from Seat MS, seat availability from Offer MS, then merges all three datasets into the seat offer response*
 
 #### Post-Sale Seat Selection
 
@@ -1819,9 +1830,11 @@ sequenceDiagram
     Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
     RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
     SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
+    RetailAPI->>SeatMS: GET /v1/seat-pricing?aircraftType={aircraftType}
+    SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price)
     RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
-    OfferMS-->>RetailAPI: 200 OK — seat offers (SeatOfferId, price, availability status per seat)
-    RetailAPI-->>Web: 200 OK — seat map with pricing and availability
+    OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
+    RetailAPI-->>Web: 200 OK — seat map with pricing and availability (merged by Retail API)
 
     Traveller->>Web: Select seat(s) for each PAX
 
@@ -1900,7 +1913,7 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 > **Pricing scope:** Pricing is fleet-wide and applied uniformly across all aircraft and routes. Business Class and First Class seats (cabin codes `J` and `F`) are excluded from `SeatPricing` — selection is included in the fare with no ancillary charge.
 > **Example seed data:** `('W', 'Window', 'GBP', 70.00)` · `('W', 'Aisle', 'GBP', 50.00)` · `('W', 'Middle', 'GBP', 20.00)` · `('Y', 'Window', 'GBP', 70.00)` · `('Y', 'Aisle', 'GBP', 50.00)` · `('Y', 'Middle', 'GBP', 20.00)`.
 
-> **Seat offer generation (Offer MS responsibility):** When the Offer microservice receives a `GET /v1/flights/{flightId}/seat-offers` request, it queries `seat.SeatPricing` (via the Seat microservice) to get the position-to-price mapping for the relevant `cabinCode`, combines this with real-time seat availability from `offer.FlightInventory`, and generates a `SeatOfferId` (a deterministic UUID based on `SeatmapId` + `SeatNumber` + current pricing version) for each selectable, available seat. These `SeatOfferIds` are short-lived and should be treated as valid only for the duration of the current session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
+> **Seat offer generation (Retail API responsibility):** When a channel requests a seatmap with pricing and availability, the Retail API calls the Seat MS for the seatmap layout and seat pricing rules (from `seat.SeatPricing`), calls the Offer MS for per-seat availability status only (`GET /v1/flights/{flightId}/seat-offers` returns available, held, or sold status per seat — no pricing), and merges all three datasets (layout + pricing + availability) into the seat offer response returned to the channel. The `SeatOfferId` is generated by the Offer MS based solely on data it owns — `InventoryId` + `SeatNumber` — and does not require knowledge of `SeatmapId` or the current pricing version. These `SeatOfferIds` are short-lived and should be treated as valid only for the duration of the current session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
 
 **Example `CabinLayout` JSON document**
 
@@ -2124,7 +2137,7 @@ The JSON is structured as an ordered array of cabins, each containing a column c
 }
 ```
 
-> **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is not stored here and is not returned by the Seat microservice; it is provided by the Offer microservice via `GET /v1/flights/{flightId}/seat-offers` and merged into the seatmap response by the Retail API. Pricing (`SeatOfferId` and price) is similarly provided by the Offer MS and never embedded in `CabinLayout`.
+> **Note:** `isSelectable` reflects whether a seat is physically available for selection (i.e. not a structural no-fly zone, crew seat, or permanently blocked position). Real-time occupancy — whether a seat has been sold or held on a specific flight — is not stored here and is not returned by the Seat microservice; it is provided by the Offer microservice via `GET /v1/flights/{flightId}/seat-offers` (availability status only) and merged into the seatmap response by the Retail API. Seat pricing is sourced from `seat.SeatPricing` via the Seat MS (not the Offer MS) and is never embedded in `CabinLayout`. `SeatOfferId` values are generated by the Offer MS based on `InventoryId` + `SeatNumber`. The Retail API merges layout, pricing, and availability before returning to the channel.
 
 ---
 
@@ -2929,9 +2942,9 @@ The Identity microservice exposes authentication and credential management endpo
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
 - **Basket lifecycle:** The basket is the authoritative pre-sale state and lives entirely in the Order DB (`order.Basket`). It is created at the start of checkout, accumulates flight offers, seat offers, and PAX details, and is hard-deleted on successful order confirmation. If abandoned or expired, a background job releases held inventory and marks the basket `Expired`. The `TicketingTimeLimit` (default 24 hours, configurable via `order.BasketConfig`) is the latest time by which payment must complete; the `ExpiresAt` is the latest time the basket itself is considered valid. Both are evaluated before authorisation is attempted.
 - **Payment DB:** The Payment microservice owns its own `payment.*` schema. The `PaymentReference` (e.g. `AXPAY-0001`) is the shared key between the Payment DB and the Order microservice — it is stored on each `orderItem` in `OrderData` to link order lines to their payment transactions. Multiple `PaymentReference` values may exist per booking (one per ancillary payment type). The full card token used during authorisation is never persisted; only `CardLast4` and `CardType` are stored.
-- **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice does not embed pricing in its seatmap response; instead, the Offer microservice reads `seat.SeatPricing` when handling `GET /v1/flights/{flightId}/seat-offers` and derives `SeatOfferId` (a deterministic UUID based on `SeatmapId` + `SeatNumber` + current pricing version) and price for each selectable seat. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
+- **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice exposes pricing rules via its own API; the Retail API retrieves both the seatmap layout and pricing rules from the Seat MS, then retrieves per-seat availability status from the Offer MS (`GET /v1/flights/{flightId}/seat-offers` returns availability status only — available, held, or sold — with no pricing data), and merges all three datasets before returning the seat offer response to the channel. The Offer MS does not call the Seat MS. `SeatOfferId` is generated by the Offer MS based on `InventoryId` + `SeatNumber` (data it owns independently) and does not require `SeatmapId` or pricing version. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
 - **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
-- **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the Delivery microservice must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling the Seat microservice. Any seat number not present on the seatmap must be rejected. This validation applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
+- **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the orchestration layer (Retail API, Airport API, or Disruption API) must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling `GET /v1/seatmap/{aircraftType}` on the Seat microservice. Any seat number not present on the active seatmap must be rejected by the orchestration layer before the Delivery MS is called. The Delivery MS trusts the seat number provided by its caller and does not call the Seat MS. This validation responsibility applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
 - **Disruption API idempotency:** The Disruption API must store a log of processed `disruptionEventId` values from the FOS and de-duplicate repeat submissions. The FOS is an external system and may retry events on network failure; duplicate processing of the same cancellation or delay event would result in corrupt order state.
 - **IROPS fare override:** The Order microservice must recognise a `reason=FlightCancellation` flag on rebook requests originating from the Disruption API and waive fare change restrictions regardless of the original fare conditions. This override must be logged on the order history for audit purposes.
 - **Disruption rebooking prioritisation:** Cancellation rebooking is processed in priority order (cabin class → loyalty tier → booking date). The Disruption API is responsible for sorting the affected passenger list before iterating. This ordering must be preserved in the processing queue even for large passenger loads handled asynchronously.
