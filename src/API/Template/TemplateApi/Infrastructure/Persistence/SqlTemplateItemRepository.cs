@@ -3,10 +3,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReservationSystem.Template.TemplateApi.Domain.Entities;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
-using ReservationSystem.Template.TemplateApi.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Template.TemplateApi.Models.Database;
 using ReservationSystem.Template.TemplateApi.Models.Database.JsonFields;
 using ReservationSystem.Template.TemplateApi.Models.Mappers;
+using ReservationSystem.Shared.Common.Infrastructure.Persistence;
+using ReservationSystem.Shared.Common.Json;
 using System.Text.Json;
 
 namespace ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
@@ -29,11 +31,6 @@ public sealed class SqlTemplateItemRepository : ITemplateItemRepository
     private readonly SqlConnectionFactory _connectionFactory;
     private readonly DatabaseOptions _options;
     private readonly ILogger<SqlTemplateItemRepository> _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
 
     public SqlTemplateItemRepository(
         SqlConnectionFactory connectionFactory,
@@ -133,7 +130,7 @@ public sealed class SqlTemplateItemRepository : ITemplateItemRepository
         if (!string.IsNullOrWhiteSpace(record.Attributes))
         {
             attributes = JsonSerializer.Deserialize<TemplateItemAttributes>(
-                record.Attributes, JsonOptions);
+                record.Attributes, SharedJsonOptions.CamelCase);
         }
 
         return TemplateItemMapper.ToDomain(record, attributes);
@@ -142,7 +139,7 @@ public sealed class SqlTemplateItemRepository : ITemplateItemRepository
     private static object MapToParameters(TemplateItem item)
     {
         var attributes = TemplateItemMapper.ToAttributes(item);
-        var attributesJson = JsonSerializer.Serialize(attributes, JsonOptions);
+        var attributesJson = JsonSerializer.Serialize(attributes, SharedJsonOptions.CamelCase);
 
         return new
         {

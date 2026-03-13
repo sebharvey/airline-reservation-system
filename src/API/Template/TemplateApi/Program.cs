@@ -9,8 +9,8 @@ using ReservationSystem.Template.TemplateApi.Application.UseCases.DeleteTemplate
 using ReservationSystem.Template.TemplateApi.Application.UseCases.GetAllTemplateItems;
 using ReservationSystem.Template.TemplateApi.Application.UseCases.GetTemplateItem;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
-using ReservationSystem.Template.TemplateApi.Infrastructure.Configuration;
-using ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
+using ReservationSystem.Shared.Common.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()

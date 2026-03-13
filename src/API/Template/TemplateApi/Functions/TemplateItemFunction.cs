@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Template.TemplateApi.Application.UseCases.CreateTemplateItem;
 using ReservationSystem.Template.TemplateApi.Application.UseCases.DeleteTemplateItem;
 using ReservationSystem.Template.TemplateApi.Application.UseCases.GetAllTemplateItems;
@@ -25,11 +27,6 @@ public sealed class TemplateItemFunction
     private readonly CreateTemplateItemHandler _createHandler;
     private readonly DeleteTemplateItemHandler _deleteHandler;
     private readonly ILogger<TemplateItemFunction> _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
 
     public TemplateItemFunction(
         GetTemplateItemHandler getHandler,
@@ -56,7 +53,7 @@ public sealed class TemplateItemFunction
     {
         var items = await _getAllHandler.HandleAsync(new GetAllTemplateItemsQuery(), cancellationToken);
         var body = TemplateItemMapper.ToResponse(items);
-        return await OkJsonAsync(req, body);
+        return await req.OkJsonAsync(body);
     }
 
     // -------------------------------------------------------------------------
@@ -74,7 +71,7 @@ public sealed class TemplateItemFunction
         if (item is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
-        return await OkJsonAsync(req, TemplateItemMapper.ToResponse(item));
+        return await req.OkJsonAsync(TemplateItemMapper.ToResponse(item));
     }
 
     // -------------------------------------------------------------------------
@@ -91,16 +88,16 @@ public sealed class TemplateItemFunction
         try
         {
             request = await JsonSerializer.DeserializeAsync<CreateTemplateItemRequest>(
-                req.Body, JsonOptions, cancellationToken);
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
         }
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Invalid JSON in CreateTemplateItem request");
-            return await BadRequestAsync(req, "Invalid JSON in request body.");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
         }
 
         if (request is null || string.IsNullOrWhiteSpace(request.Name))
-            return await BadRequestAsync(req, "The 'name' field is required.");
+            return await req.BadRequestAsync("The 'name' field is required.");
 
         var command = TemplateItemMapper.ToCommand(request);
         var created = await _createHandler.HandleAsync(command, cancellationToken);
@@ -109,7 +106,7 @@ public sealed class TemplateItemFunction
         var httpResponse = req.CreateResponse(HttpStatusCode.Created);
         httpResponse.Headers.Add("Content-Type", "application/json");
         httpResponse.Headers.Add("Location", $"/v1/template-items/{created.Id}");
-        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(response, JsonOptions));
+        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(response, SharedJsonOptions.CamelCase));
         return httpResponse;
     }
 
@@ -130,24 +127,4 @@ public sealed class TemplateItemFunction
             : req.CreateResponse(HttpStatusCode.NotFound);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static async Task<HttpResponseData> OkJsonAsync<T>(HttpRequestData req, T body)
-    {
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", "application/json");
-        await response.WriteStringAsync(JsonSerializer.Serialize(body, JsonOptions));
-        return response;
-    }
-
-    private static async Task<HttpResponseData> BadRequestAsync(HttpRequestData req, string message)
-    {
-        var response = req.CreateResponse(HttpStatusCode.BadRequest);
-        response.Headers.Add("Content-Type", "application/json");
-        await response.WriteStringAsync(
-            JsonSerializer.Serialize(new { error = message }, JsonOptions));
-        return response;
-    }
 }

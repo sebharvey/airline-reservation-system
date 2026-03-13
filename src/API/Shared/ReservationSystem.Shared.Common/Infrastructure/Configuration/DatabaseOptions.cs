@@ -1,4 +1,4 @@
-namespace ReservationSystem.Template.TemplateApi.Infrastructure.Configuration;
+namespace ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 /// <summary>
 /// Strongly-typed options for SQL database connectivity.
