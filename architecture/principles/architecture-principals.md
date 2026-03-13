@@ -34,6 +34,16 @@ Complex synchronous flows are orchestrated by the API layer; decoupled downstrea
 
 ---
 
+## No Direct Microservice Communication
+
+Microservices must not call other microservices. This constraint applies without exception.
+
+Direct service-to-service calls create tight coupling, make independent deployment harder, obscure system behaviour in distributed traces, and undermine the orchestration layer as the single point of control for cross-domain flows. All cross-microservice coordination must pass through an orchestration API.
+
+See the Integration Principles for the authoritative statement of this rule and its application to service-to-service communication patterns.
+
+---
+
 ## IATA Standards Alignment
 
 The platform aligns to IATA ONE Order and NDC standards for interoperability and industry-standard retailing semantics.
