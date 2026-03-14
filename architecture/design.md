@@ -4,16 +4,181 @@
 
 A Modern Airline Retailing system built on offer and order capability, structured around the following core capability domains (these names must be used uniformly in code, schemas, APIs, and documentation).
 
-- **Offer** — returns availability and pricing for flights.
-- **Order** — creates, modifies, and cancels orders; takes payment; manages all post-booking changes including PAX updates, seat changes, and cancellations.
-- **Payment** — payment orchestration supporting card payments (and future methods e.g. PayPal, ApplePay); handles multiple separate authorisations and settlements per booking.
-- **Delivery** — departure-facing layer: online check-in (OLCI), IROPS, seat allocation, gate management.
-- **Customer** — loyalty accounts: customer profile, points balances, and transaction history.
-- **Identity** — stores and manages login credentials for customer accounts.
-- **Accounting** — financial records: orders, refunds, balance sheets, and P&L.
-- **Seat** — seatmap definitions per aircraft type; provides layouts and pricing to other services and channels (does not manage selection or inventory).
-- **Schedule** — manages flight schedule definitions and generates individual flight inventory records in the Offer domain for every operating date within the schedule window.
-- **Disruption** — orchestrates IROPS event responses (delays and cancellations) notified by the Flight Operations System (FOS).
+## Domain Capability Model
+
+- **Retailing** — channel-facing sales and booking orchestration
+  - Search & Offers
+    - Direct flight search (slice-based)
+    - Connecting itinerary assembly (hub-and-spoke via LHR)
+    - Stored offer snapshots (price integrity)
+    - Offer expiry and consumption
+  - Basket Management
+    - Basket creation and lifecycle
+    - Passenger details capture
+    - Ticketing time limit enforcement
+    - Basket expiry and inventory release
+  - Order Confirmation (Bookflow)
+    - Payment authorisation and settlement
+    - E-ticket issuance
+    - Inventory hold and sell
+    - Manifest population
+  - Ancillary Selection
+    - Seat selection (bookflow and post-sale)
+    - Bag selection (bookflow and post-sale)
+    - SSR selection and management
+  - Manage Booking
+    - Passenger detail updates and e-ticket reissuance
+    - Voluntary flight change with reshop and add-collect
+    - Voluntary cancellation and refund initiation
+  - Check-In
+    - Booking retrieval and APIS capture
+    - Seat assignment (no charge at OLCI)
+    - Bag purchase at check-in
+    - Boarding card and BCBP barcode generation
+
+- **Offer** — flight inventory, pricing, and stored offer management
+  - Flight Inventory
+    - Inventory creation per flight, cabin, and date
+    - Seat hold, sell, and release
+    - Inventory cancellation (IROPS)
+  - Fares
+    - Fare definition and retrieval per inventory record
+    - Fare validity and conditions (refundable, changeable)
+  - Stored Offers
+    - Offer search and snapshot creation
+    - Offer retrieval and consumption control
+  - Seat Offers
+    - Per-seat availability and offer generation
+    - Seat reservation and status updates
+
+- **Order** — booking lifecycle and post-sale state management
+  - Basket
+    - Basket creation, accumulation, and confirmation
+    - Basket expiry and cleanup
+  - Confirmed Orders
+    - Order creation and retrieval
+    - Passenger updates
+    - Seat and bag order items
+    - SSR items and cut-off enforcement
+  - Post-Sale Changes
+    - Flight change (segment swap, add-collect recording)
+    - Cancellation and status update
+    - IROPS rebooking with fare override
+  - Check-In Recording
+    - APIS data capture and check-in status
+
+- **Payment** — payment authorisation, settlement, and refunds
+  - Authorisation & Settlement
+    - Card authorisation per payment type (fare, seat, bag, change)
+    - Settlement after order confirmation
+    - Partial and full refund processing
+  - Audit & Compliance
+    - Immutable payment event log
+    - PCI DSS scoping (card data isolation within Payment MS)
+
+- **Delivery** — travel document issuance and departure operations
+  - E-Ticketing
+    - E-ticket issuance, reissuance, and void
+    - IATA format compliance (932- prefix, per PAX per segment)
+  - Flight Manifest
+    - Manifest creation, update, and removal
+    - Check-in status recording
+    - SSR code propagation to manifest
+  - Boarding Cards
+    - Boarding card generation
+    - BCBP barcode string assembly (IATA Resolution 792)
+
+- **Seat** — seatmap definitions and fleet-wide seat pricing rules
+  - Seatmap Definitions
+    - Aircraft type and cabin layout management
+    - Seat attributes (position, type, selectability)
+  - Seat Pricing
+    - Position-based pricing rules (Window, Aisle, Middle)
+    - Business and First Class no-charge policy
+
+- **Bag** — checked baggage policy and ancillary pricing
+  - Bag Policy
+    - Free allowance by cabin class
+    - Weight limits per bag
+  - Bag Pricing & Offers
+    - Additional bag pricing by sequence
+    - Stored bag offer snapshots (price integrity)
+
+- **Schedule** — flight schedule definition and bulk inventory generation
+  - Schedule Management
+    - Schedule creation with route, times, days, aircraft, and window
+    - Operating date enumeration via DaysOfWeek bitmask
+  - Inventory Generation
+    - Bulk FlightInventory and Fare record creation in Offer domain
+    - FlightsCreated count tracking
+
+- **Disruption** — IROPS event orchestration across affected bookings
+  - Flight Delay
+    - Delay propagation to order segments and manifests
+    - Material schedule change e-ticket reissuance threshold
+  - Flight Cancellation
+    - Immediate inventory closure (off-sale)
+    - Affected order and manifest retrieval
+    - Replacement flight search (direct then connecting)
+    - Passenger rebooking with priority ordering
+    - E-ticket void, reissuance, and manifest recreation
+  - Reliability
+    - Idempotency via disruptionEventId deduplication
+    - Async processing for large passenger loads
+
+- **Loyalty** — loyalty programme membership, authentication, and points
+  - Registration & Verification
+    - Member enrolment (linked Identity and Customer creation)
+    - Email verification flow
+  - Authentication
+    - Login, token refresh, and logout
+    - Password reset with account enumeration protection
+  - Account Management
+    - Profile retrieval and update
+    - Two-step email address change
+  - Points & Tiers
+    - Points accrual from OrderConfirmed event
+    - Points balance and transaction history
+    - Tier configuration and evaluation
+
+- **Identity** — authentication credentials and session security
+  - Credential Management
+    - Account creation, deletion, and Argon2id password hashing
+    - Password reset with full session invalidation
+  - Session Management
+    - JWT access token issuance (15-min TTL)
+    - Refresh token rotation (single-use semantics)
+    - Logout and token revocation
+  - Email Verification
+    - Verification token generation and validation
+    - Email change with duplicate-address protection
+
+- **Customer** — loyalty profile, tier status, and points ledger
+  - Profile Management
+    - Customer creation and profile retrieval
+    - Profile field updates (name, DOB, nationality, language, phone)
+  - Points Ledger
+    - Append-only transaction log with running balance snapshot
+    - Points accrual, redemption, adjustment, and expiry
+  - Tier Management
+    - Tier configuration and threshold management
+    - Tier evaluation against TierProgressPoints
+
+- **Accounting** — financial records, revenue attribution, and refund tracking
+  - Revenue Recording
+    - Order and ancillary revenue capture via OrderConfirmed event
+    - Revenue attribution by type (fare, seat, bag)
+  - Refund Management
+    - Refund identification from OrderChanged/Cancelled events
+    - Refund processing and settlement tracking
+  - Reporting
+    - Balance sheet and P&L views
+    - Financial audit trail
+
+- **Operations** — flight schedule administration for operations staff
+  - Schedule Administration
+    - Schedule submission and validation
+    - Generated inventory count tracking and confirmation
 
 ## High level system architecture
 
