@@ -38,9 +38,9 @@ graph TB
         RETAIL_API[Retail API]
         LOYALTY_API[Loyalty API]
         AIRPORT_API[Airport API]
-        ACCOUNTING_API[Accounting API]
+        FINANCE_API[Finance API]
         DISRUPTION_API[Disruption API]
-        SCHEDULE_API[Schedule API]
+        OPERATIONS_API[Operations API]
     end
 
     subgraph Microservices
@@ -101,16 +101,16 @@ graph TB
     WEB & APP & NDC & KIOSK & CC & AIRPORT --> RETAIL_API
     WEB & APP & CC --> LOYALTY_API
     AIRPORT --> AIRPORT_API
-    ACCT_CH --> ACCOUNTING_API
-    OPS_APP --> SCHEDULE_API
+    ACCT_CH --> FINANCE_API
+    OPS_APP --> OPERATIONS_API
 
     %% Orchestration → Microservices
     RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT
     LOYALTY_API --> IDENTITY & CUSTOMER
     AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT
-    ACCOUNTING_API --> ACCOUNTING
+    FINANCE_API --> ACCOUNTING
     DISRUPTION_API --> OFFER & ORDER & DELIVERY
-    SCHEDULE_API --> SCHEDULE & OFFER
+    OPERATIONS_API --> SCHEDULE & OFFER
 
     %% Microservice → DB
     IDENTITY --> IDENTITY_DB
@@ -148,9 +148,9 @@ Key components:
   - Retail API (for web, app, NDC, kiosk, contact centre app, airport app)
   - Loyalty API (for web, app, contact centre)
   - Airport API (for Airport App)
-  - Accounting API (for accounting system app)
+  - Finance API (for accounting system app)
   - Disruption API (receives disruption events from the FOS and orchestrates the response across the Offer, Order, and Delivery microservices)
-  - Schedule API (receives schedule definitions from the Ops Admin App; creates the schedule record and generates bulk flight inventory and fares in the Offer domain)
+  - Operations API (receives schedule definitions from the Ops Admin App; creates the schedule record and generates bulk flight inventory and fares in the Offer domain)
 - Microservices (and their data-bound databases)
   - Offer
     - Inventory DB
@@ -250,7 +250,7 @@ The Schedule capability allows airline operations staff to define repeating flig
 sequenceDiagram
     actor OpsUser as Operations User
     participant OpsApp as Ops Admin App
-    participant ScheduleAPI as Schedule API
+    participant ScheduleAPI as Operations API
     participant ScheduleMS as Schedule [MS]
     participant OfferMS as Offer [MS]
 
@@ -281,7 +281,7 @@ sequenceDiagram
     OpsApp-->>OpsUser: Schedule created — N flights added to inventory
 ```
 
-*Ref: schedule creation — Schedule API orchestrates: Schedule MS persists the schedule and returns operating dates, Schedule API calls Offer MS directly to create FlightInventory and Fare records, then updates the FlightsCreated count via Schedule MS*
+*Ref: schedule creation — Operations API orchestrates: Schedule MS persists the schedule and returns operating dates, Operations API calls Offer MS directly to create FlightInventory and Fare records, then updates the FlightsCreated count via Schedule MS*
 
 ---
 
