@@ -1,5 +1,3 @@
-using ReservationSystem.Microservices.Offer.Domain.Entities;
-
 namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 /// <summary>
@@ -10,13 +8,13 @@ namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 /// </summary>
 public interface IOfferRepository
 {
-    Task<Offer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Entities.Offer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Offer>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Entities.Offer>> GetAllAsync(CancellationToken cancellationToken = default);
 
-    Task CreateAsync(Offer offer, CancellationToken cancellationToken = default);
+    Task CreateAsync(Entities.Offer offer, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(Offer offer, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Entities.Offer offer, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

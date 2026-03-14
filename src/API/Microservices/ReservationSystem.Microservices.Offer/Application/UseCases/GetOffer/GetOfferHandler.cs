@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.UseCases.GetOffer;
@@ -21,7 +20,7 @@ public sealed class GetOfferHandler
         _logger = logger;
     }
 
-    public async Task<Offer?> HandleAsync(
+    public async Task<Domain.Entities.Offer?> HandleAsync(
         GetOfferQuery query,
         CancellationToken cancellationToken = default)
     {

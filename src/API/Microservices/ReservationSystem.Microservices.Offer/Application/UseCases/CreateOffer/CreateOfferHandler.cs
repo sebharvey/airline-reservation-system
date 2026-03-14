@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Domain.ValueObjects;
 
@@ -22,7 +21,7 @@ public sealed class CreateOfferHandler
         _logger = logger;
     }
 
-    public async Task<Offer> HandleAsync(
+    public async Task<Domain.Entities.Offer> HandleAsync(
         CreateOfferCommand command,
         CancellationToken cancellationToken = default)
     {
@@ -32,7 +31,7 @@ public sealed class CreateOfferHandler
             command.IsChangeable,
             command.SeatsRemaining);
 
-        var offer = Offer.Create(
+        var offer = Domain.Entities.Offer.Create(
             command.FlightNumber,
             command.Origin,
             command.Destination,

@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Offer.Models.Database;
@@ -42,7 +41,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         _logger = logger;
     }
 
-    public async Task<Offer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.Offer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         const string sql = """
             SELECT Id, FlightNumber, Origin, Destination, DepartureAt,
@@ -59,7 +58,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         return record is null ? null : MapToDomain(record);
     }
 
-    public async Task<IReadOnlyList<Offer>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Domain.Entities.Offer>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         const string sql = """
             SELECT Id, FlightNumber, Origin, Destination, DepartureAt,
@@ -76,7 +75,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         return records.Select(MapToDomain).ToList().AsReadOnly();
     }
 
-    public async Task CreateAsync(Offer offer, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(Domain.Entities.Offer offer, CancellationToken cancellationToken = default)
     {
         const string sql = """
             INSERT INTO [offer].[Offers]
@@ -95,7 +94,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         _logger.LogDebug("Inserted Offer {Id} into [offer].[Offers]", offer.Id);
     }
 
-    public async Task UpdateAsync(Offer offer, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Domain.Entities.Offer offer, CancellationToken cancellationToken = default)
     {
         const string sql = """
             UPDATE [offer].[Offers]
@@ -135,7 +134,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     // Private mapping helpers
     // -------------------------------------------------------------------------
 
-    private static Offer MapToDomain(OfferRecord record)
+    private static Domain.Entities.Offer MapToDomain(OfferRecord record)
     {
         OfferAttributes? attributes = null;
 
@@ -148,7 +147,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         return OfferMapper.ToDomain(record, attributes);
     }
 
-    private static object MapToParameters(Offer offer)
+    private static object MapToParameters(Domain.Entities.Offer offer)
     {
         var attributes = OfferMapper.ToAttributes(offer);
         var attributesJson = JsonSerializer.Serialize(attributes, SharedJsonOptions.CamelCase);

@@ -1,5 +1,4 @@
 using ReservationSystem.Microservices.Offer.Application.UseCases.CreateOffer;
-using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.ValueObjects;
 using ReservationSystem.Microservices.Offer.Models.Database;
 using ReservationSystem.Microservices.Offer.Models.Database.JsonFields;
@@ -44,7 +43,7 @@ public static class OfferMapper
     // DB record + JSON field → Domain entity
     // -------------------------------------------------------------------------
 
-    public static Offer ToDomain(OfferRecord record, OfferAttributes? attributes)
+    public static Domain.Entities.Offer ToDomain(OfferRecord record, OfferAttributes? attributes)
     {
         var metadata = attributes is null
             ? OfferMetadata.Empty
@@ -54,7 +53,7 @@ public static class OfferMapper
                 attributes.IsChangeable,
                 attributes.SeatsRemaining);
 
-        return Offer.Reconstitute(
+        return Domain.Entities.Offer.Reconstitute(
             record.Id,
             record.FlightNumber,
             record.Origin,
@@ -73,7 +72,7 @@ public static class OfferMapper
     // Domain entity → HTTP response
     // -------------------------------------------------------------------------
 
-    public static OfferResponse ToResponse(Offer offer) =>
+    public static OfferResponse ToResponse(Domain.Entities.Offer offer) =>
         new()
         {
             Id = offer.Id,
@@ -96,14 +95,14 @@ public static class OfferMapper
             UpdatedAt = offer.UpdatedAt
         };
 
-    public static IReadOnlyList<OfferResponse> ToResponse(IEnumerable<Offer> offers) =>
+    public static IReadOnlyList<OfferResponse> ToResponse(IEnumerable<Domain.Entities.Offer> offers) =>
         offers.Select(ToResponse).ToList().AsReadOnly();
 
     // -------------------------------------------------------------------------
     // Domain entity → JSON field (for DB write)
     // -------------------------------------------------------------------------
 
-    public static OfferAttributes ToAttributes(Offer offer) =>
+    public static OfferAttributes ToAttributes(Domain.Entities.Offer offer) =>
         new()
         {
             BaggageAllowance = offer.Metadata.BaggageAllowance,
