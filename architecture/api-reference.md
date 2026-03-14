@@ -88,7 +88,7 @@
 
 ---
 
-## Schedule API
+## Operations API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
