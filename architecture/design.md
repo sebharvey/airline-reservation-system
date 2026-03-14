@@ -183,7 +183,7 @@ A Modern Airline Retailing system built on offer and order capability, structure
 ## High level system architecture
 
 ```mermaid
-graph TB
+graph LR
     subgraph ExternalSystems["External Systems"]
         FOS[✈️ Flight Operations System]
     end
@@ -253,10 +253,11 @@ graph TB
             SCHEDULE[Schedule]
             SCHEDULE_DB[(Schedule DB)]
         end
-    end
 
-    subgraph Events["Event Bus"]
-        EVT[Order Events]
+        subgraph Events["Event Bus"]
+            EVT[Order Events]
+        end
+
     end
 
     %% External → Orchestration
