@@ -9,6 +9,17 @@
         <a routerLink="/flight-status" routerLinkActive="active">Status</a>
         <a routerLink="/loyalty" routerLinkActive="active" class="nav-loyalty">Rewards</a>
       </div>
+      <button
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+        <span class="toggle-track" [class.is-dark]="theme.isDark()">
+          <span class="toggle-thumb"></span>
+        </span>
+      </button>
     </nav>
 
     <main class="content">

@@ -89,7 +89,7 @@
 .placeholder-details {
   width: 100%;
   max-width: 360px;
-  background: white;
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
