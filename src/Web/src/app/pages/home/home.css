@@ -5,6 +5,7 @@
   gap: 32px;
 }
 
+/* Hero */
 .hero {
   text-align: center;
   padding-top: 8px;
@@ -31,6 +32,205 @@ h1 {
   font-size: 1rem;
 }
 
+/* ── Search Panel ── */
+.search-panel {
+  width: 100%;
+  background: var(--bg-light);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.search-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  text-align: center;
+}
+
+/* Trip type toggle */
+.trip-type-toggle {
+  display: flex;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  width: fit-content;
+  align-self: center;
+}
+
+.trip-btn {
+  padding: 7px 22px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.trip-btn.active {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+/* Form layout */
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.age-note {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.field input {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: white;
+  transition: var(--transition);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--grad-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.field input:disabled {
+  background: #f0f0f0;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Hidden return date when one-way */
+.field-hidden {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Swap icon */
+.swap-icon {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  padding-bottom: 10px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Passenger counters */
+.passengers-row {
+  align-items: center;
+}
+
+.passenger-field {
+  align-items: center;
+  text-align: center;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+}
+
+.counter-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--grad-start);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.counter-btn:disabled {
+  color: var(--border);
+  cursor: default;
+}
+
+.counter-val {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Search button */
+.search-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 4px;
+}
+
+.search-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+}
+
+.search-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.search-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Quick Links ── */
 .quick-links {
   width: 100%;
   display: flex;
@@ -74,7 +274,17 @@ h1 {
   font-size: 1.2rem;
 }
 
-.help-text {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+/* Responsive */
+@media (max-width: 480px) {
+  .field-row {
+    flex-direction: column;
+  }
+
+  .swap-icon {
+    display: none;
+  }
+
+  .field-hidden {
+    display: none;
+  }
 }
