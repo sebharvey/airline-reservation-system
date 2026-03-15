@@ -5,34 +5,76 @@
     <p>View, change or cancel your reservation</p>
   </div>
 
-  <form class="form" (submit)="$event.preventDefault()">
+  <form class="form" (ngSubmit)="onSubmit()" #formEl="ngForm">
     <div class="field">
-      <label>Booking Reference</label>
-      <input type="text" placeholder="e.g. ABC123" maxlength="6" />
+      <label for="bookingRef">Booking Reference</label>
+      <input
+        id="bookingRef"
+        type="text"
+        placeholder="e.g. AB1234"
+        maxlength="8"
+        [ngModel]="bookingReference()"
+        (ngModelChange)="onReferenceInput($event)"
+        name="bookingRef"
+        autocomplete="off"
+      />
     </div>
+
     <div class="field">
-      <label>Last Name</label>
-      <input type="text" placeholder="Enter your last name" />
+      <label for="givenName">First Name</label>
+      <input
+        id="givenName"
+        type="text"
+        placeholder="Enter your first name"
+        [ngModel]="givenName()"
+        (ngModelChange)="givenName.set($event)"
+        name="givenName"
+        autocomplete="given-name"
+      />
     </div>
-    <button type="submit" class="btn-primary">Retrieve Booking</button>
+
+    <div class="field">
+      <label for="surname">Last Name</label>
+      <input
+        id="surname"
+        type="text"
+        placeholder="Enter your last name"
+        [ngModel]="surname()"
+        (ngModelChange)="surname.set($event)"
+        name="surname"
+        autocomplete="family-name"
+      />
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner">
+        <span class="error-icon">⚠️</span>
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <button
+      type="submit"
+      class="btn-primary"
+      [disabled]="!isFormValid || loading()"
+    >
+      @if (loading()) {
+        <span class="spinner"></span> Retrieving&hellip;
+      } @else {
+        Retrieve Booking
+      }
+    </button>
   </form>
 
-  <div class="options-grid">
-    <div class="option-card">
-      <span>✏️</span>
-      <span>Change Flight</span>
-    </div>
-    <div class="option-card">
-      <span>🪑</span>
-      <span>Select Seat</span>
-    </div>
-    <div class="option-card">
-      <span>🧳</span>
-      <span>Add Baggage</span>
-    </div>
-    <div class="option-card">
-      <span>❌</span>
-      <span>Cancel</span>
+  <div class="hint-section">
+    <p class="hint-title">Demo bookings</p>
+    <div class="hint-list">
+      @for (hint of demoHints; track hint.ref) {
+        <button type="button" class="hint-chip" (click)="fillDemo(hint)">
+          <span class="hint-ref">{{ hint.ref }}</span>
+          <span class="hint-name">{{ hint.name }}</span>
+        </button>
+      }
     </div>
   </div>
 </div>

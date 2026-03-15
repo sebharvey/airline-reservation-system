@@ -1,0 +1,291 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+/* ── Page Header ── */
+.page-header {
+  width: 100%;
+  text-align: center;
+}
+
+.back-link {
+  display: inline-block;
+  color: var(--grad-start);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  transition: opacity 0.2s;
+}
+
+.back-link:hover { opacity: 0.75; }
+
+.page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.step-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ── Flight Bag Section ── */
+.flight-bag-section {
+  width: 100%;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.flight-bag-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--white);
+  border-bottom: 1.5px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.flight-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--grad-start);
+}
+
+.flight-route {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.cabin-badge {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 10px;
+}
+
+/* ── Loading / Error ── */
+.loading-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 18px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--grad-start);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-card {
+  padding: 14px 18px;
+  color: #c0392b;
+  font-size: 0.85rem;
+}
+
+/* ── Free Allowance Banner ── */
+.free-allowance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(39, 174, 96, 0.06);
+  border-bottom: 1px solid var(--border);
+}
+
+.allowance-icon { font-size: 1.4rem; }
+
+.allowance-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.allowance-text strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.allowance-text span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Per-Passenger Bag Row ── */
+.pax-bag-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.pax-bag-row:last-child { border-bottom: none; }
+
+.pax-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 130px;
+  padding-top: 4px;
+}
+
+.pax-dot {
+  font-size: 0.5rem;
+  color: var(--grad-start);
+}
+
+.bag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.bag-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.18s;
+  min-width: 80px;
+  text-align: center;
+}
+
+.bag-option-btn:hover {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.04);
+}
+
+.bag-option-btn.selected {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  border-color: transparent;
+  color: white;
+}
+
+.bag-count-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.bag-price-label {
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+.bag-option-btn.selected .bag-price-label {
+  opacity: 0.9;
+}
+
+/* ── Cost Summary ── */
+.cost-summary {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.cost-summary strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ── Actions ── */
+.actions {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.btn-primary {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+}
+
+.btn-secondary {
+  padding: 12px 22px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+@media (max-width: 520px) {
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .pax-bag-row {
+    flex-direction: column;
+  }
+}

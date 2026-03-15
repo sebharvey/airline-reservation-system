@@ -1,0 +1,145 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Cancel Booking</h2>
+    <p>Review refund eligibility before confirming</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking details&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !successMessage()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Success -->
+  @if (successMessage()) {
+    <div class="success-section">
+      <div class="success-icon-wrap">&#10003;</div>
+      <h3>Booking Cancelled</h3>
+      <p>{{ successMessage() }}</p>
+
+      <div class="card cancellation-summary">
+        <div class="summary-row">
+          <span class="summary-label">Cancellation Reference</span>
+          <span class="summary-value mono">{{ cancellationRef() }}</span>
+        </div>
+        @if (refundAmount() > 0) {
+          <div class="summary-row">
+            <span class="summary-label">Refund Amount</span>
+            <span class="summary-value refund-amount">{{ formatCurrency(refundAmount(), refundCurrency()) }}</span>
+          </div>
+          <p class="refund-note">Your refund will appear on your original payment method within 5&ndash;10 business days.</p>
+        } @else {
+          <p class="refund-note no-refund">No refund was applicable for this booking.</p>
+        }
+      </div>
+
+      <a routerLink="/" class="btn-primary">Return to Home</a>
+    </div>
+  }
+
+  <!-- Main content -->
+  @if (!loading() && !successMessage() && order(); as o) {
+
+    <!-- Booking Summary -->
+    <div class="section">
+      <h3 class="section-title">Booking Summary</h3>
+      <div class="card summary-card">
+        <div class="summary-row">
+          <span class="summary-label">Reference</span>
+          <span class="summary-value mono">{{ o.bookingReference }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Passengers</span>
+          <span class="summary-value">{{ passengerSummary() }}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Route(s)</span>
+          <span class="summary-value">{{ routeSummary() }}</span>
+        </div>
+        @for (seg of o.flightSegments; track seg.segmentId) {
+          <div class="summary-row">
+            <span class="summary-label">{{ seg.flightNumber }}</span>
+            <span class="summary-value">{{ formatDateTime(seg.departureDateTime) }}</span>
+          </div>
+        }
+        <div class="summary-row summary-row--total">
+          <span class="summary-label">Total Paid</span>
+          <span class="summary-value total-paid">{{ formatCurrency(o.totalAmount, o.currencyCode) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund eligibility -->
+    <div class="section">
+      <h3 class="section-title">Refund Eligibility</h3>
+      @if (isRefundable()) {
+        <div class="refund-card card">
+          <div class="refund-header refund-header--eligible">
+            <span class="refund-icon">&#8617;</span>
+            <span>Partial or full refund available</span>
+          </div>
+          <div class="refund-detail-row">
+            <span>Refundable fare & services</span>
+            <span class="refund-pos">{{ formatCurrency(refundableAmount(), o.currencyCode) }}</span>
+          </div>
+          @if (nonRefundableAmount() > 0) {
+            <div class="refund-detail-row">
+              <span>Non-refundable items</span>
+              <span class="refund-neg">{{ formatCurrency(nonRefundableAmount(), o.currencyCode) }}</span>
+            </div>
+          }
+          <p class="refund-disclaimer">
+            Refund amounts are estimates and subject to airline cancellation policy. Final amount confirmed on processing.
+          </p>
+        </div>
+      } @else {
+        <div class="no-refund-card card">
+          <div class="refund-header refund-header--none">
+            <span class="refund-icon">&#9888;</span>
+            <span>Non-refundable booking</span>
+          </div>
+          <p class="refund-disclaimer">
+            Your fare type does not qualify for a refund. Cancelling this booking will result in no monetary return.
+            Consider changing your flight date instead.
+          </p>
+        </div>
+      }
+    </div>
+
+    <!-- Confirmation actions -->
+    <div class="section">
+      <div class="warning-box">
+        <span class="warning-icon">&#9888;</span>
+        <p>This action is permanent and cannot be undone. Your booking will be cancelled immediately.</p>
+      </div>
+
+      <div class="action-buttons">
+        <button
+          type="button"
+          class="btn-danger"
+          [disabled]="cancelling()"
+          (click)="confirmCancellation()"
+        >
+          @if (cancelling()) {
+            <span class="spinner"></span> Processing&hellip;
+          } @else {
+            Confirm Cancellation
+          }
+        </button>
+        <button type="button" class="btn-secondary" (click)="keepBooking()">
+          Keep My Booking
+        </button>
+      </div>
+    </div>
+  }
+</div>

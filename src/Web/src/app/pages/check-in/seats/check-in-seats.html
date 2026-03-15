@@ -1,0 +1,136 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Select Your Seat</h2>
+    <p>Seats are complimentary during online check-in</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Main content -->
+  @if (!loading() && order(); as o) {
+
+    <!-- Passenger tabs -->
+    <div class="section">
+      <h3 class="section-title">Passengers Checking In</h3>
+      <div class="passenger-tabs">
+        @for (pax of checkedInPassengers(); track pax.passengerId; let i = $index) {
+          <button
+            type="button"
+            class="pax-tab"
+            [class.pax-tab--active]="activePassengerIndex() === i"
+            (click)="selectPassenger(i)"
+          >
+            <span class="pax-tab-name">{{ pax.givenName }} {{ pax.surname }}</span>
+            <span class="pax-tab-seat">{{ getSeatLabel(pax.passengerId) }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Seatmap -->
+    <div class="section">
+      <h3 class="section-title">
+        {{ o.flightSegments[0]?.flightNumber }} &mdash;
+        {{ o.flightSegments[0]?.origin }} &#8594; {{ o.flightSegments[0]?.destination }}
+      </h3>
+
+      <div class="free-badge">
+        <span class="free-icon">&#10003;</span>
+        Seat selection is free during check-in
+      </div>
+
+      @if (seatmapLoading()) {
+        <div class="loading-state">
+          <span class="spinner-dark"></span>
+          <span>Loading seatmap&hellip;</span>
+        </div>
+      }
+
+      @if (!seatmapLoading() && activeCabin(); as cabin) {
+        <div class="card seatmap-wrap">
+          <!-- Legend -->
+          <div class="seatmap-legend">
+            <span class="legend-item"><span class="seat-demo seat-available"></span> Available</span>
+            <span class="legend-item"><span class="seat-demo seat-selected"></span> Selected</span>
+            <span class="legend-item"><span class="seat-demo seat-sold"></span> Taken</span>
+          </div>
+
+          <!-- Column headers -->
+          <div class="seatmap-grid">
+            <div class="col-header-row">
+              <span class="row-num-spacer"></span>
+              @for (col of cabin.columns; track col) {
+                @if (col === '_') {
+                  <span class="aisle-spacer"></span>
+                } @else {
+                  <span class="col-header">{{ col }}</span>
+                }
+              }
+            </div>
+
+            <!-- Seat rows -->
+            @for (row of seatRows(); track row.rowNumber) {
+              <div class="seat-row">
+                <span class="row-num">{{ row.rowNumber }}</span>
+                @for (seat of row.seats; track $index; let ci = $index) {
+                  @if (cabin.columns[ci] === '_') {
+                    <span class="aisle-spacer"></span>
+                  } @else if (!seat) {
+                    <span class="seat seat-empty"></span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="seat"
+                      [class.seat-available]="seat.availability === 'available' && !isSeatSelected(seat) && !isSeatTakenByOther(seat)"
+                      [class.seat-selected]="isSeatSelected(seat)"
+                      [class.seat-sold]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
+                      [class.seat-held]="seat.availability === 'held' && !isSeatSelected(seat)"
+                      [disabled]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
+                      [title]="seat.seatNumber + ' — ' + seat.position"
+                      (click)="selectSeat(seat)"
+                    >
+                      {{ seat.seatNumber }}
+                    </button>
+                  }
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Actions -->
+    <div class="action-buttons">
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="submitting()"
+        (click)="confirmAndContinue()"
+      >
+        @if (submitting()) {
+          <span class="spinner"></span> Saving&hellip;
+        } @else {
+          Continue to Boarding Pass
+        }
+      </button>
+      <button type="button" class="btn-secondary" [disabled]="submitting()" (click)="skip()">
+        Skip Seat Selection
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,119 @@
+<div class="page fade-in">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
+    <h1>Passenger Details</h1>
+    <p class="step-label">Step 1 of 4</p>
+  </div>
+
+  <!-- Ticketing Time Limit -->
+  <div class="time-limit-banner" *ngIf="countdown()">
+    <span class="time-icon">&#9201;</span>
+    <span>Reservation held for: <strong>{{ countdown() }}</strong></span>
+  </div>
+
+  <!-- Basket Summary -->
+  <div class="basket-summary" *ngIf="basket() as b">
+    <div class="summary-title">Your Itinerary</div>
+    <div class="flight-row" *ngFor="let fo of b.flightOffers">
+      <div class="flight-row-left">
+        <span class="flight-num">{{ fo.flightNumber }}</span>
+        <span class="flight-route">{{ fo.origin }} &#8594; {{ fo.destination }}</span>
+        <span class="flight-cabin">{{ fo.cabinName }}</span>
+      </div>
+      <div class="flight-row-right">
+        <span class="flight-time">{{ formatDateTime(fo.departureDateTime) }}</span>
+        <span class="flight-price">{{ fo.currency }} {{ fo.totalPrice | number:'1.2-2' }}</span>
+      </div>
+    </div>
+    <div class="summary-total">
+      <span>Total Fare</span>
+      <strong>{{ formatPrice(b.totalFareAmount, b.currency) }}</strong>
+    </div>
+  </div>
+
+  <!-- Passenger Forms -->
+  <div class="passenger-form-card" *ngFor="let form of forms(); let i = index; trackBy: trackByIndex">
+    <div class="passenger-form-header">
+      <span class="pax-icon">{{ form.type === 'ADT' ? '&#128100;' : '&#128102;' }}</span>
+      <span class="pax-label">{{ form.label }}</span>
+      <span class="pax-type-badge" [class.adt]="form.type === 'ADT'" [class.chd]="form.type === 'CHD'">
+        {{ form.type === 'ADT' ? 'Adult' : 'Child' }}
+      </span>
+    </div>
+
+    <div class="form-grid">
+      <!-- Given Name -->
+      <div class="field" [class.error]="submitted() && !form.givenName.trim()">
+        <label>First Name *</label>
+        <input type="text" [(ngModel)]="form.givenName" [name]="'givenName' + i"
+               placeholder="As on passport" autocomplete="given-name" />
+        <span class="field-error" *ngIf="submitted() && !form.givenName.trim()">Required</span>
+      </div>
+
+      <!-- Surname -->
+      <div class="field" [class.error]="submitted() && !form.surname.trim()">
+        <label>Last Name *</label>
+        <input type="text" [(ngModel)]="form.surname" [name]="'surname' + i"
+               placeholder="As on passport" autocomplete="family-name" />
+        <span class="field-error" *ngIf="submitted() && !form.surname.trim()">Required</span>
+      </div>
+
+      <!-- Date of Birth -->
+      <div class="field" [class.error]="submitted() && !form.dateOfBirth">
+        <label>Date of Birth *</label>
+        <input type="date" [(ngModel)]="form.dateOfBirth" [name]="'dob' + i"
+               [max]="form.type === 'ADT' ? maxAdultDob() : maxChildDob()"
+               [min]="form.type === 'ADT' ? minAdultDob() : ''" />
+        <span class="field-error" *ngIf="submitted() && !form.dateOfBirth">Required</span>
+      </div>
+
+      <!-- Gender -->
+      <div class="field" [class.error]="submitted() && !form.gender">
+        <label>Gender *</label>
+        <select [(ngModel)]="form.gender" [name]="'gender' + i">
+          <option value="">Select gender</option>
+          <option *ngFor="let g of genderOptions" [value]="g.value">{{ g.label }}</option>
+        </select>
+        <span class="field-error" *ngIf="submitted() && !form.gender">Required</span>
+      </div>
+
+      <!-- Loyalty Number (full width, optional) -->
+      <div class="field full-width">
+        <label>Loyalty Number <span class="optional">(optional)</span></label>
+        <input type="text" [(ngModel)]="form.loyaltyNumber" [name]="'loyalty' + i"
+               placeholder="e.g. AX123456" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Contact details - first adult only -->
+    <div class="contact-section" *ngIf="isFirstAdult(i)">
+      <div class="contact-section-title">Contact Details</div>
+      <p class="contact-note">Booking confirmation will be sent to these details.</p>
+      <div class="form-grid">
+        <div class="field" [class.error]="submitted() && !form.email.trim()">
+          <label>Email Address *</label>
+          <input type="email" [(ngModel)]="form.email" [name]="'email' + i"
+                 placeholder="you@example.com" autocomplete="email" />
+          <span class="field-error" *ngIf="submitted() && !form.email.trim()">Required</span>
+        </div>
+        <div class="field" [class.error]="submitted() && !form.phone.trim()">
+          <label>Phone Number *</label>
+          <input type="tel" [(ngModel)]="form.phone" [name]="'phone' + i"
+                 placeholder="+44 7700 900000" autocomplete="tel" />
+          <span class="field-error" *ngIf="submitted() && !form.phone.trim()">Required</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    <a routerLink="/" class="btn-secondary">Cancel</a>
+    <button class="btn-primary" (click)="onContinue()">
+      Continue to Seat Selection &#8250;
+    </button>
+  </div>
+
+</div>

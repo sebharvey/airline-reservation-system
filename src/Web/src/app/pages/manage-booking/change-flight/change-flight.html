@@ -1,0 +1,163 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Change Flight</h2>
+    <p>Select a new date and find an alternative flight</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking details&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !successMessage()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Success -->
+  @if (successMessage()) {
+    <div class="success-banner">
+      <span>&#10003;</span>
+      {{ successMessage() }}
+    </div>
+    <a routerLink="/manage-booking" class="btn-primary">Back to Manage Booking</a>
+  }
+
+  <!-- Main content -->
+  @if (!loading() && !successMessage() && order(); as o) {
+
+    <!-- Current flights -->
+    <div class="section">
+      <h3 class="section-title">Current Booking</h3>
+      @for (seg of changeableSegments(); track seg.segmentId) {
+        <button
+          type="button"
+          class="segment-card"
+          [class.segment-card--active]="selectedSegment()?.segmentId === seg.segmentId"
+          (click)="selectSegment(seg)"
+        >
+          <div class="seg-flight">{{ seg.flightNumber }}</div>
+          <div class="seg-route">
+            <span class="seg-code">{{ seg.origin }}</span>
+            <span class="seg-arrow">&#8594;</span>
+            <span class="seg-code">{{ seg.destination }}</span>
+          </div>
+          <div class="seg-time">{{ formatDateTime(seg.departureDateTime) }}</div>
+          @if (changeableSegments().length > 1) {
+            <span class="seg-select-hint">{{ selectedSegment()?.segmentId === seg.segmentId ? 'Selected' : 'Tap to select' }}</span>
+          }
+        </button>
+      }
+      @if (changeableSegments().length === 0) {
+        <div class="info-note">No changeable segments found on this booking.</div>
+      }
+    </div>
+
+    <!-- Date picker & search -->
+    @if (changeableSegments().length > 0) {
+      <div class="section">
+        <h3 class="section-title">New Travel Date</h3>
+        <div class="card date-search-card">
+          <div class="field">
+            <label for="newDate">Select Date</label>
+            <input
+              id="newDate"
+              type="date"
+              [min]="minDate"
+              [ngModel]="newDate()"
+              (ngModelChange)="newDate.set($event)"
+              name="newDate"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-primary search-btn"
+            [disabled]="!newDate() || !selectedSegment() || searching()"
+            (click)="searchFlights()"
+          >
+            @if (searching()) {
+              <span class="spinner"></span> Searching&hellip;
+            } @else {
+              Search Available Flights
+            }
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Flight offers -->
+    @if (flightOffers().length > 0) {
+      <div class="section">
+        <h3 class="section-title">Available Flights</h3>
+        @for (offer of flightOffers(); track offer.offerId) {
+          <button
+            type="button"
+            class="offer-card"
+            [class.offer-card--selected]="selectedOffer()?.offerId === offer.offerId"
+            (click)="selectOffer(offer)"
+          >
+            <div class="offer-header">
+              <span class="offer-flight">{{ offer.flightNumber }}</span>
+              <span class="offer-cabin">{{ offer.cabinName }}</span>
+              @if (offer.isRefundable) {
+                <span class="offer-tag tag-refundable">Refundable</span>
+              }
+              @if (offer.isChangeable) {
+                <span class="offer-tag tag-changeable">Changeable</span>
+              }
+            </div>
+            <div class="offer-route">
+              <div class="offer-point">
+                <span class="offer-code">{{ offer.origin }}</span>
+                <span class="offer-time">{{ formatDateTime(offer.departureDateTime) }}</span>
+              </div>
+              <div class="offer-duration">{{ formatDuration(offer.departureDateTime, offer.arrivalDateTime) }}</div>
+              <div class="offer-point offer-point--right">
+                <span class="offer-code">{{ offer.destination }}</span>
+                <span class="offer-time">{{ formatDateTime(offer.arrivalDateTime) }}</span>
+              </div>
+            </div>
+            <div class="offer-footer">
+              <span class="offer-seats">{{ offer.seatsAvailable }} seats left</span>
+              <span class="offer-price">{{ formatCurrency(offer.totalPrice, offer.currency) }}</span>
+            </div>
+            @if (selectedOffer()?.offerId === offer.offerId) {
+              <div class="offer-addcollect">{{ addCollectEstimate() }}</div>
+            }
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Confirm -->
+    @if (selectedOffer()) {
+      <div class="action-buttons">
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="confirming()"
+          (click)="confirmChange()"
+        >
+          @if (confirming()) {
+            <span class="spinner"></span> Processing&hellip;
+          } @else {
+            Confirm Flight Change
+          }
+        </button>
+        <a class="btn-secondary" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams">
+          Cancel
+        </a>
+      </div>
+    } @else {
+      <a class="back-link" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams">
+        &#8592; Back to Booking Details
+      </a>
+    }
+  }
+</div>

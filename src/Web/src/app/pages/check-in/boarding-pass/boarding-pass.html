@@ -1,0 +1,144 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Boarding Passes</h2>
+    <p>Check-in complete &mdash; your boarding passes are ready</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Generating your boarding passes&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !loading()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+  }
+
+  <!-- Boarding passes -->
+  @if (!loading() && boardingPasses().length > 0) {
+
+    <!-- Print / Done actions -->
+    <div class="top-actions no-print">
+      <button type="button" class="btn-outline-sm" (click)="print()">
+        &#128438; Print Boarding Passes
+      </button>
+    </div>
+
+    @for (bp of boardingPasses(); track bp.sequenceNumber) {
+      <div class="boarding-pass printable">
+
+        <!-- BP Header -->
+        <div class="bp-header">
+          <div class="bp-airline">&#9992; Apex Air</div>
+          <div class="bp-label">BOARDING PASS</div>
+        </div>
+
+        <!-- BP Body -->
+        <div class="bp-body">
+
+          <!-- Passenger name -->
+          <div class="bp-passenger">
+            <span class="bp-field-label">Passenger Name</span>
+            <span class="bp-name">{{ bp.surname | uppercase }}/{{ bp.givenName | uppercase }}</span>
+          </div>
+
+          <!-- Route -->
+          <div class="bp-route">
+            <div class="bp-airport">
+              <span class="bp-iata">{{ bp.origin }}</span>
+              <span class="bp-field-label">From</span>
+            </div>
+            <div class="bp-route-line">
+              <div class="bp-route-dash"></div>
+              <span class="bp-plane-icon">&#9992;</span>
+              <div class="bp-route-dash"></div>
+            </div>
+            <div class="bp-airport bp-airport--right">
+              <span class="bp-iata">{{ bp.destination }}</span>
+              <span class="bp-field-label">To</span>
+            </div>
+          </div>
+
+          <!-- Details grid -->
+          <div class="bp-details">
+            <div class="bp-detail">
+              <span class="bp-field-label">Flight</span>
+              <span class="bp-field-value">{{ bp.flightNumber }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Date</span>
+              <span class="bp-field-value">{{ formatDate(bp.departureDateTime) }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Departs</span>
+              <span class="bp-field-value bp-highlight">{{ formatTime(bp.departureDateTime) }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Boarding</span>
+              <span class="bp-field-value bp-highlight">{{ formatTime(bp.boardingTime) }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Gate</span>
+              <span class="bp-field-value bp-gate">{{ bp.gate }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Seat</span>
+              <span class="bp-field-value bp-seat">{{ bp.seatNumber }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Cabin</span>
+              <span class="bp-field-value">{{ cabinLabel(bp.cabinCode) }}</span>
+            </div>
+            <div class="bp-detail">
+              <span class="bp-field-label">Sequence</span>
+              <span class="bp-field-value bp-seq">{{ bp.sequenceNumber }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tear strip -->
+        <div class="bp-tear-strip">
+          <div class="tear-dots"></div>
+        </div>
+
+        <!-- Barcode section -->
+        <div class="bp-barcode-section">
+          <div class="bp-barcode-inner">
+            <!-- Simulated barcode bars -->
+            <div class="barcode-bars" title="{{ bp.bcbpBarcode }}">
+              @for (seg of barcodeSegments; track seg) {
+                <div class="bar"></div>
+              }
+            </div>
+            <div class="bcbp-text">{{ bp.bcbpBarcode }}</div>
+          </div>
+          <div class="bp-eticket">
+            <span class="bp-field-label">E-Ticket</span>
+            <span class="eticket-num">{{ bp.eTicketNumber }}</span>
+          </div>
+        </div>
+
+      </div>
+    }
+
+    <!-- Done button -->
+    <div class="done-actions no-print">
+      <a routerLink="/" class="btn-primary">Done &mdash; Return to Home</a>
+    </div>
+  }
+
+  <!-- No passes generated -->
+  @if (!loading() && !errorMessage() && boardingPasses().length === 0) {
+    <div class="no-passes">
+      <p>No boarding passes were generated. Please contact the airline.</p>
+      <a routerLink="/" class="back-link">Return to Home</a>
+    </div>
+  }
+</div>

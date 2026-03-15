@@ -18,6 +18,7 @@ h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 6px;
+  color: var(--text);
 }
 
 .page-header p {
@@ -25,6 +26,7 @@ h2 {
   font-size: 0.9rem;
 }
 
+/* ── Form ── */
 .form {
   display: flex;
   flex-direction: column;
@@ -37,27 +39,56 @@ h2 {
   gap: 6px;
 }
 
-label {
-  font-size: 0.85rem;
+.field label {
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-input {
-  padding: 12px 18px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-lg);
+.field input {
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-family: inherit;
+  color: var(--text);
+  background: var(--input-bg);
   outline: none;
-  transition: var(--transition);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-input:focus {
+.field input:focus {
   border-color: var(--grad-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
+/* ── Error ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+/* ── Primary Button ── */
 .btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 14px;
   border: none;
   border-radius: var(--radius-lg);
@@ -65,25 +96,105 @@ input:focus {
   color: var(--white);
   font-size: 1rem;
   font-weight: 600;
-  transition: var(--transition);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
-.btn-primary:active {
+.btn-primary:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.placeholder-note {
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Loading Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Info note ── */
+.info-note {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   background: var(--bg-light);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ── Demo Hints ── */
+.hint-section {
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.hint-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px 0;
+}
+
+.hint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.hint-chip:hover {
+  border-color: var(--grad-start);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
+}
+
+.hint-ref {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--grad-start);
+  min-width: 60px;
+  font-family: monospace;
+  letter-spacing: 0.06em;
+}
+
+.hint-name {
+  font-size: 0.88rem;
   color: var(--text-muted);
 }

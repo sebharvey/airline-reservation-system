@@ -135,3 +135,401 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
 }
+
+/* ── Search summary pills ── */
+.pill {
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Route arrow ── */
+.route-arrow {
+  display: inline-block;
+  margin: 0 6px;
+  color: var(--text-muted);
+}
+
+/* ── Section wrapper ── */
+.section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  flex-wrap: wrap;
+}
+
+.section-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.section-badge.outbound {
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--grad-start);
+}
+
+.section-badge.return {
+  background: rgba(118, 75, 162, 0.12);
+  color: var(--grad-end);
+}
+
+/* ── Loading spinner ── */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--grad-start);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Error card ── */
+.error-card {
+  width: 100%;
+  padding: 18px;
+  background: var(--bg-light);
+  border: 1.5px solid #e74c3c55;
+  border-radius: var(--radius-md);
+  color: #c0392b;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+/* ── Empty card ── */
+.empty-card {
+  width: 100%;
+  background: var(--bg-light);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-muted);
+}
+
+.empty-icon { font-size: 2.5rem; }
+
+/* ── Cabin group ── */
+.cabin-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cabin-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 0;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.cabin-icon { font-size: 1.1rem; }
+
+/* ── Offer Card ── */
+.offer-card {
+  width: 100%;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.offer-card:hover {
+  border-color: var(--grad-start);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.12);
+}
+
+.offer-card.selected {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.04);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.offer-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Flight times row ── */
+.flight-times {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.time {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.airport-code {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.duration-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.duration {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.duration-line {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  letter-spacing: -2px;
+}
+
+.direct-label {
+  font-size: 0.7rem;
+  color: #27ae60;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Offer meta (flight number, fare, aircraft) ── */
+.offer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.flight-num {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--grad-start);
+}
+
+.fare-family {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.aircraft {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── Badges ── */
+.offer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-refund {
+  background: rgba(39, 174, 96, 0.1);
+  color: #1a8a4a;
+}
+
+.badge-no-refund {
+  background: rgba(231, 76, 60, 0.08);
+  color: #c0392b;
+}
+
+.badge-change {
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+}
+
+.badge-seats {
+  background: rgba(243, 156, 18, 0.12);
+  color: #b7770d;
+}
+
+/* ── Offer right (price + button) ── */
+.offer-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.currency {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.price {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-per {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.btn-select {
+  padding: 9px 20px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.btn-select:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-select.btn-selected {
+  background: #27ae60;
+}
+
+/* ── Selected outbound banner (on return search screen) ── */
+.selected-banner {
+  width: 100%;
+  background: rgba(102, 126, 234, 0.06);
+  border: 1.5px solid var(--grad-start);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.selected-banner-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--grad-start);
+  flex-shrink: 0;
+}
+
+.selected-banner-detail {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.btn-change {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1.5px solid var(--grad-start);
+  border-radius: var(--radius-sm);
+  color: var(--grad-start);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-change:hover {
+  background: var(--grad-start);
+  color: white;
+}
+
+@media (max-width: 520px) {
+  .offer-card {
+    flex-direction: column;
+  }
+
+  .offer-right {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .flight-times {
+    flex-wrap: wrap;
+  }
+}

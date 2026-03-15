@@ -1,0 +1,82 @@
+<div class="page fade-in">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a routerLink="/booking/seats" class="back-link">&#8249; Back</a>
+    <h1>Baggage Allowance</h1>
+    <p class="step-label">Step 3 of 4 &nbsp;&middot;&nbsp; Optional</p>
+  </div>
+
+  <!-- Flight Sections -->
+  <div class="flight-bag-section" *ngFor="let entry of flightBagData()">
+
+    <!-- Flight Header -->
+    <div class="flight-bag-header">
+      <span class="flight-num">{{ entry.flightOffer.flightNumber }}</span>
+      <span class="flight-route">{{ entry.flightOffer.origin }} &#8594; {{ entry.flightOffer.destination }}</span>
+      <span class="cabin-badge">{{ entry.flightOffer.cabinName }}</span>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-wrap" *ngIf="entry.loading">
+      <div class="spinner"></div>
+      <p>Loading bag policy&hellip;</p>
+    </div>
+
+    <!-- Error -->
+    <div class="error-card" *ngIf="entry.error">{{ entry.error }}</div>
+
+    <!-- Policy + Selections -->
+    <ng-container *ngIf="!entry.loading && !entry.error && entry.policyResponse as policy">
+      <!-- Free allowance -->
+      <div class="free-allowance">
+        <span class="allowance-icon">&#128230;</span>
+        <div class="allowance-text">
+          <strong>{{ policy.policy.freeBagsIncluded }} free bag(s) included</strong>
+          <span>per passenger &nbsp;&middot;&nbsp; max {{ policy.policy.maxWeightKgPerBag }}kg each</span>
+        </div>
+      </div>
+
+      <!-- Per-passenger selections -->
+      <div class="pax-bag-row" *ngFor="let pax of passengers()">
+        <div class="pax-name">
+          <span class="pax-dot">&#9679;</span>
+          {{ pax.givenName }} {{ pax.surname || (pax.type === 'ADT' ? 'Adult' : 'Child') }}
+        </div>
+
+        <div class="bag-options">
+          <button
+            *ngFor="let count of getAdditionalBagOptions(policy.additionalBagOffers)"
+            class="bag-option-btn"
+            [class.selected]="isSelected(pax.passengerId, entry.flightOffer.basketItemId, count)"
+            (click)="selectBagCount(pax.passengerId, entry.flightOffer.basketItemId, policy.additionalBagOffers, count)">
+            <span class="bag-count-label">
+              {{ count === 0 ? 'No extras' : '+' + count + ' bag' + (count > 1 ? 's' : '') }}
+            </span>
+            <span class="bag-price-label" *ngIf="count > 0 && policy.additionalBagOffers.length > 0">
+              {{ policy.additionalBagOffers[0].currency }}
+              {{ ((policy.additionalBagOffers.find(o => o.bagSequence === count) || policy.additionalBagOffers[0])?.price ?? 0) * count | number:'1.2-2' }}
+            </span>
+            <span class="bag-price-label" *ngIf="count === 0">Included</span>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+
+  </div>
+
+  <!-- Total Bag Cost -->
+  <div class="cost-summary" *ngIf="totalBagCost() > 0">
+    <span>Additional Baggage Total</span>
+    <strong>{{ currency() }} {{ totalBagCost() | number:'1.2-2' }}</strong>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-secondary" (click)="onSkip()">Skip Baggage</button>
+    <button class="btn-primary" (click)="onContinue()">
+      Continue to Payment &#8250;
+    </button>
+  </div>
+
+</div>
