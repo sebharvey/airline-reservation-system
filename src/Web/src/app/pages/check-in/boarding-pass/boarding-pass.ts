@@ -1,5 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, OnInit, signal, computed } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { BoardingPass } from '../../../models/order.model';
@@ -12,47 +12,93 @@ import { BoardingPass } from '../../../models/order.model';
   styleUrl: './boarding-pass.css'
 })
 export class BoardingPassComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private retailApi = inject(RetailApiService);
+  boardingPasses = signal<BoardingPass[]>([]);
+  loading = signal(true);
+  errorMessage = signal('');
 
-  boardingPasses: BoardingPass[] = [];
-  loading = false;
-  error = '';
-  bookingRef = '';
+  bookingRef = signal('');
+  givenName = signal('');
+  surname = signal('');
+  passengerIds = signal<string[]>([]);
+
+  readonly groupedByPassenger = computed((): { name: string; passes: BoardingPass[] }[] => {
+    const passes = this.boardingPasses();
+    const map = new Map<string, { name: string; passes: BoardingPass[] }>();
+    for (const bp of passes) {
+      const key = bp.passengerId;
+      if (!map.has(key)) {
+        map.set(key, { name: `${bp.givenName} ${bp.surname}`, passes: [] });
+      }
+      map.get(key)!.passes.push(bp);
+    }
+    return Array.from(map.values());
+  });
+
+  readonly barcodeSegments = Array.from({ length: 40 }, (_, i) => i);
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private retailApi: RetailApiService
+  ) {}
 
   ngOnInit(): void {
-    const p = this.route.snapshot.queryParamMap;
-    this.bookingRef = p.get('bookingRef') ?? '';
-    const givenName = p.get('givenName') ?? '';
-    const surname = p.get('surname') ?? '';
-    const paxIds = (p.get('paxIds') ?? '').split(',').filter(Boolean);
+    this.route.queryParams.subscribe(params => {
+      const ref = params['bookingRef'] ?? '';
+      const gn = params['givenName'] ?? '';
+      const sn = params['surname'] ?? '';
+      const paxIds = (params['passengerIds'] ?? params['paxIds'] ?? '').split(',').filter(Boolean);
+      this.bookingRef.set(ref);
+      this.givenName.set(gn);
+      this.surname.set(sn);
+      this.passengerIds.set(paxIds);
 
-    if (!this.bookingRef) { this.router.navigate(['/check-in']); return; }
+      if (!ref) {
+        this.router.navigate(['/check-in']);
+        return;
+      }
+      this.submitCheckIn(ref, paxIds);
+    });
+  }
 
-    this.loading = true;
-    this.retailApi.submitCheckIn(this.bookingRef, paxIds).subscribe({
+  private submitCheckIn(ref: string, paxIds: string[]): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
+    this.retailApi.submitCheckIn(ref, paxIds).subscribe({
       next: (passes) => {
-        this.boardingPasses = passes;
-        this.loading = false;
+        this.boardingPasses.set(passes);
+        this.loading.set(false);
       },
-      error: (err) => {
-        this.error = err.message ?? 'Failed to generate boarding passes';
-        this.loading = false;
+      error: (err: { message?: string }) => {
+        this.errorMessage.set(err?.message ?? 'Check-in failed. Please try again or visit the airport desk.');
+        this.loading.set(false);
       }
     });
   }
 
   formatTime(dt: string): string {
-    return new Date(dt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    return new Date(dt).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
+    });
   }
 
   formatDate(dt: string): string {
-    return new Date(dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    return new Date(dt).toLocaleDateString('en-GB', {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+    });
   }
 
   cabinLabel(code: string): string {
-    const labels: Record<string, string> = { F: 'First', J: 'Business', W: 'Prem. Economy', Y: 'Economy' };
-    return labels[code] ?? code;
+    switch (code) {
+      case 'F': return 'First';
+      case 'J': return 'Business';
+      case 'W': return 'Premium Economy';
+      case 'Y': return 'Economy';
+      default: return code;
+    }
+  }
+
+  print(): void {
+    window.print();
   }
 }

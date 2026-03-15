@@ -40,6 +40,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: CheckInComponent },
       { path: 'details', loadComponent: () => import('./pages/check-in/details/check-in-details').then(m => m.CheckInDetailsComponent) },
+      { path: 'seats', loadComponent: () => import('./pages/check-in/seats/check-in-seats').then(m => m.CheckInSeatsComponent) },
       { path: 'boarding-pass', loadComponent: () => import('./pages/check-in/boarding-pass/boarding-pass').then(m => m.BoardingPassComponent) },
     ]
   },
