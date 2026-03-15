@@ -7,7 +7,7 @@ on:
     paths:
       - 'src/Web/**'
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [closed]
     branches:
       - main
     paths:
