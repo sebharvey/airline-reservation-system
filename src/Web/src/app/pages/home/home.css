@@ -275,9 +275,10 @@ h1 {
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .field-row {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .swap-icon {
@@ -286,5 +287,17 @@ h1 {
 
   .field-hidden {
     display: none;
+  }
+
+  .passengers-row {
+    align-items: stretch;
+  }
+
+  .passenger-field {
+    align-items: stretch;
+  }
+
+  .counter {
+    justify-content: center;
   }
 }
