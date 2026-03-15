@@ -55,7 +55,7 @@ h1 {
 /* Trip type toggle */
 .trip-type-toggle {
   display: flex;
-  background: white;
+  background: var(--white);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -121,7 +121,7 @@ h1 {
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   color: var(--text);
-  background: white;
+  background: var(--input-bg);
   transition: var(--transition);
   width: 100%;
   box-sizing: border-box;
@@ -134,7 +134,7 @@ h1 {
 }
 
 .field input:disabled {
-  background: #f0f0f0;
+  background: var(--input-disabled-bg);
   color: var(--text-muted);
   cursor: not-allowed;
 }
@@ -169,7 +169,7 @@ h1 {
   align-items: center;
   gap: 12px;
   justify-content: center;
-  background: white;
+  background: var(--white);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 6px 14px;

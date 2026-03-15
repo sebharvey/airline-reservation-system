@@ -12,11 +12,43 @@
   --border: #e0e0e0;
   --text: #333333;
   --text-muted: #666666;
+  --input-bg: #ffffff;
+  --input-disabled-bg: #f0f0f0;
   --radius-sm: 12px;
   --radius-md: 18px;
   --radius-lg: 25px;
   --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
   --transition: 0.25s ease;
+}
+
+/* ── Dark mode overrides ── */
+html.dark {
+  --white: #1e1e2e;
+  --bg-light: #27273a;
+  --border: #3a3a50;
+  --text: #e2e2f0;
+  --text-muted: #9494b0;
+  --input-bg: #2a2a3e;
+  --input-disabled-bg: #232334;
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Smooth theme transitions ── */
+html {
+  color-scheme: light dark;
+}
+
+body,
+.card,
+input,
+select,
+textarea,
+button {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 html, body {
@@ -26,6 +58,20 @@ html, body {
   color: var(--text);
   background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
   min-height: 100vh;
+}
+
+/* Dark body gradient */
+html.dark body {
+  background: linear-gradient(135deg, #1a1f4a 0%, #2d1b4e 100%);
+}
+
+/* ── Dark mode: ensure inputs & text use theme colors ── */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 a {
