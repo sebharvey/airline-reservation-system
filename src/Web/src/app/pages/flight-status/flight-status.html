@@ -1,29 +1,171 @@
 <div class="page fade-in">
   <div class="page-header">
-    <span class="page-icon">📡</span>
+    <span class="page-icon">&#128225;</span>
     <h2>Flight Status</h2>
     <p>Real-time updates on departures and arrivals</p>
   </div>
 
-  <div class="tabs">
-    <button class="tab active">By Flight Number</button>
-    <button class="tab">By Route</button>
-  </div>
+  <!-- Search Form -->
+  <form class="form" (submit)="$event.preventDefault(); search()">
+    <div class="field-row">
+      <div class="field">
+        <label for="flightNumber">Flight Number</label>
+        <input
+          id="flightNumber"
+          type="text"
+          placeholder="e.g. AX001"
+          [value]="flightNumber()"
+          (input)="setFlightNumber($any($event.target).value)"
+          autocomplete="off"
+          autocapitalize="characters"
+        />
+      </div>
+      <div class="field">
+        <label for="flightDate">Date <span class="optional">(optional)</span></label>
+        <input
+          id="flightDate"
+          type="date"
+          [value]="flightDate()"
+          (input)="setFlightDate($any($event.target).value)"
+        />
+      </div>
+    </div>
 
-  <form class="form" (submit)="$event.preventDefault()">
-    <div class="field">
-      <label>Flight Number</label>
-      <input type="text" placeholder="e.g. AP 421" />
-    </div>
-    <div class="field">
-      <label>Date</label>
-      <input type="date" />
-    </div>
-    <button type="submit" class="btn-primary">Check Status</button>
+    <button type="submit" class="btn-primary" [disabled]="loading() || !flightNumber().trim()">
+      @if (loading()) {
+        <span class="spinner"></span> Checking...
+      } @else {
+        Check Status
+      }
+    </button>
   </form>
 
-  <div class="status-placeholder">
-    <span class="status-icon">🛫</span>
-    <p>Enter a flight number to see live status</p>
+  <!-- Demo Hints -->
+  <div class="demo-hint">
+    <span class="hint-label">Try these flights</span>
+    <div class="demo-chips">
+      @for (fn of demoFlights; track fn) {
+        <button type="button" class="chip" (click)="fillDemo(fn)">{{ fn }}</button>
+      }
+    </div>
   </div>
+
+  <!-- Loading Spinner -->
+  @if (loading()) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Fetching live status...</p>
+    </div>
+  }
+
+  <!-- Not Found -->
+  @if (!loading() && notFound()) {
+    <div class="not-found-card">
+      <span class="not-found-icon">&#9888;</span>
+      <h3>No Flight Found</h3>
+      <p>No status information was found for <strong>{{ flightNumber() }}</strong>. Please check the flight number and try again.</p>
+      <p class="not-found-hint">Available flights: AX001, AX002, AX301, AX411</p>
+    </div>
+  }
+
+  <!-- Result Card -->
+  @if (!loading() && flightStatus()) {
+    <div class="result-card fade-in">
+
+      <!-- Card Header: Flight number + Status badge -->
+      <div class="result-header">
+        <div class="flight-id">
+          <span class="flight-number-label">{{ flightStatus()!.flightNumber }}</span>
+          <span class="aircraft-type">{{ flightStatus()!.aircraftType }}</span>
+        </div>
+        <span
+          class="status-badge"
+          [class]="getStatusCssClass(flightStatus()!.status)"
+        >{{ getStatusLabel(flightStatus()!.status) }}</span>
+      </div>
+
+      <!-- Route -->
+      <div class="route-section">
+        <div class="route-airport origin">
+          <span class="airport-code">{{ flightStatus()!.origin }}</span>
+          <span class="airport-name">{{ getAirportCity(flightStatus()!.origin) }}</span>
+        </div>
+        <div class="route-arrow">
+          <div class="route-line"></div>
+          <span class="route-plane">&#9992;</span>
+          <div class="route-line"></div>
+        </div>
+        <div class="route-airport destination">
+          <span class="airport-code">{{ flightStatus()!.destination }}</span>
+          <span class="airport-name">{{ getAirportCity(flightStatus()!.destination) }}</span>
+        </div>
+      </div>
+
+      <!-- Times -->
+      <div class="times-grid">
+        <div class="time-block">
+          <span class="time-label">Scheduled Departure</span>
+          <span class="time-value">{{ formatTime(flightStatus()!.scheduledDepartureDateTime) }}</span>
+          <span class="time-date">{{ formatDateTime(flightStatus()!.scheduledDepartureDateTime).split(',')[0] }}</span>
+          @if (isEstimatedDifferent(flightStatus()!.scheduledDepartureDateTime, flightStatus()!.estimatedDepartureDateTime)) {
+            <span class="estimated-time">
+              Est. {{ formatTime(flightStatus()!.estimatedDepartureDateTime!) }}
+            </span>
+          }
+        </div>
+        <div class="time-block">
+          <span class="time-label">Scheduled Arrival</span>
+          <span class="time-value">{{ formatTime(flightStatus()!.scheduledArrivalDateTime) }}</span>
+          <span class="time-date">{{ formatDateTime(flightStatus()!.scheduledArrivalDateTime).split(',')[0] }}</span>
+          @if (isEstimatedDifferent(flightStatus()!.scheduledArrivalDateTime, flightStatus()!.estimatedArrivalDateTime)) {
+            <span class="estimated-time">
+              Est. {{ formatTime(flightStatus()!.estimatedArrivalDateTime!) }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Delay Banner -->
+      @if (flightStatus()!.delayMinutes > 0) {
+        <div class="delay-banner">
+          <span class="delay-icon">&#9201;</span>
+          <span class="delay-text">Delayed by <strong>{{ flightStatus()!.delayMinutes }} minutes</strong></span>
+        </div>
+      }
+
+      <!-- Gate / Terminal / Aircraft -->
+      <div class="info-grid">
+        @if (flightStatus()!.terminal) {
+          <div class="info-item">
+            <span class="info-label">Terminal</span>
+            <span class="info-value">{{ flightStatus()!.terminal }}</span>
+          </div>
+        }
+        @if (flightStatus()!.gate) {
+          <div class="info-item">
+            <span class="info-label">Gate</span>
+            <span class="info-value gate-value">{{ flightStatus()!.gate }}</span>
+          </div>
+        }
+        @if (!flightStatus()!.gate && !flightStatus()!.terminal) {
+          <div class="info-item">
+            <span class="info-label">Gate / Terminal</span>
+            <span class="info-value info-tba">To be announced</span>
+          </div>
+        }
+        <div class="info-item">
+          <span class="info-label">Aircraft</span>
+          <span class="info-value">{{ flightStatus()!.aircraftType }}</span>
+        </div>
+      </div>
+
+      <!-- Status Message -->
+      <div class="status-message">
+        <span class="status-msg-icon">&#8505;</span>
+        <p>{{ flightStatus()!.statusMessage }}</p>
+      </div>
+
+    </div>
+  }
+
 </div>

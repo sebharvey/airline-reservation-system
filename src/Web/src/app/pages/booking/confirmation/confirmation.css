@@ -1,0 +1,327 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ── Success Banner ── */
+.success-banner {
+  width: 100%;
+  text-align: center;
+  padding: 2.5rem 1.5rem 2rem;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  border-radius: var(--radius-md);
+  color: white;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 auto 1rem;
+}
+
+.success-banner h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+.tagline { opacity: 0.9; margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+.booking-ref {
+  display: inline-flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ref-label {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.ref-value {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.booking-meta {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  margin-top: 6px;
+}
+
+.status-chip {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 99px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ── Section Card ── */
+.section-card {
+  width: 100%;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+}
+
+.section-card h2 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Flight Items ── */
+.flight-item {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.flight-item:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.flight-route {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.route-point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.airport-code { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.time { font-size: 0.88rem; color: var(--text-muted); }
+
+.route-line {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.flight-num { font-size: 0.78rem; color: var(--text-muted); }
+.line { width: 100%; height: 1px; background: var(--border); }
+.cabin { font-size: 0.75rem; color: var(--grad-start); font-weight: 600; }
+
+.flight-meta {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.seat-info,
+.eticket-info {
+  margin-top: 0.5rem;
+  font-size: 0.84rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.seat-info strong,
+.eticket-info strong {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.eticket-entry {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.eticket-pax { color: var(--text); font-weight: 500; }
+.eticket-mono {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--grad-start);
+  font-weight: 600;
+}
+
+/* ── Passengers ── */
+.passenger-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.passenger-row:last-child { border-bottom: none; }
+
+.pax-name { font-weight: 600; flex: 1; color: var(--text); }
+
+.badge,
+.loyalty-badge {
+  font-size: 0.72rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bg-light);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.loyalty-badge {
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+}
+
+/* ── Ancillary Rows ── */
+.ancillary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  flex-wrap: wrap;
+}
+
+.ancillary-row:last-child { border-bottom: none; }
+
+.ancillary-icon { font-size: 1rem; flex-shrink: 0; }
+.ancillary-desc { flex: 1; color: var(--text); }
+.ancillary-pax { color: var(--text-muted); font-size: 0.8rem; }
+.ancillary-price { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+/* ── Payment ── */
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  gap: 10px;
+}
+
+.pay-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-ref {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.pay-status-chip {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: rgba(39, 174, 96, 0.1);
+  color: #1a8a4a;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.payment-breakdown {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+}
+
+.total-row strong:last-child {
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.amount { font-weight: 600; }
+
+/* ── Action Links ── */
+.action-links {
+  width: 100%;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg-light);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}

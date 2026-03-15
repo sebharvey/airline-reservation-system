@@ -1,0 +1,165 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Passenger Details</h2>
+    <p>Confirm your details before checking in</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !loading()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+  }
+
+  <!-- Main content -->
+  @if (!loading() && !errorMessage() && order(); as o) {
+
+    <!-- Flight summary -->
+    <div class="section">
+      <h3 class="section-title">Your Flight</h3>
+      @for (seg of o.flightSegments; track seg.segmentId) {
+        <div class="card flight-summary">
+          <div class="flight-meta">
+            <span class="flight-num">{{ seg.flightNumber }}</span>
+            <span class="cabin-badge">{{ seg.cabinCode }}</span>
+          </div>
+          <div class="flight-route">
+            <div class="route-point">
+              <span class="route-code">{{ seg.origin }}</span>
+              <span class="route-time">{{ formatDateTime(seg.departureDateTime) }}</span>
+            </div>
+            <div class="route-arrow">&#8594;</div>
+            <div class="route-point route-point--right">
+              <span class="route-code">{{ seg.destination }}</span>
+              <span class="route-time">{{ formatDateTime(seg.arrivalDateTime) }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Passenger forms -->
+    <div class="section">
+      <h3 class="section-title">Select Passengers to Check In</h3>
+
+      @for (state of passengerStates(); track state.passengerId; let i = $index) {
+        <div class="pax-check-card card" [class.pax-check-card--selected]="state.selected">
+          <!-- Checkbox header -->
+          <div class="pax-check-header" (click)="togglePassenger(i)">
+            <div class="checkbox-wrap">
+              <div class="checkbox" [class.checkbox--checked]="state.selected">
+                @if (state.selected) { <span class="check-mark">&#10003;</span> }
+              </div>
+            </div>
+            <div class="pax-check-info">
+              <span class="pax-check-name">{{ state.givenName }} {{ state.surname }}</span>
+              <span class="pax-check-type">{{ state.passengerType === 'ADT' ? 'Adult' : 'Child' }}</span>
+            </div>
+          </div>
+
+          <!-- Travel document fields -->
+          @if (state.selected) {
+            <div class="doc-fields">
+              <div class="doc-fields-title">Travel Document</div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Document Type</label>
+                  <select
+                    [ngModel]="state.travelDocument.type"
+                    (ngModelChange)="updateDocField(i, 'type', $event)"
+                    [name]="'docType-' + state.passengerId"
+                  >
+                    @for (dt of documentTypes; track dt.value) {
+                      <option [value]="dt.value">{{ dt.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Document Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. PA1234567"
+                    [ngModel]="state.travelDocument.number"
+                    (ngModelChange)="updateDocField(i, 'number', $event)"
+                    [name]="'docNum-' + state.passengerId"
+                  />
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Issuing Country</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. GBR"
+                    maxlength="3"
+                    [ngModel]="state.travelDocument.issuingCountry"
+                    (ngModelChange)="updateDocField(i, 'issuingCountry', $event.toUpperCase())"
+                    [name]="'issuingCountry-' + state.passengerId"
+                  />
+                </div>
+                <div class="field">
+                  <label>Nationality</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. GBR"
+                    maxlength="3"
+                    [ngModel]="state.travelDocument.nationality"
+                    (ngModelChange)="updateDocField(i, 'nationality', $event.toUpperCase())"
+                    [name]="'nationality-' + state.passengerId"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Expiry Date</label>
+                <input
+                  type="date"
+                  [ngModel]="state.travelDocument.expiryDate"
+                  (ngModelChange)="updateDocField(i, 'expiryDate', $event)"
+                  [name]="'expiry-' + state.passengerId"
+                />
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Actions -->
+    <div class="action-buttons">
+      @if (!hasSeats()) {
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="!canProceed()"
+          (click)="proceedToSeats()"
+        >
+          Continue to Seat Selection
+        </button>
+      }
+      <button
+        type="button"
+        class="btn-primary"
+        [class.btn-outline]="!hasSeats()"
+        [disabled]="!canProceed()"
+        (click)="proceedToBoardingPass()"
+      >
+        Proceed to Boarding Pass
+      </button>
+    </div>
+
+    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+  }
+</div>

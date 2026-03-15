@@ -1,0 +1,71 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">&#11088;</span>
+    <h2>Apex Rewards</h2>
+    <p>Sign in to your loyalty account</p>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault(); onSubmit()">
+    <div class="field">
+      <label for="email">Email Address</label>
+      <input
+        id="email"
+        type="email"
+        placeholder="you@example.com"
+        [value]="email()"
+        (input)="setEmail($any($event.target).value)"
+        autocomplete="email"
+      />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="password-wrapper">
+        <input
+          id="password"
+          [type]="showPassword() ? 'text' : 'password'"
+          placeholder="Enter your password"
+          [value]="password()"
+          (input)="setPassword($any($event.target).value)"
+          autocomplete="current-password"
+        />
+        <button type="button" class="toggle-pw" (click)="toggleShowPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+          {{ showPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+    </div>
+
+    <a class="forgot-link" [routerLink]="['/loyalty/password-reset']">Forgot password?</a>
+
+    @if (errorMessage()) {
+      <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="loading()">
+      @if (loading()) {
+        <span class="spinner"></span> Signing in...
+      } @else {
+        Sign In
+      }
+    </button>
+  </form>
+
+  <div class="divider"><span>or</span></div>
+
+  <a [routerLink]="['/loyalty/register']" class="btn-outline">Join Apex Rewards</a>
+
+  <div class="demo-hint">
+    <span class="hint-label">Demo credentials</span>
+    <p>Use <strong>demo&#64;apexair.com</strong> / <strong>Password1</strong> to log in</p>
+  </div>
+
+  <div class="perks">
+    <p class="perks-title">Member benefits</p>
+    <ul>
+      <li><span class="check">&#10004;</span> Earn points on every flight</li>
+      <li><span class="check">&#10004;</span> Priority boarding &amp; lounge access</li>
+      <li><span class="check">&#10004;</span> Exclusive member fares</li>
+      <li><span class="check">&#10004;</span> Tier upgrades: Blue, Silver, Gold, Platinum</li>
+    </ul>
+  </div>
+</div>

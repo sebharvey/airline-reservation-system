@@ -1,0 +1,195 @@
+<div class="page fade-in">
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking details&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !loading()) {
+    <div class="error-banner">
+      <span class="error-icon">&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+    <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
+  }
+
+  <!-- Order loaded -->
+  @if (order(); as o) {
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-row">
+        <div>
+          <h2>Booking {{ o.bookingReference }}</h2>
+          <p class="created-at">Booked {{ formatDate(o.createdAt) }}</p>
+        </div>
+        <span class="status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
+      </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="action-cards">
+      @if (canChangeSeat()) {
+        <button type="button" class="action-card" (click)="navigateToSeat()">
+          <span class="action-icon">&#128186;</span>
+          <div class="action-body">
+            <span class="action-title">Change Seat</span>
+            <span class="action-desc">Select a different seat for your flight</span>
+          </div>
+          <span class="action-arrow">&#8250;</span>
+        </button>
+      }
+      @if (canChangeFlight()) {
+        <button type="button" class="action-card" (click)="navigateToChangeFlight()">
+          <span class="action-icon">&#9992;</span>
+          <div class="action-body">
+            <span class="action-title">Change Flight</span>
+            <span class="action-desc">Move to a different departure date</span>
+          </div>
+          <span class="action-arrow">&#8250;</span>
+        </button>
+      }
+      @if (canCancel()) {
+        <button type="button" class="action-card action-card--danger" (click)="navigateToCancel()">
+          <span class="action-icon">&#10006;</span>
+          <div class="action-body">
+            <span class="action-title">Cancel Booking</span>
+            <span class="action-desc">Request a refund and cancel your reservation</span>
+          </div>
+          <span class="action-arrow">&#8250;</span>
+        </button>
+      }
+    </div>
+
+    <!-- Flight Segments -->
+    <div class="section">
+      <h3 class="section-title">Flights</h3>
+      @for (sd of segmentDisplays(); track sd.segment.segmentId) {
+        <div class="card segment-card">
+          <div class="segment-header">
+            <span class="flight-number">{{ sd.segment.flightNumber }}</span>
+            <span class="cabin-badge">{{ sd.segment.cabinCode }}</span>
+            <span class="aircraft-type">{{ sd.segment.aircraftType }}</span>
+          </div>
+          <div class="segment-route">
+            <div class="route-point">
+              <span class="route-code">{{ sd.segment.origin }}</span>
+              <span class="route-time">{{ formatDateTime(sd.segment.departureDateTime) }}</span>
+            </div>
+            <div class="route-arrow">&#9992;</div>
+            <div class="route-point route-point--right">
+              <span class="route-code">{{ sd.segment.destination }}</span>
+              <span class="route-time">{{ formatDateTime(sd.segment.arrivalDateTime) }}</span>
+            </div>
+          </div>
+
+          <!-- Passenger seat / e-ticket table -->
+          <div class="pax-table">
+            <div class="pax-table-header">
+              <span>Passenger</span>
+              <span>Seat</span>
+              <span>E-Ticket</span>
+            </div>
+            @for (ps of sd.passengerSeats; track ps.passenger.passengerId) {
+              <div class="pax-table-row">
+                <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
+                <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
+                <span class="pax-eticket mono">{{ ps.eTicketNumber ?? 'N/A' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Passengers -->
+    <div class="section">
+      <h3 class="section-title">Passengers</h3>
+      @for (pax of o.passengers; track pax.passengerId) {
+        <div class="card pax-card">
+          <div class="pax-card-header">
+            <span class="pax-card-name">{{ pax.givenName }} {{ pax.surname }}</span>
+            <span class="pax-type-badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
+          </div>
+          <div class="pax-details">
+            <div class="pax-detail-row">
+              <span class="pax-detail-label">Date of Birth</span>
+              <span>{{ formatDate(pax.dateOfBirth) }}</span>
+            </div>
+            @if (pax.loyaltyNumber) {
+              <div class="pax-detail-row">
+                <span class="pax-detail-label">Loyalty Number</span>
+                <span class="mono">{{ pax.loyaltyNumber }}</span>
+              </div>
+            }
+            @if (pax.travelDocument) {
+              <div class="pax-detail-row">
+                <span class="pax-detail-label">Document</span>
+                <span>{{ pax.travelDocument.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ pax.travelDocument.number }}</span>
+              </div>
+              <div class="pax-detail-row">
+                <span class="pax-detail-label">Expires</span>
+                <span>{{ formatDate(pax.travelDocument.expiryDate) }}</span>
+              </div>
+            }
+            @if (pax.contacts) {
+              <div class="pax-detail-row">
+                <span class="pax-detail-label">Email</span>
+                <span>{{ pax.contacts.email }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Ancillary Items -->
+    @if (ancillaryItems().length > 0) {
+      <div class="section">
+        <h3 class="section-title">Add-ons</h3>
+        <div class="card">
+          @for (item of ancillaryItems(); track item.orderItemId) {
+            <div class="ancillary-row">
+              <span class="ancillary-type">{{ itemTypeLabel(item.type) }}</span>
+              @if (item.seatNumber) {
+                <span class="ancillary-detail">Seat {{ item.seatNumber }}{{ item.seatPosition ? ' (' + item.seatPosition + ')' : '' }}</span>
+              }
+              @if (item.additionalBags) {
+                <span class="ancillary-detail">+{{ item.additionalBags }} bag(s)</span>
+              }
+              <span class="ancillary-price">{{ formatCurrency(item.totalPrice, o.currencyCode) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Payment Summary -->
+    <div class="section">
+      <h3 class="section-title">Payment</h3>
+      @for (payment of o.payments; track payment.paymentReference) {
+        <div class="card payment-card">
+          <div class="payment-row">
+            <span class="payment-desc">{{ payment.description }}</span>
+            <span class="payment-amount">{{ formatCurrency(payment.authorisedAmount, payment.currency) }}</span>
+          </div>
+          <div class="payment-meta">
+            <span class="payment-method">{{ payment.cardType }} &bull;&bull;&bull;&bull; {{ payment.cardLast4 }}</span>
+            <span class="payment-status" [ngClass]="'status-' + payment.status.toLowerCase()">{{ payment.status }}</span>
+          </div>
+          <div class="payment-date">{{ formatDateTime(payment.authorisedAt) }}</div>
+        </div>
+      }
+      <div class="total-row">
+        <span class="total-label">Total</span>
+        <span class="total-amount">{{ formatCurrency(o.totalAmount, o.currencyCode) }}</span>
+      </div>
+    </div>
+
+    <!-- Back link -->
+    <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
+  }
+</div>

@@ -1,0 +1,275 @@
+@if (customer()) {
+<div class="page fade-in">
+
+  <!-- Header -->
+  <div class="account-header">
+    <div class="account-hero">
+      <div class="member-info">
+        <div
+          class="tier-badge"
+          [style.background]="tierInfo()!.color"
+        >
+          {{ tierInfo()!.label }}
+        </div>
+        <h2>{{ customer()!.givenName }} {{ customer()!.surname }}</h2>
+        <p class="loyalty-number">Loyalty No. {{ customer()!.loyaltyNumber }}</p>
+        <p class="member-since">Member since {{ formatDate(customer()!.memberSince) }}</p>
+      </div>
+      <div class="points-display">
+        <span class="points-value">{{ customer()!.pointsBalance.toLocaleString() }}</span>
+        <span class="points-label">Apex Points</span>
+      </div>
+    </div>
+
+    <!-- Tier Progress -->
+    <div class="tier-progress-section">
+      @if (tierInfo()!.nextTier) {
+        <div class="tier-progress-header">
+          <span class="tier-progress-current">{{ tierInfo()!.label }}</span>
+          <span class="tier-progress-info">{{ tierProgressLabel() }}</span>
+          <span class="tier-progress-next">{{ tierInfo()!.nextTier }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div
+            class="progress-bar-fill"
+            [style.width.%]="tierProgressPercent()"
+            [style.background]="tierInfo()!.color"
+          ></div>
+        </div>
+        <p class="progress-pct">{{ tierProgressPercent() }}% to {{ tierInfo()!.nextTier }}</p>
+      } @else {
+        <div class="tier-progress-header">
+          <span class="tier-progress-current">{{ tierInfo()!.label }}</span>
+          <span class="tier-progress-info">{{ tierProgressLabel() }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style="width:100%" [style.background]="tierInfo()!.color"></div>
+        </div>
+      }
+    </div>
+
+    <button class="btn-logout" (click)="logout()" [disabled]="logoutLoading()">
+      @if (logoutLoading()) {
+        <span class="spinner-sm"></span>
+      }
+      Sign Out
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'overview'"
+      (click)="setTab('overview')"
+    >Overview</button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'transactions'"
+      (click)="setTab('transactions')"
+    >Transactions</button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'profile'"
+      (click)="setTab('profile')"
+    >Profile</button>
+  </div>
+
+  <!-- Overview Tab -->
+  @if (activeTab() === 'overview') {
+    <div class="tab-content fade-in">
+      <div class="quick-stats">
+        <div class="stat-card">
+          <span class="stat-value">{{ customer()!.pointsBalance.toLocaleString() }}</span>
+          <span class="stat-label">Points Balance</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ customer()!.transactions.length }}</span>
+          <span class="stat-label">Transactions</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" [style.color]="tierInfo()!.color">{{ tierInfo()!.label }}</span>
+          <span class="stat-label">Current Tier</span>
+        </div>
+      </div>
+
+      <div class="benefits-card">
+        <h3 class="benefits-title">
+          <span class="tier-dot" [style.background]="tierInfo()!.color"></span>
+          {{ tierInfo()!.label }} Member Benefits
+        </h3>
+        <ul class="benefits-list">
+          @for (benefit of getTierBenefitsForCurrentTier(); track benefit) {
+            <li class="benefit-item">
+              <span class="benefit-check" [style.color]="tierInfo()!.color">&#10004;</span>
+              {{ benefit }}
+            </li>
+          }
+        </ul>
+      </div>
+
+      @if (sortedTransactions().length > 0) {
+        <div class="recent-section">
+          <h3 class="section-heading">Recent Activity</h3>
+          <div class="recent-list">
+            @for (tx of sortedTransactions().slice(0, 3); track tx.transactionId) {
+              <div class="recent-item">
+                <div class="recent-item-info">
+                  <span class="recent-desc">{{ tx.description }}</span>
+                  <span class="recent-date">{{ formatDate(tx.transactionDate) }}</span>
+                </div>
+                <span
+                  class="recent-points"
+                  [class.points-positive]="isPositivePoints(tx.points)"
+                  [class.points-negative]="!isPositivePoints(tx.points)"
+                >{{ pointsDisplay(tx.points) }}</span>
+              </div>
+            }
+          </div>
+          <button class="btn-link" (click)="setTab('transactions')">View all transactions &rarr;</button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Transactions Tab -->
+  @if (activeTab() === 'transactions') {
+    <div class="tab-content fade-in">
+      @if (sortedTransactions().length === 0) {
+        <div class="empty-state">
+          <p>No transactions found on your account yet.</p>
+        </div>
+      } @else {
+        <div class="transactions-table-wrapper">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th class="col-points">Points</th>
+                <th class="col-balance">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (tx of sortedTransactions(); track tx.transactionId) {
+                <tr>
+                  <td class="col-date">{{ formatDate(tx.transactionDate) }}</td>
+                  <td class="col-desc">
+                    {{ tx.description }}
+                    @if (tx.referenceBooking) {
+                      <span class="ref-booking">{{ tx.referenceBooking }}</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="type-badge" [class]="getTransactionTypeCssClass(tx.type)">
+                      {{ getTransactionTypeLabel(tx.type) }}
+                    </span>
+                  </td>
+                  <td
+                    class="col-points"
+                    [class.points-positive]="isPositivePoints(tx.points)"
+                    [class.points-negative]="!isPositivePoints(tx.points)"
+                  >{{ pointsDisplay(tx.points) }}</td>
+                  <td class="col-balance">{{ tx.runningBalance.toLocaleString() }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Profile Tab -->
+  @if (activeTab() === 'profile') {
+    <div class="tab-content fade-in">
+      <div class="profile-form-card">
+        <h3 class="section-heading">Edit Profile</h3>
+
+        <form class="form" (submit)="$event.preventDefault(); saveProfile()">
+          <div class="field-row">
+            <div class="field">
+              <label for="pGivenName">First Name</label>
+              <input
+                id="pGivenName"
+                type="text"
+                [value]="profileGivenName()"
+                (input)="profileGivenName.set($any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label for="pSurname">Last Name</label>
+              <input
+                id="pSurname"
+                type="text"
+                [value]="profileSurname()"
+                (input)="profileSurname.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pPhone">Phone Number</label>
+            <input
+              id="pPhone"
+              type="tel"
+              [value]="profilePhone()"
+              (input)="profilePhone.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
+            <label for="pNationality">Nationality</label>
+            <select
+              id="pNationality"
+              [value]="profileNationality()"
+              (change)="profileNationality.set($any($event.target).value)"
+            >
+              <option value="" disabled>Select country</option>
+              @for (country of countries; track country.code) {
+                <option [value]="country.code" [selected]="country.code === profileNationality()">{{ country.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="pLanguage">Preferred Language</label>
+            <select
+              id="pLanguage"
+              [value]="profileLanguage()"
+              (change)="profileLanguage.set($any($event.target).value)"
+            >
+              @for (lang of languages; track lang.code) {
+                <option [value]="lang.code" [selected]="lang.code === profileLanguage()">{{ lang.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field readonly-field">
+            <label>Email Address</label>
+            <input type="email" [value]="customer()!.email" readonly class="input-readonly" />
+          </div>
+
+          @if (profileError()) {
+            <div class="error-banner" role="alert">{{ profileError() }}</div>
+          }
+
+          @if (profileSuccess()) {
+            <div class="success-banner" role="status">Profile updated successfully.</div>
+          }
+
+          <button type="submit" class="btn-primary" [disabled]="profileLoading()">
+            @if (profileLoading()) {
+              <span class="spinner"></span> Saving...
+            } @else {
+              Save Changes
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
+}

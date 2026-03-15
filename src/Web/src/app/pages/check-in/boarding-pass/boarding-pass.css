@@ -1,0 +1,67 @@
+.page { padding: 1.5rem; max-width: 700px; margin: 0 auto; }
+.page-header { text-align: center; margin-bottom: 2rem; }
+h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+.subtitle { color: var(--text-muted); margin: 0; }
+.loading { text-align: center; padding: 2rem; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--grad-start); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-msg { background: #fff0f0; color: #c0392b; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; }
+
+.boarding-pass {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+.bp-header {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bp-airline { font-weight: 700; font-size: 1.1rem; }
+.bp-status { font-size: 0.75rem; letter-spacing: 2px; opacity: 0.9; }
+
+.bp-body { padding: 1.25rem; }
+.bp-passenger { margin-bottom: 1rem; }
+.bp-passenger label { font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase; }
+.bp-passenger strong { font-size: 1.2rem; }
+
+.bp-route { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; justify-content: center; }
+.bp-airport { text-align: center; }
+.iata { font-size: 2.5rem; font-weight: 700; display: block; line-height: 1; }
+.bp-airport label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+.bp-arrow { font-size: 1.5rem; color: var(--grad-start); flex-shrink: 0; }
+
+.bp-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; }
+.bp-detail { }
+.bp-detail label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; display: block; }
+.bp-detail strong { font-size: 0.95rem; }
+.seat-num { font-size: 1.3rem; color: var(--grad-start); }
+
+.bp-barcode {
+  border-top: 2px dashed var(--border);
+  padding: 1rem 1.25rem;
+  background: var(--bg-light);
+}
+.barcode-text { font-family: monospace; font-size: 0.65rem; color: var(--text-muted); word-break: break-all; margin-bottom: 0.75rem; }
+.barcode-visual {
+  display: flex; gap: 1px; height: 48px;
+  align-items: stretch; margin-bottom: 0.5rem;
+}
+.bar {
+  flex: 1;
+  background: var(--text);
+  opacity: 0.8;
+}
+.bar:nth-child(even) { opacity: 0.4; }
+.bar:nth-child(3n) { flex: 2; opacity: 0.9; }
+.eticket-num { font-size: 0.75rem; color: var(--text-muted); display: block; text-align: center; }
+
+.no-passes { text-align: center; padding: 2rem; color: var(--text-muted); }
+.actions { margin-top: 1rem; }
+.btn-primary { display: block; width: 100%; padding: 0.9rem; text-align: center; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--grad-start), var(--grad-end)); color: white; font-weight: 600; text-decoration: none; }

@@ -1,0 +1,350 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.page-header {
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px 0;
+}
+
+h3 {
+  margin: 0;
+}
+
+.page-header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Loading */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.spinner-dark {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--grad-start);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Alerts */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+/* Section */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* Card */
+.card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+
+/* Flight summary */
+.flight-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flight-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flight-num {
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+
+.cabin-badge {
+  padding: 2px 8px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.flight-route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.route-point {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.route-point--right {
+  text-align: right;
+}
+
+.route-code {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.route-time {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.route-arrow {
+  flex: 1;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+
+/* Passenger check card */
+.pax-check-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.pax-check-card--selected {
+  border-color: var(--grad-start);
+}
+
+.pax-check-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pax-check-header:hover {
+  background: var(--bg-light);
+}
+
+.checkbox-wrap {
+  flex-shrink: 0;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.checkbox--checked {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  border-color: var(--grad-start);
+}
+
+.check-mark {
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pax-check-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pax-check-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pax-check-type {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Document fields */
+.doc-fields {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-light);
+}
+
+.doc-fields-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field input,
+.field select {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--grad-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+/* Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: var(--white) !important;
+  color: var(--text) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--grad-start) !important;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12) !important;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--grad-start);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 400px) {
+  .field-row {
+    flex-direction: column;
+  }
+}

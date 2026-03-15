@@ -1,0 +1,90 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h1>Boarding Passes</h1>
+    <p class="subtitle">Check-in complete — your boarding passes are ready</p>
+  </div>
+
+  <div class="loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Generating boarding passes...</p>
+  </div>
+
+  <div class="error-msg" *ngIf="error && !loading">{{ error }}</div>
+
+  <div class="boarding-pass" *ngFor="let bp of boardingPasses">
+    <div class="bp-header">
+      <div class="bp-airline">✈ Apex Air</div>
+      <div class="bp-status">BOARDING PASS</div>
+    </div>
+
+    <div class="bp-body">
+      <div class="bp-passenger">
+        <label>Passenger</label>
+        <strong>{{ bp.surname }}/{{ bp.givenName }}</strong>
+      </div>
+
+      <div class="bp-route">
+        <div class="bp-airport">
+          <span class="iata">{{ bp.origin }}</span>
+          <label>From</label>
+        </div>
+        <div class="bp-arrow">✈</div>
+        <div class="bp-airport">
+          <span class="iata">{{ bp.destination }}</span>
+          <label>To</label>
+        </div>
+      </div>
+
+      <div class="bp-details">
+        <div class="bp-detail">
+          <label>Flight</label>
+          <strong>{{ bp.flightNumber }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Date</label>
+          <strong>{{ formatDate(bp.departureDateTime) }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Departs</label>
+          <strong>{{ formatTime(bp.departureDateTime) }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Boarding</label>
+          <strong>{{ formatTime(bp.boardingTime) }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Gate</label>
+          <strong>{{ bp.gate }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Seat</label>
+          <strong class="seat-num">{{ bp.seatNumber }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Cabin</label>
+          <strong>{{ cabinLabel(bp.cabinCode) }}</strong>
+        </div>
+        <div class="bp-detail">
+          <label>Seq</label>
+          <strong>{{ bp.sequenceNumber }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="bp-barcode">
+      <div class="barcode-text">{{ bp.bcbpBarcode }}</div>
+      <div class="barcode-visual" title="BCBP Barcode">
+        <div class="bar" *ngFor="let _ of [].constructor(40)"></div>
+      </div>
+      <label class="eticket-num">E-Ticket: {{ bp.eTicketNumber }}</label>
+    </div>
+  </div>
+
+  <div class="no-passes" *ngIf="!loading && boardingPasses.length === 0 && !error">
+    <p>No boarding passes generated.</p>
+  </div>
+
+  <div class="actions" *ngIf="!loading">
+    <a routerLink="/" class="btn-primary">Done — Return Home</a>
+  </div>
+</div>

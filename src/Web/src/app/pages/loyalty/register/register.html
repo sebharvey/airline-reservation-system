@@ -1,0 +1,151 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">&#11088;</span>
+    <h2>Join Apex Rewards</h2>
+    <p>Create your loyalty account and start earning points today</p>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault(); onSubmit()">
+
+    <div class="field-row">
+      <div class="field">
+        <label for="givenName">First Name <span class="required">*</span></label>
+        <input
+          id="givenName"
+          type="text"
+          placeholder="Jane"
+          [value]="givenName()"
+          (input)="setGivenName($any($event.target).value)"
+          autocomplete="given-name"
+        />
+      </div>
+      <div class="field">
+        <label for="surname">Last Name <span class="required">*</span></label>
+        <input
+          id="surname"
+          type="text"
+          placeholder="Smith"
+          [value]="surname()"
+          (input)="setSurname($any($event.target).value)"
+          autocomplete="family-name"
+        />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">Email Address <span class="required">*</span></label>
+      <input
+        id="email"
+        type="email"
+        placeholder="you@example.com"
+        [value]="email()"
+        (input)="setEmail($any($event.target).value)"
+        autocomplete="email"
+      />
+    </div>
+
+    <div class="field">
+      <label for="phone">Phone Number <span class="required">*</span></label>
+      <input
+        id="phone"
+        type="tel"
+        placeholder="+44 7700 900000"
+        [value]="phone()"
+        (input)="setPhone($any($event.target).value)"
+        autocomplete="tel"
+      />
+    </div>
+
+    <div class="field">
+      <label for="dob">Date of Birth <span class="required">*</span></label>
+      <input
+        id="dob"
+        type="date"
+        [value]="dateOfBirth()"
+        [max]="today"
+        (input)="setDateOfBirth($any($event.target).value)"
+        autocomplete="bday"
+      />
+    </div>
+
+    <div class="field">
+      <label for="nationality">Nationality <span class="required">*</span></label>
+      <select
+        id="nationality"
+        [value]="nationality()"
+        (change)="setNationality($any($event.target).value)"
+      >
+        <option value="" disabled selected>Select your country</option>
+        @for (country of countries; track country.code) {
+          <option [value]="country.code">{{ country.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="password">Password <span class="required">*</span></label>
+      <div class="password-wrapper">
+        <input
+          id="password"
+          [type]="showPassword() ? 'text' : 'password'"
+          placeholder="Min 8 characters"
+          [value]="password()"
+          (input)="setPassword($any($event.target).value)"
+          autocomplete="new-password"
+        />
+        <button type="button" class="toggle-pw" (click)="toggleShowPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+          {{ showPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+      @if (password().length > 0) {
+        <div class="strength-bar">
+          <div
+            class="strength-fill"
+            [class.strength-weak]="passwordStrength() === 'weak'"
+            [class.strength-fair]="passwordStrength() === 'fair'"
+            [class.strength-strong]="passwordStrength() === 'strong'"
+          ></div>
+        </div>
+        <span class="strength-label" [class.strength-weak]="passwordStrength() === 'weak'" [class.strength-fair]="passwordStrength() === 'fair'" [class.strength-strong]="passwordStrength() === 'strong'">
+          Password strength: {{ passwordStrengthLabel() }}
+        </span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+      <div class="password-wrapper">
+        <input
+          id="confirmPassword"
+          [type]="showConfirmPassword() ? 'text' : 'password'"
+          placeholder="Re-enter your password"
+          [value]="confirmPassword()"
+          (input)="setConfirmPassword($any($event.target).value)"
+          autocomplete="new-password"
+          [class.input-error]="passwordsMatch() === false"
+          [class.input-ok]="passwordsMatch() === true"
+        />
+        <button type="button" class="toggle-pw" (click)="toggleShowConfirmPassword()" [attr.aria-label]="showConfirmPassword() ? 'Hide confirm password' : 'Show confirm password'">
+          {{ showConfirmPassword() ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+      @if (passwordsMatch() === false) {
+        <span class="field-error">Passwords do not match</span>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+    }
+
+    <button type="submit" class="btn-primary" [disabled]="loading()">
+      @if (loading()) {
+        <span class="spinner"></span> Creating account...
+      } @else {
+        Create Account
+      }
+    </button>
+  </form>
+
+  <p class="login-link">Already a member? <a [routerLink]="['/loyalty']">Sign in here</a></p>
+</div>

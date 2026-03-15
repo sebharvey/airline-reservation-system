@@ -1,0 +1,122 @@
+<div class="page fade-in" *ngIf="order">
+
+  <!-- Success Banner -->
+  <div class="success-banner">
+    <div class="success-icon">&#10003;</div>
+    <h1>Booking Confirmed!</h1>
+    <p class="tagline">Your booking is confirmed. Have a great flight!</p>
+    <div class="booking-ref">
+      <span class="ref-label">Booking Reference</span>
+      <span class="ref-value">{{ order.bookingReference }}</span>
+    </div>
+    <div class="booking-meta">
+      Booked {{ formatDate(order.createdAt) }} &middot;
+      <span class="status-chip">{{ order.orderStatus }}</span>
+    </div>
+  </div>
+
+  <!-- Itinerary -->
+  <div class="section-card">
+    <h2>Itinerary</h2>
+    <div class="flight-item" *ngFor="let item of getFlightItems()">
+      <ng-container *ngIf="getSegment(item.segmentRef) as seg">
+        <div class="flight-route">
+          <div class="route-point">
+            <span class="airport-code">{{ seg.origin }}</span>
+            <span class="time">{{ formatTime(seg.departureDateTime) }}</span>
+          </div>
+          <div class="route-line">
+            <span class="flight-num">{{ seg.flightNumber }}</span>
+            <div class="line"></div>
+            <span class="cabin">{{ cabinLabel(seg.cabinCode) }}</span>
+          </div>
+          <div class="route-point">
+            <span class="airport-code">{{ seg.destination }}</span>
+            <span class="time">{{ formatTime(seg.arrivalDateTime) }}</span>
+          </div>
+        </div>
+        <div class="flight-meta">
+          <span>{{ formatDateTime(seg.departureDateTime) }}</span>
+          <span>{{ seg.aircraftType }}</span>
+        </div>
+        <div class="seat-info" *ngIf="item.seatAssignments && item.seatAssignments.length > 0">
+          <strong>Seats:</strong>
+          <span *ngFor="let sa of item.seatAssignments">
+            {{ getPassengerName(sa.passengerId) }}: <strong>{{ sa.seatNumber }}</strong>
+          </span>
+        </div>
+        <div class="eticket-info">
+          <strong>E-Tickets:</strong>
+          <div *ngFor="let et of item.eTickets" class="eticket-entry">
+            <span class="eticket-pax">{{ getPassengerName(et.passengerId) }}</span>
+            <span class="eticket-mono">{{ et.eTicketNumber }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Passengers -->
+  <div class="section-card">
+    <h2>Passengers</h2>
+    <div class="passenger-row" *ngFor="let pax of order.passengers">
+      <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+      <span class="badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
+      <span *ngIf="pax.loyaltyNumber" class="loyalty-badge">&#11088; {{ pax.loyaltyNumber }}</span>
+    </div>
+  </div>
+
+  <!-- Bag Selections -->
+  <div class="section-card" *ngIf="bagItems.length > 0">
+    <h2>Baggage</h2>
+    <div class="ancillary-row" *ngFor="let item of bagItems">
+      <span class="ancillary-icon">&#128230;</span>
+      <span class="ancillary-desc">
+        {{ item.additionalBags }} additional bag(s)
+        &mdash; {{ getSegmentLabel(item.segmentRef) }}
+      </span>
+      <span class="ancillary-pax" *ngFor="let pRef of item.passengerRefs">
+        {{ getPassengerName(pRef) }}
+      </span>
+      <span class="ancillary-price">{{ formatPrice(item.totalPrice) }}</span>
+    </div>
+  </div>
+
+  <!-- Payment -->
+  <div class="section-card">
+    <h2>Payment</h2>
+    <div class="payment-row" *ngFor="let pay of order.payments">
+      <span class="pay-desc">
+        {{ pay.cardType }} &middot;&middot;&middot;&middot; {{ pay.cardLast4 }}
+        <span class="pay-ref">{{ pay.paymentReference }}</span>
+      </span>
+      <span class="amount pay-status-chip">{{ pay.status }}</span>
+    </div>
+    <div class="payment-breakdown">
+      <div class="breakdown-row">
+        <span>Fare</span>
+        <span>{{ formatPrice(fareTotal) }}</span>
+      </div>
+      <div class="breakdown-row" *ngIf="seatTotal > 0">
+        <span>Seats</span>
+        <span>{{ formatPrice(seatTotal) }}</span>
+      </div>
+      <div class="breakdown-row" *ngIf="bagTotal > 0">
+        <span>Baggage</span>
+        <span>{{ formatPrice(bagTotal) }}</span>
+      </div>
+    </div>
+    <div class="total-row">
+      <strong>Total Paid</strong>
+      <strong>{{ formatPrice(order.totalAmount) }}</strong>
+    </div>
+  </div>
+
+  <!-- Action Links -->
+  <div class="action-links">
+    <a routerLink="/manage-booking" class="btn-secondary">&#128203; Manage Booking</a>
+    <a routerLink="/check-in" class="btn-secondary">&#127915; Online Check-In</a>
+    <a routerLink="/" class="btn-primary">&#127968; Return Home</a>
+  </div>
+
+</div>
