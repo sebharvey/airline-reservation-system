@@ -35,7 +35,11 @@ html.dark {
 
 /* ── Smooth theme transitions ── */
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body,
@@ -65,10 +69,10 @@ html.dark body {
   background: linear-gradient(135deg, #1a1f4a 0%, #2d1b4e 100%);
 }
 
-/* ── Dark mode: ensure inputs & text use theme colors ── */
-html.dark input,
-html.dark select,
-html.dark textarea {
+/* ── Ensure inputs always use theme colors (light and dark) ── */
+input,
+select,
+textarea {
   background-color: var(--input-bg);
   color: var(--text);
   border-color: var(--border);
