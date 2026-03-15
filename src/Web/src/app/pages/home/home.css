@@ -1,0 +1,80 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+.hero {
+  text-align: center;
+  padding-top: 8px;
+}
+
+.logo {
+  font-size: 52px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.quick-links {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--bg-light);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+  font-weight: 500;
+}
+
+.card-link:hover {
+  border-color: var(--grad-start);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
+}
+
+.card-link:active {
+  transform: translateY(0);
+}
+
+.icon {
+  font-size: 1.4rem;
+}
+
+.label {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.arrow {
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+
+.help-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

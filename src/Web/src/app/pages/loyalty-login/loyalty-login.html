@@ -1,0 +1,33 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">⭐</span>
+    <h2>Apex Rewards</h2>
+    <p>Sign in to your loyalty account</p>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault()">
+    <div class="field">
+      <label>Email or Member ID</label>
+      <input type="text" placeholder="Enter your email or member ID" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" placeholder="Enter your password" />
+    </div>
+    <a class="forgot-link" href="#">Forgot password?</a>
+    <button type="submit" class="btn-primary">Sign In</button>
+  </form>
+
+  <div class="divider"><span>or</span></div>
+
+  <button class="btn-outline">Join Apex Rewards</button>
+
+  <div class="perks">
+    <p class="perks-title">Member benefits</p>
+    <ul>
+      <li>✔ Earn miles on every flight</li>
+      <li>✔ Priority boarding</li>
+      <li>✔ Exclusive member fares</li>
+    </ul>
+  </div>
+</div>

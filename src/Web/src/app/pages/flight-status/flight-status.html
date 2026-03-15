@@ -1,0 +1,29 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">📡</span>
+    <h2>Flight Status</h2>
+    <p>Real-time updates on departures and arrivals</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active">By Flight Number</button>
+    <button class="tab">By Route</button>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault()">
+    <div class="field">
+      <label>Flight Number</label>
+      <input type="text" placeholder="e.g. AP 421" />
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" />
+    </div>
+    <button type="submit" class="btn-primary">Check Status</button>
+  </form>
+
+  <div class="status-placeholder">
+    <span class="status-icon">🛫</span>
+    <p>Enter a flight number to see live status</p>
+  </div>
+</div>

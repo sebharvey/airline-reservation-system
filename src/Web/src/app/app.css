@@ -1,0 +1,120 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px 16px 40px;
+}
+
+.card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: slideIn 0.35s ease;
+}
+
+/* Nav */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-brand {
+  color: var(--white);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.nav-loyalty {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Content */
+.content {
+  padding: 28px 24px;
+  min-height: 420px;
+}
+
+/* Footer */
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Shared fade-in for pages */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+:host ::ng-deep .fade-in {
+  animation: slideIn 0.3s ease;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .shell {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .card {
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+  }
+
+  .nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nav-links a {
+    font-size: 0.75rem;
+    padding: 5px 8px;
+  }
+
+  .content {
+    padding: 22px 18px;
+  }
+}

@@ -1,0 +1,23 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">🎫</span>
+    <h2>Online Check-In</h2>
+    <p>Check in for your flight and get your boarding pass</p>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault()">
+    <div class="field">
+      <label>Booking Reference</label>
+      <input type="text" placeholder="e.g. ABC123" maxlength="6" />
+    </div>
+    <div class="field">
+      <label>Last Name</label>
+      <input type="text" placeholder="Enter your last name" />
+    </div>
+    <button type="submit" class="btn-primary">Find My Booking</button>
+  </form>
+
+  <div class="placeholder-note">
+    <span>ℹ️</span> Check-in opens 48 hours before departure
+  </div>
+</div>
