@@ -1,0 +1,22 @@
+<div class="shell">
+  <div class="card">
+    <nav class="nav">
+      <a routerLink="/" class="nav-brand">✈ Apex Air</a>
+      <div class="nav-links">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Home</a>
+        <a routerLink="/check-in" routerLinkActive="active">Check In</a>
+        <a routerLink="/manage-booking" routerLinkActive="active">Bookings</a>
+        <a routerLink="/flight-status" routerLinkActive="active">Status</a>
+        <a routerLink="/loyalty" routerLinkActive="active" class="nav-loyalty">Rewards</a>
+      </div>
+    </nav>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 Apex Air. All rights reserved.</p>
+    </footer>
+  </div>
+</div>

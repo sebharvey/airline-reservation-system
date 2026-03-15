@@ -1,0 +1,39 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --grad-start: #667eea;
+  --grad-end: #764ba2;
+  --white: #ffffff;
+  --bg-light: #f8f9fa;
+  --border: #e0e0e0;
+  --text: #333333;
+  --text-muted: #666666;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 25px;
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
+  --transition: 0.25s ease;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}

@@ -1,0 +1,38 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">📋</span>
+    <h2>Manage Booking</h2>
+    <p>View, change or cancel your reservation</p>
+  </div>
+
+  <form class="form" (submit)="$event.preventDefault()">
+    <div class="field">
+      <label>Booking Reference</label>
+      <input type="text" placeholder="e.g. ABC123" maxlength="6" />
+    </div>
+    <div class="field">
+      <label>Last Name</label>
+      <input type="text" placeholder="Enter your last name" />
+    </div>
+    <button type="submit" class="btn-primary">Retrieve Booking</button>
+  </form>
+
+  <div class="options-grid">
+    <div class="option-card">
+      <span>✏️</span>
+      <span>Change Flight</span>
+    </div>
+    <div class="option-card">
+      <span>🪑</span>
+      <span>Select Seat</span>
+    </div>
+    <div class="option-card">
+      <span>🧳</span>
+      <span>Add Baggage</span>
+    </div>
+    <div class="option-card">
+      <span>❌</span>
+      <span>Cancel</span>
+    </div>
+  </div>
+</div>
