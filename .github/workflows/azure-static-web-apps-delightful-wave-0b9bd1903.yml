@@ -6,12 +6,12 @@ on:
       - main
     paths:
       - 'src/Web/**'
-  pull_request:
-    types: [closed]
-    branches:
-      - main
-    paths:
-      - 'src/Web/**'
+  #pull_request:
+    #types: [closed]
+    #branches:
+      #- main
+    #paths:
+      #- 'src/Web/**'
 
 jobs:
   build_and_deploy_job:
