@@ -5,6 +5,118 @@
     <p class="tagline">Fly smarter. Arrive better.</p>
   </div>
 
+  <!-- Flight Search Panel -->
+  <div class="search-panel">
+    <h2 class="search-title">Find Your Flight</h2>
+
+    <!-- Trip Type Toggle -->
+    <div class="trip-type-toggle">
+      <button
+        type="button"
+        class="trip-btn"
+        [class.active]="tripType === 'one-way'"
+        (click)="tripType = 'one-way'">
+        One Way
+      </button>
+      <button
+        type="button"
+        class="trip-btn"
+        [class.active]="tripType === 'return'"
+        (click)="tripType = 'return'">
+        Return
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSearch()" class="search-form">
+
+      <!-- Origin & Destination -->
+      <div class="field-row">
+        <div class="field">
+          <label for="origin">From</label>
+          <input
+            id="origin"
+            type="text"
+            placeholder="City or airport code"
+            [(ngModel)]="origin"
+            name="origin"
+            required
+            maxlength="50"
+            autocomplete="off" />
+        </div>
+
+        <div class="swap-icon" title="Swap airports">⇄</div>
+
+        <div class="field">
+          <label for="destination">To</label>
+          <input
+            id="destination"
+            type="text"
+            placeholder="City or airport code"
+            [(ngModel)]="destination"
+            name="destination"
+            required
+            maxlength="50"
+            autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="field-row">
+        <div class="field">
+          <label for="departDate">Departure</label>
+          <input
+            id="departDate"
+            type="date"
+            [(ngModel)]="departDate"
+            name="departDate"
+            [min]="today"
+            required />
+        </div>
+
+        <div class="field" [class.field-hidden]="!isReturn">
+          <label for="returnDate">Return</label>
+          <input
+            id="returnDate"
+            type="date"
+            [(ngModel)]="returnDate"
+            name="returnDate"
+            [min]="departDate || today"
+            [required]="isReturn"
+            [disabled]="!isReturn" />
+        </div>
+      </div>
+
+      <!-- Passengers -->
+      <div class="field-row passengers-row">
+        <div class="field passenger-field">
+          <label>Adults <span class="age-note">(16+)</span></label>
+          <div class="counter">
+            <button type="button" class="counter-btn" (click)="decrementAdults()" [disabled]="adults <= 1">−</button>
+            <span class="counter-val">{{ adults }}</span>
+            <button type="button" class="counter-btn" (click)="incrementAdults()" [disabled]="adults >= 9">+</button>
+          </div>
+        </div>
+
+        <div class="field passenger-field">
+          <label>Children <span class="age-note">(2–15)</span></label>
+          <div class="counter">
+            <button type="button" class="counter-btn" (click)="decrementChildren()" [disabled]="children <= 0">−</button>
+            <span class="counter-val">{{ children }}</span>
+            <button type="button" class="counter-btn" (click)="incrementChildren()" [disabled]="children >= 9">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="search-btn"
+        [disabled]="!origin || !destination || !departDate || (isReturn && !returnDate)">
+        Search Flights
+      </button>
+    </form>
+  </div>
+
+  <!-- Quick Links -->
   <div class="quick-links">
     <a routerLink="/check-in" class="card-link">
       <span class="icon">🎫</span>
@@ -27,6 +139,4 @@
       <span class="arrow">›</span>
     </a>
   </div>
-
-  <p class="help-text">Select a service to get started</p>
 </div>

@@ -1,0 +1,56 @@
+<div class="page fade-in">
+  <div class="results-header">
+    <a routerLink="/" class="back-link">‹ New Search</a>
+    <h1>Flight Search Results</h1>
+
+    <div class="search-summary">
+      <span class="route">{{ origin || '—' }} → {{ destination || '—' }}</span>
+      <span class="detail">{{ tripType === 'return' ? 'Return' : 'One Way' }}</span>
+      <span class="detail">{{ departDate | date:'d MMM yyyy' }}</span>
+      <span *ngIf="tripType === 'return' && returnDate" class="detail">
+        Return: {{ returnDate | date:'d MMM yyyy' }}
+      </span>
+      <span class="detail">{{ totalPassengers }} passenger{{ totalPassengers !== 1 ? 's' : '' }}</span>
+    </div>
+  </div>
+
+  <div class="placeholder-card">
+    <div class="placeholder-icon">✈️</div>
+    <h2>Results Coming Soon</h2>
+    <p>
+      Flight search results and the booking flow will appear here in a future release.
+      We're working hard to bring you the best fares for your journey.
+    </p>
+    <div class="placeholder-details">
+      <div class="detail-row">
+        <span class="detail-label">From</span>
+        <span class="detail-value">{{ origin || 'Not specified' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">To</span>
+        <span class="detail-value">{{ destination || 'Not specified' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Trip Type</span>
+        <span class="detail-value">{{ tripType === 'return' ? 'Return' : 'One Way' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Departure</span>
+        <span class="detail-value">{{ departDate | date:'d MMMM yyyy' }}</span>
+      </div>
+      <div class="detail-row" *ngIf="tripType === 'return' && returnDate">
+        <span class="detail-label">Return</span>
+        <span class="detail-value">{{ returnDate | date:'d MMMM yyyy' }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Adults</span>
+        <span class="detail-value">{{ adults }}</span>
+      </div>
+      <div class="detail-row" *ngIf="children > 0">
+        <span class="detail-label">Children</span>
+        <span class="detail-value">{{ children }}</span>
+      </div>
+    </div>
+    <a routerLink="/" class="btn-primary">Modify Search</a>
+  </div>
+</div>
