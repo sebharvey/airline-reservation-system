@@ -42,72 +42,67 @@
       <a routerLink="/" class="btn-primary">Modify Search</a>
     </div>
 
-    <!-- Cabin groups -->
-    <div class="cabin-group" *ngFor="let group of outboundGroups()">
-      <div class="cabin-header">
-        <span class="cabin-icon">{{ group.cabinCode === 'F' ? '&#11088;' : group.cabinCode === 'J' ? '&#127959;' : group.cabinCode === 'W' ? '&#128661;' : '&#9992;' }}</span>
-        {{ group.cabinName }}
-      </div>
-
-      <div class="offer-card"
-           *ngFor="let offer of group.offers"
-           [class.selected]="isSelectedOutbound(offer)">
-        <div class="offer-main">
-          <div class="flight-times">
-            <div class="time-block">
-              <span class="time">{{ formatTime(offer.departureDateTime) }}</span>
-              <span class="airport-code">{{ offer.origin }}</span>
-            </div>
-            <div class="duration-wrap">
-              <span class="duration">{{ getDuration(offer.departureDateTime, offer.arrivalDateTime) }}</span>
-              <span class="duration-line">&#9135;&#9135;&#9135;&#10148;</span>
-              <span class="direct-label">Direct</span>
-            </div>
-            <div class="time-block">
-              <span class="time">{{ formatTime(offer.arrivalDateTime) }}</span>
-              <span class="airport-code">{{ offer.destination }}</span>
-            </div>
-          </div>
-
-          <div class="offer-meta">
-            <span class="flight-num">{{ offer.flightNumber }}</span>
-            <span class="fare-family">{{ offer.fareFamily }}</span>
-            <span class="aircraft">{{ offer.aircraftType }}</span>
-          </div>
-
-          <div class="offer-badges">
-            <span class="badge badge-refund" *ngIf="offer.isRefundable">Refundable</span>
-            <span class="badge badge-no-refund" *ngIf="!offer.isRefundable">Non-Refundable</span>
-            <span class="badge badge-change" *ngIf="offer.isChangeable">Changeable</span>
-            <span class="badge badge-seats" *ngIf="offer.seatsAvailable <= 5">Only {{ offer.seatsAvailable }} left</span>
-          </div>
-        </div>
-
-        <div class="offer-right">
-          <div class="price-block">
-            <span class="currency">{{ offer.currency }}</span>
-            <span class="price">{{ offer.totalPrice | number:'1.2-2' }}</span>
-            <span class="price-per">per person</span>
-          </div>
-          <button class="btn-select"
-                  [class.btn-selected]="isSelectedOutbound(offer)"
-                  (click)="selectOutbound(offer)">
-            {{ isSelectedOutbound(offer) ? 'Selected' : 'Select' }}
-          </button>
-        </div>
-      </div>
+    <!-- Results table -->
+    <div class="table-wrap" *ngIf="!outboundLoading() && !outboundError() && outboundRows().length > 0">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th class="col-flight">Flight</th>
+            <th *ngFor="let cabin of outboundCabins()" class="col-cabin">
+              {{ cabinDisplayNames[cabin] }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of outboundRows()">
+            <td class="col-flight">
+              <div class="flight-info">
+                <div class="flight-num">{{ row.flightNumber }}</div>
+                <div class="flight-times-inline">
+                  <span class="time">{{ formatTime(row.departureDateTime) }}</span>
+                  <span class="times-sep">&#8594;</span>
+                  <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
+                </div>
+                <div class="flight-meta">
+                  <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
+                  <span class="direct-dot">&#8226;</span>
+                  <span class="direct-label">Direct</span>
+                  <span class="direct-dot">&#8226;</span>
+                  <span class="aircraft-label">{{ row.aircraftType }}</span>
+                </div>
+              </div>
+            </td>
+            <td *ngFor="let cabin of outboundCabins()"
+                class="col-cabin fare-cell"
+                [class.fare-cell-selected]="isCellSelectedOutbound(row, cabin)">
+              <ng-container *ngIf="getCabinOffers(row, cabin) as offers">
+                <button class="fare-btn"
+                        [class.fare-btn-selected]="isCellSelectedOutbound(row, cabin)"
+                        (click)="openFarePopup(offers, false)">
+                  <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
+                  <span class="fare-per">per person</span>
+                  <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
+                  <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
+                </button>
+              </ng-container>
+              <span class="fare-empty" *ngIf="!getCabinOffers(row, cabin)">&#8212;</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
   <!-- RETURN FLIGHTS (shown after selecting outbound) -->
   <div class="section" *ngIf="showReturnSearch()">
+
     <!-- Outbound confirmation banner -->
     <div class="selected-banner" *ngIf="selectedOutbound() as ob">
       <div class="selected-banner-label">Outbound selected:</div>
       <div class="selected-banner-detail">
         <strong>{{ ob.flightNumber }}</strong>
         {{ formatTime(ob.departureDateTime) }} {{ ob.origin }} &#8594; {{ formatTime(ob.arrivalDateTime) }} {{ ob.destination }}
-        &nbsp;&middot;&nbsp; {{ ob.currency }} {{ ob.totalPrice | number:'1.2-2' }}
+        &nbsp;&middot;&nbsp; {{ ob.cabinName }} &nbsp;&middot;&nbsp; {{ ob.currency }} {{ ob.totalPrice | number:'1.2-2' }}
       </div>
       <button class="btn-change" (click)="showReturnSearch.set(false); selectedOutbound.set(null)">Change</button>
     </div>
@@ -135,60 +130,108 @@
       <a routerLink="/" class="btn-primary">Modify Search</a>
     </div>
 
-    <!-- Cabin groups -->
-    <div class="cabin-group" *ngFor="let group of returnGroups()">
-      <div class="cabin-header">
-        <span class="cabin-icon">{{ group.cabinCode === 'F' ? '&#11088;' : group.cabinCode === 'J' ? '&#127959;' : group.cabinCode === 'W' ? '&#128661;' : '&#9992;' }}</span>
-        {{ group.cabinName }}
+    <!-- Results table -->
+    <div class="table-wrap" *ngIf="!returnLoading() && !returnError() && returnRows().length > 0">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th class="col-flight">Flight</th>
+            <th *ngFor="let cabin of returnCabins()" class="col-cabin">
+              {{ cabinDisplayNames[cabin] }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of returnRows()">
+            <td class="col-flight">
+              <div class="flight-info">
+                <div class="flight-num">{{ row.flightNumber }}</div>
+                <div class="flight-times-inline">
+                  <span class="time">{{ formatTime(row.departureDateTime) }}</span>
+                  <span class="times-sep">&#8594;</span>
+                  <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
+                </div>
+                <div class="flight-meta">
+                  <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
+                  <span class="direct-dot">&#8226;</span>
+                  <span class="direct-label">Direct</span>
+                  <span class="direct-dot">&#8226;</span>
+                  <span class="aircraft-label">{{ row.aircraftType }}</span>
+                </div>
+              </div>
+            </td>
+            <td *ngFor="let cabin of returnCabins()"
+                class="col-cabin fare-cell"
+                [class.fare-cell-selected]="isCellSelectedReturn(row, cabin)">
+              <ng-container *ngIf="getCabinOffers(row, cabin) as offers">
+                <button class="fare-btn"
+                        [class.fare-btn-selected]="isCellSelectedReturn(row, cabin)"
+                        (click)="openFarePopup(offers, true)">
+                  <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
+                  <span class="fare-per">per person</span>
+                  <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
+                  <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
+                </button>
+              </ng-container>
+              <span class="fare-empty" *ngIf="!getCabinOffers(row, cabin)">&#8212;</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Fare selection popup -->
+  <div class="fare-overlay" *ngIf="farePopup()" (click)="closeFarePopup()">
+    <div class="fare-popup" (click)="$event.stopPropagation()">
+
+      <div class="fare-popup-header">
+        <div>
+          <h3>Choose your fare</h3>
+          <p class="fare-popup-subtitle">
+            {{ farePopup()!.offers[0].origin }} &#8594; {{ farePopup()!.offers[0].destination }}
+            &nbsp;&middot;&nbsp; {{ farePopup()!.offers[0].cabinName }}
+          </p>
+        </div>
+        <button class="fare-popup-close" (click)="closeFarePopup()" aria-label="Close">&#10005;</button>
       </div>
 
-      <div class="offer-card"
-           *ngFor="let offer of group.offers"
-           [class.selected]="isSelectedReturn(offer)">
-        <div class="offer-main">
-          <div class="flight-times">
-            <div class="time-block">
-              <span class="time">{{ formatTime(offer.departureDateTime) }}</span>
-              <span class="airport-code">{{ offer.origin }}</span>
+      <div class="fare-popup-body">
+        <div class="fare-options">
+          <div class="fare-option"
+               *ngFor="let offer of farePopup()!.offers; let i = index"
+               [class.fare-option-highlight]="i === 0">
+            <div class="fare-option-tag" *ngIf="i === 0">Best price</div>
+            <div class="fare-option-name">{{ offer.fareFamily }}</div>
+            <div class="fare-option-price">
+              {{ offer.currency }}&nbsp;{{ offer.totalPrice | number:'1.2-2' }}
+              <span class="fare-option-per">per person</span>
             </div>
-            <div class="duration-wrap">
-              <span class="duration">{{ getDuration(offer.departureDateTime, offer.arrivalDateTime) }}</span>
-              <span class="duration-line">&#9135;&#9135;&#9135;&#10148;</span>
-              <span class="direct-label">Direct</span>
+            <div class="fare-option-features">
+              <div class="feature-row" [class.feature-yes]="offer.isRefundable" [class.feature-no]="!offer.isRefundable">
+                <span class="feature-icon">{{ offer.isRefundable ? '✓' : '✗' }}</span>
+                <span>Refundable</span>
+              </div>
+              <div class="feature-row" [class.feature-yes]="offer.isChangeable" [class.feature-no]="!offer.isChangeable">
+                <span class="feature-icon">{{ offer.isChangeable ? '✓' : '✗' }}</span>
+                <span>Changeable</span>
+              </div>
+              <div class="feature-row feature-yes" *ngIf="offer.seatsAvailable > 5">
+                <span class="feature-icon">✓</span>
+                <span>{{ offer.seatsAvailable }} seats available</span>
+              </div>
+              <div class="feature-row feature-warn" *ngIf="offer.seatsAvailable <= 5">
+                <span class="feature-icon">!</span>
+                <span>Only {{ offer.seatsAvailable }} seats left</span>
+              </div>
             </div>
-            <div class="time-block">
-              <span class="time">{{ formatTime(offer.arrivalDateTime) }}</span>
-              <span class="airport-code">{{ offer.destination }}</span>
-            </div>
+            <button class="btn-select-fare" (click)="selectFromPopup(offer)">
+              Select this fare
+            </button>
           </div>
-
-          <div class="offer-meta">
-            <span class="flight-num">{{ offer.flightNumber }}</span>
-            <span class="fare-family">{{ offer.fareFamily }}</span>
-            <span class="aircraft">{{ offer.aircraftType }}</span>
-          </div>
-
-          <div class="offer-badges">
-            <span class="badge badge-refund" *ngIf="offer.isRefundable">Refundable</span>
-            <span class="badge badge-no-refund" *ngIf="!offer.isRefundable">Non-Refundable</span>
-            <span class="badge badge-change" *ngIf="offer.isChangeable">Changeable</span>
-            <span class="badge badge-seats" *ngIf="offer.seatsAvailable <= 5">Only {{ offer.seatsAvailable }} left</span>
-          </div>
-        </div>
-
-        <div class="offer-right">
-          <div class="price-block">
-            <span class="currency">{{ offer.currency }}</span>
-            <span class="price">{{ offer.totalPrice | number:'1.2-2' }}</span>
-            <span class="price-per">per person</span>
-          </div>
-          <button class="btn-select"
-                  [class.btn-selected]="isSelectedReturn(offer)"
-                  (click)="selectReturn(offer)">
-            {{ isSelectedReturn(offer) ? 'Selected' : 'Select' }}
-          </button>
         </div>
       </div>
+
     </div>
   </div>
 

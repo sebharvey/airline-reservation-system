@@ -6,10 +6,14 @@ import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
 
-interface CabinGroup {
-  cabinCode: CabinCode;
-  cabinName: string;
-  offers: FlightOffer[];
+interface FlightRow {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  aircraftType: string;
+  cabinOffers: Partial<Record<CabinCode, FlightOffer[]>>;
 }
 
 @Component({
@@ -46,28 +50,38 @@ export class SearchResultsComponent implements OnInit {
 
   showReturnSearch = signal(false);
 
+  farePopup = signal<{ offers: FlightOffer[]; isReturn: boolean } | null>(null);
+
   readonly airports = AIRPORTS;
 
   readonly isReturn = computed(() => this.tripType() === 'return');
 
   readonly totalPassengers = computed(() => this.adults() + this.children());
 
-  readonly outboundGroups = computed<CabinGroup[]>(() =>
-    this.groupByCabin(this.outboundOffers())
-  );
-
-  readonly returnGroups = computed<CabinGroup[]>(() =>
-    this.groupByCabin(this.returnOffers())
-  );
-
   readonly cabinOrder: CabinCode[] = ['F', 'J', 'W', 'Y'];
 
   readonly cabinDisplayNames: Record<CabinCode, string> = {
-    F: 'First Class',
-    J: 'Business Class',
+    F: 'First',
+    J: 'Business',
     W: 'Premium Economy',
     Y: 'Economy'
   };
+
+  readonly outboundRows = computed<FlightRow[]>(() =>
+    this.groupByFlight(this.outboundOffers())
+  );
+
+  readonly returnRows = computed<FlightRow[]>(() =>
+    this.groupByFlight(this.returnOffers())
+  );
+
+  readonly outboundCabins = computed<CabinCode[]>(() =>
+    this.getAvailableCabins(this.outboundOffers())
+  );
+
+  readonly returnCabins = computed<CabinCode[]>(() =>
+    this.getAvailableCabins(this.returnOffers())
+  );
 
   ngOnInit(): void {
     const p = this.route.snapshot.queryParamMap;
@@ -159,6 +173,63 @@ export class SearchResultsComponent implements OnInit {
     this.router.navigate(['/booking/passengers']);
   }
 
+  openFarePopup(offers: FlightOffer[], isReturn: boolean): void {
+    if (offers.length === 1) {
+      if (isReturn) {
+        this.selectReturn(offers[0]);
+      } else {
+        this.selectOutbound(offers[0]);
+      }
+    } else {
+      // Sort: cheapest first
+      const sorted = [...offers].sort((a, b) => a.totalPrice - b.totalPrice);
+      this.farePopup.set({ offers: sorted, isReturn });
+    }
+  }
+
+  closeFarePopup(): void {
+    this.farePopup.set(null);
+  }
+
+  selectFromPopup(offer: FlightOffer): void {
+    const popup = this.farePopup();
+    if (!popup) return;
+    this.farePopup.set(null);
+    if (popup.isReturn) {
+      this.selectReturn(offer);
+    } else {
+      this.selectOutbound(offer);
+    }
+  }
+
+  getCabinOffers(row: FlightRow, cabin: CabinCode): FlightOffer[] | undefined {
+    return row.cabinOffers[cabin];
+  }
+
+  getLowestPrice(offers: FlightOffer[]): number {
+    return Math.min(...offers.map(o => o.totalPrice));
+  }
+
+  hasFlex(offers: FlightOffer[]): boolean {
+    return offers.length > 1;
+  }
+
+  isCellSelectedOutbound(row: FlightRow, cabin: CabinCode): boolean {
+    const sel = this.selectedOutbound();
+    return sel !== null &&
+      sel.flightNumber === row.flightNumber &&
+      sel.departureDateTime === row.departureDateTime &&
+      sel.cabinCode === cabin;
+  }
+
+  isCellSelectedReturn(row: FlightRow, cabin: CabinCode): boolean {
+    const sel = this.selectedReturn();
+    return sel !== null &&
+      sel.flightNumber === row.flightNumber &&
+      sel.departureDateTime === row.departureDateTime &&
+      sel.cabinCode === cabin;
+  }
+
   getCityName(code: string): string {
     return this.airports.find(a => a.code === code)?.city ?? code;
   }
@@ -171,34 +242,45 @@ export class SearchResultsComponent implements OnInit {
     return `${h}h ${m}m`;
   }
 
-  private groupByCabin(offers: FlightOffer[]): CabinGroup[] {
-    const map = new Map<CabinCode, FlightOffer[]>();
-    for (const o of offers) {
-      if (!map.has(o.cabinCode)) map.set(o.cabinCode, []);
-      map.get(o.cabinCode)!.push(o);
-    }
-    return this.cabinOrder
-      .filter(code => map.has(code))
-      .map(code => ({
-        cabinCode: code,
-        cabinName: this.cabinDisplayNames[code],
-        offers: map.get(code)!
-      }));
-  }
-
-  isSelectedOutbound(offer: FlightOffer): boolean {
-    return this.selectedOutbound()?.offerId === offer.offerId;
-  }
-
-  isSelectedReturn(offer: FlightOffer): boolean {
-    return this.selectedReturn()?.offerId === offer.offerId;
-  }
-
   formatTime(dt: string): string {
     return new Date(dt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   }
 
   formatDate(dt: string): string {
     return new Date(dt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  private groupByFlight(offers: FlightOffer[]): FlightRow[] {
+    const map = new Map<string, FlightRow>();
+    for (const offer of offers) {
+      const key = `${offer.flightNumber}|${offer.departureDateTime}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          flightNumber: offer.flightNumber,
+          origin: offer.origin,
+          destination: offer.destination,
+          departureDateTime: offer.departureDateTime,
+          arrivalDateTime: offer.arrivalDateTime,
+          aircraftType: offer.aircraftType,
+          cabinOffers: {}
+        });
+      }
+      const row = map.get(key)!;
+      if (!row.cabinOffers[offer.cabinCode]) {
+        row.cabinOffers[offer.cabinCode] = [];
+      }
+      row.cabinOffers[offer.cabinCode]!.push(offer);
+    }
+    for (const row of map.values()) {
+      for (const cabin of Object.keys(row.cabinOffers) as CabinCode[]) {
+        row.cabinOffers[cabin]!.sort((a, b) => a.totalPrice - b.totalPrice);
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  private getAvailableCabins(offers: FlightOffer[]): CabinCode[] {
+    const cabins = new Set(offers.map(o => o.cabinCode));
+    return this.cabinOrder.filter(c => cabins.has(c));
   }
 }

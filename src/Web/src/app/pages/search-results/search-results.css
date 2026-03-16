@@ -40,102 +40,6 @@
   gap: 8px;
 }
 
-.search-summary .route {
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text);
-}
-
-.search-summary .detail {
-  background: var(--bg-light);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: 4px 12px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Placeholder card */
-.placeholder-card {
-  width: 100%;
-  background: var(--bg-light);
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-md);
-  padding: 40px 28px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.placeholder-icon {
-  font-size: 3rem;
-}
-
-.placeholder-card h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.placeholder-card p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  max-width: 360px;
-  line-height: 1.6;
-}
-
-.placeholder-details {
-  width: 100%;
-  max-width: 360px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  text-align: left;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.detail-value {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.btn-primary {
-  display: inline-block;
-  padding: 12px 32px;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: white;
-  border-radius: var(--radius-lg);
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: var(--transition);
-  margin-top: 8px;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
-}
-
 /* ── Search summary pills ── */
 .pill {
   background: var(--bg-light);
@@ -243,236 +147,228 @@
 
 .empty-icon { font-size: 2.5rem; }
 
-/* ── Cabin group ── */
-.cabin-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.btn-primary {
+  display: inline-block;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  margin-top: 8px;
 }
 
-.cabin-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+}
+
+/* ── Results table ── */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+}
+
+.results-table thead tr {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+}
+
+.results-table th {
+  padding: 13px 16px;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  padding: 6px 0;
-  border-bottom: 1.5px solid var(--border);
+  letter-spacing: 0.07em;
+  color: white;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.cabin-icon { font-size: 1.1rem; }
+.results-table th.col-flight {
+  text-align: left;
+  min-width: 210px;
+}
 
-/* ── Offer Card ── */
-.offer-card {
-  width: 100%;
+.results-table th.col-cabin {
+  min-width: 148px;
+}
+
+.results-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.results-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.results-table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.025);
+}
+
+.results-table td {
+  padding: 14px 12px;
+  vertical-align: middle;
+}
+
+/* ── Flight info cell ── */
+.col-flight {
   background: var(--bg-light);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-right: 1px solid var(--border);
 }
 
-.offer-card:hover {
-  border-color: var(--grad-start);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.12);
-}
-
-.offer-card.selected {
-  border-color: var(--grad-start);
-  background: rgba(102, 126, 234, 0.04);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-}
-
-.offer-main {
-  flex: 1;
+.flight-info {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
 }
 
-/* ── Flight times row ── */
-.flight-times {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.flight-num {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--grad-start);
+  letter-spacing: 0.03em;
 }
 
-.time-block {
+.flight-times-inline {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
 }
 
 .time {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
-.airport-code {
-  font-size: 0.8rem;
-  font-weight: 600;
+.times-sep {
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.85rem;
 }
 
-.duration-wrap {
-  flex: 1;
+.flight-meta {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
-.duration {
-  font-size: 0.78rem;
+.duration-label {
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.duration-line {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  letter-spacing: -2px;
+.direct-dot {
+  font-size: 0.5rem;
+  color: var(--border);
 }
 
 .direct-label {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #27ae60;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-/* ── Offer meta (flight number, fare, aircraft) ── */
-.offer-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.flight-num {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--grad-start);
-}
-
-.fare-family {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: 2px 8px;
-}
-
-.aircraft {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* ── Badges ── */
-.offer-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 99px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.badge-refund {
-  background: rgba(39, 174, 96, 0.1);
-  color: #1a8a4a;
-}
-
-.badge-no-refund {
-  background: rgba(231, 76, 60, 0.08);
-  color: #c0392b;
-}
-
-.badge-change {
-  background: rgba(102, 126, 234, 0.1);
-  color: var(--grad-start);
-}
-
-.badge-seats {
-  background: rgba(243, 156, 18, 0.12);
-  color: #b7770d;
-}
-
-/* ── Offer right (price + button) ── */
-.offer-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.price-block {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.currency {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.price {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.price-per {
+.aircraft-label {
   font-size: 0.72rem;
   color: var(--text-muted);
 }
 
-.btn-select {
-  padding: 9px 20px;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: 0.88rem;
-  font-weight: 600;
+/* ── Fare cell ── */
+.fare-cell {
+  text-align: center;
+  padding: 10px 10px;
+}
+
+.fare-cell-selected {
+  background: rgba(102, 126, 234, 0.04);
+}
+
+.fare-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 10px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s, transform 0.15s;
+}
+
+.fare-btn:hover {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.04);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.14);
+  transform: translateY(-2px);
+}
+
+.fare-btn-selected {
+  border-color: var(--grad-start) !important;
+  background: rgba(102, 126, 234, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18) !important;
+}
+
+.fare-price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.btn-select:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+.fare-per {
+  font-size: 0.66rem;
+  color: var(--text-muted);
 }
 
-.btn-select.btn-selected {
-  background: #27ae60;
+.fare-flex-tag {
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: var(--grad-end);
+  background: rgba(118, 75, 162, 0.1);
+  border-radius: 99px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
-/* ── Selected outbound banner (on return search screen) ── */
+.fare-seats-tag {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: #b7770d;
+  background: rgba(243, 156, 18, 0.1);
+  border-radius: 99px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.fare-empty {
+  color: var(--border);
+  font-size: 1.1rem;
+  display: block;
+  text-align: center;
+}
+
+/* ── Selected outbound banner ── */
 .selected-banner {
   width: 100%;
   background: rgba(102, 126, 234, 0.06);
@@ -517,19 +413,214 @@
   color: white;
 }
 
-@media (max-width: 520px) {
-  .offer-card {
-    flex-direction: column;
+/* ── Fare selection overlay & popup ── */
+.fare-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: overlayIn 0.15s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fare-popup {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  animation: popupIn 0.2s ease;
+}
+
+@keyframes popupIn {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.fare-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px 14px;
+  border-bottom: 1.5px solid var(--border);
+  background: var(--bg-light);
+}
+
+.fare-popup-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.fare-popup-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.fare-popup-close {
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.fare-popup-close:hover {
+  background: var(--border);
+  color: var(--text);
+  border-color: transparent;
+}
+
+.fare-popup-body {
+  padding: 20px;
+}
+
+.fare-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.fare-option {
+  position: relative;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  margin-top: 8px;
+}
+
+.fare-option:hover {
+  border-color: var(--grad-start);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
+}
+
+.fare-option-highlight {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.03);
+}
+
+.fare-option-tag {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+
+.fare-option-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fare-option-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fare-option-per {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.fare-option-features {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.feature-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.feature-icon {
+  font-size: 0.88rem;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.feature-yes  { color: #1a8a4a; }
+.feature-no   { color: #c0392b; }
+.feature-warn { color: #b7770d; }
+
+.btn-select-fare {
+  margin-top: 4px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.15s;
+  width: 100%;
+}
+
+.btn-select-fare:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .results-table th.col-flight {
+    min-width: 160px;
   }
 
-  .offer-right {
-    align-items: flex-start;
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
+  .results-table th.col-cabin {
+    min-width: 120px;
   }
 
-  .flight-times {
-    flex-wrap: wrap;
+  .time {
+    font-size: 0.95rem;
+  }
+
+  .fare-price {
+    font-size: 0.92rem;
+  }
+
+  .fare-options {
+    grid-template-columns: 1fr;
   }
 }

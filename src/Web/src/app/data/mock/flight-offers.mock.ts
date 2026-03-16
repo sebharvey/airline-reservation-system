@@ -96,6 +96,18 @@ export function getMockFlightOffers(
         isRefundable: false, isChangeable: false,
         unitPrice: 319.00, taxes: 95.00, totalPrice: 414.00,
         currency: 'GBP', seatsAvailable: 38
+      },
+      {
+        flightNumber: 'AX002',
+        origin: 'JFK', destination: 'LHR',
+        departureDateTime: departDate + 'T13:00:00Z',
+        arrivalDateTime: addDays(departDate, 1) + 'T01:15:00Z',
+        aircraftType: 'A351',
+        cabinCode: 'Y', cabinName: 'Economy',
+        fareFamily: 'Economy Flex', fareBasisCode: 'YFLEXUS', bookingClass: 'Y',
+        isRefundable: true, isChangeable: true,
+        unitPrice: 469.00, taxes: 95.00, totalPrice: 564.00,
+        currency: 'GBP', seatsAvailable: 22
       }
     ],
     'LHR-SIN': [
@@ -117,11 +129,35 @@ export function getMockFlightOffers(
         departureDateTime: departDate + 'T21:30:00Z',
         arrivalDateTime: addDays(departDate, 1) + 'T17:45:00Z',
         aircraftType: 'A351',
+        cabinCode: 'W', cabinName: 'Premium Economy',
+        fareFamily: 'Premium Economy', fareBasisCode: 'WFLEXGB', bookingClass: 'W',
+        isRefundable: false, isChangeable: true,
+        unitPrice: 980.00, taxes: 168.00, totalPrice: 1148.00,
+        currency: 'GBP', seatsAvailable: 20
+      },
+      {
+        flightNumber: 'AX301',
+        origin: 'LHR', destination: 'SIN',
+        departureDateTime: departDate + 'T21:30:00Z',
+        arrivalDateTime: addDays(departDate, 1) + 'T17:45:00Z',
+        aircraftType: 'A351',
         cabinCode: 'Y', cabinName: 'Economy',
         fareFamily: 'Economy Light', fareBasisCode: 'YLOWGB', bookingClass: 'V',
         isRefundable: false, isChangeable: false,
         unitPrice: 489.00, taxes: 112.00, totalPrice: 601.00,
         currency: 'GBP', seatsAvailable: 55
+      },
+      {
+        flightNumber: 'AX301',
+        origin: 'LHR', destination: 'SIN',
+        departureDateTime: departDate + 'T21:30:00Z',
+        arrivalDateTime: addDays(departDate, 1) + 'T17:45:00Z',
+        aircraftType: 'A351',
+        cabinCode: 'Y', cabinName: 'Economy',
+        fareFamily: 'Economy Flex', fareBasisCode: 'YFLEXGB', bookingClass: 'Y',
+        isRefundable: true, isChangeable: true,
+        unitPrice: 649.00, taxes: 112.00, totalPrice: 761.00,
+        currency: 'GBP', seatsAvailable: 30
       }
     ],
     'LHR-DEL': [
@@ -222,6 +258,18 @@ function generateGenericOffers(origin: string, destination: string, departDate: 
       isRefundable: false, isChangeable: false,
       unitPrice: 359.00, taxes: 98.00, totalPrice: 457.00,
       currency: 'GBP', seatsAvailable: 50
+    },
+    {
+      flightNumber: flightNum,
+      origin, destination,
+      departureDateTime: departDate + 'T09:00:00Z',
+      arrivalDateTime: addDays(departDate, 1) + 'T05:00:00Z',
+      aircraftType: 'B789',
+      cabinCode: 'Y', cabinName: 'Economy',
+      fareFamily: 'Economy Flex', fareBasisCode: 'YFLEXGB', bookingClass: 'Y',
+      isRefundable: true, isChangeable: true,
+      unitPrice: 499.00, taxes: 98.00, totalPrice: 597.00,
+      currency: 'GBP', seatsAvailable: 35
     }
   ];
 }
