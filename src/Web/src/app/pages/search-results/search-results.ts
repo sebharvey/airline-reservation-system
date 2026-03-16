@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
 import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
+import { BookingType } from '../../models/order.model';
 import { AIRPORTS } from '../../data/airports';
 
 interface FlightRow {
@@ -36,6 +37,10 @@ export class SearchResultsComponent implements OnInit {
   tripType = signal('one-way');
   adults = signal(1);
   children = signal(0);
+
+  bookingType = signal<BookingType>('Revenue');
+
+  readonly isRewardBooking = computed(() => this.bookingType() === 'Reward');
 
   outboundLoading = signal(false);
   returnLoading = signal(false);
@@ -92,6 +97,9 @@ export class SearchResultsComponent implements OnInit {
     this.tripType.set(p.get('tripType') ?? 'one-way');
     this.adults.set(Number(p.get('adults') ?? 1));
     this.children.set(Number(p.get('children') ?? 0));
+    const bt = (p.get('bookingType') ?? 'Revenue') as BookingType;
+    this.bookingType.set(bt);
+    this.bookingState.setBookingType(bt);
 
     this.bookingState.setSearchParams({
       origin: this.origin(),
@@ -170,7 +178,11 @@ export class SearchResultsComponent implements OnInit {
     if (!outbound) return;
     const inbound = this.isReturn() ? this.selectedReturn() : null;
     this.bookingState.startBasket(outbound, inbound);
-    this.router.navigate(['/booking/passengers']);
+    if (this.isRewardBooking()) {
+      this.router.navigate(['/booking/reward-login']);
+    } else {
+      this.router.navigate(['/booking/passengers']);
+    }
   }
 
   openFarePopup(offers: FlightOffer[], isReturn: boolean): void {
@@ -208,6 +220,15 @@ export class SearchResultsComponent implements OnInit {
 
   getLowestPrice(offers: FlightOffer[]): number {
     return Math.min(...offers.map(o => o.totalPrice));
+  }
+
+  getLowestPoints(offers: FlightOffer[]): number {
+    return Math.min(...offers.map(o => o.pointsPrice ?? 0));
+  }
+
+  getLowestPointsTaxes(offers: FlightOffer[]): number {
+    const lowestPointsOffer = offers.reduce((min, o) => (o.pointsPrice ?? 0) < (min.pointsPrice ?? 0) ? o : min);
+    return lowestPointsOffer.pointsTaxes ?? lowestPointsOffer.taxes;
   }
 
   hasFlex(offers: FlightOffer[]): boolean {

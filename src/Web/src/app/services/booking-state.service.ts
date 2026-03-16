@@ -5,6 +5,8 @@
  * Stores selected offers, passenger details, ancillary selections, and
  * the confirmed order reference across the multi-step booking flow.
  *
+ * Supports both revenue (money) and reward (points) booking types.
+ *
  * In a production app this would integrate with session storage / server-side
  * basket management via the Retail API. The shape mirrors the BasketData JSON
  * from the Order domain.
@@ -12,7 +14,7 @@
 
 import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
-import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, Passenger, Order } from '../models/order.model';
+import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, Passenger, Order, BookingType } from '../models/order.model';
 
 function uuid(): string {
   return 'bsk-' + Math.random().toString(36).slice(2, 10);
@@ -41,7 +43,9 @@ function buildBasketFlightOffer(offer: FlightOffer, passengerRefs: string[]): Ba
     totalPrice: offer.totalPrice,
     isRefundable: offer.isRefundable,
     isChangeable: offer.isChangeable,
-    currency: offer.currency
+    currency: offer.currency,
+    pointsPrice: offer.pointsPrice,
+    pointsTaxes: offer.pointsTaxes
   };
 }
 
@@ -52,14 +56,22 @@ export class BookingStateService {
   private readonly _adultCount = signal<number>(1);
   private readonly _childCount = signal<number>(0);
   private readonly _searchParams = signal<{ origin: string; destination: string; departDate: string; returnDate?: string; tripType: string } | null>(null);
+  private readonly _bookingType = signal<BookingType>('Revenue');
 
   readonly basket = this._basket.asReadonly();
   readonly confirmedOrder = this._confirmedOrder.asReadonly();
   readonly adultCount = this._adultCount.asReadonly();
   readonly childCount = this._childCount.asReadonly();
   readonly searchParams = this._searchParams.asReadonly();
+  readonly bookingType = this._bookingType.asReadonly();
+
+  readonly isRewardBooking = computed(() => this._bookingType() === 'Reward');
 
   readonly totalPassengers = computed(() => this._adultCount() + this._childCount());
+
+  setBookingType(type: BookingType): void {
+    this._bookingType.set(type);
+  }
 
   setSearchParams(params: { origin: string; destination: string; departDate: string; returnDate?: string; tripType: string; adults: number; children: number }): void {
     this._adultCount.set(params.adults);
@@ -77,6 +89,7 @@ export class BookingStateService {
   startBasket(outboundOffer: FlightOffer, inboundOffer: FlightOffer | null): void {
     const paxCount = this._adultCount() + this._childCount();
     const passengerRefs = Array.from({ length: paxCount }, (_, i) => `PAX-${i + 1}`);
+    const bookingType = this._bookingType();
 
     const flightOffers: BasketFlightOffer[] = [
       buildBasketFlightOffer(outboundOffer, passengerRefs)
@@ -86,19 +99,24 @@ export class BookingStateService {
     }
 
     const totalFare = flightOffers.reduce((sum, o) => sum + o.totalPrice, 0);
+    const totalPoints = flightOffers.reduce((sum, o) => sum + (o.pointsPrice ?? 0), 0);
+    const totalTaxes = flightOffers.reduce((sum, o) => sum + (o.pointsTaxes ?? o.taxes), 0);
     const ttl = new Date();
     ttl.setHours(ttl.getHours() + TTL_HOURS);
 
     this._basket.set({
       basketId: uuid(),
+      bookingType,
       flightOffers,
       passengers: [],
       seatSelections: [],
       bagSelections: [],
-      totalFareAmount: totalFare,
+      totalFareAmount: bookingType === 'Reward' ? 0 : totalFare,
+      totalPointsAmount: bookingType === 'Reward' ? totalPoints : 0,
+      totalTaxesAmount: bookingType === 'Reward' ? totalTaxes : 0,
       totalSeatAmount: 0,
       totalBagAmount: 0,
-      totalAmount: totalFare,
+      totalAmount: bookingType === 'Reward' ? totalTaxes : totalFare,
       currency: outboundOffer.currency,
       ticketingTimeLimit: ttl.toISOString()
     });
@@ -110,16 +128,22 @@ export class BookingStateService {
     this._basket.update(b => b ? { ...b, passengers } : b);
   }
 
+  /** Set loyalty number on basket (for reward bookings). */
+  setLoyaltyNumber(loyaltyNumber: string): void {
+    this._basket.update(b => b ? { ...b, loyaltyNumber } : b);
+  }
+
   /** Save seat selections and recalculate total. */
   setSeatSelections(selections: BasketSeatSelection[]): void {
     this._basket.update(b => {
       if (!b) return b;
       const totalSeats = selections.reduce((sum, s) => sum + s.price, 0);
+      const base = b.bookingType === 'Reward' ? b.totalTaxesAmount : b.totalFareAmount;
       return {
         ...b,
         seatSelections: selections,
         totalSeatAmount: totalSeats,
-        totalAmount: b.totalFareAmount + totalSeats + b.totalBagAmount
+        totalAmount: base + totalSeats + b.totalBagAmount
       };
     });
   }
@@ -129,11 +153,12 @@ export class BookingStateService {
     this._basket.update(b => {
       if (!b) return b;
       const totalBags = selections.reduce((sum, s) => sum + s.price, 0);
+      const base = b.bookingType === 'Reward' ? b.totalTaxesAmount : b.totalFareAmount;
       return {
         ...b,
         bagSelections: selections,
         totalBagAmount: totalBags,
-        totalAmount: b.totalFareAmount + b.totalSeatAmount + totalBags
+        totalAmount: base + b.totalSeatAmount + totalBags
       };
     });
   }
@@ -151,5 +176,6 @@ export class BookingStateService {
   clearAll(): void {
     this._basket.set(null);
     this._confirmedOrder.set(null);
+    this._bookingType.set('Revenue');
   }
 }

@@ -24,12 +24,21 @@
       </div>
       <div class="flight-row-right">
         <span class="flight-time">{{ formatDateTime(fo.departureDateTime) }}</span>
-        <span class="flight-price">{{ fo.currency }} {{ fo.totalPrice | number:'1.2-2' }}</span>
+        <span class="flight-price" *ngIf="!isRewardBooking()">{{ fo.currency }} {{ fo.totalPrice | number:'1.2-2' }}</span>
+      <span class="flight-price points-color" *ngIf="isRewardBooking()">{{ fo.pointsPrice | number:'1.0-0' }} pts</span>
       </div>
     </div>
-    <div class="summary-total">
+    <div class="summary-total" *ngIf="!isRewardBooking()">
       <span>Total Fare</span>
       <strong>{{ formatPrice(b.totalFareAmount, b.currency) }}</strong>
+    </div>
+    <div class="summary-total" *ngIf="isRewardBooking()">
+      <span>Total Points</span>
+      <strong class="points-color">{{ b.totalPointsAmount | number:'1.0-0' }} pts</strong>
+    </div>
+    <div class="summary-total" *ngIf="isRewardBooking()">
+      <span>Taxes (paid by card)</span>
+      <strong>{{ formatPrice(b.totalTaxesAmount, b.currency) }}</strong>
     </div>
   </div>
 

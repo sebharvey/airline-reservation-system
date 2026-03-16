@@ -22,6 +22,13 @@ A Modern Airline Retailing system built on offer and order capability, structure
     - E-ticket issuance
     - Inventory hold and sell
     - Manifest population
+  - Reward Booking
+    - Points-priced offer display
+    - Loyalty authentication during bookflow
+    - Points balance verification
+    - Two-stage points authorise and settle (via Customer MS)
+    - Lead passenger autofill from loyalty profile
+    - Tax-only card payment
   - Ancillary Selection
     - Seat selection (bookflow and post-sale)
     - Bag selection (bookflow and post-sale)
@@ -160,6 +167,10 @@ A Modern Airline Retailing system built on offer and order capability, structure
   - Points Ledger
     - Append-only transaction log with running balance snapshot
     - Points accrual, redemption, adjustment, and expiry
+  - Points Redemption
+    - Two-stage authorise and settle for reward bookings
+    - Points hold and deduction with redemption reference tracking
+    - Reversal on booking failure
   - Tier Management
     - Tier configuration and threshold management
     - Tier evaluation against TierProgressPoints
@@ -823,6 +834,154 @@ sequenceDiagram
 ```
 
 *Ref: order bookflow - end-to-end flight selection, ancillary addition, payment, ticketing, and order confirmation*
+
+### Reward Booking — Bookflow
+
+A **reward booking** allows a loyalty programme member to redeem their accumulated points for flights, paying only applicable taxes and fees in cash. The reward booking flow shares the same basket and order infrastructure as revenue bookings but introduces an additional loyalty authentication step and a points redemption flow that mirrors the two-stage authorise-and-settle pattern used for card payments.
+
+#### Key Differences from Revenue Bookings
+
+- **Points pricing:** Flight offers include both a revenue price and a points price (`PointsPrice` and `PointsTaxes`). The points price covers the base fare; taxes and fees remain payable in cash.
+- **Loyalty login required:** After flight selection, the traveller must authenticate via the Loyalty API before proceeding to passenger details. This step is skipped for revenue bookings.
+- **Points balance verification:** The Retail API verifies the customer's points balance against the total points required before creating the basket. If insufficient, the booking is rejected.
+- **Lead passenger autofill:** On successful login, the lead passenger's details (name, date of birth, contact information, loyalty number) are pre-populated from the loyalty profile.
+- **Points redemption:** The Retail API orchestrates a two-stage points redemption (authorise then settle) via the Customer microservice, analogous to the Payment MS authorise-and-settle flow for card payments.
+- **Taxes still paid by card:** The credit card payment flow is still required for taxes, fees, and any ancillary charges (seats, bags). The `TotalAmount` on the basket and order reflects only the cash component.
+
+#### Basket Structure for Reward Bookings
+
+The basket for a reward booking carries additional fields:
+
+- `BookingType`: `Reward` (vs `Revenue` for standard bookings)
+- `TotalPointsAmount`: Total points to be redeemed for the fare component
+- `TotalTaxesAmount`: Total taxes and fees payable in cash
+- `LoyaltyNumber`: The authenticated member's loyalty number
+
+The `TotalFareAmount` is zero for reward bookings (the fare is covered by points). The `TotalAmount` equals `TotalTaxesAmount + TotalSeatAmount + TotalBagAmount` — only the cash-payable portion.
+
+#### Reward Booking Flow
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
+    participant OrderMS as Order [MS]
+    participant OfferMS as Offer [MS]
+    participant PaymentMS as Payment [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Note over Traveller, Web: Flight selection complete — traveller chose "Book with Points"
+
+    Traveller->>Web: Authenticate with loyalty credentials
+    Web->>LoyaltyAPI: POST /v1/auth/login (email, password)
+    LoyaltyAPI-->>Web: 200 OK — accessToken, customer profile (loyaltyNumber, pointsBalance)
+
+    Web->>Web: Verify pointsBalance >= totalPointsRequired
+    Note over Web: If insufficient points, display error and block booking
+
+    Web->>RetailAPI: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+    RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
+    CustomerMS-->>RetailAPI: 200 OK — pointsBalance verified
+    RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+
+    loop For each flight OfferId
+        OrderMS->>OfferMS: GET /v1/offers/{offerId}
+        OfferMS-->>OrderMS: 200 OK — stored offer snapshot
+        OrderMS->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
+        OfferMS-->>OrderMS: 200 OK — seats held
+    end
+
+    OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, totalPointsAmount, totalTaxesAmount
+    RetailAPI-->>Web: 201 Created — basket summary
+
+    Note over Web: Lead passenger auto-filled from loyalty profile
+    Traveller->>Web: Enter/confirm passenger details
+    Web->>RetailAPI: PUT /v1/basket/{basketId}/passengers (PAX details)
+    RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers
+    OrderMS-->>RetailAPI: 200 OK
+
+    opt Seat and bag selection (same as revenue flow)
+        Note over Traveller, Web: Seat and bag selection identical to revenue bookings
+    end
+
+    Traveller->>Web: Enter card details for taxes and confirm booking
+
+    Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (card details for taxes, loyaltyNumber)
+
+    Note over RetailAPI, CustomerMS: Step 1 — Authorise points redemption
+    RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/authorise (points=totalPointsAmount, basketId)
+    CustomerMS-->>RetailAPI: 200 OK — redemptionReference, points held against balance
+
+    Note over RetailAPI, PaymentMS: Step 2 — Authorise card payment for taxes and fees
+    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
+    PaymentMS-->>RetailAPI: 200 OK — paymentReference (taxes)
+
+    opt Ancillary payments (seats, bags — same as revenue flow)
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount/totalBagAmount, card token, description=SeatAncillary/BagAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — paymentReference (ancillary)
+    end
+
+    RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
+    DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
+    RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds)
+    OfferMS-->>RetailAPI: 200 OK — inventory updated
+
+    Note over RetailAPI, CustomerMS: Step 3 — Settle points redemption
+    RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
+    CustomerMS-->>RetailAPI: 200 OK — points deducted, Redeem transaction appended
+    Note over CustomerMS: PointsBalance decremented, LoyaltyTransaction appended (type=Redeem)
+
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=totalTaxesAmount)
+    PaymentMS-->>RetailAPI: 200 OK — taxes payment settled
+
+    RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentReferences, redemptionReference, bookingType=Reward)
+    OrderMS-->>RetailAPI: 201 Created — order confirmed (bookingReference)
+
+    RetailAPI->>DeliveryMS: POST /v1/manifest (manifest entries)
+    DeliveryMS-->>RetailAPI: 201 Created — manifest written
+
+    opt Settle ancillary payments
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (ancillary amounts)
+        PaymentMS-->>RetailAPI: 200 OK
+    end
+
+    RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-tickets, redemptionReference)
+    Web-->>Traveller: Display reward booking confirmation with points redeemed and taxes paid
+```
+
+*Ref: order reward bookflow - end-to-end reward booking with points redemption, tax payment, and order confirmation*
+
+#### Points Redemption — Authorise and Settle
+
+Points redemption follows a two-stage flow analogous to card payment authorisation and settlement, ensuring atomicity and allowing rollback if downstream steps fail:
+
+1. **Authorise** (`POST /v1/customers/{loyaltyNumber}/points/authorise`): Places a hold on the required points against the customer's balance. The points are reserved but not yet deducted. Returns a `RedemptionReference` used to track the transaction.
+
+2. **Settle** (`POST /v1/customers/{loyaltyNumber}/points/settle`): Deducts the held points from the customer's balance and appends a `Redeem` transaction to the loyalty transaction log. Called after e-ticket issuance and inventory settlement.
+
+3. **Reverse** (`POST /v1/customers/{loyaltyNumber}/points/reverse`): Releases held points back to the customer's available balance. Called if any downstream step fails (e.g. ticketing failure, inventory settlement failure).
+
+| Failure point | Behaviour |
+|---|---|
+| Points authorisation fails (insufficient balance) | Abort — do not proceed with card payment or order confirmation |
+| Card payment authorisation fails | Reverse points hold, release inventory, return error |
+| Ticketing fails | Reverse points hold, void card authorisation, release inventory, return error |
+| Points settlement fails after order confirmation | Flag for manual reconciliation; order is confirmed but points deduction must be retried |
+
+#### Order Data for Reward Bookings
+
+The confirmed order for a reward booking includes:
+
+- `BookingType`: `Reward`
+- `TotalPointsAmount`: Points redeemed for the fare
+- `TotalAmount`: Cash amount paid (taxes + ancillaries only)
+- `PointsRedemption`: Object containing `RedemptionReference`, `LoyaltyNumber`, `PointsRedeemed`, and `Status`
+- Standard `Payments` array for the cash/card transactions (taxes and ancillaries)
+
+The `OrderConfirmed` event for reward bookings includes the `BookingType` and `RedemptionReference` fields, allowing the Accounting MS to distinguish between revenue and reward bookings for financial reporting.
 
 ### Ticketing
 

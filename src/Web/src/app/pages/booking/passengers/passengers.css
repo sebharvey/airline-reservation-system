@@ -328,6 +328,12 @@
   color: var(--text);
 }
 
+/* ── Points colour ── */
+.points-color {
+  color: #e67e22 !important;
+  -webkit-text-fill-color: #e67e22 !important;
+}
+
 @media (max-width: 520px) {
   .form-grid {
     grid-template-columns: 1fr;

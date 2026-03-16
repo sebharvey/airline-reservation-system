@@ -3,7 +3,7 @@
   <!-- Page Header -->
   <div class="page-header">
     <a routerLink="/booking/bags" class="back-link">&#8249; Back</a>
-    <h1>Payment</h1>
+    <h1>{{ isRewardBooking() ? 'Taxes & Fees Payment' : 'Payment' }}</h1>
     <p class="step-label">Step 4 of 4</p>
   </div>
 
@@ -56,9 +56,17 @@
 
       <!-- Totals -->
       <div class="summary-totals">
-        <div class="total-row subtotal">
+        <div class="total-row subtotal" *ngIf="isRewardBooking()">
+          <span>Points Redemption</span>
+          <span class="points-color">{{ pointsTotal() | number:'1.0-0' }} pts</span>
+        </div>
+        <div class="total-row subtotal" *ngIf="!isRewardBooking()">
           <span>Fare</span>
           <span>{{ formatPrice(fareTotal()) }}</span>
+        </div>
+        <div class="total-row subtotal" *ngIf="isRewardBooking()">
+          <span>Taxes &amp; Fees</span>
+          <span>{{ formatPrice(taxesTotal()) }}</span>
         </div>
         <div class="total-row subtotal" *ngIf="seatTotal() > 0">
           <span>Seats</span>
@@ -69,7 +77,7 @@
           <span>{{ formatPrice(bagTotal()) }}</span>
         </div>
         <div class="total-row grand">
-          <span>Total</span>
+          <span>Card Payment Total</span>
           <strong>{{ formatPrice(grandTotal()) }}</strong>
         </div>
       </div>
@@ -140,7 +148,7 @@
       <!-- Pay Button -->
       <button class="btn-pay" [class.loading]="paying()" [disabled]="paying()" (click)="onPay()">
         <span class="btn-pay-content" *ngIf="!paying()">
-          Pay {{ formatPrice(grandTotal()) }}
+          {{ isRewardBooking() ? 'Redeem Points & Pay Taxes' : 'Pay' }} {{ formatPrice(grandTotal()) }}
         </span>
         <span class="btn-pay-content" *ngIf="paying()">
           <span class="pay-spinner"></span>

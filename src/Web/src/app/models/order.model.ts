@@ -2,6 +2,7 @@ import { CabinCode } from './flight.model';
 
 export type PassengerType = 'ADT' | 'CHD';
 export type OrderStatus = 'Confirmed' | 'Changed' | 'Cancelled';
+export type BookingType = 'Revenue' | 'Reward';
 
 export interface TravelDocument {
   type: 'PASSPORT' | 'ID_CARD';
@@ -87,18 +88,30 @@ export interface Payment {
   settledAt: string;
 }
 
+export interface PointsRedemption {
+  redemptionReference: string;
+  loyaltyNumber: string;
+  pointsRedeemed: number;
+  status: 'Authorised' | 'Settled' | 'Reversed';
+  authorisedAt: string;
+  settledAt: string;
+}
+
 export interface Order {
   orderId: string;
   bookingReference: string;
   orderStatus: OrderStatus;
+  bookingType: BookingType;
   channelCode: string;
   currencyCode: string;
   totalAmount: number;
+  totalPointsAmount?: number;
   createdAt: string;
   passengers: Passenger[];
   flightSegments: FlightSegment[];
   orderItems: OrderItem[];
   payments: Payment[];
+  pointsRedemption?: PointsRedemption;
 }
 
 export interface BasketFlightOffer {
@@ -122,6 +135,8 @@ export interface BasketFlightOffer {
   isRefundable: boolean;
   isChangeable: boolean;
   currency: string;
+  pointsPrice?: number;
+  pointsTaxes?: number;
 }
 
 export interface BasketSeatSelection {
@@ -147,16 +162,20 @@ export interface BasketBagSelection {
 
 export interface Basket {
   basketId: string;
+  bookingType: BookingType;
   flightOffers: BasketFlightOffer[];
   passengers: Passenger[];
   seatSelections: BasketSeatSelection[];
   bagSelections: BasketBagSelection[];
   totalFareAmount: number;
+  totalPointsAmount: number;
+  totalTaxesAmount: number;
   totalSeatAmount: number;
   totalBagAmount: number;
   totalAmount: number;
   currency: string;
   ticketingTimeLimit: string;
+  loyaltyNumber?: string;
 }
 
 export interface BoardingPass {

@@ -3,7 +3,8 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
-import { Basket, Order, OrderItem, FlightSegment, Payment, Passenger } from '../../../models/order.model';
+import { LoyaltyStateService } from '../../../services/loyalty-state.service';
+import { Basket, Order, OrderItem, FlightSegment, Payment, Passenger, PointsRedemption } from '../../../models/order.model';
 
 function randomAlpha(len: number): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -26,7 +27,7 @@ function generateOrderId(): string {
   return 'ORD-' + randomNum(8);
 }
 
-function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string): Order {
+function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, loyaltyNumber?: string): Order {
   const now = new Date().toISOString();
   const bookingRef = generateBookingRef();
   const orderId = generateOrderId();
@@ -127,9 +128,12 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     });
   });
 
+  const isReward = basket.bookingType === 'Reward';
+  const paymentDescription = isReward ? 'Taxes and fees' : 'Full payment';
+
   const payment: Payment = {
     paymentReference: payRef,
-    description: 'Full payment',
+    description: paymentDescription,
     method: 'CreditCard',
     cardLast4,
     cardType,
@@ -141,18 +145,33 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     settledAt: now
   };
 
+  let pointsRedemption: PointsRedemption | undefined;
+  if (isReward && loyaltyNumber) {
+    pointsRedemption = {
+      redemptionReference: 'AXRDM-' + randomNum(8),
+      loyaltyNumber,
+      pointsRedeemed: basket.totalPointsAmount,
+      status: 'Settled',
+      authorisedAt: now,
+      settledAt: now
+    };
+  }
+
   return {
     orderId,
     bookingReference: bookingRef,
     orderStatus: 'Confirmed',
+    bookingType: basket.bookingType,
     channelCode: 'WEB',
     currencyCode: basket.currency,
     totalAmount: basket.totalAmount,
+    totalPointsAmount: isReward ? basket.totalPointsAmount : undefined,
     createdAt: now,
     passengers: basket.passengers,
     flightSegments,
     orderItems,
-    payments: [payment]
+    payments: [payment],
+    pointsRedemption
   };
 }
 
@@ -166,8 +185,10 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
 export class PaymentComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly bookingState = inject(BookingStateService);
+  private readonly loyaltyState = inject(LoyaltyStateService);
 
   readonly basket = this.bookingState.basket;
+  readonly isRewardBooking = this.bookingState.isRewardBooking;
 
   // Payment form fields
   cardholderName = signal('');
@@ -207,6 +228,8 @@ export class PaymentComponent implements OnInit {
   readonly seatTotal = computed(() => this.basket()?.totalSeatAmount ?? 0);
   readonly bagTotal = computed(() => this.basket()?.totalBagAmount ?? 0);
   readonly fareTotal = computed(() => this.basket()?.totalFareAmount ?? 0);
+  readonly taxesTotal = computed(() => this.basket()?.totalTaxesAmount ?? 0);
+  readonly pointsTotal = computed(() => this.basket()?.totalPointsAmount ?? 0);
   readonly grandTotal = computed(() => this.basket()?.totalAmount ?? 0);
   readonly currency = computed(() => this.basket()?.currency ?? 'GBP');
 
@@ -252,7 +275,8 @@ export class PaymentComponent implements OnInit {
 
     // Simulate payment processing delay
     setTimeout(() => {
-      const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType());
+      const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
+      const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), loyaltyNumber);
       this.bookingState.confirmOrder(order);
       this.paying.set(false);
       this.router.navigate(['/booking/confirmation']);

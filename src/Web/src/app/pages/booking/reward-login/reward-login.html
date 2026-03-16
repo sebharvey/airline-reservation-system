@@ -1,0 +1,80 @@
+<div class="page fade-in">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
+    <h1>Reward Booking Login</h1>
+    <p class="step-label">Sign in to redeem your points</p>
+  </div>
+
+  <!-- Points Requirement Banner -->
+  <div class="points-banner" *ngIf="basket() as b">
+    <div class="points-banner-icon">&#11088;</div>
+    <div class="points-banner-content">
+      <div class="points-banner-title">Points Required</div>
+      <div class="points-banner-amount">{{ requiredPoints | number:'1.0-0' }} pts</div>
+      <div class="points-banner-taxes">+ {{ formatPrice(b.totalTaxesAmount, b.currency) }} taxes (paid by card)</div>
+    </div>
+  </div>
+
+  <!-- Itinerary Summary -->
+  <div class="itinerary-summary" *ngIf="basket() as b">
+    <div class="summary-title">Your Itinerary</div>
+    <div class="flight-row" *ngFor="let fo of b.flightOffers">
+      <div class="flight-row-left">
+        <span class="flight-num">{{ fo.flightNumber }}</span>
+        <span class="flight-route">{{ fo.origin }} &#8594; {{ fo.destination }}</span>
+        <span class="flight-cabin">{{ fo.cabinName }}</span>
+      </div>
+      <div class="flight-row-right">
+        <span class="flight-points">{{ fo.pointsPrice | number:'1.0-0' }} pts</span>
+        <span class="flight-taxes">+ {{ fo.currency }} {{ fo.pointsTaxes | number:'1.2-2' }} taxes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Form -->
+  <div class="login-card">
+    <div class="login-title">
+      <span class="login-icon">&#128274;</span>
+      Sign in to your Apex Rewards account
+    </div>
+
+    <div class="field" [class.error]="submitted() && !email().trim()">
+      <label>Email Address</label>
+      <input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)"
+             name="email" placeholder="demo&#64;apexair.com" autocomplete="email" />
+      <span class="field-error" *ngIf="submitted() && !email().trim()">Required</span>
+    </div>
+
+    <div class="field" [class.error]="submitted() && !password().trim()">
+      <label>Password</label>
+      <input type="password" [ngModel]="password()" (ngModelChange)="password.set($event)"
+             name="password" placeholder="Enter your password" autocomplete="current-password" />
+      <span class="field-error" *ngIf="submitted() && !password().trim()">Required</span>
+    </div>
+
+    <!-- Error Message -->
+    <div class="login-error" *ngIf="errorMessage()">
+      <span class="error-icon" *ngIf="insufficientPoints()">&#9888;</span>
+      <span class="error-icon" *ngIf="!insufficientPoints()">&#10005;</span>
+      {{ errorMessage() }}
+    </div>
+
+    <!-- Login Button -->
+    <button class="btn-login" [class.loading]="loading()" [disabled]="loading()" (click)="onLogin()">
+      <span class="btn-login-content" *ngIf="!loading()">
+        Sign In & Continue &#8250;
+      </span>
+      <span class="btn-login-content" *ngIf="loading()">
+        <span class="login-spinner"></span>
+        Signing in&hellip;
+      </span>
+    </button>
+
+    <p class="demo-hint">
+      Demo credentials: <strong>demo&#64;apexair.com</strong> / <strong>Password1</strong>
+    </p>
+  </div>
+
+</div>

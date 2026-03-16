@@ -320,6 +320,22 @@
   border: 1.5px solid var(--border);
 }
 
+/* ── Points colour ── */
+.points-color {
+  color: #e67e22 !important;
+  -webkit-text-fill-color: #e67e22 !important;
+}
+
+.points-label {
+  font-weight: 600;
+  color: #e67e22;
+}
+
+.points-chip {
+  background: rgba(245, 166, 35, 0.1) !important;
+  color: #e67e22 !important;
+}
+
 .btn-primary:hover,
 .btn-secondary:hover {
   opacity: 0.85;

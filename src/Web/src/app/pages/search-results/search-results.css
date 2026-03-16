@@ -602,6 +602,18 @@
   transform: translateY(-1px);
 }
 
+/* ── Points / Reward styling ── */
+.points-price {
+  color: #e67e22 !important;
+}
+
+.reward-pill {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: #e67e22;
+  font-weight: 600;
+}
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .results-table th.col-flight {

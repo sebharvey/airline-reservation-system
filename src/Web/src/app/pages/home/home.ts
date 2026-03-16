@@ -3,6 +3,8 @@ import { RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AIRPORTS, Airport } from '../../data/airports';
+import { BookingStateService } from '../../services/booking-state.service';
+import { BookingType } from '../../models/order.model';
 
 @Component({
   selector: 'app-home',
@@ -19,6 +21,7 @@ export class HomeComponent {
   returnDate = '';
   adults = 1;
   children = 0;
+  bookingType: BookingType = 'Revenue';
 
   today = new Date().toISOString().split('T')[0];
 
@@ -30,7 +33,7 @@ export class HomeComponent {
   showOriginDropdown = false;
   showDestinationDropdown = false;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private bookingState: BookingStateService) {}
 
   get isReturn(): boolean {
     return this.tripType === 'return';
@@ -122,6 +125,7 @@ export class HomeComponent {
   }
 
   onSearch(): void {
+    this.bookingState.setBookingType(this.bookingType);
     const params: Record<string, string> = {
       origin: this.origin,
       destination: this.destination,
@@ -129,6 +133,7 @@ export class HomeComponent {
       departDate: this.departDate,
       adults: String(this.adults),
       children: String(this.children),
+      bookingType: this.bookingType,
     };
     if (this.isReturn && this.returnDate) {
       params['returnDate'] = this.returnDate;

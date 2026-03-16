@@ -26,6 +26,14 @@ export class ConfirmationComponent implements OnInit {
 
   order: Order | null = null;
 
+  get isRewardBooking(): boolean {
+    return this.order?.bookingType === 'Reward';
+  }
+
+  get pointsRedemption() {
+    return this.order?.pointsRedemption ?? null;
+  }
+
   ngOnInit(): void {
     this.order = this.bookingState.confirmedOrder();
     if (!this.order) {

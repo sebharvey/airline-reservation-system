@@ -25,7 +25,7 @@
 .page-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  background: linear-gradient(135deg, #f5a623, #e67e22);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -37,8 +37,50 @@
   color: var(--text-muted);
 }
 
-/* ── Summary Card ── */
-.summary-card {
+/* ── Points Banner ── */
+.points-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.08), rgba(230, 126, 34, 0.08));
+  border: 1.5px solid rgba(245, 166, 35, 0.3);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+}
+
+.points-banner-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.points-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.points-banner-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #e67e22;
+}
+
+.points-banner-amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e67e22;
+}
+
+.points-banner-taxes {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ── Itinerary Summary ── */
+.itinerary-summary {
   width: 100%;
   background: var(--bg-light);
   border: 1.5px solid var(--border);
@@ -52,93 +94,73 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  padding: 12px 18px;
+  padding: 12px 18px 10px;
   border-bottom: 1px solid var(--border);
-  background: var(--white);
 }
 
-.summary-section {
-  border-bottom: 1px solid var(--border);
-  padding: 10px 18px;
-}
-
-.summary-section-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--grad-start);
-  margin-bottom: 8px;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 5px 0;
-  font-size: 0.88rem;
-}
-
-.summary-row-label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  color: var(--text);
-  font-weight: 500;
-}
-
-.summary-row-sub {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.summary-row-value {
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ── Summary Totals ── */
-.summary-totals {
-  padding: 12px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--white);
-}
-
-.total-row {
+.flight-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.88rem;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.total-row.subtotal {
+.flight-row:last-child {
+  border-bottom: none;
+}
+
+.flight-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.flight-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--grad-start);
+  min-width: 60px;
+}
+
+.flight-route {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.flight-cabin {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.flight-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.flight-points {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e67e22;
+}
+
+.flight-taxes {
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
-.total-row.grand {
-  font-size: 1rem;
-  color: var(--text);
-  padding-top: 8px;
-  border-top: 1.5px solid var(--border);
-  margin-top: 4px;
-}
-
-.total-row.grand strong {
-  font-size: 1.1rem;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Payment Card ── */
-.payment-card {
+/* ── Login Card ── */
+.login-card {
   width: 100%;
   background: var(--bg-light);
   border: 1.5px solid var(--border);
@@ -149,7 +171,7 @@
   gap: 16px;
 }
 
-.payment-title {
+.login-title {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
@@ -158,17 +180,7 @@
   gap: 8px;
 }
 
-.lock-icon { font-size: 1rem; }
-
-.card-type-indicator {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--grad-start);
-  background: rgba(102, 126, 234, 0.08);
-  padding: 4px 12px;
-  border-radius: 99px;
-  width: fit-content;
-}
+.login-icon { font-size: 1rem; }
 
 /* ── Form Fields ── */
 .field {
@@ -185,8 +197,7 @@
   letter-spacing: 0.04em;
 }
 
-.field input,
-.field select {
+.field input {
   padding: 10px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
@@ -198,15 +209,13 @@
   box-sizing: border-box;
 }
 
-.field input:focus,
-.field select:focus {
+.field input:focus {
   outline: none;
   border-color: var(--grad-start);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
-.field.error input,
-.field.error select {
+.field.error input {
   border-color: #e74c3c;
 }
 
@@ -216,15 +225,11 @@
   font-weight: 500;
 }
 
-/* ── Expiry + CVV Row ── */
-.field-row-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr 90px;
-  gap: 12px;
-}
-
-/* ── Payment Error ── */
-.payment-error {
+/* ── Error ── */
+.login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   padding: 12px 14px;
   background: rgba(231, 76, 60, 0.08);
   border: 1px solid rgba(231, 76, 60, 0.3);
@@ -233,11 +238,16 @@
   color: #c0392b;
 }
 
-/* ── Pay Button ── */
-.btn-pay {
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ── Login Button ── */
+.btn-login {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  background: linear-gradient(135deg, #f5a623, #e67e22);
   color: white;
   border: none;
   border-radius: var(--radius-lg);
@@ -248,29 +258,29 @@
   margin-top: 4px;
 }
 
-.btn-pay:hover:not(:disabled) {
+.btn-login:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.4);
 }
 
-.btn-pay:disabled {
+.btn-login:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.btn-pay.loading {
+.btn-login.loading {
   opacity: 0.8;
 }
 
-.btn-pay-content {
+.btn-login-content {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 }
 
-.pay-spinner {
+.login-spinner {
   width: 18px;
   height: 18px;
   border: 2.5px solid rgba(255, 255, 255, 0.4);
@@ -282,25 +292,26 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.security-note {
+/* ── Demo hint ── */
+.demo-hint {
   font-size: 0.78rem;
   color: var(--text-muted);
   text-align: center;
   line-height: 1.5;
 }
 
-/* ── Points colour ── */
-.points-color {
-  color: #e67e22 !important;
+.demo-hint strong {
+  color: var(--text);
   font-weight: 600;
 }
 
-@media (max-width: 480px) {
-  .field-row-split {
-    grid-template-columns: 1fr 1fr;
+@media (max-width: 520px) {
+  .flight-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .field-row-split .field:last-child {
-    grid-column: 1 / -1;
+  .flight-row-right {
+    align-items: flex-start;
   }
 }
