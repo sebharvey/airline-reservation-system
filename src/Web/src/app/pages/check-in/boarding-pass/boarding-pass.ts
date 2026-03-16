@@ -1,6 +1,6 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { BoardingPass } from '../../../models/order.model';
 import QRCode from 'qrcode';
@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 @Component({
   selector: 'app-boarding-pass',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgTemplateOutlet],
   templateUrl: './boarding-pass.html',
   styleUrl: './boarding-pass.css'
 })
@@ -17,6 +17,9 @@ export class BoardingPassComponent implements OnInit {
   loading = signal(true);
   errorMessage = signal('');
   qrCodeUrls = signal<Map<string, string>>(new Map());
+  activeIndex = signal(0);
+
+  @ViewChild('carouselTrack') carouselTrack?: ElementRef<HTMLElement>;
 
   bookingRef = signal('');
   givenName = signal('');
@@ -83,7 +86,7 @@ export class BoardingPassComponent implements OnInit {
       const dataUrl = await QRCode.toDataURL(bp.bcbpBarcode, {
         errorCorrectionLevel: 'M',
         margin: 2,
-        width: 160,
+        width: 300,
         color: { dark: '#000000', light: '#ffffff' }
       });
       urls.set(bp.sequenceNumber, dataUrl);
@@ -93,6 +96,29 @@ export class BoardingPassComponent implements OnInit {
 
   qrCodeUrl(bp: BoardingPass): string {
     return this.qrCodeUrls().get(bp.sequenceNumber) ?? '';
+  }
+
+  onCarouselScroll(): void {
+    const el = this.carouselTrack?.nativeElement;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    this.activeIndex.set(index);
+  }
+
+  goToPass(index: number): void {
+    const el = this.carouselTrack?.nativeElement;
+    if (el) {
+      el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' });
+    }
+    this.activeIndex.set(index);
+  }
+
+  prevPass(): void {
+    this.goToPass(Math.max(0, this.activeIndex() - 1));
+  }
+
+  nextPass(): void {
+    this.goToPass(Math.min(this.boardingPasses().length - 1, this.activeIndex() + 1));
   }
 
   formatTime(dt: string): string {

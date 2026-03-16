@@ -1,8 +1,4 @@
 <div class="page fade-in">
-  <div class="page-header">
-    <h2>Boarding Passes</h2>
-    <p>Check-in complete &mdash; your boarding passes are ready</p>
-  </div>
 
   <!-- Loading -->
   @if (loading()) {
@@ -24,14 +20,8 @@
   <!-- Boarding passes -->
   @if (!loading() && boardingPasses().length > 0) {
 
-    <!-- Print / Done actions -->
-    <div class="top-actions no-print">
-      <button type="button" class="btn-outline-sm" (click)="print()">
-        &#128438; Print Boarding Passes
-      </button>
-    </div>
-
-    @for (bp of boardingPasses(); track bp.sequenceNumber) {
+    <!-- Shared boarding pass card template -->
+    <ng-template #bpCard let-bp>
       <div class="boarding-pass printable">
 
         <!-- BP Header -->
@@ -125,12 +115,87 @@
         </div>
 
       </div>
-    }
+    </ng-template>
 
-    <!-- Done button -->
-    <div class="done-actions no-print">
-      <a routerLink="/" class="btn-primary">Done &mdash; Return to Home</a>
+    <!-- ══ MOBILE: full-screen carousel ══ -->
+    <div class="mobile-carousel no-print">
+      <div class="carousel-track" #carouselTrack (scroll)="onCarouselScroll()">
+        @for (bp of boardingPasses(); track bp.sequenceNumber; let i = $index) {
+          <div class="carousel-slide">
+            <div class="slide-header">
+              <div class="slide-header-title">
+                <span class="slide-airline">&#9992; Apex Air</span>
+                <span class="slide-counter">Pass {{ i + 1 }} of {{ boardingPasses().length }}</span>
+              </div>
+              <a routerLink="/" class="slide-done-btn">Done</a>
+            </div>
+            <div class="slide-body">
+              <ng-container
+                [ngTemplateOutlet]="bpCard"
+                [ngTemplateOutletContext]="{ $implicit: bp }"
+              ></ng-container>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Carousel footer: dots + done -->
+      <div class="carousel-footer">
+        @if (boardingPasses().length > 1) {
+          <div class="carousel-nav">
+            <button
+              class="carousel-arrow"
+              (click)="prevPass()"
+              [disabled]="activeIndex() === 0"
+              aria-label="Previous boarding pass"
+            >&#8249;</button>
+            <div class="carousel-dots">
+              @for (bp of boardingPasses(); track bp.sequenceNumber; let i = $index) {
+                <button
+                  class="dot"
+                  [class.dot--active]="activeIndex() === i"
+                  (click)="goToPass(i)"
+                  [attr.aria-label]="'Go to pass ' + (i + 1)"
+                ></button>
+              }
+            </div>
+            <button
+              class="carousel-arrow"
+              (click)="nextPass()"
+              [disabled]="activeIndex() === boardingPasses().length - 1"
+              aria-label="Next boarding pass"
+            >&#8250;</button>
+          </div>
+        }
+        <a routerLink="/" class="btn-primary carousel-done">Done &mdash; Return to Home</a>
+      </div>
     </div>
+
+    <!-- ══ DESKTOP: stacked list ══ -->
+    <div class="desktop-list">
+      <div class="page-header">
+        <h2>Boarding Passes</h2>
+        <p>Check-in complete &mdash; your boarding passes are ready</p>
+      </div>
+
+      <div class="top-actions no-print">
+        <button type="button" class="btn-outline-sm" (click)="print()">
+          &#128438; Print Boarding Passes
+        </button>
+      </div>
+
+      @for (bp of boardingPasses(); track bp.sequenceNumber) {
+        <ng-container
+          [ngTemplateOutlet]="bpCard"
+          [ngTemplateOutletContext]="{ $implicit: bp }"
+        ></ng-container>
+      }
+
+      <div class="done-actions no-print">
+        <a routerLink="/" class="btn-primary">Done &mdash; Return to Home</a>
+      </div>
+    </div>
+
   }
 
   <!-- No passes generated -->

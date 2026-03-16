@@ -60,12 +60,6 @@ h2 {
   font-size: 0.9rem;
 }
 
-/* Top actions */
-.top-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* Boarding pass card */
 .boarding-pass {
   background: var(--white);
@@ -229,7 +223,7 @@ h2 {
 /* Barcode section */
 .bp-barcode-section {
   background: var(--bg-light);
-  padding: 16px 20px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -237,13 +231,14 @@ h2 {
 
 .bp-qr-inner {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
 }
 
 .bp-qr-code {
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 200px;
   display: block;
   image-rendering: pixelated;
   flex-shrink: 0;
@@ -252,6 +247,7 @@ h2 {
 .bp-eticket {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .eticket-num {
@@ -262,11 +258,224 @@ h2 {
   letter-spacing: 0.04em;
 }
 
-/* Done actions */
+/* ══ Mobile-only: hide desktop list, show carousel ══ */
+.desktop-list {
+  display: none;
+}
+
+/* ══ Mobile carousel: full-screen overlay ══ */
+.mobile-carousel {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg-light);
+  display: flex;
+  flex-direction: column;
+}
+
+.carousel-track {
+  flex: 1;
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  min-height: 0;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-slide {
+  min-width: 100vw;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  scroll-snap-align: start;
+  overflow-y: auto;
+}
+
+.slide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  flex-shrink: 0;
+}
+
+.slide-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.slide-airline {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.slide-counter {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.slide-done-btn {
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.slide-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  min-height: 0;
+}
+
+/* Boarding pass inside carousel: no double shadow */
+.mobile-carousel .boarding-pass {
+  box-shadow: none;
+}
+
+/* Carousel footer */
+.carousel-footer {
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.carousel-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.dot--active {
+  background: var(--grad-start);
+  transform: scale(1.35);
+}
+
+.carousel-arrow {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.carousel-arrow:not(:disabled):hover {
+  border-color: var(--grad-start);
+  color: var(--grad-start);
+}
+
+.carousel-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.carousel-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.carousel-done:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+/* ══ Desktop: hide carousel, show stacked list ══ */
+@media (min-width: 481px) {
+  .mobile-carousel {
+    display: none;
+  }
+
+  .desktop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* QR code: moderate size on desktop */
+  .bp-qr-code {
+    width: 150px;
+    height: 150px;
+  }
+
+  /* QR inner: side by side on desktop */
+  .bp-qr-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+  }
+
+  .bp-eticket {
+    align-items: flex-start;
+  }
+}
+
+/* Desktop actions */
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .done-actions {
   margin-top: 4px;
 }
 
+/* Buttons */
 .btn-primary {
   display: flex;
   align-items: center;
@@ -341,6 +550,17 @@ h2 {
     display: none !important;
   }
 
+  /* Force show desktop list, hide carousel */
+  .mobile-carousel {
+    display: none !important;
+  }
+
+  .desktop-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 20px;
+  }
+
   .boarding-pass {
     box-shadow: none;
     border: 1px solid #999;
@@ -359,7 +579,18 @@ h2 {
   }
 
   .bp-qr-code {
-    width: 110px;
-    height: 110px;
+    width: 140px;
+    height: 140px;
+  }
+
+  .bp-qr-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+  }
+
+  .bp-eticket {
+    align-items: flex-start;
   }
 }
