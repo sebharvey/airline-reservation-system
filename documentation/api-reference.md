@@ -12,12 +12,12 @@
 |--------|----------|-------------|
 | `POST` | `/v1/search/slice` | Search for available direct flights for a single directional slice (outbound or inbound); returns one offer per available cabin class, each with a unique `OfferId` |
 | `POST` | `/v1/search/connecting` | Search for connecting itinerary options via the LHR hub (e.g. DEL → JFK via LHR); assembles pairs of per-segment offers from the Offer MS, applies minimum connect time (60 min), and returns combined itinerary options each carrying two `OfferIds` — one per leg |
-| `POST` | `/v1/basket` | Create a new basket with one or more flight offer IDs; initiates the bookflow |
+| `POST` | `/v1/basket` | Create a new basket with one or more flight offer IDs; initiates the bookflow. For reward bookings, accepts `bookingType=Reward` and `loyaltyNumber`; verifies points balance via Customer MS before creating the basket |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; accepts bag offer IDs per passenger per segment; updates `TotalBagAmount` on the basket |
 | `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update Special Service Request selections on a basket during the bookflow; accepts SSR code, passenger reference, and segment reference per selection; no charge — basket total is unchanged |
-| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation |
+| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation. For reward baskets, orchestrates points authorisation (Customer MS), tax-only payment authorisation (Payment MS), ticketing, inventory settlement, points settlement, and order creation |
 
 ### Orders
 
@@ -30,13 +30,6 @@
 | `POST` | `/v1/orders/{bookingRef}/cancel` | Cancel a confirmed booking; initiates refund if fare conditions permit |
 | `POST` | `/v1/orders/{bookingRef}/bags` | Add or update checked bag selection on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove Special Service Requests on a confirmed order (self-serve); rejected with `422` if within the SSR amendment cut-off window for the departure |
-
-### Reward Bookings
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/v1/basket` | Create a new basket with `bookingType=Reward` and `loyaltyNumber`; verifies points balance via Customer MS before creating the basket |
-| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a reward basket; orchestrates points authorisation (Customer MS), tax payment authorisation (Payment MS), ticketing, inventory settlement, points settlement, and order creation |
 | `POST` | `/v1/reward/{redemptionReference}/reverse` | Reverse a points authorisation if a downstream step fails during reward booking confirmation |
 
 ### SSR
