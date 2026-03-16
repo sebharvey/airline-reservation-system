@@ -16,6 +16,30 @@
   animation: slideIn 0.35s ease;
 }
 
+/* Desktop layout */
+@media (min-width: 900px) {
+  .shell {
+    padding: 32px 40px 60px;
+    align-items: flex-start;
+  }
+
+  .card {
+    max-width: 1100px;
+  }
+
+  .content {
+    padding: 36px 40px;
+  }
+
+  .nav {
+    padding: 18px 36px;
+  }
+
+  .footer {
+    padding: 18px 36px;
+  }
+}
+
 /* Nav */
 .nav {
   display: flex;

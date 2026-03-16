@@ -391,6 +391,50 @@ h1 {
   font-size: 1.2rem;
 }
 
+/* Desktop two-column layout */
+@media (min-width: 900px) {
+  .page {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 28px 40px;
+  }
+
+  .hero {
+    flex: 0 0 100%;
+    text-align: left;
+    padding-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo {
+    font-size: 36px;
+    margin-bottom: 0;
+    display: inline;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+    margin-bottom: 0;
+  }
+
+  .tagline {
+    font-size: 0.95rem;
+  }
+
+  .search-panel {
+    flex: 1 1 55%;
+    min-width: 0;
+  }
+
+  .quick-links {
+    flex: 1 1 30%;
+    min-width: 0;
+  }
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .field-row {
