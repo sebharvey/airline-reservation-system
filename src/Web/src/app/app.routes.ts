@@ -29,6 +29,9 @@ export const routes: Routes = [
       { path: '', component: ManageBookingComponent },
       { path: 'detail', loadComponent: () => import('./pages/manage-booking/detail/detail').then(m => m.ManageBookingDetailComponent) },
       { path: 'seat', loadComponent: () => import('./pages/manage-booking/seat/manage-seat').then(m => m.ManageSeatComponent) },
+      { path: 'bags', loadComponent: () => import('./pages/manage-booking/bags/manage-bags').then(m => m.ManageBagsComponent) },
+      { path: 'bags-payment', loadComponent: () => import('./pages/manage-booking/bags-payment/manage-bags-payment').then(m => m.ManageBagsPaymentComponent) },
+      { path: 'bags-confirmation', loadComponent: () => import('./pages/manage-booking/bags-confirmation/manage-bags-confirmation').then(m => m.ManageBagsConfirmationComponent) },
       { path: 'change-flight', loadComponent: () => import('./pages/manage-booking/change-flight/change-flight').then(m => m.ChangeFlightComponent) },
       { path: 'cancel', loadComponent: () => import('./pages/manage-booking/cancel/cancel').then(m => m.CancelBookingComponent) },
     ]

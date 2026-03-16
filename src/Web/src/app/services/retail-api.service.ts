@@ -191,6 +191,19 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/orders/{bookingRef}/bags
+   * Purchase additional bags post-sale via Manage Booking.
+   */
+  addManageBookingBags(
+    _bookingRef: string,
+    _bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
+    _cardLast4: string,
+    _cardType: string
+  ): Observable<{ success: boolean; paymentReference: string }> {
+    return of({ success: true, paymentReference: 'AXPAY-MB-' + Date.now() }).pipe(delay(API_DELAY_MS));
+  }
+
+  /**
    * POST /v1/orders/{bookingRef}/cancel
    * Cancel a confirmed booking.
    */
