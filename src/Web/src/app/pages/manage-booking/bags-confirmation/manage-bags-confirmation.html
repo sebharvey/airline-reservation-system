@@ -1,0 +1,24 @@
+<div class="page fade-in">
+  <div class="success-hero">
+    <div class="success-icon">&#10003;</div>
+    <h2>Bags Added!</h2>
+    <p>Your additional bags have been added to booking <strong>{{ bookingRef() }}</strong> and payment has been taken.</p>
+  </div>
+
+  <div class="card info-card">
+    <div class="info-row">
+      <span class="info-icon">&#128513;</span>
+      <span>Your updated baggage allowance is now confirmed. You will receive an updated booking confirmation by email.</span>
+    </div>
+    <div class="info-row">
+      <span class="info-icon">&#128203;</span>
+      <span>Please ensure your bags comply with the weight limits stated in the baggage policy.</span>
+    </div>
+  </div>
+
+  <div class="action-buttons">
+    <button type="button" class="btn-primary" (click)="goToBooking()">
+      View Booking
+    </button>
+  </div>
+</div>

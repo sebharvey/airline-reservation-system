@@ -1,0 +1,168 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Payment</h2>
+    <p>Complete payment for your additional bags</p>
+  </div>
+
+  <!-- Loading order -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading&hellip;</span>
+    </div>
+  }
+
+  <!-- Error loading order -->
+  @if (errorMessage() && !loading()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+    <button type="button" class="back-link" (click)="onBack()">&#8592; Back</button>
+  }
+
+  @if (!loading() && !errorMessage()) {
+
+    <!-- Order summary -->
+    <div class="section">
+      <h3 class="section-title">Order Summary</h3>
+      <div class="card summary-card">
+        <div class="summary-group">
+          <div class="summary-group-title">&#129524; Additional Bags</div>
+          @for (bag of bagSelections(); track bag.passengerId + bag.segmentId) {
+            <div class="summary-row">
+              <span>{{ getPassengerName(bag.passengerId) }} &mdash; +{{ bag.additionalBags }} bag{{ bag.additionalBags !== 1 ? 's' : '' }} ({{ getSegmentRoute(bag.segmentId) }})</span>
+              <span class="summary-price">{{ bag.currency }} {{ bag.price.toFixed(2) }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="summary-total-row">
+          <span class="summary-total-label">Total due</span>
+          <span class="summary-total-amount">{{ currency() }} {{ totalAmount().toFixed(2) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment form -->
+    <div class="section">
+      <h3 class="section-title">Card Details</h3>
+      <div class="card payment-card">
+
+        <!-- Cardholder name -->
+        <div class="field">
+          <label for="mb-cardholder">Cardholder Name</label>
+          <input
+            id="mb-cardholder"
+            type="text"
+            placeholder="Name as it appears on card"
+            [ngModel]="cardholderName()"
+            (ngModelChange)="cardholderName.set($event)"
+            name="mb-cardholder"
+            [class.field-error]="submitted() && !cardholderName().trim()"
+          />
+          @if (submitted() && !cardholderName().trim()) {
+            <span class="field-error-msg">Cardholder name is required</span>
+          }
+        </div>
+
+        <!-- Card number -->
+        <div class="field">
+          <label for="mb-cardnum">Card Number</label>
+          <input
+            id="mb-cardnum"
+            type="text"
+            inputmode="numeric"
+            placeholder="0000 0000 0000 0000"
+            [value]="cardDisplayNumber()"
+            (input)="onCardNumberInput($event)"
+            name="mb-cardnum"
+            maxlength="19"
+            [class.field-error]="submitted() && cardNumber().replace(' ','').length < 16"
+          />
+          @if (submitted() && cardNumber().replace(/\D/g, '').length < 16) {
+            <span class="field-error-msg">Enter a valid 16-digit card number</span>
+          }
+        </div>
+
+        <!-- Expiry + CVV -->
+        <div class="field-row">
+          <div class="field">
+            <label for="mb-month">Expiry Month</label>
+            <select
+              id="mb-month"
+              [ngModel]="expiryMonth()"
+              (ngModelChange)="expiryMonth.set($event)"
+              name="mb-month"
+              [class.field-error]="submitted() && !expiryMonth()"
+            >
+              <option value="">Month</option>
+              @for (m of expiryMonths; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="mb-year">Expiry Year</label>
+            <select
+              id="mb-year"
+              [ngModel]="expiryYear()"
+              (ngModelChange)="expiryYear.set($event)"
+              name="mb-year"
+              [class.field-error]="submitted() && !expiryYear()"
+            >
+              <option value="">Year</option>
+              @for (y of expiryYears(); track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+          <div class="field field--cvv">
+            <label for="mb-cvv">CVV</label>
+            <input
+              id="mb-cvv"
+              type="password"
+              inputmode="numeric"
+              placeholder="&bull;&bull;&bull;"
+              [ngModel]="cvv()"
+              (ngModelChange)="cvv.set($event)"
+              name="mb-cvv"
+              maxlength="4"
+              [class.field-error]="submitted() && cvv().length < 3"
+            />
+          </div>
+        </div>
+        @if (submitted() && (!expiryMonth() || !expiryYear())) {
+          <span class="field-error-msg">Expiry date is required</span>
+        }
+
+      </div>
+    </div>
+
+    <!-- Payment error -->
+    @if (paymentError()) {
+      <div class="error-banner">
+        <span>&#9888;</span>
+        {{ paymentError() }}
+      </div>
+    }
+
+    <!-- Pay button -->
+    <div class="action-buttons">
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="paying()"
+        (click)="onPay()"
+      >
+        @if (paying()) {
+          <span class="spinner"></span> Processing&hellip;
+        } @else {
+          Pay {{ currency() }} {{ totalAmount().toFixed(2) }}
+        }
+      </button>
+    </div>
+
+    <button type="button" class="back-link" (click)="onBack()">&#8592; Back to Bag Selection</button>
+  }
+</div>

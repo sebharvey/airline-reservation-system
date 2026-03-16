@@ -46,6 +46,11 @@ export class ManageBookingDetailComponent implements OnInit {
     return o ? o.orderItems.some(i => i.isRefundable) : false;
   });
 
+  readonly canAddBags = computed(() => {
+    const o = this.order();
+    return o ? o.orderStatus === 'Confirmed' : false;
+  });
+
   readonly segmentDisplays = computed((): SegmentDisplay[] => {
     const o = this.order();
     if (!o) return [];
@@ -131,6 +136,12 @@ export class ManageBookingDetailComponent implements OnInit {
 
   formatCurrency(amount: number, currency: string): string {
     return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount);
+  }
+
+  navigateToAddBags(): void {
+    this.router.navigate(['/manage-booking/bags'], {
+      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+    });
   }
 
   navigateToSeat(): void {

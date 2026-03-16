@@ -32,6 +32,16 @@
 
     <!-- Action Cards -->
     <div class="action-cards">
+      @if (canAddBags()) {
+        <button type="button" class="action-card" (click)="navigateToAddBags()">
+          <span class="action-icon">&#129524;</span>
+          <div class="action-body">
+            <span class="action-title">Add Extra Bags</span>
+            <span class="action-desc">Purchase additional checked baggage for your trip</span>
+          </div>
+          <span class="action-arrow">&#8250;</span>
+        </button>
+      }
       @if (canChangeSeat()) {
         <button type="button" class="action-card" (click)="navigateToSeat()">
           <span class="action-icon">&#128186;</span>
