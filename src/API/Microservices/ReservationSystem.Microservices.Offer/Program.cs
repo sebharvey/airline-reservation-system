@@ -4,10 +4,10 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using ReservationSystem.Microservices.Offer.Application.UseCases.CreateOffer;
-using ReservationSystem.Microservices.Offer.Application.UseCases.DeleteOffer;
-using ReservationSystem.Microservices.Offer.Application.UseCases.GetAllOffers;
-using ReservationSystem.Microservices.Offer.Application.UseCases.GetOffer;
+using ReservationSystem.Microservices.Offer.Application.CreateOffer;
+using ReservationSystem.Microservices.Offer.Application.DeleteOffer;
+using ReservationSystem.Microservices.Offer.Application.GetAllOffers;
+using ReservationSystem.Microservices.Offer.Application.GetOffer;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;

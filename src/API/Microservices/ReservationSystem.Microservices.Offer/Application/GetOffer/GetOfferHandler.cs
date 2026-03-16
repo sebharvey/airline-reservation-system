@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.GetOffer;
+namespace ReservationSystem.Microservices.Offer.Application.GetOffer;
 
 /// <summary>
 /// Handles the <see cref="GetOfferQuery"/>.

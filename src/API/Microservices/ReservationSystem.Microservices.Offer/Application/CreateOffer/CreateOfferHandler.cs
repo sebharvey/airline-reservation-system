@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Domain.ValueObjects;
 
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.CreateOffer;
+namespace ReservationSystem.Microservices.Offer.Application.CreateOffer;
 
 /// <summary>
 /// Handles the <see cref="CreateOfferCommand"/>.

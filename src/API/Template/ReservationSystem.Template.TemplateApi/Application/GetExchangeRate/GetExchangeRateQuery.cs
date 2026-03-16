@@ -1,4 +1,4 @@
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.GetExchangeRate;
+namespace ReservationSystem.Template.TemplateApi.Application.GetExchangeRate;
 
 /// <summary>
 /// Query to retrieve a live exchange rate between two ISO 4217 currency codes.

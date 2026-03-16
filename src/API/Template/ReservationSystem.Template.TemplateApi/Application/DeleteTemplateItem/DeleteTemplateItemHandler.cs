@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.DeleteTemplateItem;
+namespace ReservationSystem.Template.TemplateApi.Application.DeleteTemplateItem;
 
 public sealed class DeleteTemplateItemHandler
 {

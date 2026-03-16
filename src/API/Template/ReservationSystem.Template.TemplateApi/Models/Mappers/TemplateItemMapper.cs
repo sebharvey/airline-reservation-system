@@ -1,4 +1,4 @@
-using ReservationSystem.Template.TemplateApi.Application.UseCases.CreateTemplateItem;
+using ReservationSystem.Template.TemplateApi.Application.CreateTemplateItem;
 using ReservationSystem.Template.TemplateApi.Domain.Entities;
 using ReservationSystem.Template.TemplateApi.Domain.ValueObjects;
 using ReservationSystem.Template.TemplateApi.Models.Database;

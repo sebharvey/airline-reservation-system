@@ -64,6 +64,7 @@ Create every file listed below. Base each file on the corresponding TemplateApi 
 - Every occurrence of `template-items` → entity kebab-case plural in route paths
 - Every occurrence of `template` in SQL schema names → entity lower-case singular
 - Every occurrence of `Items` in SQL table names → entity plural PascalCase
+- Application folder capability directories use the pattern `Application/<Capability>/` — there is no `UseCases` sub-folder
 - The project GUID in the `.csproj` and `.sln` entries → generate a new random GUID
 
 #### Files to create
@@ -85,19 +86,18 @@ ReservationSystem.<ApiType>.<ApiName>/
 │       └── I<EntityName>Repository.cs
 │
 ├── Application/
-│   └── UseCases/
-│       ├── Get<EntityName>/
-│       │   ├── Get<EntityName>Query.cs
-│       │   └── Get<EntityName>Handler.cs
-│       ├── GetAll<EntityName>s/
-│       │   ├── GetAll<EntityName>sQuery.cs
-│       │   └── GetAll<EntityName>sHandler.cs
-│       ├── Create<EntityName>/
-│       │   ├── Create<EntityName>Command.cs
-│       │   └── Create<EntityName>Handler.cs
-│       └── Delete<EntityName>/
-│           ├── Delete<EntityName>Command.cs
-│           └── Delete<EntityName>Handler.cs
+│   ├── Get<EntityName>/
+│   │   ├── Get<EntityName>Query.cs
+│   │   └── Get<EntityName>Handler.cs
+│   ├── GetAll<EntityName>s/
+│   │   ├── GetAll<EntityName>sQuery.cs
+│   │   └── GetAll<EntityName>sHandler.cs
+│   ├── Create<EntityName>/
+│   │   ├── Create<EntityName>Command.cs
+│   │   └── Create<EntityName>Handler.cs
+│   └── Delete<EntityName>/
+│       ├── Delete<EntityName>Command.cs
+│       └── Delete<EntityName>Handler.cs
 │
 ├── Infrastructure/
 │   └── Persistence/

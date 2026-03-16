@@ -4,11 +4,11 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using ReservationSystem.Template.TemplateApi.Application.UseCases.CreateTemplateItem;
-using ReservationSystem.Template.TemplateApi.Application.UseCases.DeleteTemplateItem;
-using ReservationSystem.Template.TemplateApi.Application.UseCases.GetAllTemplateItems;
-using ReservationSystem.Template.TemplateApi.Application.UseCases.GetExchangeRate;
-using ReservationSystem.Template.TemplateApi.Application.UseCases.GetTemplateItem;
+using ReservationSystem.Template.TemplateApi.Application.CreateTemplateItem;
+using ReservationSystem.Template.TemplateApi.Application.DeleteTemplateItem;
+using ReservationSystem.Template.TemplateApi.Application.GetAllTemplateItems;
+using ReservationSystem.Template.TemplateApi.Application.GetExchangeRate;
+using ReservationSystem.Template.TemplateApi.Application.GetTemplateItem;
 using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using ReservationSystem.Template.TemplateApi.Infrastructure.ExternalServices;

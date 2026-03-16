@@ -1,4 +1,4 @@
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.CreateTemplateItem;
+namespace ReservationSystem.Template.TemplateApi.Application.CreateTemplateItem;
 
 /// <summary>
 /// Command carrying the data needed to create a new TemplateItem.

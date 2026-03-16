@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.ValueObjects;
 
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.GetExchangeRate;
+namespace ReservationSystem.Template.TemplateApi.Application.GetExchangeRate;
 
 /// <summary>
 /// Handles the <see cref="GetExchangeRateQuery"/>.
