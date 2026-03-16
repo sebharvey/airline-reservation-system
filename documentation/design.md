@@ -2719,6 +2719,20 @@ sequenceDiagram
 
 *Ref: customer loyalty - retrieve paginated points transaction history*
 
+#### Transaction Types
+
+Each `LoyaltyTransaction` row carries a `TransactionType` that describes why points were added or removed. The following types are supported:
+
+| Type | Points&nbsp;Direction | When Used | Example |
+|---|---|---|---|
+| `Earn` | Positive | Points accrued when a customer completes a flight. Calculated from fare paid, cabin class, and tier at time of travel. Also used for welcome bonuses on new registrations. | *+8,750 pts — Flight LHR-JFK-LHR, Business Flex* |
+| `Redeem` | Negative | Points spent against a future booking such as an award flight or cabin upgrade. | *−5,000 pts — Upgrade to Business Class* |
+| `Adjustment` | Positive or Negative | Manual correction applied by a customer service agent, always accompanied by a reason. Covers goodwill gestures, error corrections, and partner earn reconciliations. | *+2,500 pts — Goodwill gesture, disruption on AX301* |
+| `Expiry` | Negative | Points removed automatically when an account fails to meet the programme's activity threshold within the defined period. Triggered by a scheduled background process. | *−1,500 pts — Activity threshold not met* |
+| `Reinstate` | Positive | Reversal of a previous `Expiry` or erroneous `Redeem` transaction. Typically initiated by a customer service agent after review. | *+1,500 pts — Reinstatement of expired points (case #4412)* |
+
+> **Sign convention:** `PointsDelta` is positive for credits (`Earn`, `Reinstate`, positive `Adjustment`) and negative for debits (`Redeem`, `Expiry`, negative `Adjustment`). The `BalanceAfter` column always reflects the running total after the transaction is applied.
+
 ---
 
 ### Earn Points on Booking Confirmation
