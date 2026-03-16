@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { BoardingPass } from '../../../models/order.model';
+import QRCode from 'qrcode';
 
 @Component({
   selector: 'app-boarding-pass',
@@ -15,6 +16,7 @@ export class BoardingPassComponent implements OnInit {
   boardingPasses = signal<BoardingPass[]>([]);
   loading = signal(true);
   errorMessage = signal('');
+  qrCodeUrls = signal<Map<string, string>>(new Map());
 
   bookingRef = signal('');
   givenName = signal('');
@@ -33,8 +35,6 @@ export class BoardingPassComponent implements OnInit {
     }
     return Array.from(map.values());
   });
-
-  readonly barcodeSegments = Array.from({ length: 40 }, (_, i) => i);
 
   constructor(
     private route: ActivatedRoute,
@@ -65,8 +65,9 @@ export class BoardingPassComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
     this.retailApi.submitCheckIn(ref, paxIds).subscribe({
-      next: (passes) => {
+      next: async (passes) => {
         this.boardingPasses.set(passes);
+        await this.generateQrCodes(passes);
         this.loading.set(false);
       },
       error: (err: { message?: string }) => {
@@ -74,6 +75,24 @@ export class BoardingPassComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private async generateQrCodes(passes: BoardingPass[]): Promise<void> {
+    const urls = new Map<string, string>();
+    await Promise.all(passes.map(async (bp) => {
+      const dataUrl = await QRCode.toDataURL(bp.bcbpBarcode, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 160,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      urls.set(bp.sequenceNumber, dataUrl);
+    }));
+    this.qrCodeUrls.set(urls);
+  }
+
+  qrCodeUrl(bp: BoardingPass): string {
+    return this.qrCodeUrls().get(bp.sequenceNumber) ?? '';
   }
 
   formatTime(dt: string): string {

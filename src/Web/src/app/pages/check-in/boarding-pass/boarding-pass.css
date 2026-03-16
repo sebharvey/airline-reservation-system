@@ -235,45 +235,23 @@ h2 {
   gap: 10px;
 }
 
-.bp-barcode-inner {
+.bp-qr-inner {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 20px;
 }
 
-.barcode-bars {
-  display: flex;
-  gap: 1.5px;
-  height: 52px;
-  align-items: stretch;
-}
-
-.bar {
-  flex: 1;
-  background: var(--text);
-  opacity: 0.78;
-  border-radius: 1px;
-}
-
-.bar:nth-child(even) { opacity: 0.32; }
-.bar:nth-child(3n) { flex: 2; opacity: 0.88; }
-.bar:nth-child(5n) { flex: 0.6; opacity: 0.55; }
-.bar:nth-child(7n) { flex: 1.5; }
-
-.bcbp-text {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  word-break: break-all;
-  line-height: 1.4;
+.bp-qr-code {
+  width: 100px;
+  height: 100px;
+  display: block;
+  image-rendering: pixelated;
+  flex-shrink: 0;
 }
 
 .bp-eticket {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
 }
 
 .eticket-num {
@@ -378,5 +356,10 @@ h2 {
   .bp-header {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  .bp-qr-code {
+    width: 110px;
+    height: 110px;
   }
 }
