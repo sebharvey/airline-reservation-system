@@ -129,19 +129,8 @@ export class CheckInDetailsComponent implements OnInit {
     this.passengerStates.set(states);
   }
 
-  proceedToSeats(): void {
-    this.router.navigate(['/check-in/seats'], {
-      queryParams: {
-        bookingRef: this.bookingRef(),
-        givenName: this.givenName(),
-        surname: this.surname(),
-        passengerIds: this.selectedPassengerIds().join(',')
-      }
-    });
-  }
-
-  proceedToBoardingPass(): void {
-    this.router.navigate(['/check-in/boarding-pass'], {
+  proceedToBags(): void {
+    this.router.navigate(['/check-in/bags'], {
       queryParams: {
         bookingRef: this.bookingRef(),
         givenName: this.givenName(),

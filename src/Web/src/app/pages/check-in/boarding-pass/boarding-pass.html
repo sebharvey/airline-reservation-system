@@ -108,20 +108,19 @@
           <div class="tear-dots"></div>
         </div>
 
-        <!-- Barcode section -->
+        <!-- QR code section -->
         <div class="bp-barcode-section">
-          <div class="bp-barcode-inner">
-            <!-- Simulated barcode bars -->
-            <div class="barcode-bars" title="{{ bp.bcbpBarcode }}">
-              @for (seg of barcodeSegments; track seg) {
-                <div class="bar"></div>
-              }
+          <div class="bp-qr-inner">
+            <img
+              class="bp-qr-code"
+              [src]="qrCodeUrl(bp)"
+              alt="BCBP QR Code for {{ bp.givenName }} {{ bp.surname }}"
+              title="{{ bp.bcbpBarcode }}"
+            />
+            <div class="bp-eticket">
+              <span class="bp-field-label">E-Ticket</span>
+              <span class="eticket-num">{{ bp.eTicketNumber }}</span>
             </div>
-            <div class="bcbp-text">{{ bp.bcbpBarcode }}</div>
-          </div>
-          <div class="bp-eticket">
-            <span class="bp-field-label">E-Ticket</span>
-            <span class="eticket-num">{{ bp.eTicketNumber }}</span>
           </div>
         </div>
 

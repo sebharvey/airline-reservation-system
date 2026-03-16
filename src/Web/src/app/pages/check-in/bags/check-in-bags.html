@@ -1,0 +1,108 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Baggage</h2>
+    <p>Review your bag allowance and add extras if needed</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Loading booking&hellip;</span>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (errorMessage() && !loading()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+  }
+
+  <!-- Main content -->
+  @if (!loading() && !errorMessage() && order()) {
+
+    @for (segData of segmentBagData(); track segData.segmentId) {
+      <div class="section">
+        <h3 class="section-title">{{ segData.flightNumber }} &mdash; {{ segData.origin }} &#8594; {{ segData.destination }}</h3>
+
+        @if (segData.loading) {
+          <div class="loading-state">
+            <span class="spinner-dark"></span>
+            <span>Loading bag policy&hellip;</span>
+          </div>
+        }
+
+        @if (!segData.loading && segData.policy) {
+          @for (state of getPaxStatesForSegment(segData.segmentId); track state.key) {
+            <div class="card pax-bag-card">
+              <div class="pax-name">{{ state.passengerName }}</div>
+
+              <!-- Current allowance -->
+              <div class="allowance-row">
+                <div class="allowance-item">
+                  <span class="allowance-icon">&#10003;</span>
+                  <span>{{ segData.policy.freeBagsIncluded }} bag{{ segData.policy.freeBagsIncluded !== 1 ? 's' : '' }} included ({{ cabinLabel(segData.cabinCode) }})</span>
+                  <span class="allowance-detail">Max {{ segData.policy.maxWeightKgPerBag }}kg each</span>
+                </div>
+                @if (state.alreadyPurchased > 0) {
+                  <div class="allowance-item allowance-item--purchased">
+                    <span class="allowance-icon">&#10003;</span>
+                    <span>{{ state.alreadyPurchased }} additional bag{{ state.alreadyPurchased !== 1 ? 's' : '' }} already purchased</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Add more bags -->
+              @if (maxNewBags(state.alreadyPurchased) > 0) {
+                <div class="add-bags-row">
+                  <span class="add-bags-label">Add extra bags:</span>
+                  <div class="bag-options">
+                    @for (n of additionalOptions(state.alreadyPurchased); track n) {
+                      <button
+                        type="button"
+                        class="bag-option-btn"
+                        [class.bag-option-btn--selected]="isSelected(state.key, n)"
+                        (click)="setAdditional(state.key, n)"
+                      >
+                        {{ optionLabel(segData.offers, state.alreadyPurchased, n, segData.currency) }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="max-bags-note">Maximum additional bags already purchased for this flight.</div>
+              }
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- Cost summary -->
+    @if (totalBagCost() > 0) {
+      <div class="cost-summary">
+        <span class="cost-label">Additional bags total</span>
+        <span class="cost-amount">{{ currency() }} {{ totalBagCost().toFixed(2) }}</span>
+      </div>
+    }
+
+    <!-- Actions -->
+    <div class="action-buttons">
+      <button type="button" class="btn-primary" (click)="continueToSeats()">
+        @if (totalBagCost() > 0) {
+          Continue &mdash; {{ currency() }} {{ totalBagCost().toFixed(2) }} bags added
+        } @else {
+          Continue to Seat Selection
+        }
+      </button>
+      <button type="button" class="btn-secondary" (click)="skip()">
+        Skip &mdash; No extra bags
+      </button>
+    </div>
+
+    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+  }
+</div>

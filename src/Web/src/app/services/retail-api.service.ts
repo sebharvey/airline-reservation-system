@@ -177,6 +177,20 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/checkin/{bookingRef}/ancillaries
+   * Purchase additional bags and/or seats during online check-in.
+   */
+  addCheckInAncillaries(
+    _bookingRef: string,
+    _bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
+    _seats: { passengerId: string; segmentId: string; seatNumber: string; seatPrice: number }[],
+    _cardLast4: string,
+    _cardType: string
+  ): Observable<{ success: boolean; paymentReference: string }> {
+    return of({ success: true, paymentReference: 'AXPAY-CI-' + Date.now() }).pipe(delay(API_DELAY_MS));
+  }
+
+  /**
    * POST /v1/orders/{bookingRef}/cancel
    * Cancel a confirmed booking.
    */

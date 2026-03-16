@@ -139,24 +139,13 @@
 
     <!-- Actions -->
     <div class="action-buttons">
-      @if (!hasSeats()) {
-        <button
-          type="button"
-          class="btn-primary"
-          [disabled]="!canProceed()"
-          (click)="proceedToSeats()"
-        >
-          Continue to Seat Selection
-        </button>
-      }
       <button
         type="button"
         class="btn-primary"
-        [class.btn-outline]="!hasSeats()"
         [disabled]="!canProceed()"
-        (click)="proceedToBoardingPass()"
+        (click)="proceedToBags()"
       >
-        Proceed to Boarding Pass
+        Continue &#8594;
       </button>
     </div>
 

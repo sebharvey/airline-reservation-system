@@ -1,7 +1,11 @@
 <div class="page fade-in">
   <div class="page-header">
     <h2>Select Your Seat</h2>
-    <p>Seats are complimentary during online check-in</p>
+    @if (seatsAlwaysFree()) {
+      <p>Seat selection is complimentary in your cabin</p>
+    } @else {
+      <p>Select a seat &mdash; pricing shown below</p>
+    }
   </div>
 
   <!-- Loading -->
@@ -48,10 +52,12 @@
         {{ o.flightSegments[0]?.origin }} &#8594; {{ o.flightSegments[0]?.destination }}
       </h3>
 
-      <div class="free-badge">
-        <span class="free-icon">&#10003;</span>
-        Seat selection is free during check-in
-      </div>
+      @if (seatsAlwaysFree()) {
+        <div class="free-badge">
+          <span class="free-icon">&#10003;</span>
+          Seat selection is free during check-in
+        </div>
+      }
 
       @if (seatmapLoading()) {
         <div class="loading-state">
@@ -100,7 +106,7 @@
                       [class.seat-sold]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
                       [class.seat-held]="seat.availability === 'held' && !isSeatSelected(seat)"
                       [disabled]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
-                      [title]="seat.seatNumber + ' — ' + seat.position"
+                      [title]="seat.seatNumber + ' — ' + seat.position + (seatsAlwaysFree() ? '' : ' — ' + getSeatPriceLabel(seat))"
                       (click)="selectSeat(seat)"
                     >
                       {{ seat.seatNumber }}
@@ -111,8 +117,23 @@
             }
           </div>
         </div>
+
+        <!-- Seat price key for paid cabins -->
+        @if (!seatsAlwaysFree()) {
+          <div class="seat-price-info">
+            Seat prices shown on hover. Selected seat charges will be collected at payment.
+          </div>
+        }
       }
     </div>
+
+    <!-- Seat cost summary (paid cabins only) -->
+    @if (!seatsAlwaysFree() && totalSeatCost() > 0) {
+      <div class="cost-summary">
+        <span class="cost-label">Seat selection total</span>
+        <span class="cost-amount">{{ currency() }} {{ totalSeatCost().toFixed(2) }}</span>
+      </div>
+    }
 
     <!-- Actions -->
     <div class="action-buttons">
@@ -124,6 +145,8 @@
       >
         @if (submitting()) {
           <span class="spinner"></span> Saving&hellip;
+        } @else if (!seatsAlwaysFree() && totalSeatCost() > 0) {
+          Continue &mdash; {{ currency() }} {{ totalSeatCost().toFixed(2) }} seat charge
         } @else {
           Continue to Boarding Pass
         }
