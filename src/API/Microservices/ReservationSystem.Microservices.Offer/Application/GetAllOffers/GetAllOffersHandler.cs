@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.GetAllOffers;
+namespace ReservationSystem.Microservices.Offer.Application.GetAllOffers;
 
 public sealed class GetAllOffersHandler
 {

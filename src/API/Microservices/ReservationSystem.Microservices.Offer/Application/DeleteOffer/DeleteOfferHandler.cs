@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.DeleteOffer;
+namespace ReservationSystem.Microservices.Offer.Application.DeleteOffer;
 
 public sealed class DeleteOfferHandler
 {

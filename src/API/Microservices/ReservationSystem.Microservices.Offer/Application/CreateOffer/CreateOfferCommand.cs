@@ -1,4 +1,4 @@
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.CreateOffer;
+namespace ReservationSystem.Microservices.Offer.Application.CreateOffer;
 
 /// <summary>
 /// Command carrying the data needed to create a new Offer.

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Template.TemplateApi.Domain.Entities;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.GetTemplateItem;
+namespace ReservationSystem.Template.TemplateApi.Application.GetTemplateItem;
 
 /// <summary>
 /// Handles the <see cref="GetTemplateItemQuery"/>.

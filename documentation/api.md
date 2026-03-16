@@ -66,12 +66,12 @@ The innermost layer. No dependencies on any other layer or on infrastructure.
 
 Domain objects use meaningful, domain-specific fields. Do not use generic `Name`/`Status` placeholders — choose fields that reflect the actual airline domain concept (cross-reference `design.md` for the correct terminology).
 
-### Application layer (`Application/UseCases/`)
+### Application layer (`Application/`)
 
-Contains use-case handlers. Each use case lives in its own subdirectory:
+Contains use-case handlers. Each capability lives in its own subdirectory directly under `Application/` — there is no intermediate `UseCases/` folder:
 
 ```
-Application/UseCases/
+Application/
 ├── CreateOffer/
 │   ├── CreateOfferCommand.cs
 │   └── CreateOfferHandler.cs

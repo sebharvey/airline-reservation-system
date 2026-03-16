@@ -1,4 +1,4 @@
-namespace ReservationSystem.Microservices.Offer.Application.UseCases.GetAllOffers;
+namespace ReservationSystem.Microservices.Offer.Application.GetAllOffers;
 
 /// <summary>
 /// Query to retrieve all Offers.

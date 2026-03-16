@@ -1,4 +1,4 @@
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.GetTemplateItem;
+namespace ReservationSystem.Template.TemplateApi.Application.GetTemplateItem;
 
 /// <summary>
 /// Query to retrieve a single TemplateItem by its identifier.

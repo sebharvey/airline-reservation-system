@@ -3,7 +3,7 @@ using ReservationSystem.Template.TemplateApi.Domain.Entities;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using ReservationSystem.Template.TemplateApi.Domain.ValueObjects;
 
-namespace ReservationSystem.Template.TemplateApi.Application.UseCases.CreateTemplateItem;
+namespace ReservationSystem.Template.TemplateApi.Application.CreateTemplateItem;
 
 /// <summary>
 /// Handles the <see cref="CreateTemplateItemCommand"/>.
