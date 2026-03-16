@@ -27,7 +27,8 @@ export class CheckInComponent {
 
   readonly demoHints: DemoHint[] = [
     { ref: 'AB1234', name: 'Alex Taylor', givenName: 'Alex', surname: 'Taylor' },
-    { ref: 'CD5678', name: 'Sam Morgan', givenName: 'Sam', surname: 'Morgan' }
+    { ref: 'CD5678', name: 'Sam Morgan', givenName: 'Sam', surname: 'Morgan' },
+    { ref: 'EF9012', name: 'Jamie Patel', givenName: 'Jamie', surname: 'Patel' }
   ];
 
   constructor(

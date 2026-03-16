@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
+import { CheckInStateService, CheckInSeatSelection } from '../../../services/check-in-state.service';
 import { Order } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer } from '../../../models/flight.model';
 
@@ -9,6 +10,8 @@ interface SeatSelection {
   passengerId: string;
   segmentId: string;
   seatNumber: string;
+  price: number;
+  currency: string;
 }
 
 @Component({
@@ -73,10 +76,25 @@ export class CheckInSeatsComponent implements OnInit {
       .map(([rowNumber, seats]) => ({ rowNumber, seats }));
   });
 
+  /** True if seats are always free for this cabin (J/F fare includes seat selection). */
+  readonly seatsAlwaysFree = computed((): boolean => {
+    const cabinCode = this.order()?.flightSegments[0]?.cabinCode;
+    return cabinCode === 'J' || cabinCode === 'F';
+  });
+
+  readonly totalSeatCost = computed((): number =>
+    this.selections().reduce((sum, s) => sum + s.price, 0)
+  );
+
+  readonly currency = computed((): string =>
+    this.order()?.currencyCode ?? 'GBP'
+  );
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private retailApi: RetailApiService
+    private retailApi: RetailApiService,
+    private checkInState: CheckInStateService
   ) {}
 
   ngOnInit(): void {
@@ -129,6 +147,31 @@ export class CheckInSeatsComponent implements OnInit {
     });
   }
 
+  /**
+   * Returns the charge for selecting a given seat for the active passenger.
+   * Free if: J/F cabin, OR passenger already has a purchased Seat orderItem.
+   */
+  getSeatCharge(passengerId: string, seat: SeatOffer): number {
+    const o = this.order();
+    const seg = o?.flightSegments[0];
+    if (!seg) return 0;
+    if (seg.cabinCode === 'J' || seg.cabinCode === 'F') return 0;
+    // Already paid for seat selection — change is free
+    const hasPaidSeat = o?.orderItems.some(
+      oi => oi.type === 'Seat' &&
+            oi.segmentRef === seg.segmentId &&
+            oi.passengerRefs.includes(passengerId)
+    );
+    if (hasPaidSeat) return 0;
+    return seat.price;
+  }
+
+  getSeatPriceLabel(seat: SeatOffer): string {
+    if (this.seatsAlwaysFree()) return 'Incl.';
+    if (seat.price === 0) return 'Free';
+    return `${seat.currency} ${seat.price.toFixed(0)}`;
+  }
+
   selectPassenger(index: number): void {
     this.activePassengerIndex.set(index);
   }
@@ -156,11 +199,18 @@ export class CheckInSeatsComponent implements OnInit {
     const seg = this.order()?.flightSegments[0];
     if (!pax || !seg) return;
 
+    const price = this.getSeatCharge(pax.passengerId, seat);
     const updated = this.selections().filter(
       s => !(s.passengerId === pax.passengerId && s.segmentId === seg.segmentId)
     );
     if (!this.isSeatSelected(seat)) {
-      updated.push({ passengerId: pax.passengerId, segmentId: seg.segmentId, seatNumber: seat.seatNumber });
+      updated.push({
+        passengerId: pax.passengerId,
+        segmentId: seg.segmentId,
+        seatNumber: seat.seatNumber,
+        price,
+        currency: seat.currency
+      });
     }
     this.selections.set(updated);
   }
@@ -172,20 +222,33 @@ export class CheckInSeatsComponent implements OnInit {
   }
 
   skip(): void {
-    this.navigateToBoardingPass();
+    this.checkInState.setSeatSelections([]);
+    this.navigateNext();
   }
 
   confirmAndContinue(): void {
     if (this.submitting()) return;
     if (this.selections().length === 0) {
-      this.navigateToBoardingPass();
+      this.checkInState.setSeatSelections([]);
+      this.navigateNext();
       return;
     }
     this.submitting.set(true);
     this.retailApi.updateSeats(this.bookingRef(), this.selections()).subscribe({
       next: () => {
+        // Save paid seat selections to state
+        const paidSeats: CheckInSeatSelection[] = this.selections()
+          .filter(s => s.price > 0)
+          .map(s => ({
+            passengerId: s.passengerId,
+            segmentId: s.segmentId,
+            seatNumber: s.seatNumber,
+            seatPrice: s.price,
+            currency: s.currency
+          }));
+        this.checkInState.setSeatSelections(paidSeats);
         this.submitting.set(false);
-        this.navigateToBoardingPass();
+        this.navigateNext();
       },
       error: (err: { message?: string }) => {
         this.submitting.set(false);
@@ -194,14 +257,17 @@ export class CheckInSeatsComponent implements OnInit {
     });
   }
 
-  private navigateToBoardingPass(): void {
-    this.router.navigate(['/check-in/boarding-pass'], {
-      queryParams: {
-        bookingRef: this.bookingRef(),
-        givenName: this.givenName(),
-        surname: this.surname(),
-        passengerIds: this.passengerIds().join(',')
-      }
-    });
+  private navigateNext(): void {
+    const queryParams = {
+      bookingRef: this.bookingRef(),
+      givenName: this.givenName(),
+      surname: this.surname(),
+      passengerIds: this.passengerIds().join(',')
+    };
+    if (this.checkInState.totalPaymentAmount() > 0) {
+      this.router.navigate(['/check-in/payment'], { queryParams });
+    } else {
+      this.router.navigate(['/check-in/boarding-pass'], { queryParams });
+    }
   }
 }

@@ -222,7 +222,79 @@ export const MOCK_ORDER_CD5678: Order = {
   ]
 };
 
+export const MOCK_ORDER_EF9012: Order = {
+  orderId: 'ord-ef9012-0001',
+  bookingReference: 'EF9012',
+  orderStatus: 'Confirmed',
+  channelCode: 'WEB',
+  currencyCode: 'GBP',
+  totalAmount: 489.00,
+  createdAt: '2026-03-10T09:00:00Z',
+  passengers: [
+    {
+      passengerId: 'PAX-1',
+      type: 'ADT',
+      givenName: 'Jamie',
+      surname: 'Patel',
+      dateOfBirth: '1995-04-20',
+      gender: 'Other',
+      loyaltyNumber: null,
+      contacts: { email: 'jamie.patel@example.com', phone: '+447788990011' },
+      travelDocument: null
+    }
+  ],
+  flightSegments: [
+    {
+      segmentId: 'SEG-1',
+      flightNumber: 'AX205',
+      origin: 'LHR',
+      destination: 'DXB',
+      departureDateTime: '2026-09-05T14:00:00Z',
+      arrivalDateTime: '2026-09-05T23:30:00Z',
+      aircraftType: 'A351',
+      operatingCarrier: 'AX',
+      marketingCarrier: 'AX',
+      cabinCode: 'Y',
+      bookingClass: 'V'
+    }
+  ],
+  orderItems: [
+    {
+      orderItemId: 'OI-1',
+      type: 'Flight',
+      segmentRef: 'SEG-1',
+      passengerRefs: ['PAX-1'],
+      fareFamily: 'Economy Light',
+      fareBasisCode: 'YLOWGB',
+      unitPrice: 379.00,
+      taxes: 110.00,
+      totalPrice: 489.00,
+      isRefundable: false,
+      isChangeable: false,
+      paymentReference: 'AXPAY-0005',
+      eTickets: [{ passengerId: 'PAX-1', eTicketNumber: '932-1111222333' }],
+      seatAssignments: []
+    }
+  ],
+  payments: [
+    {
+      paymentReference: 'AXPAY-0005',
+      description: 'Fare — LHR-DXB, 1 PAX',
+      method: 'CreditCard',
+      cardLast4: '9876',
+      cardType: 'Visa',
+      authorisedAmount: 489.00,
+      settledAmount: 489.00,
+      currency: 'GBP',
+      status: 'Settled',
+      authorisedAt: '2026-03-10T08:59:00Z',
+      settledAt: '2026-03-10T09:00:00Z'
+    }
+  ]
+};
+
 export const MOCK_ORDERS: Record<string, Order> = {
   'AB1234': MOCK_ORDER_AB1234,
-  'CD5678': MOCK_ORDER_CD5678
+  'CD5678': MOCK_ORDER_CD5678,
+  'EF9012': MOCK_ORDER_EF9012
 };

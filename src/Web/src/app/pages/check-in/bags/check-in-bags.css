@@ -47,17 +47,6 @@ h3 {
   flex-shrink: 0;
 }
 
-.spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -91,189 +80,122 @@ h3 {
   margin: 0;
 }
 
-/* Free seat badge */
-.free-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: rgba(34, 197, 94, 0.08);
-  border: 1.5px solid rgba(34, 197, 94, 0.25);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  color: #15803d;
-  font-weight: 500;
-}
-
-.free-icon {
-  font-size: 0.9rem;
-}
-
-/* Passenger tabs */
-.passenger-tabs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pax-tab {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.pax-tab--active {
-  border-color: var(--grad-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.pax-tab-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.pax-tab-seat {
-  font-size: 0.82rem;
-  color: var(--grad-start);
-  font-weight: 600;
-  font-family: 'Courier New', Courier, monospace;
-}
-
 /* Card */
 .card {
   background: var(--white);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
 }
 
-/* Seatmap */
-.seatmap-wrap {
-  overflow-x: auto;
-}
-
-.seatmap-legend {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.seat-demo {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-}
-
-.seatmap-grid {
+.pax-bag-card {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: fit-content;
+  gap: 14px;
 }
 
-.col-header-row,
-.seat-row {
+.pax-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Allowance */
+.allowance-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.allowance-item {
   display: flex;
   align-items: center;
-  gap: 3px;
-}
-
-.row-num-spacer,
-.row-num {
-  width: 24px;
-  text-align: center;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.col-header {
-  width: 34px;
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 700;
+  gap: 8px;
+  font-size: 0.88rem;
   color: var(--text-muted);
 }
 
-.aisle-spacer {
-  width: 16px;
-  flex-shrink: 0;
+.allowance-item--purchased {
+  color: var(--text);
 }
 
-.seat {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px 6px 4px 4px;
-  border: none;
-  font-size: 0.6rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
-  flex-shrink: 0;
-  display: flex;
+.allowance-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.seat:hover:not(:disabled) {
-  transform: scale(1.1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-}
-
-.seat-available {
+  width: 18px;
+  height: 18px;
   background: rgba(34, 197, 94, 0.15);
-  color: #15803d;
   border: 1.5px solid rgba(34, 197, 94, 0.4);
+  border-radius: 50%;
+  font-size: 0.65rem;
+  color: #15803d;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.seat-selected {
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: var(--white);
-  border: none;
+.allowance-detail {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
 }
 
-.seat-sold {
-  background: var(--bg-light);
-  color: var(--border);
-  cursor: not-allowed;
+/* Add bags */
+.add-bags-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.add-bags-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bag-option-btn {
+  padding: 8px 14px;
   border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  white-space: nowrap;
 }
 
-.seat-held {
-  background: rgba(234, 179, 8, 0.15);
-  color: #b45309;
-  border: 1.5px solid rgba(234, 179, 8, 0.4);
+.bag-option-btn:hover {
+  border-color: var(--grad-start);
+  color: var(--grad-start);
 }
 
-.seat-empty {
-  background: transparent;
-  cursor: default;
+.bag-option-btn--selected {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  border-color: transparent;
+  color: var(--white);
 }
 
-/* Seat price info note */
-.seat-price-info {
+.bag-option-btn--selected:hover {
+  color: var(--white);
+}
+
+.max-bags-note {
   font-size: 0.82rem;
   color: var(--text-muted);
-  padding: 8px 0 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 /* Cost summary */
@@ -322,15 +244,10 @@ h3 {
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -348,12 +265,21 @@ h3 {
   transition: border-color 0.2s, color 0.2s;
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover {
   border-color: var(--text-muted);
   color: var(--text);
 }
 
-.btn-secondary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--grad-start);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
