@@ -1,0 +1,235 @@
+# Web Development Guide
+
+This guide describes how to build the Apex Air Angular web application. Read `../agents.md` and `design.md` first to understand the domain model and capabilities before writing any code.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Angular 21 (standalone components, no NgModules) |
+| Language | TypeScript |
+| Build | Angular CLI (`ng build`, `ng serve`) |
+| Test | Vitest (`ng test`) |
+| Styling | CSS (component-scoped via Angular's encapsulation) |
+| HTTP | Angular `HttpClient` (injected via services) |
+| Routing | Angular Router with lazy-loaded components |
+| State | Service-based state with RxJS `BehaviorSubject` |
+
+---
+
+## Application Structure
+
+```
+src/Web/src/app/
+├── app.ts                   ← root component
+├── app.routes.ts            ← top-level route definitions
+├── app.config.ts            ← application-level providers
+├── pages/                   ← one directory per route group
+│   ├── home/
+│   ├── search-results/
+│   ├── booking/             ← multi-step booking flow
+│   │   ├── passengers/
+│   │   ├── seats/
+│   │   ├── bags/
+│   │   ├── payment/
+│   │   └── confirmation/
+│   ├── manage-booking/      ← post-sale manage booking flow
+│   │   ├── detail/
+│   │   ├── seat/
+│   │   ├── bags/
+│   │   ├── bags-payment/
+│   │   ├── bags-confirmation/
+│   │   ├── change-flight/
+│   │   └── cancel/
+│   ├── check-in/            ← online check-in flow
+│   │   ├── details/
+│   │   ├── bags/
+│   │   ├── seats/
+│   │   ├── payment/
+│   │   └── boarding-pass/
+│   ├── loyalty/             ← loyalty programme flow
+│   │   ├── register/
+│   │   ├── account/
+│   │   └── password-reset/
+│   └── flight-status/
+├── services/                ← API clients and state services
+│   ├── retail-api.service.ts
+│   ├── loyalty-api.service.ts
+│   ├── booking-state.service.ts
+│   ├── manage-booking-state.service.ts
+│   ├── check-in-state.service.ts
+│   ├── loyalty-state.service.ts
+│   └── theme.service.ts
+├── models/                  ← TypeScript interfaces matching API contracts
+│   ├── flight.model.ts
+│   ├── order.model.ts
+│   └── loyalty.model.ts
+└── data/
+    └── airports.ts          ← static airport data
+```
+
+---
+
+## Routing Conventions
+
+Routes are defined in `app.routes.ts`. Follow these conventions:
+
+- Top-level pages use eager-loaded components for routes that are always reachable from the nav bar (e.g. `HomeComponent`, `CheckInComponent`).
+- Multi-step flow sub-pages use **lazy-loaded components** via `loadComponent`:
+
+```typescript
+{ path: 'step-name', loadComponent: () => import('./pages/flow/step/step').then(m => m.StepComponent) }
+```
+
+- Flow routes are grouped under a parent path with `children`:
+
+```typescript
+{
+  path: 'flow-name',
+  children: [
+    { path: '', component: FlowEntryComponent },
+    { path: 'step-one', loadComponent: () => ... },
+    { path: 'step-two', loadComponent: () => ... },
+  ]
+}
+```
+
+- Unknown paths redirect to `''` via `{ path: '**', redirectTo: '' }`.
+- New route groups must be added to `app.routes.ts` and must match the flow described in `design.md` for that capability.
+
+---
+
+## API Services
+
+### Retail API service (`retail-api.service.ts`)
+
+The primary HTTP client for the Retail API (Booking, Search, Orders, Check-in, Manage Booking, SSR, Seatmaps). Inject it into page components that need to call these endpoints.
+
+All methods map directly to endpoints defined in `api-reference.md`. Before adding a new method, check `api-reference.md` to confirm the endpoint exists and verify the correct HTTP verb.
+
+### Loyalty API service (`loyalty-api.service.ts`)
+
+HTTP client for the Loyalty API (authentication, registration, profile, points). Inject it into loyalty-flow page components.
+
+### Adding a new API service method
+
+1. Check `api-reference.md` — confirm the endpoint exists and note its verb, path, and request/response shape.
+2. Check `models/` — add or extend a TypeScript interface that matches the API response exactly (camelCase field names).
+3. Add the method to the relevant service, using `HttpClient` and the correct `Observable<T>` return type.
+4. Inject the service into the component that needs it — do not call `HttpClient` directly from components.
+
+---
+
+## State Management
+
+Multi-step flows use dedicated state services with `BehaviorSubject` to share data across route boundaries without passing it through route params.
+
+| Service | Flow |
+|---------|------|
+| `booking-state.service.ts` | Search → Basket → Passengers → Seats → Bags → Payment → Confirmation |
+| `manage-booking-state.service.ts` | Retrieve order → Detail → Seat/Bag/Change/Cancel actions |
+| `check-in-state.service.ts` | Retrieve booking → Details → Bags → Seats → Payment → Boarding pass |
+| `loyalty-state.service.ts` | Login → Account → Points |
+
+Follow this pattern for new flows:
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class NewFlowStateService {
+  private _state = new BehaviorSubject<NewFlowState | null>(null);
+  state$ = this._state.asObservable();
+
+  setState(state: NewFlowState) { this._state.next(state); }
+  clearState() { this._state.next(null); }
+}
+```
+
+State services should hold only the data needed to progress through the flow. Do not store sensitive card data in state.
+
+---
+
+## Component Conventions
+
+All components are **standalone** (Angular 21, no NgModules):
+
+```typescript
+@Component({
+  selector: 'app-component-name',
+  standalone: true,
+  imports: [CommonModule, RouterModule, /* other standalone components */],
+  templateUrl: './component-name.html',
+  styleUrl: './component-name.css'
+})
+export class ComponentNameComponent { }
+```
+
+Naming:
+- Component class: `PascalCaseComponent`
+- Selector: `app-kebab-case`
+- Files: `kebab-case.ts`, `kebab-case.html`, `kebab-case.css`
+- Directory: `pages/<flow>/<step>/`
+
+Do not create components that call API services directly — delegate API calls to a service method and state updates to a state service.
+
+---
+
+## TypeScript Models
+
+Models in `models/` are TypeScript interfaces that mirror the API response contracts defined in `api-reference.md`. Keep them in sync:
+
+- Use camelCase for all property names (matching the JSON responses).
+- Use `number` for monetary amounts and always pair with a `currency: string` field.
+- Use `string` for ISO 8601 timestamps — Angular templates and `Date` pipes handle conversion.
+- Use `string` for IATA codes (airport codes, passenger types, aircraft types).
+- Export every interface from its model file for import elsewhere.
+
+---
+
+## Adding New Capability to the Web Application
+
+Follow this workflow when implementing a new feature in the web app:
+
+1. **Read `design.md`** — identify the domain capability you are implementing and the user journey it supports.
+2. **Read `api-reference.md`** — identify all API endpoints the new pages will consume. Confirm they exist before building the UI.
+3. **Read `web.md` (this file)** — confirm which existing service, state service, or model you can reuse before creating new ones.
+4. **Create the route group** in `app.routes.ts` following the conventions above.
+5. **Add or extend a state service** if the capability is a multi-step flow.
+6. **Add API service methods** for each endpoint the flow uses.
+7. **Add TypeScript models** in `models/` for any new request/response shapes.
+8. **Create page components** under `pages/<flow>/`, one per route step.
+9. If the capability requires new backend endpoints that do not yet exist, design them in `design.md` and `api-reference.md` first — see `../agents.md` for the full design workflow.
+
+---
+
+## Development Commands
+
+```bash
+# Serve locally
+ng serve
+
+# Build for production
+ng build
+
+# Run unit tests
+ng test
+
+# Run end-to-end tests
+ng e2e
+
+# Generate a new standalone component
+ng generate component pages/flow/step/step-name
+```
+
+The development server runs at `http://localhost:4200/` and hot-reloads on file changes.
+
+---
+
+## Cross-References
+
+- **Domain capability model** — `design.md`: which capabilities exist and what they do — drive the UI from this.
+- **API endpoints** — `api-reference.md`: every endpoint the web app can call; verify verb, path, and shape before coding.
+- **Backend implementation** — `api.md`: how backend APIs are built; useful when a needed endpoint does not exist yet.
+- **Architecture rules** — `principles/architecture-principals.md`: the web app is a channel consumer — it talks to orchestration APIs only, never to microservices directly.
+- **Integration conventions** — `principles/integration-principals.md`: error codes, correlation IDs, and response formats to handle in the UI.
