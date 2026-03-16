@@ -722,6 +722,8 @@ sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant SeatMS as Seat [MS]
@@ -732,8 +734,24 @@ sequenceDiagram
 
     Note over Traveller, Web: Bookflow begins — flight selection already complete (see Offer / Search)
 
-    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
-    RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
+    opt Reward booking only — loyalty login before basket creation
+        Traveller->>Web: Authenticate with loyalty credentials
+        Web->>LoyaltyAPI: POST /v1/auth/login (email, password)
+        LoyaltyAPI-->>Web: 200 OK — accessToken, customer profile (loyaltyNumber, pointsBalance)
+        Web->>Web: Verify pointsBalance >= totalPointsRequired
+        Note over Web: If insufficient points, display error and block booking
+    end
+
+    alt Revenue booking
+        Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
+        RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
+    else Reward booking
+        Web->>RetailAPI: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+        RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
+        CustomerMS-->>RetailAPI: 200 OK — pointsBalance verified
+        RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+    end
+
     Note over OrderMS: Basket created with ExpiresAt = now + 24hr<br/>TicketingTimeLimit = now + 24hr (configurable)
 
     loop For each flight OfferId
@@ -748,6 +766,7 @@ sequenceDiagram
     OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
     RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
 
+    Note over Web: Reward bookings: lead passenger auto-filled from loyalty profile
     Traveller->>Web: Enter passenger details
     Web->>RetailAPI: PUT /v1/basket/{basketId}/passengers (PAX details)
     RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers (PAX details)
@@ -787,9 +806,18 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
-    Note over RetailAPI, PaymentMS: Authorise all payments upfront (fare + ancillaries) so all PaymentReferences are available for order confirmation
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
-    PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+    opt Reward booking — authorise points redemption
+        RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/authorise (points=totalPointsAmount, basketId)
+        CustomerMS-->>RetailAPI: 200 OK — redemptionReference, points held against balance
+    end
+
+    alt Revenue booking — authorise fare payment
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
+        PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+    else Reward booking — authorise tax payment only
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
+        PaymentMS-->>RetailAPI: 200 OK — taxes authorisation confirmed (paymentReference-1)
+    end
 
     opt Seats were selected during bookflow
         RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount, card token from paymentReference-1, description=SeatAncillary)
@@ -805,10 +833,21 @@ sequenceDiagram
     DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
     RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds — convert SeatsHeld to SeatsSold)
     OfferMS-->>RetailAPI: 200 OK — inventory updated (SeatsSold incremented, SeatsHeld decremented)
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
-    PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
-    RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences — fare + any ancillaries)
+    opt Reward booking — settle points redemption
+        RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
+        CustomerMS-->>RetailAPI: 200 OK — points deducted, Redeem transaction appended
+        Note over CustomerMS: PointsBalance decremented, LoyaltyTransaction appended (type=Redeem)
+    end
+
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — payment settled
+
+    alt Revenue booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences — fare + any ancillaries)
+    else Reward booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentReferences, redemptionReference, bookingType=Reward)
+    end
     OrderMS-->>RetailAPI: 201 Created — order confirmed (6-digit bookingReference)
     Note over OrderMS: Basket record deleted on successful order confirmation
 
@@ -833,11 +872,11 @@ sequenceDiagram
     Web-->>Traveller: Display booking confirmation
 ```
 
-*Ref: order bookflow - end-to-end flight selection, ancillary addition, payment, ticketing, and order confirmation*
+*Ref: order bookflow - end-to-end revenue and reward booking flow covering flight selection, ancillary addition, payment (and points redemption for reward bookings), ticketing, and order confirmation*
 
-### Reward Booking — Bookflow
+### Reward Booking
 
-A **reward booking** allows a loyalty programme member to redeem their accumulated points for flights, paying only applicable taxes and fees in cash. The reward booking flow shares the same basket and order infrastructure as revenue bookings but introduces an additional loyalty authentication step and a points redemption flow that mirrors the two-stage authorise-and-settle pattern used for card payments.
+A **reward booking** allows a loyalty programme member to redeem their accumulated points for flights, paying only applicable taxes and fees in cash. The reward booking flow shares the same basket and order infrastructure as revenue bookings but introduces an additional loyalty authentication step and a points redemption flow that mirrors the two-stage authorise-and-settle pattern used for card payments. The full sequence — including the reward-specific `alt`/`opt` branches — is shown in the unified bookflow diagram above.
 
 #### Key Differences from Revenue Bookings
 
@@ -858,101 +897,6 @@ The basket for a reward booking carries additional fields:
 - `LoyaltyNumber`: The authenticated member's loyalty number
 
 The `TotalFareAmount` is zero for reward bookings (the fare is covered by points). The `TotalAmount` equals `TotalTaxesAmount + TotalSeatAmount + TotalBagAmount` — only the cash-payable portion.
-
-#### Reward Booking Flow
-
-```mermaid
-sequenceDiagram
-    actor Traveller
-    participant Web
-    participant RetailAPI as Retail API
-    participant LoyaltyAPI as Loyalty API
-    participant CustomerMS as Customer [MS]
-    participant OrderMS as Order [MS]
-    participant OfferMS as Offer [MS]
-    participant PaymentMS as Payment [MS]
-    participant DeliveryMS as Delivery [MS]
-
-    Note over Traveller, Web: Flight selection complete — traveller chose "Book with Points"
-
-    Traveller->>Web: Authenticate with loyalty credentials
-    Web->>LoyaltyAPI: POST /v1/auth/login (email, password)
-    LoyaltyAPI-->>Web: 200 OK — accessToken, customer profile (loyaltyNumber, pointsBalance)
-
-    Web->>Web: Verify pointsBalance >= totalPointsRequired
-    Note over Web: If insufficient points, display error and block booking
-
-    Web->>RetailAPI: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
-    RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
-    CustomerMS-->>RetailAPI: 200 OK — pointsBalance verified
-    RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
-
-    loop For each flight OfferId
-        OrderMS->>OfferMS: GET /v1/offers/{offerId}
-        OfferMS-->>OrderMS: 200 OK — stored offer snapshot
-        OrderMS->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
-        OfferMS-->>OrderMS: 200 OK — seats held
-    end
-
-    OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, totalPointsAmount, totalTaxesAmount
-    RetailAPI-->>Web: 201 Created — basket summary
-
-    Note over Web: Lead passenger auto-filled from loyalty profile
-    Traveller->>Web: Enter/confirm passenger details
-    Web->>RetailAPI: PUT /v1/basket/{basketId}/passengers (PAX details)
-    RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers
-    OrderMS-->>RetailAPI: 200 OK
-
-    opt Seat and bag selection (same as revenue flow)
-        Note over Traveller, Web: Seat and bag selection identical to revenue bookings
-    end
-
-    Traveller->>Web: Enter card details for taxes and confirm booking
-
-    Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (card details for taxes, loyaltyNumber)
-
-    Note over RetailAPI, CustomerMS: Step 1 — Authorise points redemption
-    RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/authorise (points=totalPointsAmount, basketId)
-    CustomerMS-->>RetailAPI: 200 OK — redemptionReference, points held against balance
-
-    Note over RetailAPI, PaymentMS: Step 2 — Authorise card payment for taxes and fees
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
-    PaymentMS-->>RetailAPI: 200 OK — paymentReference (taxes)
-
-    opt Ancillary payments (seats, bags — same as revenue flow)
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount/totalBagAmount, card token, description=SeatAncillary/BagAncillary)
-        PaymentMS-->>RetailAPI: 200 OK — paymentReference (ancillary)
-    end
-
-    RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
-    DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
-    RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds)
-    OfferMS-->>RetailAPI: 200 OK — inventory updated
-
-    Note over RetailAPI, CustomerMS: Step 3 — Settle points redemption
-    RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
-    CustomerMS-->>RetailAPI: 200 OK — points deducted, Redeem transaction appended
-    Note over CustomerMS: PointsBalance decremented, LoyaltyTransaction appended (type=Redeem)
-
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=totalTaxesAmount)
-    PaymentMS-->>RetailAPI: 200 OK — taxes payment settled
-
-    RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentReferences, redemptionReference, bookingType=Reward)
-    OrderMS-->>RetailAPI: 201 Created — order confirmed (bookingReference)
-
-    RetailAPI->>DeliveryMS: POST /v1/manifest (manifest entries)
-    DeliveryMS-->>RetailAPI: 201 Created — manifest written
-
-    opt Settle ancillary payments
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (ancillary amounts)
-        PaymentMS-->>RetailAPI: 200 OK
-    end
-
-    RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-tickets, redemptionReference)
-    Web-->>Traveller: Display reward booking confirmation with points redeemed and taxes paid
-```
-
-*Ref: order reward bookflow - end-to-end reward booking with points redemption, tax payment, and order confirmation*
 
 #### Points Redemption — Authorise and Settle
 
