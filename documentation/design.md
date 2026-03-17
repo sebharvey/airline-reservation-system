@@ -175,10 +175,15 @@ A Modern Airline Retailing system built on offer and order capability, structure
     - Tier configuration and threshold management
     - Tier evaluation against TierProgressPoints
 
-- **Accounting** — financial records, revenue attribution, and refund tracking
+- **Accounting** — financial records, revenue attribution, refund tracking, and points liability
   - Revenue Recording
     - Order and ancillary revenue capture via OrderConfirmed event
     - Revenue attribution by type (fare, seat, bag)
+  - Reward Booking Accounting
+    - Points liability recording from reward booking OrderConfirmed events (bookingType=Reward)
+    - Points liability reversal from reward booking OrderCancelled events (pointsReinstated)
+    - Points adjustment tracking from reward booking OrderChanged events (pointsAdjustment)
+    - Separation of cash revenue (taxes/ancillaries) from points liability for reward bookings
   - Refund Management
     - Refund identification from OrderCancelled events
     - Refund processing and settlement tracking
@@ -703,9 +708,9 @@ The Order microservice manages the complete booking lifecycle — from basket cr
 
 - Bookings are represented as a single evolving `OrderData` JSON document, identified by a six-character **booking reference** (equivalent to the PNR in legacy systems).
 - All state-changing operations publish an event to the event bus for downstream consumption (e.g. Accounting, Customer). Three event types are defined:
-  - `OrderConfirmed` — published on initial order creation; consumed by Accounting (revenue recording) and Customer (points accrual if `loyaltyNumber` present)
-  - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment
-  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing
+  - `OrderConfirmed` — published on initial order creation; consumed by Accounting (revenue recording) and Customer (points accrual if `loyaltyNumber` present). For reward bookings, the event includes `bookingType=Reward`, `totalPointsAmount`, and `redemptionReference` so Accounting can record the points liability separately from cash revenue.
+  - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment. For reward booking changes, includes `pointsAdjustment` (positive = additional points redeemed, negative = points reinstated) and updated `totalPointsAmount`.
+  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
 
 ### Create — Bookflow
@@ -866,7 +871,11 @@ sequenceDiagram
     end
 
     Note over OrderMS, AccountingMS: Async event
-    OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, amount, e-tickets)
+    alt Revenue booking
+        OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, bookingType=Revenue, amount, e-tickets, loyaltyNumber)
+    else Reward booking
+        OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, bookingType=Reward, totalPointsAmount, redemptionReference, amount=taxesAndAncillaries, e-tickets, loyaltyNumber)
+    end
 
     RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-ticket numbers)
     Web-->>Traveller: Display booking confirmation
@@ -2915,12 +2924,61 @@ Each `LoyaltyTransaction` row carries a `TransactionType` that describes why poi
 
 ### Earn Points on Booking Confirmation
 
-On order confirmation, the Order MS publishes an `OrderConfirmed` event; if the booking includes a loyalty number, the Customer MS consumes the event and accrues points.
+On order confirmation, the Order MS publishes an `OrderConfirmed` event; if the booking includes a loyalty number, the Customer MS consumes the event and accrues points based on the distance flown (route miles).
 
-- Points calculated from the event payload based on fare paid, cabin class, and tier at time of travel.
-- Calculation logic is encapsulated within the Customer MS; the event provides the inputs.
+- **Revenue bookings only:** Points are accrued on revenue bookings. Reward bookings do not earn points — the customer is redeeming points, not purchasing a fare.
+- Points are calculated from the **route miles** (great-circle distance between origin and destination), multiplied by a **cabin class multiplier** and an optional **tier bonus multiplier**.
+- The accrual formula is: `pointsEarned = routeMiles × cabinMultiplier × tierMultiplier` (per passenger, per segment).
+- For connecting itineraries, each segment earns independently — e.g. DEL→LHR→JFK earns DEL→LHR miles + LHR→JFK miles.
+- Calculation logic is encapsulated within the Customer MS; the `OrderConfirmed` event provides the inputs (origin, destination, cabin class, loyalty number).
 
-> **Points calculation** rules (multipliers, bonus tiers, partner earn rates) are the responsibility of the Customer microservice and are not defined in this document. The event payload provides the inputs; the calculation logic is encapsulated within the service.
+#### Route Miles Table
+
+Points earned per segment correspond to the great-circle distance in miles between origin and destination. The following table lists the route miles for all Apex Air direct routes from LHR:
+
+| Route | Origin | Destination | Distance (miles) | Points (Economy) |
+|-------|--------|-------------|-----------------|------------------|
+| LHR — JFK | LHR | JFK | 3,459 | 3,459 |
+| LHR — LAX | LHR | LAX | 5,456 | 5,456 |
+| LHR — MIA | LHR | MIA | 4,432 | 4,432 |
+| LHR — SFO | LHR | SFO | 5,367 | 5,367 |
+| LHR — ORD | LHR | ORD | 3,941 | 3,941 |
+| LHR — BOS | LHR | BOS | 3,269 | 3,269 |
+| LHR — BGI | LHR | BGI | 4,237 | 4,237 |
+| LHR — KIN | LHR | KIN | 4,694 | 4,694 |
+| LHR — NAS | LHR | NAS | 4,341 | 4,341 |
+| LHR — HKG | LHR | HKG | 5,994 | 5,994 |
+| LHR — NRT | LHR | NRT | 5,974 | 5,974 |
+| LHR — PVG | LHR | PVG | 5,741 | 5,741 |
+| LHR — PEK | LHR | PEK | 5,063 | 5,063 |
+| LHR — SIN | LHR | SIN | 6,764 | 6,764 |
+| LHR — BOM | LHR | BOM | 4,479 | 4,479 |
+| LHR — DEL | LHR | DEL | 4,180 | 4,180 |
+| LHR — BLR | LHR | BLR | 5,127 | 5,127 |
+
+> **Note:** Route miles are the same in both directions (LHR→JFK = JFK→LHR). The "Points (Economy)" column shows the base accrual before cabin and tier multipliers are applied.
+
+#### Cabin Class Multiplier
+
+| Cabin | Multiplier | Example (LHR–JFK, 3,459 miles) |
+|-------|-----------|-------------------------------|
+| Economy | ×1.0 | 3,459 pts |
+| Premium Economy | ×1.5 | 5,189 pts |
+| Business | ×2.0 | 6,918 pts |
+| First | ×3.0 | 10,377 pts |
+
+#### Tier Bonus Multiplier
+
+Loyalty tier at time of travel provides an additional multiplier on top of the cabin-adjusted accrual:
+
+| Tier | Bonus Multiplier | Example (LHR–JFK Business = 6,918 base) |
+|------|-----------------|----------------------------------------|
+| Blue | ×1.0 (no bonus) | 6,918 pts |
+| Silver | ×1.25 | 8,648 pts |
+| Gold | ×1.5 | 10,377 pts |
+| Platinum | ×2.0 | 13,836 pts |
+
+> **Full example:** A Platinum-tier member flying LHR→JFK in Business earns `3,459 miles × 2.0 (Business) × 2.0 (Platinum) = 13,836 points` per segment.
 
 ```mermaid
 sequenceDiagram
@@ -2929,17 +2987,26 @@ sequenceDiagram
     participant CustomerMS as Customer [MS]
 
     Note over OrderMS, EventBus: Async — triggered on order confirmation
-    OrderMS-)EventBus: OrderConfirmed event (bookingReference, loyaltyNumber, flights, fareAmount, cabinCode, passengerType)
+    OrderMS-)EventBus: OrderConfirmed event (bookingReference, bookingType, loyaltyNumber, flights[origin, destination, cabinCode], fareAmount, passengerType)
 
     EventBus-)CustomerMS: OrderConfirmed event received
 
-    CustomerMS->>CustomerMS: Calculate points to earn (fareAmount, cabinCode, tierStatus)
-    CustomerMS->>CustomerMS: Append LoyaltyTransaction (type=Earn, points, bookingReference)
-    CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
-    Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
+    alt Revenue booking with loyaltyNumber present
+        loop For each flight segment
+            CustomerMS->>CustomerMS: Look up routeMiles for origin–destination pair
+            CustomerMS->>CustomerMS: Apply cabinMultiplier (Economy ×1, PremEco ×1.5, Business ×2, First ×3)
+            CustomerMS->>CustomerMS: Apply tierMultiplier based on member's current tier
+            CustomerMS->>CustomerMS: pointsEarned = routeMiles × cabinMultiplier × tierMultiplier
+        end
+        CustomerMS->>CustomerMS: Append LoyaltyTransaction (type=Earn, points=totalPointsEarned, bookingReference, flightNumber)
+        CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
+        Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
+    else Reward booking (bookingType=Reward) — no points accrued
+        Note over CustomerMS: Reward bookings do not earn points — event acknowledged, no accrual
+    end
 ```
 
-*Ref: customer loyalty - async points accrual triggered by OrderConfirmed event on booking confirmation*
+*Ref: customer loyalty - async points accrual triggered by OrderConfirmed event; revenue bookings earn route miles adjusted by cabin class and tier multipliers; reward bookings are excluded from accrual*
 
 ---
 
