@@ -1,0 +1,160 @@
+# {Service Name} Microservice — API Specification
+
+> **Service owner:** {Domain name}
+> **Base path:** `/v1`
+> **Transport:** HTTPS (TLS 1.2 minimum)
+> **Content type:** `application/json`
+
+{Brief description of the microservice — what it owns, what it manages, and how resources are identified. 2–3 sentences.}
+
+> **Important:** {State whether this is an internal-only service or channel-facing. Describe the orchestration layer that routes requests to it (e.g. Retail API, Loyalty API) and any authentication that occurs before calls reach this service.}
+
+---
+
+## Security
+
+### Authentication
+
+{Describe the authentication model for this service:
+- Which orchestration layer sits in front of it?
+- How do channels authenticate (OAuth 2.0 / OIDC, API key, etc.)?
+- How are service-to-service calls authenticated (managed identities, scoped API keys, mTLS)?
+- Does this service validate JWTs directly or delegate to the orchestration layer?}
+
+### Required Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Content-Type` | Yes (for request bodies) | Must be `application/json` |
+| `Authorization` | Yes (at orchestration layer) | `Bearer {accessToken}` — JWT with 15-minute TTL, validated by the orchestration layer before the request reaches this service |
+| `X-Correlation-ID` | Yes | UUID generated at the channel boundary; propagated on every downstream call for distributed tracing and log correlation |
+
+### Data Protection
+
+{List any PII handling rules, logging restrictions, or data ownership boundaries. For example:
+- Which fields must never appear in logs or telemetry?
+- Which data does this service NOT store (owned by another domain)?
+- How are cross-domain records linked (e.g. opaque UUIDs)?}
+
+---
+
+## Endpoints
+
+<!-- Repeat the endpoint block below for each operation exposed by this microservice. -->
+
+### {METHOD} /v1/{resource-path}
+
+{One-sentence description of what this endpoint does and why it exists.}
+
+**When to use:** {Describe the scenario or flow in which this endpoint is called, and which service or layer typically calls it.}
+
+#### Path Parameters
+
+<!-- Omit this section if there are no path parameters. -->
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `{paramName}` | string | {Description} |
+
+#### Query Parameters
+
+<!-- Omit this section if there are no query parameters. -->
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `{paramName}` | {type} | {Yes/No} | `{default}` | {Description} |
+
+#### Request
+
+<!-- For GET/DELETE with no body, state "No request body." and show a sample URL instead. -->
+
+```json
+{
+  "fieldName": "exampleValue"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `fieldName` | string | Yes | {Description. Include max length, format, or enum values where applicable} |
+
+#### Response — `{statusCode} {statusPhrase}`
+
+```json
+{
+  "fieldName": "exampleValue"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fieldName` | string | {Description} |
+
+<!-- Include callout boxes for important behavioural notes: -->
+<!-- > **Idempotency:** {Describe idempotency guarantees, if any.} -->
+<!-- > **Side effects:** {Describe any events published, downstream calls triggered, or ledger entries created.} -->
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | {When this is returned} |
+| `404 Not Found` | {When this is returned} |
+| `409 Conflict` | {When this is returned} |
+| `422 Unprocessable Entity` | {When this is returned} |
+
+<!-- Only include error codes that this specific endpoint can return. -->
+
+---
+
+<!-- Repeat the endpoint block above for each additional endpoint. -->
+
+## Data Conventions
+
+| Convention | Format | Example |
+|------------|--------|---------|
+| Timestamps | ISO 8601 UTC | `"2025-08-15T11:00:00Z"` |
+| Dates | ISO 8601 | `"1988-03-22"` |
+| Country codes | ISO 3166-1 alpha-3 | `"GBR"` |
+| Language tags | BCP 47 | `"en-GB"` |
+| JSON field names | camelCase | `pointsBalance` |
+| UUIDs | RFC 4122 lowercase | `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"` |
+
+---
+
+## Invocation Examples
+
+<!-- Provide curl examples showing real-world usage for key endpoints. -->
+<!-- Show both internal (service-to-service) and external (via orchestration layer) calls where relevant. -->
+
+### {Description of the scenario}
+
+```bash
+curl -X {METHOD} https://{service-host}/v1/{resource-path} \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "fieldName": "exampleValue"
+  }'
+```
+
+### {Description of another scenario (via orchestration layer)}
+
+```bash
+curl -X {METHOD} https://{orchestration-host}/v1/{resource-path} \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "fieldName": "exampleValue"
+  }'
+```
+
+> **Note:** The `Authorization: Bearer` header is required when calling via the orchestration API (the channel-facing route). Internal service-to-service calls use managed identities or scoped API keys instead, and do not carry the end-user JWT.
+
+---
+
+## Related Documentation
+
+- [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
+- [System Design](../design.md) — Full domain design including sequence diagrams and data models
