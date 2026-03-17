@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
@@ -9,10 +10,14 @@ namespace ReservationSystem.Microservices.Offer.Functions;
 
 public class HealthCheckFunction
 {
+    private readonly IOfferRepository _repository;
     private readonly ILogger<HealthCheckFunction> _logger;
 
-    public HealthCheckFunction(ILogger<HealthCheckFunction> logger)
+    public HealthCheckFunction(
+        IOfferRepository repository,
+        ILogger<HealthCheckFunction> logger)
     {
+        _repository = repository;
         _logger = logger;
     }
 
@@ -22,13 +27,17 @@ public class HealthCheckFunction
     {
         _logger.LogInformation("Health check requested");
 
+        var service = $"{_repository.GetType().Name}.{nameof(IOfferRepository.GetAllAsync)}";
+
         try
         {
+            await _repository.GetAllAsync(req.FunctionContext.CancellationToken);
+
             var healthStatus = new
             {
                 status = "healthy",
                 timestamp = DateTime.UtcNow,
-                service = "OfferService",
+                service,
                 version = "1.0.0",
                 checks = new
                 {
@@ -53,7 +62,7 @@ public class HealthCheckFunction
             {
                 status = "unhealthy",
                 timestamp = DateTime.UtcNow,
-                service = "OfferService",
+                service,
                 version = "1.0.0",
                 error = ex.Message,
                 checks = new
