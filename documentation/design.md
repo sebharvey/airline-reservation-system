@@ -406,6 +406,7 @@ The Schedule capability allows airline operations staff to define repeating flig
 | FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
@@ -418,6 +419,8 @@ The Schedule capability allows airline operations staff to define repeating flig
 | ScheduleId | UNIQUEIDENTIFIER | No | | FK → `schedule.FlightSchedule(ScheduleId)` | |
 | CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
 | TotalSeats | SMALLINT | No | | | Seat count for this cabin from the aircraft configuration |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 #### `schedule.ScheduleFare`
 
@@ -433,6 +436,8 @@ The Schedule capability allows airline operations staff to define repeating flig
 | TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
 | IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
 | IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 ### Create Schedule
 
@@ -641,6 +646,7 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | SeatsSold | SMALLINT | No | 0 | | Incremented on ticket issuance |
 | SeatsHeld | SMALLINT | No | 0 | | Seats held in active baskets, not yet ticketed |
 | Status | VARCHAR(20) | No | `'Active'` | | `Active` · `Cancelled`; set to `Cancelled` by Disruption API on flight cancellation |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightInventory_Flight` on `(FlightNumber, DepartureDate, CabinCode)` WHERE `Status = 'Active'`.
@@ -665,6 +671,8 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
 | ValidFrom | DATETIME2 | No | | | Fare sale window start — the earliest point at which this fare may be offered to customers |
 | ValidTo | DATETIME2 | No | | | Fare sale window end — the latest point at which this fare may be offered; expired fares are excluded from search results |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > ⚠️ CRITICAL: `ChangeFee` and `CancellationFee` amounts are referenced by the flight change and cancellation flows (e.g. `totalDue = changeFee + addCollect`, `refundableAmount = totalPaid − cancellationFee`) but are not stored on this table or anywhere else in the schema. Either add `ChangeFeeAmount DECIMAL(10,2)` and `CancellationFeeAmount DECIMAL(10,2)` columns to `offer.Fare`, or define a separate fee lookup mechanism. Without these, coding agents cannot implement the change/cancel fee calculation.
 
@@ -696,6 +704,7 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | ExpiresAt | DATETIME2 | No | | | Offer must be rejected by Order MS if `now > ExpiresAt` |
 | IsConsumed | BIT | No | 0 | | Set to `1` once retrieved and locked by Order MS |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job to purge expired unconsumed offers.
 > **Design note:** Flight and fare fields are deliberately denormalised into this table so that the offer snapshot is fully self-contained. If `offer.Fare` is later updated or withdrawn, stored offers retain the exact price and conditions that were presented to the customer.
@@ -1031,8 +1040,9 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 | BasketExpiryHours | SMALLINT | No | `24` | | Hours until an unpaid basket is expired |
 | TicketingTimeLimitHours | SMALLINT | No | `24` | | Hours from basket creation within which ticketing must complete |
 | IsActive | BIT | No | `1` | | |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Notes | VARCHAR(255) | Yes | | | Optional change annotation, e.g. `'Reduced to 2hr for peak season test'` |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_BasketConfig_Active` (unique) on `(IsActive)` WHERE `IsActive = 1`.
 > **Single active row:** Only one row may have `IsActive = 1` at any time. To change configuration, insert a new row with `IsActive = 1` and set the previous row to `IsActive = 0`. Rows are never deleted, only superseded.
@@ -1761,6 +1771,7 @@ The Payment domain uses two tables: `Payment` (one row per transaction, tracking
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | Notes | VARCHAR(255) | Yes | | | Optional context, e.g. `'Partial seat refund row 1A'` |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_PaymentEvent_PaymentId` on `(PaymentId)`.
 > **Immutability:** `PaymentEvent` rows are append-only and must never be updated or deleted. They form the authoritative audit trail for every financial event in the system.
@@ -2263,6 +2274,8 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 | FriendlyName | VARCHAR(100) | Yes | | | e.g. `Airbus A350-1000`, `Boeing 787-900` |
 | TotalSeats | SMALLINT | No | | | Total seat count across all cabins |
 | IsActive | BIT | No | `1` | | |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 #### `seat.Seatmap`
 
@@ -2272,6 +2285,7 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 | AircraftTypeCode | CHAR(4) | No | | FK → `seat.AircraftType(AircraftTypeCode)` | |
 | Version | INT | No | `1` | | Incremented when the layout is updated |
 | IsActive | BIT | No | `1` | | Only one active seatmap per aircraft type at any time |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CabinLayout | NVARCHAR(MAX) | No | | | JSON document containing full cabin and seat definitions (see example below) |
 
@@ -2290,6 +2304,7 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 | IsActive | BIT | No | `1` | | |
 | ValidFrom | DATETIME2 | No | | | Effective start of this pricing rule |
 | ValidTo | DATETIME2 | Yes | | | Null = open-ended / currently active |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Constraints:** `UQ_SeatPricing_CabinPosition` (unique) on `(CabinCode, SeatPosition, CurrencyCode)` — enforces one active price per cabin/position/currency combination.
@@ -2654,6 +2669,7 @@ sequenceDiagram
 | IsActive | BIT | No | `1` | | |
 | ValidFrom | DATETIME2 | No | | | Effective start of this pricing rule |
 | ValidTo | DATETIME2 | Yes | | | Null = open-ended / currently active |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Constraints:** `UQ_BagPricing_Sequence` (unique) on `(BagSequence, CurrencyCode)` — enforces one active price per bag sequence/currency combination.
@@ -2673,6 +2689,7 @@ sequenceDiagram
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | ExpiresAt | DATETIME2 | No | | | Offer expiry; channels must not submit expired `BagOfferId` values |
 | IsConsumed | BIT | No | `0` | | Set to `1` once purchased; prevents reuse |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_StoredBagOffer_Inventory` on `(InventoryId, CabinCode)`. `IX_StoredBagOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job.
 > **Offer lifecycle:** `StoredBagOffer` rows are short-lived snapshots generated at retrieval time and consumed at purchase. Unconsumed, expired offers should be purged by a background job.
@@ -3131,6 +3148,7 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 | ValidFrom | DATETIME2 | No | | | Effective start of this tier configuration |
 | ValidTo | DATETIME2 | Yes | | | Null = currently active |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_TierConfig_Active` on `(TierCode)` WHERE `IsActive = 1`.
 > **Versioning:** Rows are never deleted, only superseded. To change tier thresholds, insert a new row with `IsActive = 1` and set `ValidTo` on the previous row.
@@ -3172,6 +3190,7 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 | Description | VARCHAR(255) | No | | | e.g. `'Points earned — AX003 LHR-JFK, Business Flex'` |
 | TransactionDate | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_LoyaltyTransaction_Customer` on `(CustomerId, TransactionDate DESC)`. `IX_LoyaltyTransaction_BookingReference` on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
 > **Immutability:** `LoyaltyTransaction` rows are append-only and must never be updated or deleted. `BalanceAfter` on the most recent transaction is the source of truth for a customer's points balance in the event of any discrepancy with the `PointsBalance` column.
@@ -3379,6 +3398,7 @@ The Identity microservice exposes authentication and credential management endpo
 | IsRevoked | BIT | No | `0` | | Set to `1` on use (single-use semantics) or explicit logout |
 | ExpiresAt | DATETIME2 | No | | | |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_RefreshToken_UserAccount` on `(UserAccountId)` WHERE `IsRevoked = 0`.
 > **Refresh token rotation:** On each use, the existing token is revoked (`IsRevoked = 1`) and a new one issued, providing single-use semantics. All tokens for a `UserAccountId` can be revoked simultaneously to force logout across all sessions.
