@@ -8,7 +8,9 @@ using ReservationSystem.Microservices.Offer.Application.CreateOffer;
 using ReservationSystem.Microservices.Offer.Application.DeleteOffer;
 using ReservationSystem.Microservices.Offer.Application.GetAllOffers;
 using ReservationSystem.Microservices.Offer.Application.GetOffer;
+using ReservationSystem.Microservices.Offer.Application.HealthCheck;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
+using ReservationSystem.Microservices.Offer.Domain.Services;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
@@ -30,6 +32,9 @@ var host = new HostBuilder()
         // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddSingleton<SqlConnectionFactory>();
         services.AddScoped<IOfferRepository, SqlOfferRepository>();
+
+        // ── Health check ───────────────────────────────────────────────────────
+        services.AddScoped<IHealthCheckService, HealthCheckService>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetOfferHandler>();

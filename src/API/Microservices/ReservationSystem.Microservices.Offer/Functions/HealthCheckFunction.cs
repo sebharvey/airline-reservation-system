@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Offer.Domain.Services;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
@@ -9,10 +10,14 @@ namespace ReservationSystem.Microservices.Offer.Functions;
 
 public class HealthCheckFunction
 {
+    private readonly IHealthCheckService _healthCheckService;
     private readonly ILogger<HealthCheckFunction> _logger;
 
-    public HealthCheckFunction(ILogger<HealthCheckFunction> logger)
+    public HealthCheckFunction(
+        IHealthCheckService healthCheckService,
+        ILogger<HealthCheckFunction> logger)
     {
+        _healthCheckService = healthCheckService;
         _logger = logger;
     }
 
@@ -24,20 +29,23 @@ public class HealthCheckFunction
 
         try
         {
+            var serviceHealthy = await _healthCheckService.IsHealthyAsync(req.FunctionContext.CancellationToken);
+
             var healthStatus = new
             {
-                status = "healthy",
+                status = serviceHealthy ? "healthy" : "unhealthy",
                 timestamp = DateTime.UtcNow,
                 service = "OfferService",
                 version = "1.0.0",
                 checks = new
                 {
-                    serviceCheck = "ok",
+                    serviceCheck = serviceHealthy ? "ok" : "error",
                     fileSystem = "ok"
                 }
             };
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
+            var statusCode = serviceHealthy ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable;
+            var response = req.CreateResponse(statusCode);
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
 

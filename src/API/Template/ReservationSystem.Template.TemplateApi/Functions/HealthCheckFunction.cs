@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Json;
+using ReservationSystem.Template.TemplateApi.Domain.Services;
 using System.Net;
 using System.Text.Json;
 
@@ -9,10 +10,14 @@ namespace ReservationSystem.Template.TemplateApi.Functions;
 
 public class HealthCheckFunction
 {
+    private readonly IHealthCheckService _healthCheckService;
     private readonly ILogger<HealthCheckFunction> _logger;
 
-    public HealthCheckFunction(ILogger<HealthCheckFunction> logger)
+    public HealthCheckFunction(
+        IHealthCheckService healthCheckService,
+        ILogger<HealthCheckFunction> logger)
     {
+        _healthCheckService = healthCheckService;
         _logger = logger;
     }
 
@@ -24,26 +29,26 @@ public class HealthCheckFunction
 
         try
         {
-            // Check if we can access directory
-            // TODO implement a call to a service inside this function to check it works
-            
+            var serviceHealthy = await _healthCheckService.IsHealthyAsync(req.FunctionContext.CancellationToken);
+
             var healthStatus = new
             {
-                status = "healthy",
+                status = serviceHealthy ? "healthy" : "unhealthy",
                 timestamp = DateTime.UtcNow,
-                service = "TemplateService",  // This would be the name of the API, like OfferService or OrderService
+                service = "TemplateService",
                 version = "1.0.0",
                 checks = new
                 {
-                    serviceCheck = "ok",
+                    serviceCheck = serviceHealthy ? "ok" : "error",
                     fileSystem = "ok"
                 }
             };
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
+            var statusCode = serviceHealthy ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable;
+            var response = req.CreateResponse(statusCode);
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
-            
+
             await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, SharedJsonOptions.CamelCase));
 
             return response;
@@ -56,7 +61,7 @@ public class HealthCheckFunction
             {
                 status = "unhealthy",
                 timestamp = DateTime.UtcNow,
-                service = "TemplateService",  // This would be the name of the API, like OfferService or OrderService
+                service = "TemplateService",
                 version = "1.0.0",
                 error = ex.Message,
                 checks = new
@@ -69,7 +74,7 @@ public class HealthCheckFunction
             var response = req.CreateResponse(HttpStatusCode.ServiceUnavailable);
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
-            
+
             await response.WriteStringAsync(JsonSerializer.Serialize(healthStatus, SharedJsonOptions.CamelCase));
 
             return response;
