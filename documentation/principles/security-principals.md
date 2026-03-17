@@ -19,7 +19,8 @@ Authentication must use short-lived tokens with least-privilege access enforced 
 
 - Customer-facing APIs use OAuth 2.0 / OIDC with JWTs (max 15-minute TTL); refresh tokens single-use and rotated on each use.
 - Guest booking flows require booking reference, given name, and surname validated together server-side on every request — no single factor is sufficient alone.
-- Internal service-to-service calls use managed identities or scoped API keys; no static credentials where managed identities are available.
+- **Orchestration API → Microservice calls are authenticated using Azure Function Host Keys.** Host keys are generated automatically when each Azure Function microservice is first deployed. The orchestration APIs (Retail API, Loyalty API, Airport API, Finance API, Disruption API, Operations API), acting as microservice consumers, pass the host key on every inbound request via the `x-functions-key` HTTP header. Microservices reject any request that does not carry a valid host key.
+- Host keys are stored in Azure Key Vault and accessed by orchestration services at runtime via managed identity — keys must never be embedded in source code, configuration files, or environment variables in plain text.
 - RBAC enforced on all staff-facing apps (Airport, Contact Centre, Accounting); least-privilege access with privileged actions (manual order modification, refunds) requiring explicit role assignment and audit logging.
 - MFA enforced for all staff-facing applications; recommended for customers on high-value operations (e.g. payment method changes).
 - JWT validation uses the Identity MS public signing key (RS256 or ES256) — no database round-trip on every API request.
