@@ -22,7 +22,7 @@ The Customer microservice sits behind the Loyalty API orchestration layer. Chann
 3. The Loyalty API validates the JWT signature using the Identity microservice's public signing key (RS256 or ES256) — no database round-trip required.
 4. Once validated, the Loyalty API forwards the request to the Customer microservice.
 
-Internal service-to-service calls (Loyalty API → Customer MS) use **managed identities** or **scoped API keys** — no static credentials. The Customer microservice itself does not validate JWTs; that responsibility belongs to the Loyalty API.
+Calls from the Loyalty API to the Customer microservice are authenticated using an **Azure Function Host Key**, passed in the `x-functions-key` HTTP header. The host key is generated automatically when the Customer microservice Azure Function app is first deployed. The Loyalty API retrieves the key from Azure Key Vault at runtime via managed identity and includes it on every request. The Customer microservice itself does not validate JWTs; that responsibility belongs to the Loyalty API.
 
 ### Required Headers
 
@@ -30,6 +30,7 @@ Internal service-to-service calls (Loyalty API → Customer MS) use **managed id
 |--------|----------|-------------|
 | `Content-Type` | Yes (for request bodies) | Must be `application/json` |
 | `Authorization` | Yes (at Loyalty API layer) | `Bearer {accessToken}` — JWT with 15-minute TTL, validated by the Loyalty API before the request reaches the Customer MS |
+| `x-functions-key` | Yes (on all Loyalty API → Customer MS calls) | Azure Function Host Key authenticating the Loyalty API as an authorised caller. Generated when the Customer MS Azure Function app is first deployed; retrieved from Azure Key Vault by the Loyalty API at runtime |
 | `X-Correlation-ID` | Yes | UUID generated at the channel boundary; propagated on every downstream call for distributed tracing and log correlation |
 
 ### Data Protection
@@ -527,6 +528,7 @@ Reverse a points authorisation hold, returning held points to the customer's ava
 ```bash
 curl -X POST https://{customer-ms-host}/v1/customers \
   -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
     "givenName": "Amara",
@@ -571,6 +573,7 @@ curl -X GET "https://{loyalty-api-host}/v1/customers/AX9876543/transactions?page
 ```bash
 curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/authorise \
   -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
     "points": 50000,
@@ -583,6 +586,7 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/authorise 
 ```bash
 curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/settle \
   -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
     "redemptionReference": "RDM-20260317-001234"
@@ -594,6 +598,7 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/settle \
 ```bash
 curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reverse \
   -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
     "redemptionReference": "RDM-20260317-001234",
@@ -601,7 +606,7 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reverse \
   }'
 ```
 
-> **Note:** The `Authorization: Bearer` header is required when calling via the Loyalty API (the channel-facing route). Internal service-to-service calls from the Loyalty API to the Customer microservice use managed identities or scoped API keys instead, and do not carry the end-user JWT.
+> **Note:** The `Authorization: Bearer` header is required when calling via the Loyalty API (the channel-facing route). Calls from the Loyalty API directly to the Customer microservice are authenticated using the `x-functions-key` header (Azure Function Host Key) — the end-user JWT is not forwarded. Host keys are generated at deployment time and stored in Azure Key Vault.
 
 ---
 
