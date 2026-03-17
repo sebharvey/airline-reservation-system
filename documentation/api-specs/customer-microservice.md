@@ -328,6 +328,181 @@ GET /v1/customers/AX9876543/transactions?page=1&pageSize=20
 
 ---
 
+### POST /v1/customers/{loyaltyNumber}/points/authorise
+
+Authorise a points redemption hold against the customer's balance for a reward booking. Places a hold on the required points without deducting them, enabling rollback if downstream steps fail. Returns a `RedemptionReference` used in subsequent settle or reverse calls.
+
+**When to use:** During reward booking confirmation. The Retail API calls this endpoint before authorising the tax-only card payment. If the customer has insufficient points, the entire booking flow is aborted.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "points": 50000,
+  "basketId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `points` | integer | Yes | Number of points to authorise (hold against balance) |
+| `basketId` | string (UUID) | Yes | The basket identifier for tracking the redemption |
+
+#### Response — `200 OK`
+
+```json
+{
+  "redemptionReference": "RDM-20260317-001234",
+  "pointsAuthorised": 50000,
+  "pointsHeld": 50000,
+  "authorisedAt": "2026-03-17T14:22:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `redemptionReference` | string | Unique identifier for this points authorisation hold; used in subsequent settle/reverse calls |
+| `pointsAuthorised` | integer | Number of points placed on hold |
+| `pointsHeld` | integer | Running total of points currently held against the customer's balance (after this hold) |
+| `authorisedAt` | string (datetime) | ISO 8601 UTC timestamp when the hold was placed |
+
+> **Idempotency:** Repeated calls with the same `basketId` return the same `RedemptionReference` and do not double-hold points.
+
+> **Hold semantics:** Points are marked as held but `PointsBalance` is not decremented. The balance is only decremented when the hold is settled via `/points/settle`.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid field format |
+| `404 Not Found` | No customer found for the given loyalty number |
+| `409 Conflict` | Points hold already exists for this basket |
+| `422 Unprocessable Entity` | Customer's `PointsBalance` is less than the requested `points` amount; abort the booking flow |
+
+---
+
+### POST /v1/customers/{loyaltyNumber}/points/settle
+
+Settle a previously authorised points redemption. Deducts the held points from the customer's balance and appends a `Redeem` transaction to the loyalty ledger. Called after e-ticket issuance and inventory settlement succeed.
+
+**When to use:** During reward booking confirmation, after ticketing and inventory settlement have completed successfully. This is one of the final steps in the reward booking orchestration.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "redemptionReference": "RDM-20260317-001234"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `redemptionReference` | string | Yes | The redemption reference returned from the prior authorise call |
+
+#### Response — `200 OK`
+
+```json
+{
+  "redemptionReference": "RDM-20260317-001234",
+  "pointsDeducted": 50000,
+  "newPointsBalance": 48250,
+  "transactionId": "f7a1b2c3-d4e5-6789-0abc-def123456789",
+  "settledAt": "2026-03-17T14:23:15Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `redemptionReference` | string | The redemption reference being settled |
+| `pointsDeducted` | integer | Number of points deducted from the balance |
+| `newPointsBalance` | integer | Updated `PointsBalance` after deduction |
+| `transactionId` | string (UUID) | Unique identifier of the `LoyaltyTransaction` record appended to the ledger |
+| `settledAt` | string (datetime) | ISO 8601 UTC timestamp when settlement occurred |
+
+> **Idempotency:** Repeated calls with the same `redemptionReference` return the same response without double-deducting points.
+
+> **Failure handling:** If settlement fails after order confirmation, the order remains confirmed but the failure must be flagged for manual reconciliation and retried asynchronously.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `404 Not Found` | No customer found for the given loyalty number, or `redemptionReference` does not exist |
+| `409 Conflict` | The redemption has already been settled or reversed |
+
+---
+
+### POST /v1/customers/{loyaltyNumber}/points/reverse
+
+Reverse a points authorisation hold, returning held points to the customer's available balance. Used when a downstream step fails during reward booking confirmation (e.g. ticketing failure, card payment failure, inventory settlement failure).
+
+**When to use:** During reward booking failure rollback. The Retail API calls this endpoint whenever a step after points authorisation fails, to release the hold and restore the customer's available balance.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "redemptionReference": "RDM-20260317-001234",
+  "reason": "TicketingFailure"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `redemptionReference` | string | Yes | The redemption reference returned from the prior authorise call |
+| `reason` | string | No | Reason for reversal, e.g. `TicketingFailure`, `PaymentFailure`, `BookingFailure` |
+
+#### Response — `200 OK`
+
+```json
+{
+  "redemptionReference": "RDM-20260317-001234",
+  "pointsReleased": 50000,
+  "newPointsBalance": 98250,
+  "reversedAt": "2026-03-17T14:23:45Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `redemptionReference` | string | The redemption reference being reversed |
+| `pointsReleased` | integer | Number of points returned to available balance |
+| `newPointsBalance` | integer | Updated `PointsBalance` after reversal |
+| `reversedAt` | string (datetime) | ISO 8601 UTC timestamp when reversal occurred |
+
+> **Idempotency:** Repeated calls with the same `redemptionReference` return the same response without double-releasing points.
+
+> **No ledger entry:** Since the hold was never settled, no `LoyaltyTransaction` record is appended. The hold is simply marked as reversed.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `404 Not Found` | No customer found for the given loyalty number, or `redemptionReference` does not exist |
+| `409 Conflict` | The redemption has already been settled or reversed |
+
+---
+
 ## Data Conventions
 
 | Convention | Format | Example |
@@ -385,6 +560,41 @@ curl -X PATCH https://{loyalty-api-host}/v1/customers/AX9876543/profile \
 curl -X GET "https://{loyalty-api-host}/v1/customers/AX9876543/transactions?page=1&pageSize=20" \
   -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
+```
+
+### Authorising a points redemption (via Loyalty API during reward booking)
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/authorise \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "points": 50000,
+    "basketId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  }'
+```
+
+### Settling a points redemption (after ticketing and inventory settlement)
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/settle \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "redemptionReference": "RDM-20260317-001234"
+  }'
+```
+
+### Reversing a points authorisation (on downstream failure)
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reverse \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "redemptionReference": "RDM-20260317-001234",
+    "reason": "TicketingFailure"
+  }'
 ```
 
 > **Note:** The `Authorization: Bearer` header is required when calling via the Loyalty API (the channel-facing route). Internal service-to-service calls from the Loyalty API to the Customer microservice use managed identities or scoped API keys instead, and do not carry the end-user JWT.
