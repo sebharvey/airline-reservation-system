@@ -210,7 +210,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ---
 
-## Customer Microservice
+## Customer Microservice — [Full API Spec](api-specs/customer-microservice.md)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
