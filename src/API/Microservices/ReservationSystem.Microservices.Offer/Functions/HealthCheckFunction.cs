@@ -27,6 +27,8 @@ public class HealthCheckFunction
     {
         _logger.LogInformation("Health check requested");
 
+        var service = $"{_repository.GetType().Name}.{nameof(IOfferRepository.GetAllAsync)}";
+
         try
         {
             await _repository.GetAllAsync(req.FunctionContext.CancellationToken);
@@ -35,7 +37,7 @@ public class HealthCheckFunction
             {
                 status = "healthy",
                 timestamp = DateTime.UtcNow,
-                service = "OfferService",
+                service,
                 version = "1.0.0",
                 checks = new
                 {
@@ -60,7 +62,7 @@ public class HealthCheckFunction
             {
                 status = "unhealthy",
                 timestamp = DateTime.UtcNow,
-                service = "OfferService",
+                service,
                 version = "1.0.0",
                 error = ex.Message,
                 checks = new
