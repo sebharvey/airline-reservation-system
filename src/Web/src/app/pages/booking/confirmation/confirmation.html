@@ -4,7 +4,10 @@
   <div class="success-banner">
     <div class="success-icon">&#10003;</div>
     <h1>Booking Confirmed!</h1>
-    <p class="tagline">Your booking is confirmed. Have a great flight!</p>
+    <p class="tagline">
+      <ng-container *ngIf="isRewardBooking">Reward booking confirmed with your points!</ng-container>
+      <ng-container *ngIf="!isRewardBooking">Your booking is confirmed. Have a great flight!</ng-container>
+    </p>
     <div class="booking-ref">
       <span class="ref-label">Booking Reference</span>
       <span class="ref-value">{{ order.bookingReference }}</span>
@@ -82,9 +85,25 @@
     </div>
   </div>
 
+  <!-- Points Redemption (reward bookings) -->
+  <div class="section-card" *ngIf="isRewardBooking && pointsRedemption">
+    <h2>Points Redemption</h2>
+    <div class="payment-row">
+      <span class="pay-desc">
+        <span class="points-label">Apex Rewards &middot; {{ pointsRedemption.loyaltyNumber }}</span>
+        <span class="pay-ref">{{ pointsRedemption.redemptionReference }}</span>
+      </span>
+      <span class="amount pay-status-chip points-chip">{{ pointsRedemption.status }}</span>
+    </div>
+    <div class="total-row">
+      <strong>Points Redeemed</strong>
+      <strong class="points-color">{{ pointsRedemption.pointsRedeemed | number:'1.0-0' }} pts</strong>
+    </div>
+  </div>
+
   <!-- Payment -->
   <div class="section-card">
-    <h2>Payment</h2>
+    <h2>{{ isRewardBooking ? 'Taxes & Fees Payment' : 'Payment' }}</h2>
     <div class="payment-row" *ngFor="let pay of order.payments">
       <span class="pay-desc">
         {{ pay.cardType }} &middot;&middot;&middot;&middot; {{ pay.cardLast4 }}
@@ -93,9 +112,13 @@
       <span class="amount pay-status-chip">{{ pay.status }}</span>
     </div>
     <div class="payment-breakdown">
-      <div class="breakdown-row">
+      <div class="breakdown-row" *ngIf="!isRewardBooking">
         <span>Fare</span>
         <span>{{ formatPrice(fareTotal) }}</span>
+      </div>
+      <div class="breakdown-row" *ngIf="isRewardBooking">
+        <span>Taxes &amp; Fees</span>
+        <span>{{ formatPrice(order.totalAmount) }}</span>
       </div>
       <div class="breakdown-row" *ngIf="seatTotal > 0">
         <span>Seats</span>
@@ -107,7 +130,7 @@
       </div>
     </div>
     <div class="total-row">
-      <strong>Total Paid</strong>
+      <strong>{{ isRewardBooking ? 'Total Card Payment' : 'Total Paid' }}</strong>
       <strong>{{ formatPrice(order.totalAmount) }}</strong>
     </div>
   </div>

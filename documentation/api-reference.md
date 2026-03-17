@@ -12,12 +12,12 @@
 |--------|----------|-------------|
 | `POST` | `/v1/search/slice` | Search for available direct flights for a single directional slice (outbound or inbound); returns one offer per available cabin class, each with a unique `OfferId` |
 | `POST` | `/v1/search/connecting` | Search for connecting itinerary options via the LHR hub (e.g. DEL → JFK via LHR); assembles pairs of per-segment offers from the Offer MS, applies minimum connect time (60 min), and returns combined itinerary options each carrying two `OfferIds` — one per leg |
-| `POST` | `/v1/basket` | Create a new basket with one or more flight offer IDs; initiates the bookflow |
+| `POST` | `/v1/basket` | Create a new basket with one or more flight offer IDs; initiates the bookflow. For reward bookings, accepts `bookingType=Reward` and `loyaltyNumber`; verifies points balance via Customer MS before creating the basket |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Add or update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; accepts bag offer IDs per passenger per segment; updates `TotalBagAmount` on the basket |
 | `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update Special Service Request selections on a basket during the bookflow; accepts SSR code, passenger reference, and segment reference per selection; no charge — basket total is unchanged |
-| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation |
+| `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation. For reward baskets, orchestrates points authorisation (Customer MS), tax-only payment authorisation (Payment MS), ticketing, inventory settlement, points settlement, and order creation |
 
 ### Orders
 
@@ -30,6 +30,7 @@
 | `POST` | `/v1/orders/{bookingRef}/cancel` | Cancel a confirmed booking; initiates refund if fare conditions permit |
 | `POST` | `/v1/orders/{bookingRef}/bags` | Add or update checked bag selection on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove Special Service Requests on a confirmed order (self-serve); rejected with `422` if within the SSR amendment cut-off window for the departure |
+| `POST` | `/v1/reward/{redemptionReference}/reverse` | Reverse a points authorisation if a downstream step fails during reward booking confirmation |
 
 ### SSR
 
@@ -74,6 +75,9 @@
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile, tier status, and points balance |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
 | `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold against the customer's balance for a reward booking; returns a `RedemptionReference`; verifies sufficient balance before placing hold |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a previously authorised points redemption; deducts points from balance and appends a `Redeem` transaction to the loyalty ledger |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
 
@@ -218,3 +222,6 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile, tier status, and points balance |
 | `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language) |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold for a reward booking; verifies `PointsBalance >= requestedPoints`, places hold, returns `RedemptionReference` |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a held points redemption; decrements `PointsBalance`, appends `Redeem` transaction to ledger |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a held points redemption; releases held points back to available balance |

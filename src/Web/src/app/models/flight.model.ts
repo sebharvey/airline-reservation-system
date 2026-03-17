@@ -23,6 +23,8 @@ export interface FlightOffer {
   totalPrice: number;
   currency: string;
   seatsAvailable: number;
+  pointsPrice?: number;
+  pointsTaxes?: number;
 }
 
 export interface SeatOffer {

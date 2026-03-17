@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
+import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { Passenger } from '../../../models/order.model';
 
 interface PassengerForm {
@@ -28,8 +29,10 @@ interface PassengerForm {
 export class PassengersComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly bookingState = inject(BookingStateService);
+  private readonly loyaltyState = inject(LoyaltyStateService);
 
   readonly basket = this.bookingState.basket;
+  readonly isRewardBooking = this.bookingState.isRewardBooking;
   readonly adultCount = this.bookingState.adultCount;
   readonly childCount = this.bookingState.childCount;
 
@@ -71,6 +74,7 @@ export class PassengersComponent implements OnInit {
       return;
     }
     this.buildForms();
+    this.autofillFromLoyalty();
     this.startCountdown();
   }
 
@@ -114,6 +118,25 @@ export class PassengersComponent implements OnInit {
     }
 
     this.forms.set(passengers);
+  }
+
+  /** Autofill the lead passenger from loyalty account details for reward bookings. */
+  private autofillFromLoyalty(): void {
+    if (!this.isRewardBooking()) return;
+    const customer = this.loyaltyState.currentCustomer();
+    if (!customer) return;
+
+    const forms = this.forms();
+    if (forms.length === 0) return;
+
+    const leadPax = forms[0];
+    leadPax.givenName = customer.givenName;
+    leadPax.surname = customer.surname;
+    leadPax.dateOfBirth = customer.dateOfBirth;
+    leadPax.email = customer.email;
+    leadPax.phone = customer.phone;
+    leadPax.loyaltyNumber = customer.loyaltyNumber;
+    this.forms.set([...forms]);
   }
 
   private startCountdown(): void {

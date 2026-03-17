@@ -218,6 +218,28 @@ export class RetailApiService {
   changeOrder(_bookingRef: string, _newOfferId: string): Observable<{ success: boolean; addCollect: number; currency: string }> {
     return of({ success: true, addCollect: 150.00, currency: 'GBP' }).pipe(delay(API_DELAY_MS));
   }
+
+  /**
+   * POST /v1/reward/authorise
+   * Authorise a points redemption for a reward booking.
+   * The Retail API calls the Customer MS to verify the balance and place a hold.
+   */
+  authorisePointsRedemption(
+    _loyaltyNumber: string,
+    _pointsAmount: number
+  ): Observable<{ success: boolean; redemptionReference: string }> {
+    return of({ success: true, redemptionReference: 'AXRDM-' + Date.now() }).pipe(delay(API_DELAY_MS));
+  }
+
+  /**
+   * POST /v1/reward/{redemptionReference}/settle
+   * Settle a previously authorised points redemption after order confirmation.
+   */
+  settlePointsRedemption(
+    _redemptionReference: string
+  ): Observable<{ success: boolean }> {
+    return of({ success: true }).pipe(delay(API_DELAY_MS));
+  }
 }
 
 function buildBcbp(surname: string, givenName: string, bookingRef: string, seg: { flightNumber: string; origin: string; destination: string }, seatNumber: string, seq: string): string {

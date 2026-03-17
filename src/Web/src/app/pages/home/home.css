@@ -52,6 +52,39 @@ h1 {
   text-align: center;
 }
 
+/* Booking type toggle (Revenue / Reward) */
+.booking-type-toggle {
+  display: flex;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  width: fit-content;
+  align-self: center;
+}
+
+.booking-type-btn {
+  padding: 7px 22px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.booking-type-btn.active {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+.booking-type-btn.reward.active {
+  background: linear-gradient(135deg, #f5a623, #e67e22);
+}
+
 /* Trip type toggle */
 .trip-type-toggle {
   display: flex;

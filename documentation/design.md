@@ -22,6 +22,13 @@ A Modern Airline Retailing system built on offer and order capability, structure
     - E-ticket issuance
     - Inventory hold and sell
     - Manifest population
+  - Reward Booking
+    - Points-priced offer display
+    - Loyalty authentication during bookflow
+    - Points balance verification
+    - Two-stage points authorise and settle (via Customer MS)
+    - Lead passenger autofill from loyalty profile
+    - Tax-only card payment
   - Ancillary Selection
     - Seat selection (bookflow and post-sale)
     - Bag selection (bookflow and post-sale)
@@ -160,14 +167,23 @@ A Modern Airline Retailing system built on offer and order capability, structure
   - Points Ledger
     - Append-only transaction log with running balance snapshot
     - Points accrual, redemption, adjustment, and expiry
+  - Points Redemption
+    - Two-stage authorise and settle for reward bookings
+    - Points hold and deduction with redemption reference tracking
+    - Reversal on booking failure
   - Tier Management
     - Tier configuration and threshold management
     - Tier evaluation against TierProgressPoints
 
-- **Accounting** — financial records, revenue attribution, and refund tracking
+- **Accounting** — financial records, revenue attribution, refund tracking, and points liability
   - Revenue Recording
     - Order and ancillary revenue capture via OrderConfirmed event
     - Revenue attribution by type (fare, seat, bag)
+  - Reward Booking Accounting
+    - Points liability recording from reward booking OrderConfirmed events (bookingType=Reward)
+    - Points liability reversal from reward booking OrderCancelled events (pointsReinstated)
+    - Points adjustment tracking from reward booking OrderChanged events (pointsAdjustment)
+    - Separation of cash revenue (taxes/ancillaries) from points liability for reward bookings
   - Refund Management
     - Refund identification from OrderCancelled events
     - Refund processing and settlement tracking
@@ -692,9 +708,9 @@ The Order microservice manages the complete booking lifecycle — from basket cr
 
 - Bookings are represented as a single evolving `OrderData` JSON document, identified by a six-character **booking reference** (equivalent to the PNR in legacy systems).
 - All state-changing operations publish an event to the event bus for downstream consumption (e.g. Accounting, Customer). Three event types are defined:
-  - `OrderConfirmed` — published on initial order creation; consumed by Accounting (revenue recording) and Customer (points accrual if `loyaltyNumber` present)
-  - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment
-  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing
+  - `OrderConfirmed` — published on initial order creation; consumed by Accounting (revenue recording) and Customer (points accrual if `loyaltyNumber` present). For reward bookings, the event includes `bookingType=Reward`, `totalPointsAmount`, and `redemptionReference` so Accounting can record the points liability separately from cash revenue.
+  - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment. For reward booking changes, includes `pointsAdjustment` (positive = additional points redeemed, negative = points reinstated) and updated `totalPointsAmount`.
+  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
 
 ### Create — Bookflow
@@ -711,6 +727,8 @@ sequenceDiagram
     actor Traveller
     participant Web
     participant RetailAPI as Retail API
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer [MS]
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
     participant SeatMS as Seat [MS]
@@ -721,8 +739,24 @@ sequenceDiagram
 
     Note over Traveller, Web: Bookflow begins — flight selection already complete (see Offer / Search)
 
-    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
-    RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
+    opt Reward booking only — loyalty login before basket creation
+        Traveller->>Web: Authenticate with loyalty credentials
+        Web->>LoyaltyAPI: POST /v1/auth/login (email, password)
+        LoyaltyAPI-->>Web: 200 OK — accessToken, customer profile (loyaltyNumber, pointsBalance)
+        Web->>Web: Verify pointsBalance >= totalPointsRequired
+        Note over Web: If insufficient points, display error and block booking
+    end
+
+    alt Revenue booking
+        Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
+        RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
+    else Reward booking
+        Web->>RetailAPI: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+        RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
+        CustomerMS-->>RetailAPI: 200 OK — pointsBalance verified
+        RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+    end
+
     Note over OrderMS: Basket created with ExpiresAt = now + 24hr<br/>TicketingTimeLimit = now + 24hr (configurable)
 
     loop For each flight OfferId
@@ -737,6 +771,7 @@ sequenceDiagram
     OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
     RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
 
+    Note over Web: Reward bookings: lead passenger auto-filled from loyalty profile
     Traveller->>Web: Enter passenger details
     Web->>RetailAPI: PUT /v1/basket/{basketId}/passengers (PAX details)
     RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/passengers (PAX details)
@@ -776,9 +811,18 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/basket/{basketId}/confirm (payment details)
     Note over RetailAPI: Validate basket not expired and within ticketingTimeLimit
 
-    Note over RetailAPI, PaymentMS: Authorise all payments upfront (fare + ancillaries) so all PaymentReferences are available for order confirmation
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
-    PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+    opt Reward booking — authorise points redemption
+        RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/authorise (points=totalPointsAmount, basketId)
+        CustomerMS-->>RetailAPI: 200 OK — redemptionReference, points held against balance
+    end
+
+    alt Revenue booking — authorise fare payment
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
+        PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+    else Reward booking — authorise tax payment only
+        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
+        PaymentMS-->>RetailAPI: 200 OK — taxes authorisation confirmed (paymentReference-1)
+    end
 
     opt Seats were selected during bookflow
         RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount, card token from paymentReference-1, description=SeatAncillary)
@@ -794,10 +838,21 @@ sequenceDiagram
     DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
     RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds — convert SeatsHeld to SeatsSold)
     OfferMS-->>RetailAPI: 200 OK — inventory updated (SeatsSold incremented, SeatsHeld decremented)
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
-    PaymentMS-->>RetailAPI: 200 OK — fare payment settled
 
-    RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences — fare + any ancillaries)
+    opt Reward booking — settle points redemption
+        RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
+        CustomerMS-->>RetailAPI: 200 OK — points deducted, Redeem transaction appended
+        Note over CustomerMS: PointsBalance decremented, LoyaltyTransaction appended (type=Redeem)
+    end
+
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — payment settled
+
+    alt Revenue booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences — fare + any ancillaries)
+    else Reward booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentReferences, redemptionReference, bookingType=Reward)
+    end
     OrderMS-->>RetailAPI: 201 Created — order confirmed (6-digit bookingReference)
     Note over OrderMS: Basket record deleted on successful order confirmation
 
@@ -816,13 +871,70 @@ sequenceDiagram
     end
 
     Note over OrderMS, AccountingMS: Async event
-    OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, amount, e-tickets)
+    alt Revenue booking
+        OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, bookingType=Revenue, amount, e-tickets, loyaltyNumber)
+    else Reward booking
+        OrderMS-)AccountingMS: OrderConfirmed event (bookingReference, bookingType=Reward, totalPointsAmount, redemptionReference, amount=taxesAndAncillaries, e-tickets, loyaltyNumber)
+    end
 
     RetailAPI-->>Web: 201 Created — booking confirmed (bookingReference, e-ticket numbers)
     Web-->>Traveller: Display booking confirmation
 ```
 
-*Ref: order bookflow - end-to-end flight selection, ancillary addition, payment, ticketing, and order confirmation*
+*Ref: order bookflow - end-to-end revenue and reward booking flow covering flight selection, ancillary addition, payment (and points redemption for reward bookings), ticketing, and order confirmation*
+
+### Reward Booking
+
+A **reward booking** allows a loyalty programme member to redeem their accumulated points for flights, paying only applicable taxes and fees in cash. The reward booking flow shares the same basket and order infrastructure as revenue bookings but introduces an additional loyalty authentication step and a points redemption flow that mirrors the two-stage authorise-and-settle pattern used for card payments. The full sequence — including the reward-specific `alt`/`opt` branches — is shown in the unified bookflow diagram above.
+
+#### Key Differences from Revenue Bookings
+
+- **Points pricing:** Flight offers include both a revenue price and a points price (`PointsPrice` and `PointsTaxes`). The points price covers the base fare; taxes and fees remain payable in cash.
+- **Loyalty login required:** After flight selection, the traveller must authenticate via the Loyalty API before proceeding to passenger details. This step is skipped for revenue bookings.
+- **Points balance verification:** The Retail API verifies the customer's points balance against the total points required before creating the basket. If insufficient, the booking is rejected.
+- **Lead passenger autofill:** On successful login, the lead passenger's details (name, date of birth, contact information, loyalty number) are pre-populated from the loyalty profile.
+- **Points redemption:** The Retail API orchestrates a two-stage points redemption (authorise then settle) via the Customer microservice, analogous to the Payment MS authorise-and-settle flow for card payments.
+- **Taxes still paid by card:** The credit card payment flow is still required for taxes, fees, and any ancillary charges (seats, bags). The `TotalAmount` on the basket and order reflects only the cash component.
+
+#### Basket Structure for Reward Bookings
+
+The basket for a reward booking carries additional fields:
+
+- `BookingType`: `Reward` (vs `Revenue` for standard bookings)
+- `TotalPointsAmount`: Total points to be redeemed for the fare component
+- `TotalTaxesAmount`: Total taxes and fees payable in cash
+- `LoyaltyNumber`: The authenticated member's loyalty number
+
+The `TotalFareAmount` is zero for reward bookings (the fare is covered by points). The `TotalAmount` equals `TotalTaxesAmount + TotalSeatAmount + TotalBagAmount` — only the cash-payable portion.
+
+#### Points Redemption — Authorise and Settle
+
+Points redemption follows a two-stage flow analogous to card payment authorisation and settlement, ensuring atomicity and allowing rollback if downstream steps fail:
+
+1. **Authorise** (`POST /v1/customers/{loyaltyNumber}/points/authorise`): Places a hold on the required points against the customer's balance. The points are reserved but not yet deducted. Returns a `RedemptionReference` used to track the transaction.
+
+2. **Settle** (`POST /v1/customers/{loyaltyNumber}/points/settle`): Deducts the held points from the customer's balance and appends a `Redeem` transaction to the loyalty transaction log. Called after e-ticket issuance and inventory settlement.
+
+3. **Reverse** (`POST /v1/customers/{loyaltyNumber}/points/reverse`): Releases held points back to the customer's available balance. Called if any downstream step fails (e.g. ticketing failure, inventory settlement failure).
+
+| Failure point | Behaviour |
+|---|---|
+| Points authorisation fails (insufficient balance) | Abort — do not proceed with card payment or order confirmation |
+| Card payment authorisation fails | Reverse points hold, release inventory, return error |
+| Ticketing fails | Reverse points hold, void card authorisation, release inventory, return error |
+| Points settlement fails after order confirmation | Flag for manual reconciliation; order is confirmed but points deduction must be retried |
+
+#### Order Data for Reward Bookings
+
+The confirmed order for a reward booking includes:
+
+- `BookingType`: `Reward`
+- `TotalPointsAmount`: Points redeemed for the fare
+- `TotalAmount`: Cash amount paid (taxes + ancillaries only)
+- `PointsRedemption`: Object containing `RedemptionReference`, `LoyaltyNumber`, `PointsRedeemed`, and `Status`
+- Standard `Payments` array for the cash/card transactions (taxes and ancillaries)
+
+The `OrderConfirmed` event for reward bookings includes the `BookingType` and `RedemptionReference` fields, allowing the Accounting MS to distinguish between revenue and reward bookings for financial reporting.
 
 ### Ticketing
 
@@ -1382,13 +1494,14 @@ sequenceDiagram
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
+    participant CustomerMS as Customer [MS]
     participant DeliveryMS as Delivery [MS]
     participant PaymentMS as Payment [MS]
 
     Traveller->>Web: Navigate to manage booking and request a flight change
     Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: POST /v1/orders/retrieve
-    OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentReference)
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentReference, bookingType, loyaltyNumber, totalPointsAmount)
     RetailAPI-->>Web: 200 OK — current booking with change conditions
 
     alt Fare is not changeable (isChangeable = false)
@@ -1401,24 +1514,49 @@ sequenceDiagram
     Note over RetailAPI,OfferMS: Reshop — obtain live fare for the new itinerary at the same cabin class
     Web->>RetailAPI: POST /v1/search/slice (origin, destination, newDate, cabinCode, paxCount)
     RetailAPI->>OfferMS: POST /v1/search (origin, destination, newDate, cabinCode, paxCount)
-    OfferMS-->>RetailAPI: 200 OK — available flights with live fares (newOfferId, newBaseFare, newTaxes, newTotal, isChangeable)
+    OfferMS-->>RetailAPI: 200 OK — available flights with live fares (newOfferId, newBaseFare, newTaxes, newTotal, newPointsPrice, isChangeable)
     RetailAPI-->>Web: 200 OK — available replacement flights and fares
     Web-->>Traveller: Display replacement options- traveller selects new flight
 
-    Note over RetailAPI: Calculate add-collect
-    Note over RetailAPI: addCollect = max(0, newBaseFare − originalBaseFare)
-    Note over RetailAPI: totalDue = changeFee + addCollect
+    alt Revenue booking — calculate add-collect in cash
+        Note over RetailAPI: addCollect = max(0, newBaseFare − originalBaseFare)
+        Note over RetailAPI: totalDue = changeFee + addCollect
 
-    alt Add-collect or change fee applies (totalDue > 0)
-        RetailAPI-->>Web: Fare summary (originalFare, newFare, changeFee, addCollect, totalDue)
-        Web-->>Traveller: Confirm change and provide payment details
-        Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId, totalDue, paymentDetails)
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalDue, currency, cardDetails, description=FareChange)
-        PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
-    else No additional charge (totalDue = 0 — fully flexible fare, new fare equal or lower)
-        RetailAPI-->>Web: Change summary — no additional payment required
-        Web-->>Traveller: Confirm change
-        Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId)
+        alt Add-collect or change fee applies (totalDue > 0)
+            RetailAPI-->>Web: Fare summary (originalFare, newFare, changeFee, addCollect, totalDue)
+            Web-->>Traveller: Confirm change and provide payment details
+            Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId, totalDue, paymentDetails)
+            RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalDue, currency, cardDetails, description=FareChange)
+            PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
+        else No additional charge (totalDue = 0 — fully flexible fare, new fare equal or lower)
+            RetailAPI-->>Web: Change summary — no additional payment required
+            Web-->>Traveller: Confirm change
+            Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId)
+        end
+
+    else Reward booking — recalculate points difference
+        Note over RetailAPI: pointsDifference = newPointsPrice − originalPointsAmount
+        Note over RetailAPI: taxDifference = max(0, newTaxes − originalTaxes)
+
+        alt New flight requires more points (pointsDifference > 0)
+            RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
+            CustomerMS-->>RetailAPI: 200 OK — current pointsBalance
+            Note over RetailAPI: Verify pointsBalance >= pointsDifference
+            RetailAPI-->>Web: Points summary (originalPoints, newPoints, pointsDifference, taxDifference)
+            Web-->>Traveller: Confirm change — additional points and/or tax payment required
+            Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId, pointsDifference, taxDifference, paymentDetails)
+            RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/authorise (points=pointsDifference, bookingRef)
+            CustomerMS-->>RetailAPI: 200 OK — redemptionReference for additional points
+        else New flight requires fewer or equal points (pointsDifference <= 0)
+            RetailAPI-->>Web: Change summary — points difference will be reinstated
+            Web-->>Traveller: Confirm change
+            Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId)
+        end
+
+        opt Tax difference applies (taxDifference > 0)
+            RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=taxDifference, currency, cardDetails, description=RewardChangeTaxes)
+            PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
+        end
     end
 
     RetailAPI->>OfferMS: POST /v1/inventory/hold (newInventoryId, cabinCode, seats=paxCount)
@@ -1435,7 +1573,11 @@ sequenceDiagram
     RetailAPI->>OfferMS: POST /v1/inventory/release (originalInventoryId, cabinCode, seats=paxCount)
     OfferMS-->>RetailAPI: 200 OK — seats released from original flight- SeatsAvailable incremented
 
-    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentReference)
+    alt Revenue booking
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentReference)
+    else Reward booking
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, pointsDifference, redemptionReference, taxPaymentReference, bookingType=Reward)
+    end
     OrderMS-->>RetailAPI: 200 OK — order updated (OrderStatus=Changed)- OrderChanged event published
 
     RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, voidedETicketNumbers, newSegments)
@@ -1444,16 +1586,29 @@ sequenceDiagram
     RetailAPI->>DeliveryMS: POST /v1/manifest (newInventoryId, bookingReference, newETicketNumbers, passengerIds)
     DeliveryMS-->>RetailAPI: 201 Created — manifest entries written for new flight
 
-    alt Payment was collected (totalDue > 0)
+    opt Reward booking — settle points adjustment
+        alt Additional points were redeemed (pointsDifference > 0)
+            RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
+            CustomerMS-->>RetailAPI: 200 OK — additional points deducted
+        else Points to be reinstated (pointsDifference < 0)
+            RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/reinstate (points=abs(pointsDifference), bookingRef, reason=FlightChange)
+            CustomerMS-->>RetailAPI: 200 OK — surplus points restored to balance
+        end
+    end
+
+    alt Revenue booking — payment was collected (totalDue > 0)
         RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=totalDue)
         PaymentMS-->>RetailAPI: 200 OK — add-collect and change fee settled
+    else Reward booking — tax difference was collected (taxDifference > 0)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=taxDifference)
+        PaymentMS-->>RetailAPI: 200 OK — tax difference settled
     end
 
     RetailAPI-->>Web: 200 OK — change confirmed (new itinerary, new e-ticket numbers)
     Web-->>Traveller: Change confirmed — new itinerary and updated e-ticket details displayed
 ```
 
-*Ref: manage booking - voluntary flight change with reshop, add-collect calculation, and e-ticket reissuance*
+*Ref: manage booking - voluntary flight change with reshop, add-collect (revenue) or points recalculation (reward), and e-ticket reissuance*
 
 ### Manage Booking — Cancel Booking
 
@@ -1473,17 +1628,26 @@ sequenceDiagram
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
     participant OfferMS as Offer [MS]
+    participant CustomerMS as Customer [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
 
     Traveller->>Web: Navigate to manage booking and request cancellation
     Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: POST /v1/orders/retrieve
-    OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentReference)
-    Note over RetailAPI: refundableAmount = isRefundable ? (totalPaid − cancellationFee) : 0
-    RetailAPI-->>Web: 200 OK — booking with cancellation conditions and refundable amount
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentReference, bookingType, loyaltyNumber, totalPointsAmount, redemptionReference)
 
-    Web-->>Traveller: Display cancellation terms (refundableAmount, cancellationFee if applicable, or no refund notice)
+    alt Revenue booking
+        Note over RetailAPI: refundableAmount = isRefundable ? (totalPaid − cancellationFee) : 0
+        RetailAPI-->>Web: 200 OK — booking with cancellation conditions and refundable amount
+        Web-->>Traveller: Display cancellation terms (refundableAmount, cancellationFee if applicable, or no refund notice)
+    else Reward booking
+        Note over RetailAPI: pointsToRestore = totalPointsAmount (full points restoration on cancellation)
+        Note over RetailAPI: taxRefundable = isRefundable ? (totalTaxesPaid − cancellationFee) : 0
+        RetailAPI-->>Web: 200 OK — booking with cancellation conditions, points to be restored, and tax refund amount
+        Web-->>Traveller: Display cancellation terms (points to be restored, tax refund if applicable)
+    end
+
     Traveller->>Web: Confirm cancellation
     Web->>RetailAPI: POST /v1/orders/{bookingRef}/cancel
 
@@ -1498,20 +1662,32 @@ sequenceDiagram
     RetailAPI->>OfferMS: POST /v1/inventory/release (inventoryId, cabinCode, seats=paxCount)
     OfferMS-->>RetailAPI: 200 OK — seats released- SeatsAvailable incremented
 
-    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/cancel (reason=VoluntaryCancellation, cancellationFee)
+    opt Reward booking — restore redeemed points to customer balance
+        RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/reinstate (points=totalPointsAmount, bookingRef, reason=VoluntaryCancellation)
+        CustomerMS-->>RetailAPI: 200 OK — points restored to balance, Reinstate transaction appended
+        Note over CustomerMS: PointsBalance incremented, LoyaltyTransaction appended (type=Reinstate)
+    end
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/cancel (reason=VoluntaryCancellation, cancellationFee, bookingType)
     OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled- OrderChanged event published
 
-    alt Refund is due (isRefundable = true)
+    alt Revenue booking — refund is due (isRefundable = true)
         OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=totalPaid−cancellationFee, originalPaymentReference)
         RetailAPI-->>Web: 200 OK — booking cancelled- refund raised with Accounting system
         Web-->>Traveller: Booking cancelled — your refund will be processed by the Accounting team
-    else Non-refundable fare (isRefundable = false)
+    else Revenue booking — non-refundable fare (isRefundable = false)
         RetailAPI-->>Web: 200 OK — booking cancelled- no refund applicable for this fare type
         Web-->>Traveller: Booking cancelled — no refund will be issued
+    else Reward booking — points restored, tax refund if applicable
+        opt Tax refund is due (taxRefundable > 0)
+            OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=taxRefundable, originalPaymentReference, bookingType=Reward)
+        end
+        RetailAPI-->>Web: 200 OK — booking cancelled- points restored to loyalty account
+        Web-->>Traveller: Booking cancelled — points have been restored to your account
     end
 ```
 
-*Ref: manage booking - voluntary cancellation with inventory release and accounting refund event*
+*Ref: manage booking - voluntary cancellation with inventory release, points restoration (reward bookings), and accounting refund event*
 
 ## Payment
 
@@ -1847,6 +2023,7 @@ sequenceDiagram
     participant DisruptionAPI as Disruption API
     participant OfferMS as Offer [MS]
     participant OrderMS as Order [MS]
+    participant CustomerMS as Customer [MS]
     participant DeliveryMS as Delivery [MS]
 
     FOS->>DisruptionAPI: POST /v1/disruptions/cancellation (disruptionEventId, flightNumber, departureDate, origin, destination, reason)
@@ -1857,7 +2034,7 @@ sequenceDiagram
     OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
 
     DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
-    OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments, cabinCode)
+    OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments, cabinCode, bookingType, loyaltyNumber, totalPointsAmount)
 
     DisruptionAPI->>DeliveryMS: GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}
     DeliveryMS-->>DisruptionAPI: 200 OK — full passenger manifest for the cancelled flight
@@ -1883,7 +2060,16 @@ sequenceDiagram
         DisruptionAPI->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=passengerCount)
         OfferMS-->>DisruptionAPI: 200 OK — seats held on replacement flight
 
-        DisruptionAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (cancelledSegmentId, replacementOfferIds, reason=FlightCancellation)
+        opt Reward booking — adjust points if replacement flight has different points cost
+            alt Replacement flight costs more points
+                Note over DisruptionAPI: IROPS policy: airline absorbs additional points cost — no charge to customer
+            else Replacement flight costs fewer points
+                DisruptionAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/reinstate (points=pointsDifference, bookingRef, reason=FlightCancellation)
+                CustomerMS-->>DisruptionAPI: 200 OK — surplus points restored to balance
+            end
+        end
+
+        DisruptionAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (cancelledSegmentId, replacementOfferIds, reason=FlightCancellation, bookingType)
         OrderMS-->>DisruptionAPI: 200 OK — order updated with replacement segment(s)- OrderChanged event published
 
         DisruptionAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}
@@ -1901,7 +2087,7 @@ sequenceDiagram
     DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
 ```
 
-*Ref: disruption - flight cancellation handling with passenger rebooking onto direct or connecting replacement flights*
+*Ref: disruption - flight cancellation handling with passenger rebooking onto direct or connecting replacement flights, including points adjustment for reward bookings*
 
 **Cancellation handling rules:**
 
@@ -1910,7 +2096,8 @@ sequenceDiagram
 - Seat assignments on the replacement flight are not pre-assigned by the Disruption API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
 - If no replacement flight is found within a configurable lookahead window (default: 72 hours), the booking is flagged for manual handling by the Contact Centre rather than left in an unresolved state.
 - Where the original fare conditions do not permit free rebooking (e.g. non-changeable fares), the airline's IROPS policy overrides these conditions — all passengers on a cancelled flight are entitled to free rebooking regardless of fare type. This waiver is applied by the Order microservice when the `reason=FlightCancellation` flag is present.
-- A single `OrderChanged` event (with `changeType=IROPSRebook`) is published by the Order microservice per affected booking, consumed by the Accounting microservice for revenue accounting adjustments.
+- **Reward bookings:** Under IROPS, the airline absorbs any additional points cost if the replacement flight has a higher points price — the customer is never charged more points for an airline-initiated cancellation. If the replacement flight costs fewer points, the difference is reinstated to the customer's loyalty balance via the Customer microservice. Tax differences on IROPS rebookings are also absorbed by the airline.
+- A single `OrderChanged` event (with `changeType=IROPSRebook`) is published by the Order microservice per affected booking, consumed by the Accounting microservice for revenue accounting adjustments. For reward bookings, the event includes `bookingType=Reward` and any `pointsAdjustment` so Accounting can track the points impact.
 
 ---
 
@@ -2737,12 +2924,61 @@ Each `LoyaltyTransaction` row carries a `TransactionType` that describes why poi
 
 ### Earn Points on Booking Confirmation
 
-On order confirmation, the Order MS publishes an `OrderConfirmed` event; if the booking includes a loyalty number, the Customer MS consumes the event and accrues points.
+On order confirmation, the Order MS publishes an `OrderConfirmed` event; if the booking includes a loyalty number, the Customer MS consumes the event and accrues points based on the distance flown (route miles).
 
-- Points calculated from the event payload based on fare paid, cabin class, and tier at time of travel.
-- Calculation logic is encapsulated within the Customer MS; the event provides the inputs.
+- **Revenue bookings only:** Points are accrued on revenue bookings. Reward bookings do not earn points — the customer is redeeming points, not purchasing a fare.
+- Points are calculated from the **route miles** (great-circle distance between origin and destination), multiplied by a **cabin class multiplier** and an optional **tier bonus multiplier**.
+- The accrual formula is: `pointsEarned = routeMiles × cabinMultiplier × tierMultiplier` (per passenger, per segment).
+- For connecting itineraries, each segment earns independently — e.g. DEL→LHR→JFK earns DEL→LHR miles + LHR→JFK miles.
+- Calculation logic is encapsulated within the Customer MS; the `OrderConfirmed` event provides the inputs (origin, destination, cabin class, loyalty number).
 
-> **Points calculation** rules (multipliers, bonus tiers, partner earn rates) are the responsibility of the Customer microservice and are not defined in this document. The event payload provides the inputs; the calculation logic is encapsulated within the service.
+#### Route Miles Table
+
+Points earned per segment correspond to the great-circle distance in miles between origin and destination. The following table lists the route miles for all Apex Air direct routes from LHR:
+
+| Route | Origin | Destination | Distance (miles) | Points (Economy) |
+|-------|--------|-------------|-----------------|------------------|
+| LHR — JFK | LHR | JFK | 3,459 | 3,459 |
+| LHR — LAX | LHR | LAX | 5,456 | 5,456 |
+| LHR — MIA | LHR | MIA | 4,432 | 4,432 |
+| LHR — SFO | LHR | SFO | 5,367 | 5,367 |
+| LHR — ORD | LHR | ORD | 3,941 | 3,941 |
+| LHR — BOS | LHR | BOS | 3,269 | 3,269 |
+| LHR — BGI | LHR | BGI | 4,237 | 4,237 |
+| LHR — KIN | LHR | KIN | 4,694 | 4,694 |
+| LHR — NAS | LHR | NAS | 4,341 | 4,341 |
+| LHR — HKG | LHR | HKG | 5,994 | 5,994 |
+| LHR — NRT | LHR | NRT | 5,974 | 5,974 |
+| LHR — PVG | LHR | PVG | 5,741 | 5,741 |
+| LHR — PEK | LHR | PEK | 5,063 | 5,063 |
+| LHR — SIN | LHR | SIN | 6,764 | 6,764 |
+| LHR — BOM | LHR | BOM | 4,479 | 4,479 |
+| LHR — DEL | LHR | DEL | 4,180 | 4,180 |
+| LHR — BLR | LHR | BLR | 5,127 | 5,127 |
+
+> **Note:** Route miles are the same in both directions (LHR→JFK = JFK→LHR). The "Points (Economy)" column shows the base accrual before cabin and tier multipliers are applied.
+
+#### Cabin Class Multiplier
+
+| Cabin | Multiplier | Example (LHR–JFK, 3,459 miles) |
+|-------|-----------|-------------------------------|
+| Economy | ×1.0 | 3,459 pts |
+| Premium Economy | ×1.5 | 5,189 pts |
+| Business | ×2.0 | 6,918 pts |
+| First | ×3.0 | 10,377 pts |
+
+#### Tier Bonus Multiplier
+
+Loyalty tier at time of travel provides an additional multiplier on top of the cabin-adjusted accrual:
+
+| Tier | Bonus Multiplier | Example (LHR–JFK Business = 6,918 base) |
+|------|-----------------|----------------------------------------|
+| Blue | ×1.0 (no bonus) | 6,918 pts |
+| Silver | ×1.25 | 8,648 pts |
+| Gold | ×1.5 | 10,377 pts |
+| Platinum | ×2.0 | 13,836 pts |
+
+> **Full example:** A Platinum-tier member flying LHR→JFK in Business earns `3,459 miles × 2.0 (Business) × 2.0 (Platinum) = 13,836 points` per segment.
 
 ```mermaid
 sequenceDiagram
@@ -2751,17 +2987,26 @@ sequenceDiagram
     participant CustomerMS as Customer [MS]
 
     Note over OrderMS, EventBus: Async — triggered on order confirmation
-    OrderMS-)EventBus: OrderConfirmed event (bookingReference, loyaltyNumber, flights, fareAmount, cabinCode, passengerType)
+    OrderMS-)EventBus: OrderConfirmed event (bookingReference, bookingType, loyaltyNumber, flights[origin, destination, cabinCode], fareAmount, passengerType)
 
     EventBus-)CustomerMS: OrderConfirmed event received
 
-    CustomerMS->>CustomerMS: Calculate points to earn (fareAmount, cabinCode, tierStatus)
-    CustomerMS->>CustomerMS: Append LoyaltyTransaction (type=Earn, points, bookingReference)
-    CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
-    Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
+    alt Revenue booking with loyaltyNumber present
+        loop For each flight segment
+            CustomerMS->>CustomerMS: Look up routeMiles for origin–destination pair
+            CustomerMS->>CustomerMS: Apply cabinMultiplier (Economy ×1, PremEco ×1.5, Business ×2, First ×3)
+            CustomerMS->>CustomerMS: Apply tierMultiplier based on member's current tier
+            CustomerMS->>CustomerMS: pointsEarned = routeMiles × cabinMultiplier × tierMultiplier
+        end
+        CustomerMS->>CustomerMS: Append LoyaltyTransaction (type=Earn, points=totalPointsEarned, bookingReference, flightNumber)
+        CustomerMS->>CustomerMS: Update pointsBalance + tierProgressPoints
+        Note over CustomerMS: pointsBalance and tierProgressPoints updated atomically with transaction insert
+    else Reward booking (bookingType=Reward) — no points accrued
+        Note over CustomerMS: Reward bookings do not earn points — event acknowledged, no accrual
+    end
 ```
 
-*Ref: customer loyalty - async points accrual triggered by OrderConfirmed event on booking confirmation*
+*Ref: customer loyalty - async points accrual triggered by OrderConfirmed event; revenue bookings earn route miles adjusted by cabin class and tier multipliers; reward bookings are excluded from accrual*
 
 ---
 

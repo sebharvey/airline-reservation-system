@@ -222,7 +222,9 @@ export function getMockFlightOffers(
     ...o,
     offerId: `offer-${origin}-${destination}-${i + 1}-${Date.now()}`,
     inventoryId: `inv-${o.flightNumber}-${departDate.slice(0, 10)}-${o.cabinCode}`,
-    totalPrice: o.totalPrice * paxCount
+    totalPrice: o.totalPrice * paxCount,
+    pointsPrice: Math.round(o.unitPrice * 10) * paxCount,
+    pointsTaxes: o.taxes * paxCount
   }));
 }
 

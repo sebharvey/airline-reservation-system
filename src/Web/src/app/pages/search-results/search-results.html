@@ -14,6 +14,7 @@
       <span class="pill">{{ formatDate(departDate()) }}</span>
       <span class="pill" *ngIf="isReturn() && returnDate()">Return: {{ formatDate(returnDate()) }}</span>
       <span class="pill">{{ totalPassengers() }} passenger{{ totalPassengers() !== 1 ? 's' : '' }}</span>
+      <span class="pill reward-pill" *ngIf="isRewardBooking()">Reward Booking</span>
     </div>
   </div>
 
@@ -79,8 +80,14 @@
                 <button class="fare-btn"
                         [class.fare-btn-selected]="isCellSelectedOutbound(row, cabin)"
                         (click)="openFarePopup(offers, false)">
-                  <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
-                  <span class="fare-per">per person</span>
+                  <ng-container *ngIf="!isRewardBooking()">
+                    <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
+                    <span class="fare-per">per person</span>
+                  </ng-container>
+                  <ng-container *ngIf="isRewardBooking()">
+                    <span class="fare-price points-price">{{ getLowestPoints(offers) | number:'1.0-0' }} pts</span>
+                    <span class="fare-per">+ {{ offers[0].currency }}&nbsp;{{ getLowestPointsTaxes(offers) | number:'1.2-2' }} taxes</span>
+                  </ng-container>
                   <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
                   <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
                 </button>
@@ -102,7 +109,9 @@
       <div class="selected-banner-detail">
         <strong>{{ ob.flightNumber }}</strong>
         {{ formatTime(ob.departureDateTime) }} {{ ob.origin }} &#8594; {{ formatTime(ob.arrivalDateTime) }} {{ ob.destination }}
-        &nbsp;&middot;&nbsp; {{ ob.cabinName }} &nbsp;&middot;&nbsp; {{ ob.currency }} {{ ob.totalPrice | number:'1.2-2' }}
+        &nbsp;&middot;&nbsp; {{ ob.cabinName }} &nbsp;&middot;&nbsp;
+        <ng-container *ngIf="!isRewardBooking()">{{ ob.currency }} {{ ob.totalPrice | number:'1.2-2' }}</ng-container>
+        <ng-container *ngIf="isRewardBooking()">{{ ob.pointsPrice | number:'1.0-0' }} pts + {{ ob.currency }} {{ ob.pointsTaxes | number:'1.2-2' }} taxes</ng-container>
       </div>
       <button class="btn-change" (click)="showReturnSearch.set(false); selectedOutbound.set(null)">Change</button>
     </div>
@@ -167,8 +176,14 @@
                 <button class="fare-btn"
                         [class.fare-btn-selected]="isCellSelectedReturn(row, cabin)"
                         (click)="openFarePopup(offers, true)">
-                  <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
-                  <span class="fare-per">per person</span>
+                  <ng-container *ngIf="!isRewardBooking()">
+                    <span class="fare-price">{{ offers[0].currency }}&nbsp;{{ getLowestPrice(offers) | number:'1.2-2' }}</span>
+                    <span class="fare-per">per person</span>
+                  </ng-container>
+                  <ng-container *ngIf="isRewardBooking()">
+                    <span class="fare-price points-price">{{ getLowestPoints(offers) | number:'1.0-0' }} pts</span>
+                    <span class="fare-per">+ {{ offers[0].currency }}&nbsp;{{ getLowestPointsTaxes(offers) | number:'1.2-2' }} taxes</span>
+                  </ng-container>
                   <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
                   <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
                 </button>
@@ -203,9 +218,13 @@
                [class.fare-option-highlight]="i === 0">
             <div class="fare-option-tag" *ngIf="i === 0">Best price</div>
             <div class="fare-option-name">{{ offer.fareFamily }}</div>
-            <div class="fare-option-price">
+            <div class="fare-option-price" *ngIf="!isRewardBooking()">
               {{ offer.currency }}&nbsp;{{ offer.totalPrice | number:'1.2-2' }}
               <span class="fare-option-per">per person</span>
+            </div>
+            <div class="fare-option-price points-price" *ngIf="isRewardBooking()">
+              {{ offer.pointsPrice | number:'1.0-0' }} pts
+              <span class="fare-option-per">+ {{ offer.currency }}&nbsp;{{ offer.pointsTaxes | number:'1.2-2' }} taxes</span>
             </div>
             <div class="fare-option-features">
               <div class="feature-row" [class.feature-yes]="offer.isRefundable" [class.feature-no]="!offer.isRefundable">

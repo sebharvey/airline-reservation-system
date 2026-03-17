@@ -14,6 +14,7 @@ export const routes: Routes = [
   {
     path: 'booking',
     children: [
+      { path: 'reward-login', loadComponent: () => import('./pages/booking/reward-login/reward-login').then(m => m.RewardLoginComponent) },
       { path: 'passengers', loadComponent: () => import('./pages/booking/passengers/passengers').then(m => m.PassengersComponent) },
       { path: 'seats', loadComponent: () => import('./pages/booking/seats/seats').then(m => m.SeatsComponent) },
       { path: 'bags', loadComponent: () => import('./pages/booking/bags/bags').then(m => m.BagsComponent) },

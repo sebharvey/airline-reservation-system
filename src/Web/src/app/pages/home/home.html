@@ -9,6 +9,24 @@
   <div class="search-panel">
     <h2 class="search-title">Find Your Flight</h2>
 
+    <!-- Booking Type Toggle -->
+    <div class="booking-type-toggle">
+      <button
+        type="button"
+        class="booking-type-btn"
+        [class.active]="bookingType === 'Revenue'"
+        (click)="bookingType = 'Revenue'">
+        Book with Money
+      </button>
+      <button
+        type="button"
+        class="booking-type-btn reward"
+        [class.active]="bookingType === 'Reward'"
+        (click)="bookingType = 'Reward'">
+        Book with Points
+      </button>
+    </div>
+
     <!-- Trip Type Toggle -->
     <div class="trip-type-toggle">
       <button
