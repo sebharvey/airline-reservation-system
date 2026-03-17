@@ -29,8 +29,17 @@ GO
 --                                     "isChangeable": false,
 --                                     "seatsRemaining": 4
 --                                   }
---   CreatedAt     DATETIME2(7)      UTC; set once on insert
---   UpdatedAt     DATETIME2(7)      UTC; updated on every write
+--   CreatedAt     DATETIME2(7)      UTC; set once on insert by the DF_Offers_CreatedAt default constraint.
+--                                   Read-only — never written by the application layer.
+--   UpdatedAt     DATETIME2(7)      UTC; refreshed on every row modification by the
+--                                   TR_Offers_UpdatedAt AFTER UPDATE trigger.
+--                                   Read-only — never written by the application layer.
+--
+-- IMPORTANT: CreatedAt and UpdatedAt are database-generated fields.
+--   • The application must NOT pass these values on INSERT or UPDATE.
+--   • They are silently ignored if included in a request body at the API layer.
+--   • After any write operation the repository must re-read the row so that the
+--     trigger-stamped values are returned to the caller.
 -- =============================================================================
 
 CREATE TABLE [offer].[Offers]
@@ -80,4 +89,33 @@ GO
 CREATE NONCLUSTERED INDEX [IX_Offers_DepartureAt]
     ON [offer].[Offers] ([DepartureAt] ASC)
     INCLUDE ([Status], [FlightNumber]);
+GO
+
+-- =============================================================================
+-- Trigger: TR_Offers_UpdatedAt
+--
+-- Automatically refreshes the UpdatedAt column to the current UTC time on every
+-- row modification. This is the sole mechanism that writes UpdatedAt — the
+-- application layer must never set this column directly.
+--
+-- CreatedAt is handled by the DF_Offers_CreatedAt DEFAULT constraint (set once on
+-- INSERT via SYSUTCDATETIME()) and is never touched by this trigger.
+-- =============================================================================
+
+CREATE OR ALTER TRIGGER [offer].[TR_Offers_UpdatedAt]
+ON [offer].[Offers]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Only proceed when rows were actually modified (guard against no-op updates)
+    IF @@ROWCOUNT = 0
+        RETURN;
+
+    UPDATE [offer].[Offers]
+    SET    [UpdatedAt] = SYSUTCDATETIME()
+    FROM   [offer].[Offers] o
+    INNER JOIN inserted i ON o.[Id] = i.[Id];
+END;
 GO

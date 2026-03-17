@@ -18,8 +18,21 @@ public sealed class TemplateItem
     private TemplateItem() { }
 
     /// <summary>
-    /// Factory method for creating a brand-new item. Assigns a new Id and timestamps.
+    /// Factory method for creating a brand-new item. Assigns a new Id and provisional timestamps.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CreatedAt</c> and <c>UpdatedAt</c> are set here for in-memory consistency only.
+    /// The SQL database is the authoritative source for both values:
+    /// <list type="bullet">
+    ///   <item><c>CreatedAt</c> — stamped once on INSERT by the <c>DF_Items_CreatedAt</c> DEFAULT constraint.</item>
+    ///   <item><c>UpdatedAt</c> — refreshed on every UPDATE by the <c>TR_Items_UpdatedAt</c> AFTER UPDATE trigger.</item>
+    /// </list>
+    /// The repository must re-read the persisted row after any write so that the caller
+    /// always receives the trigger-stamped values, not the provisional values set here.
+    /// These fields must never be passed in API request bodies; any value sent by a caller is silently ignored.
+    /// </para>
+    /// </remarks>
     public static TemplateItem Create(string name, TemplateItemMetadata? metadata = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
