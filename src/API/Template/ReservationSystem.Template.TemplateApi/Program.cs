@@ -13,6 +13,7 @@ using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using ReservationSystem.Template.TemplateApi.Infrastructure.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
+using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
@@ -49,6 +50,11 @@ var host = new HostBuilder()
             client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         });
+
+        // ── Health check ───────────────────────────────────────────────────────
+        services.AddHealthCheck(
+            $"{nameof(SqlTemplateItemRepository)}.{nameof(ITemplateItemRepository.GetAllAsync)}",
+            sp => ct => sp.GetRequiredService<ITemplateItemRepository>().GetAllAsync(ct));
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetTemplateItemHandler>();
