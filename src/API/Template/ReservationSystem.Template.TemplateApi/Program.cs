@@ -9,10 +9,8 @@ using ReservationSystem.Template.TemplateApi.Application.DeleteTemplateItem;
 using ReservationSystem.Template.TemplateApi.Application.GetAllTemplateItems;
 using ReservationSystem.Template.TemplateApi.Application.GetExchangeRate;
 using ReservationSystem.Template.TemplateApi.Application.GetTemplateItem;
-using ReservationSystem.Template.TemplateApi.Application.HealthCheck;
 using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
-using ReservationSystem.Template.TemplateApi.Domain.Services;
 using ReservationSystem.Template.TemplateApi.Infrastructure.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
@@ -51,9 +49,6 @@ var host = new HostBuilder()
             client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         });
-
-        // ── Health check ───────────────────────────────────────────────────────
-        services.AddScoped<IHealthCheckService, HealthCheckService>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetTemplateItemHandler>();

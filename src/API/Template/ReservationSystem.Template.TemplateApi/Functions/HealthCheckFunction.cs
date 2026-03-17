@@ -2,7 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Json;
-using ReservationSystem.Template.TemplateApi.Domain.Services;
+using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using System.Net;
 using System.Text.Json;
 
@@ -10,14 +10,14 @@ namespace ReservationSystem.Template.TemplateApi.Functions;
 
 public class HealthCheckFunction
 {
-    private readonly IHealthCheckService _healthCheckService;
+    private readonly ITemplateItemRepository _repository;
     private readonly ILogger<HealthCheckFunction> _logger;
 
     public HealthCheckFunction(
-        IHealthCheckService healthCheckService,
+        ITemplateItemRepository repository,
         ILogger<HealthCheckFunction> logger)
     {
-        _healthCheckService = healthCheckService;
+        _repository = repository;
         _logger = logger;
     }
 
@@ -29,23 +29,22 @@ public class HealthCheckFunction
 
         try
         {
-            var serviceHealthy = await _healthCheckService.IsHealthyAsync(req.FunctionContext.CancellationToken);
+            await _repository.GetAllAsync(req.FunctionContext.CancellationToken);
 
             var healthStatus = new
             {
-                status = serviceHealthy ? "healthy" : "unhealthy",
+                status = "healthy",
                 timestamp = DateTime.UtcNow,
                 service = "TemplateService",
                 version = "1.0.0",
                 checks = new
                 {
-                    serviceCheck = serviceHealthy ? "ok" : "error",
+                    serviceCheck = "ok",
                     fileSystem = "ok"
                 }
             };
 
-            var statusCode = serviceHealthy ? HttpStatusCode.OK : HttpStatusCode.ServiceUnavailable;
-            var response = req.CreateResponse(statusCode);
+            var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "application/json");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
 
