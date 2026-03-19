@@ -56,6 +56,7 @@ The platform covers the full airline retailing journey: search, offer, basket, p
 | `documentation/principles/security-principals.md` | Authentication, PCI DSS scoping, credential handling. |
 | `documentation/principles/data-principals.md` | Data ownership, formats (ISO 8601, IATA codes, decimal money), retention. |
 | `documentation/principles/infrastructure-principals.md` | Azure Functions, hosting, deployment, and scaling constraints. |
+| `documentation/principles/coding-standards.md` | C# coding conventions, naming, class design, async patterns, logging, SQL, and testing standards. |
 
 ---
 
