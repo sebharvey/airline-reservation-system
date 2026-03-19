@@ -1,3 +1,4 @@
+/* ── Mobile-first shell ── */
 .shell {
   min-height: 100vh;
   display: flex;
@@ -16,31 +17,7 @@
   animation: slideIn 0.35s ease;
 }
 
-/* Desktop layout */
-@media (min-width: 900px) {
-  .shell {
-    padding: 32px 40px 60px;
-    align-items: flex-start;
-  }
-
-  .card {
-    max-width: 1100px;
-  }
-
-  .content {
-    padding: 36px 40px;
-  }
-
-  .nav {
-    padding: 18px 36px;
-  }
-
-  .footer {
-    padding: 18px 36px;
-  }
-}
-
-/* Nav */
+/* ── Nav ── */
 .nav {
   display: flex;
   align-items: center;
@@ -136,7 +113,7 @@
   transform: translateX(16px);
 }
 
-/* Content */
+/* ── Content ── */
 .content {
   padding: 28px 24px;
   min-height: 420px;
@@ -144,7 +121,7 @@
   transition: background-color 0.3s ease;
 }
 
-/* Footer */
+/* ── Footer ── */
 .footer {
   padding: 16px 24px;
   border-top: 1px solid var(--border);
@@ -157,7 +134,7 @@
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
-/* Shared fade-in for pages */
+/* ── Shared fade-in for pages ── */
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -167,7 +144,7 @@
   animation: slideIn 0.3s ease;
 }
 
-/* Mobile */
+/* ── Mobile ── */
 @media (max-width: 480px) {
   .shell {
     padding: 0;
@@ -205,5 +182,113 @@
 
   .content {
     padding: 22px 18px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   DESKTOP — full website layout (≥ 901px)
+   Mobile remains completely unchanged above
+   ═══════════════════════════════════════════════ */
+@media (min-width: 901px) {
+
+  /* Shell becomes a plain page flow, no centering */
+  .shell {
+    display: block;
+    padding: 0;
+    min-height: 100vh;
+    align-items: initial;
+    justify-content: initial;
+    background: var(--bg-light);
+  }
+
+  /* Card dissolves — no more rounded box, no shadow */
+  .card {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    background: transparent;
+    animation: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── Full-width sticky header ── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0;
+    padding: 0 clamp(40px, 5vw, 80px);
+    height: 68px;
+    align-items: center;
+    background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 32px rgba(102, 126, 234, 0.3);
+  }
+
+  .nav-brand {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-right: 32px;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    flex: 1;
+    gap: 2px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .nav-links a {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .nav-loyalty {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 8px;
+  }
+
+  /* Theme toggle sits at far right */
+  .theme-toggle {
+    margin-left: 24px;
+    flex-shrink: 0;
+  }
+
+  /* ── Content: centered container ── */
+  .content {
+    flex: 1;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px clamp(40px, 5vw, 80px);
+    background: transparent;
+    min-height: initial;
+  }
+
+  /* ── Full-width footer ── */
+  .footer {
+    width: 100%;
+    padding: 20px clamp(40px, 5vw, 80px);
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    font-size: 0.83rem;
   }
 }
