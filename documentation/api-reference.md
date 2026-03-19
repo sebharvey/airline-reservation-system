@@ -77,7 +77,8 @@
 | `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold against the customer's balance for a reward booking; returns a `RedemptionReference`; verifies sufficient balance before placing hold |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a previously authorised points redemption; deducts points from balance and appends a `Redeem` transaction to the loyalty ledger |
-| `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback (e.g. ticketing failure after points authorisation) |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed; appends a `Reinstate` transaction to the loyalty ledger; used by Retail API on voluntary cancellation (reward bookings) and by Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
 
@@ -96,7 +97,18 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/schedules` | Create a flight schedule; persists the schedule definition and generates `FlightInventory` and `Fare` records in the Offer domain for every operating date within the `ValidFrom`–`ValidTo` window that matches the `daysOfWeek` pattern; returns `scheduleId` and the count of flights created |
+| `POST` | `/v1/schedules` | Create a flight schedule; orchestrates: (1) persists the schedule definition via Schedule MS, (2) generates `FlightInventory` and `Fare` records in the Offer domain via Offer MS for every operating date within the `ValidFrom`–`ValidTo` window that matches the `daysOfWeek` pattern, (3) updates the `FlightsCreated` count on the schedule record; returns `scheduleId` and the count of flights created |
+
+---
+
+## Schedule Microservice
+
+The Schedule microservice is the internal persistence layer for flight schedule definitions. It is called by the Operations API during schedule creation to store the schedule record and to update the `FlightsCreated` count after the Operations API has generated inventory in the Offer domain.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/schedules` | Persist a validated flight schedule definition (`FlightSchedule`, `ScheduleCabin`, `ScheduleFare` records); enumerate operating dates in the `ValidFrom`–`ValidTo` window matching the `DaysOfWeek` bitmask; returns `scheduleId` and the list of operating dates |
+| `PATCH` | `/v1/schedules/{scheduleId}` | Update the `FlightsCreated` count on a schedule record after the Operations API has completed bulk `FlightInventory` and `Fare` generation in the Offer domain |
 
 ---
 
@@ -112,7 +124,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Schedule MS once per fare per cabin per operating date during schedule generation; returns `fareId` |
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
-| `GET` | `/v1/flights/{flightId}/seat-offers` | Retrieve priced seat offers for a flight — consults `seat.SeatPricing` for position-based prices and `offer.FlightInventory` for real-time availability; returns one `SeatOfferId` and price per selectable, available seat; used by Retail API to overlay pricing and availability on the seatmap layout returned by the Seat MS |
+| `GET` | `/v1/flights/{flightId}/seat-offers` | Retrieve seat availability status for a flight — returns one `SeatOfferId` and availability status (`available`, `held`, or `sold`) per selectable seat based on `offer.FlightInventory`; does **not** return pricing (pricing is served exclusively by the Seat MS via `GET /v1/seat-pricing`); used by Retail API to overlay availability on the seatmap layout; Retail API merges layout, pricing, and availability before returning to the channel |
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight (available, held, sold) without pricing; used for internal status checks and operational queries where offer pricing is not required |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
@@ -178,7 +190,8 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability; both are served by the Offer MS) |
+| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
+| `GET` | `/v1/seat-pricing?aircraftType={aircraftType}` | Retrieve fleet-wide seat pricing rules filtered by aircraft type's cabin codes; returns `cabinCode`, `seatPosition`, and `price` per active rule from `seat.SeatPricing`; used by Retail API to overlay pricing on the seatmap layout alongside availability data from the Offer MS |
 
 ---
 
@@ -187,6 +200,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/bags/offers` | Retrieve the free bag policy and priced bag offers for a flight and cabin (`?inventoryId=&cabinCode=`) |
+| `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a stored bag offer by ID; validates `IsConsumed = 0` and `ExpiresAt > now` before returning; sets `IsConsumed = 1` atomically on retrieval to prevent reuse of the same offer across multiple purchases |
 
 ---
 

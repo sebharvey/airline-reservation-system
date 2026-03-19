@@ -810,6 +810,10 @@ sequenceDiagram
         RetailAPI-->>Web: 200 OK — free bag allowance and additional bag offers per segment
         Traveller->>Web: Select additional bag(s) per PAX per segment (if desired)
         Web->>RetailAPI: PUT /v1/basket/{basketId}/bags (bagOfferIds per PAX per segment)
+        loop For each BagOfferId
+            RetailAPI->>BagMS: GET /v1/bags/offers/{bagOfferId}
+            BagMS-->>RetailAPI: 200 OK — validated (IsConsumed=0, unexpired, price locked)
+        end
         RetailAPI->>OrderMS: PUT /v1/basket/{basketId}/bags (bagOfferIds, PAX assignments)
         OrderMS-->>RetailAPI: 200 OK — basket updated (bag items added, revised total)
         RetailAPI-->>Web: 200 OK — bags added to basket, revised total
@@ -1839,6 +1843,10 @@ sequenceDiagram
         RetailAPI-->>Web: Free allowance and additional bag options
         Traveller->>Web: Select additional bag(s) if required and provide payment details
         Web->>RetailAPI: POST /v1/orders/{bookingRef}/bags (bagOfferIds per PAX per segment, paymentDetails)
+        loop For each BagOfferId
+            RetailAPI->>BagMS: GET /v1/bags/offers/{bagOfferId}
+            BagMS-->>RetailAPI: 200 OK — validated (IsConsumed=0, unexpired, price locked)
+        end
         RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
         PaymentMS-->>RetailAPI: 200 OK — paymentReference
         RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
@@ -2624,6 +2632,10 @@ sequenceDiagram
 
     Note over RetailAPI, PaymentMS: Take payment for bag ancillary
     Web->>RetailAPI: POST /v1/orders/{bookingRef}/bags (bagOfferIds per PAX per segment, paymentDetails)
+    loop For each BagOfferId
+        RetailAPI->>BagMS: GET /v1/bags/offers/{bagOfferId}
+        BagMS-->>RetailAPI: 200 OK — validated (IsConsumed=0, unexpired, price locked)
+    end
     RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
     PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference)
     RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
