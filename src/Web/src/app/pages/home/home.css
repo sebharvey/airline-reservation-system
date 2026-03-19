@@ -493,6 +493,7 @@ h1 {
     margin-bottom: 20px;
     display: block;
     filter: drop-shadow(0 4px 16px rgba(0,0,0,0.2));
+    color: #ffffff;
   }
 
   h1 {
@@ -517,8 +518,6 @@ h1 {
   /* ── Search panel: float up from below hero ── */
   .search-panel {
     width: 100%;
-    max-width: 820px;
-    align-self: center;
     margin-top: -40px;     /* pull up to overlap hero bottom edge */
     margin-bottom: 48px;
     position: relative;
@@ -529,6 +528,7 @@ h1 {
     box-shadow: 0 8px 48px rgba(102, 126, 234, 0.18), 0 2px 8px rgba(0,0,0,0.06);
     padding: 32px 36px 36px;
     flex: none;
+    box-sizing: border-box;
   }
 
   .search-title {
