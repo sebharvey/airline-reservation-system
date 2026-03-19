@@ -18,7 +18,10 @@ export class App {
   isBoardingPass = toSignal(
     this.#router.events.pipe(
       filter(e => e instanceof NavigationEnd),
-      map(() => this.#router.url.startsWith('/check-in/boarding-pass')),
+      map(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return this.#router.url.startsWith('/check-in/boarding-pass');
+      }),
       startWith(this.#router.url.startsWith('/check-in/boarding-pass'))
     ),
     { initialValue: false }
