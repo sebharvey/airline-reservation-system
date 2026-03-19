@@ -76,6 +76,7 @@ html.dark body {
   body {
     background: var(--bg-light);
     font-size: 16px;
+    overflow-x: hidden; /* prevent horizontal scroll from full-bleed hero */
   }
 
   html.dark body {

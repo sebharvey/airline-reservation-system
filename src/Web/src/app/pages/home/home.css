@@ -466,9 +466,9 @@ h1 {
 
   /* ── Hero: full-bleed gradient banner ── */
   .hero {
-    /* Break out of the .content max-width to go edge-to-edge */
-    width: calc(100% + 2 * clamp(40px, 5vw, 80px));
-    margin-left: calc(-1 * clamp(40px, 5vw, 80px));
+    /* True full-viewport-width breakout using margin trick */
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
     margin-top: calc(-1 * 56px);            /* cancel content top padding */
     padding: 96px clamp(40px, 5vw, 80px) 80px;
     background: var(--hero-gradient);
