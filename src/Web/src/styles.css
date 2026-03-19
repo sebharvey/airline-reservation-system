@@ -7,6 +7,7 @@
 :root {
   --grad-start: #667eea;
   --grad-end: #764ba2;
+  --hero-gradient: linear-gradient(135deg, #667eea 0%, #5a3eab 50%, #764ba2 100%);
   --white: #ffffff;
   --bg-light: #f8f9fa;
   --border: #e0e0e0;
@@ -23,6 +24,7 @@
 
 /* ── Dark mode overrides ── */
 html.dark {
+  --hero-gradient: linear-gradient(135deg, #1a1f4a 0%, #2b1e5a 50%, #2d1b4e 100%);
   --white: #1e1e2e;
   --bg-light: #27273a;
   --border: #3a3a50;
@@ -67,6 +69,19 @@ html, body {
 /* Dark body gradient */
 html.dark body {
   background: linear-gradient(135deg, #1a1f4a 0%, #2d1b4e 100%);
+}
+
+/* Desktop: switch to clean page background instead of gradient */
+@media (min-width: 901px) {
+  body {
+    background: var(--bg-light);
+    font-size: 16px;
+    overflow-x: hidden; /* prevent horizontal scroll from full-bleed hero */
+  }
+
+  html.dark body {
+    background: var(--bg-light);
+  }
 }
 
 /* ── Ensure inputs always use theme colors (light and dark) ── */
