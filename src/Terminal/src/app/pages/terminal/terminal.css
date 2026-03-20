@@ -315,7 +315,9 @@
    ═══════════════════════════════════════ */
 @media (max-width: 900px) {
   .terminal-wrapper {
-    height: calc(100vh - var(--topbar-height));
+    /* Use small viewport height so the input row stays visible when mobile
+       browser chrome (address bar, nav bar) is present */
+    height: calc(100svh - var(--topbar-height));
     border-radius: 0;
     border-left: none;
     border-right: none;

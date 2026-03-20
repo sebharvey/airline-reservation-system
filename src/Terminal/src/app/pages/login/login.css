@@ -7,7 +7,8 @@
   background: linear-gradient(135deg, var(--grad-start) 0%, #5a3eab 50%, var(--grad-end) 100%);
   padding: 24px 16px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Background glow effects */
@@ -217,4 +218,19 @@
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(20px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 900px) {
+  .login-shell {
+    min-height: 100svh; /* small viewport height avoids mobile browser chrome overlap */
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: max(40px, env(safe-area-inset-top, 0px) + 24px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  .login-card {
+    margin: 0 auto;
+  }
 }
