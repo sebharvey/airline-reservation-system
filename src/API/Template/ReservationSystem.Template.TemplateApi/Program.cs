@@ -19,6 +19,7 @@ using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using ReservationSystem.Template.TemplateApi.Infrastructure.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Template.TemplateApi.Swagger;
