@@ -2103,6 +2103,8 @@ When the FOS notifies the Disruption API that a flight has been cancelled, the A
 5. The `delivery.FlightManifest` records for the cancelled flight are removed and new manifest entries are created for the replacement flight.
 6. Passengers are notified of their new itinerary.
 
+// todo: also include the eventuality that if a customer cannot be reaccomodated onto a new flight (let's say they canont be put on a new flight within 72hrs), they will be removed from the flights altother and a refund issued.  In this case, the customer would need to rebook new flights.
+
 > **Future consideration — missed connections resulting from cancellation rebooking:** When a passenger is rebooked onto a connecting itinerary (because no viable direct flight is available), there is a risk that a disruption to either leg of that connecting journey could result in a missed connection. Additionally, where minimum connection times at the transit airport are tight, the system must validate that the layover is operationally feasible. Detection and handling of these scenarios requires additional logic — similar in nature to the delay/missed-connection case noted above — and must be addressed in a future design phase before widespread use of connecting rebooking in an IROPS context.
 
 ```mermaid
