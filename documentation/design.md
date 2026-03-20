@@ -1068,10 +1068,12 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 | ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | BasketData | NVARCHAR(MAX) | No | | | JSON document containing the full basket state (see example below) |
 
 > **Indexes:** `IX_Basket_Status_Expiry` on `(BasketStatus, ExpiresAt)` WHERE `BasketStatus = 'Active'` — used by background expiry job. `IX_Basket_TicketingTimeLimit` on `(TicketingTimeLimit)` WHERE `BasketStatus = 'Active'` — used to flag baskets approaching TTL.
 > **Constraints:** `CHK_BasketData` — `ISJSON(BasketData) = 1`; `BasketData` must be a valid JSON document.
+> **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 > **Basket lifecycle:** A basket is hard-deleted immediately when an order is confirmed. Expired and abandoned baskets are retained for 7 days for diagnostics before being purged.
 
 **Example `BasketData` JSON document**
@@ -1247,11 +1249,13 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | TotalAmount | DECIMAL(10,2) | Yes | | | Total order value including all order items; null until confirmed |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
 
 > **Indexes:** `IX_Order_BookingReference` (unique) on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
 > **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
 > **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
+> **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 
 **Example `OrderData` JSON document**
 
@@ -1451,6 +1455,59 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
   ]
 }
 ```
+
+-----
+
+### Optimistic Concurrency Control
+
+Booking (`order.Order`, `order.Basket`) and ticket (`delivery.FlightManifest`) records implement **Optimistic Concurrency Control (OCC)** using an integer `Version` column. This prevents lost updates when concurrent requests (e.g. a passenger updating seat selection while an agent modifies SSRs) attempt to modify the same record simultaneously.
+
+#### Mechanism
+
+- Each record is created with `Version = 1`.
+- Every mutating operation (UPDATE) must supply the caller's known version and include it in the `WHERE` clause:
+  ```sql
+  UPDATE order.[Order]
+  SET    OrderStatus = @newStatus,
+         OrderData   = @newData,
+         UpdatedAt   = SYSUTCDATETIME(),
+         Version     = Version + 1
+  WHERE  OrderId = @orderId
+  AND    Version  = @expectedVersion;
+  ```
+- If the `UPDATE` affects **0 rows**, the record has been modified by another writer since it was read — the operation is rejected with a `409 Conflict` response.
+- The same pattern applies to `order.Basket` and `delivery.FlightManifest`.
+
+#### API Behaviour
+
+All mutating endpoints that operate on booking or ticket records accept a `version` field in the request body (or as a header `If-Match: <version>`). The current version is returned in every read response.
+
+| Scenario | HTTP Response |
+|---|---|
+| `version` matches the stored value — update succeeds | `200 OK` (or `204 No Content`) |
+| `version` is absent from the request | `400 Bad Request` — `version` is required |
+| `version` does not match the stored value | `409 Conflict` — `{"error": "version_conflict", "message": "The record has been modified by another request. Re-fetch and retry."}` |
+
+**Affected endpoints (non-exhaustive):**
+
+- `PATCH /v1/orders/{bookingRef}/passengers` — update passenger details
+- `PATCH /v1/orders/{bookingRef}/change` — voluntary flight change
+- `PATCH /v1/orders/{bookingRef}/cancel` — cancellation
+- `PATCH /v1/orders/{bookingRef}/seats` — seat assignment
+- `PATCH /v1/orders/{bookingRef}/bags` — bag addition
+- `PATCH /v1/orders/{bookingRef}/ssrs` — SSR update
+- `PATCH /v1/orders/{bookingRef}/segments` — segment time update (Disruption API)
+- `PATCH /v1/tickets/{eTicketNumber}/void` — e-ticket void
+- `POST /v1/tickets/reissue` — e-ticket reissuance
+- `PATCH /v1/manifest/{manifestId}` — flight manifest update
+
+#### Caller Responsibilities
+
+1. **Read before write:** Always `GET` the current record to obtain the latest `version` before issuing a mutation.
+2. **Include version on write:** Pass the retrieved `version` in every mutation request.
+3. **Handle 409 Conflict:** On receipt of `409 Conflict`, re-fetch the record and re-apply the intended change, then retry. Do not blindly overwrite — re-evaluate whether the change is still valid against the updated state.
+
+> **No distributed locks:** OCC avoids the need for pessimistic locking or distributed lock managers. Contention is expected to be low (most orders are modified by one actor at a time); the retry-on-conflict path is an exception, not the common path.
 
 -----
 
@@ -1941,10 +1998,12 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 | CheckedInAt | DATETIME2 | Yes | | | Null until check-in is completed |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
 > **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
 > **Seatmap validation:** The orchestration layer is responsible for validating the `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery microservice. The Delivery MS trusts the seat number provided by its caller. This validation responsibility applies to both initial writes (at booking confirmation) and updates (at seat changes) — the orchestration API (Retail API, Airport API, or Disruption API) must call `GET /v1/seatmap/{aircraftType}` on the Seat MS and confirm the seat number exists in the returned cabin layout before calling Delivery MS. If the seat is not present on the active seatmap, the orchestration layer must reject the request before it reaches the Delivery MS.
+> **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 
 ## Disruption API
 
