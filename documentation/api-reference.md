@@ -88,8 +88,8 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests |
-| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; takes flight off sale and rebooking all affected passengers |
+| `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests synchronously; returns `200 OK` when all records are updated |
+| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; **synchronously** closes flight inventory (Offer MS) and returns `202 Accepted`; per-passenger rebooking is processed **asynchronously** via Service Bus — each affected booking is published as an individual message and processed independently to prevent a single failure blocking the entire cohort; for the 72-hour no-rebooking window scenario, passengers are notified and bookings cancelled with full IROPS refund |
 
 ---
 
@@ -123,9 +123,8 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/flights` | Create a new flight inventory record for a specific operating date and cabin; called by the Schedule MS during schedule generation; initialises `SeatsAvailable = TotalSeats`, `SeatsHeld = 0`, `SeatsSold = 0`; returns `inventoryId` |
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Schedule MS once per fare per cabin per operating date during schedule generation; returns `fareId` |
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
-| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Order MS at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
-| `GET` | `/v1/flights/{flightId}/seat-offers` | Retrieve seat availability status for a flight — returns one `SeatOfferId` and availability status (`available`, `held`, or `sold`) per selectable seat based on `offer.FlightInventory`; does **not** return pricing (pricing is served exclusively by the Seat MS via `GET /v1/seat-pricing`); used by Retail API to overlay availability on the seatmap layout; Retail API merges layout, pricing, and availability before returning to the channel |
-| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight (available, held, sold) without pricing; used for internal status checks and operational queries where offer pricing is not required |
+| `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Retail API at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |
+| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight — returns one entry per selectable seat with `SeatOfferId` (deterministic) and availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory`; does **not** return pricing (pricing is owned by the Seat MS via `GET /v1/seat-offers?flightId=`); Retail API merges this availability data with the Seat MS offer response and the seatmap layout before returning to the channel |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
 | `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld; decrements SeatsAvailable) |
@@ -139,12 +138,13 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/basket` | Create a new basket |
+| `POST` | `/v1/basket` | Create a new basket; expiry is fixed at 60 minutes from creation |
+| `POST` | `/v1/basket/{basketId}/offers` | Add a validated stored-offer to a basket (called by Retail API after fetching and validating the offer from the Offer MS; validates `IsConsumed = 0` and `ExpiresAt > now`) |
 | `PUT` | `/v1/basket/{basketId}/passengers` | Update passenger details on a basket |
 | `PUT` | `/v1/basket/{basketId}/seats` | Update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; updates `TotalBagAmount` |
 | `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update SSR selections on a basket during the bookflow; no charge — basket total is unchanged |
-| `POST` | `/v1/orders` | Confirm a basket and create a permanent order record |
+| `POST` | `/v1/orders` | Confirm a basket and create a permanent order record; sets initial `OrderStatus = Confirmed` (or `OrderInit` for Contact Centre incremental booking flows) |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
 | `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |
 | `PATCH` | `/v1/orders/{bookingRef}/passengers` | Update passenger details on a confirmed order |
@@ -171,36 +171,62 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ## Delivery Microservice
 
+The Delivery microservice manages three distinct record types: **Tickets** (financial/accounting documents — the airline's equivalent of an e-ticket or EMD), **Manifest** (the operational passenger manifest used by ground handling and crew), and **Documents** (ancillary EMD-equivalent records for post-sale purchases such as seats and bags).
+
+### Tickets
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/tickets` | Issue e-tickets for all passengers and flight segments in a basket |
-| `PATCH` | `/v1/tickets/{eTicketNumber}/void` | Void an issued e-ticket (used on flight change, cancellation, or IROPS) |
-| `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change |
-| `POST` | `/v1/manifest` | Write flight manifest entries at booking confirmation or after rebooking |
+| `POST` | `/v1/tickets` | Issue e-tickets (`delivery.Ticket` records) for all passengers and flight segments in a basket; each ticket carries the full fare snapshot and triggers a `TicketIssued` accounting event |
+| `PATCH` | `/v1/tickets/{eTicketNumber}/void` | Void an issued e-ticket (used on flight change, cancellation, or IROPS); triggers a `TicketVoided` accounting event |
+| `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change; voids the original ticket and issues a replacement |
+
+### Manifest
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/manifest` | Write operational manifest entries (`delivery.Manifest` records) at booking confirmation or after rebooking |
 | `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
 | `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; used to record check-in status (OLCI) and to update SSR codes following a self-serve SSR change |
 | `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Disruption API for delays) |
 | `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
-| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking) |
+| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking and by DCS for check-in validation) |
+
+### Documents
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/documents` | Issue an ancillary document (`delivery.Document` record) for a post-sale ancillary purchase (e.g. seat selection or excess baggage); triggers a `DocumentIssued` accounting event; called by Retail API after successful ancillary payment settlement |
+| `PATCH` | `/v1/documents/{documentNumber}/void` | Void an ancillary document (used on voluntary cancellation or IROPS when ancillary charges are refunded); triggers a `DocumentVoided` accounting event |
+
+### Boarding Cards
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings for checked-in passengers |
 
 ---
 
 ## Seat Microservice
 
+The Seat microservice owns seat offer generation. `SeatOfferId` values are deterministic (derived from `flightId`, `seatNumber`, and a pricing-rule hash) — no offer storage is required. Seat MS generates priced seat offers on demand; pricing rules are stored in `seat.SeatPricing`.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
-| `GET` | `/v1/seat-pricing?aircraftType={aircraftType}` | Retrieve fleet-wide seat pricing rules filtered by aircraft type's cabin codes; returns `cabinCode`, `seatPosition`, and `price` per active rule from `seat.SeatPricing`; used by Retail API to overlay pricing on the seatmap layout alongside availability data from the Offer MS |
+| `GET` | `/v1/seat-offers?flightId={flightId}` | Generate and return priced seat offers for a specific flight; returns one `SeatOfferId` per selectable seat with current price and seat attributes; `SeatOfferId` is deterministic (stateless — no DB write required); used by Retail API to build the full seatmap response (layout + pricing + availability) for the channel |
+| `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve and validate a specific seat offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding a seat to a basket or confirming a seat purchase |
 
 ---
 
 ## Bag Microservice
 
+The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferId` values are deterministic (derived from `inventoryId`, `cabinCode`, `bagCount`, and a pricing-rule hash) — no offer storage is required. Bag MS generates priced bag offers on demand from `bag.BagPricing` rules.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/bags/offers` | Retrieve the free bag policy and priced bag offers for a flight and cabin (`?inventoryId=&cabinCode=`) |
-| `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a stored bag offer by ID; validates `IsConsumed = 0` and `ExpiresAt > now` before returning; sets `IsConsumed = 1` atomically on retrieval to prevent reuse of the same offer across multiple purchases |
+| `GET` | `/v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}` | Generate and return the free bag policy and priced bag offers for a flight and cabin; returns one `BagOfferId` per available bag tier; `BagOfferId` is deterministic (stateless — no DB write required) |
+| `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a bag offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding bags to a basket or confirming a bag purchase |
 
 ---
 
@@ -220,8 +246,8 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/accounts` | Create a new login account (called by Loyalty API during registration) |
-| `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback on Customer MS failure) |
+| `POST` | `/v1/accounts` | Create a new login account (called by Loyalty API during registration, after the Customer record is already created; accepts `customerId` to associate the identity with the existing customer) |
+| `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback — called by Loyalty API if the post-identity `PATCH` to link the `identityReference` on the Customer record fails) |
 | `POST` | `/v1/accounts/{userAccountId}/verify-email` | Mark an email address as verified |
 | `POST` | `/v1/accounts/{identityReference}/email/change-request` | Initiate an email change; generates verification token and sends link to new address |
 | `POST` | `/v1/email/verify` | Validate a change-request token; updates email and invalidates all active refresh tokens |
@@ -232,9 +258,10 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/customers` | Create a new loyalty account (called by Loyalty API during registration) |
+| `POST` | `/v1/customers` | Create a new loyalty account (called by Loyalty API as the **first** step of registration, before the Identity account is created; `identityReference` is initially `null` and linked in a subsequent `PATCH`) |
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile, tier status, and points balance |
-| `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language) |
+| `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language, `identityReference`); also used by Loyalty API during registration to link the `identityReference` returned from the Identity MS after account creation |
+| `DELETE` | `/v1/customers/{loyaltyNumber}` | Delete a customer record (used for registration rollback — called by Loyalty API if Identity account creation fails, or if the subsequent `PATCH` to link the `identityReference` fails) |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold for a reward booking; verifies `PointsBalance >= requestedPoints`, places hold, returns `RedemptionReference` |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a held points redemption; decrements `PointsBalance`, appends `Redeem` transaction to ledger |

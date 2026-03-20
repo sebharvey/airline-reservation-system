@@ -177,6 +177,48 @@ Follow `principles/integration-principals.md` for the full set of rules. Key poi
 
 ---
 
+---
+
+## Optimistic Concurrency Control
+
+Booking (`order.Order`, `order.Basket`) and ticket (`delivery.Ticket`) records implement **Optimistic Concurrency Control (OCC)** using an integer `Version` column. This prevents lost updates when concurrent requests (e.g. a passenger updating seat selection while an agent modifies SSRs) attempt to modify the same record simultaneously.
+
+### Mechanism
+
+- Each record is created with `Version = 1`.
+- Every mutating operation (UPDATE) must supply the caller's known version and include it in the `WHERE` clause:
+  ```sql
+  UPDATE order.[Order]
+  SET    OrderStatus = @newStatus,
+         OrderData   = @newData,
+         UpdatedAt   = SYSUTCDATETIME(),
+         Version     = Version + 1
+  WHERE  OrderId = @orderId
+  AND    Version  = @expectedVersion;
+  ```
+- If the `UPDATE` affects **0 rows**, the record has been modified by another writer since it was read — the operation is rejected with a `409 Conflict` response.
+- The same pattern applies to `order.Basket` and `delivery.Ticket`.
+
+### API Behaviour
+
+All mutating endpoints that operate on booking or ticket records accept a `version` field in the request body (or as a header `If-Match: <version>`). The current version is returned in every read response.
+
+| Scenario | HTTP Response |
+|---|---|
+| `version` matches the stored value — update succeeds | `200 OK` (or `204 No Content`) |
+| `version` is absent from the request | `400 Bad Request` — `version` is required |
+| `version` does not match the stored value | `409 Conflict` — `{"error": "version_conflict", "message": "The record has been modified by another request. Re-fetch and retry."}` |
+
+### Caller Responsibilities
+
+1. **Read before write:** Always `GET` the current record to obtain the latest `version` before issuing a mutation.
+2. **Include version on write:** Pass the retrieved `version` in every mutation request.
+3. **Handle 409 Conflict:** On receipt of `409 Conflict`, re-fetch the record and re-apply the intended change, then retry. Do not blindly overwrite — re-evaluate whether the change is still valid against the updated state.
+
+> **No distributed locks:** OCC avoids the need for pessimistic locking or distributed lock managers. Contention is expected to be low (most orders are modified by one actor at a time); the retry-on-conflict path is an exception, not the common path.
+
+---
+
 ## Cross-References
 
 - **Domain model** — `design.md`: the authoritative source for what each domain owns and what capabilities it provides.
