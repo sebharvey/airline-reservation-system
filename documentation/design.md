@@ -898,6 +898,8 @@ sequenceDiagram
     Web-->>Traveller: Display booking confirmation
 ```
 
+// todo: there is direct microservice to microservice integration happening here, which breaks the de-coupled principles.  The Retail API should orhcestrate any logic which requires two or more microservices to communciate.  In this case Order MS talks directly to Offer MS.  Order MS should return data back to Retail API and the retail API will look up the offer information from the Offer MS and then send it to the Order MS.
+
 *Ref: order bookflow - end-to-end revenue and reward booking flow covering flight selection, ancillary addition, payment (and points redemption for reward bookings), ticketing, and order confirmation*
 
 ### Reward Booking
