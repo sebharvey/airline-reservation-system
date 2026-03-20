@@ -2,6 +2,8 @@
 
 > **HTTP verb convention for Retail API vs microservice endpoints:** The Retail API is the channel-facing orchestration layer. Where the Retail API and an internal microservice share the same URL path (e.g. `/v1/orders/{bookingRef}/cancel`), the Retail API endpoint uses `POST` (initiating the orchestration flow) while the corresponding internal microservice endpoint uses `PATCH` (applying a partial state update). These are distinct endpoints on distinct services; the verb difference is intentional and consistent throughout.
 
+> **Microservice authentication:** All orchestration-to-microservice calls are authenticated using an Azure Function Host Key in the `x-functions-key` HTTP header. All microservices currently share the same key. See [Microservice Authentication — Host Keys](api.md#microservice-authentication--host-keys) in `api.md` for the full mechanism.
+
 ---
 
 ## Retail API

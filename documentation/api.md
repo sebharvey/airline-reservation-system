@@ -149,6 +149,36 @@ For orchestration APIs, paths are resource-action oriented (e.g. `POST v1/basket
 
 ---
 
+## Microservice Authentication — Host Keys
+
+All orchestration APIs authenticate to microservices using **Azure Function Host Keys**, passed in the `x-functions-key` HTTP header.
+
+> **Shared key (current):** All microservices share the same host key for now. A single key is stored in Azure Key Vault and retrieved by orchestration services at runtime via managed identity. Individual per-service keys will be introduced in a future release.
+
+### How it works
+
+| Step | Actor | Action |
+|------|-------|--------|
+| 1 | Azure (deployment) | Generates the Function Host Key when the Azure Function app is first deployed |
+| 2 | Operator | Stores the key in **Azure Key Vault** |
+| 3 | Orchestration API (runtime) | Retrieves the key from Key Vault via **managed identity** — no secrets in config or environment variables |
+| 4 | Orchestration API (request) | Passes the key in the `x-functions-key` HTTP header on every call to a microservice |
+| 5 | Azure Functions runtime | Validates the header and rejects requests with a missing or invalid key with `401 Unauthorized` |
+
+### Required headers for Orchestration → Microservice calls
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-functions-key` | Yes | Azure Function Host Key. Shared across all microservices (for now); stored in Azure Key Vault and retrieved at runtime via managed identity |
+| `X-Correlation-ID` | Yes | UUID generated at the channel boundary; propagated on every downstream call for distributed tracing and log correlation |
+| `Content-Type` | Yes (for request bodies) | Must be `application/json` |
+
+> **JWTs are not forwarded to microservices.** The orchestration layer validates the end-user JWT before forwarding the request. Microservices do not receive or validate Bearer tokens — their only authentication mechanism is the `x-functions-key` header.
+
+See individual API spec files under `documentation/api-specs/` for service-specific security details.
+
+---
+
 ## HTTP and API Conventions
 
 Follow `principles/integration-principals.md` for the full set of rules. Key points:
