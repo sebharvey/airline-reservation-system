@@ -2230,6 +2230,8 @@ The Seat microservice is the system of record for aircraft seatmap definitions a
 
 > **Cross-document note:** The `api-reference.md` Offer MS section describes `GET /v1/flights/{flightId}/seat-offers` as consulting `seat.SeatPricing` for prices. This is incorrect — it would constitute a boundary violation. The Offer MS returns availability status only (available, held, sold); pricing is served exclusively by the Seat MS via `GET /v1/seat-pricing`. The Retail API merges both. `api-reference.md` must be updated to match this design.
 
+// todo: clarification on the note above.  It was originally intented that the Offer MS would be responsible for all offers (including seats and bags), but in retrospect, I want the seats and bags MS's to handle storing the offers and returning them with offer Ids to the consumer (retail api) and that the Offer MS retatains accountability only for fares.  Given that seat and bag pricing is not volatile, we don't need to store these offers once generated, but you will need to add to this document the table schemas for offers being returned by both the Bags and Seat MS.  The offer IDs should be stored in the basket during bookflow and the Retail APi should recall the Seat and Bag MS with the offer ID to return the latest pricing information in another operation/resource on the microservice. 
+
 Seat prices are fleet-wide and position-based (not per flight):
 
 | Position | Price |
