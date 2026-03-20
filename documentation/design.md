@@ -390,6 +390,8 @@ The Schedule capability allows airline operations staff to define repeating flig
 
 #### `schedule.FlightSchedule`
 
+The former `schedule.ScheduleCabin` and `schedule.ScheduleFare` tables have been consolidated into `schedule.FlightSchedule`. Cabin and fare definitions are stored in a single `CabinFares` JSON column — they are always read and written together as a unit, and are never queried individually by the Schedule MS. Removing the two child tables eliminates two FK joins on every schedule read and simplifies the write path to a single `INSERT`.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | ScheduleId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
@@ -404,43 +406,89 @@ The Schedule capability allows airline operations staff to define repeating flig
 | ValidFrom | DATE | No | | | First operating date (inclusive) |
 | ValidTo | DATE | No | | | Last operating date (inclusive) |
 | FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
+| CabinFares | NVARCHAR(MAX) | No | | | JSON array of cabin and fare definitions (see example below) |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
+> **Constraints:** `CHK_CabinFares` — `ISJSON(CabinFares) = 1`.
 
-#### `schedule.ScheduleCabin`
+##### `CabinFares` JSON structure
 
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| ScheduleCabinId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ScheduleId | UNIQUEIDENTIFIER | No | | FK → `schedule.FlightSchedule(ScheduleId)` | |
-| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| TotalSeats | SMALLINT | No | | | Seat count for this cabin from the aircraft configuration |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+```json
+{
+  "cabins": [
+    {
+      "cabinCode": "J",
+      "totalSeats": 48,
+      "fares": [
+        {
+          "fareBasisCode": "JFLEXGB",
+          "fareFamily": "Business Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 1250.00,
+          "taxAmount": 182.50,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 125000,
+          "pointsTaxes": 182.50
+        },
+        {
+          "fareBasisCode": "JSAVERGB",
+          "fareFamily": "Business Saver",
+          "currencyCode": "GBP",
+          "baseFareAmount": 950.00,
+          "taxAmount": 182.50,
+          "isRefundable": false,
+          "isChangeable": true,
+          "changeFeeAmount": 150.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 95000,
+          "pointsTaxes": 182.50
+        }
+      ]
+    },
+    {
+      "cabinCode": "Y",
+      "totalSeats": 220,
+      "fares": [
+        {
+          "fareBasisCode": "YFLEXGB",
+          "fareFamily": "Economy Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 350.00,
+          "taxAmount": 97.25,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 35000,
+          "pointsTaxes": 97.25
+        },
+        {
+          "fareBasisCode": "YLOWUK",
+          "fareFamily": "Economy Light",
+          "currencyCode": "GBP",
+          "baseFareAmount": 149.00,
+          "taxAmount": 97.25,
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 149.00,
+          "pointsPrice": null,
+          "pointsTaxes": null
+        }
+      ]
+    }
+  ]
+}
+```
 
-#### `schedule.ScheduleFare`
-
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| ScheduleFareId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ScheduleCabinId | UNIQUEIDENTIFIER | No | | FK → `schedule.ScheduleCabin(ScheduleCabinId)` | |
-| FareBasisCode | VARCHAR(20) | No | | | e.g. `YLOWUK`, `JFLEXGB` |
-| FareFamily | VARCHAR(50) | Yes | | | e.g. `Economy Light`, `Business Flex` |
-| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
-| BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare excluding taxes |
-| TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
-| IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
-| IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
-| ChangeFeeAmount | DECIMAL(10,2) | Yes | `0.00` | | Fee charged on voluntary flight change; `0.00` for fully flexible fares |
-| CancellationFeeAmount | DECIMAL(10,2) | Yes | `0.00` | | Fee deducted from refund on voluntary cancellation; `0.00` for fully refundable fares |
-| PointsPrice | INT | Yes | | | Points required to redeem this fare as a reward booking; `NULL` if not available for reward redemption |
-| PointsTaxes | DECIMAL(10,2) | Yes | | | Cash taxes payable when this fare is redeemed using points; `NULL` if `PointsPrice` is `NULL` |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+> `cabinCode` values: `F` · `J` · `W` · `Y`. `totalSeats` is sourced from the aircraft configuration for that cabin. `pointsPrice` and `pointsTaxes` are `null` for revenue-only fares. `changeFeeAmount` and `cancellationFeeAmount` default to `0.00`; non-changeable fares use `0.00` for `changeFeeAmount` since the change is simply not permitted. The Schedule MS copies this JSON verbatim into the response; the Operations API then reads each cabin and fare entry to drive the per-date `offer.FlightInventory` and `offer.Fare` creation calls to the Offer MS.
 
 ### Create Schedule
 
@@ -456,7 +504,7 @@ sequenceDiagram
     OpsApp->>ScheduleAPI: POST /v1/schedules
 
     ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
-    ScheduleMS->>ScheduleMS: Persist FlightSchedule, ScheduleCabin, ScheduleFare records
+    ScheduleMS->>ScheduleMS: Persist single FlightSchedule record (CabinFares JSON contains all cabin and fare definitions)
     ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
     ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[], cabinFareDefinitions[]
 
