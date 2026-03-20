@@ -36,7 +36,10 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/ssr/options` | Retrieve the airline's supported SSR catalogue — SSR codes, labels, and category (Meal, Mobility, Accessibility) — served from Retail API configuration; accepts optional `cabinCode` and `flightNumbers` query parameters |
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `retail.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
+| `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); admin endpoint — not channel-facing |
+| `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; admin endpoint |
+| `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; admin endpoint |
 
 ### Flights & Seatmaps
 
@@ -211,11 +214,33 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 
 The Seat microservice owns seat offer generation. `SeatOfferId` values are deterministic (derived from `flightId`, `seatNumber`, and a pricing-rule hash) — no offer storage is required. Seat MS generates priced seat offers on demand; pricing rules are stored in `seat.SeatPricing`.
 
+**Offer / query endpoints (called by Retail API during the booking path)**
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
 | `GET` | `/v1/seat-offers?flightId={flightId}` | Generate and return priced seat offers for a specific flight; returns one `SeatOfferId` per selectable seat with current price and seat attributes; `SeatOfferId` is deterministic (stateless — no DB write required); used by Retail API to build the full seatmap response (layout + pricing + availability) for the channel |
 | `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve and validate a specific seat offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding a seat to a basket or confirming a seat purchase |
+
+**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/aircraft-types` | List all aircraft types |
+| `POST` | `/v1/aircraft-types` | Create a new aircraft type record |
+| `GET` | `/v1/aircraft-types/{aircraftTypeCode}` | Retrieve an aircraft type by code |
+| `PUT` | `/v1/aircraft-types/{aircraftTypeCode}` | Update an aircraft type record |
+| `DELETE` | `/v1/aircraft-types/{aircraftTypeCode}` | Delete an aircraft type (only permitted if no active seatmaps reference it) |
+| `GET` | `/v1/seatmaps` | List all seatmap definitions |
+| `POST` | `/v1/seatmaps` | Create a new seatmap definition for an aircraft type |
+| `GET` | `/v1/seatmaps/{seatmapId}` | Retrieve a seatmap definition by ID |
+| `PUT` | `/v1/seatmaps/{seatmapId}` | Replace the cabin layout of an existing seatmap (increments `Version`) |
+| `DELETE` | `/v1/seatmaps/{seatmapId}` | Delete a seatmap definition |
+| `GET` | `/v1/seat-pricing` | List all seat pricing rules |
+| `POST` | `/v1/seat-pricing` | Create a new seat pricing rule (`cabinCode`, `seatPosition`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/seat-pricing/{seatPricingId}` | Retrieve a seat pricing rule by ID |
+| `PUT` | `/v1/seat-pricing/{seatPricingId}` | Update a seat pricing rule |
+| `DELETE` | `/v1/seat-pricing/{seatPricingId}` | Delete a seat pricing rule |
 
 ---
 
@@ -223,10 +248,27 @@ The Seat microservice owns seat offer generation. `SeatOfferId` values are deter
 
 The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferId` values are deterministic (derived from `inventoryId`, `cabinCode`, `bagCount`, and a pricing-rule hash) — no offer storage is required. Bag MS generates priced bag offers on demand from `bag.BagPricing` rules.
 
+**Offer / query endpoints (called by Retail API during the booking path)**
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}` | Generate and return the free bag policy and priced bag offers for a flight and cabin; returns one `BagOfferId` per available bag tier; `BagOfferId` is deterministic (stateless — no DB write required) |
 | `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a bag offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding bags to a basket or confirming a bag purchase |
+
+**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bag-policies` | List all bag allowance policies |
+| `POST` | `/v1/bag-policies` | Create a new bag allowance policy (`cabinCode`, `freeBagsIncluded`, `maxWeightKgPerBag`) |
+| `GET` | `/v1/bag-policies/{policyId}` | Retrieve a bag policy by ID |
+| `PUT` | `/v1/bag-policies/{policyId}` | Update a bag allowance policy |
+| `DELETE` | `/v1/bag-policies/{policyId}` | Delete a bag allowance policy |
+| `GET` | `/v1/bag-pricing` | List all bag pricing rules |
+| `POST` | `/v1/bag-pricing` | Create a new bag pricing rule (`bagSequence`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/bag-pricing/{pricingId}` | Retrieve a bag pricing rule by ID |
+| `PUT` | `/v1/bag-pricing/{pricingId}` | Update a bag pricing rule |
+| `DELETE` | `/v1/bag-pricing/{pricingId}` | Delete a bag pricing rule |
 
 ---
 
@@ -266,3 +308,38 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold for a reward booking; verifies `PointsBalance >= requestedPoints`, places hold, returns `RedemptionReference` |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a held points redemption; decrements `PointsBalance`, appends `Redeem` transaction to ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a held points redemption; releases held points back to available balance |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change; appends a `Reinstate` transaction to the ledger |
+
+---
+
+## Airport API
+
+> **Scope:** Future release. The Azure Functions project is scaffolded in this release with `/health` and hello-world endpoints only. No business logic is implemented.
+
+The Airport API will serve the Airport App for non-OLCI check-in, gate management, seat assignment, and ground handling operations.
+
+---
+
+## Finance API
+
+> **Scope:** Future release. The Azure Functions project is scaffolded in this release with `/health` and hello-world endpoints only. No business logic is implemented.
+
+The Finance API will serve the Accounting System App, proxying read-only queries to the Accounting microservice for financial reporting (balance sheet, P&L views, audit trail).
+
+---
+
+## Accounting Microservice
+
+> **Scope:** Future release. The Accounting microservice Azure Functions project is scaffolded in this release with event subscription stubs only. No financial reporting endpoints are implemented; the Finance API has no callable endpoints at this stage.
+
+The Accounting microservice is a pure event consumer. It has no synchronous API surface. All input arrives via Azure Service Bus; it reacts to the following events:
+
+| Event | Publisher | Action |
+|-------|-----------|--------|
+| `OrderConfirmed` | Order MS | Record fare revenue (or points liability for reward bookings) |
+| `OrderChanged` | Order MS | Adjust revenue or points liability records |
+| `OrderCancelled` | Order MS | Record refund and reverse points liability if applicable |
+| `TicketIssued` | Delivery MS | Record ticket issuance for audit |
+| `TicketVoided` | Delivery MS | Record ticket void |
+| `DocumentIssued` | Delivery MS | Record ancillary (seat/bag) revenue |
+| `DocumentVoided` | Delivery MS | Reverse ancillary revenue record |

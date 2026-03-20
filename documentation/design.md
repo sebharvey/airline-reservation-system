@@ -335,8 +335,8 @@ Key components:
 - Orchestration APIs (these act as the APIs to connect the channels to the microservices)
   - Retail API (for web, app, NDC, kiosk, contact centre app, airport app)
   - Loyalty API (for web, app, contact centre)
-  - Airport API (for Airport App)
-  - Finance API (for accounting system app)
+  - Airport API (for Airport App) — **future scope; not implemented in the current release; the Azure Functions project will be scaffolded as an empty shell**
+  - Finance API (for accounting system app) — **future scope; not implemented in the current release; the Azure Functions project will be scaffolded as an empty shell**
   - Disruption API (receives disruption events from the FOS and orchestrates the response across the Offer, Order, and Delivery microservices)
   - Operations API (receives schedule definitions from the Ops Admin App; creates the schedule record and generates bulk flight inventory and fares in the Offer domain)
 - Microservices (and their data-bound databases)
@@ -715,7 +715,7 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | FareBasisCode | VARCHAR(20) | No | | | Revenue management fare basis code, e.g. `YLOWUK`, `JFLEXGB` |
 | FareFamily | VARCHAR(50) | Yes | | | Commercial product name, e.g. `Economy Light`, `Business Flex` |
 | CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| BookingClass | CHAR(1) | No | | | Revenue management booking class, e.g. `Y`, `B`, `J` |
+| BookingClass | CHAR(1) | No | | | Revenue management booking class, e.g. `Y`, `B`, `J`; when generating fares from a schedule, this value is defaulted from the `CabinCode` of the cabin being generated (`F` → `F`, `J` → `J`, `W` → `W`, `Y` → `Y`) |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
 | BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare, excluding taxes |
 | TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
@@ -780,7 +780,7 @@ The Order microservice manages the complete booking lifecycle — from basket cr
   - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment. For reward booking changes, includes `pointsAdjustment` (positive = additional points redeemed, negative = points reinstated) and updated `totalPointsAmount`.
   - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
-- An initial `OrderInit` status is supported for orders that are being assembled incrementally — particularly by Contact Centre agents using cryptic command-line tools who build bookings in stages. An order in `OrderInit` cannot advance to `Confirmed` (and will not have a booking reference / PNR generated) until all mandatory fields are present: passenger names, itinerary, ticketing time limit, a contact field (email or phone), and the identity of the person creating the booking (sales agent reference, or `WEB` for web-originated orders). The `OrderInit` state is only relevant for Contact Centre channel bookings; web, app, and kiosk bookings progress directly from basket creation to confirmation without entering `OrderInit`.
+- An initial `OrderInit` status is supported for orders that are being assembled incrementally — particularly by Contact Centre agents using the Terminal app who build bookings in stages. An order in `OrderInit` cannot advance to `Confirmed` (and will not have a booking reference / PNR generated) until all mandatory fields are present: passenger names, itinerary, ticketing time limit, a contact field (email or phone), and the identity of the person creating the booking (sales agent reference, or `WEB` for web-originated orders). The `OrderInit` state is only relevant for Contact Centre channel bookings via the Terminal app; web, app, and kiosk bookings progress directly from basket creation to confirmation without entering `OrderInit`. **The Terminal app and the `OrderInit` flow are out of scope for the current release.** The `OrderStatus` field must include `OrderInit` as a valid value in the data model to support future implementation without a breaking schema change, but no endpoints or orchestration flows for `OrderInit` are built at this time.
 
 ### Create — Bookflow
 
@@ -819,11 +819,13 @@ sequenceDiagram
     alt Revenue booking
         Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], channel, currency)
         RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency)
+        OrderMS-->>RetailAPI: 201 Created — basketId
     else Reward booking
         Web->>RetailAPI: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
         RetailAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
         CustomerMS-->>RetailAPI: 200 OK — pointsBalance verified
         RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
+        OrderMS-->>RetailAPI: 201 Created — basketId
     end
 
     Note over OrderMS: Basket created with ExpiresAt = now + 60 min
@@ -838,8 +840,6 @@ sequenceDiagram
     end
     Note over RetailAPI: If any hold fails, release all previously held inventory and return error
 
-    RetailAPI->>OrderMS: POST /v1/basket/{basketId}/finalise
-    OrderMS-->>RetailAPI: 200 OK — basketId, itinerary, total fare price
     RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price)
 
     Note over Web: Reward bookings: lead passenger auto-filled from loyalty profile
@@ -852,10 +852,10 @@ sequenceDiagram
         Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
         RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
         SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
-        RetailAPI->>SeatMS: GET /v1/seat-pricing?aircraftType={aircraftType}
-        SeatMS-->>RetailAPI: 200 OK — seat pricing rules (cabinCode, seatPosition, price)
-        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-offers
-        OfferMS-->>RetailAPI: 200 OK — seat availability per seat (SeatOfferId, availabilityStatus: available|held|sold)
+        RetailAPI->>SeatMS: GET /v1/seat-offers?flightId={flightId}
+        SeatMS-->>RetailAPI: 200 OK — priced seat offers (SeatOfferId, price, seat attributes per selectable seat)
+        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
+        OfferMS-->>RetailAPI: 200 OK — seat availability status per seat (available|held|sold)
         RetailAPI-->>Web: 200 OK — seat map with pricing and availability (merged by Retail API)
         Traveller->>Web: Select seat(s) for each PAX
         Web->>RetailAPI: PUT /v1/basket/{basketId}/seats (seatOfferIds per PAX per flight)
@@ -2535,12 +2535,33 @@ sequenceDiagram
 
 #### Seat MS Endpoints
 
+**Offer / query endpoints (called by Retail API during the booking path)**
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
-| `GET` | `/v1/seat-pricing?aircraftType={aircraftType}` | Retrieve fleet-wide seat pricing rules filtered by aircraft type's cabin codes; returns `cabinCode`, `seatPosition`, and `price` per active rule from `seat.SeatPricing` |
 | `GET` | `/v1/seat-offers?flightId={flightId}` | Retrieve priced seat offers for all selectable seats on a given flight; returns one `SeatOffer` per selectable seat with `seatOfferId`, `seatNumber`, `seatPosition`, `cabinCode`, and `price`; `SeatOfferId` is a deterministic identifier generated by the Seat MS from `flightId + seatNumber` |
 | `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve current pricing for a specific seat offer by ID; used by the Retail API at order confirmation to validate the price stored in the basket matches the current Seat MS price |
+
+**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/aircraft-types` | List all aircraft types |
+| `POST` | `/v1/aircraft-types` | Create a new aircraft type record |
+| `GET` | `/v1/aircraft-types/{aircraftTypeCode}` | Retrieve an aircraft type by code |
+| `PUT` | `/v1/aircraft-types/{aircraftTypeCode}` | Update an aircraft type record |
+| `DELETE` | `/v1/aircraft-types/{aircraftTypeCode}` | Delete an aircraft type record (only permitted if no active seatmaps reference it) |
+| `GET` | `/v1/seatmaps` | List all seatmap definitions |
+| `POST` | `/v1/seatmaps` | Create a new seatmap definition for an aircraft type |
+| `GET` | `/v1/seatmaps/{seatmapId}` | Retrieve a seatmap definition by ID |
+| `PUT` | `/v1/seatmaps/{seatmapId}` | Replace the cabin layout of an existing seatmap (increments `Version`) |
+| `DELETE` | `/v1/seatmaps/{seatmapId}` | Delete a seatmap definition |
+| `GET` | `/v1/seat-pricing` | List all seat pricing rules |
+| `POST` | `/v1/seat-pricing` | Create a new seat pricing rule (`cabinCode`, `seatPosition`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/seat-pricing/{seatPricingId}` | Retrieve a seat pricing rule by ID |
+| `PUT` | `/v1/seat-pricing/{seatPricingId}` | Update a seat pricing rule |
+| `DELETE` | `/v1/seat-pricing/{seatPricingId}` | Delete a seat pricing rule |
 
 #### Data Schema — Seat
 
@@ -2592,7 +2613,7 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 > **Pricing scope:** Pricing is fleet-wide and applied uniformly across all aircraft and routes. Business Class and First Class seats (cabin codes `J` and `F`) are excluded from `SeatPricing` — selection is included in the fare with no ancillary charge.
 > **Example seed data:** `('W', 'Window', 'GBP', 70.00)` · `('W', 'Aisle', 'GBP', 50.00)` · `('W', 'Middle', 'GBP', 20.00)` · `('Y', 'Window', 'GBP', 70.00)` · `('Y', 'Aisle', 'GBP', 50.00)` · `('Y', 'Middle', 'GBP', 20.00)`.
 
-> **Seat offer generation (Retail API responsibility):** When a channel requests a seatmap with pricing and availability, the Retail API calls the Seat MS for the seatmap layout and seat pricing rules (from `seat.SeatPricing`), calls the Offer MS for per-seat availability status only (`GET /v1/flights/{flightId}/seat-offers` returns available, held, or sold status per seat — no pricing), and merges all three datasets (layout + pricing + availability) into the seat offer response returned to the channel. The `SeatOfferId` is generated by the Offer MS based solely on data it owns — `InventoryId` + `SeatNumber` — and does not require knowledge of `SeatmapId` or the current pricing version. These `SeatOfferIds` are short-lived and should be treated as valid only for the duration of the current session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
+> **Seat offer generation (Retail API responsibility):** When a channel requests a seatmap with pricing and availability, the Retail API calls the Seat MS for the seatmap layout (`GET /v1/seatmap/{aircraftType}`), then calls the Seat MS again for priced seat offers (`GET /v1/seat-offers?flightId={flightId}` — returns a `SeatOfferId` and price per selectable seat), then calls the Offer MS for per-seat availability status only (`GET /v1/flights/{flightId}/seat-availability` — returns available, held, or sold status per seat). The Retail API merges all three datasets (layout + pricing + availability) into the unified seatmap response returned to the channel. The `SeatOfferId` is generated deterministically by the Seat MS from `flightId + seatNumber + pricingRuleHash` and is short-lived — valid only for the duration of the current booking session. The Order microservice stores the `SeatOfferId` on the seat order item for traceability.
 
 **Example `CabinLayout` JSON document**
 
@@ -2930,6 +2951,30 @@ sequenceDiagram
 
 #### Data Schema — Bag
 
+#### Bag MS Endpoints
+
+**Offer / query endpoints (called by Retail API during the booking path)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}` | Generate and return the free bag policy and priced bag offers for a flight and cabin; returns one `BagOfferId` per available bag tier; `BagOfferId` is deterministic (stateless — no DB write required) |
+| `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a bag offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding bags to a basket or confirming a bag purchase |
+
+**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bag-policies` | List all bag allowance policies |
+| `POST` | `/v1/bag-policies` | Create a new bag allowance policy (`cabinCode`, `freeBagsIncluded`, `maxWeightKgPerBag`) |
+| `GET` | `/v1/bag-policies/{policyId}` | Retrieve a bag policy by ID |
+| `PUT` | `/v1/bag-policies/{policyId}` | Update a bag allowance policy |
+| `DELETE` | `/v1/bag-policies/{policyId}` | Delete a bag allowance policy |
+| `GET` | `/v1/bag-pricing` | List all bag pricing rules |
+| `POST` | `/v1/bag-pricing` | Create a new bag pricing rule (`bagSequence`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/bag-pricing/{pricingId}` | Retrieve a bag pricing rule by ID |
+| `PUT` | `/v1/bag-pricing/{pricingId}` | Update a bag pricing rule |
+| `DELETE` | `/v1/bag-pricing/{pricingId}` | Delete a bag pricing rule |
+
 #### `bag.BagPolicy`
 
 | Column | Type | Nullable | Default | Key | Notes |
@@ -2978,8 +3023,31 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - SSRs are segment-specific — a connecting passenger requires independent SSR entries per leg.
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
 - On IROPS rebooking, the Disruption API carries all SSR items from the cancelled segment to the replacement itinerary.
-- The SSR catalogue is a Retail API configuration resource — no separate microservice required.
+- The SSR catalogue is stored in a dedicated `retail.SsrCatalogue` table owned by the Retail API. The `GET /v1/ssr/options` endpoint reads from this table. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
 - Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
+
+#### `retail.SsrCatalogue` data schema
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| SsrCatalogueId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| SsrCode | CHAR(4) | No | | UK | IATA four-character SSR code, e.g. `VGML`, `WCHR` |
+| Label | VARCHAR(100) | No | | | Human-readable name displayed on channel, e.g. `Vegetarian meal (lacto-ovo)` |
+| Category | VARCHAR(20) | No | | | `Meal` · `Mobility` · `Accessibility` |
+| IsActive | BIT | No | `1` | | Inactive codes are excluded from `GET /v1/ssr/options` responses but retained for historical order display |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Indexes:** `IX_SsrCatalogue_Code` on `(SsrCode)` WHERE `IsActive = 1`.
+
+#### SSR Catalogue CRUD Endpoints (Retail API)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes and labels by category; accepts optional `cabinCode` and `flightNumbers` query parameters to filter applicable SSRs |
+| `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); called by admin tools to add new SSR codes without redeployment |
+| `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR catalogue entry (label or category); `ssrCode` itself is immutable |
+| `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected |
 
 **Supported SSR codes**
 
@@ -3004,7 +3072,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 
 SSR selection is an optional bookflow step offered after passenger details are captured, alongside seat and bag selection.
 
-- The Retail API serves the SSR catalogue from its own configuration — no downstream microservice call required.
+- The Retail API serves the SSR catalogue from its own `retail.SsrCatalogue` table — no downstream microservice call required.
 - No payment triggered — selections are appended to the basket as SSR items and committed to `OrderData` at order confirmation.
 - SSR codes are included in the manifest payload written to the Delivery MS, ensuring operational visibility from the moment the booking is confirmed.
 
@@ -3725,6 +3793,26 @@ Apex Air's network is focused on the following key markets:
 - **South Asia** — key Indian cities including Mumbai (BOM), Delhi (DEL), and Bangalore (BLR)
 
 All flights operate from a single UK hub at **London Heathrow (LHR)**. Apex Air participates in the IATA ONE Order standard and operates a modern retailing architecture as described in this document.
+
+## Accounting
+
+The Accounting microservice is a pure event-consumer. It has no synchronous API surface called during the booking path. All input arrives via the Azure Service Bus event bus; it processes `OrderConfirmed`, `OrderChanged`, `OrderCancelled`, `TicketIssued`, `TicketVoided`, `DocumentIssued`, and `DocumentVoided` events to build and maintain the airline's financial records.
+
+> **Current release scope:** The Accounting microservice Azure Functions project is **scaffolded as an empty shell** in this release. The event subscriptions, handlers, and database schema are defined but the financial reporting endpoints (balance sheet, P&L) are not implemented. The Finance API orchestration layer is likewise scaffolded as an empty shell. Full implementation is deferred to a future release.
+
+The data model and event contracts are established now to ensure downstream financial systems can be integrated without breaking changes.
+
+---
+
+## Implementation notes
+
+### Existing Offer microservice
+
+The `src/API/Microservices/ReservationSystem.Microservices.Offer` project was scaffolded from the template and contains generic CRUD stubs (create/get/delete/list) that do not reflect the real Offer domain. **When building the Offer microservice, reuse this project as the starting point but remove all placeholder CRUD operations and replace them with the real Offer domain implementation** as defined in the Data Schema — Offer section and the Offer MS endpoint table in `api-reference.md`. The project structure, DI wiring, `host.json`, shared library references, and build pipeline should be preserved; only the placeholder application logic, domain entities, and SQL schema need to be replaced.
+
+### Airport API and Finance API
+
+Both are included in the architecture diagram and will be needed in future. In this release, scaffold empty Azure Functions projects for each (no endpoints beyond `/health` and hello-world smoke-test) so that the deployment pipeline and infrastructure provisioning are in place. No business logic is implemented at this stage.
 
 ---
 
