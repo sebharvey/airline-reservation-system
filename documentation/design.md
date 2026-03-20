@@ -1981,6 +1981,8 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 
 #### `delivery.FlightManifest`
 
+// todo: rename this delivery.Ticket and udpate the documentation wherever this is referenced.  This table stores the actual ticket informaton, so each ticket should be represented as a row here.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | ManifestId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
@@ -2004,10 +2006,14 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
+// todo: some of this ticket data can be stored as a JSON field (similar to order and basket).  That way (for example) we can store a proper array of SSR coded, rather than a CSV value.
+
 > **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
 > **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
 > **Seatmap validation:** The orchestration layer is responsible for validating the `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery microservice. The Delivery MS trusts the seat number provided by its caller. This validation responsibility applies to both initial writes (at booking confirmation) and updates (at seat changes) — the orchestration API (Retail API, Airport API, or Disruption API) must call `GET /v1/seatmap/{aircraftType}` on the Seat MS and confirm the seat number exists in the returned cabin layout before calling Delivery MS. If the seat is not present on the active seatmap, the orchestration layer must reject the request before it reaches the Delivery MS.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
+
+// Todo: create a delivery.Manifest table here, and reference that throughout the documentation that once a ticket is created, the pax is clearly added to this table alongisde the ticket reference and the flight number and date.  This table should then be used by further downstream departture controls, flight manifests given to crew, etc.  In otherwords, the delivery.Ticket is the accoutnable document (finance) store and the delivery.Manifest is the source of truth on who is on a flight.  Update the documentation throughout to show the manifest updating when the ticket is issued.
 
 ## Disruption API
 
