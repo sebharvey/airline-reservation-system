@@ -609,6 +609,8 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
 ```
 
+// todo: need to add logic in this diagram to show the storing of the offers.
+
 *Ref: offer search - connecting itinerary assembly via LHR hub with minimum connect time filtering*
 
 #### Code Share Flights (Future Scope)
@@ -676,6 +678,8 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
+// todo: need to support points here too, customers can search and book by money (revenue) or points.  This table needs to support both.
+
 > ⚠️ CRITICAL: `ChangeFee` and `CancellationFee` amounts are referenced by the flight change and cancellation flows (e.g. `totalDue = changeFee + addCollect`, `refundableAmount = totalPaid − cancellationFee`) but are not stored on this table or anywhere else in the schema. Either add `ChangeFeeAmount DECIMAL(10,2)` and `CancellationFeeAmount DECIMAL(10,2)` columns to `offer.Fare`, or define a separate fee lookup mechanism. Without these, coding agents cannot implement the change/cancel fee calculation.
 
 #### `offer.StoredOffer`
@@ -689,12 +693,6 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | DepartureDate | DATE | No | | | Denormalised snapshot |
 | Origin | CHAR(3) | No | | | Denormalised snapshot, IATA code |
 | Destination | CHAR(3) | No | | | Denormalised snapshot, IATA code |
-| DepartureTime | TIME | No | | | Denormalised snapshot; local departure time at origin |
-| ArrivalTime | TIME | No | | | Denormalised snapshot; local arrival time at destination |
-| ArrivalDayOffset | TINYINT | No | 0 | | Denormalised snapshot; `0` = same day, `1` = next day |
-| AircraftType | VARCHAR(4) | No | | | Denormalised snapshot |
-| CabinCode | CHAR(1) | No | | | Denormalised snapshot |
-| BookingClass | CHAR(2) | No | | | Denormalised snapshot |
 | FareBasisCode | VARCHAR(20) | No | | | Denormalised snapshot |
 | FareFamily | VARCHAR(50) | Yes | | | Denormalised snapshot |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
@@ -707,6 +705,8 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | ExpiresAt | DATETIME2 | No | | | Offer must be rejected by Order MS if `now > ExpiresAt` |
 | IsConsumed | BIT | No | 0 | | Set to `1` once retrieved and locked by Order MS |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+// todo: need to support points here too, customers can search and book by money (revenue) or points.  This table needs to support both.  
 
 > **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job to purge expired unconsumed offers.
 > **Design note:** Flight and fare fields are deliberately denormalised into this table so that the offer snapshot is fully self-contained. If `offer.Fare` is later updated or withdrawn, stored offers retain the exact price and conditions that were presented to the customer.
@@ -724,12 +724,14 @@ The Order microservice manages the complete booking lifecycle — from basket cr
   - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
 
+// todo: add an initial state for order status called OrderInit which will represent an order being created but not all information (say pax details) not yet supplied.  This will be key during booking creation by contact centre who will be using cryptic command lines and will build up the booking in parts.  It cannot progress outside of the OrderInit stage (e.g. generate aa PNR number) until key information has been supplied (pax names, itineary, ticketig timelines, contact field (email or phone), and the person creating the booking (sales agent, or 'web' in case of a web order).
+
 ### Create — Bookflow
 
 The **bookflow** is the end-to-end initial purchase journey — from flight offer selection and basket creation through passenger details, ancillary selection, payment, and order confirmation — all within a single basket session bounded by the ticketing time limit.
 
 - The `Basket` is a transient Order DB record accumulating flight offers, seat offers, bag offers, and passenger details as the booking is built.
-- Hard-deleted on successful sale; expires automatically after 24 hours if abandoned.
+- Hard-deleted on successful sale; expires automatically after 24 hours if abandoned. // todo this should be nore more than the offer store value - otherwise an offer will expire and the basket is still referncing offer ids which are no longer valid.
 - A configurable ticketing time limit (TTL, default 24 hours) is set at basket creation — if elapsed, held inventory is released and the basket is marked expired.
 - For each `OfferId` in the basket, the Order MS retrieves the stored offer snapshot from the Offer MS, guaranteeing the price and fare conditions match exactly what the customer was shown at search time.
 
