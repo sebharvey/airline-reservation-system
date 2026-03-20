@@ -2768,6 +2768,8 @@ sequenceDiagram
 
 #### `bag.StoredBagOffer`
 
+// todo: this table isn't needed as per previous notes.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | BagOfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | Short-lived snapshot; passed to channels as the bag offer identifier |
