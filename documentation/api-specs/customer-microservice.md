@@ -44,9 +44,9 @@ Calls from the Loyalty API to the Customer microservice are authenticated using 
 
 ### POST /v1/customers
 
-Create a new loyalty account. Called by the Loyalty API during the registration flow after the Identity microservice has created the login account.
+Create a new loyalty account. Called by the Loyalty API as the **first** step of the registration flow, before the Identity microservice account is created. The `identityReference` field is omitted on initial creation and linked in a subsequent `PATCH` once the Identity account has been created.
 
-**When to use:** During new member registration only. The Loyalty API orchestrates the two-step creation (Identity account first, then Customer account).
+**When to use:** During new member registration only. The Loyalty API orchestrates a three-step creation: (1) Customer record created here (no `identityReference` yet), (2) Identity account created via Identity MS, (3) `PATCH /v1/customers/{loyaltyNumber}` called to link the returned `identityReference`. See the registration sequence diagram in `design.md` for the full flow and rollback responsibilities.
 
 #### Request
 
