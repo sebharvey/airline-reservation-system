@@ -2177,6 +2177,8 @@ sequenceDiagram
     DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
 ```
 
+// todo: given that this process could take a while and the API must respond to the FOS system immediately (see Disruption API — Idempotency and Reliability) udpate the flow to queue the request onto service bus and then it will be worked by an async process by the Disruption API.
+
 *Ref: disruption - flight cancellation handling with passenger rebooking onto direct or connecting replacement flights, including points adjustment for reward bookings*
 
 **Cancellation handling rules:**
