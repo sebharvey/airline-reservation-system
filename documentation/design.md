@@ -2013,7 +2013,7 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 > **Seatmap validation:** The orchestration layer is responsible for validating the `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery microservice. The Delivery MS trusts the seat number provided by its caller. This validation responsibility applies to both initial writes (at booking confirmation) and updates (at seat changes) — the orchestration API (Retail API, Airport API, or Disruption API) must call `GET /v1/seatmap/{aircraftType}` on the Seat MS and confirm the seat number exists in the returned cabin layout before calling Delivery MS. If the seat is not present on the active seatmap, the orchestration layer must reject the request before it reaches the Delivery MS.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 
-// Todo: create a delivery.Manifest table here, and reference that throughout the documentation that once a ticket is created, the pax is clearly added to this table alongisde the ticket reference and the flight number and date.  This table should then be used by further downstream departture controls, flight manifests given to crew, etc.  In otherwords, the delivery.Ticket is the accoutnable document (finance) store and the delivery.Manifest is the source of truth on who is on a flight.  Update the documentation throughout to show the manifest updating when the ticket is issued.
+// Todo: create a delivery.Manifest table here, and reference that throughout the documentation that once a ticket is created, the pax is clearly added to this table alongisde the ticket reference and the flight number and date.  This table should then be used by further downstream departture controls, flight manifests given to crew, etc.  In otherwords, the delivery.Ticket is the accoutnable document (finance) store and the delivery.Manifest is the source of truth on who is on a flight.  Update the documentation throughout to show the manifest updating when the ticket is issued.  There must also be another table created called delivery.Document which would be akin to EMDs so we can store any additional accountable document records.  Creation of any record into these tables should trigger an event to the accounting system eventing the record in it's entirity, so the accounting system can account for the data within the finanancal documnt record.
 
 ## Disruption API
 
@@ -2337,6 +2337,8 @@ sequenceDiagram
 
 *Ref: ancillary seat - post-sale seat selection with payment, e-ticket reissuance, and manifest update*
 
+todo: A record must be created in the delivery.Document table (akin to an EMD) to record the sale of any seat or bag purchase.
+
 #### Seat MS Endpoints
 
 | Method | Endpoint | Description |
@@ -2644,6 +2646,8 @@ Additional bag pricing (per bag, per segment):
 | 1st additional bag | £60.00 |
 | 2nd additional bag | £80.00 |
 | 3rd+ additional bag | £100.00 |
+
+// todo: make clear that baggage rules above are handled by the bags MS, as well as baggage offers (as per seats note above)
 
 The Bag MS returns the cabin's free allowance alongside a `BagOffer` per purchasable additional bag; the `BagOfferId` is passed to the Order MS at purchase to link the bag order item to the priced offer.
 
