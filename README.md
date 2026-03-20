@@ -2,7 +2,11 @@
 
 **A modern airline retailing platform built with an agentic-code first approach.**
 
+Website:
 https://delightful-wave-0b9bd1903.2.azurestaticapps.net
+
+Admin:
+https://proud-rock-0cb252d03.6.azurestaticapps.net/login
 
 ---
 
