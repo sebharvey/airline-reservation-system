@@ -1,0 +1,331 @@
+/* ── Terminal wrapper ── */
+.terminal-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-height) - 2px);
+  background: var(--term-bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  border: 1px solid var(--term-border);
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+}
+
+/* ── Header bar ── */
+.term-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--term-header);
+  border-bottom: 1px solid var(--term-border);
+  flex-shrink: 0;
+}
+
+.term-header-dots {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-red    { background: #ff5f57; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green  { background: #28ca41; }
+
+.term-header-title {
+  flex: 1;
+  color: var(--term-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+
+.term-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pnr-indicator {
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  background: rgba(56, 189, 80, 0.15);
+  border: 1px solid rgba(56, 189, 80, 0.35);
+  border-radius: 4px;
+  color: var(--term-success);
+  letter-spacing: 0.5px;
+}
+
+.term-btn {
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--term-border);
+  border-radius: 4px;
+  color: var(--term-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.term-btn:hover,
+.term-btn.active {
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--term-prompt);
+  border-color: rgba(88, 166, 255, 0.3);
+}
+
+/* ── Body ── */
+.term-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ── Help panel ── */
+.help-panel {
+  background: var(--term-header);
+  border-bottom: 1px solid var(--term-border);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 0.78rem;
+  max-height: 260px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-title {
+  color: var(--term-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--term-border);
+  padding-bottom: 4px;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  align-items: center;
+}
+
+.help-grid code {
+  color: var(--term-prompt);
+  background: rgba(88, 166, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.help-grid span {
+  color: var(--term-text);
+  font-size: 0.78rem;
+}
+
+.help-tip {
+  color: var(--term-muted);
+  font-size: 0.72rem;
+  padding-top: 4px;
+  border-top: 1px solid var(--term-border);
+  font-style: italic;
+}
+
+/* ── Output area ── */
+.term-output {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  scroll-behavior: smooth;
+}
+
+.term-output::-webkit-scrollbar {
+  width: 6px;
+}
+
+.term-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.term-output::-webkit-scrollbar-thumb {
+  background: var(--term-border);
+  border-radius: 3px;
+}
+
+.term-empty {
+  color: var(--term-muted);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 40px 0;
+  letter-spacing: 1px;
+}
+
+/* ── Terminal lines ── */
+.term-line {
+  font-size: 0.825rem;
+  line-height: 1.6;
+  white-space: pre;
+  display: block;
+}
+
+.line-text {
+  color: var(--term-text);
+}
+
+.line-cmd {
+  color: var(--term-prompt);
+  font-weight: 600;
+}
+
+.line-sep {
+  color: var(--term-border);
+}
+
+.term-line[data-type="success"] .line-text {
+  color: var(--term-success);
+}
+
+.term-line[data-type="warning"] .line-text {
+  color: var(--term-warning);
+}
+
+.term-line[data-type="error"] .line-text {
+  color: var(--term-error);
+}
+
+.term-line[data-type="system"] .line-text {
+  color: var(--term-highlight);
+  font-weight: 600;
+}
+
+/* ── Input row ── */
+.term-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  border-top: 1px solid var(--term-border);
+  background: var(--term-header);
+  flex-shrink: 0;
+  height: 44px;
+}
+
+.term-prompt {
+  color: var(--term-prompt);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-right: 10px;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.term-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--term-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  caret-color: var(--term-prompt);
+  padding: 0;
+  height: 100%;
+  text-transform: uppercase;
+}
+
+.term-input::placeholder {
+  color: var(--term-muted);
+  text-transform: none;
+  font-size: 0.78rem;
+}
+
+.send-btn {
+  background: none;
+  border: none;
+  color: var(--term-muted);
+  font-size: 1rem;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.send-btn:hover {
+  color: var(--term-prompt);
+}
+
+/* ═══════════════════════════════════════
+   DESKTOP adjustments
+   ═══════════════════════════════════════ */
+@media (min-width: 901px) {
+  .terminal-wrapper {
+    /* On desktop the main-content has padding; remove extra height offset */
+    height: calc(100vh - var(--topbar-height) - 64px);
+  }
+
+  .term-line {
+    font-size: 0.875rem;
+  }
+
+  .help-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+    gap: 20px 40px;
+  }
+
+  .help-section {
+    min-width: 280px;
+    flex: 1;
+  }
+}
+
+/* ═══════════════════════════════════════
+   MOBILE adjustments
+   ═══════════════════════════════════════ */
+@media (max-width: 900px) {
+  .terminal-wrapper {
+    height: calc(100vh - var(--topbar-height));
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .term-header-title {
+    display: none;
+  }
+
+  .pnr-indicator {
+    display: none;
+  }
+}

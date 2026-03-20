@@ -1,0 +1,68 @@
+<div class="login-shell">
+  <div class="login-bg">
+    <div class="login-bg-glow glow-1"></div>
+    <div class="login-bg-glow glow-2"></div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">✈</div>
+      <h1 class="login-title">Apex Air</h1>
+      <p class="login-subtitle">Contact Centre Terminal</p>
+    </div>
+
+    <form class="login-form" (ngSubmit)="onSubmit()">
+      @if (error()) {
+        <div class="login-error" role="alert">
+          <span>⚠</span> {{ error() }}
+        </div>
+      }
+
+      <div class="field">
+        <label class="field-label" for="username">Agent ID / Username</label>
+        <input
+          id="username"
+          class="field-input"
+          type="text"
+          placeholder="e.g. jsmith or LH1234"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          [value]="username()"
+          (input)="setUsername($any($event.target).value)"
+          [disabled]="loading()"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="password">Password</label>
+        <input
+          id="password"
+          class="field-input"
+          type="password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+          [value]="password()"
+          (input)="setPassword($any($event.target).value)"
+          [disabled]="loading()"
+        />
+      </div>
+
+      <button class="login-btn" type="submit" [disabled]="loading()">
+        @if (loading()) {
+          <span class="btn-spinner"></span>
+          <span>Signing in…</span>
+        } @else {
+          <span>Sign In</span>
+          <span class="btn-arrow">→</span>
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>Authorised personnel only. All activity is monitored and logged.</p>
+      <p class="login-version">Apex Air Terminal v1.0 · © 2026 Apex Air</p>
+    </div>
+  </div>
+</div>

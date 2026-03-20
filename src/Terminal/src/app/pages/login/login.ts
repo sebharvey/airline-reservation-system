@@ -1,0 +1,40 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-login',
+  imports: [FormsModule],
+  templateUrl: './login.html',
+  styleUrl: './login.css',
+})
+export class LoginComponent {
+  #auth = inject(AuthService);
+  #router = inject(Router);
+
+  username = signal('');
+  password = signal('');
+  loading = signal(false);
+  error = signal('');
+
+  onSubmit(): void {
+    if (!this.username().trim()) {
+      this.error.set('Please enter your agent ID or username.');
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+
+    // Simulate brief network delay for realism
+    setTimeout(() => {
+      this.#auth.login(this.username(), this.password());
+      this.loading.set(false);
+      this.#router.navigate(['/terminal']);
+    }, 600);
+  }
+
+  setUsername(val: string): void { this.username.set(val); }
+  setPassword(val: string): void { this.password.set(val); }
+}

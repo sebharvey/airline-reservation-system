@@ -1,0 +1,97 @@
+<!-- Mobile overlay backdrop -->
+@if (sidebarOpen()) {
+  <div class="sidebar-backdrop" (click)="closeSidebar()" aria-hidden="true"></div>
+}
+
+<div class="shell">
+
+  <!-- ── Top bar ── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="burger" (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen()" aria-label="Toggle navigation">
+        <span class="burger-line"></span>
+        <span class="burger-line"></span>
+        <span class="burger-line"></span>
+      </button>
+      <span class="topbar-brand">✈ Apex Air <span class="topbar-product">Terminal</span></span>
+    </div>
+
+    <div class="topbar-right">
+      @if (auth.currentUser(); as user) {
+        <div class="agent-badge">
+          <span class="agent-icon">👤</span>
+          <span class="agent-info">
+            <span class="agent-name">{{ user.displayName }}</span>
+            <span class="agent-meta">{{ user.agentId }} · {{ user.station }}</span>
+          </span>
+        </div>
+      }
+
+      <button
+        class="theme-toggle"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        title="Toggle theme"
+      >
+        <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+        <span class="toggle-track" [class.is-dark]="theme.isDark()">
+          <span class="toggle-thumb"></span>
+        </span>
+      </button>
+
+      <button class="logout-btn" (click)="logout()" title="Sign out">
+        <span>⏏</span>
+        <span class="logout-label">Sign out</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" [class.open]="sidebarOpen()">
+      <nav class="sidebar-nav" (click)="closeSidebar()">
+        <div class="nav-section">
+          <p class="nav-section-label">Modules</p>
+          @for (item of navItems; track item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              class="nav-item"
+              [attr.title]="item.description"
+            >
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          }
+        </div>
+
+        <div class="nav-section nav-section-bottom">
+          <p class="nav-section-label">Administration</p>
+          @for (item of secondaryNavItems; track item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              class="nav-item"
+              [attr.title]="item.description"
+            >
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          }
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="sidebar-version">Apex Air Terminal v1.0</p>
+        <p class="sidebar-copy">© 2026 Apex Air</p>
+      </div>
+    </aside>
+
+    <!-- ── Main content ── -->
+    <main class="main-content">
+      <router-outlet />
+    </main>
+
+  </div>
+</div>

@@ -1,0 +1,158 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --grad-start: #667eea;
+  --grad-end: #764ba2;
+  --hero-gradient: linear-gradient(135deg, #667eea 0%, #5a3eab 50%, #764ba2 100%);
+  --white: #ffffff;
+  --bg-light: #f8f9fa;
+  --border: #e0e0e0;
+  --text: #333333;
+  --text-muted: #666666;
+  --input-bg: #ffffff;
+  --input-disabled-bg: #f0f0f0;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 25px;
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
+  --transition: 0.25s ease;
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 0px;
+  --topbar-height: 60px;
+
+  /* Terminal colours */
+  --term-bg: #0d1117;
+  --term-text: #c9d1d9;
+  --term-prompt: #58a6ff;
+  --term-success: #3fb950;
+  --term-warning: #d29922;
+  --term-error: #f85149;
+  --term-muted: #6e7681;
+  --term-highlight: #388bfd;
+  --term-border: #21262d;
+  --term-header: #161b22;
+}
+
+/* ── Dark mode overrides ── */
+html.dark {
+  --hero-gradient: linear-gradient(135deg, #1a1f4a 0%, #2b1e5a 50%, #2d1b4e 100%);
+  --white: #1e1e2e;
+  --bg-light: #27273a;
+  --border: #3a3a50;
+  --text: #e2e2f0;
+  --text-muted: #9494b0;
+  --input-bg: #2a2a3e;
+  --input-disabled-bg: #232334;
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Smooth theme transitions ── */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body,
+.card,
+input,
+select,
+textarea,
+button {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg-light);
+  min-height: 100vh;
+}
+
+html.dark body {
+  background: var(--bg-light);
+}
+
+input,
+select,
+textarea {
+  background-color: var(--input-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── Shared fade-in ── */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: slideIn 0.3s ease;
+}
+
+/* ── Placeholder page style ── */
+.placeholder-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px;
+  animation: slideIn 0.3s ease;
+}
+
+.placeholder-page .placeholder-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.placeholder-page h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.placeholder-page p {
+  font-size: 0.95rem;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.placeholder-page .badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  letter-spacing: 0.5px;
+}
