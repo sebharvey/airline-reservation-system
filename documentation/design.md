@@ -2067,6 +2067,71 @@ Accountable document records for non-fare ancillary sales — analogous to Elect
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
+##### `DocumentData` JSON structure
+
+Typed columns already present on `delivery.Document` (`documentNumber`, `documentType`, `bookingReference`, `eTicketNumber`, `passengerId`, `segmentRef`, `paymentReference`, `amount`, `currencyCode`, `isVoided`, `createdAt`, `updatedAt`) are excluded from the JSON. The JSON carries the IATA EMD service detail and price breakdown that varies by ancillary type, plus a coupon status and void history.
+
+The top-level `ancillaryDetail` object is a discriminated union — its shape depends on `documentType`.
+
+**`SeatAncillary` example**
+
+```json
+{
+  "emdType": "EMD-A",
+  "rfic": "A",
+  "rfisc": "0B5",
+  "serviceDescription": "Seat Selection — Business Window",
+  "couponStatus": "Open",
+  "ancillaryDetail": {
+    "type": "SeatAncillary",
+    "seatNumber": "1A",
+    "positionType": "Window",
+    "deckCode": "M",
+    "cabinCode": "J",
+    "seatAttributes": ["ExtraLegroom", "LieFlat"]
+  },
+  "priceBreakdown": {
+    "baseAmount": 45.00,
+    "taxes": [
+      { "code": "GB", "description": "UK Air Passenger Duty", "amount": 0.00 }
+    ],
+    "totalAmount": 45.00,
+    "currencyCode": "GBP"
+  },
+  "voidHistory": []
+}
+```
+
+**`BagAncillary` example**
+
+```json
+{
+  "emdType": "EMD-A",
+  "rfic": "C",
+  "rfisc": "0GO",
+  "serviceDescription": "Additional Checked Bag — 23 kg",
+  "couponStatus": "Open",
+  "ancillaryDetail": {
+    "type": "BagAncillary",
+    "bagSequenceNumber": 2,
+    "weightKg": 23,
+    "dimensionsCm": { "length": 90, "width": 75, "depth": 43 },
+    "bagTagNumber": null
+  },
+  "priceBreakdown": {
+    "baseAmount": 60.00,
+    "taxes": [
+      { "code": "GB", "description": "UK Air Passenger Duty", "amount": 0.00 }
+    ],
+    "totalAmount": 60.00,
+    "currencyCode": "GBP"
+  },
+  "voidHistory": []
+}
+```
+
+> `emdType`: `EMD-A` (associated — tied to a specific e-ticket/flight coupon) or `EMD-S` (standalone). All current ancillaries are `EMD-A`. `rfic` is the IATA Reason for Issuance Code (`A` = air transportation, `C` = baggage). `rfisc` is the sub-code identifying the specific service. `couponStatus`: `Open` → `Used` (set by Airport API at bag drop / boarding) · `Void` (set on refund). `bagTagNumber` is null at purchase and populated by the Airport API when the bag is checked in. `voidHistory` is an append-only array of `{ occurredAt, actor, reason }` entries added when `IsVoided` is set to `1`.
+
 > **Indexes:** `IX_Document_Number` (unique) on `(DocumentNumber)`. `IX_Document_BookingReference` on `(BookingReference)`. `IX_Document_ETicketNumber` on `(ETicketNumber)`.
 > **Constraints:** `CHK_DocumentData` — `ISJSON(DocumentData) = 1`.
 > **Event on creation:** Each new `delivery.Document` row triggers a `DocumentIssued` event to the Accounting system event bus, carrying the full document record so the Accounting MS can record the ancillary revenue.
