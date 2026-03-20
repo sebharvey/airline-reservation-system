@@ -508,6 +508,99 @@ Reverse a points authorisation hold, returning held points to the customer's ava
 
 ---
 
+### POST /v1/customers/{loyaltyNumber}/points/reinstate
+
+Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed. Appends a `Reinstate` transaction to the loyalty ledger. Called by the Retail API on voluntary cancellation (reward bookings) and by the Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost.
+
+**When to use:** During voluntary cancellation of a reward booking (to restore all redeemed points), during a voluntary flight change where the replacement flight costs fewer points (to restore the surplus), or during IROPS rebooking where the replacement flight has a lower points cost (airline absorbs additional cost, reinstates surplus).
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "points": 50000,
+  "bookingReference": "XK7T2P",
+  "reason": "VoluntaryCancellation"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `points` | integer | Yes | Number of points to reinstate to the customer's balance |
+| `bookingReference` | string | Yes | The booking reference associated with the reinstatement |
+| `reason` | string | Yes | Reason for reinstatement: `VoluntaryCancellation`, `FlightChange`, or `FlightCancellation` (IROPS) |
+
+#### Response — `200 OK`
+
+```json
+{
+  "loyaltyNumber": "AX9876543",
+  "pointsReinstated": 50000,
+  "newPointsBalance": 98250,
+  "transactionId": "d5c9f0e1-b2a3-4567-89ab-cde901234567",
+  "reinstatedAt": "2026-03-17T14:25:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `loyaltyNumber` | string | The customer's loyalty number |
+| `pointsReinstated` | integer | Number of points restored to the balance |
+| `newPointsBalance` | integer | Updated `PointsBalance` after reinstatement |
+| `transactionId` | string (UUID) | Unique identifier of the `LoyaltyTransaction` record appended to the ledger (type=`Reinstate`) |
+| `reinstatedAt` | string (datetime) | ISO 8601 UTC timestamp when reinstatement occurred |
+
+> **Ledger entry:** A `LoyaltyTransaction` record with `TransactionType = Reinstate` and a positive `PointsDelta` is appended to the loyalty ledger. The `BalanceAfter` snapshot reflects the new balance.
+
+> **Idempotency:** Repeated calls with the same `bookingReference` and `reason` combination return the same response without double-reinstating points.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `404 Not Found` | No customer found for the given loyalty number |
+
+---
+
+### DELETE /v1/customers/{loyaltyNumber}
+
+Delete a customer record. Used exclusively for registration rollback — called by the Loyalty API if Identity account creation fails (step 2 of registration), or if the subsequent `PATCH` to link the `identityReference` fails (step 3 of registration). Partial registration states must not be left in the system.
+
+**When to use:** Only during registration rollback. This endpoint must not be used for normal account deactivation — use `PATCH` to set `isActive = false` instead.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+No request body.
+
+```
+DELETE /v1/customers/AX9876543
+```
+
+#### Response — `204 No Content`
+
+No response body. The customer record has been permanently deleted.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No customer found for the given loyalty number |
+
+---
+
 ## Data Conventions
 
 | Convention | Format | Example |
@@ -604,6 +697,28 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reverse \
     "redemptionReference": "RDM-20260317-001234",
     "reason": "TicketingFailure"
   }'
+```
+
+### Reinstating points (on voluntary cancellation of a reward booking)
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reinstate \
+  -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "points": 50000,
+    "bookingReference": "XK7T2P",
+    "reason": "VoluntaryCancellation"
+  }'
+```
+
+### Deleting a customer record (registration rollback)
+
+```bash
+curl -X DELETE https://{customer-ms-host}/v1/customers/AX9876543 \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
 ```
 
 > **Note:** The `Authorization: Bearer` header is required when calling via the Loyalty API (the channel-facing route). Calls from the Loyalty API directly to the Customer microservice are authenticated using the `x-functions-key` header — the end-user JWT is not forwarded. See [`api.md` — Microservice Authentication](../api.md#microservice-authentication--host-keys) for the full host key mechanism.
