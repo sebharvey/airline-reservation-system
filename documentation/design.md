@@ -1694,6 +1694,8 @@ A voluntary cancellation is a customer-initiated request governed by the fare co
 
 > ⚠️ CRITICAL: The refund flow crosses three services (Order → Accounting → Payment) but the interaction between Accounting and Payment is not specified. Clarify whether the Accounting MS calls `POST /v1/payment/{paymentReference}/refund` directly (which would make it an orchestrator, not a pure event consumer) or whether a separate orchestration API handles refund execution. This decision affects the Accounting MS's role and its coupling to the Payment MS.
 
+// todo: update the above note, the refunds will be handled outside of this system by the acocunting system.  An event will be raised with the accounting system and that will issue the refund to the payments provider directly.
+
 ```mermaid
 sequenceDiagram
     actor Traveller
