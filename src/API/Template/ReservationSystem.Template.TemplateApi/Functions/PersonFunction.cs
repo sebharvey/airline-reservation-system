@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Template.TemplateApi.Application.CreatePerson;
@@ -10,6 +12,7 @@ using ReservationSystem.Template.TemplateApi.Application.GetPerson;
 using ReservationSystem.Template.TemplateApi.Application.UpdatePerson;
 using ReservationSystem.Template.TemplateApi.Models.Mappers;
 using ReservationSystem.Template.TemplateApi.Models.Requests;
+using ReservationSystem.Template.TemplateApi.Models.Responses;
 using System.Net;
 using System.Text.Json;
 
@@ -58,6 +61,8 @@ public sealed class PersonFunction
     // -------------------------------------------------------------------------
 
     [Function("GetAllPersons")]
+    [OpenApiOperation(operationId: "GetAllPersons", tags: new[] { "Persons" }, Summary = "List all persons")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PersonResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/persons")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -71,6 +76,10 @@ public sealed class PersonFunction
     // -------------------------------------------------------------------------
 
     [Function("GetPerson")]
+    [OpenApiOperation(operationId: "GetPerson", tags: new[] { "Persons" }, Summary = "Get a person by ID")]
+    [OpenApiParameter(name: "id", In = ParameterLocation.Path, Required = true, Type = typeof(int), Description = "Numeric PersonID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PersonResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/persons/{id:int}")] HttpRequestData req,
         int id,
@@ -89,6 +98,11 @@ public sealed class PersonFunction
     // -------------------------------------------------------------------------
 
     [Function("CreatePerson")]
+    [OpenApiOperation(operationId: "CreatePerson", tags: new[] { "Persons" }, Summary = "Create a person")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreatePersonRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(PersonResponse), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – missing or invalid fields")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – a person with that personId already exists")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/persons")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -123,6 +137,12 @@ public sealed class PersonFunction
     // -------------------------------------------------------------------------
 
     [Function("UpdatePerson")]
+    [OpenApiOperation(operationId: "UpdatePerson", tags: new[] { "Persons" }, Summary = "Update a person")]
+    [OpenApiParameter(name: "id", In = ParameterLocation.Path, Required = true, Type = typeof(int), Description = "Numeric PersonID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdatePersonRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PersonResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/persons/{id:int}")] HttpRequestData req,
         int id,
@@ -158,6 +178,10 @@ public sealed class PersonFunction
     // -------------------------------------------------------------------------
 
     [Function("DeletePerson")]
+    [OpenApiOperation(operationId: "DeletePerson", tags: new[] { "Persons" }, Summary = "Delete a person")]
+    [OpenApiParameter(name: "id", In = ParameterLocation.Path, Required = true, Type = typeof(int), Description = "Numeric PersonID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/persons/{id:int}")] HttpRequestData req,
         int id,
