@@ -11,7 +11,7 @@ on:
       - '.github/workflows/main_reservation-system-db-api-template.yml'
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Template' # path to the Template API project directory
   DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
 
 jobs:
