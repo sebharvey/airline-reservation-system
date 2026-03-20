@@ -430,7 +430,6 @@ The Schedule capability allows airline operations staff to define repeating flig
 | ScheduleCabinId | UNIQUEIDENTIFIER | No | | FK → `schedule.ScheduleCabin(ScheduleCabinId)` | |
 | FareBasisCode | VARCHAR(20) | No | | | e.g. `YLOWUK`, `JFLEXGB` |
 | FareFamily | VARCHAR(50) | Yes | | | e.g. `Economy Light`, `Business Flex` |
-| BookingClass | CHAR(1) | No | | | Revenue management booking class, e.g. `Y`, `B`, `J` |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
 | BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare excluding taxes |
 | TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
@@ -438,6 +437,9 @@ The Schedule capability allows airline operations staff to define repeating flig
 | IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+// todo: include points in this data?
+// todo: consolidate these three schedule tables into one table, using JSON fields to hold additional data.
 
 ### Create Schedule
 
@@ -507,7 +509,7 @@ Because all scheduled routes radiate from LHR, the hub is also the natural conne
 Search is built around the **slice** concept — one directional search per journey direction — with each result persisted immediately to guarantee price integrity.
 
 - Customers search each direction (outbound, inbound) independently; each search returns priced offers per available cabin class.
-- Offers are persisted to the `StoredOffer` table at the point of creation — pricing is locked at search time, not at payment.
+- Offers are persisted to the `StoredOffer` table for 60 minutes at the point of creation — pricing is locked at search time, not at payment.
 - The customer selects one offer per slice; the resulting `OfferIds` are passed to the basket and Order API.
 - The Order API retrieves the stored offer by `OfferId` rather than re-pricing — the fare shown is guaranteed to be the fare charged, regardless of elapsed time.
 
