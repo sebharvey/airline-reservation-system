@@ -431,7 +431,7 @@ export class TerminalComponent implements OnInit, AfterViewInit {
   }
 
   #cmdReceived(cmd: string): void {
-    const agent = cmd.slice(3).trim() || this.auth.currentUser()?.username ?? 'AGENT';
+    const agent = cmd.slice(3).trim() || (this.auth.currentUser()?.username ?? 'AGENT');
     this.#emit('success', ` RF ${agent}`);
 
     const pnr = this.sessionPnr();
