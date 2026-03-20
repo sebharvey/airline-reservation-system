@@ -1044,7 +1044,7 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 
 #### `order.BasketConfig`
 
-// todo remove order.BasketConfig, it's not needed.  Just a single basket table required with a record created in the table per user session.  Ticketing timelimits are stored on the Order object itself.  Baskets will expire after 60 mins, in line with stored offer lifetimes.
+// todo: remove order.BasketConfig, it's not needed.  Just a single basket table required with a record created in the table per user session.  Ticketing timelimits are stored on the Order object itself.  Baskets will expire after 60 mins, in line with stored offer lifetimes.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
@@ -1082,6 +1082,8 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 > **Constraints:** `CHK_BasketData` — `ISJSON(BasketData) = 1`; `BasketData` must be a valid JSON document.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 > **Basket lifecycle:** A basket is hard-deleted immediately when an order is confirmed. Expired and abandoned baskets are retained for 7 days for diagnostics before being purged.
+
+// todo: update the above, to remove references to ticketing timelimits in the basket table.
 
 **Example `BasketData` JSON document**
 
@@ -1258,6 +1260,8 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
+
+// todo: make sure that BookingReference (pnr number) is unique, but this could be NULL across multiple rows if multiple agents are creating orders that have not yet been confirmed.
 
 > **Indexes:** `IX_Order_BookingReference` (unique) on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
 > **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
@@ -1465,6 +1469,8 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 
 -----
 
+// todo: move the whole section below (Optimistic Concurrency Control) to the API.md file.  But make a note on what Optimistic Concurrency Control is in the technical considerations at the bottom of this file, with a link to the api.md file for more information. 
+
 ### Optimistic Concurrency Control
 
 Booking (`order.Order`, `order.Basket`) and ticket (`delivery.FlightManifest`) records implement **Optimistic Concurrency Control (OCC)** using an integer `Version` column. This prevents lost updates when concurrent requests (e.g. a passenger updating seat selection while an agent modifies SSRs) attempt to modify the same record simultaneously.
@@ -1494,19 +1500,6 @@ All mutating endpoints that operate on booking or ticket records accept a `versi
 | `version` matches the stored value — update succeeds | `200 OK` (or `204 No Content`) |
 | `version` is absent from the request | `400 Bad Request` — `version` is required |
 | `version` does not match the stored value | `409 Conflict` — `{"error": "version_conflict", "message": "The record has been modified by another request. Re-fetch and retry."}` |
-
-**Affected endpoints (non-exhaustive):**
-
-- `PATCH /v1/orders/{bookingRef}/passengers` — update passenger details
-- `PATCH /v1/orders/{bookingRef}/change` — voluntary flight change
-- `PATCH /v1/orders/{bookingRef}/cancel` — cancellation
-- `PATCH /v1/orders/{bookingRef}/seats` — seat assignment
-- `PATCH /v1/orders/{bookingRef}/bags` — bag addition
-- `PATCH /v1/orders/{bookingRef}/ssrs` — SSR update
-- `PATCH /v1/orders/{bookingRef}/segments` — segment time update (Disruption API)
-- `PATCH /v1/tickets/{eTicketNumber}/void` — e-ticket void
-- `POST /v1/tickets/reissue` — e-ticket reissuance
-- `PATCH /v1/manifest/{manifestId}` — flight manifest update
 
 #### Caller Responsibilities
 
@@ -1553,6 +1546,8 @@ sequenceDiagram
     RetailAPI-->>Web: 200 OK — update confirmed (bookingReference, updated e-ticket numbers)
     Web-->>Traveller: Display updated booking confirmation
 ```
+
+// todo: show the reissuance in a opt box since that only happens if name changes. Any other detail changes can be done without reissuance. 
 
 *Ref: manage booking - update passenger details with e-ticket reissuance*
 
