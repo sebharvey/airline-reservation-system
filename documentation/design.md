@@ -2927,6 +2927,8 @@ Registration creates two linked records — an Identity account (email and passw
 - A confirmation email is triggered by the Loyalty API once both records are created.
 - If Identity creation succeeds but Customer creation fails, the Loyalty API must delete the orphaned Identity account before returning an error.
 
+// todo: the customer record should be created before the identity record is created.  The customer record should then be updated with the identityreference.
+
 ```mermaid
 sequenceDiagram
     actor Customer
