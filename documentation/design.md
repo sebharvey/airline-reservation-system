@@ -1955,6 +1955,56 @@ Each row represents one issued e-ticket: one passenger on one flight segment. Th
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
+##### `TicketData` JSON structure
+
+Scalar identifiers and status fields that exist as typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the extensible detail: seat assignment, SSR codes, APIS data, and change history.
+
+```json
+{
+  "seatAssignment": {
+    "seatNumber": "1A",
+    "positionType": "Window",
+    "deckCode": "M"
+  },
+  "ssrCodes": [
+    { "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" },
+    { "code": "WCHR", "description": "Wheelchair to ramp", "segmentRef": "SEG-1" }
+  ],
+  "apisData": {
+    "documentType": "PASSPORT",
+    "documentNumber": "PA1234567",
+    "issuingCountry": "GBR",
+    "expiryDate": "2030-01-01",
+    "nationality": "GBR",
+    "dateOfBirth": "1985-03-12",
+    "gender": "Male",
+    "residenceCountry": "GBR"
+  },
+  "changeHistory": [
+    {
+      "eventType": "Issued",
+      "occurredAt": "2025-06-01T09:14:00Z",
+      "actor": "RetailAPI",
+      "detail": "Initial ticket issuance"
+    },
+    {
+      "eventType": "SeatChanged",
+      "occurredAt": "2025-07-10T11:45:00Z",
+      "actor": "RetailAPI",
+      "detail": "Seat changed from 3C to 1A via manage-booking"
+    },
+    {
+      "eventType": "IROPSReissued",
+      "occurredAt": "2025-08-14T04:22:00Z",
+      "actor": "DisruptionAPI",
+      "detail": "Reissued onto AX005 LHR-JFK 2025-08-15 following cancellation of AX003; prior ticket 932-1234567890 voided"
+    }
+  ]
+}
+```
+
+> `seatAssignment.positionType`: `Window` · `Aisle` · `Middle`. `deckCode`: `M` (main) · `U` (upper). `ssrCodes` is an empty array `[]` when no SSRs are held. `apisData` may be `null` if APIS has not yet been provided by the passenger (collection is triggered at check-in for routes that require it). `changeHistory` is append-only — a new entry is added on every mutation.
+
 > **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`. `IX_Ticket_Flight` on `(FlightNumber, DepartureDate)`.
 > **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
 > **Immutability principle:** Ticket rows are never deleted; voiding sets `IsVoided = 1`. Re-issuance creates a new row with a new `ETicketNumber`; the old row is voided in the same transaction.
