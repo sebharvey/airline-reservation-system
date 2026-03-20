@@ -18,7 +18,7 @@
 {Describe the authentication model for this service:
 - Which orchestration layer sits in front of it?
 - How do channels authenticate (OAuth 2.0 / OIDC, API key, etc.)?
-- How are Orchestration API → Microservice calls authenticated? All orchestration APIs authenticate to microservices using **Azure Function Host Keys**, passed in the `x-functions-key` HTTP header. Keys are generated when the Azure Function app is first deployed and are stored in Azure Key Vault; orchestration services retrieve them at runtime via managed identity.
+- How are Orchestration API → Microservice calls authenticated? See [Microservice Authentication — Host Keys](../api.md#microservice-authentication--host-keys) in `api.md` for the full host key mechanism. All microservices currently share a single host key, passed via the `x-functions-key` HTTP header.
 - Does this service validate JWTs directly or delegate to the orchestration layer?}
 
 ### Required Headers
@@ -27,7 +27,7 @@
 |--------|----------|-------------|
 | `Content-Type` | Yes (for request bodies) | Must be `application/json` |
 | `Authorization` | Yes (at orchestration layer) | `Bearer {accessToken}` — JWT with 15-minute TTL, validated by the orchestration layer before the request reaches this service |
-| `x-functions-key` | Yes (on all Orchestration → Microservice calls) | Azure Function Host Key authenticating the orchestration API as an authorised caller. Generated at deployment; retrieved from Azure Key Vault by the orchestration layer at runtime |
+| `x-functions-key` | Yes (on all Orchestration → Microservice calls) | Azure Function Host Key authenticating the orchestration API as an authorised caller. See [`api.md` — Microservice Authentication](../api.md#microservice-authentication--host-keys) for the full mechanism |
 | `X-Correlation-ID` | Yes | UUID generated at the channel boundary; propagated on every downstream call for distributed tracing and log correlation |
 
 ### Data Protection
@@ -159,7 +159,7 @@ curl -X {METHOD} https://{orchestration-host}/v1/{resource-path} \
   }'
 ```
 
-> **Note:** The `Authorization: Bearer` header is required when calling via the orchestration API (the channel-facing route). Calls from the orchestration layer to this microservice are authenticated using the `x-functions-key` header (Azure Function Host Key) instead of the end-user JWT. Host keys are generated at deployment time and stored in Azure Key Vault.
+> **Note:** The `Authorization: Bearer` header is required when calling via the orchestration API (the channel-facing route). Calls from the orchestration layer to this microservice are authenticated using the `x-functions-key` header — see [`api.md` — Microservice Authentication](../api.md#microservice-authentication--host-keys) for the full host key mechanism.
 
 ---
 
