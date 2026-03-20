@@ -1044,6 +1044,8 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 
 #### `order.BasketConfig`
 
+// todo remove order.BasketConfig, it's not needed.  Just a single basket table required with a record created in the table per user session.  Ticketing timelimits are stored on the Order object itself.  Baskets will expire after 60 mins, in line with stored offer lifetimes.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | BasketConfigId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
@@ -1070,7 +1072,6 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 | TotalBagAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of bag offer prices; updated as bags are added during bookflow |
 | TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount + TotalBagAmount |
 | ExpiresAt | DATETIME2 | No | | | Basket hard expiry: creation time + `BasketExpiryHours` |
-| TicketingTimeLimit | DATETIME2 | No | | | Must ticket by this time: creation time + `TicketingTimeLimitHours` |
 | ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
