@@ -390,6 +390,8 @@ The Schedule capability allows airline operations staff to define repeating flig
 
 #### `schedule.FlightSchedule`
 
+The former `schedule.ScheduleCabin` and `schedule.ScheduleFare` tables have been consolidated into `schedule.FlightSchedule`. Cabin and fare definitions are stored in a single `CabinFares` JSON column — they are always read and written together as a unit, and are never queried individually by the Schedule MS. Removing the two child tables eliminates two FK joins on every schedule read and simplifies the write path to a single `INSERT`.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | ScheduleId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
@@ -404,42 +406,89 @@ The Schedule capability allows airline operations staff to define repeating flig
 | ValidFrom | DATE | No | | | First operating date (inclusive) |
 | ValidTo | DATE | No | | | Last operating date (inclusive) |
 | FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
+| CabinFares | NVARCHAR(MAX) | No | | | JSON array of cabin and fare definitions (see example below) |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
+> **Constraints:** `CHK_CabinFares` — `ISJSON(CabinFares) = 1`.
 
-#### `schedule.ScheduleCabin`
+##### `CabinFares` JSON structure
 
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| ScheduleCabinId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ScheduleId | UNIQUEIDENTIFIER | No | | FK → `schedule.FlightSchedule(ScheduleId)` | |
-| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| TotalSeats | SMALLINT | No | | | Seat count for this cabin from the aircraft configuration |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+```json
+{
+  "cabins": [
+    {
+      "cabinCode": "J",
+      "totalSeats": 48,
+      "fares": [
+        {
+          "fareBasisCode": "JFLEXGB",
+          "fareFamily": "Business Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 1250.00,
+          "taxAmount": 182.50,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 125000,
+          "pointsTaxes": 182.50
+        },
+        {
+          "fareBasisCode": "JSAVERGB",
+          "fareFamily": "Business Saver",
+          "currencyCode": "GBP",
+          "baseFareAmount": 950.00,
+          "taxAmount": 182.50,
+          "isRefundable": false,
+          "isChangeable": true,
+          "changeFeeAmount": 150.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 95000,
+          "pointsTaxes": 182.50
+        }
+      ]
+    },
+    {
+      "cabinCode": "Y",
+      "totalSeats": 220,
+      "fares": [
+        {
+          "fareBasisCode": "YFLEXGB",
+          "fareFamily": "Economy Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 350.00,
+          "taxAmount": 97.25,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 35000,
+          "pointsTaxes": 97.25
+        },
+        {
+          "fareBasisCode": "YLOWUK",
+          "fareFamily": "Economy Light",
+          "currencyCode": "GBP",
+          "baseFareAmount": 149.00,
+          "taxAmount": 97.25,
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 149.00,
+          "pointsPrice": null,
+          "pointsTaxes": null
+        }
+      ]
+    }
+  ]
+}
+```
 
-#### `schedule.ScheduleFare`
-
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| ScheduleFareId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ScheduleCabinId | UNIQUEIDENTIFIER | No | | FK → `schedule.ScheduleCabin(ScheduleCabinId)` | |
-| FareBasisCode | VARCHAR(20) | No | | | e.g. `YLOWUK`, `JFLEXGB` |
-| FareFamily | VARCHAR(50) | Yes | | | e.g. `Economy Light`, `Business Flex` |
-| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
-| BaseFareAmount | DECIMAL(10,2) | No | | | Carrier base fare excluding taxes |
-| TaxAmount | DECIMAL(10,2) | No | | | Total taxes and surcharges |
-| IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
-| IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-
-// todo: include points in this data?
-// todo: consolidate these three schedule tables into one table, using JSON fields to hold additional data.
+> `cabinCode` values: `F` · `J` · `W` · `Y`. `totalSeats` is sourced from the aircraft configuration for that cabin. `pointsPrice` and `pointsTaxes` are `null` for revenue-only fares. `changeFeeAmount` and `cancellationFeeAmount` default to `0.00`; non-changeable fares use `0.00` for `changeFeeAmount` since the change is simply not permitted. The Schedule MS copies this JSON verbatim into the response; the Operations API then reads each cabin and fare entry to drive the per-date `offer.FlightInventory` and `offer.Fare` creation calls to the Offer MS.
 
 ### Create Schedule
 
@@ -455,7 +504,7 @@ sequenceDiagram
     OpsApp->>ScheduleAPI: POST /v1/schedules
 
     ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
-    ScheduleMS->>ScheduleMS: Persist FlightSchedule, ScheduleCabin, ScheduleFare records
+    ScheduleMS->>ScheduleMS: Persist single FlightSchedule record (CabinFares JSON contains all cabin and fare definitions)
     ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
     ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[], cabinFareDefinitions[]
 
@@ -600,8 +649,10 @@ sequenceDiagram
 
     Web->>RetailAPI: POST /v1/search/connecting (origin=DEL, destination=JFK, date, pax)
     RetailAPI->>OfferMS: POST /v1/search (origin=DEL, destination=LHR, date, pax)
+    OfferMS->>OfferMS: Persist each result as StoredOffer with unique OfferId (60-min expiry)
     OfferMS-->>RetailAPI: Inbound leg options with OfferIds (e.g. AX412)
     RetailAPI->>OfferMS: POST /v1/search (origin=LHR, destination=JFK, connectDate, pax)
+    OfferMS->>OfferMS: Persist each result as StoredOffer with unique OfferId (60-min expiry)
     OfferMS-->>RetailAPI: Outbound leg options with OfferIds (e.g. AX001)
     RetailAPI->>RetailAPI: Pair legs, apply 60-min MCT filter, combine prices
     RetailAPI-->>Web: 200 OK — connecting itinerary options (each with [OfferId-Leg1, OfferId-Leg2], combined price)
@@ -609,9 +660,7 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
 ```
 
-// todo: need to add logic in this diagram to show the storing of the offers.
-
-*Ref: offer search - connecting itinerary assembly via LHR hub with minimum connect time filtering*
+*Ref: offer search - connecting itinerary assembly via LHR hub with minimum connect time filtering; both legs are persisted as StoredOffer records at search time to guarantee price integrity*
 
 #### Code Share Flights (Future Scope)
 
@@ -622,7 +671,7 @@ When code share is introduced, the following additions will be required:
 - `offer.FlightInventory`: add `OperatingCarrier CHAR(2)` and `OperatingFlightNumber VARCHAR(10)` columns to distinguish the carrier actually operating the aircraft from the marketing carrier (Apex Air, `AX`). For own-metal flights both values will be `AX` / the Apex flight number.
 - `offer.StoredOffer`: add `MarketingCarrier CHAR(2)` and `OperatingCarrier CHAR(2)` snapshot columns so the offer record is fully self-contained.
 - **API response schema:** The Offer MS search response and the Retail API search response should include optional `operatingCarrier` and `operatingFlightNumber` fields from day one (omitted or `null` for own-metal flights). Front-end clients must be built to handle and display the operating carrier distinction from launch, even though the values will always match the marketing carrier initially.
-- **Ticketing and delivery:** E-tickets issued by the Delivery microservice will need to carry the operating carrier designator; no schema change to `delivery.FlightManifest` is anticipated as the manifest records the flight number already, but the field semantics documentation should clarify that it carries the **marketing** flight number.
+- **Ticketing and delivery:** E-tickets issued by the Delivery microservice will need to carry the operating carrier designator; no schema change to `delivery.Manifest` is anticipated as the manifest records the flight number already, but the field semantics documentation should clarify that it carries the **marketing** flight number.
 - **Inventory partitioning:** When Apex Air sells seats on a partner carrier's aircraft, the inventory source will be external. A future `InventorySource` field (e.g. `OwnMetal` / `Interline` / `CodeShare`) on `FlightInventory` will be needed to route inventory queries to the correct system.
 
 No code share work is required now, but all new schema columns and API fields introduced in this release should be named to leave clean extension points for the above.
@@ -673,14 +722,17 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | TotalAmount | DECIMAL(10,2) | No | | | `BaseFareAmount + TaxAmount`; stored explicitly for query efficiency |
 | IsRefundable | BIT | No | 0 | | Whether the fare permits a refund on voluntary cancellation |
 | IsChangeable | BIT | No | 0 | | Whether the fare permits a voluntary flight change |
+| ChangeFeeAmount | DECIMAL(10,2) | No | `0.00` | | Fee charged on voluntary flight change; `0.00` for fully flexible fares |
+| CancellationFeeAmount | DECIMAL(10,2) | No | `0.00` | | Fee deducted from refund on voluntary cancellation; `0.00` for fully refundable fares |
+| PointsPrice | INT | Yes | | | Points required to redeem this fare as a reward booking; `NULL` if this fare is not available for points redemption |
+| PointsTaxes | DECIMAL(10,2) | Yes | | | Cash taxes and fees payable when this fare is redeemed using points; always `>= 0`; `NULL` if `PointsPrice` is `NULL` |
 | ValidFrom | DATETIME2 | No | | | Fare sale window start — the earliest point at which this fare may be offered to customers |
 | ValidTo | DATETIME2 | No | | | Fare sale window end — the latest point at which this fare may be offered; expired fares are excluded from search results |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-// todo: need to support points here too, customers can search and book by money (revenue) or points.  This table needs to support both.
-
-> ⚠️ CRITICAL: `ChangeFee` and `CancellationFee` amounts are referenced by the flight change and cancellation flows (e.g. `totalDue = changeFee + addCollect`, `refundableAmount = totalPaid − cancellationFee`) but are not stored on this table or anywhere else in the schema. Either add `ChangeFeeAmount DECIMAL(10,2)` and `CancellationFeeAmount DECIMAL(10,2)` columns to `offer.Fare`, or define a separate fee lookup mechanism. Without these, coding agents cannot implement the change/cancel fee calculation.
+> **Points pricing:** `PointsPrice` and `PointsTaxes` enable reward bookings. A fare with a non-null `PointsPrice` can be redeemed for points; the cash `TotalAmount` still represents the revenue price shown on revenue booking searches. When a customer searches in points mode, the Offer MS returns `PointsPrice` and `PointsTaxes` as the primary pricing fields. If `PointsPrice` is `NULL`, the fare is revenue-only and will not appear in points-mode searches.
+> **Change and cancellation fees:** `ChangeFeeAmount` and `CancellationFeeAmount` are stored here so the Retail API can calculate `totalDue = changeFee + addCollect` and `refundableAmount = totalPaid − cancellationFee` without a separate fee lookup. Both default to `0.00`; non-zero values are set at schedule creation time per the pricing rules supplied by operations staff.
 
 #### `offer.StoredOffer`
 
@@ -701,15 +753,20 @@ The Offer domain maintains three tables: `FlightInventory` (seat capacity per fl
 | TotalAmount | DECIMAL(10,2) | No | | | Total at time offer was created |
 | IsRefundable | BIT | No | 0 | | Fare conditions at time of offer creation |
 | IsChangeable | BIT | No | 0 | | Fare conditions at time of offer creation |
+| ChangeFeeAmount | DECIMAL(10,2) | No | `0.00` | | Snapshotted change fee at time of offer creation |
+| CancellationFeeAmount | DECIMAL(10,2) | No | `0.00` | | Snapshotted cancellation fee at time of offer creation |
+| PointsPrice | INT | Yes | | | Points required to redeem this offer; `NULL` for revenue-only offers |
+| PointsTaxes | DECIMAL(10,2) | Yes | | | Cash taxes payable when redeemed with points; `NULL` if `PointsPrice` is `NULL` |
+| BookingType | VARCHAR(10) | No | `'Revenue'` | | `Revenue` · `Reward`; set at offer creation time based on the search mode |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| ExpiresAt | DATETIME2 | No | | | Offer must be rejected by Order MS if `now > ExpiresAt` |
+| ExpiresAt | DATETIME2 | No | | | Offer must be rejected by Order MS if `now > ExpiresAt`; set to `CreatedAt + 60 minutes` |
 | IsConsumed | BIT | No | 0 | | Set to `1` once retrieved and locked by Order MS |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-// todo: need to support points here too, customers can search and book by money (revenue) or points.  This table needs to support both.  
-
 > **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job to purge expired unconsumed offers.
 > **Design note:** Flight and fare fields are deliberately denormalised into this table so that the offer snapshot is fully self-contained. If `offer.Fare` is later updated or withdrawn, stored offers retain the exact price and conditions that were presented to the customer.
+> **Points snapshot:** `PointsPrice` and `PointsTaxes` are snapshotted from `offer.Fare` at offer creation time, ensuring the points price presented to the customer is locked for the 60-minute offer window regardless of any subsequent fare updates.
+> **Offer expiry alignment:** `ExpiresAt` is set to `CreatedAt + 60 minutes`, matching the basket expiry window. This ensures a basket cannot reference an offer that has already expired.
 
 -----
 
@@ -723,16 +780,15 @@ The Order microservice manages the complete booking lifecycle — from basket cr
   - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment. For reward booking changes, includes `pointsAdjustment` (positive = additional points redeemed, negative = points reinstated) and updated `totalPointsAmount`.
   - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
-
-// todo: add an initial state for order status called OrderInit which will represent an order being created but not all information (say pax details) not yet supplied.  This will be key during booking creation by contact centre who will be using cryptic command lines and will build up the booking in parts.  It cannot progress outside of the OrderInit stage (e.g. generate aa PNR number) until key information has been supplied (pax names, itineary, ticketig timelines, contact field (email or phone), and the person creating the booking (sales agent, or 'web' in case of a web order).
+- An initial `OrderInit` status is supported for orders that are being assembled incrementally — particularly by Contact Centre agents using cryptic command-line tools who build bookings in stages. An order in `OrderInit` cannot advance to `Confirmed` (and will not have a booking reference / PNR generated) until all mandatory fields are present: passenger names, itinerary, ticketing time limit, a contact field (email or phone), and the identity of the person creating the booking (sales agent reference, or `WEB` for web-originated orders). The `OrderInit` state is only relevant for Contact Centre channel bookings; web, app, and kiosk bookings progress directly from basket creation to confirmation without entering `OrderInit`.
 
 ### Create — Bookflow
 
 The **bookflow** is the end-to-end initial purchase journey — from flight offer selection and basket creation through passenger details, ancillary selection, payment, and order confirmation — all within a single basket session bounded by the ticketing time limit.
 
 - The `Basket` is a transient Order DB record accumulating flight offers, seat offers, bag offers, and passenger details as the booking is built.
-- Hard-deleted on successful sale; expires automatically after 24 hours if abandoned. // todo this should be nore more than the offer store value - otherwise an offer will expire and the basket is still referncing offer ids which are no longer valid.
-- A configurable ticketing time limit (TTL, default 24 hours) is set at basket creation — if elapsed, held inventory is released and the basket is marked expired.
+- Hard-deleted on successful sale; expires automatically after **60 minutes** if abandoned — matching the `StoredOffer` expiry window so that all offer IDs referenced by an active basket remain valid throughout the basket lifetime.
+- A ticketing time limit (TTL) is set at basket creation and stored on the `order.Order` record itself (not the basket); if elapsed, held inventory is released and the basket is marked expired.
 - For each `OfferId` in the basket, the Order MS retrieves the stored offer snapshot from the Offer MS, guaranteeing the price and fare conditions match exactly what the customer was shown at search time.
 
 ```mermaid
@@ -770,19 +826,21 @@ sequenceDiagram
         RetailAPI->>OrderMS: POST /v1/basket (offerIds, channel, currency, bookingType=Reward, loyaltyNumber)
     end
 
-    Note over OrderMS: Basket created with ExpiresAt = now + 24hr<br/>TicketingTimeLimit = now + 24hr (configurable)
+    Note over OrderMS: Basket created with ExpiresAt = now + 60 min
 
     loop For each flight OfferId
-        OrderMS->>OfferMS: GET /v1/offers/{offerId}
-        OfferMS-->>OrderMS: 200 OK — stored offer snapshot (flight, fare, pricing, inventoryId)
-        OrderMS->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
-        OfferMS-->>OrderMS: 200 OK — seats held (SeatsHeld incremented, SeatsAvailable decremented)
-        OrderMS->>OrderMS: Add flight offer to basket
+        RetailAPI->>OfferMS: GET /v1/offers/{offerId}
+        OfferMS-->>RetailAPI: 200 OK — stored offer snapshot (flight, fare, pricing, inventoryId)
+        RetailAPI->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
+        OfferMS-->>RetailAPI: 200 OK — seats held (SeatsHeld incremented, SeatsAvailable decremented)
+        RetailAPI->>OrderMS: POST /v1/basket/{basketId}/offers (offerSnapshot, inventoryId)
+        OrderMS-->>RetailAPI: 200 OK — offer added to basket
     end
-    Note over OrderMS: If any hold fails, release all previously held inventory and return error
+    Note over RetailAPI: If any hold fails, release all previously held inventory and return error
 
-    OrderMS-->>RetailAPI: 201 Created — basketId, itinerary, total fare price, ticketingTimeLimit
-    RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price, ticketingTimeLimit)
+    RetailAPI->>OrderMS: POST /v1/basket/{basketId}/finalise
+    OrderMS-->>RetailAPI: 200 OK — basketId, itinerary, total fare price
+    RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price)
 
     Note over Web: Reward bookings: lead passenger auto-filled from loyalty profile
     Traveller->>Web: Enter passenger details
@@ -898,9 +956,7 @@ sequenceDiagram
     Web-->>Traveller: Display booking confirmation
 ```
 
-// todo: there is direct microservice to microservice integration happening here, which breaks the de-coupled principles.  The Retail API should orhcestrate any logic which requires two or more microservices to communciate.  In this case Order MS talks directly to Offer MS.  Order MS should return data back to Retail API and the retail API will look up the offer information from the Offer MS and then send it to the Order MS.
-
-*Ref: order bookflow - end-to-end revenue and reward booking flow covering flight selection, ancillary addition, payment (and points redemption for reward bookings), ticketing, and order confirmation*
+*Ref: order bookflow - end-to-end revenue and reward booking flow covering flight selection, ancillary addition, payment (and points redemption for reward bookings), ticketing, and order confirmation; all cross-microservice orchestration is performed by the Retail API — microservices do not call each other*
 
 ### Reward Booking
 
@@ -1000,7 +1056,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
 
 - **Manifest population** (Retail API → Delivery MS):
   - Retail API validates each seat number against the active seatmap via the Seat MS before calling Delivery MS
-  - Retail API calls the Delivery microservice to write one `FlightManifest` row per passenger per segment, passing seat numbers that have already been validated
+  - Retail API calls the Delivery microservice to write one `delivery.Ticket` row per passenger per segment (and a corresponding `delivery.Manifest` row), passing seat numbers that have already been validated
 
 - **Ancillary settlement** (if seats or bags were selected during the bookflow):
   - Ancillary payments are authorised during the bookflow basket-confirm step, **before** order confirmation is written, so that all payment authorisations are in place when the order is created
@@ -1042,24 +1098,9 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 - Hard-deleted on successful order confirmation; if abandoned or the ticketing time limit elapses, marked `Expired` and held inventory released by a background cleanup job.
 - `BasketData` holds the full basket state as a JSON document; scalar fields used for indexed lookups and lifecycle management are stored as typed columns.
 
-#### `order.BasketConfig`
-
-// todo: remove order.BasketConfig, it's not needed.  Just a single basket table required with a record created in the table per user session.  Ticketing timelimits are stored on the Order object itself.  Baskets will expire after 60 mins, in line with stored offer lifetimes.
-
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| BasketConfigId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| BasketExpiryHours | SMALLINT | No | `24` | | Hours until an unpaid basket is expired |
-| TicketingTimeLimitHours | SMALLINT | No | `24` | | Hours from basket creation within which ticketing must complete |
-| IsActive | BIT | No | `1` | | |
-| Notes | VARCHAR(255) | Yes | | | Optional change annotation, e.g. `'Reduced to 2hr for peak season test'` |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-
-> **Indexes:** `IX_BasketConfig_Active` (unique) on `(IsActive)` WHERE `IsActive = 1`.
-> **Single active row:** Only one row may have `IsActive = 1` at any time. To change configuration, insert a new row with `IsActive = 1` and set the previous row to `IsActive = 0`. Rows are never deleted, only superseded.
-
 #### `order.Basket`
+
+Basket expiry is fixed at **60 minutes** from creation, matching the `StoredOffer` lifetime. This ensures that all offer IDs referenced by a basket remain valid for the duration of the basket lifecycle. There is no separate configuration table for basket or ticketing time limits; the ticketing time limit is stored on the `order.Order` record itself when the order is first created.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
@@ -1071,19 +1112,17 @@ The basket is the transient in-progress state for a purchase journey, accumulati
 | TotalSeatAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of seat offer prices; updated as seats are added during bookflow |
 | TotalBagAmount | DECIMAL(10,2) | Yes | `0.00` | | Sum of bag offer prices; updated as bags are added during bookflow |
 | TotalAmount | DECIMAL(10,2) | Yes | | | TotalFareAmount + TotalSeatAmount + TotalBagAmount |
-| ExpiresAt | DATETIME2 | No | | | Basket hard expiry: creation time + `BasketExpiryHours` |
+| ExpiresAt | DATETIME2 | No | | | Basket hard expiry: `CreatedAt + 60 minutes` |
 | ConfirmedOrderId | UNIQUEIDENTIFIER | Yes | | FK → `order.Order(OrderId)` | Set on successful confirmation; null until then |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | BasketData | NVARCHAR(MAX) | No | | | JSON document containing the full basket state (see example below) |
 
-> **Indexes:** `IX_Basket_Status_Expiry` on `(BasketStatus, ExpiresAt)` WHERE `BasketStatus = 'Active'` — used by background expiry job. `IX_Basket_TicketingTimeLimit` on `(TicketingTimeLimit)` WHERE `BasketStatus = 'Active'` — used to flag baskets approaching TTL.
+> **Indexes:** `IX_Basket_Status_Expiry` on `(BasketStatus, ExpiresAt)` WHERE `BasketStatus = 'Active'` — used by background expiry job.
 > **Constraints:** `CHK_BasketData` — `ISJSON(BasketData) = 1`; `BasketData` must be a valid JSON document.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 > **Basket lifecycle:** A basket is hard-deleted immediately when an order is confirmed. Expired and abandoned baskets are retained for 7 days for diagnostics before being purged.
-
-// todo: update the above, to remove references to ticketing timelimits in the basket table.
 
 **Example `BasketData` JSON document**
 
@@ -1251,19 +1290,18 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | OrderId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| BookingReference | CHAR(6) | Yes | | UK | Populated on confirmation, e.g. `AB1234`; null in `Draft` state |
-| OrderStatus | VARCHAR(20) | No | `'Draft'` | | `Draft` · `Confirmed` · `Changed` · `Cancelled` |
+| BookingReference | CHAR(6) | Yes | | UK | Populated on confirmation, e.g. `AB1234`; null before confirmation — multiple unconfirmed orders may have `NULL` simultaneously |
+| OrderStatus | VARCHAR(20) | No | `'Draft'` | | `OrderInit` · `Draft` · `Confirmed` · `Changed` · `Cancelled` |
 | ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `KIOSK` · `CC` · `AIRPORT` |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| TicketingTimeLimit | DATETIME2 | Yes | | | Latest time at which payment must complete; set at order creation; null until the order is confirmed |
 | TotalAmount | DECIMAL(10,2) | Yes | | | Total order value including all order items; null until confirmed |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
 
-// todo: make sure that BookingReference (pnr number) is unique, but this could be NULL across multiple rows if multiple agents are creating orders that have not yet been confirmed.
-
-> **Indexes:** `IX_Order_BookingReference` (unique) on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
+> **Indexes:** `IX_Order_BookingReference` (unique, filtered) on `(BookingReference)` WHERE `BookingReference IS NOT NULL` — enforces uniqueness of booking references whilst permitting multiple rows with a `NULL` booking reference (unconfirmed orders in `OrderInit` or `Draft` status).
 > **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
 > **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
@@ -1469,48 +1507,6 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 
 -----
 
-// todo: move the whole section below (Optimistic Concurrency Control) to the API.md file.  But make a note on what Optimistic Concurrency Control is in the technical considerations at the bottom of this file, with a link to the api.md file for more information. 
-
-### Optimistic Concurrency Control
-
-Booking (`order.Order`, `order.Basket`) and ticket (`delivery.FlightManifest`) records implement **Optimistic Concurrency Control (OCC)** using an integer `Version` column. This prevents lost updates when concurrent requests (e.g. a passenger updating seat selection while an agent modifies SSRs) attempt to modify the same record simultaneously.
-
-#### Mechanism
-
-- Each record is created with `Version = 1`.
-- Every mutating operation (UPDATE) must supply the caller's known version and include it in the `WHERE` clause:
-  ```sql
-  UPDATE order.[Order]
-  SET    OrderStatus = @newStatus,
-         OrderData   = @newData,
-         UpdatedAt   = SYSUTCDATETIME(),
-         Version     = Version + 1
-  WHERE  OrderId = @orderId
-  AND    Version  = @expectedVersion;
-  ```
-- If the `UPDATE` affects **0 rows**, the record has been modified by another writer since it was read — the operation is rejected with a `409 Conflict` response.
-- The same pattern applies to `order.Basket` and `delivery.FlightManifest`.
-
-#### API Behaviour
-
-All mutating endpoints that operate on booking or ticket records accept a `version` field in the request body (or as a header `If-Match: <version>`). The current version is returned in every read response.
-
-| Scenario | HTTP Response |
-|---|---|
-| `version` matches the stored value — update succeeds | `200 OK` (or `204 No Content`) |
-| `version` is absent from the request | `400 Bad Request` — `version` is required |
-| `version` does not match the stored value | `409 Conflict` — `{"error": "version_conflict", "message": "The record has been modified by another request. Re-fetch and retry."}` |
-
-#### Caller Responsibilities
-
-1. **Read before write:** Always `GET` the current record to obtain the latest `version` before issuing a mutation.
-2. **Include version on write:** Pass the retrieved `version` in every mutation request.
-3. **Handle 409 Conflict:** On receipt of `409 Conflict`, re-fetch the record and re-apply the intended change, then retry. Do not blindly overwrite — re-evaluate whether the change is still valid against the updated state.
-
-> **No distributed locks:** OCC avoids the need for pessimistic locking or distributed lock managers. Contention is expected to be low (most orders are modified by one actor at a time); the retry-on-conflict path is an exception, not the common path.
-
------
-
 ### Manage Booking — Update Passenger Details
 
 Passenger details may need updating post-booking for passports, name corrections, or contact information. Accurate **Advance Passenger Information (API)** is a regulatory requirement for international travel.
@@ -1540,16 +1536,17 @@ sequenceDiagram
     RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/passengers (updated PAX details)
     OrderMS-->>RetailAPI: 200 OK — order updated
 
-    RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated PAX details)
-    DeliveryMS-->>RetailAPI: 200 OK — updated e-ticket numbers issued
+    opt Name change detected (givenName or surname modified)
+        RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated PAX name)
+        DeliveryMS-->>RetailAPI: 200 OK — new e-ticket numbers issued (old numbers voided)
+        Note over RetailAPI: Passport, contact, and travel document updates do not trigger reissuance
+    end
 
-    RetailAPI-->>Web: 200 OK — update confirmed (bookingReference, updated e-ticket numbers)
+    RetailAPI-->>Web: 200 OK — update confirmed (bookingReference, e-ticket numbers if reissued)
     Web-->>Traveller: Display updated booking confirmation
 ```
 
-// todo: show the reissuance in a opt box since that only happens if name changes. Any other detail changes can be done without reissuance. 
-
-*Ref: manage booking - update passenger details with e-ticket reissuance*
+*Ref: manage booking - update passenger details; e-ticket reissuance is triggered only when the passenger name changes (name is encoded in the BCBP barcode string)*
 
 ### Manage Booking — Change Flight
 
@@ -1689,12 +1686,10 @@ A voluntary cancellation is a customer-initiated request governed by the fare co
 
 - Fares are non-refundable (full forfeiture), partially refundable (fixed cancellation fee deducted), or fully refundable (total amount returned).
 - Regardless of refundability, the e-ticket must be voided and inventory released — a cancelled booking must not hold seat inventory.
-- When a refund is due, the Order MS publishes a `RefundIdentified` event to the Accounting system; the Accounting system is responsible for initiating the refund via the Payment MS (`POST /v1/payment/{paymentReference}/refund`) and is outside the scope of the reservation system's synchronous booking path.
+- When a refund is due, the Order MS publishes an `OrderCancelled` event (containing `refundableAmount` and `originalPaymentReference`) to the Accounting system via the event bus. The Accounting system is responsible for initiating and settling the refund with the external payments provider — this is handled entirely outside the reservation system's synchronous booking path.
 - Government-imposed taxes (e.g. UK Air Passenger Duty) may be refundable even on non-refundable fares; selective tax refund handling is out of scope for this phase.
 
-> ⚠️ CRITICAL: The refund flow crosses three services (Order → Accounting → Payment) but the interaction between Accounting and Payment is not specified. Clarify whether the Accounting MS calls `POST /v1/payment/{paymentReference}/refund` directly (which would make it an orchestrator, not a pure event consumer) or whether a separate orchestration API handles refund execution. This decision affects the Accounting MS's role and its coupling to the Payment MS.
-
-// todo: update the above note, the refunds will be handled outside of this system by the acocunting system.  An event will be raised with the accounting system and that will issue the refund to the payments provider directly.
+> **Refund responsibility boundary:** Refund execution is fully external to the reservation system. The reservation system raises the `OrderCancelled` event with the refundable amount and payment reference; the Accounting system consumes this event and issues the refund directly to the payment provider. The reservation system's Payment MS (`POST /v1/payment/{paymentReference}/refund`) is not called as part of the voluntary cancellation flow — it exists only for scenarios where the reservation system itself must initiate a refund programmatically (e.g. automated reversals triggered by payment failures during the bookflow).
 
 ```mermaid
 sequenceDiagram
@@ -1970,34 +1965,121 @@ The fields break down as follows:
 | `2A00000012345678` | `2A00000012345678` | Frequent flyer / loyalty number |
 | `JAX7KLP2NZR901A` | `JAX7KLP2NZR901A` | Airline-specific free-text data (selectee indicator, document verification, etc.) |
 
-The Delivery microservice is responsible for assembling this string at the point of boarding card generation, drawing on data from the `FlightManifest` row and the confirmed order. The barcode string is returned in the boarding card payload alongside human-readable fields; channels render it using their preferred barcode library (e.g. PDF417 for print, QR for mobile).
+The Delivery microservice is responsible for assembling this string at the point of boarding card generation, drawing on data from the `delivery.Manifest` row and the confirmed order. The barcode string is returned in the boarding card payload alongside human-readable fields; channels render it using their preferred barcode library (e.g. PDF417 for print, QR for mobile).
 
 ### Data Schema — Delivery
 
-The Delivery domain's `FlightManifest` table holds one row per passenger per flight segment — populated at booking confirmation and updated on post-purchase seat changes.
+The Delivery domain uses three tables with distinct responsibilities:
 
-- Provides a queryable view of passenger load per flight — used for gate management, check-in verification, IROPS, and APIS submissions.
+- **`delivery.Ticket`** — the accountable document store; one row per e-ticket (one passenger, one flight segment). This is the financial record of the issued travel entitlement, analogous to an airline ticket stock record. Each row carries full passenger and flight data as a JSON payload for self-containment.
+- **`delivery.Manifest`** — the operational source of truth on who is on a given flight; one row per passenger per flight segment. Populated when a ticket is issued and updated on check-in, seat changes, SSR updates, and delays. Used by gate staff, ground handling, crew briefings, and IROPS processing.
+- **`delivery.Document`** — additional accountable document records analogous to Electronic Miscellaneous Documents (EMDs); one row per ancillary sale (seat purchase, bag purchase). Enables the Accounting system to track non-fare revenue items independently of the fare ticket.
+
+Creation of any row in `delivery.Ticket` or `delivery.Document` triggers an event to the Accounting system (via the event bus) containing the full record, allowing the Accounting MS to account for every issued travel document and ancillary sale.
+
 - Seat number integrity enforced at the orchestration layer: the calling orchestration API (Retail API, Airport API, or Disruption API) validates `SeatNumber` against the active seatmap via the Seat MS before calling the Delivery MS. The Delivery MS trusts the seat number provided by its caller.
 
-#### `delivery.FlightManifest`
+#### `delivery.Ticket`
 
-// todo: rename this delivery.Ticket and udpate the documentation wherever this is referenced.  This table stores the actual ticket informaton, so each ticket should be represented as a row here.
+Each row represents one issued e-ticket: one passenger on one flight segment. This is the accountable document store — the financial record of a travel entitlement. Additional detail (SSR codes, seat attributes, APIS data) is stored in a JSON `TicketData` field for extensibility.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| TicketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| ETicketNumber | VARCHAR(20) | No | | UK | e.g. `932-1234567890`; IATA format, unique per issued ticket |
+| InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
+| FlightNumber | VARCHAR(10) | No | | | Denormalised, e.g. `AX003` |
+| DepartureDate | DATE | No | | | Denormalised for query convenience |
+| BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
+| PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
+| GivenName | VARCHAR(100) | No | | | Denormalised for document readability |
+| Surname | VARCHAR(100) | No | | | Denormalised for document readability |
+| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
+| FareBasisCode | VARCHAR(20) | No | | | Revenue management fare basis code, e.g. `JFLEXGB` |
+| IsVoided | BIT | No | `0` | | Set to `1` on voluntary change, cancellation, or IROPS reissuance |
+| VoidedAt | DATETIME2 | Yes | | | Null until voided |
+| TicketData | NVARCHAR(MAX) | No | | | JSON document containing full ticket detail: SSR codes (as array), APIS data, seat assignment, change history |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
+
+##### `TicketData` JSON structure
+
+Scalar identifiers and status fields that exist as typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the extensible detail: seat assignment, SSR codes, APIS data, and change history.
+
+```json
+{
+  "seatAssignment": {
+    "seatNumber": "1A",
+    "positionType": "Window",
+    "deckCode": "M"
+  },
+  "ssrCodes": [
+    { "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" },
+    { "code": "WCHR", "description": "Wheelchair to ramp", "segmentRef": "SEG-1" }
+  ],
+  "apisData": {
+    "documentType": "PASSPORT",
+    "documentNumber": "PA1234567",
+    "issuingCountry": "GBR",
+    "expiryDate": "2030-01-01",
+    "nationality": "GBR",
+    "dateOfBirth": "1985-03-12",
+    "gender": "Male",
+    "residenceCountry": "GBR"
+  },
+  "changeHistory": [
+    {
+      "eventType": "Issued",
+      "occurredAt": "2025-06-01T09:14:00Z",
+      "actor": "RetailAPI",
+      "detail": "Initial ticket issuance"
+    },
+    {
+      "eventType": "SeatChanged",
+      "occurredAt": "2025-07-10T11:45:00Z",
+      "actor": "RetailAPI",
+      "detail": "Seat changed from 3C to 1A via manage-booking"
+    },
+    {
+      "eventType": "IROPSReissued",
+      "occurredAt": "2025-08-14T04:22:00Z",
+      "actor": "DisruptionAPI",
+      "detail": "Reissued onto AX005 LHR-JFK 2025-08-15 following cancellation of AX003; prior ticket 932-1234567890 voided"
+    }
+  ]
+}
+```
+
+> `seatAssignment.positionType`: `Window` · `Aisle` · `Middle`. `deckCode`: `M` (main) · `U` (upper). `ssrCodes` is an empty array `[]` when no SSRs are held. `apisData` may be `null` if APIS has not yet been provided by the passenger (collection is triggered at check-in for routes that require it). `changeHistory` is append-only — a new entry is added on every mutation.
+
+> **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`. `IX_Ticket_Flight` on `(FlightNumber, DepartureDate)`.
+> **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
+> **Immutability principle:** Ticket rows are never deleted; voiding sets `IsVoided = 1`. Re-issuance creates a new row with a new `ETicketNumber`; the old row is voided in the same transaction.
+> **Event on creation:** Each new `delivery.Ticket` row triggers a `TicketIssued` event to the Accounting system event bus, carrying the full ticket record for financial accounting.
+> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated. Referential integrity is the responsibility of the Retail API orchestration layer.
+> **Concurrency:** `Version` is used for optimistic concurrency control — see [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
+
+#### `delivery.Manifest`
+
+The operational source of truth for who is on a given flight. One row per passenger per flight segment. Populated when a ticket is issued; updated on check-in, seat changes, SSR updates, and schedule changes. Used by departure control systems, gate staff, ground handling, and crew briefing.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | ManifestId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| TicketId | UNIQUEIDENTIFIER | No | | FK → `delivery.Ticket(TicketId)` | Links manifest row to the issued ticket |
 | InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
-| FlightNumber | VARCHAR(10) | No | | | Denormalised for query convenience, e.g. `AX003` |
+| FlightNumber | VARCHAR(10) | No | | | Denormalised, e.g. `AX003` |
 | DepartureDate | DATE | No | | | Denormalised for query convenience |
 | AircraftType | CHAR(4) | No | | | Used for seatmap validation at write time |
 | SeatNumber | VARCHAR(5) | No | | | e.g. `1A`, `22K` — must exist on active seatmap for `AircraftType` |
 | CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
-| ETicketNumber | VARCHAR(20) | No | | | e.g. `932-1234567890` |
+| ETicketNumber | VARCHAR(20) | No | | | e.g. `932-1234567890`; denormalised from `delivery.Ticket` |
 | PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
 | GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
-| SsrCodes | VARCHAR(100) | Yes | | | Comma-separated IATA SSR codes for this PAX on this segment, e.g. `VGML,WCHR`; written at booking confirmation and updated on SSR change |
+| SsrCodes | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`; written at booking confirmation and updated on SSR change |
 | DepartureTime | TIME | No | | | Local departure time; updated by Disruption API on delay |
 | ArrivalTime | TIME | No | | | Local arrival time; updated by Disruption API on delay |
 | CheckedIn | BIT | No | `0` | | |
@@ -2006,14 +2088,102 @@ The Delivery domain's `FlightManifest` table holds one row per passenger per fli
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
-// todo: some of this ticket data can be stored as a JSON field (similar to order and basket).  That way (for example) we can store a proper array of SSR coded, rather than a CSV value.
+> **Indexes:** `IX_Manifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_Manifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_Manifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_Manifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
+> **Lifecycle:** Manifest rows are created when a ticket is issued; removed (hard-deleted) when a booking is cancelled or a flight change removes the segment. On IROPS rebooking, the old manifest row is deleted and a new one written for the replacement flight.
+> **SsrCodes:** Stored as a JSON array (e.g. `["VGML","WCHR"]`) rather than a CSV string, enabling clean serialisation/deserialisation and future query support via SQL Server JSON functions.
+> **Seatmap validation:** The orchestration layer is responsible for validating `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery MS. The Delivery MS trusts the seat number provided by its caller.
+> **Concurrency:** `Version` is used for optimistic concurrency control — see [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
 
-> **Indexes:** `IX_FlightManifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_FlightManifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_FlightManifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_FlightManifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
-> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated (and would be physically separated in a fully isolated deployment). Referential integrity between these schemas is the responsibility of the Retail API orchestration layer, which controls the write sequence.
-> **Seatmap validation:** The orchestration layer is responsible for validating the `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery microservice. The Delivery MS trusts the seat number provided by its caller. This validation responsibility applies to both initial writes (at booking confirmation) and updates (at seat changes) — the orchestration API (Retail API, Airport API, or Disruption API) must call `GET /v1/seatmap/{aircraftType}` on the Seat MS and confirm the seat number exists in the returned cabin layout before calling Delivery MS. If the seat is not present on the active seatmap, the orchestration layer must reject the request before it reaches the Delivery MS.
-> **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
+#### `delivery.Document`
 
-// Todo: create a delivery.Manifest table here, and reference that throughout the documentation that once a ticket is created, the pax is clearly added to this table alongisde the ticket reference and the flight number and date.  This table should then be used by further downstream departture controls, flight manifests given to crew, etc.  In otherwords, the delivery.Ticket is the accoutnable document (finance) store and the delivery.Manifest is the source of truth on who is on a flight.  Update the documentation throughout to show the manifest updating when the ticket is issued.  There must also be another table created called delivery.Document which would be akin to EMDs so we can store any additional accountable document records.  Creation of any record into these tables should trigger an event to the accounting system eventing the record in it's entirity, so the accounting system can account for the data within the finanancal documnt record.
+Accountable document records for non-fare ancillary sales — analogous to Electronic Miscellaneous Documents (EMDs) in legacy airline systems. One row per ancillary item purchased (seat selection, additional bag). Creation of any `delivery.Document` row triggers a `DocumentIssued` event to the Accounting system event bus.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| DocumentId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| DocumentNumber | VARCHAR(20) | No | | UK | System-generated reference, e.g. `932-EMD-0001234`; unique per document |
+| DocumentType | VARCHAR(30) | No | | | `SeatAncillary` · `BagAncillary` |
+| BookingReference | CHAR(6) | No | | | Associated booking reference |
+| ETicketNumber | VARCHAR(20) | No | | | Associated e-ticket (links the ancillary to the travel segment it covers) |
+| PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
+| SegmentRef | VARCHAR(20) | No | | | Segment identifier the ancillary applies to (e.g. `SEG-1`) |
+| PaymentReference | VARCHAR(20) | No | | | Associated payment reference, e.g. `AXPAY-0002` |
+| Amount | DECIMAL(10,2) | No | | | Amount charged for this ancillary item |
+| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
+| IsVoided | BIT | No | `0` | | Set to `1` if the ancillary is refunded or reversed |
+| DocumentData | NVARCHAR(MAX) | No | | | JSON document containing full ancillary detail (seat position, bag sequence, price breakdown, etc.) |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+##### `DocumentData` JSON structure
+
+Typed columns already present on `delivery.Document` (`documentNumber`, `documentType`, `bookingReference`, `eTicketNumber`, `passengerId`, `segmentRef`, `paymentReference`, `amount`, `currencyCode`, `isVoided`, `createdAt`, `updatedAt`) are excluded from the JSON. The JSON carries the IATA EMD service detail and price breakdown that varies by ancillary type, plus a coupon status and void history.
+
+The top-level `ancillaryDetail` object is a discriminated union — its shape depends on `documentType`.
+
+**`SeatAncillary` example**
+
+```json
+{
+  "emdType": "EMD-A",
+  "rfic": "A",
+  "rfisc": "0B5",
+  "serviceDescription": "Seat Selection — Business Window",
+  "couponStatus": "Open",
+  "ancillaryDetail": {
+    "type": "SeatAncillary",
+    "seatNumber": "1A",
+    "positionType": "Window",
+    "deckCode": "M",
+    "cabinCode": "J",
+    "seatAttributes": ["ExtraLegroom", "LieFlat"]
+  },
+  "priceBreakdown": {
+    "baseAmount": 45.00,
+    "taxes": [
+      { "code": "GB", "description": "UK Air Passenger Duty", "amount": 0.00 }
+    ],
+    "totalAmount": 45.00,
+    "currencyCode": "GBP"
+  },
+  "voidHistory": []
+}
+```
+
+**`BagAncillary` example**
+
+```json
+{
+  "emdType": "EMD-A",
+  "rfic": "C",
+  "rfisc": "0GO",
+  "serviceDescription": "Additional Checked Bag — 23 kg",
+  "couponStatus": "Open",
+  "ancillaryDetail": {
+    "type": "BagAncillary",
+    "bagSequenceNumber": 2,
+    "weightKg": 23,
+    "dimensionsCm": { "length": 90, "width": 75, "depth": 43 },
+    "bagTagNumber": null
+  },
+  "priceBreakdown": {
+    "baseAmount": 60.00,
+    "taxes": [
+      { "code": "GB", "description": "UK Air Passenger Duty", "amount": 0.00 }
+    ],
+    "totalAmount": 60.00,
+    "currencyCode": "GBP"
+  },
+  "voidHistory": []
+}
+```
+
+> `emdType`: `EMD-A` (associated — tied to a specific e-ticket/flight coupon) or `EMD-S` (standalone). All current ancillaries are `EMD-A`. `rfic` is the IATA Reason for Issuance Code (`A` = air transportation, `C` = baggage). `rfisc` is the sub-code identifying the specific service. `couponStatus`: `Open` → `Used` (set by Airport API at bag drop / boarding) · `Void` (set on refund). `bagTagNumber` is null at purchase and populated by the Airport API when the bag is checked in. `voidHistory` is an append-only array of `{ occurredAt, actor, reason }` entries added when `IsVoided` is set to `1`.
+
+> **Indexes:** `IX_Document_Number` (unique) on `(DocumentNumber)`. `IX_Document_BookingReference` on `(BookingReference)`. `IX_Document_ETicketNumber` on `(ETicketNumber)`.
+> **Constraints:** `CHK_DocumentData` — `ISJSON(DocumentData) = 1`.
+> **Event on creation:** Each new `delivery.Document` row triggers a `DocumentIssued` event to the Accounting system event bus, carrying the full document record so the Accounting MS can record the ancillary revenue.
+> **Scope:** `delivery.Document` covers seat and bag ancillaries sold through the reservation system. Upgrade documents and future ancillary types (e.g. lounge access, excess baggage waivers) should also be recorded here when introduced.
 
 ## Disruption API
 
@@ -2028,6 +2198,7 @@ The Disruption API orchestrates the reservation system's response to disruption 
 ```mermaid
 graph LR
     FOS[Flight Operations System] -->|POST disruption event| DISRUPTION_API[Disruption API]
+    DISRUPTION_API -->|Read/write disruption event log| DISRUPTION_DB[(Disruption DB)]
     DISRUPTION_API -->|Search available inventory| OFFER[Offer MS]
     DISRUPTION_API -->|Update / rebook orders| ORDER[Order MS]
     DISRUPTION_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
@@ -2085,7 +2256,7 @@ sequenceDiagram
 **Delay handling rules:**
 
 - The departure and arrival times on every confirmed `order.Order` segment record for the affected flight are updated to reflect the new scheduled times.
-- The `delivery.FlightManifest` records are updated to reflect the new departure time for gate management and check-in purposes.
+- The `delivery.Manifest` records are updated to reflect the new departure time for gate management and check-in purposes.
 - E-ticket reissuance is required if the delay constitutes a "material schedule change" under IATA ticketing rules (typically a change of more than 60 minutes). The threshold is configurable. Where reissuance is required, the Disruption API calls the Delivery microservice to reissue and the Order microservice is updated with new e-ticket numbers.
 - An `OrderChanged` event is published by the Order microservice to the event bus so downstream services (Accounting, Customer) are aware of the change.
 - Passengers whose check-in window has already opened (within 24 hours of the original departure) are notified immediately.
@@ -2100,10 +2271,9 @@ When the FOS notifies the Disruption API that a flight has been cancelled, the A
 2. If no direct flight can accommodate the passengers within an acceptable timeframe, a **connecting itinerary** via an intermediate point is considered.
 3. Each passenger is rebooked into the same cabin class where possible. If the same cabin is unavailable, the passenger is upgraded to the next available cabin (no downgrade without consent).
 4. All e-tickets for the cancelled flight are voided and new e-tickets are issued for the replacement flight(s).
-5. The `delivery.FlightManifest` records for the cancelled flight are removed and new manifest entries are created for the replacement flight.
+5. The `delivery.Manifest` records for the cancelled flight are removed and new manifest entries are created for the replacement flight.
 6. Passengers are notified of their new itinerary.
-
-// todo: also include the eventuality that if a customer cannot be reaccomodated onto a new flight (let's say they canont be put on a new flight within 72hrs), they will be removed from the flights altother and a refund issued.  In this case, the customer would need to rebook new flights.
+7. **If no suitable replacement flight can be found within the configurable lookahead window (default: 72 hours):** The booking is cancelled entirely, the original e-tickets are voided, held inventory is released, and an `OrderCancelled` event is published to the Accounting system with a `refundableAmount` equal to the full fare paid (IROPS policy: full refund regardless of fare conditions). The passenger is notified that no rebooking is available and directed to contact the airline or rebook independently. The booking is flagged in the Contact Centre App for follow-up.
 
 > **Future consideration — missed connections resulting from cancellation rebooking:** When a passenger is rebooked onto a connecting itinerary (because no viable direct flight is available), there is a risk that a disruption to either leg of that connecting journey could result in a missed connection. Additionally, where minimum connection times at the transit airport are tight, the system must validate that the layover is operationally feasible. Detection and handling of these scenarios requires additional logic — similar in nature to the delay/missed-connection case noted above — and must be addressed in a future design phase before widespread use of connecting rebooking in an IROPS context.
 
@@ -2117,12 +2287,16 @@ sequenceDiagram
     participant DeliveryMS as Delivery [MS]
 
     FOS->>DisruptionAPI: POST /v1/disruptions/cancellation (disruptionEventId, flightNumber, departureDate, origin, destination, reason)
-    DisruptionAPI->>DisruptionAPI: Validate payload- idempotency check
+    DisruptionAPI->>DisruptionAPI: Validate payload- idempotency check (reject if disruptionEventId already processed)
 
-    Note over DisruptionAPI,OfferMS: Take the flight off sale immediately — before any rebooking begins
+    Note over DisruptionAPI,OfferMS: Take the flight off sale immediately — before any rebooking begins (synchronous, before 202 is returned)
     DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
     OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
 
+    Note over DisruptionAPI: Queue rebooking job on Service Bus with full event payload; return 202 immediately
+    DisruptionAPI-->>FOS: 202 Accepted — event received, inventory closed, rebooking queued for async processing
+
+    Note over DisruptionAPI: Async worker picks up the queued rebooking job from Service Bus
     DisruptionAPI->>OrderMS: GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed
     OrderMS-->>DisruptionAPI: 200 OK — list of affected orders (bookingReference, passengers, segments, cabinCode, bookingType, loyaltyNumber, totalPointsAmount)
 
@@ -2174,22 +2348,47 @@ sequenceDiagram
         Note over DisruptionAPI: Trigger passenger notification (email/push) with new itinerary details
     end
 
-    DisruptionAPI-->>FOS: 202 Accepted — cancellation processed
+    Note over DisruptionAPI: Async processing complete — status updated in DisruptionEvent log
 ```
 
-// todo: given that this process could take a while and the API must respond to the FOS system immediately (see Disruption API — Idempotency and Reliability) udpate the flow to queue the request onto service bus and then it will be worked by an async process by the Disruption API.
-
-*Ref: disruption - flight cancellation handling with passenger rebooking onto direct or connecting replacement flights, including points adjustment for reward bookings*
+*Ref: disruption - flight cancellation handling with async passenger rebooking; inventory closure is synchronous (before 202 is returned to FOS); all per-passenger rebooking work is processed asynchronously via Service Bus*
 
 **Cancellation handling rules:**
 
-- **The cancelled flight is taken off sale immediately** — as the very first action after validating the event, before retrieving affected orders or searching for alternatives. This prevents new bookings from being accepted on the flight while rebooking is in progress. The `offer.FlightInventory` record is updated to `SeatsAvailable = 0` with a status of `Cancelled`.
+- **The cancelled flight is taken off sale immediately and synchronously** — as the very first action after validating the event. This prevents new bookings from being accepted on the flight while rebooking is in progress. The `offer.FlightInventory` record is updated to `SeatsAvailable = 0` with a status of `Cancelled`. The `202 Accepted` response is returned to the FOS immediately after this step; all subsequent per-passenger rebooking work is queued onto Service Bus for async processing.
 - The Disruption API processes passengers in priority order: higher cabin class first, then loyalty tier (Platinum → Gold → Silver → Blue), then booking date (earliest first). This ensures the best available seats go to the highest-value passengers.
 - Seat assignments on the replacement flight are not pre-assigned by the Disruption API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
-- If no replacement flight is found within a configurable lookahead window (default: 72 hours), the booking is flagged for manual handling by the Contact Centre rather than left in an unresolved state.
+- If no replacement flight is found within the 72-hour lookahead window, the booking is cancelled with a full IROPS refund (see step 7 of the rebooking logic above) and the passenger is notified.
 - Where the original fare conditions do not permit free rebooking (e.g. non-changeable fares), the airline's IROPS policy overrides these conditions — all passengers on a cancelled flight are entitled to free rebooking regardless of fare type. This waiver is applied by the Order microservice when the `reason=FlightCancellation` flag is present.
 - **Reward bookings:** Under IROPS, the airline absorbs any additional points cost if the replacement flight has a higher points price — the customer is never charged more points for an airline-initiated cancellation. If the replacement flight costs fewer points, the difference is reinstated to the customer's loyalty balance via the Customer microservice. Tax differences on IROPS rebookings are also absorbed by the airline.
 - A single `OrderChanged` event (with `changeType=IROPSRebook`) is published by the Order microservice per affected booking, consumed by the Accounting microservice for revenue accounting adjustments. For reward bookings, the event includes `bookingType=Reward` and any `pointsAdjustment` so Accounting can track the points impact.
+
+---
+
+### Data Schema — Disruption
+
+The Disruption API has its own persistent store (a dedicated SQL database) used solely for deduplication and event-processing state. No reservation or fare data is stored here.
+
+**disruption.DisruptionEvent**
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `DisruptionEventId` | `NVARCHAR(100)` | PK — FOS-supplied unique identifier; used for idempotency deduplication |
+| `EventType` | `NVARCHAR(20)` | `Delay` or `Cancellation` |
+| `FlightNumber` | `NVARCHAR(10)` | Affected marketing flight number (e.g. `AX101`) |
+| `DepartureDate` | `DATE` | Scheduled departure date (UTC) |
+| `Status` | `NVARCHAR(20)` | `Received` → `Processing` → `Completed` / `Failed` |
+| `AffectedPassengerCount` | `INT` | Total number of passengers on the affected flight at time of event receipt |
+| `ProcessedPassengerCount` | `INT` | Running count of passengers successfully reboooked or notified; updated by the async worker after each booking is handled |
+| `Payload` | `NVARCHAR(MAX)` | Full JSON event payload as received from FOS; retained for replay and audit |
+| `ReceivedAt` | `DATETIME2` | UTC timestamp when the event was first received |
+| `ProcessingStartedAt` | `DATETIME2 NULL` | UTC timestamp when async processing began |
+| `CompletedAt` | `DATETIME2 NULL` | UTC timestamp when all affected passengers were processed |
+| `ErrorDetail` | `NVARCHAR(MAX) NULL` | Populated if `Status = Failed`; contains the last error message for operational debugging |
+
+> **Status transitions:** `Received` is written synchronously before the `202 Accepted` is returned to the FOS. The async Service Bus worker updates `Status` to `Processing` when it picks up the job, then to `Completed` (or `Failed`) once all per-passenger work is done. `ProcessedPassengerCount` is incremented after each individual booking is handled, giving operational staff a real-time progress indicator.
+
+> **Idempotency:** On receipt of a disruption event, the Disruption API performs an `INSERT IF NOT EXISTS` on `DisruptionEventId`. If the row already exists (duplicate delivery from FOS), the request is acknowledged with `202 Accepted` immediately — no downstream calls are made.
 
 ---
 
@@ -2197,11 +2396,9 @@ sequenceDiagram
 
 The Disruption API must be idempotent — the FOS may send the same event more than once due to retries or network failures.
 
-- Each event must include a unique `disruptionEventId`; events with an ID already in the processed log are acknowledged (`202 Accepted`) without re-processing.
-- Long-running cancellation rebooking operations (large passenger loads) are processed asynchronously; `202 Accepted` is returned to the FOS immediately.
-- Operational progress is visible to Contact Centre agents via the existing order management tools in the Retail API — the FOS does not poll for completion.
-
-> ⚠️ CRITICAL: The Disruption API requires its own persistent data store (or a dedicated table in a shared DB) to maintain the `disruptionEventId` deduplication log. The high-level architecture diagram does not show a database for the Disruption API. This store needs at minimum: `DisruptionEventId` (PK), `EventType` (delay/cancellation), `FlightNumber`, `DepartureDate`, `Status` (received/processing/completed/failed), `ReceivedAt`, and `CompletedAt`. Without this, idempotency cannot be implemented.
+- Each event must include a unique `disruptionEventId`; events with an ID already in the `disruption.DisruptionEvent` table are acknowledged (`202 Accepted`) without re-processing.
+- Long-running cancellation rebooking operations (large passenger loads) are processed asynchronously; `202 Accepted` is returned to the FOS immediately after the `DisruptionEvent` row is written and inventory is closed.
+- Operational progress is visible to Contact Centre agents via the existing order management tools in the Retail API — the FOS does not poll for completion. The `ProcessedPassengerCount` field on `disruption.DisruptionEvent` gives staff a real-time view of async rebooking progress.
 
 ---
 
@@ -2222,15 +2419,12 @@ Ancillary products may be purchased at three points in the customer journey:
 
 ### Seat
 
-The Seat microservice is the system of record for aircraft seatmap definitions and fleet-wide seat pricing rules — its sole responsibility is serving the **physical cabin layout**.
+The Seat microservice is the system of record for aircraft seatmap definitions, fleet-wide seat pricing rules, and **seat offer generation**.
 
-- Provides cabin configuration, seat positions, seat attributes (class, position, extra legroom), and position-based pricing rules via two endpoints: `GET /v1/seatmap/{aircraftType}` (layout) and `GET /v1/seat-pricing?aircraftType={aircraftType}` (pricing rules).
-- Does **not** generate seat offers, assign `SeatOfferId` values, or manage availability/inventory — availability belongs to the Offer MS; `SeatOfferId` generation and the merged seat offer response belong to the Retail API orchestration layer.
-- When a channel requests a seatmap, the Retail API retrieves the seatmap layout and pricing rules from the Seat MS, retrieves per-seat availability status from the Offer MS, and merges all three datasets before returning the seat offer response to the channel.
-
-> **Cross-document note:** The `api-reference.md` Offer MS section describes `GET /v1/flights/{flightId}/seat-offers` as consulting `seat.SeatPricing` for prices. This is incorrect — it would constitute a boundary violation. The Offer MS returns availability status only (available, held, sold); pricing is served exclusively by the Seat MS via `GET /v1/seat-pricing`. The Retail API merges both. `api-reference.md` must be updated to match this design.
-
-// todo: clarification on the note above.  It was originally intented that the Offer MS would be responsible for all offers (including seats and bags), but in retrospect, I want the seats and bags MS's to handle storing the offers and returning them with offer Ids to the consumer (retail api) and that the Offer MS retatains accountability only for fares.  Given that seat and bag pricing is not volatile, we don't need to store these offers once generated, but you will need to add to this document the table schemas for offers being returned by both the Bags and Seat MS.  The offer IDs should be stored in the basket during bookflow and the Retail APi should recall the Seat and Bag MS with the offer ID to return the latest pricing information in another operation/resource on the microservice. 
+- Provides cabin configuration, seat positions, seat attributes (class, position, extra legroom), position-based pricing rules, and seat offers (priced per seat per flight) via three endpoints: `GET /v1/seatmap/{aircraftType}` (layout), `GET /v1/seat-pricing?aircraftType={aircraftType}` (pricing rules), and `GET /v1/seat-offers?flightId={flightId}` (seat offers per selectable seat on a given flight).
+- The Seat MS is the owner of `SeatOfferId` — seat offer IDs are generated by the Seat MS by combining the `flightId` (from `offer.FlightInventory`) and `seatNumber`. Since seat pricing is stable (position-based, fleet-wide), seat offers do not need to be stored: the Seat MS generates them deterministically on request.
+- The Retail API retrieves the seatmap layout and pricing rules from the Seat MS, retrieves per-seat availability status from the Offer MS (`GET /v1/flights/{flightId}/seat-offers` returns availability only — available, held, or sold), and merges all three datasets before returning the seat offer response to the channel. The `SeatOfferId` values returned in this merged response originate from the Seat MS.
+- `SeatOfferId` values are stored in the basket during the bookflow. When the Retail API needs to recall the current price for a basket seat offer (e.g. at order confirmation), it calls `GET /v1/seat-offers/{seatOfferId}` on the Seat MS, which returns the latest pricing for that seat on that flight.
 
 Seat prices are fleet-wide and position-based (not per flight):
 
@@ -2240,7 +2434,7 @@ Seat prices are fleet-wide and position-based (not per flight):
 | Aisle | £50.00 |
 | Middle | £20.00 |
 
-Business Class and First Class seat selection is included in the fare with no ancillary charge (cabin codes `J` and `F`). The `SeatOfferId` is generated by the Offer MS based on `InventoryId` + `SeatNumber` (data it owns independently, without needing to call the Seat MS). It is returned to the channel as part of the merged seat offer response assembled by the Retail API, and is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer.
+Business Class and First Class seat selection is included in the fare with no ancillary charge (cabin codes `J` and `F`). The `SeatOfferId` returned to the channel as part of the merged seat offer response is generated by the Seat MS, and is passed to the Order microservice when a seat is purchased, linking the seat order item to the priced offer.
 
 #### Retrieve Seatmap Layout
 
@@ -2337,7 +2531,7 @@ sequenceDiagram
 
 *Ref: ancillary seat - post-sale seat selection with payment, e-ticket reissuance, and manifest update*
 
-todo: A record must be created in the delivery.Document table (akin to an EMD) to record the sale of any seat or bag purchase.
+> **Ancillary document:** The Retail API must create a `delivery.Document` record (type `SeatAncillary`) via the Delivery MS for each seat purchase at order confirmation and post-sale, enabling the Accounting system to account for seat ancillary revenue independently of the fare ticket.
 
 #### Seat MS Endpoints
 
@@ -2345,10 +2539,12 @@ todo: A record must be created in the delivery.Document table (akin to an EMD) t
 |--------|----------|-------------|
 | `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
 | `GET` | `/v1/seat-pricing?aircraftType={aircraftType}` | Retrieve fleet-wide seat pricing rules filtered by aircraft type's cabin codes; returns `cabinCode`, `seatPosition`, and `price` per active rule from `seat.SeatPricing` |
+| `GET` | `/v1/seat-offers?flightId={flightId}` | Retrieve priced seat offers for all selectable seats on a given flight; returns one `SeatOffer` per selectable seat with `seatOfferId`, `seatNumber`, `seatPosition`, `cabinCode`, and `price`; `SeatOfferId` is a deterministic identifier generated by the Seat MS from `flightId + seatNumber` |
+| `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve current pricing for a specific seat offer by ID; used by the Retail API at order confirmation to validate the price stored in the basket matches the current Seat MS price |
 
 #### Data Schema — Seat
 
-The Seat domain uses three tables: `AircraftType` (root reference record), `Seatmap` (one active row per aircraft configuration with full cabin layout as JSON), and `SeatPricing` (fleet-wide pricing rules by seat position and cabin, served by the Seat MS via `GET /v1/seat-pricing` — not embedded in the seatmap response).
+The Seat domain uses three tables: `AircraftType` (root reference record), `Seatmap` (one active row per aircraft configuration with full cabin layout as JSON), and `SeatPricing` (fleet-wide pricing rules by seat position and cabin, served by the Seat MS via `GET /v1/seat-pricing` — not embedded in the seatmap response). Seat offer generation is stateless — `SeatOfferId` values are computed deterministically by the Seat MS from `flightId + seatNumber` and do not require a dedicated storage table.
 
 #### `seat.AircraftType`
 
@@ -2647,16 +2843,16 @@ Additional bag pricing (per bag, per segment):
 | 2nd additional bag | £80.00 |
 | 3rd+ additional bag | £100.00 |
 
-// todo: make clear that baggage rules above are handled by the bags MS, as well as baggage offers (as per seats note above)
+The baggage allowance rules (free bags per cabin, weight limits) and all bag pricing are owned and managed exclusively by the Bag microservice. The Bag MS is also responsible for **bag offer generation** — returning priced `BagOffer` objects with `BagOfferId` values to the Retail API, in the same way the Seat MS owns seat offer generation. `BagOfferId` values are deterministic identifiers generated by the Bag MS from `inventoryId + cabinCode + bagSequence` and do not require a dedicated storage table since bag pricing is stable.
 
-The Bag MS returns the cabin's free allowance alongside a `BagOffer` per purchasable additional bag; the `BagOfferId` is passed to the Order MS at purchase to link the bag order item to the priced offer.
+The Bag MS returns the cabin's free allowance alongside a `BagOffer` per purchasable additional bag; the `BagOfferId` is passed to the Order MS at purchase to link the bag order item to the priced offer. The Retail API stores `BagOfferId` values in the basket during the bookflow and calls `GET /v1/bags/offers/{bagOfferId}` on the Bag MS at order confirmation to validate and recall the current price.
 
 #### Retrieve Bag Allowance and Bag Offers
 
 The Retail API queries the Bag MS to obtain the passenger's free entitlement and a set of priced `BagOffer` objects for additional bags.
 
-- Mirrors the seatmap retrieval pattern: each `BagOffer` is snapshotted into `StoredBagOffer` at generation time to guarantee price integrity regardless of elapsed time.
-- The returned `BagOfferId` is passed to the Order MS at purchase to link the bag order item to the locked price.
+- Since bag pricing is stable and not volatile, bag offers are generated deterministically on request rather than stored as snapshots. The `BagOfferId` encodes the inventory, cabin, and bag sequence, making it resolvable without a stored record.
+- The returned `BagOfferId` is passed to the Order MS at purchase and used to recall the Bag MS for price confirmation at order confirmation time.
 
 ```mermaid
 sequenceDiagram
@@ -2766,28 +2962,10 @@ sequenceDiagram
 > **Constraints:** `UQ_BagPricing_Sequence` (unique) on `(BagSequence, CurrencyCode)` — enforces one active price per bag sequence/currency combination.
 > **Example seed data:** `(1, 'GBP', 60.00)` · `(2, 'GBP', 80.00)` · `(99, 'GBP', 100.00)`.
 
-#### `bag.StoredBagOffer`
-
-// todo: this table isn't needed as per previous notes.
-
-| Column | Type | Nullable | Default | Key | Notes |
-|---|---|---|---|---|---|
-| BagOfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | Short-lived snapshot; passed to channels as the bag offer identifier |
-| InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
-| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| BagSequence | TINYINT | No | | | Which additional bag this offer prices (mirrors `bag.BagPricing.BagSequence`) |
-| FreeBagsIncluded | TINYINT | No | | | Free allowance applicable to this cabin at time of offer generation |
-| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
-| PriceAmount | DECIMAL(10,2) | No | | | Price locked at offer creation time |
-| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| ExpiresAt | DATETIME2 | No | | | Offer expiry; channels must not submit expired `BagOfferId` values |
-| IsConsumed | BIT | No | `0` | | Set to `1` once purchased; prevents reuse |
-| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-
-> **Indexes:** `IX_StoredBagOffer_Inventory` on `(InventoryId, CabinCode)`. `IX_StoredBagOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job.
-> **Offer lifecycle:** `StoredBagOffer` rows are short-lived snapshots generated at retrieval time and consumed at purchase. Unconsumed, expired offers should be purged by a background job.
+> **Bag offer storage:** Bag offers are generated deterministically by the Bag MS on request and do not require a stored snapshot table. The `BagOfferId` encodes `inventoryId + cabinCode + bagSequence` and can be resolved at any time by calling `GET /v1/bags/offers/{bagOfferId}` on the Bag MS. This endpoint returns the current pricing for the identified offer, allowing the Retail API to confirm the price stored in the basket at order confirmation. Since bag pricing is stable (not volatile), there is no risk of price drift between offer generation and purchase.
+> **Bag offer endpoint:** `GET /v1/bags/offers/{bagOfferId}` — the Bag MS must expose this endpoint (already defined in `api-reference.md`) so the Retail API can recall the Bag MS with the stored `BagOfferId` to validate and confirm the current price before committing a bag purchase. No consumption state is tracked; the Retail API's validation confirms the offer is still valid by checking that the underlying pricing rule has not changed.
 >
-> ⚠️ CRITICAL: The Bag MS needs a `GET /v1/bags/offers/{bagOfferId}` endpoint (analogous to the Offer MS's `GET /v1/offers/{offerId}`) so the Order MS or Retail API can validate a `BagOfferId` is unconsumed and unexpired before committing a bag purchase. Without this, there is no mechanism to enforce price integrity or prevent reuse of bag offers. The endpoint should validate `IsConsumed = 0` and `ExpiresAt > now`, then set `IsConsumed = 1` atomically on retrieval.
+> **Ancillary document:** The Retail API must create a `delivery.Document` record (type `BagAncillary`) via the Delivery MS for each bag purchase, enabling the Accounting system to account for bag ancillary revenue independently of the fare ticket.
 
 ---
 
@@ -2801,7 +2979,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
 - On IROPS rebooking, the Disruption API carries all SSR items from the cancelled segment to the replacement itinerary.
 - The SSR catalogue is a Retail API configuration resource — no separate microservice required.
-- Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `FlightManifest` records carry operational codes for crew briefings and ground handling.
+- Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
 
 **Supported SSR codes**
 
@@ -2924,10 +3102,9 @@ The Customer microservice is the system of record for loyalty programme membersh
 Registration creates two linked records — an Identity account (email and password) and a Customer loyalty account (profile and points balance) — joined by an `IdentityReference` UUID.
 
 - On success, the customer receives a unique loyalty number and is assigned to the base tier (`Blue`).
-- A confirmation email is triggered by the Loyalty API once both records are created.
-- If Identity creation succeeds but Customer creation fails, the Loyalty API must delete the orphaned Identity account before returning an error.
-
-// todo: the customer record should be created before the identity record is created.  The customer record should then be updated with the identityreference.
+- A confirmation email is triggered by the Loyalty API once all three steps complete successfully.
+- **Creation order:** The Customer record is created first (without an `identityReference`), then the Identity account is created, and finally the Customer record is patched to link the returned `identityReference`. This ensures the customer entity exists before any authentication credential is associated with it.
+- **Failure handling:** See the sequence diagram notes for the per-step rollback responsibilities.
 
 ```mermaid
 sequenceDiagram
@@ -2943,13 +3120,17 @@ sequenceDiagram
     Web->>LoyaltyAPI: POST /v1/register (givenName, surname, dateOfBirth, email, password, preferredLanguage)
     Note over LoyaltyAPI: Validate all required fields, email format, password strength
 
-    LoyaltyAPI->>IdentityMS: POST /v1/accounts (email, passwordHash)
+    LoyaltyAPI->>CustomerMS: POST /v1/customers (givenName, surname, dateOfBirth, preferredLanguage)
+    Note over CustomerMS: Generate unique loyaltyNumber (e.g. AX9876543)<br/>Set tierCode = Blue, pointsBalance = 0<br/>IdentityReference = null (pending)
+    CustomerMS-->>LoyaltyAPI: 201 Created — customerId, loyaltyNumber, tierCode
+
+    LoyaltyAPI->>IdentityMS: POST /v1/accounts (email, passwordHash, customerId)
     Note over IdentityMS: Hash password with Argon2id<br/>Generate IdentityReference UUID
     IdentityMS-->>LoyaltyAPI: 201 Created — identityReference, userAccountId
 
-    LoyaltyAPI->>CustomerMS: POST /v1/customers (givenName, surname, dateOfBirth, preferredLanguage, identityReference)
-    Note over CustomerMS: Generate unique loyaltyNumber (e.g. AX9876543)<br/>Set tierCode = Blue, pointsBalance = 0
-    CustomerMS-->>LoyaltyAPI: 201 Created — customerId, loyaltyNumber, tierCode
+    LoyaltyAPI->>CustomerMS: PATCH /v1/customers/{loyaltyNumber} { identityReference }
+    Note over CustomerMS: Link identity to customer record
+    CustomerMS-->>LoyaltyAPI: 200 OK
 
     LoyaltyAPI->>LoyaltyAPI: Trigger confirmation email (email, givenName, loyaltyNumber)
 
@@ -2963,7 +3144,7 @@ sequenceDiagram
 
 > **Duplicate email handling:** The Identity microservice enforces a unique constraint on `Email`. If a registration attempt arrives for an address that already exists, the Identity microservice returns `409 Conflict`. The Loyalty API surfaces this as a validation error to the channel — it must not reveal whether the email belongs to an existing account (to prevent account enumeration).
 
-> **Failure handling:** If the Identity microservice call succeeds but the subsequent Customer microservice call fails, the Loyalty API must call `DELETE /v1/accounts/{userAccountId}` on the Identity microservice to clean up the orphaned login account before returning an error to the channel. Partial registration states must not be left in the system.
+> **Failure handling:** Registration is a three-step process. If the Customer microservice call (step 1) fails, the Loyalty API returns an error immediately with no cleanup required. If the Identity microservice call (step 2) fails, the Loyalty API must call `DELETE /v1/customers/{customerId}` on the Customer microservice to remove the orphaned customer record before returning an error. If the `PATCH` to link the identity (step 3) fails, the Loyalty API must call both `DELETE /v1/accounts/{userAccountId}` on the Identity microservice and `DELETE /v1/customers/{customerId}` on the Customer microservice. Partial registration states must not be left in the system.
 
 ### Retrieve Account and Points Balance
 
@@ -3514,11 +3695,13 @@ The Identity microservice exposes authentication and credential management endpo
 - **`createdAt` / `updatedAt` are database-generated fields and must never be written by the application layer.** `CreatedAt` is stamped once on INSERT by a `DEFAULT SYSUTCDATETIME()` constraint. `UpdatedAt` is refreshed on every row modification by an `AFTER UPDATE` trigger — this trigger is the sole mechanism that writes the column. Because the database owns these values, every microservice repository must re-read the persisted row after any INSERT or UPDATE and use the returned values in the API response; in-memory timestamps set before persistence are provisional only. At the API layer, `createdAt` and `updatedAt` must never appear as fields in request bodies — any value a caller passes is silently ignored. Both fields are always present in response bodies.
 - **StoredOffer expiry:** The `offer.StoredOffer` table includes an `ExpiresAt` column. The Order API must validate that an offer has not expired before consuming it. A background job should periodically purge or archive expired, unconsumed offers to keep the table lean.
 - **Offer consumption:** Once an `OfferId` is successfully retrieved by the Order API during order creation, `IsConsumed` is set to `1` on the `StoredOffer` row to prevent the same offer being used on multiple orders.
-- **Basket lifecycle:** The basket is the authoritative pre-sale state and lives entirely in the Order DB (`order.Basket`). It is created at the start of checkout, accumulates flight offers, seat offers, and PAX details, and is hard-deleted on successful order confirmation. If abandoned or expired, a background job releases held inventory and marks the basket `Expired`. The `TicketingTimeLimit` (default 24 hours, configurable via `order.BasketConfig`) is the latest time by which payment must complete; the `ExpiresAt` is the latest time the basket itself is considered valid. Both are evaluated before authorisation is attempted.
+- **Basket lifecycle:** The basket is the authoritative pre-sale state and lives entirely in the Order DB (`order.Basket`). It is created at the start of checkout, accumulates flight offers, seat offers, and PAX details, and is hard-deleted on successful order confirmation. Baskets expire after **60 minutes** (matching the `StoredOffer` lifetime). If abandoned or expired, a background job releases held inventory and marks the basket `Expired`. The `TicketingTimeLimit` (stored on `order.Order`) is the latest time by which payment must complete and is evaluated before authorisation is attempted.
+- **Optimistic Concurrency Control:** Booking and ticket records use an integer `Version` column to prevent lost updates. Full specification in [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
 - **Payment DB:** The Payment microservice owns its own `payment.*` schema. The `PaymentReference` (e.g. `AXPAY-0001`) is the shared key between the Payment DB and the Order microservice — it is stored on each `orderItem` in `OrderData` to link order lines to their payment transactions. Multiple `PaymentReference` values may exist per booking (one per ancillary payment type). The full card token used during authorisation is never persisted; only `CardLast4` and `CardType` are stored.
 - **SeatPricing:** Fleet-wide seat prices are defined in `seat.SeatPricing` and are cabin- and position-based. Business Class seat selection carries no charge. The Seat microservice exposes pricing rules via its own API; the Retail API retrieves both the seatmap layout and pricing rules from the Seat MS, then retrieves per-seat availability status from the Offer MS (`GET /v1/flights/{flightId}/seat-offers` returns availability status only — available, held, or sold — with no pricing data), and merges all three datasets before returning the seat offer response to the channel. The Offer MS does not call the Seat MS. `SeatOfferId` is generated by the Offer MS based on `InventoryId` + `SeatNumber` (data it owns independently) and does not require `SeatmapId` or pricing version. `SeatOfferId` values are session-scoped and should not be stored long-term by channels.
-- **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes.
-- **FlightManifest seatmap validation:** Before writing any row to `delivery.FlightManifest`, the orchestration layer (Retail API, Airport API, or Disruption API) must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling `GET /v1/seatmap/{aircraftType}` on the Seat microservice. Any seat number not present on the active seatmap must be rejected by the orchestration layer before the Delivery MS is called. The Delivery MS trusts the seat number provided by its caller and does not call the Seat MS. This validation responsibility applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
+- **Delivery DB:** The Delivery microservice owns its own `Delivery DB` schema (`delivery.*`). It does not read from or write to `order.Order`. Order data required for ticket and manifest population (e-ticket numbers, passenger names, seat assignments) is passed explicitly by the Retail API orchestration layer at the point of booking confirmation and subsequent seat changes. The schema uses three tables: `delivery.Ticket` (accountable document per e-ticket), `delivery.Manifest` (operational flight manifest), and `delivery.Document` (ancillary EMD-equivalent records).
+- **Manifest seatmap validation:** Before writing any row to `delivery.Manifest`, the orchestration layer (Retail API, Airport API, or Disruption API) must validate the `SeatNumber` against the active seatmap for the relevant `AircraftType` by calling `GET /v1/seatmap/{aircraftType}` on the Seat microservice. Any seat number not present on the active seatmap must be rejected by the orchestration layer before the Delivery MS is called. The Delivery MS trusts the seat number provided by its caller and does not call the Seat MS. This validation responsibility applies to both initial writes (booking confirmation) and updates (post-purchase seat changes).
+- **Delivery accounting events:** Creation of a `delivery.Ticket` row triggers a `TicketIssued` event; creation of a `delivery.Document` row triggers a `DocumentIssued` event. Both events are published to the event bus and consumed by the Accounting microservice to record revenue and ancillary financial transactions.
 - **Disruption API idempotency:** The Disruption API must store a log of processed `disruptionEventId` values from the FOS and de-duplicate repeat submissions. The FOS is an external system and may retry events on network failure; duplicate processing of the same cancellation or delay event would result in corrupt order state.
 - **IROPS fare override:** The Order microservice must recognise a `reason=FlightCancellation` flag on rebook requests originating from the Disruption API and waive fare change restrictions regardless of the original fare conditions. This override must be logged on the order history for audit purposes.
 - **Disruption rebooking prioritisation:** Cancellation rebooking is processed in priority order (cabin class → loyalty tier → booking date). The Disruption API is responsible for sorting the affected passenger list before iterating. This ordering must be preserved in the processing queue even for large passenger loads handled asynchronously.
