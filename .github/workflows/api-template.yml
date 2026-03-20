@@ -7,7 +7,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/API/Template/ReservationSystem.Template.TemplateApi'
+      - 'src/API/Template'
       - '.github/workflows/main_reservation-system-db-api-template.yml'
 
 env:
@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          dotnet publish ReservationSystem.Template.TemplateApi/ReservationSystem.Template.TemplateApi.csproj --configuration Release --output ./output
           popd
       
       - name: Login to Azure
