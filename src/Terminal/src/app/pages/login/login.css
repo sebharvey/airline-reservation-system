@@ -1,0 +1,220 @@
+/* ── Full-screen login ── */
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--grad-start) 0%, #5a3eab 50%, var(--grad-end) 100%);
+  padding: 24px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background glow effects */
+.login-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.login-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+}
+
+.glow-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #a78bfa, transparent);
+  top: -100px;
+  right: -100px;
+}
+
+.glow-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #60a5fa, transparent);
+  bottom: -80px;
+  left: -80px;
+}
+
+/* ── Card ── */
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  animation: slideIn 0.4s ease;
+}
+
+/* ── Header ── */
+.login-header {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  padding: 36px 32px 28px;
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  filter: brightness(0) invert(1);
+}
+
+.login-title {
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+/* ── Form ── */
+.login-form {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  border-radius: var(--radius-sm);
+  color: #f85149;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+.field-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.field-input:focus {
+  border-color: var(--grad-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.field-input:disabled {
+  background: var(--input-disabled-bg);
+  opacity: 0.7;
+}
+
+/* ── Login button ── */
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.5);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-arrow {
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.login-btn:hover:not(:disabled) .btn-arrow {
+  transform: translateX(3px);
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Footer ── */
+.login-footer {
+  padding: 0 32px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-footer p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.login-version {
+  opacity: 0.6;
+}
+
+/* ── Animation ── */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

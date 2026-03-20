@@ -1,0 +1,220 @@
+<div class="users-page fade-in">
+
+  <!-- ── Page header ── -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">User Management</h1>
+      <p class="page-subtitle">Manage contact centre agent accounts and permissions</p>
+    </div>
+    <button class="add-btn" (click)="showAddForm.update(v => !v)">
+      {{ showAddForm() ? '✕ Cancel' : '+ Add Agent' }}
+    </button>
+  </div>
+
+  <!-- ── Stats row ── -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <span class="stat-value">{{ stats().total }}</span>
+      <span class="stat-label">Total agents</span>
+    </div>
+    <div class="stat-card stat-active">
+      <span class="stat-value">{{ stats().active }}</span>
+      <span class="stat-label">Active</span>
+    </div>
+    <div class="stat-card stat-pending">
+      <span class="stat-value">{{ stats().pending }}</span>
+      <span class="stat-label">Pending</span>
+    </div>
+    <div class="stat-card stat-suspended">
+      <span class="stat-value">{{ stats().suspended }}</span>
+      <span class="stat-label">Suspended</span>
+    </div>
+  </div>
+
+  <!-- ── Add user form ── -->
+  @if (showAddForm()) {
+    <div class="add-form-card">
+      <h3 class="form-title">New Agent Account</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-label">Username / Agent ID</label>
+          <input class="field-input" type="text" placeholder="e.g. JBLOGGS"
+            [value]="newUser().username"
+            (input)="setNewUser('username', $any($event.target).value)" />
+        </div>
+        <div class="field">
+          <label class="field-label">Full Name</label>
+          <input class="field-input" type="text" placeholder="Joe Bloggs"
+            [value]="newUser().displayName"
+            (input)="setNewUser('displayName', $any($event.target).value)" />
+        </div>
+        <div class="field">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="j.bloggs@apexair.com"
+            [value]="newUser().email"
+            (input)="setNewUser('email', $any($event.target).value)" />
+        </div>
+        <div class="field">
+          <label class="field-label">Role</label>
+          <select class="field-input"
+            [value]="newUser().role"
+            (change)="setNewUser('role', $any($event.target).value)">
+            <option value="agent">Agent</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Home Station</label>
+          <select class="field-input"
+            [value]="newUser().station"
+            (change)="setNewUser('station', $any($event.target).value)">
+            <option value="LHR">LHR — London Heathrow</option>
+            <option value="LGW">LGW — London Gatwick</option>
+            <option value="MAN">MAN — Manchester</option>
+            <option value="EDI">EDI — Edinburgh</option>
+            <option value="GLA">GLA — Glasgow</option>
+            <option value="BHX">BHX — Birmingham</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="showAddForm.set(false)">Cancel</button>
+        <button class="btn-primary" (click)="addUser()">Create Account</button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Filters ── -->
+  <div class="filters-row">
+    <div class="search-field">
+      <span class="search-icon">🔍</span>
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Search by name, ID, email or station…"
+        [value]="search()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <div class="filter-pills">
+      <select class="filter-select"
+        [value]="roleFilter()"
+        (change)="setRoleFilter($any($event.target).value)">
+        <option value="all">All roles</option>
+        <option value="agent">Agents</option>
+        <option value="supervisor">Supervisors</option>
+        <option value="admin">Admins</option>
+      </select>
+      <select class="filter-select"
+        [value]="statusFilter()"
+        (change)="setStatusFilter($any($event.target).value)">
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="suspended">Suspended</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ── Users table ── -->
+  <div class="table-card">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th class="hide-mobile">ID</th>
+          <th class="hide-mobile">Station</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th class="hide-mobile">Last Login</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of filteredUsers(); track user.id) {
+          <tr
+            class="user-row"
+            [class.selected]="selectedUser()?.id === user.id"
+            (click)="selectUser(user)"
+          >
+            <td>
+              <div class="user-cell">
+                <div class="avatar">{{ user.displayName[0] }}</div>
+                <div class="user-info">
+                  <span class="user-name">{{ user.displayName }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="hide-mobile mono">{{ user.id }}</td>
+            <td class="hide-mobile">{{ user.station }}</td>
+            <td>
+              <span class="badge" [class]="roleBadgeClass(user.role)">{{ user.role }}</span>
+            </td>
+            <td>
+              <span class="badge" [class]="statusBadgeClass(user.status)">{{ user.status }}</span>
+            </td>
+            <td class="hide-mobile muted">{{ user.lastLogin }}</td>
+            <td>
+              <button class="action-btn" (click)="$event.stopPropagation(); selectUser(user)">⋯</button>
+            </td>
+          </tr>
+
+          <!-- Inline expanded row -->
+          @if (selectedUser()?.id === user.id) {
+            <tr class="detail-row">
+              <td colspan="7">
+                <div class="detail-panel">
+                  <div class="detail-info">
+                    <div class="detail-field">
+                      <span class="detail-label">Agent ID</span>
+                      <span class="detail-value mono">{{ user.id }}</span>
+                    </div>
+                    <div class="detail-field">
+                      <span class="detail-label">Username</span>
+                      <span class="detail-value mono">{{ user.username }}</span>
+                    </div>
+                    <div class="detail-field">
+                      <span class="detail-label">Email</span>
+                      <span class="detail-value">{{ user.email }}</span>
+                    </div>
+                    <div class="detail-field">
+                      <span class="detail-label">Station</span>
+                      <span class="detail-value">{{ user.station }}</span>
+                    </div>
+                    <div class="detail-field">
+                      <span class="detail-label">Last Login</span>
+                      <span class="detail-value">{{ user.lastLogin }}</span>
+                    </div>
+                  </div>
+                  <div class="detail-actions">
+                    <button class="btn-secondary" (click)="resetPassword(user)">Reset Password</button>
+                    <button
+                      class="btn-toggle-status"
+                      [class.btn-suspend]="user.status === 'active'"
+                      [class.btn-activate]="user.status !== 'active'"
+                      (click)="toggleStatus(user)"
+                    >
+                      {{ user.status === 'active' ? 'Suspend Account' : 'Activate Account' }}
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+
+        @if (filteredUsers().length === 0) {
+          <tr>
+            <td colspan="7" class="empty-row">No agents match your search.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="results-count">
+    Showing {{ filteredUsers().length }} of {{ users().length }} agents
+  </p>
+</div>

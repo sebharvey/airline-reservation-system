@@ -1,0 +1,10 @@
+{
+  "name": "Apex Air Terminal",
+  "short_name": "Terminal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#5a3eab",
+  "theme_color": "#5a3eab",
+  "description": "Apex Air Contact Centre Terminal",
+  "icons": []
+}

@@ -1,0 +1,362 @@
+/* ── Shell layout ── */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-light);
+}
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  box-shadow: 0 2px 16px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-brand {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.topbar-product {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Burger button ── */
+.burger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.burger:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.burger-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* ── Agent badge ── */
+.agent-badge {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+}
+
+.agent-icon {
+  font-size: 1rem;
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.agent-name {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.agent-meta {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.7rem;
+}
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.toggle-track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.3);
+  border: 1.5px solid rgba(255,255,255,0.4);
+  transition: background 0.3s ease;
+  display: block;
+  flex-shrink: 0;
+}
+
+.toggle-track.is-dark {
+  background: rgba(255,255,255,0.5);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transition: transform 0.3s ease;
+}
+
+.toggle-track.is-dark .toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ── Logout button ── */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.22);
+}
+
+.logout-label {
+  display: none;
+}
+
+/* ── Body: sidebar + content ── */
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 150;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease;
+  overflow-y: auto;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+  box-shadow: 4px 0 32px rgba(0,0,0,0.15);
+}
+
+/* ── Backdrop ── */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 140;
+  backdrop-filter: blur(2px);
+  animation: fadeBackdrop 0.2s ease;
+}
+
+@keyframes fadeBackdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Sidebar nav ── */
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 8px 10px 4px;
+}
+
+.nav-section-bottom {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: var(--bg-light);
+  color: var(--grad-start);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));
+  color: var(--grad-start);
+  font-weight: 600;
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  flex: 1;
+}
+
+/* ── Sidebar footer ── */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-version,
+.sidebar-copy {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Main content ── */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-light);
+  transition: background-color 0.3s ease;
+}
+
+/* ═══════════════════════════════════════
+   DESKTOP (≥ 901px) — persistent sidebar
+   ═══════════════════════════════════════ */
+@media (min-width: 901px) {
+
+  .burger {
+    display: none; /* hide burger on desktop — sidebar always visible */
+  }
+
+  .agent-badge {
+    display: flex;
+  }
+
+  .logout-label {
+    display: inline;
+  }
+
+  .topbar {
+    padding: 0 24px;
+  }
+
+  .topbar-brand {
+    font-size: 1.2rem;
+  }
+
+  /* Sidebar is always visible, not overlaid */
+  .sidebar {
+    position: sticky;
+    top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+    transform: none !important;
+    box-shadow: none;
+    flex-shrink: 0;
+  }
+
+  /* No backdrop needed on desktop */
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .main-content {
+    padding: 32px 40px;
+    min-height: calc(100vh - var(--topbar-height));
+  }
+
+  .body {
+    align-items: flex-start;
+  }
+}
