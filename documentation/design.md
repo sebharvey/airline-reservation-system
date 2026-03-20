@@ -326,7 +326,7 @@ Key components:
   - App
   - NDC (XML APIs based on IATA NDC standard for GDS and other airlines (OTAs) to connect to)
   - Kiosk (self service airport check in terminals)
-  - Contact Centre App (for new bookings, IROPS management, customer account management)
+  - Contact Centre App (Terminal) (for new bookings, IROPS management, customer account management)
   - Airport App (for airport staff to manage non-OLCI check in, and gate management, seat assignment, etc)
   - Accounting System App
   - Ops Admin App (for operations staff to manage flight schedules and inventory creation)
