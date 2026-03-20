@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>Apex Air</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     /* Splash screen — hidden on desktop, shown on mobile only */
@@ -17,6 +17,9 @@
         display: flex;
         position: fixed;
         inset: 0;
+        /* Extend behind the Dynamic Island / notch on iOS */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
         z-index: 9999;
         background: linear-gradient(135deg, #667eea 0%, #5a3eab 50%, #764ba2 100%);
         flex-direction: column;
