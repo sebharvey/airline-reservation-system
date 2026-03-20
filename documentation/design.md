@@ -2035,6 +2035,7 @@ The Disruption API orchestrates the reservation system's response to disruption 
 ```mermaid
 graph LR
     FOS[Flight Operations System] -->|POST disruption event| DISRUPTION_API[Disruption API]
+    DISRUPTION_API -->|Read/write disruption event log| DISRUPTION_DB[(Disruption DB)]
     DISRUPTION_API -->|Search available inventory| OFFER[Offer MS]
     DISRUPTION_API -->|Update / rebook orders| ORDER[Order MS]
     DISRUPTION_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
@@ -2201,15 +2202,40 @@ sequenceDiagram
 
 ---
 
+### Data Schema — Disruption
+
+The Disruption API has its own persistent store (a dedicated SQL database) used solely for deduplication and event-processing state. No reservation or fare data is stored here.
+
+**disruption.DisruptionEvent**
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `DisruptionEventId` | `NVARCHAR(100)` | PK — FOS-supplied unique identifier; used for idempotency deduplication |
+| `EventType` | `NVARCHAR(20)` | `Delay` or `Cancellation` |
+| `FlightNumber` | `NVARCHAR(10)` | Affected marketing flight number (e.g. `AX101`) |
+| `DepartureDate` | `DATE` | Scheduled departure date (UTC) |
+| `Status` | `NVARCHAR(20)` | `Received` → `Processing` → `Completed` / `Failed` |
+| `AffectedPassengerCount` | `INT` | Total number of passengers on the affected flight at time of event receipt |
+| `ProcessedPassengerCount` | `INT` | Running count of passengers successfully reboooked or notified; updated by the async worker after each booking is handled |
+| `Payload` | `NVARCHAR(MAX)` | Full JSON event payload as received from FOS; retained for replay and audit |
+| `ReceivedAt` | `DATETIME2` | UTC timestamp when the event was first received |
+| `ProcessingStartedAt` | `DATETIME2 NULL` | UTC timestamp when async processing began |
+| `CompletedAt` | `DATETIME2 NULL` | UTC timestamp when all affected passengers were processed |
+| `ErrorDetail` | `NVARCHAR(MAX) NULL` | Populated if `Status = Failed`; contains the last error message for operational debugging |
+
+> **Status transitions:** `Received` is written synchronously before the `202 Accepted` is returned to the FOS. The async Service Bus worker updates `Status` to `Processing` when it picks up the job, then to `Completed` (or `Failed`) once all per-passenger work is done. `ProcessedPassengerCount` is incremented after each individual booking is handled, giving operational staff a real-time progress indicator.
+
+> **Idempotency:** On receipt of a disruption event, the Disruption API performs an `INSERT IF NOT EXISTS` on `DisruptionEventId`. If the row already exists (duplicate delivery from FOS), the request is acknowledged with `202 Accepted` immediately — no downstream calls are made.
+
+---
+
 ### Disruption API — Idempotency and Reliability
 
 The Disruption API must be idempotent — the FOS may send the same event more than once due to retries or network failures.
 
-- Each event must include a unique `disruptionEventId`; events with an ID already in the processed log are acknowledged (`202 Accepted`) without re-processing.
-- Long-running cancellation rebooking operations (large passenger loads) are processed asynchronously; `202 Accepted` is returned to the FOS immediately.
-- Operational progress is visible to Contact Centre agents via the existing order management tools in the Retail API — the FOS does not poll for completion.
-
-> ⚠️ CRITICAL: The Disruption API requires its own persistent data store (or a dedicated table in a shared DB) to maintain the `disruptionEventId` deduplication log. The high-level architecture diagram does not show a database for the Disruption API. This store needs at minimum: `DisruptionEventId` (PK), `EventType` (delay/cancellation), `FlightNumber`, `DepartureDate`, `Status` (received/processing/completed/failed), `ReceivedAt`, and `CompletedAt`. Without this, idempotency cannot be implemented.
+- Each event must include a unique `disruptionEventId`; events with an ID already in the `disruption.DisruptionEvent` table are acknowledged (`202 Accepted`) without re-processing.
+- Long-running cancellation rebooking operations (large passenger loads) are processed asynchronously; `202 Accepted` is returned to the FOS immediately after the `DisruptionEvent` row is written and inventory is closed.
+- Operational progress is visible to Contact Centre agents via the existing order management tools in the Retail API — the FOS does not poll for completion. The `ProcessedPassengerCount` field on `disruption.DisruptionEvent` gives staff a real-time view of async rebooking progress.
 
 ---
 
