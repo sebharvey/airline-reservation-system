@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Template.TemplateApi.Application.CreateTemplateItem;
@@ -9,6 +11,7 @@ using ReservationSystem.Template.TemplateApi.Application.GetAllTemplateItems;
 using ReservationSystem.Template.TemplateApi.Application.GetTemplateItem;
 using ReservationSystem.Template.TemplateApi.Models.Mappers;
 using ReservationSystem.Template.TemplateApi.Models.Requests;
+using ReservationSystem.Template.TemplateApi.Models.Responses;
 using System.Net;
 using System.Text.Json;
 
@@ -47,6 +50,8 @@ public sealed class TemplateItemFunction
     // -------------------------------------------------------------------------
 
     [Function("GetAllTemplateItems")]
+    [OpenApiOperation(operationId: "GetAllTemplateItems", tags: new[] { "TemplateItems" }, Summary = "List all template items")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TemplateItemResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/template-items")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -61,6 +66,10 @@ public sealed class TemplateItemFunction
     // -------------------------------------------------------------------------
 
     [Function("GetTemplateItem")]
+    [OpenApiOperation(operationId: "GetTemplateItem", tags: new[] { "TemplateItems" }, Summary = "Get a template item by ID")]
+    [OpenApiParameter(name: "id", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Template item UUID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TemplateItemResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/template-items/{id:guid}")] HttpRequestData req,
         Guid id,
@@ -79,6 +88,10 @@ public sealed class TemplateItemFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateTemplateItem")]
+    [OpenApiOperation(operationId: "CreateTemplateItem", tags: new[] { "TemplateItems" }, Summary = "Create a template item")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateTemplateItemRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(TemplateItemResponse), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – missing or invalid fields")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/template-items")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -115,6 +128,10 @@ public sealed class TemplateItemFunction
     // -------------------------------------------------------------------------
 
     [Function("DeleteTemplateItem")]
+    [OpenApiOperation(operationId: "DeleteTemplateItem", tags: new[] { "TemplateItems" }, Summary = "Delete a template item")]
+    [OpenApiParameter(name: "id", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Template item UUID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/template-items/{id:guid}")] HttpRequestData req,
         Guid id,
@@ -126,5 +143,4 @@ public sealed class TemplateItemFunction
             ? req.CreateResponse(HttpStatusCode.NoContent)
             : req.CreateResponse(HttpStatusCode.NotFound);
     }
-
 }

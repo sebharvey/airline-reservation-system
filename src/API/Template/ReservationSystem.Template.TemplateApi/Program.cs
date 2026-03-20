@@ -19,14 +19,20 @@ using ReservationSystem.Template.TemplateApi.Domain.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Domain.Repositories;
 using ReservationSystem.Template.TemplateApi.Infrastructure.ExternalServices;
 using ReservationSystem.Template.TemplateApi.Infrastructure.Persistence;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using ReservationSystem.Shared.Common.Health;
+using ReservationSystem.Template.TemplateApi.Swagger;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
