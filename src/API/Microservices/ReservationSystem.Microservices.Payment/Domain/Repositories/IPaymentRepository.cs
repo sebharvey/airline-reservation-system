@@ -19,4 +19,6 @@ public interface IPaymentRepository
     Task UpdateAsync(Entities.Payment payment, CancellationToken cancellationToken = default);
 
     Task CreateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
+
+    Task<int> GetNextSequenceAsync(CancellationToken cancellationToken = default);
 }

@@ -20,16 +20,94 @@ public sealed class ScheduleDbContext : DbContext
         {
             entity.ToTable("FlightSchedule");
             entity.HasKey(e => e.ScheduleId);
-            entity.Property(e => e.ScheduleId).ValueGeneratedNever();
-            entity.Property(e => e.FlightNumber).HasMaxLength(10).IsRequired();
-            entity.Property(e => e.Origin).HasMaxLength(3).IsRequired();
-            entity.Property(e => e.Destination).HasMaxLength(3).IsRequired();
-            entity.Property(e => e.ValidFrom).IsRequired();
-            entity.Property(e => e.ValidTo).IsRequired();
-            entity.Property(e => e.FlightsCreatedCount).IsRequired();
-            entity.Property(e => e.IsActive).IsRequired();
-            entity.Property(e => e.CreatedAt).IsRequired();
-            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.Property(e => e.ScheduleId)
+                  .HasColumnName("ScheduleId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedNever();
+
+            entity.Property(e => e.FlightNumber)
+                  .HasColumnName("FlightNumber")
+                  .HasColumnType("varchar(10)")
+                  .HasMaxLength(10)
+                  .IsRequired();
+
+            entity.Property(e => e.Origin)
+                  .HasColumnName("Origin")
+                  .HasColumnType("char(3)")
+                  .HasMaxLength(3)
+                  .IsRequired();
+
+            entity.Property(e => e.Destination)
+                  .HasColumnName("Destination")
+                  .HasColumnType("char(3)")
+                  .HasMaxLength(3)
+                  .IsRequired();
+
+            entity.Property(e => e.DepartureTime)
+                  .HasColumnName("DepartureTime")
+                  .HasColumnType("time")
+                  .IsRequired();
+
+            entity.Property(e => e.ArrivalTime)
+                  .HasColumnName("ArrivalTime")
+                  .HasColumnType("time")
+                  .IsRequired();
+
+            entity.Property(e => e.ArrivalDayOffset)
+                  .HasColumnName("ArrivalDayOffset")
+                  .HasColumnType("tinyint")
+                  .IsRequired();
+
+            entity.Property(e => e.DaysOfWeek)
+                  .HasColumnName("DaysOfWeek")
+                  .HasColumnType("tinyint")
+                  .IsRequired();
+
+            entity.Property(e => e.AircraftType)
+                  .HasColumnName("AircraftType")
+                  .HasColumnType("varchar(4)")
+                  .HasMaxLength(4)
+                  .IsRequired();
+
+            entity.Property(e => e.ValidFrom)
+                  .HasColumnName("ValidFrom")
+                  .HasColumnType("date")
+                  .IsRequired();
+
+            entity.Property(e => e.ValidTo)
+                  .HasColumnName("ValidTo")
+                  .HasColumnType("date")
+                  .IsRequired();
+
+            entity.Property(e => e.FlightsCreated)
+                  .HasColumnName("FlightsCreated")
+                  .HasColumnType("int")
+                  .IsRequired();
+
+            entity.Property(e => e.CabinFares)
+                  .HasColumnName("CabinFares")
+                  .HasColumnType("nvarchar(max)")
+                  .IsRequired();
+
+            entity.Property(e => e.CreatedBy)
+                  .HasColumnName("CreatedBy")
+                  .HasColumnType("varchar(100)")
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+
+            entity.Property(e => e.UpdatedAt)
+                  .HasColumnName("UpdatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+
+            entity.HasIndex(e => new { e.FlightNumber, e.ValidFrom, e.ValidTo })
+                  .HasDatabaseName("IX_FlightSchedule_FlightNumber");
         });
     }
 }

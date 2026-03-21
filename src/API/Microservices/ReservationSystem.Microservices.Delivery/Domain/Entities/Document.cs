@@ -1,36 +1,57 @@
 namespace ReservationSystem.Microservices.Delivery.Domain.Entities;
 
 /// <summary>
-/// Core domain entity representing a delivery document such as a bag or seat ancillary.
+/// Ancillary accountable document record — EMD (Electronic Miscellaneous Document) equivalent.
+/// Maps to [delivery].[Document].
 /// </summary>
 public sealed class Document
 {
     public Guid DocumentId { get; private set; }
-    public string BookingReference { get; private set; } = string.Empty;
-    public Guid OrderId { get; private set; }
+    public string DocumentNumber { get; private set; } = string.Empty;
     public string DocumentType { get; private set; } = string.Empty;
-    public string DocumentData { get; private set; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public string BookingReference { get; private set; } = string.Empty;
+    public string ETicketNumber { get; private set; } = string.Empty;
+    public string PassengerId { get; private set; } = string.Empty;
+    public string SegmentRef { get; private set; } = string.Empty;
+    public string PaymentReference { get; private set; } = string.Empty;
+    public decimal Amount { get; private set; }
+    public string CurrencyCode { get; private set; } = "GBP";
+    public bool IsVoided { get; private set; }
+    public string DocumentData { get; private set; } = "{}";
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Document() { }
 
     public static Document Create(
-        string bookingReference,
-        Guid orderId,
+        string documentNumber,
         string documentType,
+        string bookingReference,
+        string eTicketNumber,
+        string passengerId,
+        string segmentRef,
+        string paymentReference,
+        decimal amount,
+        string currencyCode,
         string documentData = "{}")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
         ArgumentException.ThrowIfNullOrWhiteSpace(documentType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
         return new Document
         {
             DocumentId = Guid.NewGuid(),
-            BookingReference = bookingReference,
-            OrderId = orderId,
+            DocumentNumber = documentNumber,
             DocumentType = documentType,
+            BookingReference = bookingReference,
+            ETicketNumber = eTicketNumber,
+            PassengerId = passengerId,
+            SegmentRef = segmentRef,
+            PaymentReference = paymentReference,
+            Amount = amount,
+            CurrencyCode = currencyCode,
+            IsVoided = false,
             DocumentData = documentData,
             CreatedAt = now,
             UpdatedAt = now
@@ -38,20 +59,25 @@ public sealed class Document
     }
 
     public static Document Reconstitute(
-        Guid documentId,
-        string bookingReference,
-        Guid orderId,
-        string documentType,
-        string documentData,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        Guid documentId, string documentNumber, string documentType,
+        string bookingReference, string eTicketNumber, string passengerId,
+        string segmentRef, string paymentReference, decimal amount,
+        string currencyCode, bool isVoided, string documentData,
+        DateTime createdAt, DateTime updatedAt)
     {
         return new Document
         {
             DocumentId = documentId,
-            BookingReference = bookingReference,
-            OrderId = orderId,
+            DocumentNumber = documentNumber,
             DocumentType = documentType,
+            BookingReference = bookingReference,
+            ETicketNumber = eTicketNumber,
+            PassengerId = passengerId,
+            SegmentRef = segmentRef,
+            PaymentReference = paymentReference,
+            Amount = amount,
+            CurrencyCode = currencyCode,
+            IsVoided = isVoided,
             DocumentData = documentData,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
@@ -63,5 +89,4 @@ public static class DocumentTypeValues
 {
     public const string BagAncillary = "BagAncillary";
     public const string SeatAncillary = "SeatAncillary";
-    public const string SsrAncillary = "SsrAncillary";
 }

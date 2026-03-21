@@ -2,15 +2,15 @@ namespace ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
 
 /// <summary>
 /// Command carrying the data needed to authorise a new payment.
-/// Immutable record — the application layer maps HTTP request models to this
-/// before passing it to the handler, keeping the handler free of HTTP concerns.
+/// Card number and CVV are held in memory only for authorisation processing
+/// and are never persisted (PCI DSS compliance).
 /// </summary>
 public sealed record AuthorisePaymentCommand(
-    string? BookingReference,
-    string PaymentType,
-    string Method,
-    string? CardType,
-    string? CardLast4,
-    string CurrencyCode,
     decimal Amount,
+    string CurrencyCode,
+    string CardNumber,
+    string ExpiryDate,
+    string Cvv,
+    string CardholderName,
+    string PaymentType,
     string? Description);

@@ -1,30 +1,45 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
+using ReservationSystem.Microservices.Delivery.Models.Mappers;
+using ReservationSystem.Microservices.Delivery.Models.Requests;
+using ReservationSystem.Microservices.Delivery.Models.Responses;
+using ReservationSystem.Shared.Common.Json;
 
 namespace ReservationSystem.Microservices.Delivery.Application.CreateDocument;
 
-/// <summary>
-/// Handles the <see cref="CreateDocumentCommand"/>.
-/// Creates and persists a new delivery document.
-/// </summary>
 public sealed class CreateDocumentHandler
 {
-    private readonly IDocumentRepository _repository;
+    private readonly IDocumentRepository _documentRepository;
     private readonly ILogger<CreateDocumentHandler> _logger;
 
-    public CreateDocumentHandler(
-        IDocumentRepository repository,
-        ILogger<CreateDocumentHandler> logger)
+    public CreateDocumentHandler(IDocumentRepository documentRepository, ILogger<CreateDocumentHandler> logger)
     {
-        _repository = repository;
+        _documentRepository = documentRepository;
         _logger = logger;
     }
 
-    public async Task<Document> HandleAsync(
-        CreateDocumentCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<CreateDocumentResponse> HandleAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var sequence = await _documentRepository.GetDocumentCountAsync(cancellationToken) + 1;
+        var documentNumber = $"932-EMD-{sequence:D7}";
+
+        var documentDataJson = request.DocumentData.HasValue
+            ? request.DocumentData.Value.GetRawText()
+            : "{}";
+
+        var document = Document.Create(
+            documentNumber, request.DocumentType, request.BookingReference,
+            request.ETicketNumber, request.PassengerId, request.SegmentRef,
+            request.PaymentReference, request.Amount, request.CurrencyCode,
+            documentDataJson);
+
+        await _documentRepository.CreateAsync(document, cancellationToken);
+
+        _logger.LogInformation("Created document {DocumentNumber} ({DocumentType}) for {BookingReference}",
+            documentNumber, request.DocumentType, request.BookingReference);
+
+        return DeliveryMapper.ToCreateDocumentResponse(document);
     }
 }

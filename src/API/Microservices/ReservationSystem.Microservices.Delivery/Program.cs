@@ -6,14 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Delivery.Application.CreateDocument;
 using ReservationSystem.Microservices.Delivery.Application.CreateManifest;
+using ReservationSystem.Microservices.Delivery.Application.DeleteManifest;
 using ReservationSystem.Microservices.Delivery.Application.GetDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.GetManifest;
-using ReservationSystem.Microservices.Delivery.Application.GetManifestTickets;
-using ReservationSystem.Microservices.Delivery.Application.GetTicket;
-using ReservationSystem.Microservices.Delivery.Application.IssueTicket;
-using ReservationSystem.Microservices.Delivery.Application.ReissueTicket;
-using ReservationSystem.Microservices.Delivery.Application.UpdateManifest;
+using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
+using ReservationSystem.Microservices.Delivery.Application.PatchManifest;
+using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
+using ReservationSystem.Microservices.Delivery.Application.UpdateFlightTimes;
+using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
+using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -43,21 +45,23 @@ var host = new HostBuilder()
             });
         });
         services.AddHttpClient();
-        services.AddScoped<IManifestRepository, EfManifestRepository>();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
+        services.AddScoped<IManifestRepository, EfManifestRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Application use-case handlers ──────────────────────────────────────
+        services.AddScoped<IssueTicketsHandler>();
+        services.AddScoped<VoidTicketHandler>();
+        services.AddScoped<ReissueTicketsHandler>();
         services.AddScoped<CreateManifestHandler>();
+        services.AddScoped<UpdateManifestSeatHandler>();
+        services.AddScoped<PatchManifestHandler>();
+        services.AddScoped<UpdateFlightTimesHandler>();
+        services.AddScoped<DeleteManifestHandler>();
         services.AddScoped<GetManifestHandler>();
-        services.AddScoped<UpdateManifestHandler>();
-        services.AddScoped<IssueTicketHandler>();
-        services.AddScoped<ReissueTicketHandler>();
-        services.AddScoped<GetTicketHandler>();
-        services.AddScoped<GetManifestTicketsHandler>();
         services.AddScoped<CreateDocumentHandler>();
         services.AddScoped<GetDocumentHandler>();
         services.AddScoped<GetDocumentsByBookingHandler>();

@@ -60,22 +60,41 @@ public sealed class PaymentFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
+        if (request.CardDetails is null
+            || string.IsNullOrWhiteSpace(request.CardDetails.CardNumber)
+            || string.IsNullOrWhiteSpace(request.CardDetails.ExpiryDate)
+            || string.IsNullOrWhiteSpace(request.CardDetails.Cvv))
+            return await req.BadRequestAsync("Card details (cardNumber, expiryDate, cvv) are required.");
+
+        if (string.IsNullOrWhiteSpace(request.CurrencyCode))
+            return await req.BadRequestAsync("The 'currencyCode' field is required.");
+
+        if (string.IsNullOrWhiteSpace(request.PaymentType))
+            return await req.BadRequestAsync("The 'paymentType' field is required.");
+
+        if (request.Amount <= 0)
+            return await req.BadRequestAsync("The 'amount' must be greater than zero.");
+
         var command = new AuthorisePaymentCommand(
-            request.BookingReference,
-            request.PaymentType,
-            request.Method,
-            request.CardType,
-            request.CardLast4,
-            request.CurrencyCode,
             request.Amount,
+            request.CurrencyCode,
+            request.CardDetails.CardNumber,
+            request.CardDetails.ExpiryDate,
+            request.CardDetails.Cvv,
+            request.CardDetails.CardholderName,
+            request.PaymentType,
             request.Description);
 
-        var result = await _authoriseHandler.HandleAsync(command, cancellationToken);
-
-        var httpResponse = req.CreateResponse(HttpStatusCode.Created);
-        httpResponse.Headers.Add("Content-Type", "application/json");
-        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(result, SharedJsonOptions.CamelCase));
-        return httpResponse;
+        try
+        {
+            var result = await _authoriseHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync($"/v1/payment/{result.PaymentReference}", result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to authorise payment");
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -104,11 +123,25 @@ public sealed class PaymentFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new SettlePaymentCommand(paymentReference, request.Amount);
+        if (request.SettledAmount <= 0)
+            return await req.BadRequestAsync("The 'settledAmount' must be greater than zero.");
 
-        var result = await _settleHandler.HandleAsync(command, cancellationToken);
+        var command = new SettlePaymentCommand(paymentReference, request.SettledAmount);
 
-        return await req.OkJsonAsync(result);
+        try
+        {
+            var result = await _settleHandler.HandleAsync(command, cancellationToken);
+
+            if (result is null)
+                return await req.NotFoundAsync($"Payment '{paymentReference}' not found or cannot be settled.");
+
+            return await req.OkJsonAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to settle payment {PaymentReference}", paymentReference);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -137,10 +170,27 @@ public sealed class PaymentFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new RefundPaymentCommand(paymentReference, request.Amount, request.Notes);
+        if (request.RefundAmount <= 0)
+            return await req.BadRequestAsync("The 'refundAmount' must be greater than zero.");
 
-        var result = await _refundHandler.HandleAsync(command, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return await req.BadRequestAsync("The 'reason' field is required.");
 
-        return await req.OkJsonAsync(result);
+        var command = new RefundPaymentCommand(paymentReference, request.RefundAmount, request.Reason);
+
+        try
+        {
+            var result = await _refundHandler.HandleAsync(command, cancellationToken);
+
+            if (result is null)
+                return await req.NotFoundAsync($"Payment '{paymentReference}' not found or cannot be refunded.");
+
+            return await req.OkJsonAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refund payment {PaymentReference}", paymentReference);
+            return await req.InternalServerErrorAsync();
+        }
     }
 }

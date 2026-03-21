@@ -1,30 +1,24 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
+using ReservationSystem.Microservices.Delivery.Models.Mappers;
+using ReservationSystem.Microservices.Delivery.Models.Responses;
 
 namespace ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
 
-/// <summary>
-/// Handles the <see cref="GetDocumentsByBookingQuery"/>.
-/// Retrieves all documents for a given booking reference.
-/// </summary>
 public sealed class GetDocumentsByBookingHandler
 {
-    private readonly IDocumentRepository _repository;
+    private readonly IDocumentRepository _documentRepository;
     private readonly ILogger<GetDocumentsByBookingHandler> _logger;
 
-    public GetDocumentsByBookingHandler(
-        IDocumentRepository repository,
-        ILogger<GetDocumentsByBookingHandler> logger)
+    public GetDocumentsByBookingHandler(IDocumentRepository documentRepository, ILogger<GetDocumentsByBookingHandler> logger)
     {
-        _repository = repository;
+        _documentRepository = documentRepository;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Document>> HandleAsync(
-        GetDocumentsByBookingQuery query,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GetDocumentResponse>> HandleAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var documents = await _documentRepository.GetByBookingReferenceAsync(bookingReference, cancellationToken);
+        return documents.Select(DeliveryMapper.ToGetDocumentResponse).ToList().AsReadOnly();
     }
 }

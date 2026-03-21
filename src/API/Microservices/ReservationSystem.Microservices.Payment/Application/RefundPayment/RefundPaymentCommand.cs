@@ -6,4 +6,4 @@ namespace ReservationSystem.Microservices.Payment.Application.RefundPayment;
 public sealed record RefundPaymentCommand(
     string PaymentReference,
     decimal Amount,
-    string? Notes);
+    string Reason);

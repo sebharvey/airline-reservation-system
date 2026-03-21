@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ReservationSystem.Microservices.Payment.Models.Requests;
 
 /// <summary>
@@ -5,5 +7,6 @@ namespace ReservationSystem.Microservices.Payment.Models.Requests;
 /// </summary>
 public sealed class SettlePaymentRequest
 {
-    public decimal Amount { get; init; }
+    [JsonPropertyName("settledAmount")]
+    public decimal SettledAmount { get; init; }
 }

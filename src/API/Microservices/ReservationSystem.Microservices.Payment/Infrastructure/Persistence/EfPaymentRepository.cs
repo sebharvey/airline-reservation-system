@@ -63,4 +63,10 @@ public sealed class EfPaymentRepository : IPaymentRepository
 
         _logger.LogDebug("Inserted PaymentEvent {PaymentEventId} into [payment].[PaymentEvent]", paymentEvent.PaymentEventId);
     }
+
+    public async Task<int> GetNextSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        var count = await _dbContext.Payments.CountAsync(cancellationToken);
+        return count + 1;
+    }
 }

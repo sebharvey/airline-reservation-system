@@ -16,9 +16,30 @@ public sealed class CreateScheduleRequest
     [JsonPropertyName("destination")]
     public string Destination { get; init; } = string.Empty;
 
+    [JsonPropertyName("departureTime")]
+    public string DepartureTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("arrivalTime")]
+    public string ArrivalTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("arrivalDayOffset")]
+    public byte ArrivalDayOffset { get; init; }
+
+    [JsonPropertyName("daysOfWeek")]
+    public byte DaysOfWeek { get; init; }
+
+    [JsonPropertyName("aircraftType")]
+    public string AircraftType { get; init; } = string.Empty;
+
     [JsonPropertyName("validFrom")]
-    public DateTimeOffset ValidFrom { get; init; }
+    public string ValidFrom { get; init; } = string.Empty;
 
     [JsonPropertyName("validTo")]
-    public DateTimeOffset ValidTo { get; init; }
+    public string ValidTo { get; init; } = string.Empty;
+
+    [JsonPropertyName("cabinFares")]
+    public object? CabinFares { get; init; }
+
+    [JsonPropertyName("createdBy")]
+    public string CreatedBy { get; init; } = string.Empty;
 }
