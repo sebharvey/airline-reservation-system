@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Customer.Domain.Entities;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
@@ -23,8 +24,32 @@ public sealed class ReinstatePointsHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(ReinstatePointsCommand command, CancellationToken cancellationToken = default)
+    public async Task<LoyaltyTransaction?> HandleAsync(ReinstatePointsCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var customer = await _customerRepository.GetByLoyaltyNumberAsync(command.LoyaltyNumber, cancellationToken);
+
+        if (customer is null)
+        {
+            _logger.LogDebug("Customer not found for LoyaltyNumber {LoyaltyNumber}", command.LoyaltyNumber);
+            return null;
+        }
+
+        customer.AddPoints(command.Points);
+        await _customerRepository.UpdateAsync(customer, cancellationToken);
+
+        var transaction = LoyaltyTransaction.Create(
+            loyaltyNumber: command.LoyaltyNumber,
+            transactionType: "Reinstate",
+            pointsDelta: command.Points,
+            balanceAfter: customer.PointsBalance,
+            description: command.Description,
+            bookingReference: command.BookingReference,
+            flightNumber: command.FlightNumber);
+
+        await _transactionRepository.CreateAsync(transaction, cancellationToken);
+
+        _logger.LogInformation("Reinstated {Points} points for {LoyaltyNumber}", command.Points, command.LoyaltyNumber);
+
+        return transaction;
     }
 }

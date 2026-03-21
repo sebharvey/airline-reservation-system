@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Identity.Application.Logout;
@@ -20,10 +21,22 @@ public sealed class LogoutHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         LogoutCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var tokenHash = LoginHandler.HashToken(command.RefreshToken);
+        var token = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash, cancellationToken);
+
+        if (token is null || token.IsRevoked)
+        {
+            _logger.LogDebug("Logout: refresh token not found or already revoked");
+            return;
+        }
+
+        token.Revoke();
+        await _refreshTokenRepository.UpdateAsync(token, cancellationToken);
+
+        _logger.LogInformation("Logged out: revoked refresh token {RefreshTokenId}", token.RefreshTokenId);
     }
 }

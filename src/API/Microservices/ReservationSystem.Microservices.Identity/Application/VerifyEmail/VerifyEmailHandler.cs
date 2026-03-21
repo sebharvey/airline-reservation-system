@@ -20,10 +20,21 @@ public sealed class VerifyEmailHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         VerifyEmailCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var account = await _userAccountRepository.GetByIdAsync(command.UserAccountId, cancellationToken);
+
+        if (account is null)
+        {
+            _logger.LogDebug("Account not found for {UserAccountId}", command.UserAccountId);
+            throw new KeyNotFoundException($"No user account found for ID '{command.UserAccountId}'.");
+        }
+
+        account.VerifyEmail();
+        await _userAccountRepository.UpdateAsync(account, cancellationToken);
+
+        _logger.LogInformation("Email verified for {UserAccountId}", account.UserAccountId);
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
@@ -20,13 +21,22 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
         _logger = logger;
     }
 
-    public Task<IReadOnlyList<LoyaltyTransaction>> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<LoyaltyTransaction>> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var transactions = await _context.LoyaltyTransactions
+            .AsNoTracking()
+            .Where(t => t.LoyaltyNumber == loyaltyNumber)
+            .OrderByDescending(t => t.TransactionDate)
+            .ToListAsync(cancellationToken);
+
+        return transactions.AsReadOnly();
     }
 
-    public Task CreateAsync(LoyaltyTransaction transaction, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(LoyaltyTransaction transaction, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _context.LoyaltyTransactions.Add(transaction);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Inserted LoyaltyTransaction {TransactionId} into [customer].[LoyaltyTransaction]", transaction.TransactionId);
     }
 }

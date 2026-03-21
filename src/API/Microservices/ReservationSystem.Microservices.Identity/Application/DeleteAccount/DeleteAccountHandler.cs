@@ -23,10 +23,21 @@ public sealed class DeleteAccountHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         DeleteAccountCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var account = await _userAccountRepository.GetByIdAsync(command.UserAccountId, cancellationToken);
+
+        if (account is null)
+        {
+            _logger.LogDebug("Account not found for {UserAccountId}", command.UserAccountId);
+            throw new KeyNotFoundException($"No user account found for ID '{command.UserAccountId}'.");
+        }
+
+        await _refreshTokenRepository.RevokeAllForUserAsync(command.UserAccountId, cancellationToken);
+        await _userAccountRepository.DeleteAsync(command.UserAccountId, cancellationToken);
+
+        _logger.LogInformation("Deleted user account {UserAccountId}", command.UserAccountId);
     }
 }

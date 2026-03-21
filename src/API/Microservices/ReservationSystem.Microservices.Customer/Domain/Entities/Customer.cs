@@ -24,6 +24,39 @@ public sealed class Customer
 
     private Customer() { }
 
+    public void UpdateProfile(
+        string? givenName = null,
+        string? surname = null,
+        DateOnly? dateOfBirth = null,
+        string? nationality = null,
+        string? preferredLanguage = null,
+        string? phoneNumber = null,
+        string? tierCode = null,
+        Guid? identityReference = null)
+    {
+        if (givenName is not null) GivenName = givenName;
+        if (surname is not null) Surname = surname;
+        if (dateOfBirth is not null) DateOfBirth = dateOfBirth;
+        if (nationality is not null) Nationality = nationality;
+        if (preferredLanguage is not null) PreferredLanguage = preferredLanguage;
+        if (phoneNumber is not null) PhoneNumber = phoneNumber;
+        if (tierCode is not null) TierCode = tierCode;
+        if (identityReference is not null) IdentityReference = identityReference;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void DeductPoints(int points)
+    {
+        PointsBalance -= points;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void AddPoints(int points)
+    {
+        PointsBalance += points;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     /// <summary>
     /// Factory method for creating a brand-new customer. Assigns a new CustomerId and timestamps.
     /// </summary>

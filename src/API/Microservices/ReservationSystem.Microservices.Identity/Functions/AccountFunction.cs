@@ -69,13 +69,20 @@ public sealed class AccountFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = IdentityMapper.ToCommand(request);
-        var result = await _createAccountHandler.HandleAsync(command, cancellationToken);
+        try
+        {
+            var command = IdentityMapper.ToCommand(request);
+            var result = await _createAccountHandler.HandleAsync(command, cancellationToken);
 
-        var httpResponse = req.CreateResponse(HttpStatusCode.Created);
-        httpResponse.Headers.Add("Content-Type", "application/json");
-        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(result, SharedJsonOptions.CamelCase));
-        return httpResponse;
+            var httpResponse = req.CreateResponse(HttpStatusCode.Created);
+            httpResponse.Headers.Add("Content-Type", "application/json");
+            await httpResponse.WriteStringAsync(JsonSerializer.Serialize(result, SharedJsonOptions.CamelCase));
+            return httpResponse;
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("An account with this email already exists.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -88,10 +95,16 @@ public sealed class AccountFunction
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
-        var command = new DeleteAccountCommand(userAccountId);
-        await _deleteAccountHandler.HandleAsync(command, cancellationToken);
-
-        return req.CreateResponse(HttpStatusCode.NoContent);
+        try
+        {
+            var command = new DeleteAccountCommand(userAccountId);
+            await _deleteAccountHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -104,21 +117,16 @@ public sealed class AccountFunction
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
-        // Token expected as a query parameter, parsed manually to avoid System.Web dependency
-        var query = req.Url.Query.TrimStart('?');
-        var token = query.Split('&')
-            .Select(p => p.Split('='))
-            .Where(p => p.Length == 2 && p[0].Equals("token", StringComparison.OrdinalIgnoreCase))
-            .Select(p => Uri.UnescapeDataString(p[1]))
-            .FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(token))
-            return await req.BadRequestAsync("The 'token' query parameter is required.");
-
-        var command = new VerifyEmailCommand(userAccountId, token);
-        await _verifyEmailHandler.HandleAsync(command, cancellationToken);
-
-        return req.CreateResponse(HttpStatusCode.NoContent);
+        try
+        {
+            var command = new VerifyEmailCommand(userAccountId, string.Empty);
+            await _verifyEmailHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -147,10 +155,20 @@ public sealed class AccountFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new EmailChangeRequestCommand(identityReference, request.NewEmail);
-        await _emailChangeRequestHandler.HandleAsync(command, cancellationToken);
-
-        return req.CreateResponse(HttpStatusCode.Accepted);
+        try
+        {
+            var command = new EmailChangeRequestCommand(identityReference, request.NewEmail);
+            await _emailChangeRequestHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.Accepted);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for identity reference '{identityReference}'.");
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("The new email address is already registered to another account.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -178,9 +196,15 @@ public sealed class AccountFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new VerifyEmailChangeCommand(request.VerificationToken);
-        await _verifyEmailChangeHandler.HandleAsync(command, cancellationToken);
-
-        return req.CreateResponse(HttpStatusCode.NoContent);
+        try
+        {
+            var command = new VerifyEmailChangeCommand(request.VerificationToken);
+            await _verifyEmailChangeHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ArgumentException)
+        {
+            return await req.BadRequestAsync("Invalid or expired verification token.");
+        }
     }
 }

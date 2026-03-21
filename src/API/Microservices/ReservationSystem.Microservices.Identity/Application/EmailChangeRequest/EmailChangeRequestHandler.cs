@@ -20,10 +20,28 @@ public sealed class EmailChangeRequestHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         EmailChangeRequestCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var account = await _userAccountRepository.GetByIdentityReferenceAsync(command.IdentityReference, cancellationToken);
+
+        if (account is null)
+        {
+            _logger.LogDebug("Account not found for IdentityReference {IdentityReference}", command.IdentityReference);
+            throw new KeyNotFoundException($"No user account found for identity reference '{command.IdentityReference}'.");
+        }
+
+        var existingWithEmail = await _userAccountRepository.GetByEmailAsync(command.NewEmail, cancellationToken);
+
+        if (existingWithEmail is not null)
+        {
+            _logger.LogDebug("Email change request failed: new email already registered");
+            throw new InvalidOperationException("The new email address is already registered to another account.");
+        }
+
+        // In a production system, this would generate a verification token,
+        // persist it, and send a confirmation email to the new address.
+        _logger.LogInformation("Email change request initiated for {UserAccountId} to new email", account.UserAccountId);
     }
 }

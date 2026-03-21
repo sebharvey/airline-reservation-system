@@ -69,7 +69,28 @@ public sealed class CustomerFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        CreateCustomerRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<CreateCustomerRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in CreateCustomer request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var loyaltyNumber = GenerateLoyaltyNumber();
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var customer = await _createHandler.HandleAsync(command, cancellationToken);
+        var response = CustomerMapper.ToCreateResponse(customer);
+
+        return await req.CreatedAsync($"/v1/customers/{customer.LoyaltyNumber}", response);
     }
 
     // -------------------------------------------------------------------------
@@ -82,7 +103,14 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var query = new GetCustomerQuery(loyaltyNumber);
+        var customer = await _getHandler.HandleAsync(query, cancellationToken);
+
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToResponse(customer);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -95,7 +123,30 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        UpdateCustomerRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<UpdateCustomerRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in UpdateCustomer request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var customer = await _updateHandler.HandleAsync(command, cancellationToken);
+
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToResponse(customer);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -108,7 +159,17 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var customerQuery = new GetCustomerQuery(loyaltyNumber);
+        var customer = await _getHandler.HandleAsync(customerQuery, cancellationToken);
+
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var query = new GetTransactionsQuery(loyaltyNumber);
+        var transactions = await _getTransactionsHandler.HandleAsync(query, cancellationToken);
+        var response = CustomerMapper.ToResponse(loyaltyNumber, transactions);
+
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -121,7 +182,30 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        AuthorisePointsRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<AuthorisePointsRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in AuthorisePoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var transaction = await _authorisePointsHandler.HandleAsync(command, cancellationToken);
+
+        if (transaction is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToAuthoriseResponse(transaction);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -134,7 +218,30 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        SettlePointsRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<SettlePointsRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in SettlePoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var transaction = await _settlePointsHandler.HandleAsync(command, cancellationToken);
+
+        if (transaction is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToSettleResponse(transaction);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -147,7 +254,30 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ReversePointsRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<ReversePointsRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in ReversePoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var transaction = await _reversePointsHandler.HandleAsync(command, cancellationToken);
+
+        if (transaction is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToReverseResponse(transaction);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -160,7 +290,30 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ReinstatePointsRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<ReinstatePointsRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in ReinstatePoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var transaction = await _reinstatePointsHandler.HandleAsync(command, cancellationToken);
+
+        if (transaction is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToReinstateResponse(transaction);
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------
@@ -173,6 +326,22 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var command = new DeleteCustomerCommand(loyaltyNumber);
+        var deleted = await _deleteHandler.HandleAsync(command, cancellationToken);
+
+        if (!deleted)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    private static string GenerateLoyaltyNumber()
+    {
+        var random = Random.Shared.Next(1000000, 9999999);
+        return $"AX{random}";
     }
 }

@@ -24,6 +24,11 @@ public sealed class GetCustomerHandler
         GetCustomerQuery query,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var customer = await _repository.GetByLoyaltyNumberAsync(query.LoyaltyNumber, cancellationToken);
+
+        if (customer is null)
+            _logger.LogDebug("Customer not found for LoyaltyNumber {LoyaltyNumber}", query.LoyaltyNumber);
+
+        return customer;
     }
 }

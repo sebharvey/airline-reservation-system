@@ -24,6 +24,10 @@ public sealed class GetTransactionsHandler
         GetTransactionsQuery query,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var transactions = await _repository.GetByLoyaltyNumberAsync(query.LoyaltyNumber, cancellationToken);
+
+        _logger.LogDebug("Retrieved {Count} transactions for {LoyaltyNumber}", transactions.Count, query.LoyaltyNumber);
+
+        return transactions;
     }
 }
