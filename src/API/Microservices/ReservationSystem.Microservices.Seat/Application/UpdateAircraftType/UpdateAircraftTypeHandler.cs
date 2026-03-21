@@ -21,8 +21,22 @@ public sealed class UpdateAircraftTypeHandler
         _logger = logger;
     }
 
-    public Task<AircraftType?> HandleAsync(UpdateAircraftTypeCommand command, CancellationToken cancellationToken = default)
+    public async Task<AircraftType?> HandleAsync(UpdateAircraftTypeCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var existing = await _repository.GetByCodeAsync(command.AircraftTypeCode, cancellationToken);
+        if (existing is null) return null;
+
+        var updated = AircraftType.Reconstitute(
+            command.AircraftTypeCode,
+            command.Manufacturer ?? existing.Manufacturer,
+            command.FriendlyName ?? existing.FriendlyName,
+            command.TotalSeats ?? existing.TotalSeats,
+            command.IsActive ?? existing.IsActive,
+            existing.CreatedAt,
+            DateTimeOffset.UtcNow);
+
+        var result = await _repository.UpdateAsync(updated, cancellationToken);
+        _logger.LogInformation("Updated AircraftType {AircraftTypeCode}", command.AircraftTypeCode);
+        return result;
     }
 }

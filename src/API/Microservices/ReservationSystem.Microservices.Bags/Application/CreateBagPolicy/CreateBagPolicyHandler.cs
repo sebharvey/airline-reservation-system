@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Bags.Domain.Entities;
 using ReservationSystem.Microservices.Bags.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Bags.Application.CreateBagPolicy;
@@ -14,10 +15,11 @@ public sealed class CreateBagPolicyHandler
         _logger = logger;
     }
 
-    public async Task<Domain.Entities.BagPolicy> HandleAsync(
-        CreateBagPolicyCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<BagPolicy> HandleAsync(CreateBagPolicyCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var policy = BagPolicy.Create(command.CabinCode, command.FreeBagsIncluded, command.MaxWeightKgPerBag);
+        var created = await _repository.CreateAsync(policy, cancellationToken);
+        _logger.LogInformation("Created BagPolicy {PolicyId} for cabin {CabinCode}", created.PolicyId, command.CabinCode);
+        return created;
     }
 }

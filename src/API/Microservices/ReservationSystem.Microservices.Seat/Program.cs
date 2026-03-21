@@ -1,5 +1,3 @@
-// Description: Entry point and host configuration for the Seat Azure Functions API
-
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,41 +18,29 @@ using ReservationSystem.Microservices.Seat.Application.UpdateSeatPricing;
 using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
-using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices((context, services) =>
     {
-        // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // ── Configuration ──────────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
 
         // ── Infrastructure ─────────────────────────────────────────────────────
-        services.AddDbContext<SeatDbContext>((provider, options) =>
-        {
-            var dbOptions = provider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
-                .Value;
-            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
-            {
-                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
-            });
-        });
-        services.AddHttpClient();
-        services.AddScoped<IAircraftTypeRepository, EfAircraftTypeRepository>();
-        services.AddScoped<ISeatmapRepository, EfSeatmapRepository>();
-        services.AddScoped<ISeatPricingRepository, EfSeatPricingRepository>();
+        services.AddSingleton<SqlConnectionFactory>();
+        services.AddScoped<IAircraftTypeRepository, SqlAircraftTypeRepository>();
+        services.AddScoped<ISeatmapRepository, SqlSeatmapRepository>();
+        services.AddScoped<ISeatPricingRepository, SqlSeatPricingRepository>();
 
-        // ── Health check ───────────────────────────────────────────────────────
+        // ── Health check ────────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
-        // ── Application use-case handlers ──────────────────────────────────────
+        // ── Application use-case handlers ───────────────────────────────────────
         services.AddScoped<GetSeatmapHandler>();
         services.AddScoped<GetSeatOffersHandler>();
         services.AddScoped<GetSeatOfferHandler>();

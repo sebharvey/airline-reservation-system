@@ -21,8 +21,8 @@ public sealed class GetAircraftTypeHandler
         _logger = logger;
     }
 
-    public Task<AircraftType?> HandleAsync(GetAircraftTypeQuery query, CancellationToken cancellationToken = default)
+    public async Task<AircraftType?> HandleAsync(GetAircraftTypeQuery query, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _repository.GetByCodeAsync(query.AircraftTypeCode, cancellationToken);
     }
 }

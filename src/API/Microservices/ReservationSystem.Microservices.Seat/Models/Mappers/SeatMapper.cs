@@ -40,13 +40,12 @@ public static class SeatMapper
     public static CreateSeatmapCommand ToCommand(CreateSeatmapRequest request) =>
         new(
             AircraftTypeCode: request.AircraftTypeCode,
-            Version: request.Version,
-            CabinLayout: request.CabinLayout);
+            CabinLayout: request.CabinLayout.GetRawText());
 
     public static UpdateSeatmapCommand ToCommand(Guid seatmapId, UpdateSeatmapRequest request) =>
         new(
             SeatmapId: seatmapId,
-            CabinLayout: request.CabinLayout,
+            CabinLayout: request.CabinLayout?.GetRawText(),
             IsActive: request.IsActive);
 
     public static CreateSeatPricingCommand ToCommand(CreateSeatPricingRequest request) =>

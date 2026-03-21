@@ -21,8 +21,11 @@ public sealed class CreateAircraftTypeHandler
         _logger = logger;
     }
 
-    public Task<AircraftType> HandleAsync(CreateAircraftTypeCommand command, CancellationToken cancellationToken = default)
+    public async Task<AircraftType> HandleAsync(CreateAircraftTypeCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var entity = AircraftType.Create(command.AircraftTypeCode, command.Manufacturer, command.TotalSeats, command.FriendlyName);
+        var created = await _repository.CreateAsync(entity, cancellationToken);
+        _logger.LogInformation("Created AircraftType {AircraftTypeCode}", created.AircraftTypeCode);
+        return created;
     }
 }
