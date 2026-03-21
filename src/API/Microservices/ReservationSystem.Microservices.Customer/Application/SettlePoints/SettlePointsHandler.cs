@@ -34,18 +34,24 @@ public sealed class SettlePointsHandler
             return null;
         }
 
-        // TODO: Look up the authorisation hold by redemptionReference to get the held points amount.
-        // For now, create the settlement transaction record.
+        var hold = await _transactionRepository.FindAuthorisationHoldAsync(command.LoyaltyNumber, command.RedemptionReference, cancellationToken);
+
+        if (hold is null)
+        {
+            _logger.LogDebug("No authorisation hold found for RedemptionReference {RedemptionReference}", command.RedemptionReference);
+            return null;
+        }
+
         var transaction = LoyaltyTransaction.Create(
             loyaltyNumber: command.LoyaltyNumber,
             transactionType: "Redeem",
-            pointsDelta: 0,
+            pointsDelta: hold.PointsDelta,
             balanceAfter: customer.PointsBalance,
             description: $"Points settlement — {command.RedemptionReference}");
 
         await _transactionRepository.CreateAsync(transaction, cancellationToken);
 
-        _logger.LogInformation("Settled redemption {RedemptionReference} for {LoyaltyNumber}", command.RedemptionReference, command.LoyaltyNumber);
+        _logger.LogInformation("Settled {Points} points for redemption {RedemptionReference} on {LoyaltyNumber}", Math.Abs(hold.PointsDelta), command.RedemptionReference, command.LoyaltyNumber);
 
         return transaction;
     }

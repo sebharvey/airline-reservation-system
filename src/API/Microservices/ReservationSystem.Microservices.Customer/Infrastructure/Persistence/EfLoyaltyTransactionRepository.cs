@@ -49,6 +49,17 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
         return (transactions.AsReadOnly(), totalCount);
     }
 
+    public async Task<LoyaltyTransaction?> FindAuthorisationHoldAsync(string loyaltyNumber, string redemptionReference, CancellationToken cancellationToken = default)
+    {
+        return await _context.LoyaltyTransactions
+            .AsNoTracking()
+            .Where(t => t.LoyaltyNumber == loyaltyNumber
+                && t.TransactionType == "Redeem"
+                && t.Description.Contains(redemptionReference))
+            .OrderByDescending(t => t.TransactionDate)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task CreateAsync(LoyaltyTransaction transaction, CancellationToken cancellationToken = default)
     {
         _context.LoyaltyTransactions.Add(transaction);
