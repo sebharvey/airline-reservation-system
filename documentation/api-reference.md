@@ -6,7 +6,7 @@
 
 ---
 
-## Retail API
+## Retail API — [Full API Spec](api-specs/retail-api.md)
 
 ### Search & Basket
 
@@ -60,7 +60,7 @@
 
 ---
 
-## Loyalty API
+## Loyalty API — [Full API Spec](api-specs/loyalty-api.md)
 
 ### Authentication
 
@@ -89,7 +89,7 @@
 
 ---
 
-## Disruption API
+## Disruption API — [Full API Spec](api-specs/disruption-api.md)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -98,7 +98,7 @@
 
 ---
 
-## Operations API
+## Operations API — [Full API Spec](api-specs/operations-api.md)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -106,7 +106,7 @@
 
 ---
 
-## Schedule Microservice
+## Schedule Microservice — [Full API Spec](api-specs/schedule-microservice.md)
 
 The Schedule microservice is the internal persistence layer for flight schedule definitions. It is called by the Operations API during schedule creation to store the schedule record and to update the `FlightsCreated` count after the Operations API has generated inventory in the Offer domain.
 
@@ -117,7 +117,7 @@ The Schedule microservice is the internal persistence layer for flight schedule 
 
 ---
 
-## Offer Microservice
+## Offer Microservice — [Full API Spec](api-specs/offer-microservice.md)
 
 The Offer microservice operates on individual flight **segments** only. It has no concept of a multi-segment connecting itinerary; connecting itinerary assembly (pairing legs, enforcing minimum connect time, combining prices) is the responsibility of the Retail API orchestration layer.
 
@@ -139,7 +139,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ---
 
-## Order Microservice
+## Order Microservice — [Full API Spec](api-specs/order-microservice.md)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -164,7 +164,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ---
 
-## Payment Microservice
+## Payment Microservice — [Full API Spec](api-specs/payment-microservice.md)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -174,7 +174,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ---
 
-## Delivery Microservice
+## Delivery Microservice — [Full API Spec](api-specs/delivery-microservice.md)
 
 The Delivery microservice manages three distinct record types: **Tickets** (financial/accounting documents — the airline's equivalent of an e-ticket or EMD), **Manifest** (the operational passenger manifest used by ground handling and crew), and **Documents** (ancillary EMD-equivalent records for post-sale purchases such as seats and bags).
 
@@ -212,7 +212,7 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 
 ---
 
-## Seat Microservice
+## Seat Microservice — [Full API Spec](api-specs/seat-microservice.md)
 
 The Seat microservice owns seat offer generation. `SeatOfferId` values are deterministic (derived from `flightId`, `seatNumber`, and a pricing-rule hash) — no offer storage is required. Seat MS generates priced seat offers on demand; pricing rules are stored in `seat.SeatPricing`.
 
@@ -246,7 +246,7 @@ The Seat microservice owns seat offer generation. `SeatOfferId` values are deter
 
 ---
 
-## Bag Microservice
+## Bag Microservice — [Full API Spec](api-specs/bags-microservice.md)
 
 The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferId` values are deterministic (derived from `inventoryId`, `cabinCode`, `bagCount`, and a pricing-rule hash) — no offer storage is required. Bag MS generates priced bag offers on demand from `bag.BagPricing` rules.
 
@@ -274,7 +274,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 
 ---
 
-## Identity Microservice
+## Identity Microservice — [Full API Spec](api-specs/identity-microservice.md)
 
 ### Authentication
 
