@@ -1,5 +1,6 @@
 using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Models.Responses;
+using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Models.Mappers;
 
