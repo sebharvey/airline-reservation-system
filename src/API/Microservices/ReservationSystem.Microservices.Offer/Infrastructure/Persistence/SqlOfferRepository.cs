@@ -577,6 +577,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
             pointsPrice: (int?)row.PointsPrice,
             pointsTaxes: (decimal?)row.PointsTaxes,
+            seatsAvailable: (int)row.SeatsAvailable,
             bookingType: (string)row.BookingType,
             createdAt: (DateTime)row.CreatedAt,
             expiresAt: (DateTime)row.ExpiresAt,
