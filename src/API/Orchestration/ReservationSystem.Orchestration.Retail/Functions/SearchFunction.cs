@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
@@ -32,6 +34,10 @@ public sealed class SearchFunction
     // -------------------------------------------------------------------------
 
     [Function("SearchFlights")]
+    [OpenApiOperation(operationId: "SearchFlights", tags: new[] { "Search" }, Summary = "Search for available flights")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Search(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,
         CancellationToken cancellationToken)

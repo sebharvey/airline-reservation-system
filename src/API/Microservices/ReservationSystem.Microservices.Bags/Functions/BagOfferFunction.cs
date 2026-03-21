@@ -1,6 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using System.Net;
 using ReservationSystem.Microservices.Bags.Domain.Repositories;
 using ReservationSystem.Microservices.Bags.Models.Mappers;
 using ReservationSystem.Microservices.Bags.Models.Responses;
@@ -31,6 +34,12 @@ public sealed class BagOfferFunction
     /// BagOfferId values are deterministic: bo-{first8chars_of_inventoryId}-{cabinCode}-{bagSequence}-v1
     /// </summary>
     [Function("GetBagOffers")]
+    [OpenApiOperation(operationId: "GetBagOffers", tags: new[] { "BagOffers" }, Summary = "Get bag offers for a flight and cabin")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The inventory (flight) ID")]
+    [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The cabin code (F, J, W, or Y)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bags/offers")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -83,6 +92,11 @@ public sealed class BagOfferFunction
     /// BagOfferId format: bo-{inventoryIdPrefix}-{cabinCode}-{bagSequence}-v1
     /// </summary>
     [Function("GetBagOffer")]
+    [OpenApiOperation(operationId: "GetBagOffer", tags: new[] { "BagOffers" }, Summary = "Validate a specific bag offer")]
+    [OpenApiParameter(name: "bagOfferId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The bag offer ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffer(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bags/offers/{bagOfferId}")] HttpRequestData req,
         string bagOfferId,

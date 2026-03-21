@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
@@ -33,6 +35,10 @@ public sealed class ProfileFunction
     // -------------------------------------------------------------------------
 
     [Function("GetCustomerProfile")]
+    [OpenApiOperation(operationId: "GetCustomerProfile", tags: new[] { "Profile" }, Summary = "Get customer profile")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetProfile(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
         string loyaltyNumber,
@@ -51,6 +57,9 @@ public sealed class ProfileFunction
     // -------------------------------------------------------------------------
 
     [Function("UpdateCustomerProfile")]
+    [OpenApiOperation(operationId: "UpdateCustomerProfile", tags: new[] { "Profile" }, Summary = "Update customer profile")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
     public async Task<HttpResponseData> UpdateProfile(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
         string loyaltyNumber,
@@ -65,6 +74,9 @@ public sealed class ProfileFunction
     // -------------------------------------------------------------------------
 
     [Function("GetCustomerTransactions")]
+    [OpenApiOperation(operationId: "GetCustomerTransactions", tags: new[] { "Profile" }, Summary = "Get loyalty transactions")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> GetTransactions(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/transactions")] HttpRequestData req,
         string loyaltyNumber,

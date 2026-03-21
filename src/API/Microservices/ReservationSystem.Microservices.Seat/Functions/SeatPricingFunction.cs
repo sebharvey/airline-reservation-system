@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Seat.Application.CreateSeatPricing;
 using ReservationSystem.Microservices.Seat.Application.DeleteSeatPricing;
 using ReservationSystem.Microservices.Seat.Application.GetAllSeatPricings;
@@ -10,6 +12,7 @@ using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
@@ -40,6 +43,8 @@ public sealed class SeatPricingFunction
     }
 
     [Function("GetAllSeatPricings")]
+    [OpenApiOperation(operationId: "GetAllSeatPricings", tags: new[] { "SeatPricing" }, Summary = "List all seat pricing rules")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -49,6 +54,11 @@ public sealed class SeatPricingFunction
     }
 
     [Function("CreateSeatPricing")]
+    [OpenApiOperation(operationId: "CreateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Create a new seat pricing rule")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The seat pricing rule to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -98,6 +108,10 @@ public sealed class SeatPricingFunction
     }
 
     [Function("GetSeatPricing")]
+    [OpenApiOperation(operationId: "GetSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Get a seat pricing rule by ID")]
+    [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,
@@ -110,6 +124,12 @@ public sealed class SeatPricingFunction
     }
 
     [Function("UpdateSeatPricing")]
+    [OpenApiOperation(operationId: "UpdateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Update a seat pricing rule")]
+    [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,
@@ -146,6 +166,10 @@ public sealed class SeatPricingFunction
     }
 
     [Function("DeleteSeatPricing")]
+    [OpenApiOperation(operationId: "DeleteSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Delete a seat pricing rule")]
+    [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,

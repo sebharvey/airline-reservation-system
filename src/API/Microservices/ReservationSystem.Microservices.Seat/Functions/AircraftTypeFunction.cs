@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Seat.Application.CreateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAllAircraftTypes;
@@ -11,6 +13,7 @@ using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
@@ -47,6 +50,8 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("GetAllAircraftTypes")]
+    [OpenApiOperation(operationId: "GetAllAircraftTypes", tags: new[] { "AircraftTypes" }, Summary = "List all aircraft types")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/aircraft-types")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -56,6 +61,11 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("CreateAircraftType")]
+    [OpenApiOperation(operationId: "CreateAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Create a new aircraft type")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The aircraft type to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/aircraft-types")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -98,6 +108,10 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("GetAircraftType")]
+    [OpenApiOperation(operationId: "GetAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Get an aircraft type by code")]
+    [OpenApiParameter(name: "aircraftTypeCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetByCode(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/aircraft-types/{aircraftTypeCode}")] HttpRequestData req,
         string aircraftTypeCode,
@@ -110,6 +124,12 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("UpdateAircraftType")]
+    [OpenApiOperation(operationId: "UpdateAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Update an aircraft type")]
+    [OpenApiParameter(name: "aircraftTypeCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/aircraft-types/{aircraftTypeCode}")] HttpRequestData req,
         string aircraftTypeCode,
@@ -140,6 +160,11 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("DeleteAircraftType")]
+    [OpenApiOperation(operationId: "DeleteAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Delete an aircraft type")]
+    [OpenApiParameter(name: "aircraftTypeCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/aircraft-types/{aircraftTypeCode}")] HttpRequestData req,
         string aircraftTypeCode,

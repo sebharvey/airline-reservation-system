@@ -1,10 +1,13 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Login;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
@@ -31,6 +34,10 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("Login")]
+    [OpenApiOperation(operationId: "Login", tags: new[] { "Auth" }, Summary = "Login with email and password")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Login(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -65,6 +72,8 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("RefreshToken")]
+    [OpenApiOperation(operationId: "RefreshToken", tags: new[] { "Auth" }, Summary = "Refresh an access token")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> Refresh(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/refresh")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -77,6 +86,8 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("Logout")]
+    [OpenApiOperation(operationId: "Logout", tags: new[] { "Auth" }, Summary = "Logout and invalidate token")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> Logout(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/logout")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -89,6 +100,8 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("PasswordResetRequest")]
+    [OpenApiOperation(operationId: "PasswordResetRequest", tags: new[] { "Auth" }, Summary = "Request a password reset")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> PasswordResetRequest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -101,6 +114,8 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("PasswordReset")]
+    [OpenApiOperation(operationId: "PasswordReset", tags: new[] { "Auth" }, Summary = "Reset password with token")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> PasswordReset(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)

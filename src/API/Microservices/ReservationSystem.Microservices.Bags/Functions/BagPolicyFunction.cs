@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Bags.Application.CreateBagPolicy;
 using ReservationSystem.Microservices.Bags.Application.DeleteBagPolicy;
 using ReservationSystem.Microservices.Bags.Application.GetAllBagPolicies;
@@ -41,6 +43,8 @@ public sealed class BagPolicyFunction
     }
 
     [Function("GetAllBagPolicies")]
+    [OpenApiOperation(operationId: "GetAllBagPolicies", tags: new[] { "BagPolicies" }, Summary = "List all bag policies")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -51,6 +55,10 @@ public sealed class BagPolicyFunction
     }
 
     [Function("GetBagPolicy")]
+    [OpenApiOperation(operationId: "GetBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Get a bag policy by ID")]
+    [OpenApiParameter(name: "policyId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag policy ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,
@@ -63,6 +71,11 @@ public sealed class BagPolicyFunction
     }
 
     [Function("CreateBagPolicy")]
+    [OpenApiOperation(operationId: "CreateBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Create a new bag policy")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The bag policy to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -106,6 +119,12 @@ public sealed class BagPolicyFunction
     }
 
     [Function("UpdateBagPolicy")]
+    [OpenApiOperation(operationId: "UpdateBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Update a bag policy")]
+    [OpenApiParameter(name: "policyId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag policy ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,
@@ -139,6 +158,10 @@ public sealed class BagPolicyFunction
     }
 
     [Function("DeleteBagPolicy")]
+    [OpenApiOperation(operationId: "DeleteBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Delete a bag policy")]
+    [OpenApiParameter(name: "policyId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag policy ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,

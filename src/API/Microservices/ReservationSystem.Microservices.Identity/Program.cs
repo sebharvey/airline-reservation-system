@@ -1,9 +1,12 @@
 // Description: Entry point and host configuration for the Identity Azure Functions API
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReservationSystem.Microservices.Identity.Swagger;
 using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
@@ -20,9 +23,13 @@ using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();

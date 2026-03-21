@@ -1,9 +1,12 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.AuthorisePoints;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
@@ -30,6 +33,9 @@ public sealed class PointsFunction
     // -------------------------------------------------------------------------
 
     [Function("AuthorisePoints")]
+    [OpenApiOperation(operationId: "AuthorisePoints", tags: new[] { "Points" }, Summary = "Authorise a points transaction")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public async Task<HttpResponseData> Authorise(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/authorise")] HttpRequestData req,
         string loyaltyNumber,
@@ -45,6 +51,9 @@ public sealed class PointsFunction
     // -------------------------------------------------------------------------
 
     [Function("SettlePoints")]
+    [OpenApiOperation(operationId: "SettlePoints", tags: new[] { "Points" }, Summary = "Settle a points transaction")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> Settle(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/settle")] HttpRequestData req,
         string loyaltyNumber,
@@ -58,6 +67,9 @@ public sealed class PointsFunction
     // -------------------------------------------------------------------------
 
     [Function("ReversePoints")]
+    [OpenApiOperation(operationId: "ReversePoints", tags: new[] { "Points" }, Summary = "Reverse a points transaction")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> Reverse(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reverse")] HttpRequestData req,
         string loyaltyNumber,
@@ -71,6 +83,9 @@ public sealed class PointsFunction
     // -------------------------------------------------------------------------
 
     [Function("ReinstatePoints")]
+    [OpenApiOperation(operationId: "ReinstatePoints", tags: new[] { "Points" }, Summary = "Reinstate reversed points")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> Reinstate(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reinstate")] HttpRequestData req,
         string loyaltyNumber,

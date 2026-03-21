@@ -2,17 +2,24 @@
 // Description: Entry point and host configuration for the Disruption Orchestration Azure Functions API
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
+using ReservationSystem.Orchestration.Disruption.Swagger;
 using ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
 using ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Disruption.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();

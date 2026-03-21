@@ -1,9 +1,12 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
+using System.Net;
 using System.Text.Json;
 using System.Web;
 
@@ -31,6 +34,12 @@ public sealed class SeatOfferFunction
     /// SeatOfferId format: so-{flightIdPrefix}-{seatNumber}-v1
     /// </summary>
     [Function("GetSeatOffers")]
+    [OpenApiOperation(operationId: "GetSeatOffers", tags: new[] { "SeatOffers" }, Summary = "Get priced seat offers for a flight")]
+    [OpenApiParameter(name: "flightId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The flight ID")]
+    [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "The aircraft type code")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-offers")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -138,6 +147,11 @@ public sealed class SeatOfferFunction
     /// SeatOfferId format: so-{flightIdPrefix}-{seatNumber}-v1
     /// </summary>
     [Function("GetSeatOffer")]
+    [OpenApiOperation(operationId: "GetSeatOffer", tags: new[] { "SeatOffers" }, Summary = "Validate a specific seat offer")]
+    [OpenApiParameter(name: "seatOfferId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The seat offer ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffer(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-offers/{seatOfferId}")] HttpRequestData req,
         string seatOfferId,

@@ -1,10 +1,13 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Operations.Application.CreateSchedule;
 using ReservationSystem.Orchestration.Operations.Models.Requests;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Operations.Functions;
@@ -32,6 +35,10 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateSchedule")]
+    [OpenApiOperation(operationId: "CreateSchedule", tags: new[] { "Schedules" }, Summary = "Create a flight schedule and generate inventory")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)

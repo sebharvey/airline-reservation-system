@@ -1,12 +1,15 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
 using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
 using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Schedule.Functions;
@@ -36,6 +39,11 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateSchedule")]
+    [OpenApiOperation(operationId: "CreateSchedule", tags: new[] { "Schedules" }, Summary = "Create a flight schedule")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Schedule details: flightNumber, origin, destination, departureTime, arrivalTime, aircraftType, daysOfWeek, createdBy")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -99,6 +107,12 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("UpdateSchedule")]
+    [OpenApiOperation(operationId: "UpdateSchedule", tags: new[] { "Schedules" }, Summary = "Update a flight schedule")]
+    [OpenApiParameter(name: "scheduleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Schedule ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Schedule update details")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/schedules/{scheduleId:guid}")] HttpRequestData req,
         Guid scheduleId,

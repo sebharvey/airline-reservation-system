@@ -1,6 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReservationSystem.Microservices.Bags.Swagger;
 using ReservationSystem.Microservices.Bags.Application.CreateBagPolicy;
 using ReservationSystem.Microservices.Bags.Application.CreateBagPricing;
 using ReservationSystem.Microservices.Bags.Application.DeleteBagPolicy;
@@ -18,9 +21,13 @@ using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 

@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
@@ -49,6 +51,11 @@ public sealed class AccountFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateAccount")]
+    [OpenApiOperation(operationId: "CreateAccount", tags: new[] { "Accounts" }, Summary = "Create a new user account")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Account creation request: email, password")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
     public async Task<HttpResponseData> CreateAccount(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -90,6 +97,10 @@ public sealed class AccountFunction
     // -------------------------------------------------------------------------
 
     [Function("DeleteAccount")]
+    [OpenApiOperation(operationId: "DeleteAccount", tags: new[] { "Accounts" }, Summary = "Delete a user account")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteAccount(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
         Guid userAccountId,
@@ -112,6 +123,10 @@ public sealed class AccountFunction
     // -------------------------------------------------------------------------
 
     [Function("VerifyEmail")]
+    [OpenApiOperation(operationId: "VerifyEmail", tags: new[] { "Accounts" }, Summary = "Mark account email as verified")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> VerifyEmail(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
@@ -134,6 +149,13 @@ public sealed class AccountFunction
     // -------------------------------------------------------------------------
 
     [Function("EmailChangeRequest")]
+    [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Accounts" }, Summary = "Request an email address change")]
+    [OpenApiParameter(name: "identityReference", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Identity reference")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Email change request: newEmail")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> EmailChangeRequest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
         Guid identityReference,
@@ -176,6 +198,10 @@ public sealed class AccountFunction
     // -------------------------------------------------------------------------
 
     [Function("VerifyEmailChange")]
+    [OpenApiOperation(operationId: "VerifyEmailChange", tags: new[] { "Accounts" }, Summary = "Verify email change with token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Verification request: token")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
     public async Task<HttpResponseData> VerifyEmailChange(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)

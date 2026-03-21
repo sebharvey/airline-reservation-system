@@ -9,6 +9,8 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
+using Microsoft.OpenApi.Models;
 
 namespace ReservationSystem.Microservices.Payment.Functions;
 
@@ -40,6 +42,11 @@ public sealed class PaymentFunction
     // -------------------------------------------------------------------------
 
     [Function("AuthorisePayment")]
+    [OpenApiOperation(operationId: "AuthorisePayment", tags: new[] { "Payments" }, Summary = "Authorise a payment")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Payment authorisation request: amount, currencyCode, cardDetails, paymentType")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> Authorise(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/authorise")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -102,6 +109,13 @@ public sealed class PaymentFunction
     // -------------------------------------------------------------------------
 
     [Function("SettlePayment")]
+    [OpenApiOperation(operationId: "SettlePayment", tags: new[] { "Payments" }, Summary = "Settle an authorised payment")]
+    [OpenApiParameter(name: "paymentReference", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Payment reference")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Settlement request: settledAmount")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Settle(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentReference}/settle")] HttpRequestData req,
         string paymentReference,
@@ -159,6 +173,13 @@ public sealed class PaymentFunction
     // -------------------------------------------------------------------------
 
     [Function("RefundPayment")]
+    [OpenApiOperation(operationId: "RefundPayment", tags: new[] { "Payments" }, Summary = "Refund a settled payment")]
+    [OpenApiParameter(name: "paymentReference", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Payment reference")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Refund request: refundAmount, reason")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Refund(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentReference}/refund")] HttpRequestData req,
         string paymentReference,
