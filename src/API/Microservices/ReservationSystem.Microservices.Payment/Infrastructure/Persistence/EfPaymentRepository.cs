@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Domain.Repositories;
+using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
 

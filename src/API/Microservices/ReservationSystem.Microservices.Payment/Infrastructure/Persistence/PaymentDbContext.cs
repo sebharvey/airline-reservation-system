@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Payment.Domain.Entities;
+using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
 
