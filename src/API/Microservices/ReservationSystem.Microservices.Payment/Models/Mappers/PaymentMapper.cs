@@ -1,6 +1,4 @@
-using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Models.Responses;
-using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Models.Mappers;
 
@@ -19,7 +17,7 @@ public static class PaymentMapper
     // Domain entity → HTTP response
     // -------------------------------------------------------------------------
 
-    public static AuthorisePaymentResponse ToAuthoriseResponse(Payment payment) =>
+    public static AuthorisePaymentResponse ToAuthoriseResponse(Domain.Entities.Payment payment) =>
         new()
         {
             PaymentReference = payment.PaymentReference,
@@ -27,7 +25,7 @@ public static class PaymentMapper
             Status = payment.Status
         };
 
-    public static SettlePaymentResponse ToSettleResponse(Payment payment) =>
+    public static SettlePaymentResponse ToSettleResponse(Domain.Entities.Payment payment) =>
         new()
         {
             PaymentReference = payment.PaymentReference,
@@ -35,7 +33,7 @@ public static class PaymentMapper
             SettledAt = payment.SettledAt
         };
 
-    public static RefundPaymentResponse ToRefundResponse(Payment payment, decimal refundedAmount) =>
+    public static RefundPaymentResponse ToRefundResponse(Domain.Entities.Payment payment, decimal refundedAmount) =>
         new()
         {
             PaymentReference = payment.PaymentReference,

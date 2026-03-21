@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Payment.Domain.Entities;
-using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
 
@@ -15,12 +14,12 @@ public sealed class PaymentDbContext : DbContext
 {
     public PaymentDbContext(DbContextOptions<PaymentDbContext> options) : base(options) { }
 
-    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Domain.Entities.Payment> Payments => Set<Domain.Entities.Payment>();
     public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Payment>(entity =>
+        modelBuilder.Entity<Domain.Entities.Payment>(entity =>
         {
             entity.ToTable("Payment", "payment");
 
@@ -153,7 +152,7 @@ public sealed class PaymentDbContext : DbContext
                   .HasColumnType("datetimeoffset")
                   .IsRequired();
 
-            entity.HasOne<Payment>()
+            entity.HasOne<Domain.Entities.Payment>()
                   .WithMany()
                   .HasForeignKey(pe => pe.PaymentId);
         });

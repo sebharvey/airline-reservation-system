@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Domain.Repositories;
-using Payment = ReservationSystem.Microservices.Payment.Domain.Entities.Payment;
 
 namespace ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
 
@@ -24,21 +23,21 @@ public sealed class EfPaymentRepository : IPaymentRepository
         _logger = logger;
     }
 
-    public async Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PaymentId == paymentId, cancellationToken);
     }
 
-    public async Task<Payment?> GetByReferenceAsync(string paymentReference, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.Payment?> GetByReferenceAsync(string paymentReference, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Payments
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PaymentReference == paymentReference, cancellationToken);
     }
 
-    public async Task CreateAsync(Payment payment, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(Domain.Entities.Payment payment, CancellationToken cancellationToken = default)
     {
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -46,7 +45,7 @@ public sealed class EfPaymentRepository : IPaymentRepository
         _logger.LogDebug("Inserted Payment {PaymentId} into [payment].[Payment]", payment.PaymentId);
     }
 
-    public async Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Domain.Entities.Payment payment, CancellationToken cancellationToken = default)
     {
         _dbContext.Payments.Update(payment);
         var rowsAffected = await _dbContext.SaveChangesAsync(cancellationToken);
