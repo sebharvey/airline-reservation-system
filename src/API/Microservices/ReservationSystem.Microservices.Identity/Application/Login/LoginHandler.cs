@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Identity.Domain.Entities;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
+using RefreshTokenEntity = ReservationSystem.Microservices.Identity.Domain.Entities.RefreshToken;
 using ReservationSystem.Microservices.Identity.Models.Responses;
 using System.Security.Cryptography;
 using System.Text;
@@ -70,7 +71,7 @@ public sealed class LoginHandler
         var refreshTokenHash = HashToken(rawRefreshToken);
         var refreshTokenExpiry = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays);
 
-        var refreshToken = RefreshToken.Create(
+        var refreshToken = RefreshTokenEntity.Create(
             userAccountId: account.UserAccountId,
             tokenHash: refreshTokenHash,
             expiresAt: refreshTokenExpiry);
