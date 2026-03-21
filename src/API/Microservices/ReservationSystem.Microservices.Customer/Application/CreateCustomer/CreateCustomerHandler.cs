@@ -24,6 +24,21 @@ public sealed class CreateCustomerHandler
         CreateCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var customer = Customer.Create(
+            loyaltyNumber: command.LoyaltyNumber,
+            givenName: command.GivenName,
+            surname: command.Surname,
+            preferredLanguage: command.PreferredLanguage,
+            tierCode: command.TierCode,
+            identityReference: command.IdentityReference,
+            dateOfBirth: command.DateOfBirth,
+            nationality: command.Nationality,
+            phoneNumber: command.PhoneNumber);
+
+        await _repository.CreateAsync(customer, cancellationToken);
+
+        _logger.LogInformation("Created customer {LoyaltyNumber}", customer.LoyaltyNumber);
+
+        return customer;
     }
 }

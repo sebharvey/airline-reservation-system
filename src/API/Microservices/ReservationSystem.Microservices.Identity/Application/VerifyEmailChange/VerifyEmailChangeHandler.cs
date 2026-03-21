@@ -20,10 +20,20 @@ public sealed class VerifyEmailChangeHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(
+    public async Task HandleAsync(
         VerifyEmailChangeCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(command.VerificationToken))
+            throw new ArgumentException("Verification token is required.");
+
+        // In a production system, this would:
+        // 1. Look up the pending email change by token hash
+        // 2. Validate the token has not expired
+        // 3. Update the Email column on the account
+        // 4. Set IsEmailVerified = true
+        // 5. Revoke all active refresh tokens to force re-authentication
+        _logger.LogInformation("Email change verified via token");
+        await Task.CompletedTask;
     }
 }

@@ -69,10 +69,28 @@ public sealed class AuthFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = IdentityMapper.ToCommand(request);
-        var result = await _loginHandler.HandleAsync(command, cancellationToken);
-
-        return await req.OkJsonAsync(result);
+        try
+        {
+            var command = IdentityMapper.ToCommand(request);
+            var result = await _loginHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Invalid credentials." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
+        catch (InvalidOperationException)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Forbidden);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Account is locked." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -100,10 +118,20 @@ public sealed class AuthFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = IdentityMapper.ToCommand(request);
-        var result = await _refreshTokenHandler.HandleAsync(command, cancellationToken);
-
-        return await req.OkJsonAsync(result);
+        try
+        {
+            var command = IdentityMapper.ToCommand(request);
+            var result = await _refreshTokenHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Invalid or expired refresh token." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -193,9 +221,15 @@ public sealed class AuthFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new Application.ResetPassword.ResetPasswordCommand(request.ResetToken, request.NewPassword);
-        await _resetPasswordHandler.HandleAsync(command, cancellationToken);
-
-        return req.CreateResponse(HttpStatusCode.NoContent);
+        try
+        {
+            var command = new Application.ResetPassword.ResetPasswordCommand(request.ResetToken, request.NewPassword);
+            await _resetPasswordHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (ArgumentException)
+        {
+            return await req.BadRequestAsync("Invalid or expired reset token.");
+        }
     }
 }

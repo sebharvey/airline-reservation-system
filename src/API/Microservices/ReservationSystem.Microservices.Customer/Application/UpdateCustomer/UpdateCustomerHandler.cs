@@ -24,6 +24,28 @@ public sealed class UpdateCustomerHandler
         UpdateCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var customer = await _repository.GetByLoyaltyNumberAsync(command.LoyaltyNumber, cancellationToken);
+
+        if (customer is null)
+        {
+            _logger.LogDebug("Customer not found for LoyaltyNumber {LoyaltyNumber}", command.LoyaltyNumber);
+            return null;
+        }
+
+        customer.UpdateProfile(
+            givenName: command.GivenName,
+            surname: command.Surname,
+            dateOfBirth: command.DateOfBirth,
+            nationality: command.Nationality,
+            preferredLanguage: command.PreferredLanguage,
+            phoneNumber: command.PhoneNumber,
+            tierCode: command.TierCode,
+            identityReference: command.IdentityReference);
+
+        await _repository.UpdateAsync(customer, cancellationToken);
+
+        _logger.LogInformation("Updated customer {LoyaltyNumber}", command.LoyaltyNumber);
+
+        return customer;
     }
 }

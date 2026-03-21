@@ -23,6 +23,18 @@ public sealed class DeleteCustomerHandler
         DeleteCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var customer = await _repository.GetByLoyaltyNumberAsync(command.LoyaltyNumber, cancellationToken);
+
+        if (customer is null)
+        {
+            _logger.LogDebug("Customer not found for LoyaltyNumber {LoyaltyNumber}", command.LoyaltyNumber);
+            return false;
+        }
+
+        await _repository.DeleteAsync(command.LoyaltyNumber, cancellationToken);
+
+        _logger.LogInformation("Deleted customer {LoyaltyNumber}", command.LoyaltyNumber);
+
+        return true;
     }
 }
