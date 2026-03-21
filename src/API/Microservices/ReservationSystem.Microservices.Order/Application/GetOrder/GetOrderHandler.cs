@@ -24,6 +24,15 @@ public sealed class GetOrderHandler
         GetOrderQuery query,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Retrieving order by booking reference {BookingReference}", query.BookingReference);
+
+        var order = await _repository.GetByBookingReferenceAsync(query.BookingReference, cancellationToken);
+
+        if (order is null)
+        {
+            _logger.LogWarning("Order with booking reference {BookingReference} not found", query.BookingReference);
+        }
+
+        return order;
     }
 }

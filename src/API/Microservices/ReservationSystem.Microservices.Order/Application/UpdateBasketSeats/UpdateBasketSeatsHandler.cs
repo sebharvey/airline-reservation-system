@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
@@ -25,6 +26,59 @@ public sealed class UpdateBasketSeatsHandler
         UpdateBasketSeatsCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Updating seats for basket {BasketId}", command.BasketId);
+
+        var basket = await _repository.GetByIdAsync(command.BasketId, cancellationToken);
+        if (basket is null)
+        {
+            _logger.LogWarning("Basket {BasketId} not found", command.BasketId);
+            return null;
+        }
+
+        if (basket.BasketStatus != BasketStatusValues.Active)
+        {
+            _logger.LogWarning("Basket {BasketId} is not open (status: {Status})", command.BasketId, basket.BasketStatus);
+            throw new InvalidOperationException($"Basket is not open. Current status: {basket.BasketStatus}");
+        }
+
+        var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
+        var seatsNode = JsonNode.Parse(command.SeatsData);
+        basketJson["seats"] = seatsNode;
+
+        // Calculate total seat amount from seat selections
+        decimal totalSeatAmount = 0m;
+        if (seatsNode is JsonArray seatsArray)
+        {
+            foreach (var seat in seatsArray)
+            {
+                var price = seat?["price"]?.GetValue<decimal>() ?? 0m;
+                totalSeatAmount += price;
+            }
+        }
+
+        var totalAmount = (basket.TotalFareAmount ?? 0m) + totalSeatAmount + basket.TotalBagAmount;
+
+        var updated = Basket.Reconstitute(
+            basket.BasketId,
+            basket.ChannelCode,
+            basket.CurrencyCode,
+            basket.BasketStatus,
+            basket.TotalFareAmount,
+            totalSeatAmount,
+            basket.TotalBagAmount,
+            totalAmount,
+            basket.ExpiresAt,
+            basket.ConfirmedOrderId,
+            basket.Version + 1,
+            basketJson.ToJsonString(),
+            basket.CreatedAt,
+            DateTimeOffset.UtcNow);
+
+        await _repository.UpdateAsync(updated, cancellationToken);
+
+        _logger.LogInformation("Basket {BasketId} seats updated, totalSeatAmount={TotalSeatAmount}",
+            command.BasketId, totalSeatAmount);
+
+        return updated;
     }
 }
