@@ -27,56 +27,44 @@ public static class CustomerMapper
             LoyaltyNumber: loyaltyNumber,
             GivenName: request.GivenName,
             Surname: request.Surname,
-            PreferredLanguage: request.PreferredLanguage,
-            TierCode: request.TierCode,
-            IdentityReference: request.IdentityReference,
             DateOfBirth: request.DateOfBirth,
-            Nationality: request.Nationality,
-            PhoneNumber: request.PhoneNumber);
+            PreferredLanguage: request.PreferredLanguage,
+            IdentityReference: request.IdentityReference);
 
     public static UpdateCustomerCommand ToCommand(string loyaltyNumber, UpdateCustomerRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
             GivenName: request.GivenName,
             Surname: request.Surname,
-            PreferredLanguage: request.PreferredLanguage,
-            TierCode: request.TierCode,
-            IdentityReference: request.IdentityReference,
             DateOfBirth: request.DateOfBirth,
             Nationality: request.Nationality,
-            PhoneNumber: request.PhoneNumber);
+            PhoneNumber: request.PhoneNumber,
+            PreferredLanguage: request.PreferredLanguage,
+            IdentityReference: request.IdentityReference);
 
     public static AuthorisePointsCommand ToCommand(string loyaltyNumber, AuthorisePointsRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
             Points: request.Points,
-            BookingReference: request.BookingReference,
-            FlightNumber: request.FlightNumber,
-            Description: request.Description);
+            BasketId: request.BasketId);
 
     public static SettlePointsCommand ToCommand(string loyaltyNumber, SettlePointsRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
-            Points: request.Points,
-            BookingReference: request.BookingReference,
-            FlightNumber: request.FlightNumber,
-            Description: request.Description);
+            RedemptionReference: request.RedemptionReference);
 
     public static ReversePointsCommand ToCommand(string loyaltyNumber, ReversePointsRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
-            Points: request.Points,
-            BookingReference: request.BookingReference,
-            FlightNumber: request.FlightNumber,
-            Description: request.Description);
+            RedemptionReference: request.RedemptionReference,
+            Reason: request.Reason);
 
     public static ReinstatePointsCommand ToCommand(string loyaltyNumber, ReinstatePointsRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
             Points: request.Points,
             BookingReference: request.BookingReference,
-            FlightNumber: request.FlightNumber,
-            Description: request.Description);
+            Reason: request.Reason);
 
     // -------------------------------------------------------------------------
     // Domain entity → HTTP response
@@ -107,17 +95,16 @@ public static class CustomerMapper
         {
             CustomerId = customer.CustomerId,
             LoyaltyNumber = customer.LoyaltyNumber,
-            GivenName = customer.GivenName,
-            Surname = customer.Surname,
-            TierCode = customer.TierCode,
-            PointsBalance = customer.PointsBalance,
-            CreatedAt = customer.CreatedAt
+            TierCode = customer.TierCode
         };
 
-    public static TransactionsResponse ToResponse(string loyaltyNumber, IReadOnlyList<Domain.Entities.LoyaltyTransaction> transactions) =>
+    public static TransactionsResponse ToResponse(string loyaltyNumber, IReadOnlyList<Domain.Entities.LoyaltyTransaction> transactions, int page, int pageSize, int totalCount) =>
         new()
         {
             LoyaltyNumber = loyaltyNumber,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
             Transactions = transactions.Select(ToTransactionResponse).ToList().AsReadOnly()
         };
 
@@ -125,58 +112,50 @@ public static class CustomerMapper
         new()
         {
             TransactionId = transaction.TransactionId,
-            LoyaltyNumber = transaction.LoyaltyNumber,
             TransactionType = transaction.TransactionType,
             PointsDelta = transaction.PointsDelta,
             BalanceAfter = transaction.BalanceAfter,
             BookingReference = transaction.BookingReference,
             FlightNumber = transaction.FlightNumber,
             Description = transaction.Description,
-            TransactionDate = transaction.TransactionDate,
-            CreatedAt = transaction.CreatedAt
+            TransactionDate = transaction.TransactionDate
         };
 
     public static AuthorisePointsResponse ToAuthoriseResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            TransactionId = transaction.TransactionId,
-            LoyaltyNumber = transaction.LoyaltyNumber,
-            TransactionType = transaction.TransactionType,
-            PointsDelta = transaction.PointsDelta,
-            BalanceAfter = transaction.BalanceAfter,
-            TransactionDate = transaction.TransactionDate
+            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            PointsAuthorised = Math.Abs(transaction.PointsDelta),
+            PointsHeld = Math.Abs(transaction.PointsDelta),
+            AuthorisedAt = transaction.TransactionDate
         };
 
     public static SettlePointsResponse ToSettleResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
+            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            PointsDeducted = Math.Abs(transaction.PointsDelta),
+            NewPointsBalance = transaction.BalanceAfter,
             TransactionId = transaction.TransactionId,
-            LoyaltyNumber = transaction.LoyaltyNumber,
-            TransactionType = transaction.TransactionType,
-            PointsDelta = transaction.PointsDelta,
-            BalanceAfter = transaction.BalanceAfter,
-            TransactionDate = transaction.TransactionDate
+            SettledAt = transaction.TransactionDate
         };
 
     public static ReversePointsResponse ToReverseResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            TransactionId = transaction.TransactionId,
-            LoyaltyNumber = transaction.LoyaltyNumber,
-            TransactionType = transaction.TransactionType,
-            PointsDelta = transaction.PointsDelta,
-            BalanceAfter = transaction.BalanceAfter,
-            TransactionDate = transaction.TransactionDate
+            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            PointsReleased = Math.Abs(transaction.PointsDelta),
+            NewPointsBalance = transaction.BalanceAfter,
+            ReversedAt = transaction.TransactionDate
         };
 
     public static ReinstatePointsResponse ToReinstateResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            TransactionId = transaction.TransactionId,
             LoyaltyNumber = transaction.LoyaltyNumber,
-            TransactionType = transaction.TransactionType,
-            PointsDelta = transaction.PointsDelta,
-            BalanceAfter = transaction.BalanceAfter,
-            TransactionDate = transaction.TransactionDate
+            PointsReinstated = transaction.PointsDelta,
+            NewPointsBalance = transaction.BalanceAfter,
+            TransactionId = transaction.TransactionId,
+            ReinstatedAt = transaction.TransactionDate
         };
 }

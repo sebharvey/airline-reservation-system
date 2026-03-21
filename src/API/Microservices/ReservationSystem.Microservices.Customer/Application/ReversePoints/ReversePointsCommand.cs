@@ -1,11 +1,9 @@
 namespace ReservationSystem.Microservices.Customer.Application.ReversePoints;
 
 /// <summary>
-/// Command carrying the data needed to reverse points for a Customer.
+/// Command carrying the data needed to reverse a points authorisation hold.
 /// </summary>
 public sealed record ReversePointsCommand(
     string LoyaltyNumber,
-    int Points,
-    string? BookingReference,
-    string? FlightNumber,
-    string Description);
+    string RedemptionReference,
+    string? Reason);

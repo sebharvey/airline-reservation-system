@@ -5,10 +5,9 @@ namespace ReservationSystem.Microservices.Customer.Models.Responses;
 /// </summary>
 public sealed class ReinstatePointsResponse
 {
-    public Guid TransactionId { get; init; }
     public string LoyaltyNumber { get; init; } = string.Empty;
-    public string TransactionType { get; init; } = string.Empty;
-    public int PointsDelta { get; init; }
-    public int BalanceAfter { get; init; }
-    public DateTimeOffset TransactionDate { get; init; }
+    public int PointsReinstated { get; init; }
+    public int NewPointsBalance { get; init; }
+    public Guid TransactionId { get; init; }
+    public DateTimeOffset ReinstatedAt { get; init; }
 }

@@ -12,6 +12,7 @@ using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
+using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -195,6 +196,9 @@ public sealed class OfferFunction
             pointsPrice = o.PointsPrice,
             pointsTaxes = o.PointsTaxes,
             bookingType = o.BookingType,
+            seatsAvailable = o.SeatsAvailable,
+            operatingCarrier = (string?)null,
+            operatingFlightNumber = (string?)null,
             expiresAt = o.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }).ToList();
 
@@ -213,7 +217,15 @@ public sealed class OfferFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
         Guid offerId, CancellationToken ct)
     {
-        var offer = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
+        StoredOffer? offer;
+        try
+        {
+            offer = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
+        }
+        catch (OfferGoneException ex)
+        {
+            return await req.GoneAsync(ex.Message);
+        }
 
         if (offer is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
@@ -245,6 +257,9 @@ public sealed class OfferFunction
             pointsPrice = offer.PointsPrice,
             pointsTaxes = offer.PointsTaxes,
             bookingType = offer.BookingType,
+            seatsAvailable = offer.SeatsAvailable,
+            operatingCarrier = (string?)null,
+            operatingFlightNumber = (string?)null,
             isConsumed = offer.IsConsumed,
             expiresAt = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         });

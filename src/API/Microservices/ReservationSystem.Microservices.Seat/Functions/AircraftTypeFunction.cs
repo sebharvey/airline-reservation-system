@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Seat.Application.CreateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAllAircraftTypes;
+using ReservationSystem.Microservices.Seat.Application.DeleteAircraftType;
 using ReservationSystem.Microservices.Seat.Application.UpdateAircraftType;
 using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
@@ -20,6 +21,7 @@ public sealed class AircraftTypeFunction
     private readonly CreateAircraftTypeHandler _createHandler;
     private readonly GetAircraftTypeHandler _getHandler;
     private readonly UpdateAircraftTypeHandler _updateHandler;
+    private readonly DeleteAircraftTypeHandler _deleteHandler;
     private readonly ISeatmapRepository _seatmapRepository;
     private readonly IAircraftTypeRepository _aircraftTypeRepository;
     private readonly ILogger<AircraftTypeFunction> _logger;
@@ -29,6 +31,7 @@ public sealed class AircraftTypeFunction
         CreateAircraftTypeHandler createHandler,
         GetAircraftTypeHandler getHandler,
         UpdateAircraftTypeHandler updateHandler,
+        DeleteAircraftTypeHandler deleteHandler,
         ISeatmapRepository seatmapRepository,
         IAircraftTypeRepository aircraftTypeRepository,
         ILogger<AircraftTypeFunction> logger)
@@ -37,6 +40,7 @@ public sealed class AircraftTypeFunction
         _createHandler = createHandler;
         _getHandler = getHandler;
         _updateHandler = updateHandler;
+        _deleteHandler = deleteHandler;
         _seatmapRepository = seatmapRepository;
         _aircraftTypeRepository = aircraftTypeRepository;
         _logger = logger;

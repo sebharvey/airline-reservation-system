@@ -42,9 +42,7 @@ public sealed class AuthorisePointsHandler
             transactionType: "Redeem",
             pointsDelta: -command.Points,
             balanceAfter: customer.PointsBalance,
-            description: command.Description,
-            bookingReference: command.BookingReference,
-            flightNumber: command.FlightNumber);
+            description: $"Points authorisation hold — basket {command.BasketId}");
 
         await _transactionRepository.CreateAsync(transaction, cancellationToken);
 

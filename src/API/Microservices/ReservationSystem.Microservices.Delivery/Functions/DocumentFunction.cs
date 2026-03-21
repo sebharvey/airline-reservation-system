@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Application.CreateDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
+using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -17,17 +18,20 @@ public sealed class DocumentFunction
     private readonly CreateDocumentHandler _createHandler;
     private readonly GetDocumentHandler _getHandler;
     private readonly GetDocumentsByBookingHandler _getByBookingHandler;
+    private readonly VoidDocumentHandler _voidHandler;
     private readonly ILogger<DocumentFunction> _logger;
 
     public DocumentFunction(
         CreateDocumentHandler createHandler,
         GetDocumentHandler getHandler,
         GetDocumentsByBookingHandler getByBookingHandler,
+        VoidDocumentHandler voidHandler,
         ILogger<DocumentFunction> logger)
     {
         _createHandler = createHandler;
         _getHandler = getHandler;
         _getByBookingHandler = getByBookingHandler;
+        _voidHandler = voidHandler;
         _logger = logger;
     }
 
@@ -111,6 +115,56 @@ public sealed class DocumentFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get documents for booking {BookingRef}", bookingRef);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // PATCH /v1/documents/{documentNumber}/void
+    [Function("VoidDocument")]
+    public async Task<HttpResponseData> VoidDocument(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/documents/{documentNumber}/void")] HttpRequestData req,
+        string documentNumber,
+        CancellationToken cancellationToken)
+    {
+        VoidDocumentRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<VoidDocumentRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in VoidDocument request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return await req.BadRequestAsync("The 'reason' field is required.");
+
+        try
+        {
+            var command = new VoidDocumentCommand
+            {
+                DocumentNumber = documentNumber,
+                Reason = request.Reason,
+                Actor = request.Actor
+            };
+
+            var result = await _voidHandler.HandleAsync(command, cancellationToken);
+            if (result is null)
+                return await req.NotFoundAsync($"Document '{documentNumber}' not found.");
+            return await req.OkJsonAsync(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to void document {DocumentNumber}", documentNumber);
             return await req.InternalServerErrorAsync();
         }
     }

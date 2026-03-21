@@ -38,9 +38,7 @@ public sealed class UpdateCustomerHandler
             dateOfBirth: command.DateOfBirth,
             nationality: command.Nationality,
             preferredLanguage: command.PreferredLanguage,
-            phoneNumber: command.PhoneNumber,
-            tierCode: command.TierCode,
-            identityReference: command.IdentityReference);
+            phoneNumber: command.PhoneNumber);
 
         await _repository.UpdateAsync(customer, cancellationToken);
 

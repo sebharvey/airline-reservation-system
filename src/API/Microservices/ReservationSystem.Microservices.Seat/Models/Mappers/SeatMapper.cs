@@ -60,9 +60,6 @@ public static class SeatMapper
     public static UpdateSeatPricingCommand ToCommand(Guid seatPricingId, UpdateSeatPricingRequest request) =>
         new(
             SeatPricingId: seatPricingId,
-            CabinCode: request.CabinCode,
-            SeatPosition: request.SeatPosition,
-            CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             IsActive: request.IsActive,
             ValidFrom: request.ValidFrom,
@@ -91,13 +88,29 @@ public static class SeatMapper
         new()
         {
             SeatmapId = seatmap.SeatmapId,
-            AircraftTypeCode = seatmap.AircraftTypeCode,
+            AircraftType = seatmap.AircraftTypeCode,
             Version = seatmap.Version,
             IsActive = seatmap.IsActive,
+            TotalSeats = 0, // Resolved from AircraftType at query time
             CabinLayout = seatmap.CabinLayout,
             CreatedAt = seatmap.CreatedAt,
             UpdatedAt = seatmap.UpdatedAt
         };
+
+    public static SeatmapListItemResponse ToListItemResponse(Domain.Entities.Seatmap seatmap) =>
+        new()
+        {
+            SeatmapId = seatmap.SeatmapId,
+            AircraftTypeCode = seatmap.AircraftTypeCode,
+            Version = seatmap.Version,
+            IsActive = seatmap.IsActive,
+            TotalSeats = 0, // Resolved from AircraftType at query time
+            CreatedAt = seatmap.CreatedAt,
+            UpdatedAt = seatmap.UpdatedAt
+        };
+
+    public static IReadOnlyList<SeatmapListItemResponse> ToListItemResponse(IEnumerable<Domain.Entities.Seatmap> seatmaps) =>
+        seatmaps.Select(ToListItemResponse).ToList().AsReadOnly();
 
     public static SeatPricingResponse ToResponse(Domain.Entities.SeatPricing seatPricing) =>
         new()

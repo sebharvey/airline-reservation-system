@@ -20,14 +20,16 @@ public sealed class GetTransactionsHandler
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<LoyaltyTransaction>> HandleAsync(
+    public async Task<(IReadOnlyList<LoyaltyTransaction> Transactions, int TotalCount)> HandleAsync(
         GetTransactionsQuery query,
         CancellationToken cancellationToken = default)
     {
-        var transactions = await _repository.GetByLoyaltyNumberAsync(query.LoyaltyNumber, cancellationToken);
+        var (transactions, totalCount) = await _repository.GetByLoyaltyNumberAsync(
+            query.LoyaltyNumber, query.Page, query.PageSize, cancellationToken);
 
-        _logger.LogDebug("Retrieved {Count} transactions for {LoyaltyNumber}", transactions.Count, query.LoyaltyNumber);
+        _logger.LogDebug("Retrieved {Count} transactions (page {Page}) for {LoyaltyNumber}",
+            transactions.Count, query.Page, query.LoyaltyNumber);
 
-        return transactions;
+        return (transactions, totalCount);
     }
 }

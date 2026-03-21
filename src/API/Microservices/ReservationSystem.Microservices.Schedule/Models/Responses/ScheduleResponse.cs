@@ -60,3 +60,32 @@ public sealed class ScheduleResponse
     [JsonPropertyName("updatedAt")]
     public DateTime UpdatedAt { get; init; }
 }
+
+/// <summary>
+/// HTTP response body for POST /v1/schedules (201 Created).
+/// Spec defines only 3 fields: scheduleId, operatingDates, cabinFareDefinitions.
+/// </summary>
+public sealed class CreateScheduleResponse
+{
+    [JsonPropertyName("scheduleId")]
+    public Guid ScheduleId { get; init; }
+
+    [JsonPropertyName("operatingDates")]
+    public IReadOnlyList<string> OperatingDates { get; init; } = [];
+
+    [JsonPropertyName("cabinFareDefinitions")]
+    public JsonElement? CabinFareDefinitions { get; init; }
+}
+
+/// <summary>
+/// HTTP response body for PATCH /v1/schedules/{scheduleId} (200 OK).
+/// Spec defines only 2 fields: scheduleId, flightsCreated.
+/// </summary>
+public sealed class UpdateScheduleResponse
+{
+    [JsonPropertyName("scheduleId")]
+    public Guid ScheduleId { get; init; }
+
+    [JsonPropertyName("flightsCreated")]
+    public int FlightsCreated { get; init; }
+}

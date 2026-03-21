@@ -24,7 +24,7 @@ public sealed class VerifyEmailChangeHandler
         VerifyEmailChangeCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(command.VerificationToken))
+        if (string.IsNullOrWhiteSpace(command.Token))
             throw new ArgumentException("Verification token is required.");
 
         // In a production system, this would:

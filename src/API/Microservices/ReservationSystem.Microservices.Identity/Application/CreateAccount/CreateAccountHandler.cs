@@ -45,10 +45,7 @@ public sealed class CreateAccountHandler
         return new CreateAccountResponse
         {
             UserAccountId = account.UserAccountId,
-            IdentityReference = account.IdentityReference,
-            Email = account.Email,
-            IsEmailVerified = account.IsEmailVerified,
-            CreatedAt = account.CreatedAt
+            IdentityReference = account.IdentityReference
         };
     }
 }

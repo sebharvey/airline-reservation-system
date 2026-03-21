@@ -88,7 +88,7 @@ public sealed class PaymentFunction
         try
         {
             var result = await _authoriseHandler.HandleAsync(command, cancellationToken);
-            return await req.CreatedAsync($"/v1/payment/{result.PaymentReference}", result);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -133,9 +133,19 @@ public sealed class PaymentFunction
             var result = await _settleHandler.HandleAsync(command, cancellationToken);
 
             if (result is null)
-                return await req.NotFoundAsync($"Payment '{paymentReference}' not found or cannot be settled.");
+                return await req.NotFoundAsync($"Payment '{paymentReference}' not found.");
 
             return await req.OkJsonAsync(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Conflict settling payment {PaymentReference}", paymentReference);
+            return await req.ConflictAsync(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Bad request settling payment {PaymentReference}", paymentReference);
+            return await req.BadRequestAsync(ex.Message);
         }
         catch (Exception ex)
         {
@@ -183,9 +193,19 @@ public sealed class PaymentFunction
             var result = await _refundHandler.HandleAsync(command, cancellationToken);
 
             if (result is null)
-                return await req.NotFoundAsync($"Payment '{paymentReference}' not found or cannot be refunded.");
+                return await req.NotFoundAsync($"Payment '{paymentReference}' not found.");
 
             return await req.OkJsonAsync(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Conflict refunding payment {PaymentReference}", paymentReference);
+            return await req.ConflictAsync(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Bad request refunding payment {PaymentReference}", paymentReference);
+            return await req.BadRequestAsync(ex.Message);
         }
         catch (Exception ex)
         {

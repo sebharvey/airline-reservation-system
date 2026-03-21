@@ -78,7 +78,7 @@ public sealed class ScheduleFunction
         {
             var command = ScheduleMapper.ToCommand(request);
             var schedule = await _createHandler.HandleAsync(command, cancellationToken);
-            var response = ScheduleMapper.ToResponse(schedule);
+            var response = ScheduleMapper.ToCreateResponse(schedule);
 
             return await req.CreatedAsync($"/v1/schedules/{schedule.ScheduleId}", response);
         }
@@ -129,7 +129,7 @@ public sealed class ScheduleFunction
             if (schedule is null)
                 return await req.NotFoundAsync($"Schedule '{scheduleId}' not found.");
 
-            var response = ScheduleMapper.ToResponse(schedule);
+            var response = ScheduleMapper.ToUpdateResponse(schedule);
             return await req.OkJsonAsync(response);
         }
         catch (Exception ex)

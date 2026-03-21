@@ -1,11 +1,8 @@
 namespace ReservationSystem.Microservices.Customer.Application.SettlePoints;
 
 /// <summary>
-/// Command carrying the data needed to settle points for a Customer.
+/// Command carrying the data needed to settle a previously authorised points redemption.
 /// </summary>
 public sealed record SettlePointsCommand(
     string LoyaltyNumber,
-    int Points,
-    string? BookingReference,
-    string? FlightNumber,
-    string Description);
+    string RedemptionReference);

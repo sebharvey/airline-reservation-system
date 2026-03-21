@@ -8,6 +8,7 @@ using ReservationSystem.Microservices.Order.Application.UpdateBasketBags;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketFlights;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketSeats;
+using ReservationSystem.Microservices.Order.Application.UpdateBasketSsrs;
 using ReservationSystem.Microservices.Order.Models.Mappers;
 using ReservationSystem.Microservices.Order.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
@@ -25,6 +26,7 @@ public sealed class BasketFunction
     private readonly UpdateBasketSeatsHandler _updateSeatsHandler;
     private readonly UpdateBasketBagsHandler _updateBagsHandler;
     private readonly UpdateBasketPassengersHandler _updatePassengersHandler;
+    private readonly UpdateBasketSsrsHandler _updateSsrsHandler;
     private readonly ExpireBasketHandler _expireBasketHandler;
     private readonly ILogger<BasketFunction> _logger;
 
@@ -35,6 +37,7 @@ public sealed class BasketFunction
         UpdateBasketSeatsHandler updateSeatsHandler,
         UpdateBasketBagsHandler updateBagsHandler,
         UpdateBasketPassengersHandler updatePassengersHandler,
+        UpdateBasketSsrsHandler updateSsrsHandler,
         ExpireBasketHandler expireBasketHandler,
         ILogger<BasketFunction> logger)
     {
@@ -44,6 +47,7 @@ public sealed class BasketFunction
         _updateSeatsHandler = updateSeatsHandler;
         _updateBagsHandler = updateBagsHandler;
         _updatePassengersHandler = updatePassengersHandler;
+        _updateSsrsHandler = updateSsrsHandler;
         _expireBasketHandler = expireBasketHandler;
         _logger = logger;
     }
@@ -106,6 +110,36 @@ public sealed class BasketFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
 
+        // Validate offer expiry before processing
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("offerExpiresAt", out var expiresAtProp))
+            {
+                var offerExpiresAt = expiresAtProp.GetDateTimeOffset();
+                if (offerExpiresAt <= DateTimeOffset.UtcNow)
+                    return await req.GoneAsync("Offer has expired and is no longer available.");
+            }
+        }
+        catch (JsonException) { /* Let the handler deal with malformed JSON */ }
+
+        // Determine next basket item ID by counting existing flight offers
+        var existingBasket = await _getBasketHandler.HandleAsync(new GetBasketQuery(basketId), ct);
+        var nextItemNumber = 1;
+        if (existingBasket is not null)
+        {
+            try
+            {
+                using var basketDoc = JsonDocument.Parse(existingBasket.BasketData);
+                if (basketDoc.RootElement.TryGetProperty("flightOffers", out var offers) &&
+                    offers.ValueKind == JsonValueKind.Array)
+                {
+                    nextItemNumber = offers.GetArrayLength() + 1;
+                }
+            }
+            catch { }
+        }
+
         var command = new UpdateBasketFlightsCommand(basketId, body);
         try
         {
@@ -114,7 +148,7 @@ public sealed class BasketFunction
             return await req.OkJsonAsync(new
             {
                 basketId = basket.BasketId,
-                basketItemId = $"BI-{(basket.TotalFareAmount.HasValue ? Math.Max(1, (int)(basket.TotalFareAmount.Value / 100)) : 1)}",
+                basketItemId = $"BI-{nextItemNumber}",
                 totalFareAmount = basket.TotalFareAmount ?? 0m,
                 totalAmount = basket.TotalAmount ?? 0m
             });
@@ -132,12 +166,24 @@ public sealed class BasketFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
 
+        var passengerCount = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("passengers", out var passengers) &&
+                passengers.ValueKind == JsonValueKind.Array)
+            {
+                passengerCount = passengers.GetArrayLength();
+            }
+        }
+        catch { }
+
         var command = new UpdateBasketPassengersCommand(basketId, body);
         try
         {
             var basket = await _updatePassengersHandler.HandleAsync(command, ct);
             if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
-            return await req.OkJsonAsync(new { basketId = basket.BasketId, passengerCount = 0 });
+            return await req.OkJsonAsync(new { basketId = basket.BasketId, passengerCount });
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
@@ -202,15 +248,27 @@ public sealed class BasketFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
 
-        var command = new UpdateBasketPassengersCommand(basketId, body);
+        var ssrCount = 0;
         try
         {
-            var basket = await _updatePassengersHandler.HandleAsync(command, ct);
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("ssrSelections", out var ssrSelections) &&
+                ssrSelections.ValueKind == JsonValueKind.Array)
+            {
+                ssrCount = ssrSelections.GetArrayLength();
+            }
+        }
+        catch { }
+
+        var command = new UpdateBasketSsrsCommand(basketId, body);
+        try
+        {
+            var basket = await _updateSsrsHandler.HandleAsync(command, ct);
             if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
             return await req.OkJsonAsync(new
             {
                 basketId = basket.BasketId,
-                ssrCount = 0,
+                ssrCount,
                 totalAmount = basket.TotalAmount ?? 0m
             });
         }

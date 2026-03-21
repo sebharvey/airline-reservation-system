@@ -18,7 +18,6 @@ public sealed class LoginHandler
     private readonly ILogger<LoginHandler> _logger;
 
     private const int MaxFailedAttempts = 5;
-    private const int AccessTokenMinutes = 15;
     private const int RefreshTokenDays = 30;
 
     public LoginHandler(
@@ -74,13 +73,11 @@ public sealed class LoginHandler
         var refreshToken = RefreshToken.Create(
             userAccountId: account.UserAccountId,
             tokenHash: refreshTokenHash,
-            expiresAt: refreshTokenExpiry,
-            deviceHint: command.DeviceHint);
+            expiresAt: refreshTokenExpiry);
 
         await _refreshTokenRepository.CreateAsync(refreshToken, cancellationToken);
 
         var accessToken = GenerateAccessToken(account);
-        var accessTokenExpiry = DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes);
 
         _logger.LogInformation("Login succeeded for {UserAccountId}", account.UserAccountId);
 
@@ -88,10 +85,7 @@ public sealed class LoginHandler
         {
             AccessToken = accessToken,
             RefreshToken = rawRefreshToken,
-            ExpiresAt = accessTokenExpiry,
-            UserAccountId = account.UserAccountId,
-            IdentityReference = account.IdentityReference,
-            Email = account.Email
+            IdentityReference = account.IdentityReference
         };
     }
 

@@ -51,7 +51,7 @@ public sealed class AuthorisePaymentHandler
 
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
-            PaymentEventType.Authorise,
+            PaymentEventType.Authorised,
             command.Amount,
             command.CurrencyCode,
             $"Payment authorised for {command.PaymentType}");

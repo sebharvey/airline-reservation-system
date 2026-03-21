@@ -117,6 +117,22 @@ public static class HttpResponseExtensions
     }
 
     /// <summary>
+    /// 410 Gone — the requested resource existed but is no longer available.
+    /// Use when an offer has expired or been consumed and cannot be used.
+    /// </summary>
+    public static async Task<HttpResponseData> GoneAsync(
+        this HttpRequestData req, string message, string? correlationId = null)
+    {
+        var response = req.CreateResponse(HttpStatusCode.Gone);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(
+            JsonSerializer.Serialize(
+                ApiError.From(message, errorCode: "GONE", correlationId: correlationId),
+                SharedJsonOptions.CamelCase));
+        return response;
+    }
+
+    /// <summary>
     /// 422 Unprocessable Entity — the request is syntactically valid but
     /// semantically incorrect (e.g. departure date in the past, selected seat
     /// not available on that aircraft type, loyalty points balance insufficient).

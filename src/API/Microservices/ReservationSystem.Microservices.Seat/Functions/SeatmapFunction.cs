@@ -2,7 +2,10 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Seat.Application.CreateSeatmap;
+using ReservationSystem.Microservices.Seat.Application.DeleteSeatmap;
+using ReservationSystem.Microservices.Seat.Application.GetAllSeatmaps;
 using ReservationSystem.Microservices.Seat.Application.GetSeatmap;
+using ReservationSystem.Microservices.Seat.Application.GetSeatmapById;
 using ReservationSystem.Microservices.Seat.Application.UpdateSeatmap;
 using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
@@ -16,23 +19,32 @@ namespace ReservationSystem.Microservices.Seat.Functions;
 public sealed class SeatmapFunction
 {
     private readonly GetSeatmapHandler _getSeatmapHandler;
+    private readonly GetAllSeatmapsHandler _getAllSeatmapsHandler;
+    private readonly GetSeatmapByIdHandler _getSeatmapByIdHandler;
     private readonly CreateSeatmapHandler _createSeatmapHandler;
     private readonly UpdateSeatmapHandler _updateSeatmapHandler;
+    private readonly DeleteSeatmapHandler _deleteSeatmapHandler;
     private readonly ISeatmapRepository _seatmapRepository;
     private readonly IAircraftTypeRepository _aircraftTypeRepository;
     private readonly ILogger<SeatmapFunction> _logger;
 
     public SeatmapFunction(
         GetSeatmapHandler getSeatmapHandler,
+        GetAllSeatmapsHandler getAllSeatmapsHandler,
+        GetSeatmapByIdHandler getSeatmapByIdHandler,
         CreateSeatmapHandler createSeatmapHandler,
         UpdateSeatmapHandler updateSeatmapHandler,
+        DeleteSeatmapHandler deleteSeatmapHandler,
         ISeatmapRepository seatmapRepository,
         IAircraftTypeRepository aircraftTypeRepository,
         ILogger<SeatmapFunction> logger)
     {
         _getSeatmapHandler = getSeatmapHandler;
+        _getAllSeatmapsHandler = getAllSeatmapsHandler;
+        _getSeatmapByIdHandler = getSeatmapByIdHandler;
         _createSeatmapHandler = createSeatmapHandler;
         _updateSeatmapHandler = updateSeatmapHandler;
+        _deleteSeatmapHandler = deleteSeatmapHandler;
         _seatmapRepository = seatmapRepository;
         _aircraftTypeRepository = aircraftTypeRepository;
         _logger = logger;
@@ -114,7 +126,7 @@ public sealed class SeatmapFunction
         if (request is null || string.IsNullOrWhiteSpace(request.AircraftTypeCode))
             return await req.BadRequestAsync("aircraftTypeCode is required.");
 
-        if (string.IsNullOrWhiteSpace(request.CabinLayout))
+        if (request.CabinLayout.ValueKind == JsonValueKind.Undefined)
             return await req.BadRequestAsync("cabinLayout is required.");
 
         var at = await _aircraftTypeRepository.GetByCodeAsync(request.AircraftTypeCode, cancellationToken);

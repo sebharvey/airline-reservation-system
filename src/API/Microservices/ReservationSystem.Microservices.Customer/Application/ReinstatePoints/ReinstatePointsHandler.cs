@@ -42,9 +42,8 @@ public sealed class ReinstatePointsHandler
             transactionType: "Reinstate",
             pointsDelta: command.Points,
             balanceAfter: customer.PointsBalance,
-            description: command.Description,
-            bookingReference: command.BookingReference,
-            flightNumber: command.FlightNumber);
+            description: $"Points reinstatement — {command.Reason}",
+            bookingReference: command.BookingReference);
 
         await _transactionRepository.CreateAsync(transaction, cancellationToken);
 

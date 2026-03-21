@@ -5,8 +5,8 @@ namespace ReservationSystem.Microservices.Seat.Models.Requests;
 /// </summary>
 public sealed class UpdateAircraftTypeRequest
 {
-    public string? Manufacturer { get; init; }
-    public int? TotalSeats { get; init; }
+    public string Manufacturer { get; init; } = string.Empty;
+    public int TotalSeats { get; init; }
     public string? FriendlyName { get; init; }
-    public bool? IsActive { get; init; }
+    public bool IsActive { get; init; }
 }

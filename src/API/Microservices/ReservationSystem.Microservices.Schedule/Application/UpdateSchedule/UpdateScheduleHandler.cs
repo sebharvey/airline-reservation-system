@@ -27,11 +27,11 @@ public sealed class UpdateScheduleHandler
             return null;
         }
 
-        schedule.UpdateFlightsCreated(command.FlightsCreatedCount);
+        schedule.UpdateFlightsCreated(command.FlightsCreated);
         await _repository.UpdateAsync(schedule, cancellationToken);
 
         _logger.LogInformation("Updated schedule {ScheduleId} — FlightsCreated set to {Count}",
-            schedule.ScheduleId, command.FlightsCreatedCount);
+            schedule.ScheduleId, command.FlightsCreated);
 
         return schedule;
     }

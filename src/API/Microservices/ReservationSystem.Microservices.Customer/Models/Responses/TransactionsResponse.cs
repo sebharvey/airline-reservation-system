@@ -6,7 +6,6 @@ namespace ReservationSystem.Microservices.Customer.Models.Responses;
 public sealed class TransactionResponse
 {
     public Guid TransactionId { get; init; }
-    public string LoyaltyNumber { get; init; } = string.Empty;
     public string TransactionType { get; init; } = string.Empty;
     public int PointsDelta { get; init; }
     public int BalanceAfter { get; init; }
@@ -14,14 +13,16 @@ public sealed class TransactionResponse
     public string? FlightNumber { get; init; }
     public string Description { get; init; } = string.Empty;
     public DateTimeOffset TransactionDate { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
 }
 
 /// <summary>
-/// HTTP response body wrapping a list of loyalty transactions.
+/// HTTP response body wrapping a paginated list of loyalty transactions.
 /// </summary>
 public sealed class TransactionsResponse
 {
     public string LoyaltyNumber { get; init; } = string.Empty;
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalCount { get; init; }
     public IReadOnlyList<TransactionResponse> Transactions { get; init; } = [];
 }

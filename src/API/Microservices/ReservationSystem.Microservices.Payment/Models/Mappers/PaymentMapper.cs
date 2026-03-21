@@ -21,44 +21,24 @@ public static class PaymentMapper
     public static AuthorisePaymentResponse ToAuthoriseResponse(Payment payment) =>
         new()
         {
-            PaymentId = payment.PaymentId,
             PaymentReference = payment.PaymentReference,
-            BookingReference = payment.BookingReference,
-            PaymentType = payment.PaymentType,
-            Method = payment.Method,
-            CardType = payment.CardType,
-            CardLast4 = payment.CardLast4,
-            CurrencyCode = payment.CurrencyCode,
             AuthorisedAmount = payment.AuthorisedAmount,
-            Status = payment.Status,
-            AuthorisedAt = payment.AuthorisedAt,
-            Description = payment.Description,
-            CreatedAt = payment.CreatedAt,
-            UpdatedAt = payment.UpdatedAt
+            Status = payment.Status
         };
 
     public static SettlePaymentResponse ToSettleResponse(Payment payment) =>
         new()
         {
-            PaymentId = payment.PaymentId,
             PaymentReference = payment.PaymentReference,
-            CurrencyCode = payment.CurrencyCode,
-            AuthorisedAmount = payment.AuthorisedAmount,
-            SettledAmount = payment.SettledAmount,
-            Status = payment.Status,
-            AuthorisedAt = payment.AuthorisedAt,
-            SettledAt = payment.SettledAt,
-            UpdatedAt = payment.UpdatedAt
+            SettledAmount = payment.SettledAmount ?? 0m,
+            SettledAt = payment.SettledAt
         };
 
-    public static RefundPaymentResponse ToRefundResponse(Payment payment) =>
+    public static RefundPaymentResponse ToRefundResponse(Payment payment, decimal refundedAmount) =>
         new()
         {
-            PaymentId = payment.PaymentId,
             PaymentReference = payment.PaymentReference,
-            CurrencyCode = payment.CurrencyCode,
-            AuthorisedAmount = payment.AuthorisedAmount,
-            Status = payment.Status,
-            UpdatedAt = payment.UpdatedAt
+            RefundedAmount = refundedAmount,
+            Status = payment.Status
         };
 }

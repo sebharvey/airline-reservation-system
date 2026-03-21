@@ -6,6 +6,5 @@ namespace ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
 public sealed record ReinstatePointsCommand(
     string LoyaltyNumber,
     int Points,
-    string? BookingReference,
-    string? FlightNumber,
-    string Description);
+    string BookingReference,
+    string Reason);
