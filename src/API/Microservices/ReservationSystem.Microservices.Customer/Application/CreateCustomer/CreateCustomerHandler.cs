@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Customer.Domain.Entities;
+using Customer = ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Customer.Application.CreateCustomer;
