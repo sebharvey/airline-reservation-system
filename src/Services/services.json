@@ -1,0 +1,136 @@
+{
+  "orchestrationApis": [
+    {
+      "id": "retail-api",
+      "name": "Retail API",
+      "description": "Primary channel-facing orchestration layer for the Apex Air reservation system. Coordinates the complete passenger journey from flight search through booking, payment, check-in, and boarding.",
+      "baseUrl": "https://apexair-retail-api-c7cbf3a2adfhfacu.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "bearer",
+      "callers": ["Web", "App", "NDC", "Kiosk", "Contact Centre", "Airport"]
+    },
+    {
+      "id": "loyalty-api",
+      "name": "Loyalty API",
+      "description": "Channel-facing orchestration layer for all loyalty programme interactions. Coordinates identity and customer microservices for authentication, profile management, and points.",
+      "baseUrl": "https://apexair-loyalty-api-d8dce4b3bgehgbdv.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "bearer",
+      "callers": ["Web", "App", "Contact Centre"]
+    },
+    {
+      "id": "operations-api",
+      "name": "Operations API",
+      "description": "Internal orchestration layer for airline operations staff. Manages flight schedules, generating bulk flight inventory and fare records via Schedule MS and Offer MS.",
+      "baseUrl": "https://apexair-operations-api-e9edf5c4cfihicew.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Ops Admin App"]
+    },
+    {
+      "id": "disruption-api",
+      "name": "Disruption API",
+      "description": "Internal orchestration layer for disruption event handling. Coordinates the reservation system response to flight delays and cancellations notified by the Flight Operations System.",
+      "baseUrl": "https://apexair-disruption-api-f0feg6d5dgjijdfx.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Flight Operations System (FOS)"]
+    }
+  ],
+  "microservices": [
+    {
+      "id": "offer-ms",
+      "name": "Offer Microservice",
+      "description": "System of record for flight inventory, fare definitions, stored offer snapshots, and per-flight seat availability.",
+      "baseUrl": "https://apexair-offer-ms-a1abg7e6ehjkjegy.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API", "Operations API", "Disruption API"]
+    },
+    {
+      "id": "order-ms",
+      "name": "Order Microservice",
+      "description": "Manages the complete booking lifecycle from basket creation through confirmation, post-sale changes, and cancellation. Built on the IATA ONE Order standard.",
+      "baseUrl": "https://apexair-order-ms-b2bch8f7fiklkfhz.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API", "Disruption API"]
+    },
+    {
+      "id": "payment-ms",
+      "name": "Payment Microservice",
+      "description": "Financial orchestration layer for all Apex Air transactions. Manages card payment authorisation, settlement, and refund operations.",
+      "baseUrl": "https://apexair-payment-ms-c3cdi9g8gjlmlgia.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API"]
+    },
+    {
+      "id": "delivery-ms",
+      "name": "Delivery Microservice",
+      "description": "System of record for issued travel documents and departure operations. Manages e-tickets, passenger manifests, ancillary EMDs, and boarding card generation.",
+      "baseUrl": "https://apexair-delivery-ms-d4dej0h9hkmnmhjb.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API", "Disruption API"]
+    },
+    {
+      "id": "customer-ms",
+      "name": "Customer Microservice",
+      "description": "System of record for loyalty programme membership. Manages customer profiles, tier status, points balances, and transaction history.",
+      "baseUrl": "https://apexair-customer-ms-e5efk1i0ilnoniкc.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Loyalty API", "Disruption API"]
+    },
+    {
+      "id": "seat-ms",
+      "name": "Seat Microservice",
+      "description": "System of record for aircraft seatmap definitions, fleet-wide seat pricing rules, and seat offer generation.",
+      "baseUrl": "https://apexair-seat-ms-f6fgl2j1jmopojld.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API"]
+    },
+    {
+      "id": "bag-ms",
+      "name": "Bag Microservice",
+      "description": "System of record for checked baggage policies and ancillary bag pricing. Responsible for bag offer generation with deterministic BagOfferId values.",
+      "baseUrl": "https://apexair-bag-ms-g7ghm3k2knpqpkme.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Retail API"]
+    },
+    {
+      "id": "schedule-ms",
+      "name": "Schedule Microservice",
+      "description": "Internal persistence layer for flight schedule definitions. Stores schedule records, enumerates operating dates, and tracks flights created count.",
+      "baseUrl": "https://apexair-schedule-ms-h8hin4l3loqrqlnf.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Operations API"]
+    },
+    {
+      "id": "identity-ms",
+      "name": "Identity Microservice",
+      "description": "Security boundary for all authentication and credential management. Manages user accounts, login, JWT token issuance, password resets, and email changes.",
+      "baseUrl": "https://apexair-identity-ms-i9ijo5m4mprsrmog.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Loyalty API"]
+    }
+  ]
+}
