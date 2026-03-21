@@ -1,9 +1,13 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace ReservationSystem.Microservices.Seat.Models.Requests;
 
-/// <summary>
-/// HTTP request body for updating an existing seatmap.
-/// </summary>
 public sealed class UpdateSeatmapRequest
 {
-    public string CabinLayout { get; init; } = string.Empty;
+    [JsonPropertyName("cabinLayout")]
+    public JsonElement? CabinLayout { get; init; }
+
+    [JsonPropertyName("isActive")]
+    public bool? IsActive { get; init; }
 }

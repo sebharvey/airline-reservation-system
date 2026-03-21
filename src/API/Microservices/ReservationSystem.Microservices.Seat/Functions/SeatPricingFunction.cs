@@ -8,13 +8,12 @@ using ReservationSystem.Microservices.Seat.Application.GetSeatPricing;
 using ReservationSystem.Microservices.Seat.Application.UpdateSeatPricing;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
+using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Shared.Common.Json;
+using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
 
-/// <summary>
-/// HTTP-triggered functions for SeatPricing admin resources.
-/// Translates HTTP concerns into application-layer calls and back again.
-/// </summary>
 public sealed class SeatPricingFunction
 {
     private readonly GetAllSeatPricingsHandler _getAllHandler;
@@ -40,33 +39,63 @@ public sealed class SeatPricingFunction
         _logger = logger;
     }
 
-    // -------------------------------------------------------------------------
-    // GET /v1/seat-pricing
-    // -------------------------------------------------------------------------
-
     [Function("GetAllSeatPricings")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var pricings = await _getAllHandler.HandleAsync(new GetAllSeatPricingsQuery(), cancellationToken);
+        return await req.OkJsonAsync(new { pricing = SeatMapper.ToResponse(pricings) });
     }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/seat-pricing
-    // -------------------------------------------------------------------------
 
     [Function("CreateSeatPricing")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        CreateSeatPricingRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<CreateSeatPricingRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in CreateSeatPricing request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // GET /v1/seat-pricing/{seatPricingId}
-    // -------------------------------------------------------------------------
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        if (string.IsNullOrWhiteSpace(request.CabinCode) || request.CabinCode is not ("W" or "Y"))
+            return await req.BadRequestAsync("cabinCode must be 'W' or 'Y'. Business (J) and First (F) carry no ancillary charge.");
+
+        if (string.IsNullOrWhiteSpace(request.SeatPosition) || request.SeatPosition is not ("Window" or "Aisle" or "Middle"))
+            return await req.BadRequestAsync("seatPosition must be 'Window', 'Aisle', or 'Middle'.");
+
+        if (request.Price <= 0)
+            return await req.BadRequestAsync("price must be > 0.");
+
+        if (string.IsNullOrWhiteSpace(request.CurrencyCode))
+            return await req.BadRequestAsync("currencyCode is required.");
+
+        if (request.ValidTo.HasValue && request.ValidFrom > request.ValidTo.Value)
+            return await req.BadRequestAsync("validFrom must not be after validTo.");
+
+        try
+        {
+            var command = SeatMapper.ToCommand(request);
+            var created = await _createHandler.HandleAsync(command, cancellationToken);
+            var response = SeatMapper.ToResponse(created);
+            return await req.CreatedAsync($"/v1/seat-pricing/{created.SeatPricingId}", response);
+        }
+        catch (Exception ex) when (ex.Message.Contains("UQ_SeatPricing") || ex.Message.Contains("UNIQUE") || ex.Message.Contains("duplicate"))
+        {
+            return await req.ConflictAsync(
+                $"A pricing rule already exists for {request.CabinCode}/{request.SeatPosition}/{request.CurrencyCode}.");
+        }
+    }
 
     [Function("GetSeatPricing")]
     public async Task<HttpResponseData> GetById(
@@ -74,12 +103,11 @@ public sealed class SeatPricingFunction
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var pricing = await _getHandler.HandleAsync(new GetSeatPricingQuery(seatPricingId), cancellationToken);
+        if (pricing is null)
+            return await req.NotFoundAsync($"No pricing rule found for ID '{seatPricingId}'.");
+        return await req.OkJsonAsync(SeatMapper.ToResponse(pricing));
     }
-
-    // -------------------------------------------------------------------------
-    // PUT /v1/seat-pricing/{seatPricingId}
-    // -------------------------------------------------------------------------
 
     [Function("UpdateSeatPricing")]
     public async Task<HttpResponseData> Update(
@@ -87,12 +115,35 @@ public sealed class SeatPricingFunction
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        UpdateSeatPricingRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<UpdateSeatPricingRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in UpdateSeatPricing request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // DELETE /v1/seat-pricing/{seatPricingId}
-    // -------------------------------------------------------------------------
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        if (request.Price.HasValue && request.Price.Value <= 0)
+            return await req.BadRequestAsync("price must be > 0.");
+
+        if (request.ValidTo.HasValue && request.ValidFrom.HasValue && request.ValidFrom > request.ValidTo)
+            return await req.BadRequestAsync("validFrom must not be after validTo.");
+
+        var command = SeatMapper.ToCommand(seatPricingId, request);
+        var updated = await _updateHandler.HandleAsync(command, cancellationToken);
+
+        if (updated is null)
+            return await req.NotFoundAsync($"No pricing rule found for ID '{seatPricingId}'.");
+
+        return await req.OkJsonAsync(SeatMapper.ToResponse(updated));
+    }
 
     [Function("DeleteSeatPricing")]
     public async Task<HttpResponseData> Delete(
@@ -100,6 +151,9 @@ public sealed class SeatPricingFunction
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var deleted = await _deleteHandler.HandleAsync(new DeleteSeatPricingCommand(seatPricingId), cancellationToken);
+        return deleted
+            ? req.NoContent()
+            : await req.NotFoundAsync($"No pricing rule found for ID '{seatPricingId}'.");
     }
 }

@@ -2,7 +2,8 @@ namespace ReservationSystem.Microservices.Bags.Domain.Entities;
 
 /// <summary>
 /// Core domain entity representing the pricing for an additional bag.
-/// Keyed by (BagSequence, CurrencyCode) with temporal validity.
+/// Pricing is per bag sequence (1st additional, 2nd additional, 99=catch-all),
+/// fleet-wide and route-agnostic.
 /// </summary>
 public sealed class BagPricing
 {
@@ -18,46 +19,34 @@ public sealed class BagPricing
 
     private BagPricing() { }
 
-    /// <summary>
-    /// Factory method for creating a brand-new bag pricing entry. Assigns a new Id and timestamps.
-    /// </summary>
-    public static BagPricing Create(int bagSequence, decimal price, string currencyCode, DateTimeOffset validFrom, DateTimeOffset? validTo)
+    public static BagPricing Create(int bagSequence, string currencyCode, decimal price,
+        DateTimeOffset validFrom, DateTimeOffset? validTo)
     {
         return new BagPricing
         {
             PricingId = Guid.NewGuid(),
             BagSequence = bagSequence,
-            Price = price,
             CurrencyCode = currencyCode,
+            Price = price,
+            IsActive = true,
             ValidFrom = validFrom,
             ValidTo = validTo,
-            IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
     }
 
-    /// <summary>
-    /// Factory method for reconstituting a bag pricing entry from a persistence store.
-    /// Does not assign a new Id or reset timestamps.
-    /// </summary>
     public static BagPricing Reconstitute(
-        Guid pricingId,
-        int bagSequence,
-        decimal price,
-        string currencyCode,
-        bool isActive,
-        DateTimeOffset validFrom,
-        DateTimeOffset? validTo,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        Guid pricingId, int bagSequence, string currencyCode, decimal price,
+        bool isActive, DateTimeOffset validFrom, DateTimeOffset? validTo,
+        DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
         return new BagPricing
         {
             PricingId = pricingId,
             BagSequence = bagSequence,
-            Price = price,
             CurrencyCode = currencyCode,
+            Price = price,
             IsActive = isActive,
             ValidFrom = validFrom,
             ValidTo = validTo,

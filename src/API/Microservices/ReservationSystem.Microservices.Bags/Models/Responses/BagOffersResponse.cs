@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace ReservationSystem.Microservices.Bags.Models.Responses;
 
 /// <summary>
-/// HTTP response body for GET /v1/bags/offers (list bag offers).
+/// Response for GET /v1/bags/offers — returns free bag policy and purchasable additional bag offers.
 /// </summary>
 public sealed class BagOffersResponse
 {
@@ -14,16 +14,13 @@ public sealed class BagOffersResponse
     public string CabinCode { get; init; } = string.Empty;
 
     [JsonPropertyName("policy")]
-    public BagOfferPolicyResponse Policy { get; init; } = new();
+    public BagPolicyInfo Policy { get; init; } = new();
 
     [JsonPropertyName("bagOffers")]
-    public IReadOnlyList<BagOfferItemResponse> BagOffers { get; init; } = [];
+    public IReadOnlyList<BagOfferItem> BagOffers { get; init; } = [];
 }
 
-/// <summary>
-/// Nested policy information within a bag offers response.
-/// </summary>
-public sealed class BagOfferPolicyResponse
+public sealed class BagPolicyInfo
 {
     [JsonPropertyName("freeBagsIncluded")]
     public int FreeBagsIncluded { get; init; }
@@ -32,10 +29,7 @@ public sealed class BagOfferPolicyResponse
     public int MaxWeightKgPerBag { get; init; }
 }
 
-/// <summary>
-/// Represents a single bag purchase option within the bag offers list.
-/// </summary>
-public sealed class BagOfferItemResponse
+public sealed class BagOfferItem
 {
     [JsonPropertyName("bagOfferId")]
     public string BagOfferId { get; init; } = string.Empty;
@@ -54,9 +48,9 @@ public sealed class BagOfferItemResponse
 }
 
 /// <summary>
-/// HTTP response body for GET /v1/bags/offers/{bagOfferId} (single bag offer validation).
+/// Response for GET /v1/bags/offers/{bagOfferId} — validates a single bag offer.
 /// </summary>
-public sealed class BagOfferResponse
+public sealed class BagOfferValidationResponse
 {
     [JsonPropertyName("bagOfferId")]
     public string BagOfferId { get; init; } = string.Empty;

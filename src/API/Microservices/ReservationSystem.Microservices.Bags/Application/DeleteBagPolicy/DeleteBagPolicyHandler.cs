@@ -14,10 +14,13 @@ public sealed class DeleteBagPolicyHandler
         _logger = logger;
     }
 
-    public async Task HandleAsync(
-        DeleteBagPolicyCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> HandleAsync(DeleteBagPolicyCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var deleted = await _repository.DeleteAsync(command.PolicyId, cancellationToken);
+        if (deleted)
+            _logger.LogInformation("Deleted BagPolicy {PolicyId}", command.PolicyId);
+        else
+            _logger.LogWarning("Delete requested for unknown BagPolicy {PolicyId}", command.PolicyId);
+        return deleted;
     }
 }

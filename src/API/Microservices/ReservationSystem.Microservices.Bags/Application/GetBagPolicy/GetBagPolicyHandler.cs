@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Bags.Domain.Entities;
 using ReservationSystem.Microservices.Bags.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Bags.Application.GetBagPolicy;
@@ -6,18 +6,14 @@ namespace ReservationSystem.Microservices.Bags.Application.GetBagPolicy;
 public sealed class GetBagPolicyHandler
 {
     private readonly IBagPolicyRepository _repository;
-    private readonly ILogger<GetBagPolicyHandler> _logger;
 
-    public GetBagPolicyHandler(IBagPolicyRepository repository, ILogger<GetBagPolicyHandler> logger)
+    public GetBagPolicyHandler(IBagPolicyRepository repository)
     {
         _repository = repository;
-        _logger = logger;
     }
 
-    public async Task<Domain.Entities.BagPolicy?> HandleAsync(
-        GetBagPolicyQuery query,
-        CancellationToken cancellationToken = default)
+    public async Task<BagPolicy?> HandleAsync(GetBagPolicyQuery query, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _repository.GetByIdAsync(query.PolicyId, cancellationToken);
     }
 }

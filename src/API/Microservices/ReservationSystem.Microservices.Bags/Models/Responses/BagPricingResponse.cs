@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Microservices.Bags.Models.Responses;
 
-/// <summary>
-/// HTTP response body for BagPricing endpoints.
-/// </summary>
 public sealed class BagPricingResponse
 {
     [JsonPropertyName("pricingId")]

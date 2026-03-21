@@ -8,14 +8,13 @@ using ReservationSystem.Microservices.Bags.Application.GetBagPolicy;
 using ReservationSystem.Microservices.Bags.Application.UpdateBagPolicy;
 using ReservationSystem.Microservices.Bags.Models.Mappers;
 using ReservationSystem.Microservices.Bags.Models.Requests;
+using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Shared.Common.Json;
+using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Bags.Functions;
 
-/// <summary>
-/// HTTP-triggered functions for the BagPolicy resource.
-/// Presentation layer — translates HTTP concerns into application-layer calls.
-/// All endpoints are boilerplate scaffolds; implementation is pending.
-/// </summary>
 public sealed class BagPolicyFunction
 {
     private readonly GetBagPolicyHandler _getHandler;
@@ -41,21 +40,15 @@ public sealed class BagPolicyFunction
         _logger = logger;
     }
 
-    // -------------------------------------------------------------------------
-    // GET /v1/bag-policies
-    // -------------------------------------------------------------------------
-
     [Function("GetAllBagPolicies")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var policies = await _getAllHandler.HandleAsync(new GetAllBagPoliciesQuery(), cancellationToken);
+        var body = new { policies = BagMapper.ToResponse(policies) };
+        return await req.OkJsonAsync(body);
     }
-
-    // -------------------------------------------------------------------------
-    // GET /v1/bag-policies/{policyId:guid}
-    // -------------------------------------------------------------------------
 
     [Function("GetBagPolicy")]
     public async Task<HttpResponseData> GetById(
@@ -63,24 +56,54 @@ public sealed class BagPolicyFunction
         Guid policyId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var policy = await _getHandler.HandleAsync(new GetBagPolicyQuery(policyId), cancellationToken);
+        if (policy is null)
+            return await req.NotFoundAsync($"No policy found for ID '{policyId}'.");
+        return await req.OkJsonAsync(BagMapper.ToResponse(policy));
     }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/bag-policies
-    // -------------------------------------------------------------------------
 
     [Function("CreateBagPolicy")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        CreateBagPolicyRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<CreateBagPolicyRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in CreateBagPolicy request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // PUT /v1/bag-policies/{policyId:guid}
-    // -------------------------------------------------------------------------
+        if (request is null || string.IsNullOrWhiteSpace(request.CabinCode))
+            return await req.BadRequestAsync("The 'cabinCode' field is required.");
+
+        if (request.CabinCode is not ("F" or "J" or "W" or "Y"))
+            return await req.BadRequestAsync("cabinCode must be one of: F, J, W, Y.");
+
+        if (request.FreeBagsIncluded < 0)
+            return await req.BadRequestAsync("freeBagsIncluded must be >= 0.");
+
+        if (request.MaxWeightKgPerBag <= 0)
+            return await req.BadRequestAsync("maxWeightKgPerBag must be > 0.");
+
+        try
+        {
+            var command = BagMapper.ToCommand(request);
+            var created = await _createHandler.HandleAsync(command, cancellationToken);
+            var response = BagMapper.ToResponse(created);
+            return await req.CreatedAsync($"/v1/bag-policies/{created.PolicyId}", response);
+        }
+        catch (Exception ex) when (ex.InnerException?.Message.Contains("UQ_BagPolicy_Cabin") == true
+                                   || ex.Message.Contains("UNIQUE") || ex.Message.Contains("duplicate"))
+        {
+            return await req.ConflictAsync($"A policy already exists for cabin code '{request.CabinCode}'.");
+        }
+    }
 
     [Function("UpdateBagPolicy")]
     public async Task<HttpResponseData> Update(
@@ -88,12 +111,32 @@ public sealed class BagPolicyFunction
         Guid policyId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        UpdateBagPolicyRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<UpdateBagPolicyRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in UpdateBagPolicy request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // DELETE /v1/bag-policies/{policyId:guid}
-    // -------------------------------------------------------------------------
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        if (request.MaxWeightKgPerBag <= 0)
+            return await req.BadRequestAsync("maxWeightKgPerBag must be > 0.");
+
+        var command = BagMapper.ToCommand(policyId, request);
+        var updated = await _updateHandler.HandleAsync(command, cancellationToken);
+
+        if (updated is null)
+            return await req.NotFoundAsync($"No policy found for ID '{policyId}'.");
+
+        return await req.OkJsonAsync(BagMapper.ToResponse(updated));
+    }
 
     [Function("DeleteBagPolicy")]
     public async Task<HttpResponseData> Delete(
@@ -101,6 +144,9 @@ public sealed class BagPolicyFunction
         Guid policyId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var deleted = await _deleteHandler.HandleAsync(new DeleteBagPolicyCommand(policyId), cancellationToken);
+        return deleted
+            ? req.NoContent()
+            : await req.NotFoundAsync($"No policy found for ID '{policyId}'.");
     }
 }

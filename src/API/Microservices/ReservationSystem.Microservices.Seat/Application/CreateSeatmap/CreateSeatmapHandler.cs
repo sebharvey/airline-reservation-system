@@ -21,8 +21,11 @@ public sealed class CreateSeatmapHandler
         _logger = logger;
     }
 
-    public Task<Seatmap> HandleAsync(CreateSeatmapCommand command, CancellationToken cancellationToken = default)
+    public async Task<Seatmap> HandleAsync(CreateSeatmapCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var entity = Seatmap.Create(command.AircraftTypeCode, 1, command.CabinLayout);
+        var created = await _repository.CreateAsync(entity, cancellationToken);
+        _logger.LogInformation("Created Seatmap {SeatmapId} for aircraft type {AircraftTypeCode}", created.SeatmapId, command.AircraftTypeCode);
+        return created;
     }
 }

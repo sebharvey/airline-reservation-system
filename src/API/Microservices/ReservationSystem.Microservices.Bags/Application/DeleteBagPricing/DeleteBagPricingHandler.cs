@@ -14,10 +14,13 @@ public sealed class DeleteBagPricingHandler
         _logger = logger;
     }
 
-    public async Task HandleAsync(
-        DeleteBagPricingCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> HandleAsync(DeleteBagPricingCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var deleted = await _repository.DeleteAsync(command.PricingId, cancellationToken);
+        if (deleted)
+            _logger.LogInformation("Deleted BagPricing {PricingId}", command.PricingId);
+        else
+            _logger.LogWarning("Delete requested for unknown BagPricing {PricingId}", command.PricingId);
+        return deleted;
     }
 }

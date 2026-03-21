@@ -7,15 +7,15 @@ using ReservationSystem.Microservices.Seat.Application.GetAllSeatmaps;
 using ReservationSystem.Microservices.Seat.Application.GetSeatmap;
 using ReservationSystem.Microservices.Seat.Application.GetSeatmapById;
 using ReservationSystem.Microservices.Seat.Application.UpdateSeatmap;
+using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
+using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Shared.Common.Json;
+using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
 
-/// <summary>
-/// HTTP-triggered functions for Seatmap resources.
-/// Translates HTTP concerns into application-layer calls and back again.
-/// </summary>
 public sealed class SeatmapFunction
 {
     private readonly GetSeatmapHandler _getSeatmapHandler;
@@ -24,6 +24,8 @@ public sealed class SeatmapFunction
     private readonly CreateSeatmapHandler _createSeatmapHandler;
     private readonly UpdateSeatmapHandler _updateSeatmapHandler;
     private readonly DeleteSeatmapHandler _deleteSeatmapHandler;
+    private readonly ISeatmapRepository _seatmapRepository;
+    private readonly IAircraftTypeRepository _aircraftTypeRepository;
     private readonly ILogger<SeatmapFunction> _logger;
 
     public SeatmapFunction(
@@ -33,6 +35,8 @@ public sealed class SeatmapFunction
         CreateSeatmapHandler createSeatmapHandler,
         UpdateSeatmapHandler updateSeatmapHandler,
         DeleteSeatmapHandler deleteSeatmapHandler,
+        ISeatmapRepository seatmapRepository,
+        IAircraftTypeRepository aircraftTypeRepository,
         ILogger<SeatmapFunction> logger)
     {
         _getSeatmapHandler = getSeatmapHandler;
@@ -41,12 +45,10 @@ public sealed class SeatmapFunction
         _createSeatmapHandler = createSeatmapHandler;
         _updateSeatmapHandler = updateSeatmapHandler;
         _deleteSeatmapHandler = deleteSeatmapHandler;
+        _seatmapRepository = seatmapRepository;
+        _aircraftTypeRepository = aircraftTypeRepository;
         _logger = logger;
     }
-
-    // -------------------------------------------------------------------------
-    // GET /v1/seatmap/{aircraftType}
-    // -------------------------------------------------------------------------
 
     [Function("GetSeatmap")]
     public async Task<HttpResponseData> GetSeatmap(
@@ -54,24 +56,43 @@ public sealed class SeatmapFunction
         string aircraftType,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        var seatmap = await _getSeatmapHandler.HandleAsync(new GetSeatmapQuery(aircraftType), cancellationToken);
+        if (seatmap is null)
+            return await req.NotFoundAsync($"No active seatmap found for aircraft type '{aircraftType}'.");
 
-    // -------------------------------------------------------------------------
-    // GET /v1/seatmaps
-    // -------------------------------------------------------------------------
+        var at = await _aircraftTypeRepository.GetByCodeAsync(aircraftType, cancellationToken);
+
+        // Return the seatmap with parsed CabinLayout JSON
+        var cabinLayoutJson = JsonSerializer.Deserialize<JsonElement>(seatmap.CabinLayout);
+        var response = new
+        {
+            seatmapId = seatmap.SeatmapId,
+            aircraftType = seatmap.AircraftTypeCode,
+            version = seatmap.Version,
+            totalSeats = at?.TotalSeats ?? 0,
+            cabins = cabinLayoutJson
+        };
+
+        return await req.OkJsonAsync(response);
+    }
 
     [Function("GetAllSeatmaps")]
     public async Task<HttpResponseData> GetAllSeatmaps(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var seatmaps = await _seatmapRepository.GetAllAsync(cancellationToken);
+        var responses = seatmaps.Select(s => new
+        {
+            seatmapId = s.SeatmapId,
+            aircraftTypeCode = s.AircraftTypeCode,
+            version = s.Version,
+            isActive = s.IsActive,
+            createdAt = s.CreatedAt,
+            updatedAt = s.UpdatedAt
+        }).ToList();
+        return await req.OkJsonAsync(new { seatmaps = responses });
     }
-
-    // -------------------------------------------------------------------------
-    // GET /v1/seatmaps/{seatmapId}
-    // -------------------------------------------------------------------------
 
     [Function("GetSeatmapById")]
     public async Task<HttpResponseData> GetSeatmapById(
@@ -79,24 +100,55 @@ public sealed class SeatmapFunction
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var seatmap = await _seatmapRepository.GetByIdAsync(seatmapId, cancellationToken);
+        if (seatmap is null)
+            return await req.NotFoundAsync($"No seatmap found for ID '{seatmapId}'.");
+        return await req.OkJsonAsync(SeatMapper.ToResponse(seatmap));
     }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/seatmaps
-    // -------------------------------------------------------------------------
 
     [Function("CreateSeatmap")]
     public async Task<HttpResponseData> CreateSeatmap(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        CreateSeatmapRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<CreateSeatmapRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in CreateSeatmap request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // PUT /v1/seatmaps/{seatmapId}
-    // -------------------------------------------------------------------------
+        if (request is null || string.IsNullOrWhiteSpace(request.AircraftTypeCode))
+            return await req.BadRequestAsync("aircraftTypeCode is required.");
+
+        if (request.CabinLayout.ValueKind == JsonValueKind.Undefined)
+            return await req.BadRequestAsync("cabinLayout is required.");
+
+        var at = await _aircraftTypeRepository.GetByCodeAsync(request.AircraftTypeCode, cancellationToken);
+        if (at is null)
+            return await req.BadRequestAsync($"aircraftTypeCode '{request.AircraftTypeCode}' does not reference an existing aircraft type.");
+
+        // Deactivate existing active seatmap for this aircraft type
+        await _seatmapRepository.DeactivateByAircraftTypeAsync(request.AircraftTypeCode, cancellationToken);
+
+        var command = SeatMapper.ToCommand(request);
+        var created = await _createSeatmapHandler.HandleAsync(command, cancellationToken);
+        var response = new
+        {
+            seatmapId = created.SeatmapId,
+            aircraftTypeCode = created.AircraftTypeCode,
+            version = created.Version,
+            isActive = created.IsActive,
+            createdAt = created.CreatedAt,
+            updatedAt = created.UpdatedAt
+        };
+        return await req.CreatedAsync($"/v1/seatmaps/{created.SeatmapId}", response);
+    }
 
     [Function("UpdateSeatmap")]
     public async Task<HttpResponseData> UpdateSeatmap(
@@ -104,12 +156,29 @@ public sealed class SeatmapFunction
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
-    }
+        UpdateSeatmapRequest? request;
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<UpdateSeatmapRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in UpdateSeatmap request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-    // -------------------------------------------------------------------------
-    // DELETE /v1/seatmaps/{seatmapId}
-    // -------------------------------------------------------------------------
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = SeatMapper.ToCommand(seatmapId, request);
+        var updated = await _updateSeatmapHandler.HandleAsync(command, cancellationToken);
+
+        if (updated is null)
+            return await req.NotFoundAsync($"No seatmap found for ID '{seatmapId}'.");
+
+        return await req.OkJsonAsync(SeatMapper.ToResponse(updated));
+    }
 
     [Function("DeleteSeatmap")]
     public async Task<HttpResponseData> DeleteSeatmap(
@@ -117,6 +186,9 @@ public sealed class SeatmapFunction
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var deleted = await _seatmapRepository.DeleteAsync(seatmapId, cancellationToken);
+        return deleted
+            ? req.NoContent()
+            : await req.NotFoundAsync($"No seatmap found for ID '{seatmapId}'.");
     }
 }

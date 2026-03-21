@@ -1,5 +1,4 @@
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Bags.Application.CreateBagPolicy;
@@ -16,40 +15,27 @@ using ReservationSystem.Microservices.Bags.Domain.Repositories;
 using ReservationSystem.Microservices.Bags.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices((context, services) =>
     {
-        // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // ── Configuration ──────────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
 
         // ── Infrastructure ─────────────────────────────────────────────────────
-        services.AddDbContext<BagsDbContext>((provider, options) =>
-        {
-            var dbOptions = provider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
-                .Value;
-            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
-            {
-                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
-            });
-        });
+        services.AddSingleton<SqlConnectionFactory>();
+        services.AddScoped<IBagPolicyRepository, SqlBagPolicyRepository>();
+        services.AddScoped<IBagPricingRepository, SqlBagPricingRepository>();
 
-        services.AddHttpClient();
+        // ── Health check ────────────────────────────────────────────────────────
+        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
-        services.AddScoped<IBagPolicyRepository, EfBagPolicyRepository>();
-        services.AddScoped<IBagPricingRepository, EfBagPricingRepository>();
-
-        // ── Health check ───────────────────────────────────────────────────────
-        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.CompletedTask);
-
-        // ── Application use-case handlers ──────────────────────────────────────
+        // ── Application use-case handlers ───────────────────────────────────────
         services.AddScoped<GetBagPolicyHandler>();
         services.AddScoped<GetAllBagPoliciesHandler>();
         services.AddScoped<CreateBagPolicyHandler>();

@@ -20,8 +20,13 @@ public sealed class DeleteSeatPricingHandler
         _logger = logger;
     }
 
-    public Task<bool> HandleAsync(DeleteSeatPricingCommand command, CancellationToken cancellationToken = default)
+    public async Task<bool> HandleAsync(DeleteSeatPricingCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var deleted = await _repository.DeleteAsync(command.SeatPricingId, cancellationToken);
+        if (deleted)
+            _logger.LogInformation("Deleted SeatPricing {SeatPricingId}", command.SeatPricingId);
+        else
+            _logger.LogWarning("Delete requested for unknown SeatPricing {SeatPricingId}", command.SeatPricingId);
+        return deleted;
     }
 }
