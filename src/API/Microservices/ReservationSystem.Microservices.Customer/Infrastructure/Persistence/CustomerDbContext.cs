@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
+using Customer = ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 
 namespace ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 
