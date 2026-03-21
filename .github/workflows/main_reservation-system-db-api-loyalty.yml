@@ -7,7 +7,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/API/Orchestration/ReservationSystem.Orchestration.Loyalty'
+      - 'src/API/Orchestration/ReservationSystem.Orchestration.Loyalty/**'
       - '.github/workflows/main_reservation-system-db-api-loyalty.yml'
 
 env:
