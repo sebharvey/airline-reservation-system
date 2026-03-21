@@ -101,8 +101,12 @@ public sealed class TicketFunction
         {
             var result = await _voidHandler.HandleAsync(eTicketNumber, request, cancellationToken);
             if (result is null)
-                return await req.NotFoundAsync($"Ticket '{eTicketNumber}' not found or already voided.");
+                return await req.NotFoundAsync($"Ticket '{eTicketNumber}' not found.");
             return await req.OkJsonAsync(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
         }
         catch (Exception ex)
         {

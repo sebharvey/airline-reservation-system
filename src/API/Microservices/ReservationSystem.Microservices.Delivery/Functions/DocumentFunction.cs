@@ -155,8 +155,12 @@ public sealed class DocumentFunction
 
             var result = await _voidHandler.HandleAsync(command, cancellationToken);
             if (result is null)
-                return await req.NotFoundAsync($"Document '{documentNumber}' not found or already voided.");
+                return await req.NotFoundAsync($"Document '{documentNumber}' not found.");
             return await req.OkJsonAsync(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
         }
         catch (Exception ex)
         {

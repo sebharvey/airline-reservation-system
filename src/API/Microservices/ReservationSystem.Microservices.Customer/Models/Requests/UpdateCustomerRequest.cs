@@ -11,4 +11,5 @@ public sealed class UpdateCustomerRequest
     public string? Nationality { get; init; }
     public string? PhoneNumber { get; init; }
     public string? PreferredLanguage { get; init; }
+    public Guid? IdentityReference { get; init; }
 }

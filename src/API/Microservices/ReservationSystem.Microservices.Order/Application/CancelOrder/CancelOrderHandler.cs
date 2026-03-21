@@ -38,7 +38,7 @@ public sealed class CancelOrderHandler
         if (order.OrderStatus == OrderStatusValues.Cancelled)
         {
             _logger.LogWarning("Order {BookingReference} is already cancelled", command.BookingReference);
-            return null;
+            throw new InvalidOperationException($"Order '{command.BookingReference}' is already cancelled.");
         }
 
         order.Cancel();

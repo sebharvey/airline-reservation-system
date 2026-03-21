@@ -52,7 +52,7 @@ public sealed class BoardingCardFunction
         try
         {
             var result = await _createHandler.HandleAsync(request, cancellationToken);
-            return await req.OkJsonAsync(result);
+            return await req.CreatedAsync("/v1/boarding-cards", result);
         }
         catch (Exception ex)
         {

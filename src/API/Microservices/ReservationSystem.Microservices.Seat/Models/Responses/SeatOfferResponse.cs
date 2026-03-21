@@ -6,6 +6,7 @@ namespace ReservationSystem.Microservices.Seat.Models.Responses;
 public sealed class SeatOfferResponse
 {
     public string SeatOfferId { get; init; } = string.Empty;
+    public Guid FlightId { get; init; }
     public string SeatNumber { get; init; } = string.Empty;
     public string CabinCode { get; init; } = string.Empty;
     public string Position { get; init; } = string.Empty;

@@ -89,11 +89,27 @@ public static class SeatMapper
             SeatmapId = seatmap.SeatmapId,
             AircraftType = seatmap.AircraftTypeCode,
             Version = seatmap.Version,
-            TotalSeats = 0,
+            IsActive = seatmap.IsActive,
+            TotalSeats = 0, // Resolved from AircraftType at query time
             CabinLayout = seatmap.CabinLayout,
             CreatedAt = seatmap.CreatedAt,
             UpdatedAt = seatmap.UpdatedAt
         };
+
+    public static SeatmapListItemResponse ToListItemResponse(Domain.Entities.Seatmap seatmap) =>
+        new()
+        {
+            SeatmapId = seatmap.SeatmapId,
+            AircraftTypeCode = seatmap.AircraftTypeCode,
+            Version = seatmap.Version,
+            IsActive = seatmap.IsActive,
+            TotalSeats = 0, // Resolved from AircraftType at query time
+            CreatedAt = seatmap.CreatedAt,
+            UpdatedAt = seatmap.UpdatedAt
+        };
+
+    public static IReadOnlyList<SeatmapListItemResponse> ToListItemResponse(IEnumerable<Domain.Entities.Seatmap> seatmaps) =>
+        seatmaps.Select(ToListItemResponse).ToList().AsReadOnly();
 
     public static SeatPricingResponse ToResponse(Domain.Entities.SeatPricing seatPricing) =>
         new()

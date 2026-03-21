@@ -115,7 +115,9 @@ public sealed class Payment
     {
         SettledAmount = settledAmount;
         SettledAt = DateTimeOffset.UtcNow;
-        Status = PaymentStatus.Settled;
+        Status = settledAmount < AuthorisedAmount
+            ? PaymentStatus.PartiallySettled
+            : PaymentStatus.Settled;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

@@ -10,4 +10,5 @@ public sealed record UpdateCustomerCommand(
     DateOnly? DateOfBirth,
     string? Nationality,
     string? PhoneNumber,
-    string? PreferredLanguage);
+    string? PreferredLanguage,
+    Guid? IdentityReference);

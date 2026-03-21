@@ -88,4 +88,32 @@ public static class ScheduleMapper
 
     public static IReadOnlyList<ScheduleResponse> ToResponse(IEnumerable<Domain.Entities.FlightSchedule> schedules) =>
         schedules.Select(ToResponse).ToList().AsReadOnly();
+
+    public static CreateScheduleResponse ToCreateResponse(Domain.Entities.FlightSchedule schedule)
+    {
+        JsonElement? cabinFareDefinitions = null;
+        if (!string.IsNullOrWhiteSpace(schedule.CabinFares))
+        {
+            cabinFareDefinitions = JsonSerializer.Deserialize<JsonElement>(schedule.CabinFares);
+        }
+
+        var operatingDates = schedule.GetOperatingDates()
+            .Select(d => d.ToString("yyyy-MM-dd"))
+            .ToList()
+            .AsReadOnly();
+
+        return new CreateScheduleResponse
+        {
+            ScheduleId = schedule.ScheduleId,
+            OperatingDates = operatingDates,
+            CabinFareDefinitions = cabinFareDefinitions
+        };
+    }
+
+    public static UpdateScheduleResponse ToUpdateResponse(Domain.Entities.FlightSchedule schedule) =>
+        new()
+        {
+            ScheduleId = schedule.ScheduleId,
+            FlightsCreated = schedule.FlightsCreated
+        };
 }

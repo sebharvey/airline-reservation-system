@@ -34,3 +34,12 @@ public sealed class BagPricingResponse
     [JsonPropertyName("updatedAt")]
     public DateTimeOffset UpdatedAt { get; init; }
 }
+
+/// <summary>
+/// Wrapper response for GET /v1/bag-pricing list endpoint.
+/// </summary>
+public sealed class BagPricingListResponse
+{
+    [JsonPropertyName("pricing")]
+    public IReadOnlyList<BagPricingResponse> Pricing { get; init; } = [];
+}

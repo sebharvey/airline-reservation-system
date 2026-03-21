@@ -347,7 +347,7 @@ public sealed class OrderFunction
         try
         {
             var order = await _cancelOrderHandler.HandleAsync(command, ct);
-            if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
+            if (order is null) return await req.NotFoundAsync($"Order '{bookingRef}' not found.");
             return await req.OkJsonAsync(new
             {
                 bookingReference = order.BookingReference,
@@ -355,7 +355,7 @@ public sealed class OrderFunction
                 version = order.Version
             });
         }
-        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+        catch (InvalidOperationException) { return await req.UnprocessableEntityAsync($"Order '{bookingRef}' is already cancelled."); }
     }
 
     // PATCH /v1/orders/{bookingRef}/rebook

@@ -39,7 +39,8 @@ public static class CustomerMapper
             DateOfBirth: request.DateOfBirth,
             Nationality: request.Nationality,
             PhoneNumber: request.PhoneNumber,
-            PreferredLanguage: request.PreferredLanguage);
+            PreferredLanguage: request.PreferredLanguage,
+            IdentityReference: request.IdentityReference);
 
     public static AuthorisePointsCommand ToCommand(string loyaltyNumber, AuthorisePointsRequest request) =>
         new(
