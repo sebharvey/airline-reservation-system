@@ -60,6 +60,9 @@ public static class SeatMapper
     public static UpdateSeatPricingCommand ToCommand(Guid seatPricingId, UpdateSeatPricingRequest request) =>
         new(
             SeatPricingId: seatPricingId,
+            CabinCode: request.CabinCode,
+            SeatPosition: request.SeatPosition,
+            CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             IsActive: request.IsActive,
             ValidFrom: request.ValidFrom,
