@@ -16,7 +16,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -31,10 +31,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 'Resolve Project Dependencies Using Dotnet'
-        shell: pwsh
+        shell: bash
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet publish ReservationSystem.Orchestration.Loyalty/ReservationSystem.Orchestration.Loyalty.csproj --configuration Release --output ./output
+          dotnet build --configuration Release --output ./output
           popd
 
       - name: Login to Azure
