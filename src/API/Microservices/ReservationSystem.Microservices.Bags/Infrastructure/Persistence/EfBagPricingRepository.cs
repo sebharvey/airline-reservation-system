@@ -31,8 +31,8 @@ public sealed class EfBagPricingRepository : IBagPricingRepository
     {
         var pricings = await _context.BagPricings
             .AsNoTracking()
-            .OrderBy(p => p.CabinCode)
-            .ThenBy(p => p.BagNumber)
+            .OrderBy(p => p.BagSequence)
+            .ThenBy(p => p.CurrencyCode)
             .ToListAsync(cancellationToken);
 
         return pricings.AsReadOnly();

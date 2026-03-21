@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Seat.Application.CreateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAircraftType;
 using ReservationSystem.Microservices.Seat.Application.GetAllAircraftTypes;
+using ReservationSystem.Microservices.Seat.Application.DeleteAircraftType;
 using ReservationSystem.Microservices.Seat.Application.UpdateAircraftType;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
@@ -20,6 +21,7 @@ public sealed class AircraftTypeFunction
     private readonly CreateAircraftTypeHandler _createHandler;
     private readonly GetAircraftTypeHandler _getHandler;
     private readonly UpdateAircraftTypeHandler _updateHandler;
+    private readonly DeleteAircraftTypeHandler _deleteHandler;
     private readonly ILogger<AircraftTypeFunction> _logger;
 
     public AircraftTypeFunction(
@@ -27,12 +29,14 @@ public sealed class AircraftTypeFunction
         CreateAircraftTypeHandler createHandler,
         GetAircraftTypeHandler getHandler,
         UpdateAircraftTypeHandler updateHandler,
+        DeleteAircraftTypeHandler deleteHandler,
         ILogger<AircraftTypeFunction> logger)
     {
         _getAllHandler = getAllHandler;
         _createHandler = createHandler;
         _getHandler = getHandler;
         _updateHandler = updateHandler;
+        _deleteHandler = deleteHandler;
         _logger = logger;
     }
 
@@ -80,6 +84,19 @@ public sealed class AircraftTypeFunction
     [Function("UpdateAircraftType")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/aircraft-types/{aircraftTypeCode}")] HttpRequestData req,
+        string aircraftTypeCode,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/aircraft-types/{aircraftTypeCode}
+    // -------------------------------------------------------------------------
+
+    [Function("DeleteAircraftType")]
+    public async Task<HttpResponseData> Delete(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/aircraft-types/{aircraftTypeCode}")] HttpRequestData req,
         string aircraftTypeCode,
         CancellationToken cancellationToken)
     {

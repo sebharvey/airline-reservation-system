@@ -6,5 +6,6 @@ namespace ReservationSystem.Microservices.Seat.Models.Responses;
 public sealed class SeatOffersResponse
 {
     public Guid FlightId { get; init; }
+    public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<SeatOfferResponse> SeatOffers { get; init; } = [];
 }

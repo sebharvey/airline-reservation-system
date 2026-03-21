@@ -4,27 +4,29 @@ namespace ReservationSystem.Microservices.Bags.Models.Responses;
 
 /// <summary>
 /// HTTP response body for BagPricing endpoints.
-/// Flat, serialisation-ready — no domain types leak through.
 /// </summary>
 public sealed class BagPricingResponse
 {
     [JsonPropertyName("pricingId")]
     public Guid PricingId { get; init; }
 
-    [JsonPropertyName("cabinCode")]
-    public string CabinCode { get; init; } = string.Empty;
+    [JsonPropertyName("bagSequence")]
+    public int BagSequence { get; init; }
 
-    [JsonPropertyName("bagNumber")]
-    public int BagNumber { get; init; }
+    [JsonPropertyName("currencyCode")]
+    public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("price")]
     public decimal Price { get; init; }
 
-    [JsonPropertyName("currency")]
-    public string Currency { get; init; } = string.Empty;
-
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }
+
+    [JsonPropertyName("validFrom")]
+    public DateTimeOffset ValidFrom { get; init; }
+
+    [JsonPropertyName("validTo")]
+    public DateTimeOffset? ValidTo { get; init; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; init; }

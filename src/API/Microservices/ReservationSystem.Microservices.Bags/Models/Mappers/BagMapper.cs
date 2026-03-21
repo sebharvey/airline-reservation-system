@@ -31,7 +31,6 @@ public static class BagMapper
     public static UpdateBagPolicyCommand ToCommand(Guid policyId, UpdateBagPolicyRequest request) =>
         new(
             PolicyId: policyId,
-            CabinCode: request.CabinCode,
             FreeBagsIncluded: request.FreeBagsIncluded,
             MaxWeightKgPerBag: request.MaxWeightKgPerBag,
             IsActive: request.IsActive);
@@ -61,19 +60,19 @@ public static class BagMapper
 
     public static CreateBagPricingCommand ToCommand(CreateBagPricingRequest request) =>
         new(
-            CabinCode: request.CabinCode,
-            BagNumber: request.BagNumber,
+            BagSequence: request.BagSequence,
             Price: request.Price,
-            Currency: request.Currency);
+            CurrencyCode: request.CurrencyCode,
+            ValidFrom: request.ValidFrom,
+            ValidTo: request.ValidTo);
 
     public static UpdateBagPricingCommand ToCommand(Guid pricingId, UpdateBagPricingRequest request) =>
         new(
             PricingId: pricingId,
-            CabinCode: request.CabinCode,
-            BagNumber: request.BagNumber,
             Price: request.Price,
-            Currency: request.Currency,
-            IsActive: request.IsActive);
+            IsActive: request.IsActive,
+            ValidFrom: request.ValidFrom,
+            ValidTo: request.ValidTo);
 
     // -------------------------------------------------------------------------
     // BagPricing: Domain entity → HTTP response
@@ -83,11 +82,12 @@ public static class BagMapper
         new()
         {
             PricingId = pricing.PricingId,
-            CabinCode = pricing.CabinCode,
-            BagNumber = pricing.BagNumber,
+            BagSequence = pricing.BagSequence,
+            CurrencyCode = pricing.CurrencyCode,
             Price = pricing.Price,
-            Currency = pricing.Currency,
             IsActive = pricing.IsActive,
+            ValidFrom = pricing.ValidFrom,
+            ValidTo = pricing.ValidTo,
             CreatedAt = pricing.CreatedAt,
             UpdatedAt = pricing.UpdatedAt
         };

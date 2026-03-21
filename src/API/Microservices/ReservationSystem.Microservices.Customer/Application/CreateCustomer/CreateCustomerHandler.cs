@@ -29,11 +29,9 @@ public sealed class CreateCustomerHandler
             givenName: command.GivenName,
             surname: command.Surname,
             preferredLanguage: command.PreferredLanguage,
-            tierCode: command.TierCode,
+            tierCode: "Blue",
             identityReference: command.IdentityReference,
-            dateOfBirth: command.DateOfBirth,
-            nationality: command.Nationality,
-            phoneNumber: command.PhoneNumber);
+            dateOfBirth: command.DateOfBirth);
 
         await _repository.CreateAsync(customer, cancellationToken);
 

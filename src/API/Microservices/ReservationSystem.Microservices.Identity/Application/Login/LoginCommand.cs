@@ -5,5 +5,4 @@ namespace ReservationSystem.Microservices.Identity.Application.Login;
 /// </summary>
 public sealed record LoginCommand(
     string Email,
-    string Password,
-    string? DeviceHint);
+    string Password);

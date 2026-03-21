@@ -4,5 +4,4 @@ namespace ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 /// Command carrying the data needed to verify a user account's email address.
 /// </summary>
 public sealed record VerifyEmailCommand(
-    Guid UserAccountId,
-    string VerificationToken);
+    Guid UserAccountId);

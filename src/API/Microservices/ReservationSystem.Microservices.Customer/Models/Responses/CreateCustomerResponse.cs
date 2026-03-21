@@ -7,9 +7,5 @@ public sealed class CreateCustomerResponse
 {
     public Guid CustomerId { get; init; }
     public string LoyaltyNumber { get; init; } = string.Empty;
-    public string GivenName { get; init; } = string.Empty;
-    public string Surname { get; init; } = string.Empty;
     public string TierCode { get; init; } = string.Empty;
-    public int PointsBalance { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
 }

@@ -17,7 +17,6 @@ public sealed class RefreshTokenHandler
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ILogger<RefreshTokenHandler> _logger;
 
-    private const int AccessTokenMinutes = 15;
     private const int RefreshTokenDays = 30;
 
     public RefreshTokenHandler(
@@ -34,7 +33,7 @@ public sealed class RefreshTokenHandler
         RefreshTokenCommand command,
         CancellationToken cancellationToken = default)
     {
-        var tokenHash = LoginHandler.HashToken(command.Token);
+        var tokenHash = LoginHandler.HashToken(command.RefreshToken);
         var existingToken = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash, cancellationToken);
 
         if (existingToken is null || !existingToken.IsValid)
@@ -62,20 +61,18 @@ public sealed class RefreshTokenHandler
             userAccountId: account.UserAccountId,
             tokenHash: newTokenHash,
             expiresAt: newExpiry,
-            deviceHint: command.DeviceHint);
+            deviceHint: null);
 
         await _refreshTokenRepository.CreateAsync(newRefreshToken, cancellationToken);
 
         var accessToken = GenerateAccessToken(account);
-        var accessTokenExpiry = DateTimeOffset.UtcNow.AddMinutes(AccessTokenMinutes);
 
         _logger.LogInformation("Refresh token rotated for {UserAccountId}", account.UserAccountId);
 
         return new RefreshTokenResponse
         {
             AccessToken = accessToken,
-            RefreshToken = rawNewToken,
-            ExpiresAt = accessTokenExpiry
+            RefreshToken = rawNewToken
         };
     }
 

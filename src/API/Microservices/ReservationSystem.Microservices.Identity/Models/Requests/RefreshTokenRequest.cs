@@ -5,6 +5,5 @@ namespace ReservationSystem.Microservices.Identity.Models.Requests;
 /// </summary>
 public sealed class RefreshTokenRequest
 {
-    public string Token { get; init; } = string.Empty;
-    public string? DeviceHint { get; init; }
+    public string RefreshToken { get; init; } = string.Empty;
 }

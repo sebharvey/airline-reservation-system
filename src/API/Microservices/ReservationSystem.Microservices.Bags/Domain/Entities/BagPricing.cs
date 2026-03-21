@@ -2,16 +2,17 @@ namespace ReservationSystem.Microservices.Bags.Domain.Entities;
 
 /// <summary>
 /// Core domain entity representing the pricing for an additional bag.
-/// Associates a cabin class with its extra bag fee and currency.
+/// Keyed by (BagSequence, CurrencyCode) with temporal validity.
 /// </summary>
 public sealed class BagPricing
 {
     public Guid PricingId { get; private set; }
-    public string CabinCode { get; private set; } = string.Empty;
-    public int BagNumber { get; private set; }
+    public int BagSequence { get; private set; }
+    public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
-    public string Currency { get; private set; } = string.Empty;
     public bool IsActive { get; private set; }
+    public DateTimeOffset ValidFrom { get; private set; }
+    public DateTimeOffset? ValidTo { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -20,15 +21,16 @@ public sealed class BagPricing
     /// <summary>
     /// Factory method for creating a brand-new bag pricing entry. Assigns a new Id and timestamps.
     /// </summary>
-    public static BagPricing Create(string cabinCode, int bagNumber, decimal price, string currency)
+    public static BagPricing Create(int bagSequence, decimal price, string currencyCode, DateTimeOffset validFrom, DateTimeOffset? validTo)
     {
         return new BagPricing
         {
             PricingId = Guid.NewGuid(),
-            CabinCode = cabinCode,
-            BagNumber = bagNumber,
+            BagSequence = bagSequence,
             Price = price,
-            Currency = currency,
+            CurrencyCode = currencyCode,
+            ValidFrom = validFrom,
+            ValidTo = validTo,
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -41,22 +43,24 @@ public sealed class BagPricing
     /// </summary>
     public static BagPricing Reconstitute(
         Guid pricingId,
-        string cabinCode,
-        int bagNumber,
+        int bagSequence,
         decimal price,
-        string currency,
+        string currencyCode,
         bool isActive,
+        DateTimeOffset validFrom,
+        DateTimeOffset? validTo,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
         return new BagPricing
         {
             PricingId = pricingId,
-            CabinCode = cabinCode,
-            BagNumber = bagNumber,
+            BagSequence = bagSequence,
             Price = price,
-            Currency = currency,
+            CurrencyCode = currencyCode,
             IsActive = isActive,
+            ValidFrom = validFrom,
+            ValidTo = validTo,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };

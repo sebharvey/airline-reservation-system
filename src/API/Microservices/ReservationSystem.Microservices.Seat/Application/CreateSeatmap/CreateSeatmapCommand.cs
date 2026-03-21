@@ -5,5 +5,4 @@ namespace ReservationSystem.Microservices.Seat.Application.CreateSeatmap;
 /// </summary>
 public sealed record CreateSeatmapCommand(
     string AircraftTypeCode,
-    int Version,
     string CabinLayout);

@@ -165,9 +165,20 @@ public sealed class CustomerFunction
         if (customer is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
-        var query = new GetTransactionsQuery(loyaltyNumber);
-        var transactions = await _getTransactionsHandler.HandleAsync(query, cancellationToken);
-        var response = CustomerMapper.ToResponse(loyaltyNumber, transactions);
+        int page = 1;
+        int pageSize = 20;
+
+        var pageParam = req.Query["page"];
+        if (!string.IsNullOrEmpty(pageParam) && int.TryParse(pageParam, out var parsedPage))
+            page = parsedPage;
+
+        var pageSizeParam = req.Query["pageSize"];
+        if (!string.IsNullOrEmpty(pageSizeParam) && int.TryParse(pageSizeParam, out var parsedPageSize))
+            pageSize = parsedPageSize;
+
+        var query = new GetTransactionsQuery(loyaltyNumber, page, pageSize);
+        var (transactions, totalCount) = await _getTransactionsHandler.HandleAsync(query, cancellationToken);
+        var response = CustomerMapper.ToResponse(loyaltyNumber, transactions, page, pageSize, totalCount);
 
         return await req.OkJsonAsync(response);
     }

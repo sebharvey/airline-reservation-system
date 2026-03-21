@@ -25,7 +25,7 @@ public static class ScheduleMapper
 
         var cabinFaresJson = request.CabinFares is not null
             ? JsonSerializer.Serialize(request.CabinFares, SharedJsonOptions.CamelCase)
-            : "{}";
+            : "[]";
 
         return new CreateScheduleCommand(
             FlightNumber: request.FlightNumber,
@@ -45,7 +45,7 @@ public static class ScheduleMapper
     public static UpdateScheduleCommand ToCommand(Guid scheduleId, UpdateScheduleRequest request) =>
         new(
             ScheduleId: scheduleId,
-            FlightsCreatedCount: request.FlightsCreatedCount);
+            FlightsCreated: request.FlightsCreated);
 
     // -------------------------------------------------------------------------
     // Domain entity → HTTP response

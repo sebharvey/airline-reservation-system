@@ -174,6 +174,7 @@ public sealed class StoredOffer
     public decimal CancellationFeeAmount { get; private set; }
     public int? PointsPrice { get; private set; }
     public decimal? PointsTaxes { get; private set; }
+    public int SeatsAvailable { get; private set; }
     public string BookingType { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime ExpiresAt { get; private set; }
@@ -201,6 +202,7 @@ public sealed class StoredOffer
             IsChangeable = fare.IsChangeable, ChangeFeeAmount = fare.ChangeFeeAmount,
             CancellationFeeAmount = fare.CancellationFeeAmount,
             PointsPrice = fare.PointsPrice, PointsTaxes = fare.PointsTaxes,
+            SeatsAvailable = inventory.SeatsAvailable,
             BookingType = bookingType,
             CreatedAt = now, ExpiresAt = now.AddMinutes(60), IsConsumed = false,
             UpdatedAt = now
@@ -214,7 +216,7 @@ public sealed class StoredOffer
         string fareBasisCode, string? fareFamily, string bookingClass, string currencyCode,
         decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, string bookingType,
+        int? pointsPrice, decimal? pointsTaxes, int seatsAvailable, string bookingType,
         DateTime createdAt, DateTime expiresAt, bool isConsumed, DateTime updatedAt)
     {
         return new StoredOffer
@@ -229,7 +231,8 @@ public sealed class StoredOffer
             BaseFareAmount = baseFareAmount, TaxAmount = taxAmount, TotalAmount = totalAmount,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
-            PointsPrice = pointsPrice, PointsTaxes = pointsTaxes, BookingType = bookingType,
+            PointsPrice = pointsPrice, PointsTaxes = pointsTaxes,
+            SeatsAvailable = seatsAvailable, BookingType = bookingType,
             CreatedAt = createdAt, ExpiresAt = expiresAt, IsConsumed = isConsumed, UpdatedAt = updatedAt
         };
     }

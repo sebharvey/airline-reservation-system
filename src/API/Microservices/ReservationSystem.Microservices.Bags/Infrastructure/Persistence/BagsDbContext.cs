@@ -35,11 +35,12 @@ public sealed class BagsDbContext : DbContext
             entity.ToTable("BagPricing");
             entity.HasKey(e => e.PricingId);
             entity.Property(e => e.PricingId).ValueGeneratedNever();
-            entity.Property(e => e.CabinCode).HasMaxLength(10).IsRequired();
-            entity.Property(e => e.BagNumber).IsRequired();
+            entity.Property(e => e.BagSequence).IsRequired();
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
-            entity.Property(e => e.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsRequired();
             entity.Property(e => e.IsActive).IsRequired();
+            entity.Property(e => e.ValidFrom).IsRequired();
+            entity.Property(e => e.ValidTo);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
         });

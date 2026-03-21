@@ -34,21 +34,20 @@ public sealed class ReversePointsHandler
             return null;
         }
 
-        customer.AddPoints(command.Points);
-        await _customerRepository.UpdateAsync(customer, cancellationToken);
+        // TODO: Look up the authorisation hold by redemptionReference to get the held points amount and release them.
+        // For now, create the reversal record.
+        var description = string.IsNullOrEmpty(command.Reason)
+            ? $"Points reversal — {command.RedemptionReference}"
+            : $"Points reversal — {command.RedemptionReference} — {command.Reason}";
 
         var transaction = LoyaltyTransaction.Create(
             loyaltyNumber: command.LoyaltyNumber,
             transactionType: "Adjustment",
-            pointsDelta: command.Points,
+            pointsDelta: 0,
             balanceAfter: customer.PointsBalance,
-            description: command.Description,
-            bookingReference: command.BookingReference,
-            flightNumber: command.FlightNumber);
+            description: description);
 
-        await _transactionRepository.CreateAsync(transaction, cancellationToken);
-
-        _logger.LogInformation("Reversed {Points} points for {LoyaltyNumber}", command.Points, command.LoyaltyNumber);
+        _logger.LogInformation("Reversed redemption {RedemptionReference} for {LoyaltyNumber}", command.RedemptionReference, command.LoyaltyNumber);
 
         return transaction;
     }

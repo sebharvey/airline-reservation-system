@@ -23,6 +23,12 @@ public sealed class SettlePaymentHandler
         _logger = logger;
     }
 
+    /// <summary>
+    /// Settles the payment identified by the command.
+    /// Returns null when the payment reference does not exist.
+    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be settled
+    /// (wrong status or amount exceeds authorised amount).
+    /// </summary>
     public async Task<SettlePaymentResponse?> HandleAsync(
         SettlePaymentCommand command,
         CancellationToken cancellationToken = default)
@@ -39,7 +45,14 @@ public sealed class SettlePaymentHandler
         {
             _logger.LogWarning("Cannot settle payment {PaymentReference} — current status is {Status}",
                 command.PaymentReference, payment.Status);
-            return null;
+            throw new InvalidOperationException(
+                $"Payment '{command.PaymentReference}' cannot be settled — current status is '{payment.Status}'.");
+        }
+
+        if (command.Amount > payment.AuthorisedAmount)
+        {
+            throw new ArgumentException(
+                $"Settled amount ({command.Amount}) exceeds authorised amount ({payment.AuthorisedAmount}).");
         }
 
         payment.Settle(command.Amount);
@@ -47,7 +60,7 @@ public sealed class SettlePaymentHandler
 
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
-            PaymentEventType.Settle,
+            PaymentEventType.Settled,
             command.Amount,
             payment.CurrencyCode,
             $"Payment settled for {command.Amount} {payment.CurrencyCode}");

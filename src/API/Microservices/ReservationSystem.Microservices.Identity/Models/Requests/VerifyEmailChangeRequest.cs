@@ -5,5 +5,5 @@ namespace ReservationSystem.Microservices.Identity.Models.Requests;
 /// </summary>
 public sealed class VerifyEmailChangeRequest
 {
-    public string VerificationToken { get; init; } = string.Empty;
+    public string Token { get; init; } = string.Empty;
 }

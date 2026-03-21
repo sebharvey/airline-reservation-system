@@ -119,9 +119,11 @@ public sealed class Payment
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void Refund()
+    public void Refund(decimal refundAmount)
     {
-        Status = PaymentStatus.Refunded;
+        Status = refundAmount < SettledAmount
+            ? PaymentStatus.PartiallySettled
+            : PaymentStatus.Refunded;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }
@@ -132,8 +134,11 @@ public sealed class Payment
 /// </summary>
 public static class PaymentStatus
 {
-    public const string Authorised = "authorised";
-    public const string Settled = "settled";
-    public const string Refunded = "refunded";
-    public const string Failed = "failed";
+    public const string Authorised = "Authorised";
+    public const string Settled = "Settled";
+    public const string PartiallySettled = "PartiallySettled";
+    public const string Refunded = "Refunded";
+    public const string Failed = "Failed";
+    public const string Declined = "Declined";
+    public const string Voided = "Voided";
 }

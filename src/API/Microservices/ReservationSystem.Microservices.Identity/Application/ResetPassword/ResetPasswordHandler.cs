@@ -26,7 +26,7 @@ public sealed class ResetPasswordHandler
     {
         // In a production system, the reset token would be validated against a stored,
         // time-limited token. For this implementation, we validate the inputs and log.
-        if (string.IsNullOrWhiteSpace(command.ResetToken))
+        if (string.IsNullOrWhiteSpace(command.Token))
             throw new ArgumentException("Reset token is required.");
 
         if (string.IsNullOrWhiteSpace(command.NewPassword))

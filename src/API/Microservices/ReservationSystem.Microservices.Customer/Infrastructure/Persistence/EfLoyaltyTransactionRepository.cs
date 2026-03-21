@@ -32,6 +32,23 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
         return transactions.AsReadOnly();
     }
 
+    public async Task<(IReadOnlyList<LoyaltyTransaction> Transactions, int TotalCount)> GetByLoyaltyNumberAsync(string loyaltyNumber, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.LoyaltyTransactions
+            .AsNoTracking()
+            .Where(t => t.LoyaltyNumber == loyaltyNumber);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var transactions = await query
+            .OrderByDescending(t => t.TransactionDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (transactions.AsReadOnly(), totalCount);
+    }
+
     public async Task CreateAsync(LoyaltyTransaction transaction, CancellationToken cancellationToken = default)
     {
         _context.LoyaltyTransactions.Add(transaction);

@@ -7,6 +7,6 @@ namespace ReservationSystem.Microservices.Schedule.Models.Requests;
 /// </summary>
 public sealed class UpdateScheduleRequest
 {
-    [JsonPropertyName("flightsCreatedCount")]
-    public int FlightsCreatedCount { get; init; }
+    [JsonPropertyName("flightsCreated")]
+    public int FlightsCreated { get; init; }
 }

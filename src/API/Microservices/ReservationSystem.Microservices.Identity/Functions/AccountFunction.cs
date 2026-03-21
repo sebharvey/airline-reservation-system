@@ -99,7 +99,7 @@ public sealed class AccountFunction
         {
             var command = new DeleteAccountCommand(userAccountId);
             await _deleteAccountHandler.HandleAsync(command, cancellationToken);
-            return req.CreateResponse(HttpStatusCode.NoContent);
+            return req.CreateResponse(HttpStatusCode.OK);
         }
         catch (KeyNotFoundException)
         {
@@ -119,9 +119,9 @@ public sealed class AccountFunction
     {
         try
         {
-            var command = new VerifyEmailCommand(userAccountId, string.Empty);
+            var command = new VerifyEmailCommand(userAccountId);
             await _verifyEmailHandler.HandleAsync(command, cancellationToken);
-            return req.CreateResponse(HttpStatusCode.NoContent);
+            return req.CreateResponse(HttpStatusCode.OK);
         }
         catch (KeyNotFoundException)
         {
@@ -198,9 +198,9 @@ public sealed class AccountFunction
 
         try
         {
-            var command = new VerifyEmailChangeCommand(request.VerificationToken);
+            var command = new VerifyEmailChangeCommand(request.Token);
             await _verifyEmailChangeHandler.HandleAsync(command, cancellationToken);
-            return req.CreateResponse(HttpStatusCode.NoContent);
+            return req.CreateResponse(HttpStatusCode.OK);
         }
         catch (ArgumentException)
         {

@@ -5,6 +5,5 @@ namespace ReservationSystem.Microservices.Seat.Models.Requests;
 /// </summary>
 public sealed class UpdateSeatmapRequest
 {
-    public string? CabinLayout { get; init; }
-    public bool? IsActive { get; init; }
+    public string CabinLayout { get; init; } = string.Empty;
 }

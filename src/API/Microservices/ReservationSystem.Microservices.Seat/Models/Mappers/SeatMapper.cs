@@ -40,14 +40,12 @@ public static class SeatMapper
     public static CreateSeatmapCommand ToCommand(CreateSeatmapRequest request) =>
         new(
             AircraftTypeCode: request.AircraftTypeCode,
-            Version: request.Version,
             CabinLayout: request.CabinLayout);
 
     public static UpdateSeatmapCommand ToCommand(Guid seatmapId, UpdateSeatmapRequest request) =>
         new(
             SeatmapId: seatmapId,
-            CabinLayout: request.CabinLayout,
-            IsActive: request.IsActive);
+            CabinLayout: request.CabinLayout);
 
     public static CreateSeatPricingCommand ToCommand(CreateSeatPricingRequest request) =>
         new(
@@ -61,9 +59,6 @@ public static class SeatMapper
     public static UpdateSeatPricingCommand ToCommand(Guid seatPricingId, UpdateSeatPricingRequest request) =>
         new(
             SeatPricingId: seatPricingId,
-            CabinCode: request.CabinCode,
-            SeatPosition: request.SeatPosition,
-            CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             IsActive: request.IsActive,
             ValidFrom: request.ValidFrom,
@@ -92,9 +87,9 @@ public static class SeatMapper
         new()
         {
             SeatmapId = seatmap.SeatmapId,
-            AircraftTypeCode = seatmap.AircraftTypeCode,
+            AircraftType = seatmap.AircraftTypeCode,
             Version = seatmap.Version,
-            IsActive = seatmap.IsActive,
+            TotalSeats = 0,
             CabinLayout = seatmap.CabinLayout,
             CreatedAt = seatmap.CreatedAt,
             UpdatedAt = seatmap.UpdatedAt

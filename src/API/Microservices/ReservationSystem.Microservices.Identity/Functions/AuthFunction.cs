@@ -162,7 +162,7 @@ public sealed class AuthFunction
         var command = new LogoutCommand(request.RefreshToken);
         await _logoutHandler.HandleAsync(command, cancellationToken);
 
-        return req.CreateResponse(HttpStatusCode.NoContent);
+        return req.CreateResponse(HttpStatusCode.OK);
     }
 
     // -------------------------------------------------------------------------
@@ -223,9 +223,9 @@ public sealed class AuthFunction
 
         try
         {
-            var command = new Application.ResetPassword.ResetPasswordCommand(request.ResetToken, request.NewPassword);
+            var command = new Application.ResetPassword.ResetPasswordCommand(request.Token, request.NewPassword);
             await _resetPasswordHandler.HandleAsync(command, cancellationToken);
-            return req.CreateResponse(HttpStatusCode.NoContent);
+            return req.CreateResponse(HttpStatusCode.OK);
         }
         catch (ArgumentException)
         {

@@ -4,12 +4,10 @@ namespace ReservationSystem.Microservices.Bags.Models.Requests;
 
 /// <summary>
 /// HTTP request body for PUT /v1/bag-policies/{policyId}.
+/// CabinCode is immutable (set at creation only) and not included here.
 /// </summary>
 public sealed class UpdateBagPolicyRequest
 {
-    [JsonPropertyName("cabinCode")]
-    public string CabinCode { get; init; } = string.Empty;
-
     [JsonPropertyName("freeBagsIncluded")]
     public int FreeBagsIncluded { get; init; }
 

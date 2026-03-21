@@ -25,16 +25,15 @@ public static class IdentityMapper
     public static LoginCommand ToCommand(LoginRequest request) =>
         new(
             Email: request.Email,
-            Password: request.Password,
-            DeviceHint: request.DeviceHint);
+            Password: request.Password);
 
     public static RefreshTokenCommand ToCommand(RefreshTokenRequest request) =>
         new(
-            Token: request.Token,
-            DeviceHint: request.DeviceHint);
+            RefreshToken: request.RefreshToken);
 
     public static CreateAccountCommand ToCommand(CreateAccountRequest request) =>
         new(
             Email: request.Email,
-            Password: request.Password);
+            Password: request.Password,
+            CustomerId: request.CustomerId);
 }

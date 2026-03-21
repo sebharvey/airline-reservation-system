@@ -22,7 +22,7 @@ public sealed class CancelOrderHandler
         _logger = logger;
     }
 
-    public async Task<bool> HandleAsync(
+    public async Task<Domain.Entities.Order?> HandleAsync(
         CancelOrderCommand command,
         CancellationToken cancellationToken = default)
     {
@@ -32,13 +32,13 @@ public sealed class CancelOrderHandler
         if (order is null)
         {
             _logger.LogWarning("Order {BookingReference} not found", command.BookingReference);
-            return false;
+            return null;
         }
 
         if (order.OrderStatus == OrderStatusValues.Cancelled)
         {
             _logger.LogWarning("Order {BookingReference} is already cancelled", command.BookingReference);
-            return false;
+            return null;
         }
 
         order.Cancel();
@@ -94,6 +94,6 @@ public sealed class CancelOrderHandler
 
         _logger.LogInformation("Order {BookingReference} cancelled", command.BookingReference);
 
-        return true;
+        return updated;
     }
 }

@@ -77,6 +77,9 @@ public sealed class OrderFunction
         if (request is null || request.BasketId == Guid.Empty)
             return await req.BadRequestAsync("The field 'basketId' is required.");
 
+        if (request.BookingType == "Reward" && string.IsNullOrWhiteSpace(request.RedemptionReference))
+            return await req.BadRequestAsync("'redemptionReference' is required for Reward bookings.");
+
         try
         {
             var command = OrderMapper.ToCommand(request);
@@ -151,6 +154,9 @@ public sealed class OrderFunction
             return await req.BadRequestAsync("Query parameters 'flightNumber' and 'departureDate' are required.");
 
         var orders = await _orderRepository.GetByFlightAsync(flightNumber, departureDate, status, ct);
+
+        if (orders.Count == 0)
+            return await req.NotFoundAsync($"No orders found for flight {flightNumber} on {departureDate}.");
 
         return await req.OkJsonAsync(new
         {
@@ -340,13 +346,13 @@ public sealed class OrderFunction
         var command = new CancelOrderCommand(bookingRef, body);
         try
         {
-            var result = await _cancelOrderHandler.HandleAsync(command, ct);
-            if (!result) return req.CreateResponse(HttpStatusCode.NotFound);
+            var order = await _cancelOrderHandler.HandleAsync(command, ct);
+            if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
             return await req.OkJsonAsync(new
             {
-                bookingReference = bookingRef,
-                orderStatus = "Cancelled",
-                version = 0
+                bookingReference = order.BookingReference,
+                orderStatus = order.OrderStatus,
+                version = order.Version
             });
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
