@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
-using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 
 namespace ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 
@@ -12,12 +11,12 @@ public sealed class CustomerDbContext : DbContext
 {
     public CustomerDbContext(DbContextOptions<CustomerDbContext> options) : base(options) { }
 
-    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Domain.Entities.Customer> Customers => Set<Domain.Entities.Customer>();
     public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Customer>(entity =>
+        modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
             entity.ToTable("Customer", "customer");
 

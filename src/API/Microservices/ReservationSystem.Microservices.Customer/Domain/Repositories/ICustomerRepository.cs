@@ -1,5 +1,3 @@
-using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
-
 namespace ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 /// <summary>
@@ -9,11 +7,11 @@ namespace ReservationSystem.Microservices.Customer.Domain.Repositories;
 /// </summary>
 public interface ICustomerRepository
 {
-    Task<Customer?> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default);
+    Task<Domain.Entities.Customer?> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default);
 
-    Task CreateAsync(Customer customer, CancellationToken cancellationToken = default);
+    Task CreateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string loyaltyNumber, CancellationToken cancellationToken = default);
 }

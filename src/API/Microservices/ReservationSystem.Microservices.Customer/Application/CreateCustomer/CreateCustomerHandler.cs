@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Customer.Application.CreateCustomer;
@@ -20,11 +19,11 @@ public sealed class CreateCustomerHandler
         _logger = logger;
     }
 
-    public async Task<Customer> HandleAsync(
+    public async Task<Domain.Entities.Customer> HandleAsync(
         CreateCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
-        var customer = Customer.Create(
+        var customer = Domain.Entities.Customer.Create(
             loyaltyNumber: command.LoyaltyNumber,
             givenName: command.GivenName,
             surname: command.Surname,

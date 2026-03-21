@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
@@ -21,14 +20,14 @@ public sealed class EfCustomerRepository : ICustomerRepository
         _logger = logger;
     }
 
-    public async Task<Customer?> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.Customer?> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default)
     {
         return await _context.Customers
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.LoyaltyNumber == loyaltyNumber, cancellationToken);
     }
 
-    public async Task CreateAsync(Customer customer, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default)
     {
         _context.Customers.Add(customer);
         await _context.SaveChangesAsync(cancellationToken);
@@ -36,7 +35,7 @@ public sealed class EfCustomerRepository : ICustomerRepository
         _logger.LogDebug("Inserted Customer {CustomerId} into [customer].[Customer]", customer.CustomerId);
     }
 
-    public async Task UpdateAsync(Customer customer, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default)
     {
         _context.Customers.Update(customer);
         var rowsAffected = await _context.SaveChangesAsync(cancellationToken);

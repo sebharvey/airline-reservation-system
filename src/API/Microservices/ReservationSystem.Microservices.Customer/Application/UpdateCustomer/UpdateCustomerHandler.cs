@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
@@ -20,7 +19,7 @@ public sealed class UpdateCustomerHandler
         _logger = logger;
     }
 
-    public async Task<Customer?> HandleAsync(
+    public async Task<Domain.Entities.Customer?> HandleAsync(
         UpdateCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
