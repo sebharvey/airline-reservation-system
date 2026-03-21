@@ -1,0 +1,72 @@
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Seat.Application.CreateSeatmap;
+using ReservationSystem.Microservices.Seat.Application.GetSeatmap;
+using ReservationSystem.Microservices.Seat.Application.UpdateSeatmap;
+using ReservationSystem.Microservices.Seat.Models.Mappers;
+using ReservationSystem.Microservices.Seat.Models.Requests;
+
+namespace ReservationSystem.Microservices.Seat.Functions;
+
+/// <summary>
+/// HTTP-triggered functions for Seatmap resources.
+/// Translates HTTP concerns into application-layer calls and back again.
+/// </summary>
+public sealed class SeatmapFunction
+{
+    private readonly GetSeatmapHandler _getSeatmapHandler;
+    private readonly CreateSeatmapHandler _createSeatmapHandler;
+    private readonly UpdateSeatmapHandler _updateSeatmapHandler;
+    private readonly ILogger<SeatmapFunction> _logger;
+
+    public SeatmapFunction(
+        GetSeatmapHandler getSeatmapHandler,
+        CreateSeatmapHandler createSeatmapHandler,
+        UpdateSeatmapHandler updateSeatmapHandler,
+        ILogger<SeatmapFunction> logger)
+    {
+        _getSeatmapHandler = getSeatmapHandler;
+        _createSeatmapHandler = createSeatmapHandler;
+        _updateSeatmapHandler = updateSeatmapHandler;
+        _logger = logger;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/seatmap/{aircraftType}
+    // -------------------------------------------------------------------------
+
+    [Function("GetSeatmap")]
+    public async Task<HttpResponseData> GetSeatmap(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmap/{aircraftType}")] HttpRequestData req,
+        string aircraftType,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/seatmaps
+    // -------------------------------------------------------------------------
+
+    [Function("CreateSeatmap")]
+    public async Task<HttpResponseData> CreateSeatmap(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seatmaps")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/seatmaps/{seatmapId}
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateSeatmap")]
+    public async Task<HttpResponseData> UpdateSeatmap(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
+        Guid seatmapId,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+}
