@@ -1,4 +1,4 @@
-using Customer = ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
+using Customer = global::ReservationSystem.Microservices.Customer.Domain.Entities.Customer;
 
 namespace ReservationSystem.Microservices.Customer.Domain.Repositories;
 
