@@ -12,7 +12,7 @@ using ReservationSystem.Orchestration.Operations.Application.CreateSchedule;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {

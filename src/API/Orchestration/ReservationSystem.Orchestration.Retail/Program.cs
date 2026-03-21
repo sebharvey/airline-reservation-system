@@ -12,7 +12,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetOrder;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {

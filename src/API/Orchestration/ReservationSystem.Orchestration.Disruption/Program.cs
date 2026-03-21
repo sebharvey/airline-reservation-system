@@ -13,7 +13,7 @@ using ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Disruption.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {

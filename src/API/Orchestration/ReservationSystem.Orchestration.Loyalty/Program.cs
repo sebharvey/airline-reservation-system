@@ -16,7 +16,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.AuthorisePoints;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {

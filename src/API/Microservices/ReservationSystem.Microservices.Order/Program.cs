@@ -29,7 +29,7 @@ using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
