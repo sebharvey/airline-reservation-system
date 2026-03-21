@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Bags.Domain.Entities;
 using ReservationSystem.Microservices.Bags.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Bags.Application.UpdateBagPolicy;
@@ -14,10 +15,17 @@ public sealed class UpdateBagPolicyHandler
         _logger = logger;
     }
 
-    public async Task<Domain.Entities.BagPolicy?> HandleAsync(
-        UpdateBagPolicyCommand command,
-        CancellationToken cancellationToken = default)
+    public async Task<BagPolicy?> HandleAsync(UpdateBagPolicyCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var existing = await _repository.GetByIdAsync(command.PolicyId, cancellationToken);
+        if (existing is null) return null;
+
+        var updated = BagPolicy.Reconstitute(
+            command.PolicyId, existing.CabinCode, command.FreeBagsIncluded, command.MaxWeightKgPerBag,
+            command.IsActive, existing.CreatedAt, DateTimeOffset.UtcNow);
+
+        var result = await _repository.UpdateAsync(updated, cancellationToken);
+        _logger.LogInformation("Updated BagPolicy {PolicyId}", command.PolicyId);
+        return result;
     }
 }

@@ -21,8 +21,8 @@ public sealed class GetSeatmapHandler
         _logger = logger;
     }
 
-    public Task<Seatmap?> HandleAsync(GetSeatmapQuery query, CancellationToken cancellationToken = default)
+    public async Task<Seatmap?> HandleAsync(GetSeatmapQuery query, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _repository.GetActiveByAircraftTypeCodeAsync(query.AircraftTypeCode, cancellationToken);
     }
 }

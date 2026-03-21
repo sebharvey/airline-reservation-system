@@ -1,7 +1,8 @@
 namespace ReservationSystem.Microservices.Bags.Application.CreateBagPricing;
 
 public sealed record CreateBagPricingCommand(
-    string CabinCode,
-    int BagNumber,
+    int BagSequence,
+    string CurrencyCode,
     decimal Price,
-    string Currency);
+    DateTimeOffset ValidFrom,
+    DateTimeOffset? ValidTo);

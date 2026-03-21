@@ -15,8 +15,9 @@ public sealed class GetSeatOffersHandler
         _logger = logger;
     }
 
-    public Task HandleAsync(GetSeatOffersQuery query, CancellationToken cancellationToken = default)
+    public Task<object?> HandleAsync(GetSeatOffersQuery query, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // TODO: Implement seat offer generation using seatmap + pricing + offer logic in Function layer
+        return Task.FromResult<object?>(null);
     }
 }

@@ -7,20 +7,9 @@ using ReservationSystem.Microservices.Bags.Models.Responses;
 
 namespace ReservationSystem.Microservices.Bags.Models.Mappers;
 
-/// <summary>
-/// Static mapping methods between all model representations for Bags.
-///
-/// Mapping directions:
-///   HTTP request  →  Application command
-///   Domain entity →  HTTP response
-///
-/// Static methods are used deliberately — no state, no DI overhead, trivially testable.
-/// </summary>
 public static class BagMapper
 {
-    // -------------------------------------------------------------------------
-    // BagPolicy: HTTP request → Application command
-    // -------------------------------------------------------------------------
+    // ── BagPolicy: Request → Command ─────────────────────────────────────────
 
     public static CreateBagPolicyCommand ToCommand(CreateBagPolicyRequest request) =>
         new(
@@ -31,14 +20,11 @@ public static class BagMapper
     public static UpdateBagPolicyCommand ToCommand(Guid policyId, UpdateBagPolicyRequest request) =>
         new(
             PolicyId: policyId,
-            CabinCode: request.CabinCode,
             FreeBagsIncluded: request.FreeBagsIncluded,
             MaxWeightKgPerBag: request.MaxWeightKgPerBag,
             IsActive: request.IsActive);
 
-    // -------------------------------------------------------------------------
-    // BagPolicy: Domain entity → HTTP response
-    // -------------------------------------------------------------------------
+    // ── BagPolicy: Domain → Response ─────────────────────────────────────────
 
     public static BagPolicyResponse ToResponse(Domain.Entities.BagPolicy policy) =>
         new()
@@ -55,43 +41,50 @@ public static class BagMapper
     public static IReadOnlyList<BagPolicyResponse> ToResponse(IEnumerable<Domain.Entities.BagPolicy> policies) =>
         policies.Select(ToResponse).ToList().AsReadOnly();
 
-    // -------------------------------------------------------------------------
-    // BagPricing: HTTP request → Application command
-    // -------------------------------------------------------------------------
+    // ── BagPricing: Request → Command ────────────────────────────────────────
 
     public static CreateBagPricingCommand ToCommand(CreateBagPricingRequest request) =>
         new(
-            CabinCode: request.CabinCode,
-            BagNumber: request.BagNumber,
+            BagSequence: request.BagSequence,
+            CurrencyCode: request.CurrencyCode,
             Price: request.Price,
-            Currency: request.Currency);
+            ValidFrom: request.ValidFrom,
+            ValidTo: request.ValidTo);
 
     public static UpdateBagPricingCommand ToCommand(Guid pricingId, UpdateBagPricingRequest request) =>
         new(
             PricingId: pricingId,
-            CabinCode: request.CabinCode,
-            BagNumber: request.BagNumber,
             Price: request.Price,
-            Currency: request.Currency,
+            ValidFrom: request.ValidFrom,
+            ValidTo: request.ValidTo,
             IsActive: request.IsActive);
 
-    // -------------------------------------------------------------------------
-    // BagPricing: Domain entity → HTTP response
-    // -------------------------------------------------------------------------
+    // ── BagPricing: Domain → Response ────────────────────────────────────────
 
     public static BagPricingResponse ToResponse(Domain.Entities.BagPricing pricing) =>
         new()
         {
             PricingId = pricing.PricingId,
-            CabinCode = pricing.CabinCode,
-            BagNumber = pricing.BagNumber,
+            BagSequence = pricing.BagSequence,
+            CurrencyCode = pricing.CurrencyCode,
             Price = pricing.Price,
-            Currency = pricing.Currency,
             IsActive = pricing.IsActive,
+            ValidFrom = pricing.ValidFrom,
+            ValidTo = pricing.ValidTo,
             CreatedAt = pricing.CreatedAt,
             UpdatedAt = pricing.UpdatedAt
         };
 
     public static IReadOnlyList<BagPricingResponse> ToResponse(IEnumerable<Domain.Entities.BagPricing> pricings) =>
         pricings.Select(ToResponse).ToList().AsReadOnly();
+
+    // ── BagOffer: Helpers ────────────────────────────────────────────────────
+
+    public static string GetBagDescription(int bagSequence) => bagSequence switch
+    {
+        1 => "1st additional checked bag",
+        2 => "2nd additional checked bag",
+        99 => "3rd additional checked bag and beyond",
+        _ => $"Additional checked bag (sequence {bagSequence})"
+    };
 }

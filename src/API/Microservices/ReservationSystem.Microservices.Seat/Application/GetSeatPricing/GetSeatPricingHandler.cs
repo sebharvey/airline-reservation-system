@@ -21,8 +21,8 @@ public sealed class GetSeatPricingHandler
         _logger = logger;
     }
 
-    public Task<SeatPricing?> HandleAsync(GetSeatPricingQuery query, CancellationToken cancellationToken = default)
+    public async Task<SeatPricing?> HandleAsync(GetSeatPricingQuery query, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _repository.GetByIdAsync(query.SeatPricingId, cancellationToken);
     }
 }

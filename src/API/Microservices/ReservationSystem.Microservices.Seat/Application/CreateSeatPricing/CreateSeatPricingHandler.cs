@@ -21,8 +21,11 @@ public sealed class CreateSeatPricingHandler
         _logger = logger;
     }
 
-    public Task<SeatPricing> HandleAsync(CreateSeatPricingCommand command, CancellationToken cancellationToken = default)
+    public async Task<SeatPricing> HandleAsync(CreateSeatPricingCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var entity = SeatPricing.Create(command.CabinCode, command.SeatPosition, command.CurrencyCode, command.Price, command.ValidFrom, command.ValidTo);
+        var created = await _repository.CreateAsync(entity, cancellationToken);
+        _logger.LogInformation("Created SeatPricing {SeatPricingId} for cabin {CabinCode}", created.SeatPricingId, command.CabinCode);
+        return created;
     }
 }

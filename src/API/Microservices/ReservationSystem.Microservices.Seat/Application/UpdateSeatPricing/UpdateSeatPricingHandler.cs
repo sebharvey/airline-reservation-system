@@ -21,8 +21,25 @@ public sealed class UpdateSeatPricingHandler
         _logger = logger;
     }
 
-    public Task<SeatPricing?> HandleAsync(UpdateSeatPricingCommand command, CancellationToken cancellationToken = default)
+    public async Task<SeatPricing?> HandleAsync(UpdateSeatPricingCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var existing = await _repository.GetByIdAsync(command.SeatPricingId, cancellationToken);
+        if (existing is null) return null;
+
+        var updated = SeatPricing.Reconstitute(
+            command.SeatPricingId,
+            command.CabinCode ?? existing.CabinCode,
+            command.SeatPosition ?? existing.SeatPosition,
+            command.CurrencyCode ?? existing.CurrencyCode,
+            command.Price ?? existing.Price,
+            command.IsActive ?? existing.IsActive,
+            command.ValidFrom ?? existing.ValidFrom,
+            command.ValidTo ?? existing.ValidTo,
+            existing.CreatedAt,
+            DateTimeOffset.UtcNow);
+
+        var result = await _repository.UpdateAsync(updated, cancellationToken);
+        _logger.LogInformation("Updated SeatPricing {SeatPricingId}", command.SeatPricingId);
+        return result;
     }
 }

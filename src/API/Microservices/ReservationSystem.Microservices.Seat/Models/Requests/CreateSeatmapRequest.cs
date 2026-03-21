@@ -1,11 +1,13 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace ReservationSystem.Microservices.Seat.Models.Requests;
 
-/// <summary>
-/// HTTP request body for creating/uploading a new seatmap.
-/// </summary>
 public sealed class CreateSeatmapRequest
 {
+    [JsonPropertyName("aircraftTypeCode")]
     public string AircraftTypeCode { get; init; } = string.Empty;
-    public int Version { get; init; }
-    public string CabinLayout { get; init; } = string.Empty;
+
+    [JsonPropertyName("cabinLayout")]
+    public JsonElement CabinLayout { get; init; }
 }
