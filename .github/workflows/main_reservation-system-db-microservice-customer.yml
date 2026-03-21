@@ -1,21 +1,22 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy dotnet core project to Azure Function App - reservation-system-db-microservice-customer
+name: Build and deploy - Customer Microservice
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
+    paths:
+      - 'src/API/Microservices/ReservationSystem.Microservices.Customer'
+      - '.github/workflows/main_reservation-system-db-microservice-customer.yml'
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Microservices' # path to the Customer Microservice project directory
   DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
@@ -30,12 +31,12 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: 'Resolve Project Dependencies Using Dotnet'
-        shell: bash
+        shell: pwsh
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          dotnet publish ReservationSystem.Microservices.Customer/ReservationSystem.Microservices.Customer.csproj --configuration Release --output ./output
           popd
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -50,4 +51,4 @@ jobs:
           app-name: 'reservation-system-db-microservice-customer'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          
+
