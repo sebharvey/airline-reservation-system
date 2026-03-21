@@ -17,4 +17,12 @@ internal sealed class OpenApiConfigurationOptions : DefaultOpenApiConfigurationO
     };
 
     public override OpenApiVersionType OpenApiVersion { get; set; } = OpenApiVersionType.V3;
+
+    // Ensure the generated swagger endpoints (/swagger.json, /openapi/v3.json, /swagger/ui)
+    // are accessible anonymously — no function key required.
+    public override OpenApiAuthorizationLevel OpenApiAuthorizationLevel { get; set; } =
+        OpenApiAuthorizationLevel.Anonymous;
+
+    // Force HTTPS in the generated spec so server URLs match the Azure deployment.
+    public override bool ForceHttps { get; set; } = true;
 }
