@@ -8,7 +8,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/API/Microservices/ReservationSystem.Microservices.Identity'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Identity/**'
       - '.github/workflows/main_reservation-system-db-microservice-identity.yml'
 
 env:
