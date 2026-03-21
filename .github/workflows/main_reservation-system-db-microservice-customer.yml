@@ -11,7 +11,7 @@ on:
       - '.github/workflows/main_reservation-system-db-microservice-customer.yml'
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Microservices' # path to the Customer Microservice project directory
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Microservices/ReservationSystem.Microservices.Customer' # path to the Customer Microservice project directory
   DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
 
 jobs:

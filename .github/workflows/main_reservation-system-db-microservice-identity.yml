@@ -11,7 +11,7 @@ on:
       - '.github/workflows/main_reservation-system-db-microservice-identity.yml'
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Microservices' # path to the Identity Microservice project directory
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Microservices/ReservationSystem.Microservices.Identity' # path to the Identity Microservice project directory
   DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
 
 jobs:
