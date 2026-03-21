@@ -37,7 +37,7 @@ public sealed class Basket
             BasketId = Guid.NewGuid(),
             ChannelCode = channelCode,
             CurrencyCode = currencyCode,
-            BasketStatus = BasketStatusValues.Open,
+            BasketStatus = BasketStatusValues.Active,
             TotalFareAmount = null,
             TotalSeatAmount = 0m,
             TotalBagAmount = 0m,
@@ -86,6 +86,22 @@ public sealed class Basket
         };
     }
 
+    public void UpdateBasketData(string basketData)
+    {
+        BasketData = basketData;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
+    }
+
+    public void UpdateTotals(decimal? totalFareAmount, decimal totalSeatAmount, decimal totalBagAmount)
+    {
+        TotalFareAmount = totalFareAmount;
+        TotalSeatAmount = totalSeatAmount;
+        TotalBagAmount = totalBagAmount;
+        TotalAmount = (totalFareAmount ?? 0m) + totalSeatAmount + totalBagAmount;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void Expire()
     {
         BasketStatus = BasketStatusValues.Expired;
@@ -100,11 +116,15 @@ public sealed class Basket
         UpdatedAt = DateTimeOffset.UtcNow;
         Version++;
     }
+
+    public bool IsActive => BasketStatus == BasketStatusValues.Active;
+    public bool IsExpired => ExpiresAt <= DateTimeOffset.UtcNow || BasketStatus == BasketStatusValues.Expired;
 }
 
 public static class BasketStatusValues
 {
-    public const string Open = "open";
-    public const string Expired = "expired";
-    public const string Confirmed = "confirmed";
+    public const string Active = "Active";
+    public const string Expired = "Expired";
+    public const string Abandoned = "Abandoned";
+    public const string Confirmed = "Confirmed";
 }

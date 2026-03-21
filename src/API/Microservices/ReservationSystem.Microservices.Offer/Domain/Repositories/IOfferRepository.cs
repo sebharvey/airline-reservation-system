@@ -1,20 +1,33 @@
 namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 
-/// <summary>
-/// Port (interface) for Offer persistence.
-/// Defined in Domain so the Application layer can depend on it without
-/// taking a dependency on Infrastructure. The SQL implementation lives in
-/// Infrastructure/Persistence and is registered via DI at startup.
-/// </summary>
 public interface IOfferRepository
 {
-    Task<Entities.Offer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    // FlightInventory
+    Task<Entities.FlightInventory?> GetInventoryByIdAsync(Guid inventoryId, CancellationToken ct = default);
+    Task<Entities.FlightInventory?> GetInventoryAsync(string flightNumber, DateOnly departureDate, string cabinCode, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FlightInventory>> SearchInventoryAsync(string origin, string destination, DateOnly departureDate, string cabinCode, int paxCount, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FlightInventory>> GetInventoriesByFlightAsync(string flightNumber, DateOnly departureDate, CancellationToken ct = default);
+    Task CreateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
+    Task UpdateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
 
-    Task<IReadOnlyList<Entities.Offer>> GetAllAsync(CancellationToken cancellationToken = default);
+    // Fare
+    Task<Entities.Fare?> GetFareByIdAsync(Guid fareId, CancellationToken ct = default);
+    Task<Entities.Fare?> GetFareAsync(Guid inventoryId, string fareBasisCode, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.Fare>> GetFaresByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.Fare>> GetActiveFaresByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
+    Task CreateFareAsync(Entities.Fare fare, CancellationToken ct = default);
 
-    Task CreateAsync(Entities.Offer offer, CancellationToken cancellationToken = default);
+    // StoredOffer
+    Task<Entities.StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default);
+    Task CreateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
+    Task UpdateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
 
-    Task UpdateAsync(Entities.Offer offer, CancellationToken cancellationToken = default);
+    // InventoryHold (idempotency)
+    Task<bool> HoldExistsAsync(Guid inventoryId, Guid basketId, CancellationToken ct = default);
+    Task CreateHoldAsync(Guid inventoryId, Guid basketId, int paxCount, CancellationToken ct = default);
 
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    // SeatReservation
+    Task<IReadOnlyList<(string SeatNumber, string Status, Guid BasketId)>> GetSeatReservationsAsync(Guid inventoryId, CancellationToken ct = default);
+    Task CreateSeatReservationsAsync(Guid inventoryId, Guid basketId, IEnumerable<string> seatNumbers, CancellationToken ct = default);
+    Task UpdateSeatStatusAsync(Guid inventoryId, string seatNumber, string status, CancellationToken ct = default);
 }

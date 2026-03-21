@@ -1,54 +1,29 @@
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
-using ReservationSystem.Microservices.Order.Application.UpdateBasketBags;
-using ReservationSystem.Microservices.Order.Application.UpdateBasketFlights;
-using ReservationSystem.Microservices.Order.Application.UpdateBasketPassengers;
-using ReservationSystem.Microservices.Order.Application.UpdateBasketSeats;
 using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Models.Requests;
 using ReservationSystem.Microservices.Order.Models.Responses;
+using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Order.Models.Mappers;
 
-/// <summary>
-/// Static mapping methods between all model representations of Order domain objects.
-///
-/// Mapping directions:
-///   HTTP request  →  Application command/query
-///   Domain entity →  HTTP response
-///
-/// Static methods are used deliberately — no state, no DI overhead, trivially testable.
-/// </summary>
 public static class OrderMapper
 {
-    // -------------------------------------------------------------------------
-    // HTTP request → Application command
-    // -------------------------------------------------------------------------
-
     public static CreateBasketCommand ToCommand(CreateBasketRequest request) =>
         new(
             ChannelCode: request.ChannelCode,
-            CurrencyCode: request.CurrencyCode,
-            ExpiresAt: request.ExpiresAt);
+            CurrencyCode: string.IsNullOrWhiteSpace(request.CurrencyCode) ? "GBP" : request.CurrencyCode,
+            BookingType: string.IsNullOrWhiteSpace(request.BookingType) ? "Revenue" : request.BookingType,
+            LoyaltyNumber: request.LoyaltyNumber,
+            TotalPointsAmount: request.TotalPointsAmount);
 
     public static CreateOrderCommand ToCommand(CreateOrderRequest request) =>
-        new(BasketId: request.BasketId);
-
-    public static UpdateBasketFlightsCommand ToCommand(Guid basketId, UpdateBasketFlightsRequest request) =>
-        new(BasketId: basketId, FlightsData: request.FlightsData);
-
-    public static UpdateBasketSeatsCommand ToCommand(Guid basketId, UpdateBasketSeatsRequest request) =>
-        new(BasketId: basketId, SeatsData: request.SeatsData);
-
-    public static UpdateBasketBagsCommand ToCommand(Guid basketId, UpdateBasketBagsRequest request) =>
-        new(BasketId: basketId, BagsData: request.BagsData);
-
-    public static UpdateBasketPassengersCommand ToCommand(Guid basketId, UpdateBasketPassengersRequest request) =>
-        new(BasketId: basketId, PassengersData: request.PassengersData);
-
-    // -------------------------------------------------------------------------
-    // Domain entity → HTTP response
-    // -------------------------------------------------------------------------
+        new(
+            BasketId: request.BasketId,
+            ETicketsJson: request.ETickets is not null ? JsonSerializer.Serialize(request.ETickets) : "[]",
+            PaymentReferencesJson: request.PaymentReferences is not null ? JsonSerializer.Serialize(request.PaymentReferences) : "[]",
+            RedemptionReference: request.RedemptionReference,
+            BookingType: string.IsNullOrWhiteSpace(request.BookingType) ? "Revenue" : request.BookingType);
 
     public static BasketResponse ToResponse(Basket basket) =>
         new()
@@ -74,11 +49,20 @@ public static class OrderMapper
             BasketId = basket.BasketId,
             BasketStatus = basket.BasketStatus,
             ExpiresAt = basket.ExpiresAt,
-            CreatedAt = basket.CreatedAt
+            TotalAmount = basket.TotalAmount ?? 0m,
+            CurrencyCode = basket.CurrencyCode
         };
 
-    public static OrderResponse ToResponse(Domain.Entities.Order order) =>
-        new()
+    public static OrderResponse ToResponse(Domain.Entities.Order order)
+    {
+        JsonElement? orderData = null;
+        if (!string.IsNullOrWhiteSpace(order.OrderData) && order.OrderData != "{}")
+        {
+            try { orderData = JsonSerializer.Deserialize<JsonElement>(order.OrderData); }
+            catch { }
+        }
+
+        return new()
         {
             OrderId = order.OrderId,
             BookingReference = order.BookingReference,
@@ -89,8 +73,10 @@ public static class OrderMapper
             TotalAmount = order.TotalAmount,
             Version = order.Version,
             CreatedAt = order.CreatedAt,
-            UpdatedAt = order.UpdatedAt
+            UpdatedAt = order.UpdatedAt,
+            OrderData = orderData
         };
+    }
 
     public static CreateOrderResponse ToCreateResponse(Domain.Entities.Order order) =>
         new()
@@ -98,6 +84,7 @@ public static class OrderMapper
             OrderId = order.OrderId,
             BookingReference = order.BookingReference,
             OrderStatus = order.OrderStatus,
-            CreatedAt = order.CreatedAt
+            TotalAmount = order.TotalAmount,
+            CurrencyCode = order.CurrencyCode
         };
 }

@@ -1,136 +1,461 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Offer.Application.CreateFlight;
+using ReservationSystem.Microservices.Offer.Application.CreateFare;
+using ReservationSystem.Microservices.Offer.Application.SearchOffers;
+using ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
+using ReservationSystem.Microservices.Offer.Application.HoldInventory;
+using ReservationSystem.Microservices.Offer.Application.SellInventory;
+using ReservationSystem.Microservices.Offer.Application.ReleaseInventory;
+using ReservationSystem.Microservices.Offer.Application.CancelInventory;
+using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
+using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
+using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
-using ReservationSystem.Microservices.Offer.Application.CreateOffer;
-using ReservationSystem.Microservices.Offer.Application.DeleteOffer;
-using ReservationSystem.Microservices.Offer.Application.GetAllOffers;
-using ReservationSystem.Microservices.Offer.Application.GetOffer;
-using ReservationSystem.Microservices.Offer.Models.Mappers;
-using ReservationSystem.Microservices.Offer.Models.Requests;
 using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Offer.Functions;
 
-/// <summary>
-/// HTTP-triggered functions for the Offer resource.
-/// This is the "Presentation" layer in clean architecture — it translates
-/// HTTP concerns (request parsing, status codes, serialisation) into
-/// application-layer calls and back again.
-/// </summary>
 public sealed class OfferFunction
 {
-    private readonly GetOfferHandler _getHandler;
-    private readonly GetAllOffersHandler _getAllHandler;
-    private readonly CreateOfferHandler _createHandler;
-    private readonly DeleteOfferHandler _deleteHandler;
+    private readonly CreateFlightHandler _createFlightHandler;
+    private readonly CreateFareHandler _createFareHandler;
+    private readonly SearchOffersHandler _searchHandler;
+    private readonly GetStoredOfferHandler _getOfferHandler;
+    private readonly HoldInventoryHandler _holdHandler;
+    private readonly SellInventoryHandler _sellHandler;
+    private readonly ReleaseInventoryHandler _releaseHandler;
+    private readonly CancelInventoryHandler _cancelHandler;
+    private readonly GetSeatAvailabilityHandler _seatAvailabilityHandler;
+    private readonly ReserveSeatHandler _reserveSeatHandler;
+    private readonly UpdateSeatStatusHandler _updateSeatStatusHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
-        GetOfferHandler getHandler,
-        GetAllOffersHandler getAllHandler,
-        CreateOfferHandler createHandler,
-        DeleteOfferHandler deleteHandler,
+        CreateFlightHandler createFlightHandler,
+        CreateFareHandler createFareHandler,
+        SearchOffersHandler searchHandler,
+        GetStoredOfferHandler getOfferHandler,
+        HoldInventoryHandler holdHandler,
+        SellInventoryHandler sellHandler,
+        ReleaseInventoryHandler releaseHandler,
+        CancelInventoryHandler cancelHandler,
+        GetSeatAvailabilityHandler seatAvailabilityHandler,
+        ReserveSeatHandler reserveSeatHandler,
+        UpdateSeatStatusHandler updateSeatStatusHandler,
         ILogger<OfferFunction> logger)
     {
-        _getHandler = getHandler;
-        _getAllHandler = getAllHandler;
-        _createHandler = createHandler;
-        _deleteHandler = deleteHandler;
+        _createFlightHandler = createFlightHandler;
+        _createFareHandler = createFareHandler;
+        _searchHandler = searchHandler;
+        _getOfferHandler = getOfferHandler;
+        _holdHandler = holdHandler;
+        _sellHandler = sellHandler;
+        _releaseHandler = releaseHandler;
+        _cancelHandler = cancelHandler;
+        _seatAvailabilityHandler = seatAvailabilityHandler;
+        _reserveSeatHandler = reserveSeatHandler;
+        _updateSeatStatusHandler = updateSeatStatusHandler;
         _logger = logger;
     }
 
-    // -------------------------------------------------------------------------
-    // GET /v1/offers
-    // -------------------------------------------------------------------------
-
-    [Function("GetAllOffers")]
-    public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers")] HttpRequestData req,
-        CancellationToken cancellationToken)
+    // POST /v1/flights
+    [Function("CreateFlight")]
+    public async Task<HttpResponseData> CreateFlight(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights")] HttpRequestData req,
+        CancellationToken ct)
     {
-        var offers = await _getAllHandler.HandleAsync(new GetAllOffersQuery(), cancellationToken);
-        var body = OfferMapper.ToResponse(offers);
-        return await req.OkJsonAsync(body);
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new CreateFlightCommand(
+            FlightNumber: body.GetProperty("flightNumber").GetString()!,
+            DepartureDate: body.GetProperty("departureDate").GetString()!,
+            DepartureTime: body.GetProperty("departureTime").GetString()!,
+            ArrivalTime: body.GetProperty("arrivalTime").GetString()!,
+            ArrivalDayOffset: body.TryGetProperty("arrivalDayOffset", out var ado) ? ado.GetInt32() : 0,
+            Origin: body.GetProperty("origin").GetString()!,
+            Destination: body.GetProperty("destination").GetString()!,
+            AircraftType: body.GetProperty("aircraftType").GetString()!,
+            CabinCode: body.GetProperty("cabinCode").GetString()!,
+            TotalSeats: body.GetProperty("totalSeats").GetInt32());
+
+        try
+        {
+            var inventory = await _createFlightHandler.HandleAsync(command, ct);
+            return await req.CreatedAsync($"/v1/flights/{inventory.InventoryId}", new
+            {
+                inventoryId = inventory.InventoryId,
+                flightNumber = inventory.FlightNumber,
+                departureDate = inventory.DepartureDate.ToString("yyyy-MM-dd"),
+                cabinCode = inventory.CabinCode,
+                totalSeats = inventory.TotalSeats,
+                seatsAvailable = inventory.SeatsAvailable,
+                seatsHeld = inventory.SeatsHeld,
+                seatsSold = inventory.SeatsSold,
+                status = inventory.Status
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.ConflictAsync(ex.Message);
+        }
     }
 
-    // -------------------------------------------------------------------------
-    // GET /v1/offers/{id}
-    // -------------------------------------------------------------------------
-
-    [Function("GetOffer")]
-    public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{id:guid}")] HttpRequestData req,
-        Guid id,
-        CancellationToken cancellationToken)
+    // POST /v1/flights/{inventoryId}/fares
+    [Function("CreateFare")]
+    public async Task<HttpResponseData> CreateFare(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/{inventoryId:guid}/fares")] HttpRequestData req,
+        Guid inventoryId, CancellationToken ct)
     {
-        var offer = await _getHandler.HandleAsync(new GetOfferQuery(id), cancellationToken);
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new CreateFareCommand(
+            InventoryId: inventoryId,
+            FareBasisCode: body.GetProperty("fareBasisCode").GetString()!,
+            FareFamily: body.TryGetProperty("fareFamily", out var ff) && ff.ValueKind != JsonValueKind.Null ? ff.GetString() : null,
+            BookingClass: body.TryGetProperty("bookingClass", out var bc) && bc.ValueKind != JsonValueKind.Null ? bc.GetString() : null,
+            CurrencyCode: body.GetProperty("currencyCode").GetString()!,
+            BaseFareAmount: body.GetProperty("baseFareAmount").GetDecimal(),
+            TaxAmount: body.GetProperty("taxAmount").GetDecimal(),
+            IsRefundable: body.GetProperty("isRefundable").GetBoolean(),
+            IsChangeable: body.GetProperty("isChangeable").GetBoolean(),
+            ChangeFeeAmount: body.GetProperty("changeFeeAmount").GetDecimal(),
+            CancellationFeeAmount: body.GetProperty("cancellationFeeAmount").GetDecimal(),
+            PointsPrice: body.TryGetProperty("pointsPrice", out var pp) && pp.ValueKind != JsonValueKind.Null ? pp.GetInt32() : null,
+            PointsTaxes: body.TryGetProperty("pointsTaxes", out var pt) && pt.ValueKind != JsonValueKind.Null ? pt.GetDecimal() : null,
+            ValidFrom: body.GetProperty("validFrom").GetString()!,
+            ValidTo: body.GetProperty("validTo").GetString()!);
+
+        try
+        {
+            var fare = await _createFareHandler.HandleAsync(command, ct);
+            return await req.CreatedAsync($"/v1/flights/{inventoryId}/fares/{fare.FareId}", new
+            {
+                fareId = fare.FareId,
+                inventoryId = fare.InventoryId,
+                fareBasisCode = fare.FareBasisCode,
+                totalAmount = fare.TotalAmount
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.ConflictAsync(ex.Message); }
+    }
+
+    // POST /v1/search
+    [Function("SearchOffers")]
+    public async Task<HttpResponseData> Search(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new SearchOffersCommand(
+            Origin: body.GetProperty("origin").GetString()!,
+            Destination: body.GetProperty("destination").GetString()!,
+            DepartureDate: body.GetProperty("departureDate").GetString()!,
+            CabinCode: body.GetProperty("cabinCode").GetString()!,
+            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
+
+        var offers = await _searchHandler.HandleAsync(command, ct);
+
+        var responseOffers = offers.Select(o => new
+        {
+            offerId = o.OfferId,
+            inventoryId = o.InventoryId,
+            flightNumber = o.FlightNumber,
+            departureDate = o.DepartureDate.ToString("yyyy-MM-dd"),
+            departureTime = o.DepartureTime.ToString("HH:mm"),
+            arrivalTime = o.ArrivalTime.ToString("HH:mm"),
+            arrivalDayOffset = o.ArrivalDayOffset,
+            origin = o.Origin,
+            destination = o.Destination,
+            aircraftType = o.AircraftType,
+            cabinCode = o.CabinCode,
+            fareBasisCode = o.FareBasisCode,
+            fareFamily = o.FareFamily,
+            bookingClass = o.BookingClass,
+            currencyCode = o.CurrencyCode,
+            baseFareAmount = o.BaseFareAmount,
+            taxAmount = o.TaxAmount,
+            totalAmount = o.TotalAmount,
+            isRefundable = o.IsRefundable,
+            isChangeable = o.IsChangeable,
+            changeFeeAmount = o.ChangeFeeAmount,
+            cancellationFeeAmount = o.CancellationFeeAmount,
+            pointsPrice = o.PointsPrice,
+            pointsTaxes = o.PointsTaxes,
+            bookingType = o.BookingType,
+            expiresAt = o.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        }).ToList();
+
+        return await req.OkJsonAsync(new
+        {
+            origin = command.Origin,
+            destination = command.Destination,
+            departureDate = command.DepartureDate,
+            offers = responseOffers
+        });
+    }
+
+    // GET /v1/offers/{offerId}
+    [Function("GetStoredOffer")]
+    public async Task<HttpResponseData> GetOffer(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
+        Guid offerId, CancellationToken ct)
+    {
+        var offer = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
 
         if (offer is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
-        return await req.OkJsonAsync(OfferMapper.ToResponse(offer));
+        return await req.OkJsonAsync(new
+        {
+            offerId = offer.OfferId,
+            inventoryId = offer.InventoryId,
+            flightNumber = offer.FlightNumber,
+            departureDate = offer.DepartureDate.ToString("yyyy-MM-dd"),
+            departureTime = offer.DepartureTime.ToString("HH:mm"),
+            arrivalTime = offer.ArrivalTime.ToString("HH:mm"),
+            arrivalDayOffset = offer.ArrivalDayOffset,
+            origin = offer.Origin,
+            destination = offer.Destination,
+            aircraftType = offer.AircraftType,
+            cabinCode = offer.CabinCode,
+            fareBasisCode = offer.FareBasisCode,
+            fareFamily = offer.FareFamily,
+            bookingClass = offer.BookingClass,
+            currencyCode = offer.CurrencyCode,
+            baseFareAmount = offer.BaseFareAmount,
+            taxAmount = offer.TaxAmount,
+            totalAmount = offer.TotalAmount,
+            isRefundable = offer.IsRefundable,
+            isChangeable = offer.IsChangeable,
+            changeFeeAmount = offer.ChangeFeeAmount,
+            cancellationFeeAmount = offer.CancellationFeeAmount,
+            pointsPrice = offer.PointsPrice,
+            pointsTaxes = offer.PointsTaxes,
+            bookingType = offer.BookingType,
+            isConsumed = offer.IsConsumed,
+            expiresAt = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        });
     }
 
-    // -------------------------------------------------------------------------
-    // POST /v1/offers
-    // -------------------------------------------------------------------------
-
-    [Function("CreateOffer")]
-    public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/offers")] HttpRequestData req,
-        CancellationToken cancellationToken)
+    // POST /v1/inventory/hold
+    [Function("HoldInventory")]
+    public async Task<HttpResponseData> Hold(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/hold")] HttpRequestData req,
+        CancellationToken ct)
     {
-        CreateOfferRequest? request;
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new HoldInventoryCommand(
+            InventoryId: body.GetProperty("inventoryId").GetGuid(),
+            CabinCode: body.GetProperty("cabinCode").GetString()!,
+            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            BasketId: body.GetProperty("basketId").GetGuid());
 
         try
         {
-            request = await JsonSerializer.DeserializeAsync<CreateOfferRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+            var inventory = await _holdHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                inventoryId = inventory.InventoryId,
+                seatsHeld = inventory.SeatsHeld,
+                seatsAvailable = inventory.SeatsAvailable,
+                seatsSold = inventory.SeatsSold
+            });
         }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateOffer request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FlightNumber)
-            || string.IsNullOrWhiteSpace(request.Origin)
-            || string.IsNullOrWhiteSpace(request.Destination)
-            || string.IsNullOrWhiteSpace(request.FareClass)
-            || string.IsNullOrWhiteSpace(request.Currency))
-        {
-            return await req.BadRequestAsync("The fields 'flightNumber', 'origin', 'destination', 'fareClass', and 'currency' are required.");
-        }
-
-        var command = OfferMapper.ToCommand(request);
-        var created = await _createHandler.HandleAsync(command, cancellationToken);
-        var response = OfferMapper.ToResponse(created);
-
-        var httpResponse = req.CreateResponse(HttpStatusCode.Created);
-        httpResponse.Headers.Add("Content-Type", "application/json");
-        httpResponse.Headers.Add("Location", $"/v1/offers/{created.Id}");
-        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(response, SharedJsonOptions.CamelCase));
-        return httpResponse;
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
-    // -------------------------------------------------------------------------
-    // DELETE /v1/offers/{id}
-    // -------------------------------------------------------------------------
-
-    [Function("DeleteOffer")]
-    public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/offers/{id:guid}")] HttpRequestData req,
-        Guid id,
-        CancellationToken cancellationToken)
+    // POST /v1/inventory/sell
+    [Function("SellInventory")]
+    public async Task<HttpResponseData> Sell(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/sell")] HttpRequestData req,
+        CancellationToken ct)
     {
-        var deleted = await _deleteHandler.HandleAsync(new DeleteOfferCommand(id), cancellationToken);
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
-        return deleted
-            ? req.CreateResponse(HttpStatusCode.NoContent)
-            : req.CreateResponse(HttpStatusCode.NotFound);
+        var inventoryIds = body.GetProperty("inventoryIds").EnumerateArray()
+            .Select(e => e.GetGuid()).ToList();
+
+        var command = new SellInventoryCommand(
+            InventoryIds: inventoryIds,
+            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            BasketId: body.GetProperty("basketId").GetGuid());
+
+        try
+        {
+            var inventories = await _sellHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                sold = inventories.Select(i => new
+                {
+                    inventoryId = i.InventoryId,
+                    seatsSold = i.SeatsSold,
+                    seatsHeld = i.SeatsHeld,
+                    seatsAvailable = i.SeatsAvailable
+                })
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // POST /v1/inventory/release
+    [Function("ReleaseInventory")]
+    public async Task<HttpResponseData> Release(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/release")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new ReleaseInventoryCommand(
+            InventoryId: body.GetProperty("inventoryId").GetGuid(),
+            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            ReleaseType: body.GetProperty("releaseType").GetString()!,
+            BasketId: body.TryGetProperty("basketId", out var bid) && bid.ValueKind != JsonValueKind.Null ? bid.GetGuid() : null);
+
+        try
+        {
+            var inventory = await _releaseHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                inventoryId = inventory.InventoryId,
+                seatsAvailable = inventory.SeatsAvailable,
+                seatsHeld = inventory.SeatsHeld,
+                seatsSold = inventory.SeatsSold
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // PATCH /v1/inventory/cancel
+    [Function("CancelInventory")]
+    public async Task<HttpResponseData> Cancel(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/cancel")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new CancelInventoryCommand(
+            FlightNumber: body.GetProperty("flightNumber").GetString()!,
+            DepartureDate: body.GetProperty("departureDate").GetString()!);
+
+        try
+        {
+            var count = await _cancelHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                flightNumber = command.FlightNumber,
+                departureDate = command.DepartureDate,
+                inventoriesCancelled = count,
+                status = "Cancelled"
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // GET /v1/flights/{flightId}/seat-availability
+    [Function("GetSeatAvailability")]
+    public async Task<HttpResponseData> GetSeatAvailability(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
+        Guid flightId, CancellationToken ct)
+    {
+        var result = await _seatAvailabilityHandler.HandleAsync(new GetSeatAvailabilityQuery(flightId), ct);
+
+        if (result is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        var (inventory, seats) = result.Value;
+        return await req.OkJsonAsync(new
+        {
+            flightId = inventory.InventoryId,
+            flightNumber = inventory.FlightNumber,
+            departureDate = inventory.DepartureDate.ToString("yyyy-MM-dd"),
+            cabinCode = inventory.CabinCode,
+            seatAvailability = seats.Select(s => new
+            {
+                seatOfferId = s.SeatOfferId,
+                seatNumber = s.SeatNumber,
+                status = s.Status
+            })
+        });
+    }
+
+    // POST /v1/flights/{flightId}/seat-reservations
+    [Function("ReserveSeat")]
+    public async Task<HttpResponseData> ReserveSeat(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/{flightId:guid}/seat-reservations")] HttpRequestData req,
+        Guid flightId, CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var seatNumbers = body.GetProperty("seatNumbers").EnumerateArray()
+            .Select(e => e.GetString()!).ToList();
+
+        var command = new ReserveSeatCommand(
+            FlightId: flightId,
+            BasketId: body.GetProperty("basketId").GetGuid(),
+            SeatNumbers: seatNumbers);
+
+        try
+        {
+            var reserved = await _reserveSeatHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new { flightId, reserved });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.ConflictAsync(ex.Message); }
+    }
+
+    // PATCH /v1/flights/{flightId}/seat-availability
+    [Function("UpdateSeatStatus")]
+    public async Task<HttpResponseData> UpdateSeatStatus(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
+        Guid flightId, CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var updates = body.GetProperty("updates").EnumerateArray()
+            .Select(u => new SeatStatusUpdate(
+                u.GetProperty("seatNumber").GetString()!,
+                u.GetProperty("status").GetString()!))
+            .ToList();
+
+        var command = new UpdateSeatStatusCommand(FlightId: flightId, Updates: updates);
+
+        try
+        {
+            var count = await _updateSeatStatusHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new { updated = count });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
     }
 }

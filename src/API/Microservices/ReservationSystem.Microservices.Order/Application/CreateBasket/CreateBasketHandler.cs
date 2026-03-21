@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
@@ -25,6 +26,33 @@ public sealed class CreateBasketHandler
         CreateBasketCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Creating basket for channel {ChannelCode}, currency {CurrencyCode}",
+            command.ChannelCode, command.CurrencyCode);
+
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(60);
+
+        var basketData = new JsonObject
+        {
+            ["bookingType"] = "oneWay",
+            ["channelCode"] = command.ChannelCode,
+            ["currencyCode"] = command.CurrencyCode,
+            ["flightOffers"] = new JsonArray(),
+            ["passengers"] = new JsonArray(),
+            ["seats"] = new JsonArray(),
+            ["bags"] = new JsonArray()
+        };
+
+        var basket = Basket.Create(
+            command.ChannelCode,
+            command.CurrencyCode,
+            expiresAt,
+            basketData.ToJsonString());
+
+        await _repository.CreateAsync(basket, cancellationToken);
+
+        _logger.LogInformation("Basket {BasketId} created, expires at {ExpiresAt}",
+            basket.BasketId, expiresAt);
+
+        return basket;
     }
 }

@@ -25,6 +25,15 @@ public sealed class GetBasketHandler
         GetBasketQuery query,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Retrieving basket {BasketId}", query.BasketId);
+
+        var basket = await _repository.GetByIdAsync(query.BasketId, cancellationToken);
+
+        if (basket is null)
+        {
+            _logger.LogWarning("Basket {BasketId} not found", query.BasketId);
+        }
+
+        return basket;
     }
 }

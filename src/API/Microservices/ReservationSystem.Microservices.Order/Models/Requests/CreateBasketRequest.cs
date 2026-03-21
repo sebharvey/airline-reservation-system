@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Microservices.Order.Models.Requests;
 
-/// <summary>
-/// HTTP request body for POST /v1/basket.
-/// </summary>
 public sealed class CreateBasketRequest
 {
     [JsonPropertyName("channelCode")]
@@ -13,6 +10,12 @@ public sealed class CreateBasketRequest
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("expiresAt")]
-    public DateTimeOffset ExpiresAt { get; init; }
+    [JsonPropertyName("bookingType")]
+    public string BookingType { get; init; } = "Revenue";
+
+    [JsonPropertyName("loyaltyNumber")]
+    public string? LoyaltyNumber { get; init; }
+
+    [JsonPropertyName("totalPointsAmount")]
+    public int? TotalPointsAmount { get; init; }
 }

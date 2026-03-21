@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Order.Application.ExpireBasket;
@@ -24,6 +25,28 @@ public sealed class ExpireBasketHandler
         ExpireBasketCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Expiring basket {BasketId}", command.BasketId);
+
+        var basket = await _repository.GetByIdAsync(command.BasketId, cancellationToken);
+        if (basket is null)
+        {
+            _logger.LogWarning("Basket {BasketId} not found", command.BasketId);
+            return false;
+        }
+
+        if (basket.BasketStatus != BasketStatusValues.Active)
+        {
+            _logger.LogWarning("Basket {BasketId} is not open (status: {Status}), cannot expire",
+                command.BasketId, basket.BasketStatus);
+            return false;
+        }
+
+        basket.Expire();
+
+        await _repository.UpdateAsync(basket, cancellationToken);
+
+        _logger.LogInformation("Basket {BasketId} expired", command.BasketId);
+
+        return true;
     }
 }

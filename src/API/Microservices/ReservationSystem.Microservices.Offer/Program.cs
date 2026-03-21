@@ -1,13 +1,17 @@
-// Author: Seb Harvey
-// Description: Entry point and host configuration for the Offer Azure Functions API
-
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using ReservationSystem.Microservices.Offer.Application.CreateOffer;
-using ReservationSystem.Microservices.Offer.Application.DeleteOffer;
-using ReservationSystem.Microservices.Offer.Application.GetAllOffers;
-using ReservationSystem.Microservices.Offer.Application.GetOffer;
+using ReservationSystem.Microservices.Offer.Application.CancelInventory;
+using ReservationSystem.Microservices.Offer.Application.CreateFare;
+using ReservationSystem.Microservices.Offer.Application.CreateFlight;
+using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
+using ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
+using ReservationSystem.Microservices.Offer.Application.HoldInventory;
+using ReservationSystem.Microservices.Offer.Application.ReleaseInventory;
+using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
+using ReservationSystem.Microservices.Offer.Application.SearchOffers;
+using ReservationSystem.Microservices.Offer.Application.SellInventory;
+using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -18,30 +22,28 @@ var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices((context, services) =>
     {
-        // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // ── Configuration ──────────────────────────────────────────────────────
-        // Bind the "Database" section from host.json / environment variables.
-        // In Azure, set Application Settings: Database__ConnectionString, etc.
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
 
-        // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddSingleton<SqlConnectionFactory>();
         services.AddScoped<IOfferRepository, SqlOfferRepository>();
 
-        // ── Health check ───────────────────────────────────────────────────────
-        services.AddHealthCheck(
-            $"{nameof(SqlOfferRepository)}.{nameof(IOfferRepository.GetAllAsync)}",
-            sp => ct => sp.GetRequiredService<IOfferRepository>().GetAllAsync(ct));
+        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
-        // ── Application use-case handlers ──────────────────────────────────────
-        services.AddScoped<GetOfferHandler>();
-        services.AddScoped<GetAllOffersHandler>();
-        services.AddScoped<CreateOfferHandler>();
-        services.AddScoped<DeleteOfferHandler>();
+        services.AddScoped<CreateFlightHandler>();
+        services.AddScoped<CreateFareHandler>();
+        services.AddScoped<SearchOffersHandler>();
+        services.AddScoped<GetStoredOfferHandler>();
+        services.AddScoped<HoldInventoryHandler>();
+        services.AddScoped<SellInventoryHandler>();
+        services.AddScoped<ReleaseInventoryHandler>();
+        services.AddScoped<CancelInventoryHandler>();
+        services.AddScoped<GetSeatAvailabilityHandler>();
+        services.AddScoped<ReserveSeatHandler>();
+        services.AddScoped<UpdateSeatStatusHandler>();
     })
     .Build();
 

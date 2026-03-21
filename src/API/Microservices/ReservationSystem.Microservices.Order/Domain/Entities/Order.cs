@@ -33,7 +33,7 @@ public sealed class Order
         {
             OrderId = Guid.NewGuid(),
             BookingReference = null,
-            OrderStatus = OrderStatusValues.Pending,
+            OrderStatus = OrderStatusValues.Draft,
             ChannelCode = channelCode,
             CurrencyCode = currencyCode,
             TicketingTimeLimit = null,
@@ -74,19 +74,60 @@ public sealed class Order
         };
     }
 
+    public void SetBookingReference(string bookingReference)
+    {
+        BookingReference = bookingReference;
+    }
+
+    public void Confirm(string bookingReference, decimal totalAmount, string orderData, DateTimeOffset? ticketingTimeLimit)
+    {
+        BookingReference = bookingReference;
+        OrderStatus = OrderStatusValues.Confirmed;
+        TotalAmount = totalAmount;
+        OrderData = orderData;
+        TicketingTimeLimit = ticketingTimeLimit;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
+    }
+
+    public void UpdateOrderData(string orderData)
+    {
+        OrderData = orderData;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
+    }
+
+    public void MarkChanged(string orderData)
+    {
+        OrderStatus = OrderStatusValues.Changed;
+        OrderData = orderData;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
+    }
+
     public void Cancel()
     {
         OrderStatus = OrderStatusValues.Cancelled;
         UpdatedAt = DateTimeOffset.UtcNow;
         Version++;
     }
+
+    public void CancelWithData(string orderData)
+    {
+        OrderStatus = OrderStatusValues.Cancelled;
+        OrderData = orderData;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        Version++;
+    }
+
+    public bool IsMutable => OrderStatus is OrderStatusValues.Confirmed or OrderStatusValues.Changed;
 }
 
 public static class OrderStatusValues
 {
-    public const string Pending = "pending";
-    public const string Confirmed = "confirmed";
-    public const string Cancelled = "cancelled";
-    public const string Changed = "changed";
-    public const string Rebooked = "rebooked";
+    public const string Draft = "Draft";
+    public const string OrderInit = "OrderInit";
+    public const string Confirmed = "Confirmed";
+    public const string Changed = "Changed";
+    public const string Cancelled = "Cancelled";
 }

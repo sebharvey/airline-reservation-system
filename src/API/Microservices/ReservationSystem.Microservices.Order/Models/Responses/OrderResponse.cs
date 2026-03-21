@@ -1,11 +1,8 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Microservices.Order.Models.Responses;
 
-/// <summary>
-/// HTTP response body for Order endpoints.
-/// Flat, serialisation-ready — no domain types leak through.
-/// </summary>
 public sealed class OrderResponse
 {
     [JsonPropertyName("orderId")]
@@ -37,4 +34,7 @@ public sealed class OrderResponse
 
     [JsonPropertyName("updatedAt")]
     public DateTimeOffset UpdatedAt { get; init; }
+
+    [JsonPropertyName("orderData")]
+    public JsonElement? OrderData { get; init; }
 }
