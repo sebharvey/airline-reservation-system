@@ -1,6 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using System.Net;
 using ReservationSystem.Microservices.Bags.Application.CreateBagPricing;
 using ReservationSystem.Microservices.Bags.Application.DeleteBagPricing;
 using ReservationSystem.Microservices.Bags.Application.GetAllBagPricings;
@@ -40,6 +43,8 @@ public sealed class BagPricingFunction
     }
 
     [Function("GetAllBagPricings")]
+    [OpenApiOperation(operationId: "GetAllBagPricings", tags: new[] { "BagPricing" }, Summary = "List all bag pricing rules")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -50,6 +55,10 @@ public sealed class BagPricingFunction
     }
 
     [Function("GetBagPricing")]
+    [OpenApiOperation(operationId: "GetBagPricing", tags: new[] { "BagPricing" }, Summary = "Get a bag pricing rule by ID")]
+    [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,
@@ -62,6 +71,11 @@ public sealed class BagPricingFunction
     }
 
     [Function("CreateBagPricing")]
+    [OpenApiOperation(operationId: "CreateBagPricing", tags: new[] { "BagPricing" }, Summary = "Create a new bag pricing rule")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The bag pricing rule to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -109,6 +123,12 @@ public sealed class BagPricingFunction
     }
 
     [Function("UpdateBagPricing")]
+    [OpenApiOperation(operationId: "UpdateBagPricing", tags: new[] { "BagPricing" }, Summary = "Update a bag pricing rule")]
+    [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,
@@ -145,6 +165,10 @@ public sealed class BagPricingFunction
     }
 
     [Function("DeleteBagPricing")]
+    [OpenApiOperation(operationId: "DeleteBagPricing", tags: new[] { "BagPricing" }, Summary = "Delete a bag pricing rule")]
+    [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,

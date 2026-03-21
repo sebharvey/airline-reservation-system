@@ -1,6 +1,8 @@
 // Description: Entry point and host configuration for the Customer Azure Functions API
 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
@@ -14,14 +16,19 @@ using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
+using ReservationSystem.Microservices.Customer.Swagger;
 using ReservationSystem.Shared.Common.Health;
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();

@@ -1,6 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.ExpireBasket;
 using ReservationSystem.Microservices.Order.Application.GetBasket;
@@ -54,6 +56,10 @@ public sealed class BasketFunction
 
     // POST /v1/basket
     [Function("CreateBasket")]
+    [OpenApiOperation(operationId: "CreateBasket", tags: new[] { "Basket" }, Summary = "Create a new basket")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The basket to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateBasket(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken ct)
@@ -90,6 +96,10 @@ public sealed class BasketFunction
 
     // GET /v1/basket/{basketId}
     [Function("GetBasket")]
+    [OpenApiOperation(operationId: "GetBasket", tags: new[] { "Basket" }, Summary = "Get a basket by ID")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBasket(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/basket/{basketId:guid}")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -102,6 +112,12 @@ public sealed class BasketFunction
 
     // POST /v1/basket/{basketId}/offers
     [Function("AddBasketOffer")]
+    [OpenApiOperation(operationId: "AddBasketOffer", tags: new[] { "Basket" }, Summary = "Add a flight offer to a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The flight offer to add")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AddOffer(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket/{basketId:guid}/offers")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -158,6 +174,11 @@ public sealed class BasketFunction
 
     // PUT /v1/basket/{basketId}/passengers
     [Function("UpdateBasketPassengers")]
+    [OpenApiOperation(operationId: "UpdateBasketPassengers", tags: new[] { "Basket" }, Summary = "Update passenger details in a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The passenger update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePassengers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/passengers")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -190,6 +211,11 @@ public sealed class BasketFunction
 
     // PUT /v1/basket/{basketId}/seats
     [Function("UpdateBasketSeats")]
+    [OpenApiOperation(operationId: "UpdateBasketSeats", tags: new[] { "Basket" }, Summary = "Update seat selections in a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The seat update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeats(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/seats")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -215,6 +241,11 @@ public sealed class BasketFunction
 
     // PUT /v1/basket/{basketId}/bags
     [Function("UpdateBasketBags")]
+    [OpenApiOperation(operationId: "UpdateBasketBags", tags: new[] { "Basket" }, Summary = "Update bag selections in a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The bag update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateBags(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/bags")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -240,6 +271,11 @@ public sealed class BasketFunction
 
     // PUT /v1/basket/{basketId}/ssrs
     [Function("UpdateBasketSsrs")]
+    [OpenApiOperation(operationId: "UpdateBasketSsrs", tags: new[] { "Basket" }, Summary = "Update SSR selections in a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The SSR update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSsrs(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/ssrs")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
@@ -277,6 +313,10 @@ public sealed class BasketFunction
 
     // PATCH /v1/basket/{basketId}/expire
     [Function("ExpireBasket")]
+    [OpenApiOperation(operationId: "ExpireBasket", tags: new[] { "Basket" }, Summary = "Expire a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Expired")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> ExpireBasket(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/basket/{basketId:guid}/expire")] HttpRequestData req,
         Guid basketId, CancellationToken ct)

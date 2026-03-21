@@ -1,10 +1,13 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Delivery.Application.CreateBoardingCards;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
@@ -24,6 +27,10 @@ public sealed class BoardingCardFunction
 
     // POST /v1/boarding-cards
     [Function("CreateBoardingCards")]
+    [OpenApiOperation(operationId: "CreateBoardingCards", tags: new[] { "BoardingCards" }, Summary = "Create boarding cards for passengers")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Boarding card creation request: bookingReference, passengers")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateBoardingCards(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/boarding-cards")] HttpRequestData req,
         CancellationToken cancellationToken)

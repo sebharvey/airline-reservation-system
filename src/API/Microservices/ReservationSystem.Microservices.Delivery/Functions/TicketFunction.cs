@@ -1,12 +1,15 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
@@ -32,6 +35,11 @@ public sealed class TicketFunction
 
     // POST /v1/tickets
     [Function("IssueTickets")]
+    [OpenApiOperation(operationId: "IssueTickets", tags: new[] { "Tickets" }, Summary = "Issue e-tickets for a booking")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Ticket issuance request: bookingReference, passengers, segments")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> IssueTickets(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/tickets")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -74,6 +82,13 @@ public sealed class TicketFunction
 
     // PATCH /v1/tickets/{eTicketNumber}/void
     [Function("VoidTicket")]
+    [OpenApiOperation(operationId: "VoidTicket", tags: new[] { "Tickets" }, Summary = "Void an e-ticket")]
+    [OpenApiParameter(name: "eTicketNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "E-ticket number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Void request: reason")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> VoidTicket(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/tickets/{eTicketNumber}/void")] HttpRequestData req,
         string eTicketNumber,
@@ -117,6 +132,11 @@ public sealed class TicketFunction
 
     // POST /v1/tickets/reissue
     [Function("ReissueTickets")]
+    [OpenApiOperation(operationId: "ReissueTickets", tags: new[] { "Tickets" }, Summary = "Reissue tickets (void old, issue new)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Reissue request: voidedETicketNumbers, new ticket details")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ReissueTickets(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/tickets/reissue")] HttpRequestData req,
         CancellationToken cancellationToken)

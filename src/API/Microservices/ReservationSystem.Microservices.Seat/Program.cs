@@ -1,6 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReservationSystem.Microservices.Seat.Swagger;
 using ReservationSystem.Microservices.Seat.Application.CreateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.CreateSeatmap;
 using ReservationSystem.Microservices.Seat.Application.CreateSeatPricing;
@@ -27,8 +30,12 @@ using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
+    .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 

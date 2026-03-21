@@ -14,6 +14,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.2.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Mcp" Version="1.0.0" />
     <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.OpenApi" Version="1.5.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\ReservationSystem.Shared.Common\ReservationSystem.Shared.Common.csproj" />
