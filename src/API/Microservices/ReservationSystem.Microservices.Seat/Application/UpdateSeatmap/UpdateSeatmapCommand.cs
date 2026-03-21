@@ -5,4 +5,5 @@ namespace ReservationSystem.Microservices.Seat.Application.UpdateSeatmap;
 /// </summary>
 public sealed record UpdateSeatmapCommand(
     Guid SeatmapId,
-    string CabinLayout);
+    string? CabinLayout,
+    bool? IsActive);

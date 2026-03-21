@@ -5,7 +5,10 @@ namespace ReservationSystem.Microservices.Seat.Application.UpdateSeatPricing;
 /// </summary>
 public sealed record UpdateSeatPricingCommand(
     Guid SeatPricingId,
-    decimal Price,
-    bool IsActive,
-    DateTimeOffset ValidFrom,
+    string? CabinCode,
+    string? SeatPosition,
+    string? CurrencyCode,
+    decimal? Price,
+    bool? IsActive,
+    DateTimeOffset? ValidFrom,
     DateTimeOffset? ValidTo);
