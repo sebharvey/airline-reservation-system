@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ReservationSystem.Microservices.Payment.Models.Requests;
 
 /// <summary>
@@ -5,6 +7,9 @@ namespace ReservationSystem.Microservices.Payment.Models.Requests;
 /// </summary>
 public sealed class RefundPaymentRequest
 {
-    public decimal Amount { get; init; }
-    public string? Notes { get; init; }
+    [JsonPropertyName("refundAmount")]
+    public decimal RefundAmount { get; init; }
+
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; } = string.Empty;
 }

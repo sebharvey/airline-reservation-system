@@ -5,17 +5,12 @@ using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 
-/// <summary>
-/// Entity Framework Core implementation of <see cref="ITicketRepository"/>.
-/// </summary>
 public sealed class EfTicketRepository : ITicketRepository
 {
     private readonly DeliveryDbContext _context;
     private readonly ILogger<EfTicketRepository> _logger;
 
-    public EfTicketRepository(
-        DeliveryDbContext context,
-        ILogger<EfTicketRepository> logger)
+    public EfTicketRepository(DeliveryDbContext context, ILogger<EfTicketRepository> logger)
     {
         _context = context;
         _logger = logger;
@@ -28,14 +23,20 @@ public sealed class EfTicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.TicketId == ticketId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Ticket>> GetByManifestIdAsync(Guid manifestId, CancellationToken cancellationToken = default)
+    public async Task<Ticket?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.Tickets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.ETicketNumber == eTicketNumber, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Ticket>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
         var tickets = await _context.Tickets
             .AsNoTracking()
-            .Where(t => t.ManifestId == manifestId)
-            .OrderBy(t => t.IssuedAt)
+            .Where(t => t.BookingReference == bookingReference)
+            .OrderBy(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
-
         return tickets.AsReadOnly();
     }
 
@@ -43,7 +44,7 @@ public sealed class EfTicketRepository : ITicketRepository
     {
         _context.Tickets.Add(ticket);
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogDebug("Inserted Ticket {TicketId} into [delivery].[Ticket]", ticket.TicketId);
+        _logger.LogDebug("Inserted Ticket {TicketId} ({ETicketNumber})", ticket.TicketId, ticket.ETicketNumber);
     }
 
     public async Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default)
@@ -52,5 +53,10 @@ public sealed class EfTicketRepository : ITicketRepository
         var rowsAffected = await _context.SaveChangesAsync(cancellationToken);
         if (rowsAffected == 0)
             _logger.LogWarning("UpdateAsync found no row for Ticket {TicketId}", ticket.TicketId);
+    }
+
+    public async Task<int> GetTicketCountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Tickets.CountAsync(cancellationToken);
     }
 }

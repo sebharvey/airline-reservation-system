@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Schedule.Domain.Entities;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
@@ -14,10 +15,24 @@ public sealed class UpdateScheduleHandler
         _logger = logger;
     }
 
-    public async Task<Domain.Entities.FlightSchedule?> HandleAsync(
+    public async Task<FlightSchedule?> HandleAsync(
         UpdateScheduleCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var schedule = await _repository.GetByIdAsync(command.ScheduleId, cancellationToken);
+
+        if (schedule is null)
+        {
+            _logger.LogWarning("Update requested for unknown schedule {ScheduleId}", command.ScheduleId);
+            return null;
+        }
+
+        schedule.UpdateFlightsCreated(command.FlightsCreatedCount);
+        await _repository.UpdateAsync(schedule, cancellationToken);
+
+        _logger.LogInformation("Updated schedule {ScheduleId} — FlightsCreated set to {Count}",
+            schedule.ScheduleId, command.FlightsCreatedCount);
+
+        return schedule;
     }
 }

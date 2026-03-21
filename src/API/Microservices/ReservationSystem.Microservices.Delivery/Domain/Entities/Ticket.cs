@@ -1,89 +1,104 @@
 namespace ReservationSystem.Microservices.Delivery.Domain.Entities;
 
 /// <summary>
-/// Core domain entity representing an electronic ticket issued on a manifest.
+/// Core domain entity representing an electronic ticket issued for one passenger
+/// on one flight segment. Maps to [delivery].[Ticket].
 /// </summary>
 public sealed class Ticket
 {
     public Guid TicketId { get; private set; }
-    public Guid ManifestId { get; private set; }
-    public Guid PassengerId { get; private set; }
-    public Guid SegmentId { get; private set; }
     public string ETicketNumber { get; private set; } = string.Empty;
-    public string TicketStatus { get; private set; } = string.Empty;
-    public DateTimeOffset IssuedAt { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public Guid InventoryId { get; private set; }
+    public string FlightNumber { get; private set; } = string.Empty;
+    public DateTime DepartureDate { get; private set; }
+    public string BookingReference { get; private set; } = string.Empty;
+    public string PassengerId { get; private set; } = string.Empty;
+    public string GivenName { get; private set; } = string.Empty;
+    public string Surname { get; private set; } = string.Empty;
+    public string CabinCode { get; private set; } = string.Empty;
+    public string FareBasisCode { get; private set; } = string.Empty;
+    public bool IsVoided { get; private set; }
+    public DateTime? VoidedAt { get; private set; }
+    public string TicketData { get; private set; } = "{}";
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
+    public int Version { get; private set; }
 
     private Ticket() { }
 
     public static Ticket Create(
-        Guid manifestId,
-        Guid passengerId,
-        Guid segmentId,
-        string eTicketNumber)
+        string eTicketNumber,
+        Guid inventoryId,
+        string flightNumber,
+        DateTime departureDate,
+        string bookingReference,
+        string passengerId,
+        string givenName,
+        string surname,
+        string cabinCode,
+        string fareBasisCode,
+        string ticketData = "{}")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(eTicketNumber);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
         return new Ticket
         {
             TicketId = Guid.NewGuid(),
-            ManifestId = manifestId,
-            PassengerId = passengerId,
-            SegmentId = segmentId,
             ETicketNumber = eTicketNumber,
-            TicketStatus = TicketStatusValues.Issued,
-            IssuedAt = now,
+            InventoryId = inventoryId,
+            FlightNumber = flightNumber,
+            DepartureDate = departureDate,
+            BookingReference = bookingReference,
+            PassengerId = passengerId,
+            GivenName = givenName,
+            Surname = surname,
+            CabinCode = cabinCode,
+            FareBasisCode = fareBasisCode,
+            IsVoided = false,
+            VoidedAt = null,
+            TicketData = ticketData,
             CreatedAt = now,
-            UpdatedAt = now
+            UpdatedAt = now,
+            Version = 1
         };
     }
 
     public static Ticket Reconstitute(
-        Guid ticketId,
-        Guid manifestId,
-        Guid passengerId,
-        Guid segmentId,
-        string eTicketNumber,
-        string ticketStatus,
-        DateTimeOffset issuedAt,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        Guid ticketId, string eTicketNumber, Guid inventoryId,
+        string flightNumber, DateTime departureDate, string bookingReference,
+        string passengerId, string givenName, string surname,
+        string cabinCode, string fareBasisCode, bool isVoided,
+        DateTime? voidedAt, string ticketData,
+        DateTime createdAt, DateTime updatedAt, int version)
     {
         return new Ticket
         {
             TicketId = ticketId,
-            ManifestId = manifestId,
-            PassengerId = passengerId,
-            SegmentId = segmentId,
             ETicketNumber = eTicketNumber,
-            TicketStatus = ticketStatus,
-            IssuedAt = issuedAt,
+            InventoryId = inventoryId,
+            FlightNumber = flightNumber,
+            DepartureDate = departureDate,
+            BookingReference = bookingReference,
+            PassengerId = passengerId,
+            GivenName = givenName,
+            Surname = surname,
+            CabinCode = cabinCode,
+            FareBasisCode = fareBasisCode,
+            IsVoided = isVoided,
+            VoidedAt = voidedAt,
+            TicketData = ticketData,
             CreatedAt = createdAt,
-            UpdatedAt = updatedAt
+            UpdatedAt = updatedAt,
+            Version = version
         };
-    }
-
-    public void Reissue(string newETicketNumber)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(newETicketNumber);
-        ETicketNumber = newETicketNumber;
-        TicketStatus = TicketStatusValues.Reissued;
-        IssuedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void Void()
     {
-        TicketStatus = TicketStatusValues.Voided;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        IsVoided = true;
+        VoidedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
-}
-
-public static class TicketStatusValues
-{
-    public const string Issued = "issued";
-    public const string Reissued = "reissued";
-    public const string Voided = "voided";
 }

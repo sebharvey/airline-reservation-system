@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Schedule.Domain.Entities;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
@@ -14,10 +15,29 @@ public sealed class CreateScheduleHandler
         _logger = logger;
     }
 
-    public async Task<Domain.Entities.FlightSchedule> HandleAsync(
+    public async Task<FlightSchedule> HandleAsync(
         CreateScheduleCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var schedule = FlightSchedule.Create(
+            command.FlightNumber,
+            command.Origin,
+            command.Destination,
+            command.DepartureTime,
+            command.ArrivalTime,
+            command.ArrivalDayOffset,
+            command.DaysOfWeek,
+            command.AircraftType,
+            command.ValidFrom,
+            command.ValidTo,
+            command.CabinFares,
+            command.CreatedBy);
+
+        await _repository.CreateAsync(schedule, cancellationToken);
+
+        _logger.LogInformation("Created flight schedule {ScheduleId} for {FlightNumber} ({Origin}-{Destination})",
+            schedule.ScheduleId, schedule.FlightNumber, schedule.Origin, schedule.Destination);
+
+        return schedule;
     }
 }

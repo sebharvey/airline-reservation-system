@@ -4,5 +4,12 @@ public sealed record CreateScheduleCommand(
     string FlightNumber,
     string Origin,
     string Destination,
-    DateTimeOffset ValidFrom,
-    DateTimeOffset ValidTo);
+    TimeSpan DepartureTime,
+    TimeSpan ArrivalTime,
+    byte ArrivalDayOffset,
+    byte DaysOfWeek,
+    string AircraftType,
+    DateTime ValidFrom,
+    DateTime ValidTo,
+    string CabinFares,
+    string CreatedBy);

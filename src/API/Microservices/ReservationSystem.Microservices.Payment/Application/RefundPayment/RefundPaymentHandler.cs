@@ -1,12 +1,14 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Domain.Repositories;
+using ReservationSystem.Microservices.Payment.Models.Mappers;
 using ReservationSystem.Microservices.Payment.Models.Responses;
 
 namespace ReservationSystem.Microservices.Payment.Application.RefundPayment;
 
 /// <summary>
 /// Handles the <see cref="RefundPaymentCommand"/>.
-/// Refunds a previously settled payment.
+/// Refunds a previously settled payment (full or partial).
 /// </summary>
 public sealed class RefundPaymentHandler
 {
@@ -21,10 +23,40 @@ public sealed class RefundPaymentHandler
         _logger = logger;
     }
 
-    public Task<RefundPaymentResponse> HandleAsync(
+    public async Task<RefundPaymentResponse?> HandleAsync(
         RefundPaymentCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var payment = await _repository.GetByReferenceAsync(command.PaymentReference, cancellationToken);
+
+        if (payment is null)
+        {
+            _logger.LogWarning("Refund requested for unknown payment {PaymentReference}", command.PaymentReference);
+            return null;
+        }
+
+        if (payment.Status != PaymentStatus.Settled)
+        {
+            _logger.LogWarning("Cannot refund payment {PaymentReference} — current status is {Status}",
+                command.PaymentReference, payment.Status);
+            return null;
+        }
+
+        payment.Refund();
+        await _repository.UpdateAsync(payment, cancellationToken);
+
+        var paymentEvent = PaymentEvent.Create(
+            payment.PaymentId,
+            PaymentEventType.Refund,
+            command.Amount,
+            payment.CurrencyCode,
+            $"Refund reason: {command.Reason}");
+
+        await _repository.CreateEventAsync(paymentEvent, cancellationToken);
+
+        _logger.LogInformation("Refunded payment {PaymentReference} for {Amount} {Currency} — reason: {Reason}",
+            command.PaymentReference, command.Amount, payment.CurrencyCode, command.Reason);
+
+        return PaymentMapper.ToRefundResponse(payment);
     }
 }

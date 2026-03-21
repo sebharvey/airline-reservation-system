@@ -1,103 +1,104 @@
-using ReservationSystem.Microservices.Delivery.Application.CreateDocument;
-using ReservationSystem.Microservices.Delivery.Application.CreateManifest;
-using ReservationSystem.Microservices.Delivery.Application.IssueTicket;
-using ReservationSystem.Microservices.Delivery.Application.ReissueTicket;
-using ReservationSystem.Microservices.Delivery.Application.UpdateManifest;
+using System.Text.Json;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
-using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 
 namespace ReservationSystem.Microservices.Delivery.Models.Mappers;
 
 /// <summary>
-/// Static mapping methods between all model representations of Delivery domain objects.
-///
-/// Mapping directions:
-///   HTTP request  →  Application command/query
-///   Domain entity →  HTTP response
-///
-/// Static methods are used deliberately — no state, no DI overhead, trivially testable.
+/// Static mapping methods between domain entities and HTTP responses.
 /// </summary>
 public static class DeliveryMapper
 {
-    // -------------------------------------------------------------------------
-    // HTTP request → Application command
-    // -------------------------------------------------------------------------
+    public static TicketSummary ToTicketSummary(Ticket ticket, string segmentId) =>
+        new()
+        {
+            TicketId = ticket.TicketId,
+            ETicketNumber = ticket.ETicketNumber,
+            PassengerId = ticket.PassengerId,
+            SegmentId = segmentId,
+            FlightNumber = ticket.FlightNumber,
+            DepartureDate = ticket.DepartureDate.ToString("yyyy-MM-dd")
+        };
 
-    public static CreateManifestCommand ToCommand(CreateManifestRequest request) =>
-        new(
-            BookingReference: request.BookingReference,
-            OrderId: request.OrderId,
-            ManifestData: request.ManifestData);
-
-    public static UpdateManifestCommand ToCommand(Guid manifestId, UpdateManifestRequest request) =>
-        new(ManifestId: manifestId, ManifestData: request.ManifestData);
-
-    public static IssueTicketCommand ToCommand(Guid manifestId, IssueTicketRequest request) =>
-        new(
-            ManifestId: manifestId,
-            PassengerId: request.PassengerId,
-            SegmentId: request.SegmentId,
-            ETicketNumber: request.ETicketNumber);
-
-    public static ReissueTicketCommand ToCommand(Guid manifestId, Guid ticketId, ReissueTicketRequest request) =>
-        new(
-            ManifestId: manifestId,
-            TicketId: ticketId,
-            NewETicketNumber: request.NewETicketNumber);
-
-    public static CreateDocumentCommand ToCommand(CreateDocumentRequest request) =>
-        new(
-            BookingReference: request.BookingReference,
-            OrderId: request.OrderId,
-            DocumentType: request.DocumentType,
-            DocumentData: request.DocumentData);
-
-    // -------------------------------------------------------------------------
-    // Domain entity → HTTP response
-    // -------------------------------------------------------------------------
-
-    public static ManifestResponse ToResponse(Manifest manifest) =>
+    public static ManifestEntrySummary ToManifestSummary(Manifest manifest) =>
         new()
         {
             ManifestId = manifest.ManifestId,
             BookingReference = manifest.BookingReference,
-            OrderId = manifest.OrderId,
-            ManifestStatus = manifest.ManifestStatus,
-            ManifestData = manifest.ManifestData,
-            CreatedAt = manifest.CreatedAt,
-            UpdatedAt = manifest.UpdatedAt
+            ETicketNumber = manifest.ETicketNumber,
+            PassengerId = manifest.PassengerId,
+            FlightNumber = manifest.FlightNumber,
+            DepartureDate = manifest.DepartureDate.ToString("yyyy-MM-dd"),
+            SeatNumber = manifest.SeatNumber
         };
 
-    public static TicketResponse ToResponse(Ticket ticket) =>
+    public static ManifestEntryDetail ToManifestDetail(Manifest manifest) =>
         new()
         {
-            TicketId = ticket.TicketId,
-            ManifestId = ticket.ManifestId,
-            PassengerId = ticket.PassengerId,
-            SegmentId = ticket.SegmentId,
-            ETicketNumber = ticket.ETicketNumber,
-            TicketStatus = ticket.TicketStatus,
-            IssuedAt = ticket.IssuedAt,
-            CreatedAt = ticket.CreatedAt,
-            UpdatedAt = ticket.UpdatedAt
+            ManifestId = manifest.ManifestId,
+            BookingReference = manifest.BookingReference,
+            ETicketNumber = manifest.ETicketNumber,
+            PassengerId = manifest.PassengerId,
+            GivenName = manifest.GivenName,
+            Surname = manifest.Surname,
+            SeatNumber = manifest.SeatNumber,
+            CabinCode = manifest.CabinCode,
+            SsrCodes = ParseSsrCodes(manifest.SsrCodes),
+            DepartureTime = manifest.DepartureTime.ToString(@"hh\:mm"),
+            ArrivalTime = manifest.ArrivalTime.ToString(@"hh\:mm"),
+            CheckedIn = manifest.CheckedIn,
+            CheckedInAt = manifest.CheckedInAt
         };
 
-    public static IReadOnlyList<TicketResponse> ToResponse(IEnumerable<Ticket> tickets) =>
-        tickets.Select(ToResponse).ToList().AsReadOnly();
-
-    public static DocumentResponse ToResponse(Document document) =>
+    public static CreateDocumentResponse ToCreateDocumentResponse(Document document) =>
         new()
         {
             DocumentId = document.DocumentId,
-            BookingReference = document.BookingReference,
-            OrderId = document.OrderId,
+            DocumentNumber = document.DocumentNumber,
             DocumentType = document.DocumentType,
-            DocumentData = document.DocumentData,
+            BookingReference = document.BookingReference,
+            CreatedAt = document.CreatedAt
+        };
+
+    public static GetDocumentResponse ToGetDocumentResponse(Document document)
+    {
+        JsonElement? docData = null;
+        if (!string.IsNullOrWhiteSpace(document.DocumentData) && document.DocumentData != "{}")
+        {
+            docData = JsonSerializer.Deserialize<JsonElement>(document.DocumentData);
+        }
+
+        return new GetDocumentResponse
+        {
+            DocumentId = document.DocumentId,
+            DocumentNumber = document.DocumentNumber,
+            DocumentType = document.DocumentType,
+            BookingReference = document.BookingReference,
+            ETicketNumber = document.ETicketNumber,
+            PassengerId = document.PassengerId,
+            SegmentRef = document.SegmentRef,
+            PaymentReference = document.PaymentReference,
+            Amount = document.Amount,
+            CurrencyCode = document.CurrencyCode,
+            IsVoided = document.IsVoided,
+            DocumentData = docData,
             CreatedAt = document.CreatedAt,
             UpdatedAt = document.UpdatedAt
         };
+    }
 
-    public static IReadOnlyList<DocumentResponse> ToResponse(IEnumerable<Document> documents) =>
-        documents.Select(ToResponse).ToList().AsReadOnly();
+    private static List<string> ParseSsrCodes(string? ssrCodesJson)
+    {
+        if (string.IsNullOrWhiteSpace(ssrCodesJson))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(ssrCodesJson) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 }
