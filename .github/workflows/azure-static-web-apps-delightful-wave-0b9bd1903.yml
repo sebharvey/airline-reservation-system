@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'src/Web/**'
+      - '.github/workflows/azure-static-web-apps-delightful-wave-0b9bd1903.yml'
   #pull_request:
     #types: [closed]
     #branches:

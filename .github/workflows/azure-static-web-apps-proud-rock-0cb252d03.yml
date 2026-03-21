@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'src/Terminal/**'
+      - '.github/workflows/azure-static-web-apps-proud-rock-0cb252d03.yml'
   #pull_request:
     #types: [closed]
     #branches:

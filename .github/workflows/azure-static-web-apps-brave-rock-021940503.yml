@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'src/Services/**'
+      - '.github/workflows/azure-static-web-apps-brave-rock-021940503.yml'
   #pull_request:
     #types: [closed]
     #branches:
