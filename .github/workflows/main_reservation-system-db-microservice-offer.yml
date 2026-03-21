@@ -7,7 +7,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/API/Microservices/ReservationSystem.Microservices.Offer'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Offer/**'
       - '.github/workflows/main_reservation-system-db-microservice-offer.yml'
 
 env:
