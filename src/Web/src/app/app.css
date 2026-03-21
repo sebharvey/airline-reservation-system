@@ -188,6 +188,20 @@
   }
 }
 
+/* ── iPhone PWA (standalone) — push nav below notch / Dynamic Island ── */
+@media (display-mode: standalone) {
+  .nav {
+    padding-top: calc(env(safe-area-inset-top) + 16px);
+  }
+
+  /* Preserve the mobile-specific bottom padding when on small screens */
+  @media (max-width: 480px) {
+    .nav {
+      padding-top: calc(env(safe-area-inset-top) + 18px);
+    }
+  }
+}
+
 /* ═══════════════════════════════════════════════
    DESKTOP — full website layout (≥ 901px)
    Mobile remains completely unchanged above
