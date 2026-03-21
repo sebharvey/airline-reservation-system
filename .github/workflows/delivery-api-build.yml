@@ -1,0 +1,45 @@
+name: Delivery API - Build
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/API/Microservices/ReservationSystem.Microservices.Delivery/**'
+      - 'src/API/ReservationSystem.sln'
+      - '.github/workflows/delivery-api-build.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/API/Microservices/ReservationSystem.Microservices.Delivery/**'
+      - 'src/API/ReservationSystem.sln'
+      - '.github/workflows/delivery-api-build.yml'
+
+jobs:
+  build:
+    name: Build Delivery API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/API/Microservices/ReservationSystem.Microservices.Delivery/ReservationSystem.Microservices.Delivery.csproj
+
+      - name: Build
+        run: dotnet build src/API/Microservices/ReservationSystem.Microservices.Delivery/ReservationSystem.Microservices.Delivery.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish src/API/Microservices/ReservationSystem.Microservices.Delivery/ReservationSystem.Microservices.Delivery.csproj --configuration Release --no-build --output ./publish/delivery-api
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: delivery-api
+          path: ./publish/delivery-api
+          retention-days: 7
