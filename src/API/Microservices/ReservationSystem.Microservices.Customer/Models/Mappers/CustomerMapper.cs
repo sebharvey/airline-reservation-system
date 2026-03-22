@@ -23,9 +23,8 @@ public static class CustomerMapper
     // HTTP request → Application command
     // -------------------------------------------------------------------------
 
-    public static CreateCustomerCommand ToCommand(string loyaltyNumber, CreateCustomerRequest request) =>
+    public static CreateCustomerCommand ToCommand(CreateCustomerRequest request) =>
         new(
-            LoyaltyNumber: loyaltyNumber,
             GivenName: request.GivenName,
             Surname: request.Surname,
             DateOfBirth: request.DateOfBirth,
