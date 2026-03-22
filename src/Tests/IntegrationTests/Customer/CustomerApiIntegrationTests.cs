@@ -100,7 +100,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _loyaltyNumber = body.LoyaltyNumber;
     }
 
-    [Fact, TestPriority(2)]
+    [SkippableFact, TestPriority(2)]
     public async Task T02_GetCustomer_ReturnsCreatedCustomerDetails()
     {
         SkipIfNoLoyaltyNumber();
@@ -122,7 +122,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.IsActive.Should().BeTrue();
     }
 
-    [Fact, TestPriority(3)]
+    [SkippableFact, TestPriority(3)]
     public async Task T03_UpdateCustomer_ReturnsUpdatedProfile()
     {
         SkipIfNoLoyaltyNumber();
@@ -160,7 +160,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.PreferredLanguage.Should().Be(_preferredLanguage);
     }
 
-    [Fact, TestPriority(4)]
+    [SkippableFact, TestPriority(4)]
     public async Task T04_GetCustomer_ReflectsUpdatedFields()
     {
         SkipIfNoLoyaltyNumber();
@@ -179,7 +179,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Nationality.Should().Be(_updatedNationality);
     }
 
-    [Fact, TestPriority(5)]
+    [SkippableFact, TestPriority(5)]
     public async Task T05_GetTransactions_InitiallyEmpty()
     {
         SkipIfNoLoyaltyNumber();
@@ -198,7 +198,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Transactions.Should().BeEmpty();
     }
 
-    [Fact, TestPriority(6)]
+    [SkippableFact, TestPriority(6)]
     public async Task T06_ReinstatePoints_AddsPointsToBalance()
     {
         SkipIfNoLoyaltyNumber();
@@ -226,7 +226,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.TransactionId.Should().NotBeEmpty();
     }
 
-    [Fact, TestPriority(7)]
+    [SkippableFact, TestPriority(7)]
     public async Task T07_GetCustomer_VerifyPointsBalanceAfterReinstatement()
     {
         SkipIfNoLoyaltyNumber();
@@ -242,7 +242,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body!.PointsBalance.Should().Be(5000);
     }
 
-    [Fact, TestPriority(8)]
+    [SkippableFact, TestPriority(8)]
     public async Task T08_AuthorisePoints_CreatesRedemptionHold()
     {
         SkipIfNoLoyaltyNumber();
@@ -270,7 +270,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _redemptionReference = body.RedemptionReference;
     }
 
-    [Fact, TestPriority(9)]
+    [SkippableFact, TestPriority(9)]
     public async Task T09_SettlePoints_DeductsHeldPoints()
     {
         SkipIfNoLoyaltyNumber();
@@ -297,7 +297,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.TransactionId.Should().NotBeEmpty();
     }
 
-    [Fact, TestPriority(10)]
+    [SkippableFact, TestPriority(10)]
     public async Task T10_AuthorisePoints_SecondHoldForReversal()
     {
         SkipIfNoLoyaltyNumber();
@@ -324,7 +324,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _secondRedemptionReference = body.RedemptionReference;
     }
 
-    [Fact, TestPriority(11)]
+    [SkippableFact, TestPriority(11)]
     public async Task T11_ReversePoints_ReleasesHeldPoints()
     {
         SkipIfNoLoyaltyNumber();
@@ -351,7 +351,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.NewPointsBalance.Should().Be(4000);
     }
 
-    [Fact, TestPriority(12)]
+    [SkippableFact, TestPriority(12)]
     public async Task T12_ReinstatePoints_SecondCreditForTransactionHistory()
     {
         SkipIfNoLoyaltyNumber();
@@ -377,7 +377,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.NewPointsBalance.Should().Be(6500);
     }
 
-    [Fact, TestPriority(13)]
+    [SkippableFact, TestPriority(13)]
     public async Task T13_GetTransactions_ReturnsTransactionHistory()
     {
         SkipIfNoLoyaltyNumber();
@@ -402,7 +402,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         }
     }
 
-    [Fact, TestPriority(14)]
+    [SkippableFact, TestPriority(14)]
     public async Task T14_GetTransactions_PaginationWorks()
     {
         SkipIfNoLoyaltyNumber();
@@ -419,7 +419,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Transactions.Count.Should().BeLessOrEqualTo(2);
     }
 
-    [Fact, TestPriority(15)]
+    [SkippableFact, TestPriority(15)]
     public async Task T15_GetCustomer_FinalBalanceCheck()
     {
         SkipIfNoLoyaltyNumber();
@@ -436,7 +436,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.IsActive.Should().BeTrue();
     }
 
-    [Fact, TestPriority(16)]
+    [SkippableFact, TestPriority(16)]
     public async Task T16_DeleteCustomer_ReturnsNoContent()
     {
         SkipIfNoLoyaltyNumber();
@@ -448,7 +448,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
-    [Fact, TestPriority(17)]
+    [SkippableFact, TestPriority(17)]
     public async Task T17_GetDeletedCustomer_ReturnsNotFound()
     {
         SkipIfNoLoyaltyNumber();
