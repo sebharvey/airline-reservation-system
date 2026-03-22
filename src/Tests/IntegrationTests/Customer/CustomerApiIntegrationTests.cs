@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Bogus;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace ReservationSystem.IntegrationTests.Customer;
 
