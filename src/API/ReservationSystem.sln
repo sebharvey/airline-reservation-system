@@ -32,7 +32,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Orchestra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Orchestration.Disruption", "Orchestration/ReservationSystem.Orchestration.Disruption/ReservationSystem.Orchestration.Disruption.csproj", "{C5D6E7F8-A9B0-1234-8901-345678901234}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests", "..\Tests\ReservationSystem.Tests.csproj", "{D6E7F8A9-B0C1-2345-9012-456789012345}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests", "Tests\ReservationSystem.Tests.csproj", "{D6E7F8A9-B0C1-2345-9012-456789012345}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
