@@ -21,7 +21,11 @@ public sealed class PaymentDbContext : DbContext
     {
         modelBuilder.Entity<Domain.Entities.Payment>(entity =>
         {
-            entity.ToTable("Payment", "payment", t => t.HasTrigger("TR_Payment_UpdatedAt"));
+            entity.ToTable("Payment", "payment", t =>
+            {
+                t.HasTrigger("TR_Payment_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(p => p.PaymentId);
 
@@ -108,7 +112,11 @@ public sealed class PaymentDbContext : DbContext
 
         modelBuilder.Entity<PaymentEvent>(entity =>
         {
-            entity.ToTable("PaymentEvent", "payment", t => t.HasTrigger("TR_PaymentEvent_UpdatedAt"));
+            entity.ToTable("PaymentEvent", "payment", t =>
+            {
+                t.HasTrigger("TR_PaymentEvent_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(pe => pe.PaymentEventId);
 

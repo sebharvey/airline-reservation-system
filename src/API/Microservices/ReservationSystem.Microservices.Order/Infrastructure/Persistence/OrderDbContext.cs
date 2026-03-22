@@ -18,7 +18,11 @@ public sealed class OrderDbContext : DbContext
     {
         modelBuilder.Entity<Basket>(entity =>
         {
-            entity.ToTable("Basket", "order", t => t.HasTrigger("TR_Basket_UpdatedAt"));
+            entity.ToTable("Basket", "order", t =>
+            {
+                t.HasTrigger("TR_Basket_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(b => b.BasketId);
 
@@ -95,7 +99,11 @@ public sealed class OrderDbContext : DbContext
 
         modelBuilder.Entity<Domain.Entities.Order>(entity =>
         {
-            entity.ToTable("Order", "order", t => t.HasTrigger("TR_Order_UpdatedAt"));
+            entity.ToTable("Order", "order", t =>
+            {
+                t.HasTrigger("TR_Order_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(o => o.OrderId);
 

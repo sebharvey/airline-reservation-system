@@ -21,7 +21,11 @@ public sealed class IdentityDbContext : DbContext
     {
         modelBuilder.Entity<UserAccount>(entity =>
         {
-            entity.ToTable("UserAccount", "identity", t => t.HasTrigger("TR_UserAccount_UpdatedAt"));
+            entity.ToTable("UserAccount", "identity", t =>
+            {
+                t.HasTrigger("TR_UserAccount_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(u => u.UserAccountId);
 
@@ -86,7 +90,11 @@ public sealed class IdentityDbContext : DbContext
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
-            entity.ToTable("RefreshToken", "identity", t => t.HasTrigger("TR_RefreshToken_UpdatedAt"));
+            entity.ToTable("RefreshToken", "identity", t =>
+            {
+                t.HasTrigger("TR_RefreshToken_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(r => r.RefreshTokenId);
 
