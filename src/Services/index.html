@@ -262,7 +262,7 @@
       transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
-    .resources-card {
+    .operations-card {
       background: var(--card-bg);
       border-radius: var(--radius-sm);
       border: 1px solid var(--border);
@@ -271,7 +271,7 @@
       transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
-    .resources-header {
+    .operations-header {
       padding: 20px 24px;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -279,28 +279,193 @@
       gap: 10px;
     }
 
-    .resources-title {
+    .operations-title {
       font-size: 15px;
       font-weight: 700;
     }
 
-    .resources-body {
-      padding: 40px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+    .operations-count {
+      font-size: 12px;
+      font-weight: 600;
       color: var(--text-muted);
+      background: var(--bg-light);
+      border: 1px solid var(--border);
+      padding: 1px 8px;
+      border-radius: 10px;
+    }
+
+    .operations-empty {
+      padding: 32px 24px;
       text-align: center;
-    }
-
-    .resources-body svg {
-      opacity: 0.25;
-    }
-
-    .resources-placeholder-text {
+      color: var(--text-muted);
       font-size: 13px;
+    }
+
+    .accordion-item {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .accordion-item:last-child {
+      border-bottom: none;
+    }
+
+    .accordion-trigger {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .accordion-trigger:hover {
+      background: var(--bg-light);
+    }
+
+    .method-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      min-width: 54px;
+      text-align: center;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .method-GET    { background: rgba(34,197,94,0.12);  color: #16a34a; }
+    .method-POST   { background: rgba(59,130,246,0.12); color: #2563eb; }
+    .method-PUT    { background: rgba(245,158,11,0.12); color: #d97706; }
+    .method-PATCH  { background: rgba(168,85,247,0.12); color: #9333ea; }
+    .method-DELETE { background: rgba(239,68,68,0.12);  color: #dc2626; }
+
+    html.dark .method-GET    { background: rgba(34,197,94,0.18);  color: #4ade80; }
+    html.dark .method-POST   { background: rgba(59,130,246,0.18); color: #60a5fa; }
+    html.dark .method-PUT    { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    html.dark .method-PATCH  { background: rgba(168,85,247,0.18); color: #c084fc; }
+    html.dark .method-DELETE { background: rgba(239,68,68,0.18);  color: #f87171; }
+
+    .accordion-path {
+      flex: 1;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .accordion-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .accordion-chevron {
+      flex-shrink: 0;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .accordion-item.open .accordion-chevron {
+      transform: rotate(180deg);
+    }
+
+    .accordion-body {
+      display: none;
+      padding: 0 24px 16px;
+      background: var(--bg-light);
+      border-top: 1px solid var(--border);
+    }
+
+    .accordion-item.open .accordion-body {
+      display: block;
+    }
+
+    .path-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0 10px;
+    }
+
+    .path-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .path-input {
+      flex: 1;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .path-input:focus {
+      border-color: var(--grad-start);
+    }
+
+    .body-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .body-textarea {
+      width: 100%;
+      min-height: 100px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 12px;
+    }
+
+    .body-textarea:focus {
+      border-color: var(--grad-start);
+    }
+
+    .response-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .response-box {
+      width: 100%;
+      min-height: 80px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      word-break: break-all;
     }
 
     .detail-header {
@@ -743,16 +908,50 @@
             </div>
           </div>
         </div>
-        <div class="resources-card">
-          <div class="resources-header">
+        <div class="operations-card">
+          <div class="operations-header">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            <span class="resources-title">Resources</span>
+            <span class="operations-title">Operations</span>
+            <span class="operations-count">${(s.operations || []).length}</span>
           </div>
-          <div class="resources-body">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-            <span class="resources-placeholder-text">Operations and resources for this API will appear here.</span>
+          ${renderOperations(s)}
+        </div>`;
+    }
+
+    // ── Operations accordion ──
+    function renderOperations(s) {
+      const ops = s.operations || [];
+      if (ops.length === 0) {
+        return `<div class="operations-empty">No operations defined for this service.</div>`;
+      }
+      return ops.map((op, i) => {
+        const isGet = op.method === 'GET' || op.method === 'DELETE';
+        const bodySection = isGet ? '' : `
+          <div class="body-label">Request Body</div>
+          <textarea class="body-textarea" placeholder='{\n  \n}'></textarea>`;
+        return `<div class="accordion-item" id="acc-${s.id}-${i}">
+          <div class="accordion-trigger" onclick="toggleAccordion('${s.id}', ${i})">
+            <span class="method-badge method-${op.method}">${op.method}</span>
+            <span class="accordion-path">${op.path}</span>
+            <span class="accordion-name">${op.name}</span>
+            <svg class="accordion-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="path-row">
+              <span class="path-label">URL Path</span>
+              <input class="path-input" type="text" value="${op.path}" spellcheck="false" />
+            </div>
+            ${bodySection}
+            <div class="response-label">Response</div>
+            <div class="response-box">— no response yet —</div>
           </div>
         </div>`;
+      }).join('');
+    }
+
+    function toggleAccordion(serviceId, index) {
+      const item = document.getElementById(`acc-${serviceId}-${index}`);
+      if (item) item.classList.toggle('open');
     }
 
     // ── Selection ──
