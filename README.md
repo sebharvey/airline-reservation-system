@@ -26,7 +26,6 @@ This is an **agentic-code first** project. The majority of the codebase is AI-ge
 
 - **Standards-based** — IATA ONE Order and NDC at the core, not bolted on
 - **Domain-driven** — twelve bounded contexts with clear ownership and no cross-domain shortcuts
-- **Price integrity** — stored offer snapshots lock prices at search time; no re-pricing on confirmation
 - **Clean architecture** — every microservice follows the same layered pattern, scaffolded consistently by AI
 - **Azure-native** — Azure Functions, Static Web Apps, and Azure SQL throughout
 
