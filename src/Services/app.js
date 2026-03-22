@@ -1,6 +1,206 @@
 let servicesData = null;
 let healthResults = {};
 let selectedId = 'retail-api';
+let variablesOpen = false;
+
+// ── Utility ──
+function escapeHtml(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeText(str) {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ── Variables ──
+function loadVariables() {
+  try { return JSON.parse(localStorage.getItem('apiVariables') || '[]'); } catch (e) { return []; }
+}
+
+function saveVariables(vars) {
+  localStorage.setItem('apiVariables', JSON.stringify(vars));
+}
+
+function applyVariables(path) {
+  const vars = loadVariables();
+  return path.replace(/\{([^}]+)\}/g, (match, name) => {
+    const v = vars.find(v => v.name === name);
+    return v && v.value ? v.value : match;
+  });
+}
+
+function toggleVariablesCard() {
+  variablesOpen = !variablesOpen;
+  const body = document.getElementById('variablesBody');
+  const chevron = document.getElementById('variablesChevron');
+  if (body) body.style.display = variablesOpen ? 'block' : 'none';
+  if (chevron) chevron.style.transform = variablesOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function renderVariablesCard() {
+  const vars = loadVariables();
+  return `<div class="variables-card">
+    <div class="variables-header" onclick="toggleVariablesCard()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      <span class="variables-title">Variables</span>
+      <span class="variables-count" id="variablesCount">${vars.length}</span>
+      <span class="variables-hint">Define values for <code>{placeholders}</code> in URL paths</span>
+      <svg class="variables-chevron" id="variablesChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:${variablesOpen ? 'rotate(180deg)' : 'rotate(0deg)'}"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="variables-body" id="variablesBody" style="display:${variablesOpen ? 'block' : 'none'}">
+      <div class="variables-list" id="variablesList">${renderVariableRows(vars)}</div>
+      <button class="add-variable-btn" onclick="addVariable()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Variable
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderVariableRows(vars) {
+  if (vars.length === 0) {
+    return `<div class="variables-empty">No variables defined yet. Add a variable to substitute URL placeholders like <code>{loyaltyNumber}</code> automatically when invoking operations.</div>`;
+  }
+  return vars.map((v, i) => `
+    <div class="variable-row">
+      <span class="variable-brace">{</span>
+      <input class="variable-name-input" type="text" placeholder="name" value="${escapeHtml(v.name)}" oninput="updateVariableName(${i}, this.value)" spellcheck="false" />
+      <span class="variable-brace">}</span>
+      <span class="variable-equals">=</span>
+      <input class="variable-value-input" type="text" placeholder="value" value="${escapeHtml(v.value)}" oninput="updateVariableValue(${i}, this.value)" spellcheck="false" />
+      <button class="variable-remove-btn" onclick="removeVariable(${i})" title="Remove variable">&times;</button>
+    </div>`).join('');
+}
+
+function addVariable() {
+  const vars = loadVariables();
+  vars.push({ name: '', value: '' });
+  saveVariables(vars);
+  const list = document.getElementById('variablesList');
+  if (list) list.innerHTML = renderVariableRows(vars);
+  const count = document.getElementById('variablesCount');
+  if (count) count.textContent = vars.length;
+}
+
+function removeVariable(index) {
+  const vars = loadVariables();
+  vars.splice(index, 1);
+  saveVariables(vars);
+  const list = document.getElementById('variablesList');
+  if (list) list.innerHTML = renderVariableRows(vars);
+  const count = document.getElementById('variablesCount');
+  if (count) count.textContent = vars.length;
+}
+
+function updateVariableName(index, value) {
+  const vars = loadVariables();
+  if (vars[index]) { vars[index].name = value; saveVariables(vars); }
+}
+
+function updateVariableValue(index, value) {
+  const vars = loadVariables();
+  if (vars[index]) { vars[index].value = value; saveVariables(vars); }
+}
+
+// ── Logs ──
+function loadLogs() {
+  try { return JSON.parse(localStorage.getItem('apiLogs') || '[]'); } catch (e) { return []; }
+}
+
+function saveLogs(logs) {
+  localStorage.setItem('apiLogs', JSON.stringify(logs));
+}
+
+function addLog(entry) {
+  const logs = loadLogs();
+  logs.unshift(entry);
+  saveLogs(logs);
+  updateLogsCountBadge();
+}
+
+function updateLogsCountBadge() {
+  const badge = document.getElementById('logsCountBadge');
+  if (!badge) return;
+  const count = loadLogs().length;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+function openLogsModal() {
+  renderLogsModal();
+  document.getElementById('logsOverlay').style.display = 'flex';
+}
+
+function closeLogsModal() {
+  document.getElementById('logsOverlay').style.display = 'none';
+}
+
+function onLogsOverlayClick(event) {
+  if (event.target === document.getElementById('logsOverlay')) closeLogsModal();
+}
+
+function clearLogs() {
+  if (!confirm('Clear all logs? This cannot be undone.')) return;
+  saveLogs([]);
+  renderLogsModal();
+  updateLogsCountBadge();
+}
+
+function formatHeaders(headers) {
+  if (!headers || typeof headers !== 'object') return '(none)';
+  const entries = Object.entries(headers);
+  if (entries.length === 0) return '(none)';
+  return entries.map(([k, v]) => `${k}: ${v}`).join('\n');
+}
+
+function renderLogsModal() {
+  const logs = loadLogs();
+  const container = document.getElementById('logsContent');
+  if (!container) return;
+  if (logs.length === 0) {
+    container.innerHTML = `<div class="logs-empty">No API calls logged yet. Invoke an operation to see logs appear here.</div>`;
+    return;
+  }
+  container.innerHTML = logs.map((log, i) => {
+    const date = new Date(log.timestamp);
+    let statusClass = 'status-err';
+    if (log.responseStatus) {
+      if (log.responseStatus >= 200 && log.responseStatus < 300) statusClass = 'status-2xx';
+      else if (log.responseStatus >= 300 && log.responseStatus < 400) statusClass = 'status-3xx';
+      else if (log.responseStatus >= 400 && log.responseStatus < 500) statusClass = 'status-4xx';
+      else statusClass = 'status-5xx';
+    }
+    const statusText = log.responseStatus ? `${log.responseStatus} ${log.responseStatusText || ''}`.trim() : 'ERROR';
+    return `<div class="log-entry" id="log-entry-${i}">
+      <div class="log-summary" onclick="toggleLogEntry(${i})">
+        <span class="method-badge method-${escapeHtml(log.method)}">${escapeHtml(log.method)}</span>
+        <span class="log-url">${escapeHtml(log.url)}</span>
+        <span class="status-badge ${statusClass}" style="display:inline-block;flex-shrink:0">${statusText}</span>
+        <span class="log-timestamp">${date.toLocaleString()}</span>
+        <svg class="log-chevron" id="log-chevron-${i}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="log-detail" id="log-detail-${i}" style="display:none">
+        <div class="log-meta">${escapeHtml(log.serviceName || '')} &rsaquo; ${escapeHtml(log.operationName || '')}</div>
+        <div class="log-section-label">Request Headers</div>
+        <pre class="log-pre">${escapeText(formatHeaders(log.requestHeaders))}</pre>
+        ${log.requestBody ? `<div class="log-section-label">Request Body</div><pre class="log-pre">${escapeText(log.requestBody)}</pre>` : ''}
+        <div class="log-section-label">Response Headers</div>
+        <pre class="log-pre">${escapeText(formatHeaders(log.responseHeaders))}</pre>
+        ${log.responseBody ? `<div class="log-section-label">Response Body</div><pre class="log-pre">${escapeText(log.responseBody)}</pre>` : ''}
+        ${log.error ? `<div class="log-section-label">Error</div><pre class="log-pre log-error">${escapeText(log.error)}</pre>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLogEntry(index) {
+  const detail = document.getElementById(`log-detail-${index}`);
+  const chevron = document.getElementById(`log-chevron-${index}`);
+  if (!detail) return;
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
 
 // ── Secret Modal ──
 function openSecretModal() {
@@ -68,6 +268,7 @@ function toggleTheme() {
 })();
 
 updateSecretBtn();
+updateLogsCountBadge();
 
 // ── SVG icons ──
 function tickIcon(cls) {
@@ -238,6 +439,7 @@ function renderDetail(id) {
         </div>
       </div>
     </div>
+    ${renderVariablesCard()}
     <div class="operations-card">
       <div class="operations-header">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -256,9 +458,19 @@ function renderOperations(s) {
   }
   return ops.map((op, i) => {
     const isGet = op.method === 'GET' || op.method === 'DELETE';
+    const defaultPayload = op.defaultPayload || '';
+    const resetBtn = defaultPayload
+      ? `<button class="reset-payload-btn" onclick="resetPayload('${s.id}', ${i})" title="Reset to default payload">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>
+          Reset
+        </button>`
+      : '';
     const bodySection = isGet ? '' : `
-      <div class="body-label">Request Body</div>
-      <textarea class="body-textarea" placeholder='{\n  \n}'></textarea>`;
+      <div class="body-header-row">
+        <div class="body-label">Request Body</div>
+        ${resetBtn}
+      </div>
+      <textarea class="body-textarea" id="body-${s.id}-${i}" placeholder='{\n  \n}'>${escapeText(defaultPayload)}</textarea>`;
     const playIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
     return `<div class="accordion-item" id="acc-${s.id}-${i}">
       <div class="accordion-trigger" onclick="toggleAccordion('${s.id}', ${i})">
@@ -284,6 +496,15 @@ function renderOperations(s) {
       </div>
     </div>`;
   }).join('');
+}
+
+function resetPayload(serviceId, index) {
+  const service = findService(serviceId);
+  if (!service) return;
+  const op = service.operations[index];
+  if (!op || !op.defaultPayload) return;
+  const textarea = document.getElementById(`body-${serviceId}-${index}`);
+  if (textarea) textarea.value = op.defaultPayload;
 }
 
 function toggleAccordion(serviceId, index) {
@@ -314,9 +535,11 @@ async function invokeOperation(serviceId, index) {
   responseBox.style.color = 'var(--text-muted)';
   responseBox.textContent = 'Loading…';
 
-  const path = pathInput ? pathInput.value : service.operations[index].path;
-  const url = service.baseUrl + path;
+  const rawPath = pathInput ? pathInput.value : service.operations[index].path;
+  const resolvedPath = applyVariables(rawPath);
+  const url = service.baseUrl + resolvedPath;
   const method = service.operations[index].method;
+  const op = service.operations[index];
 
   const headers = {};
   if (method !== 'GET' && method !== 'DELETE') {
@@ -330,14 +553,33 @@ async function invokeOperation(serviceId, index) {
     if (encoded) headers['Authorization'] = `Bearer ${encoded}`;
   }
 
+  const requestBody = bodyTextarea && bodyTextarea.value.trim() ? bodyTextarea.value : null;
+
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    serviceId,
+    serviceName: service.name,
+    operationName: op.name,
+    method,
+    url,
+    requestHeaders: { ...headers },
+    requestBody,
+    responseStatus: null,
+    responseStatusText: null,
+    responseHeaders: {},
+    responseBody: null,
+    error: null
+  };
+
   try {
     const fetchOptions = { method, headers, mode: 'cors', signal: AbortSignal.timeout(30000) };
-    if (bodyTextarea && bodyTextarea.value.trim()) {
-      fetchOptions.body = bodyTextarea.value;
-    }
+    if (requestBody) fetchOptions.body = requestBody;
 
     const resp = await fetch(url, fetchOptions);
     const statusCode = resp.status;
+
+    const respHeaders = {};
+    resp.headers.forEach((val, key) => { respHeaders[key] = val; });
 
     let statusClass = 'status-5xx';
     if (statusCode >= 200 && statusCode < 300) statusClass = 'status-2xx';
@@ -358,12 +600,19 @@ async function invokeOperation(serviceId, index) {
 
     responseBox.style.color = 'var(--text)';
     responseBox.textContent = bodyText || '(empty response)';
+
+    logEntry.responseStatus = statusCode;
+    logEntry.responseStatusText = resp.statusText;
+    logEntry.responseHeaders = respHeaders;
+    logEntry.responseBody = bodyText || '';
   } catch (e) {
     statusBadge.textContent = 'ERROR';
     statusBadge.className = 'status-badge status-err';
     responseBox.style.color = 'var(--error)';
     responseBox.textContent = e.name === 'TimeoutError' ? 'Request timed out (30s)' : (e.message || 'Request failed');
+    logEntry.error = e.name === 'TimeoutError' ? 'Request timed out (30s)' : (e.message || 'Request failed');
   } finally {
+    addLog(logEntry);
     invokeBtn.disabled = false;
     invokeBtn.innerHTML = `${playIcon} Invoke`;
   }
