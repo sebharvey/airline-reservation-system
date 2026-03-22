@@ -693,7 +693,11 @@
               </div>
               <div class="detail-field">
                 <span class="field-label">Swagger</span>
-                <span class="field-value"><a href="${s.baseUrl}${s.swaggerEndpoint}" target="_blank" rel="noopener">${s.swaggerEndpoint}</a></span>
+                <span class="field-value">
+                  <a href="${s.baseUrl}${s.swaggerEndpoint}" target="_blank" rel="noopener">View JSON</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="https://editor.swagger.io/?url=${encodeURIComponent(s.baseUrl + s.swaggerEndpoint)}" target="_blank" rel="noopener">Open in Swagger Editor</a>
+                </span>
               </div>
               <div class="detail-field">
                 <span class="field-label">Auth Type</span>
