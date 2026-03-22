@@ -57,9 +57,16 @@ public sealed class EfCustomerRepository : ICustomerRepository
             return;
         }
 
+        var transactions = await _context.LoyaltyTransactions
+            .Where(t => t.CustomerId == customer.CustomerId)
+            .ToListAsync(cancellationToken);
+
+        if (transactions.Count > 0)
+            _context.LoyaltyTransactions.RemoveRange(transactions);
+
         _context.Customers.Remove(customer);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogDebug("Deleted Customer {CustomerId} from [customer].[Customer]", customer.CustomerId);
+        _logger.LogDebug("Deleted Customer {CustomerId} and {TransactionCount} transaction(s) from [customer].[Customer]", customer.CustomerId, transactions.Count);
     }
 }

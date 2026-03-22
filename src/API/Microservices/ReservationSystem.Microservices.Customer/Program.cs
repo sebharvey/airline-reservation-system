@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
 using ReservationSystem.Microservices.Customer.Application.DeleteCustomer;
@@ -65,6 +66,7 @@ var host = new HostBuilder()
         services.AddScoped<SettlePointsHandler>();
         services.AddScoped<ReversePointsHandler>();
         services.AddScoped<ReinstatePointsHandler>();
+        services.AddScoped<AddPointsHandler>();
     })
     .Build();
 

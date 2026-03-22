@@ -201,7 +201,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, TestPriority(6)]
-    public async Task T06_ReinstatePoints_AddsPointsToBalance()
+    public async Task T06_AddPoints_AddsPointsToBalance()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -209,27 +209,27 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         var request = new
         {
             points = 5000,
-            bookingReference = _faker.Random.AlphaNumeric(6).ToUpper(),
-            reason = "Integration test - initial points credit"
+            transactionType = "Adjustment",
+            description = "Added initial points balance for testing"
         };
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            $"/api/v1/customers/{_loyaltyNumber}/points/reinstate", request, JsonOptions);
+            $"/api/v1/customers/{_loyaltyNumber}/points/add", request, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<ReinstatePointsResponse>(JsonOptions);
+        var body = await response.Content.ReadFromJsonAsync<AddPointsResponse>(JsonOptions);
 
         body.Should().NotBeNull();
         body!.LoyaltyNumber.Should().Be(_loyaltyNumber);
-        body.PointsReinstated.Should().Be(5000);
+        body.PointsAdded.Should().Be(5000);
         body.NewPointsBalance.Should().Be(5000);
         body.TransactionId.Should().NotBeEmpty();
     }
 
     [SkippableFact, TestPriority(7)]
-    public async Task T07_GetCustomer_VerifyPointsBalanceAfterReinstatement()
+    public async Task T07_GetCustomer_VerifyPointsBalanceAfterAddPoints()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -354,7 +354,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, TestPriority(12)]
-    public async Task T12_ReinstatePoints_SecondCreditForTransactionHistory()
+    public async Task T12_AddPoints_SecondCreditForTransactionHistory()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -362,20 +362,20 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         var request = new
         {
             points = 2500,
-            bookingReference = _faker.Random.AlphaNumeric(6).ToUpper(),
-            reason = "Integration test - bonus points credit"
+            transactionType = "Adjustment",
+            description = "Added initial points balance for testing"
         };
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            $"/api/v1/customers/{_loyaltyNumber}/points/reinstate", request, JsonOptions);
+            $"/api/v1/customers/{_loyaltyNumber}/points/add", request, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<ReinstatePointsResponse>(JsonOptions);
+        var body = await response.Content.ReadFromJsonAsync<AddPointsResponse>(JsonOptions);
 
         body.Should().NotBeNull();
-        body!.PointsReinstated.Should().Be(2500);
+        body!.PointsAdded.Should().Be(2500);
         body.NewPointsBalance.Should().Be(6500);
     }
 
@@ -654,6 +654,15 @@ public sealed class ReinstatePointsResponse
     public int NewPointsBalance { get; init; }
     public Guid TransactionId { get; init; }
     public DateTimeOffset ReinstatedAt { get; init; }
+}
+
+public sealed class AddPointsResponse
+{
+    public string LoyaltyNumber { get; init; } = string.Empty;
+    public int PointsAdded { get; init; }
+    public int NewPointsBalance { get; init; }
+    public Guid TransactionId { get; init; }
+    public DateTimeOffset AddedAt { get; init; }
 }
 
 #endregion
