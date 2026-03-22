@@ -470,7 +470,7 @@ function renderOperations(s) {
         <div class="body-label">Request Body</div>
         ${resetBtn}
       </div>
-      <textarea class="body-textarea" id="body-${s.id}-${i}" placeholder='{\n  \n}'>${escapeText(defaultPayload)}</textarea>`;
+      <textarea class="body-textarea" id="body-${s.id}-${i}">${escapeText(defaultPayload)}</textarea>`;
     const playIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
     return `<div class="accordion-item" id="acc-${s.id}-${i}">
       <div class="accordion-trigger" onclick="toggleAccordion('${s.id}', ${i})">
