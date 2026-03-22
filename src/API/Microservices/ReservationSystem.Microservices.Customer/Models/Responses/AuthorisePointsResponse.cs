@@ -8,5 +8,5 @@ public sealed class AuthorisePointsResponse
     public string RedemptionReference { get; init; } = string.Empty;
     public int PointsAuthorised { get; init; }
     public int PointsHeld { get; init; }
-    public DateTimeOffset AuthorisedAt { get; init; }
+    public DateTime AuthorisedAt { get; init; }
 }

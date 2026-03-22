@@ -18,6 +18,6 @@ public sealed class CustomerResponse
     public int PointsBalance { get; init; }
     public int TierProgressPoints { get; init; }
     public bool IsActive { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

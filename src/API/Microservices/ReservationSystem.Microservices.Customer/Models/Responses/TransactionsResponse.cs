@@ -12,7 +12,7 @@ public sealed class TransactionResponse
     public string? BookingReference { get; init; }
     public string? FlightNumber { get; init; }
     public string Description { get; init; } = string.Empty;
-    public DateTimeOffset TransactionDate { get; init; }
+    public DateTime TransactionDate { get; init; }
 }
 
 /// <summary>
