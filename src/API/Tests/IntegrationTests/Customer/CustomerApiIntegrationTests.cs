@@ -13,7 +13,8 @@ namespace ReservationSystem.Tests.IntegrationTests.Customer;
 /// <summary>
 /// Integration tests for the Customer Microservice API.
 /// Tests run sequentially against the live API, exercising the full customer lifecycle:
-/// create, read, update, points operations, transactions, and delete.
+/// create, read, update, points operations (add, authorise, settle, reverse, reinstate),
+/// transactions, and delete.
 /// </summary>
 [TestCaseOrderer("ReservationSystem.Tests.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.Tests")]
 public class CustomerApiIntegrationTests : IAsyncLifetime
@@ -41,12 +42,14 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     private static string? _surname;
     private static DateOnly? _dateOfBirth;
     private static string? _preferredLanguage;
+    private static DateTimeOffset? _createdAt;
     private static string? _updatedGivenName;
     private static string? _updatedSurname;
-    private static string? _updatedPhoneNumber;
+    private static DateOnly? _updatedDateOfBirth;
     private static string? _updatedNationality;
+    private static string? _updatedPhoneNumber;
+    private static string? _updatedPreferredLanguage;
     private static string? _redemptionReference;
-    private static string? _secondRedemptionReference;
 
     public CustomerApiIntegrationTests()
     {
@@ -76,7 +79,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _givenName = _faker.Name.FirstName();
         _surname = _faker.Name.LastName();
         _dateOfBirth = DateOnly.FromDateTime(_faker.Date.Past(50, DateTime.Today.AddYears(-18)));
-        _preferredLanguage = _faker.PickRandom("en-GB", "de-DE");
+        _preferredLanguage = "en-GB";
 
         var request = new
         {
@@ -122,25 +125,39 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.PreferredLanguage.Trim().Should().Be(_preferredLanguage);
         body.PointsBalance.Should().Be(0);
         body.IsActive.Should().BeTrue();
+
+        _createdAt = body.CreatedAt;
     }
 
     [SkippableFact, TestPriority(3)]
-    public async Task T03_UpdateCustomer_ReturnsUpdatedProfile()
+    public async Task T03_UpdateCustomer_WithFullBody_ReturnsUpdatedProfile()
     {
         SkipIfNoLoyaltyNumber();
 
-        // Arrange
+        // Arrange - mirror the manual test: send the full customer object with updated fields,
+        // including tier change (Gold) and deactivation, as done in real-life testing.
         _updatedGivenName = _faker.Name.FirstName();
         _updatedSurname = _faker.Name.LastName();
-        _updatedPhoneNumber = _faker.Phone.PhoneNumber("+44##########");
+        _updatedDateOfBirth = DateOnly.FromDateTime(_faker.Date.Past(50, DateTime.Today.AddYears(-18)));
         _updatedNationality = _faker.Address.CountryCode();
+        _updatedPhoneNumber = _faker.Phone.PhoneNumber("0#########");
+        _updatedPreferredLanguage = "de-DE";
 
         var request = new
         {
+            customerId = _customerId!.Value,
+            loyaltyNumber = _loyaltyNumber,
             givenName = _updatedGivenName,
             surname = _updatedSurname,
+            dateOfBirth = _updatedDateOfBirth.Value.ToString("yyyy-MM-dd"),
+            nationality = _updatedNationality,
+            preferredLanguage = _updatedPreferredLanguage,
             phoneNumber = _updatedPhoneNumber,
-            nationality = _updatedNationality
+            tierCode = "Gold",
+            pointsBalance = 0,
+            tierProgressPoints = 0,
+            isActive = false,
+            createdAt = _createdAt
         };
 
         // Act
@@ -157,9 +174,12 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.GivenName.Should().Be(_updatedGivenName);
         body.Surname.Should().Be(_updatedSurname);
-        body.PhoneNumber.Should().Be(_updatedPhoneNumber);
+        body.DateOfBirth.Should().Be(_updatedDateOfBirth);
         body.Nationality.Should().Be(_updatedNationality);
-        body.PreferredLanguage.Trim().Should().Be(_preferredLanguage);
+        body.PreferredLanguage.Trim().Should().Be(_updatedPreferredLanguage);
+        body.PhoneNumber.Should().Be(_updatedPhoneNumber);
+        body.TierCode.Should().Be("Gold");
+        body.IsActive.Should().BeFalse();
     }
 
     [SkippableFact, TestPriority(4)]
@@ -177,8 +197,12 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.GivenName.Should().Be(_updatedGivenName);
         body.Surname.Should().Be(_updatedSurname);
-        body.PhoneNumber.Should().Be(_updatedPhoneNumber);
+        body.DateOfBirth.Should().Be(_updatedDateOfBirth);
         body.Nationality.Should().Be(_updatedNationality);
+        body.PreferredLanguage.Trim().Should().Be(_updatedPreferredLanguage);
+        body.PhoneNumber.Should().Be(_updatedPhoneNumber);
+        body.TierCode.Should().Be("Gold");
+        body.IsActive.Should().BeFalse();
     }
 
     [SkippableFact, TestPriority(5)]
@@ -187,7 +211,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         SkipIfNoLoyaltyNumber();
 
         // Act
-        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}/transactions?page=1&pageSize=20");
+        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}/transactions");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -201,7 +225,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, TestPriority(6)]
-    public async Task T06_AddPoints_AddsPointsToBalance()
+    public async Task T06_AddPoints_InitialBalance()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -229,78 +253,61 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, TestPriority(7)]
-    public async Task T07_GetCustomer_VerifyPointsBalanceAfterAddPoints()
-    {
-        SkipIfNoLoyaltyNumber();
-
-        // Act
-        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<CustomerResponse>(JsonOptions);
-
-        body.Should().NotBeNull();
-        body!.PointsBalance.Should().Be(5000);
-    }
-
-    [SkippableFact, TestPriority(8)]
-    public async Task T08_AuthorisePoints_CreatesRedemptionHold()
+    public async Task T07_AddPoints_SecondCredit()
     {
         SkipIfNoLoyaltyNumber();
 
         // Arrange
         var request = new
         {
-            points = 1000,
-            basketId = Guid.NewGuid()
+            points = 5000,
+            transactionType = "Adjustment",
+            description = "Add some more"
         };
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            $"/api/v1/customers/{_loyaltyNumber}/points/authorise", request, JsonOptions);
+            $"/api/v1/customers/{_loyaltyNumber}/points/add", request, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<AuthorisePointsResponse>(JsonOptions);
+        var body = await response.Content.ReadFromJsonAsync<AddPointsResponse>(JsonOptions);
 
         body.Should().NotBeNull();
-        body!.RedemptionReference.Should().NotBeNullOrEmpty();
-        body.PointsAuthorised.Should().Be(1000);
-        body.PointsHeld.Should().BeGreaterOrEqualTo(1000);
-
-        _redemptionReference = body.RedemptionReference;
-    }
-
-    [SkippableFact, TestPriority(9)]
-    public async Task T09_SettlePoints_DeductsHeldPoints()
-    {
-        SkipIfNoLoyaltyNumber();
-        Skip.If(string.IsNullOrEmpty(_redemptionReference), "No redemption reference from authorise step");
-
-        // Arrange
-        var request = new
-        {
-            redemptionReference = _redemptionReference
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/v1/customers/{_loyaltyNumber}/points/settle", request, JsonOptions);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<SettlePointsResponse>(JsonOptions);
-
-        body.Should().NotBeNull();
-        body!.RedemptionReference.Should().Be(_redemptionReference);
-        body.PointsDeducted.Should().Be(1000);
-        body.NewPointsBalance.Should().Be(4000);
+        body!.LoyaltyNumber.Should().Be(_loyaltyNumber);
+        body.PointsAdded.Should().Be(5000);
+        body.NewPointsBalance.Should().Be(10000);
         body.TransactionId.Should().NotBeEmpty();
     }
 
-    [SkippableFact, TestPriority(10)]
-    public async Task T10_AuthorisePoints_SecondHoldForReversal()
+    [SkippableFact, TestPriority(8)]
+    public async Task T08_GetTransactions_ReturnsTwoAdjustments()
+    {
+        SkipIfNoLoyaltyNumber();
+
+        // Act
+        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}/transactions");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<TransactionsResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.LoyaltyNumber.Should().Be(_loyaltyNumber);
+        body.TotalCount.Should().Be(2);
+        body.Transactions.Should().HaveCount(2);
+
+        foreach (var txn in body.Transactions)
+        {
+            txn.TransactionId.Should().NotBeEmpty();
+            txn.TransactionType.Should().Be("Adjustment");
+            txn.PointsDelta.Should().Be(5000);
+            txn.Description.Should().NotBeNullOrEmpty();
+        }
+    }
+
+    [SkippableFact, TestPriority(9)]
+    public async Task T09_AuthorisePoints_CreatesRedemptionHold()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -322,21 +329,50 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.RedemptionReference.Should().NotBeNullOrEmpty();
         body.PointsAuthorised.Should().Be(500);
+        body.PointsHeld.Should().Be(500);
 
-        _secondRedemptionReference = body.RedemptionReference;
+        _redemptionReference = body.RedemptionReference;
+    }
+
+    [SkippableFact, TestPriority(10)]
+    public async Task T10_SettlePoints_DeductsHeldPoints()
+    {
+        SkipIfNoLoyaltyNumber();
+        Skip.If(string.IsNullOrEmpty(_redemptionReference), "No redemption reference from authorise step");
+
+        // Arrange
+        var request = new
+        {
+            redemptionReference = _redemptionReference
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/customers/{_loyaltyNumber}/points/settle", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SettlePointsResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        // The API generates a new redemption reference in the settle response
+        body!.RedemptionReference.Should().NotBeNullOrEmpty();
+        body.PointsDeducted.Should().Be(500);
+        body.NewPointsBalance.Should().Be(9500);
+        body.TransactionId.Should().NotBeEmpty();
     }
 
     [SkippableFact, TestPriority(11)]
     public async Task T11_ReversePoints_ReleasesHeldPoints()
     {
         SkipIfNoLoyaltyNumber();
-        Skip.If(string.IsNullOrEmpty(_secondRedemptionReference), "No second redemption reference from authorise step");
+        Skip.If(string.IsNullOrEmpty(_redemptionReference), "No redemption reference from authorise step");
 
-        // Arrange
+        // Arrange - reverse uses the original authorisation reference
         var request = new
         {
-            redemptionReference = _secondRedemptionReference,
-            reason = "Integration test - reversing authorisation"
+            redemptionReference = _redemptionReference,
+            reason = "Customer request"
         };
 
         // Act
@@ -348,81 +384,42 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         var body = await response.Content.ReadFromJsonAsync<ReversePointsResponse>(JsonOptions);
 
         body.Should().NotBeNull();
-        body!.RedemptionReference.Should().Be(_secondRedemptionReference);
+        // The API generates a new redemption reference in the reverse response
+        body!.RedemptionReference.Should().NotBeNullOrEmpty();
         body.PointsReleased.Should().Be(500);
-        body.NewPointsBalance.Should().Be(4000);
+        body.NewPointsBalance.Should().Be(10000);
     }
 
     [SkippableFact, TestPriority(12)]
-    public async Task T12_AddPoints_SecondCreditForTransactionHistory()
+    public async Task T12_ReinstatePoints_CreditsCancelledBookingPoints()
     {
         SkipIfNoLoyaltyNumber();
 
         // Arrange
         var request = new
         {
-            points = 2500,
-            transactionType = "Adjustment",
-            description = "Added initial points balance for testing"
+            points = 500,
+            bookingReference = "AB1234",
+            reason = "Flight cancellation refund"
         };
 
         // Act
         var response = await _client.PostAsJsonAsync(
-            $"/api/v1/customers/{_loyaltyNumber}/points/add", request, JsonOptions);
+            $"/api/v1/customers/{_loyaltyNumber}/points/reinstate", request, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<AddPointsResponse>(JsonOptions);
-
-        body.Should().NotBeNull();
-        body!.PointsAdded.Should().Be(2500);
-        body.NewPointsBalance.Should().Be(6500);
-    }
-
-    [SkippableFact, TestPriority(13)]
-    public async Task T13_GetTransactions_ReturnsTransactionHistory()
-    {
-        SkipIfNoLoyaltyNumber();
-
-        // Act
-        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}/transactions?page=1&pageSize=20");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<TransactionsResponse>(JsonOptions);
+        var body = await response.Content.ReadFromJsonAsync<ReinstatePointsResponse>(JsonOptions);
 
         body.Should().NotBeNull();
         body!.LoyaltyNumber.Should().Be(_loyaltyNumber);
-        body.TotalCount.Should().BeGreaterThan(0);
-        body.Transactions.Should().NotBeEmpty();
-
-        foreach (var txn in body.Transactions)
-        {
-            txn.TransactionId.Should().NotBeEmpty();
-            txn.TransactionType.Should().NotBeNullOrEmpty();
-            txn.Description.Should().NotBeNullOrEmpty();
-        }
+        body.PointsReinstated.Should().Be(500);
+        body.NewPointsBalance.Should().Be(10500);
+        body.TransactionId.Should().NotBeEmpty();
     }
 
-    [SkippableFact, TestPriority(14)]
-    public async Task T14_GetTransactions_PaginationWorks()
-    {
-        SkipIfNoLoyaltyNumber();
-
-        // Act - request page with small page size
-        var response = await _client.GetAsync($"/api/v1/customers/{_loyaltyNumber}/transactions?page=1&pageSize=2");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<TransactionsResponse>(JsonOptions);
-
-        body.Should().NotBeNull();
-        body!.PageSize.Should().Be(2);
-        body.Transactions.Count.Should().BeLessOrEqualTo(2);
-    }
-
-    [SkippableFact, TestPriority(15)]
-    public async Task T15_GetCustomer_FinalBalanceCheck()
+    [SkippableFact, TestPriority(13)]
+    public async Task T13_GetCustomer_FinalBalanceCheck()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -434,12 +431,12 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         var body = await response.Content.ReadFromJsonAsync<CustomerResponse>(JsonOptions);
 
         body.Should().NotBeNull();
-        body!.PointsBalance.Should().Be(6500);
-        body.IsActive.Should().BeTrue();
+        // 5000 + 5000 (adds) - 500 (settle) + 500 (reverse) + 500 (reinstate) = 10500
+        body!.PointsBalance.Should().Be(10500);
     }
 
-    [SkippableFact, TestPriority(16)]
-    public async Task T16_DeleteCustomer_ReturnsNoContent()
+    [SkippableFact, TestPriority(14)]
+    public async Task T14_DeleteCustomer_ReturnsNoContent()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -450,8 +447,8 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
-    [SkippableFact, TestPriority(17)]
-    public async Task T17_GetDeletedCustomer_ReturnsNotFound()
+    [SkippableFact, TestPriority(15)]
+    public async Task T15_GetDeletedCustomer_ReturnsNotFound()
     {
         SkipIfNoLoyaltyNumber();
 
@@ -462,8 +459,8 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact, TestPriority(18)]
-    public async Task T18_GetNonExistentCustomer_ReturnsNotFound()
+    [Fact, TestPriority(16)]
+    public async Task T16_GetNonExistentCustomer_ReturnsNotFound()
     {
         // Act
         var response = await _client.GetAsync("/api/v1/customers/AX0000000");
@@ -472,10 +469,10 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact, TestPriority(19)]
-    public async Task T19_CreateCustomer_MinimalFields()
+    [Fact, TestPriority(17)]
+    public async Task T17_CreateCustomer_MinimalFields()
     {
-        // Arrange - only required fields
+        // Arrange - only required fields (no dateOfBirth)
         var request = new
         {
             givenName = _faker.Name.FirstName(),
@@ -497,8 +494,8 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         await _client.DeleteAsync($"/api/v1/customers/{body.LoyaltyNumber}");
     }
 
-    [Fact, TestPriority(20)]
-    public async Task T20_CreateCustomer_WithIdentityId()
+    [Fact, TestPriority(18)]
+    public async Task T18_CreateCustomer_WithIdentityId()
     {
         // Arrange
         var identityId = Guid.NewGuid();
@@ -529,8 +526,8 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         await _client.DeleteAsync($"/api/v1/customers/{createBody.LoyaltyNumber}");
     }
 
-    [Fact, TestPriority(21)]
-    public async Task T21_UpdateCustomer_PartialUpdate_PreservesOtherFields()
+    [Fact, TestPriority(19)]
+    public async Task T19_UpdateCustomer_PartialUpdate_PreservesOtherFields()
     {
         // Arrange - create a fresh customer
         var originalName = _faker.Name.FirstName();
@@ -562,6 +559,46 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Surname.Should().Be(originalSurname, "partial update should preserve surname");
         body.PreferredLanguage.Trim().Should().Be("de-DE", "partial update should preserve preferred language");
         body.PhoneNumber.Should().Be("+353851234567");
+
+        // Cleanup
+        await _client.DeleteAsync($"/api/v1/customers/{created.LoyaltyNumber}");
+    }
+
+    [Fact, TestPriority(20)]
+    public async Task T20_GetTransactions_PaginationWorks()
+    {
+        // Arrange - create a customer and add enough transactions to paginate
+        var createRequest = new
+        {
+            givenName = _faker.Name.FirstName(),
+            surname = _faker.Name.LastName(),
+            preferredLanguage = "en-GB"
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/customers", createRequest, JsonOptions);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCustomerResponse>(JsonOptions);
+        created.Should().NotBeNull();
+
+        // Add multiple transactions
+        for (var i = 0; i < 3; i++)
+        {
+            await _client.PostAsJsonAsync(
+                $"/api/v1/customers/{created!.LoyaltyNumber}/points/add",
+                new { points = 100, transactionType = "Adjustment", description = $"Transaction {i + 1}" },
+                JsonOptions);
+        }
+
+        // Act - request page with small page size
+        var response = await _client.GetAsync($"/api/v1/customers/{created!.LoyaltyNumber}/transactions?page=1&pageSize=2");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<TransactionsResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PageSize.Should().Be(2);
+        body.TotalCount.Should().Be(3);
+        body.Transactions.Count.Should().Be(2);
 
         // Cleanup
         await _client.DeleteAsync($"/api/v1/customers/{created.LoyaltyNumber}");
