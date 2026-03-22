@@ -23,6 +23,7 @@ The platform covers the full airline retailing journey: search, offer, basket, p
 │   ├── api-reference.md               ← all API endpoints, verbs, and descriptions
 │   ├── api.md                         ← how to build backend microservices and APIs
 │   ├── web.md                         ← how to build the Angular web front-end
+│   ├── tests.md                       ← how to write integration tests for microservices
 │   └── principles/
 │       ├── architecture-principals.md ← DDD, microservices, orchestration rules
 │       ├── integration-principals.md  ← REST conventions, versioning, idempotency
@@ -57,6 +58,7 @@ The platform covers the full airline retailing journey: search, offer, basket, p
 | `documentation/principles/data-principals.md` | Data ownership, formats (ISO 8601, IATA codes, decimal money), retention. |
 | `documentation/principles/infrastructure-principals.md` | Azure Functions, hosting, deployment, and scaling constraints. |
 | `documentation/principles/coding-standards.md` | C# coding conventions, naming, class design, async patterns, logging, SQL, and testing standards. |
+| `documentation/tests.md` | How to write integration tests for microservice APIs. Follow this when adding a new test suite for any microservice. |
 
 ---
 
