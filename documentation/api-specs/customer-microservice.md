@@ -569,6 +569,65 @@ Reinstate points to a customer's balance following a completed cancellation or f
 
 ---
 
+### POST /v1/customers/{loyaltyNumber}/points/add
+
+Add points directly to a customer's loyalty balance. Appends a transaction to the loyalty ledger using the caller-supplied `transactionType` and `description`. Intended for manual adjustments, testing, and customer service operations.
+
+**When to use:** When points need to be credited to an account outside of the normal earn/reinstate flows — for example, seeding a test account with an initial balance, applying a goodwill gesture, or correcting a points discrepancy. The `transactionType` must match one of the five types defined in the loyalty data model.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The customer's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "points": 5000,
+  "transactionType": "Adjustment",
+  "description": "Added initial points balance for testing"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `points` | integer | Yes | Number of points to add to the customer's balance. Must be a positive integer |
+| `transactionType` | string | Yes | Type of transaction to record. Must be one of: `Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate` |
+| `description` | string | Yes | Human-readable description of why points are being added. Stored on the `LoyaltyTransaction` record |
+
+#### Response — `200 OK`
+
+```json
+{
+  "loyaltyNumber": "AX9876543",
+  "pointsAdded": 5000,
+  "newPointsBalance": 5000,
+  "transactionId": "d5c9f0e1-b2a3-4567-89ab-cde901234567",
+  "addedAt": "2026-03-22T10:00:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `loyaltyNumber` | string | The customer's loyalty number |
+| `pointsAdded` | integer | Number of points credited to the balance |
+| `newPointsBalance` | integer | Updated `PointsBalance` after the credit |
+| `transactionId` | string (UUID) | Unique identifier of the `LoyaltyTransaction` record appended to the ledger |
+| `addedAt` | string (datetime) | ISO 8601 UTC timestamp when the points were added |
+
+> **Ledger entry:** A `LoyaltyTransaction` record is appended using the supplied `transactionType` and `description`. The `BalanceAfter` snapshot reflects the new balance.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields, invalid field format, or `transactionType` is not one of the permitted values |
+| `404 Not Found` | No customer found for the given loyalty number |
+
+---
+
 ### DELETE /v1/customers/{loyaltyNumber}
 
 Delete a customer record. Used exclusively for registration rollback — called by the Loyalty API if Identity account creation fails (step 2 of registration), or if the subsequent `PATCH` to link the `identityReference` fails (step 3 of registration). Partial registration states must not be left in the system.
@@ -710,6 +769,20 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reinstate 
     "points": 50000,
     "bookingReference": "XK7T2P",
     "reason": "VoluntaryCancellation"
+  }'
+```
+
+### Adding points to a customer account (manual adjustment)
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/add \
+  -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "points": 5000,
+    "transactionType": "Adjustment",
+    "description": "Added initial points balance for testing"
   }'
 ```
 

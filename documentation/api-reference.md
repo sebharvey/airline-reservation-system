@@ -84,6 +84,7 @@
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a previously authorised points redemption; deducts points from balance and appends a `Redeem` transaction to the loyalty ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback (e.g. ticketing failure after points authorisation) |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed; appends a `Reinstate` transaction to the loyalty ledger; used by Retail API on voluntary cancellation (reward bookings) and by Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance; caller supplies `transactionType` (must be one of `Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) and `description`; intended for manual adjustments and testing |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
 
@@ -311,6 +312,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a held points redemption; decrements `PointsBalance`, appends `Redeem` transaction to ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a held points redemption; releases held points back to available balance |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change; appends a `Reinstate` transaction to the ledger |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance using a caller-supplied transaction type and description; validates `transactionType` against the permitted set (`Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) |
 
 ---
 
