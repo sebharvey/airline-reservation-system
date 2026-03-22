@@ -399,74 +399,6 @@
       border: 1px solid var(--border);
     }
 
-    /* ── Overview (no selection) ── */
-    .overview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 16px;
-    }
-
-    .overview-section-title {
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      margin-top: 24px;
-    }
-
-    .overview-section-title:first-child {
-      margin-top: 0;
-    }
-
-    .overview-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      cursor: pointer;
-      transition: box-shadow 0.2s, border-color 0.2s, background-color 0.3s;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .overview-card:hover {
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-      border-color: var(--grad-start);
-    }
-
-    .overview-card-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .overview-card-name {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .overview-card-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .overview-card-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
     /* ── Empty state ── */
     .empty-state {
       display: flex;
@@ -565,7 +497,7 @@
   <script>
     let servicesData = null;
     let healthResults = {};
-    let selectedId = null;
+    let selectedId = 'retail-api';
 
     // ── Theme ──
     function toggleTheme() {
@@ -577,7 +509,7 @@
 
     (function initTheme() {
       const saved = localStorage.getItem('theme');
-      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      if (saved === 'dark') {
         document.documentElement.classList.add('dark');
         document.getElementById('themeToggle').textContent = '\u2600\uFE0F';
       }
@@ -636,7 +568,8 @@
       if (!servicesData) return [];
       return [
         ...servicesData.orchestrationApis.map(s => ({ ...s, group: 'orchestration' })),
-        ...servicesData.microservices.map(s => ({ ...s, group: 'microservice' }))
+        ...servicesData.microservices.map(s => ({ ...s, group: 'microservice' })),
+        ...(servicesData.other || []).map(s => ({ ...s, group: 'other' }))
       ];
     }
 
@@ -659,6 +592,13 @@
         html += sidebarItem(s);
       }
 
+      if (servicesData.other && servicesData.other.length > 0) {
+        html += `<div class="sidebar-group-title">Other</div>`;
+        for (const s of servicesData.other) {
+          html += sidebarItem(s);
+        }
+      }
+
       el.innerHTML = html;
     }
 
@@ -677,47 +617,7 @@
     function renderMain() {
       if (selectedId) {
         renderDetail(selectedId);
-      } else {
-        renderOverview();
       }
-    }
-
-    function renderOverview() {
-      const el = document.getElementById('main');
-      let html = '';
-
-      html += `<div class="overview-section-title">Orchestration APIs</div>`;
-      html += `<div class="overview-grid">`;
-      for (const s of servicesData.orchestrationApis) {
-        html += overviewCard(s);
-      }
-      html += `</div>`;
-
-      html += `<div class="overview-section-title">Microservices</div>`;
-      html += `<div class="overview-grid">`;
-      for (const s of servicesData.microservices) {
-        html += overviewCard(s);
-      }
-      html += `</div>`;
-
-      el.innerHTML = html;
-    }
-
-    function overviewCard(s) {
-      const cls = getStatusClass(s.id);
-      const r = healthResults[s.id];
-      const time = r && r.responseTime ? `${r.responseTime}ms` : '';
-      return `<div class="overview-card" onclick="selectService('${s.id}')">
-        <div class="status-icon-lg ${cls}">${getStatusIcon(s.id)}</div>
-        <div class="overview-card-info">
-          <div class="overview-card-name">${s.name}</div>
-          <div class="overview-card-desc">${s.description}</div>
-          <div class="overview-card-meta">
-            <span class="detail-status-label label-${cls}">${getStatusLabel(s.id)}</span>
-            ${time ? `<span>${time}</span>` : ''}
-          </div>
-        </div>
-      </div>`;
     }
 
     function renderDetail(id) {
@@ -768,7 +668,7 @@
               </div>
               <div class="detail-field">
                 <span class="field-label">Group</span>
-                <span class="field-value">${s.group === 'orchestration' ? 'Orchestration API' : 'Microservice'}</span>
+                <span class="field-value">${s.group === 'orchestration' ? 'Orchestration API' : s.group === 'microservice' ? 'Microservice' : 'Other'}</span>
               </div>
               ${errorMsg}
               <div class="detail-field full-width">
@@ -784,7 +684,7 @@
 
     // ── Selection ──
     function selectService(id) {
-      selectedId = selectedId === id ? null : id;
+      selectedId = id;
       renderSidebar();
       renderMain();
     }
