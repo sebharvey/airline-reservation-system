@@ -32,7 +32,8 @@ public sealed class Customer
         string? preferredLanguage = null,
         string? phoneNumber = null,
         string? tierCode = null,
-        Guid? identityId = null)
+        Guid? identityId = null,
+        bool? isActive = null)
     {
         if (givenName is not null) GivenName = givenName;
         if (surname is not null) Surname = surname;
@@ -42,6 +43,7 @@ public sealed class Customer
         if (phoneNumber is not null) PhoneNumber = phoneNumber;
         if (tierCode is not null) TierCode = tierCode;
         if (identityId is not null) IdentityId = identityId;
+        if (isActive is not null) IsActive = isActive.Value;
         UpdatedAt = DateTime.UtcNow;
     }
 

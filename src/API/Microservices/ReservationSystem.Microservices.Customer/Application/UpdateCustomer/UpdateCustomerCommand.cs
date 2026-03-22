@@ -11,4 +11,6 @@ public sealed record UpdateCustomerCommand(
     string? Nationality,
     string? PhoneNumber,
     string? PreferredLanguage,
-    Guid? IdentityId);
+    Guid? IdentityId,
+    string? TierCode,
+    bool? IsActive);

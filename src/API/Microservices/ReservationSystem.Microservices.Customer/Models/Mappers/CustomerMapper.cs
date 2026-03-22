@@ -40,7 +40,9 @@ public static class CustomerMapper
             Nationality: request.Nationality,
             PhoneNumber: request.PhoneNumber,
             PreferredLanguage: request.PreferredLanguage,
-            IdentityId: request.IdentityId);
+            IdentityId: request.IdentityId,
+            TierCode: request.TierCode,
+            IsActive: request.IsActive);
 
     public static AuthorisePointsCommand ToCommand(string loyaltyNumber, AuthorisePointsRequest request) =>
         new(

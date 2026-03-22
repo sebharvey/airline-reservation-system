@@ -12,4 +12,6 @@ public sealed class UpdateCustomerRequest
     public string? PhoneNumber { get; init; }
     public string? PreferredLanguage { get; init; }
     public Guid? IdentityId { get; init; }
+    public string? TierCode { get; init; }
+    public bool? IsActive { get; init; }
 }
