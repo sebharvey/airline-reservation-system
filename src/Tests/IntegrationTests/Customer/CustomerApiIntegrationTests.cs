@@ -18,8 +18,9 @@ namespace ReservationSystem.IntegrationTests.Customer;
 [TestCaseOrderer("ReservationSystem.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.IntegrationTests.Customer")]
 public class CustomerApiIntegrationTests : IAsyncLifetime
 {
-    private static readonly string BaseUrl = Environment.GetEnvironmentVariable("CUSTOMER_API_BASE_URL")
-        ?? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net";
+    private static readonly string BaseUrl = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CUSTOMER_API_BASE_URL"))
+        ? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net"
+        : Environment.GetEnvironmentVariable("CUSTOMER_API_BASE_URL")!;
 
     private static readonly string? HostKey = Environment.GetEnvironmentVariable("CUSTOMER_API_HOST_KEY");
 

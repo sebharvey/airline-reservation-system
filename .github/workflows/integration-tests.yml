@@ -38,16 +38,16 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore src/Tests/ReservationSystem.Tests.csproj
+        run: dotnet restore src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj
 
       - name: Build
-        run: dotnet build src/Tests/ReservationSystem.Tests.csproj --configuration Release --no-restore
+        run: dotnet build src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj --configuration Release --no-restore
 
       - name: Run integration tests
         env:
           CUSTOMER_API_BASE_URL: ${{ secrets.CUSTOMER_API_BASE_URL }}
           CUSTOMER_API_HOST_KEY: ${{ secrets.CUSTOMER_API_HOST_KEY }}
-        run: dotnet test src/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
+        run: dotnet test src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj --configuration Release --no-build --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
