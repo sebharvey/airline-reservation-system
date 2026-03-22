@@ -192,10 +192,10 @@
         { "name": "Get Customer", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}" },
         { "name": "Update Customer", "method": "PATCH", "path": "/api/v1/customers/{loyaltyNumber}" },
         { "name": "Get Customer Transactions", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/transactions" },
-        { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise" },
-        { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle" },
-        { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse" },
-        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" },
+        { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise", "defaultPayload": "{\n  \"points\": 500,\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle", "defaultPayload": "{\n  \"redemptionReference\": \"REDM-001\"\n}" },
+        { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse", "defaultPayload": "{\n  \"redemptionReference\": \"REDM-001\",\n  \"reason\": \"Customer request\"\n}" },
+        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate", "defaultPayload": "{\n  \"points\": 500,\n  \"bookingReference\": \"AB1234\",\n  \"reason\": \"Flight cancellation refund\"\n}" },
         { "name": "Add Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/add", "defaultPayload": "{\n  \"points\": 5000,\n  \"transactionType\": \"Adjustment\",\n  \"description\": \"Added initial points balance for testing\"\n}" },
         { "name": "Delete Customer", "method": "DELETE", "path": "/api/v1/customers/{loyaltyNumber}" }
       ]
@@ -278,16 +278,16 @@
       "authType": "host-key",
       "callers": ["Loyalty API"],
       "operations": [
-        { "name": "Login", "method": "POST", "path": "/api/v1/auth/login" },
-        { "name": "Refresh Token", "method": "POST", "path": "/api/v1/auth/refresh" },
-        { "name": "Logout", "method": "POST", "path": "/api/v1/auth/logout" },
-        { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request" },
-        { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset" },
-        { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts" },
+        { "name": "Login", "method": "POST", "path": "/api/v1/auth/login", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\"\n}" },
+        { "name": "Refresh Token", "method": "POST", "path": "/api/v1/auth/refresh", "defaultPayload": "{\n  \"refreshToken\": \"<paste-refresh-token>\"\n}" },
+        { "name": "Logout", "method": "POST", "path": "/api/v1/auth/logout", "defaultPayload": "{\n  \"refreshToken\": \"<paste-refresh-token>\"\n}" },
+        { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\"\n}" },
+        { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"<paste-reset-token>\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
+        { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\",\n  \"customerId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
         { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
         { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
-        { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request" },
-        { "name": "Verify Email Change", "method": "POST", "path": "/api/v1/email/verify" }
+        { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request", "defaultPayload": "{\n  \"newEmail\": \"jane.newemail@example.com\"\n}" },
+        { "name": "Verify Email Change", "method": "POST", "path": "/api/v1/email/verify", "defaultPayload": "{\n  \"token\": \"<paste-verify-token>\"\n}" }
       ]
     }
   ],
