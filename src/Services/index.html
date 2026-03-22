@@ -658,6 +658,81 @@
       word-break: break-all;
     }
 
+    /* ── Invoke button ── */
+    .invoke-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 0 12px;
+    }
+
+    .invoke-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .invoke-btn:hover:not(:disabled) {
+      opacity: 0.88;
+    }
+
+    .invoke-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .invoke-btn svg {
+      flex-shrink: 0;
+    }
+
+    /* ── Response header row (label + status badge) ── */
+    .response-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .response-row .response-label {
+      margin-bottom: 0;
+    }
+
+    /* ── Status code badge ── */
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      letter-spacing: 0.3px;
+      display: none;
+    }
+
+    .status-badge:not(:empty) {
+      display: inline-block;
+    }
+
+    .status-2xx { background: rgba(34,197,94,0.15);  color: #16a34a; }
+    .status-3xx { background: rgba(59,130,246,0.15); color: #2563eb; }
+    .status-4xx { background: rgba(245,158,11,0.15); color: #d97706; }
+    .status-5xx { background: rgba(239,68,68,0.15);  color: #dc2626; }
+    .status-err { background: rgba(239,68,68,0.15);  color: #dc2626; }
+
+    html.dark .status-2xx { background: rgba(34,197,94,0.2);  color: #4ade80; }
+    html.dark .status-3xx { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    html.dark .status-4xx { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    html.dark .status-5xx { background: rgba(239,68,68,0.2);  color: #f87171; }
+    html.dark .status-err { background: rgba(239,68,68,0.2);  color: #f87171; }
+
     .detail-header {
       padding: 24px;
       border-bottom: 1px solid var(--border);
@@ -1197,6 +1272,8 @@
         const bodySection = isGet ? '' : `
           <div class="body-label">Request Body</div>
           <textarea class="body-textarea" placeholder='{\n  \n}'></textarea>`;
+        const playIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+        const spinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
         return `<div class="accordion-item" id="acc-${s.id}-${i}">
           <div class="accordion-trigger" onclick="toggleAccordion('${s.id}', ${i})">
             <span class="method-badge method-${op.method}">${op.method}</span>
@@ -1210,8 +1287,14 @@
               <input class="path-input" type="text" value="${op.path}" spellcheck="false" />
             </div>
             ${bodySection}
-            <div class="response-label">Response</div>
-            <div class="response-box">— no response yet —</div>
+            <div class="invoke-row">
+              <button class="invoke-btn" id="invoke-btn-${s.id}-${i}" onclick="invokeOperation('${s.id}', ${i})">${playIcon} Invoke</button>
+            </div>
+            <div class="response-row">
+              <span class="response-label">Response</span>
+              <span class="status-badge" id="status-badge-${s.id}-${i}"></span>
+            </div>
+            <div class="response-box" id="response-box-${s.id}-${i}">— no response yet —</div>
           </div>
         </div>`;
       }).join('');
@@ -1220,6 +1303,84 @@
     function toggleAccordion(serviceId, index) {
       const item = document.getElementById(`acc-${serviceId}-${index}`);
       if (item) item.classList.toggle('open');
+    }
+
+    // ── Invoke operation ──
+    async function invokeOperation(serviceId, index) {
+      const service = findService(serviceId);
+      if (!service) return;
+
+      const item = document.getElementById(`acc-${serviceId}-${index}`);
+      const pathInput = item.querySelector('.path-input');
+      const bodyTextarea = item.querySelector('.body-textarea');
+      const responseBox = document.getElementById(`response-box-${serviceId}-${index}`);
+      const statusBadge = document.getElementById(`status-badge-${serviceId}-${index}`);
+      const invokeBtn = document.getElementById(`invoke-btn-${serviceId}-${index}`);
+
+      const spinIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+      const playIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+
+      // Lock button
+      invokeBtn.disabled = true;
+      invokeBtn.innerHTML = `${spinIcon} Invoking…`;
+      statusBadge.textContent = '';
+      statusBadge.className = 'status-badge';
+      responseBox.style.color = 'var(--text-muted)';
+      responseBox.textContent = 'Loading…';
+
+      const path = pathInput ? pathInput.value : service.operations[index].path;
+      const url = service.baseUrl + path;
+      const method = service.operations[index].method;
+
+      const headers = {};
+      if (method !== 'GET' && method !== 'DELETE') {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (service.authType === 'host-key') {
+        const encoded = localStorage.getItem('hostKey');
+        if (encoded) headers['x-functions-key'] = atob(encoded);
+      } else if (service.authType === 'bearer') {
+        const encoded = localStorage.getItem('hostKey');
+        if (encoded) headers['Authorization'] = `Bearer ${atob(encoded)}`;
+      }
+
+      try {
+        const fetchOptions = { method, headers, mode: 'cors', signal: AbortSignal.timeout(30000) };
+        if (bodyTextarea && bodyTextarea.value.trim()) {
+          fetchOptions.body = bodyTextarea.value;
+        }
+
+        const resp = await fetch(url, fetchOptions);
+        const statusCode = resp.status;
+
+        let statusClass = 'status-5xx';
+        if (statusCode >= 200 && statusCode < 300) statusClass = 'status-2xx';
+        else if (statusCode >= 300 && statusCode < 400) statusClass = 'status-3xx';
+        else if (statusCode >= 400 && statusCode < 500) statusClass = 'status-4xx';
+
+        statusBadge.textContent = `${statusCode} ${resp.statusText || ''}`.trim();
+        statusBadge.className = `status-badge ${statusClass}`;
+
+        const contentType = resp.headers.get('content-type') || '';
+        let bodyText;
+        if (contentType.includes('application/json')) {
+          const json = await resp.json();
+          bodyText = JSON.stringify(json, null, 2);
+        } else {
+          bodyText = await resp.text();
+        }
+
+        responseBox.style.color = 'var(--text)';
+        responseBox.textContent = bodyText || '(empty response)';
+      } catch (e) {
+        statusBadge.textContent = 'ERROR';
+        statusBadge.className = 'status-badge status-err';
+        responseBox.style.color = 'var(--error)';
+        responseBox.textContent = e.name === 'TimeoutError' ? 'Request timed out (30s)' : (e.message || 'Request failed');
+      } finally {
+        invokeBtn.disabled = false;
+        invokeBtn.innerHTML = `${playIcon} Invoke`;
+      }
     }
 
     // ── Selection ──
