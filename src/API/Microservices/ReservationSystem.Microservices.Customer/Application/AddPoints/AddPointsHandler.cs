@@ -24,8 +24,16 @@ public sealed class AddPointsHandler
         _logger = logger;
     }
 
+    private static readonly IReadOnlySet<string> ValidTransactionTypes =
+        new HashSet<string>(StringComparer.Ordinal) { "Earn", "Redeem", "Adjustment", "Expiry", "Reinstate" };
+
     public async Task<LoyaltyTransaction?> HandleAsync(AddPointsCommand command, CancellationToken cancellationToken = default)
     {
+        if (!ValidTransactionTypes.Contains(command.TransactionType))
+            throw new ArgumentException(
+                $"Invalid transaction type '{command.TransactionType}'. Must be one of: {string.Join(", ", ValidTransactionTypes)}.",
+                nameof(command));
+
         var customer = await _customerRepository.GetByLoyaltyNumberAsync(command.LoyaltyNumber, cancellationToken);
 
         if (customer is null)
@@ -39,10 +47,10 @@ public sealed class AddPointsHandler
 
         var transaction = LoyaltyTransaction.Create(
             customerId: customer.CustomerId,
-            transactionType: "Adjustment",
+            transactionType: command.TransactionType,
             pointsDelta: command.Points,
             balanceAfter: customer.PointsBalance,
-            description: "Added initial points balance for testing");
+            description: command.Description);
 
         await _transactionRepository.CreateAsync(transaction, cancellationToken);
 

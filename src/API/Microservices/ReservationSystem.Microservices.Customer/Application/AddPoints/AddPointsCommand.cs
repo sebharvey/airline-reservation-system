@@ -5,4 +5,6 @@ namespace ReservationSystem.Microservices.Customer.Application.AddPoints;
 /// </summary>
 public sealed record AddPointsCommand(
     string LoyaltyNumber,
-    int Points);
+    int Points,
+    string TransactionType,
+    string Description);

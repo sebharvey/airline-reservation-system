@@ -208,7 +208,9 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         // Arrange
         var request = new
         {
-            points = 5000
+            points = 5000,
+            transactionType = "Adjustment",
+            description = "Added initial points balance for testing"
         };
 
         // Act
@@ -359,7 +361,9 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         // Arrange
         var request = new
         {
-            points = 2500
+            points = 2500,
+            transactionType = "Adjustment",
+            description = "Added initial points balance for testing"
         };
 
         // Act

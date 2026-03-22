@@ -63,7 +63,9 @@ public static class CustomerMapper
     public static AddPointsCommand ToCommand(string loyaltyNumber, AddPointsRequest request) =>
         new(
             LoyaltyNumber: loyaltyNumber,
-            Points: request.Points);
+            Points: request.Points,
+            TransactionType: request.TransactionType,
+            Description: request.Description);
 
     public static ReinstatePointsCommand ToCommand(string loyaltyNumber, ReinstatePointsRequest request) =>
         new(

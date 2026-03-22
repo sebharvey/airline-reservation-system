@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Microservices.Customer.Application.AddPoints;
+using ReservationSystem.Microservices.Customer.Domain.Entities;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
 using ReservationSystem.Microservices.Customer.Application.DeleteCustomer;
@@ -405,7 +406,18 @@ public sealed class CustomerFunction
             return await req.BadRequestAsync("Request body is required.");
 
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
-        var transaction = await _addPointsHandler.HandleAsync(command, cancellationToken);
+
+        LoyaltyTransaction? transaction;
+
+        try
+        {
+            transaction = await _addPointsHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid transaction type in AddPoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync(ex.Message);
+        }
 
         if (transaction is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
