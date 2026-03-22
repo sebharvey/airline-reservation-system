@@ -19,10 +19,9 @@ using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Customer.Swagger;
 using ReservationSystem.Shared.Common.Health;
 using Microsoft.EntityFrameworkCore;
-using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults()
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
@@ -33,19 +32,14 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // ── Configuration ──────────────────────────────────────────────────────
-        services.Configure<DatabaseOptions>(
-            context.Configuration.GetSection(DatabaseOptions.SectionName));
-
         // ── Infrastructure ─────────────────────────────────────────────────────
-        services.AddDbContext<CustomerDbContext>((provider, options) =>
+        services.AddDbContext<CustomerDbContext>(options =>
         {
-            var dbOptions = provider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
-                .Value;
-            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
+            var connectionString = context.Configuration["Database:ConnectionString"];
+            var commandTimeout = context.Configuration.GetValue<int>("Database:CommandTimeoutSeconds", 30);
+            options.UseSqlServer(connectionString, sqlOptions =>
             {
-                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
+                sqlOptions.CommandTimeout(commandTimeout);
             });
         });
         services.AddHttpClient();
