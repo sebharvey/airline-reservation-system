@@ -17,7 +17,9 @@ using ReservationSystem.Microservices.Identity.Application.ResetPassword;
 using ReservationSystem.Microservices.Identity.Application.ResetPasswordRequest;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
+using ReservationSystem.Microservices.Identity.Application.VerifyToken;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
+using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
@@ -37,6 +39,8 @@ var host = new HostBuilder()
         // ── Configuration ──────────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
+        services.Configure<JwtOptions>(
+            context.Configuration.GetSection(JwtOptions.SectionName));
 
         // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddDbContext<IdentityDbContext>((provider, options) =>
@@ -58,6 +62,7 @@ var host = new HostBuilder()
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<LoginHandler>();
+        services.AddScoped<VerifyTokenHandler>();
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<LogoutHandler>();
         services.AddScoped<ResetPasswordRequestHandler>();

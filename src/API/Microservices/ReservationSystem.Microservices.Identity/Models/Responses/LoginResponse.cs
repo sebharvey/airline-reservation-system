@@ -8,4 +8,5 @@ public sealed class LoginResponse
     public string AccessToken { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;
     public Guid UserAccountId { get; init; }
+    public DateTime ExpiresAt { get; init; }
 }

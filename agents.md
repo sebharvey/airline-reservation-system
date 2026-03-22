@@ -59,6 +59,7 @@ The platform covers the full airline retailing journey: search, offer, basket, p
 | `documentation/principles/infrastructure-principals.md` | Azure Functions, hosting, deployment, and scaling constraints. |
 | `documentation/principles/coding-standards.md` | C# coding conventions, naming, class design, async patterns, logging, SQL, and testing standards. |
 | `documentation/tests.md` | How to write integration tests for microservice APIs. Follow this when adding a new test suite for any microservice. |
+| `documentation/authentication.md` | JWT access token and refresh token flow across the Loyalty API and Identity microservice. Covers token types, middleware, endpoint reference, and configuration. |
 
 ---
 
