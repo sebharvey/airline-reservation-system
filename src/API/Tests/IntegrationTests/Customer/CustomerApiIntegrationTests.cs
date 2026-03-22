@@ -8,14 +8,14 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace ReservationSystem.IntegrationTests.Customer;
+namespace ReservationSystem.Tests.IntegrationTests.Customer;
 
 /// <summary>
 /// Integration tests for the Customer Microservice API.
 /// Tests run sequentially against the live API, exercising the full customer lifecycle:
 /// create, read, update, points operations, transactions, and delete.
 /// </summary>
-[TestCaseOrderer("ReservationSystem.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.IntegrationTests.Customer")]
+[TestCaseOrderer("ReservationSystem.Tests.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.Tests.IntegrationTests.Customer")]
 public class CustomerApiIntegrationTests : IAsyncLifetime
 {
     private static readonly string BaseUrl = Environment.GetEnvironmentVariable("CUSTOMER_API_BASE_URL")
