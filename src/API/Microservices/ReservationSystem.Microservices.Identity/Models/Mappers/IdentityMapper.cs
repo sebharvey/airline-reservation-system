@@ -34,6 +34,5 @@ public static class IdentityMapper
     public static CreateAccountCommand ToCommand(CreateAccountRequest request) =>
         new(
             Email: request.Email,
-            Password: request.Password,
-            CustomerId: request.CustomerId);
+            Password: request.Password);
 }
