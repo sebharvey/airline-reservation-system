@@ -98,5 +98,5 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
 
     private sealed record AircraftTypeRecord(
         string AircraftTypeCode, string Manufacturer, string? FriendlyName, int TotalSeats,
-        bool IsActive, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+        bool IsActive, DateTime CreatedAt, DateTime UpdatedAt);
 }

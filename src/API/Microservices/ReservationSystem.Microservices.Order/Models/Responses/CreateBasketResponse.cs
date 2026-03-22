@@ -11,7 +11,7 @@ public sealed class CreateBasketResponse
     public string BasketStatus { get; init; } = string.Empty;
 
     [JsonPropertyName("expiresAt")]
-    public DateTimeOffset ExpiresAt { get; init; }
+    public DateTime ExpiresAt { get; init; }
 
     [JsonPropertyName("totalAmount")]
     public decimal TotalAmount { get; init; }

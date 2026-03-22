@@ -4,5 +4,5 @@ public sealed record CreateBagPricingCommand(
     int BagSequence,
     string CurrencyCode,
     decimal Price,
-    DateTimeOffset ValidFrom,
-    DateTimeOffset? ValidTo);
+    DateTime ValidFrom,
+    DateTime? ValidTo);

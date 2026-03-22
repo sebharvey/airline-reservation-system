@@ -72,7 +72,7 @@ public sealed class UpdateBasketBagsHandler
             basket.Version + 1,
             basketJson.ToJsonString(),
             basket.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         await _repository.UpdateAsync(updated, cancellationToken);
 

@@ -22,7 +22,7 @@ public sealed class UpdateBagPolicyHandler
 
         var updated = BagPolicy.Reconstitute(
             command.PolicyId, existing.CabinCode, command.FreeBagsIncluded, command.MaxWeightKgPerBag,
-            command.IsActive, existing.CreatedAt, DateTimeOffset.UtcNow);
+            command.IsActive, existing.CreatedAt, DateTime.UtcNow);
 
         var result = await _repository.UpdateAsync(updated, cancellationToken);
         _logger.LogInformation("Updated BagPolicy {PolicyId}", command.PolicyId);

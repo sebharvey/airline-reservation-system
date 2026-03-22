@@ -9,5 +9,5 @@ public sealed class SettlePointsResponse
     public int PointsDeducted { get; init; }
     public int NewPointsBalance { get; init; }
     public Guid TransactionId { get; init; }
-    public DateTimeOffset SettledAt { get; init; }
+    public DateTime SettledAt { get; init; }
 }

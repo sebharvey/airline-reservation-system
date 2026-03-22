@@ -13,5 +13,5 @@ public sealed class CreateScheduleResponse
     public DateOnly? EffectiveTo { get; init; }
     public IReadOnlyList<DayOfWeek> OperatingDays { get; init; } = [];
     public int InventoryItemsCreated { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 }

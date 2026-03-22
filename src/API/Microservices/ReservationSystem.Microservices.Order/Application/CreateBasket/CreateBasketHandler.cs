@@ -29,7 +29,7 @@ public sealed class CreateBasketHandler
         _logger.LogInformation("Creating basket for channel {ChannelCode}, currency {CurrencyCode}",
             command.ChannelCode, command.CurrencyCode);
 
-        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(60);
+        var expiresAt = DateTime.UtcNow.AddMinutes(60);
 
         var basketData = new JsonObject
         {

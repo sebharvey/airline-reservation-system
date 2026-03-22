@@ -49,7 +49,7 @@ public sealed class ChangeOrderHandler
         {
             // Add the new segment data to the order
             orderJson["newSegment"] = changeNode.DeepClone();
-            orderJson["lastChangedAt"] = DateTimeOffset.UtcNow.ToString("o");
+            orderJson["lastChangedAt"] = DateTime.UtcNow.ToString("o");
         }
 
         var updated = Domain.Entities.Order.Reconstitute(
@@ -63,7 +63,7 @@ public sealed class ChangeOrderHandler
             order.Version + 1,
             orderJson.ToJsonString(),
             order.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         await _repository.UpdateAsync(updated, cancellationToken);
 

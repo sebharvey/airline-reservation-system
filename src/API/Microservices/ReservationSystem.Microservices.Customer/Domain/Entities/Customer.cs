@@ -19,8 +19,8 @@ public sealed class Customer
     public int PointsBalance { get; private set; }
     public int TierProgressPoints { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Customer() { }
 
@@ -42,19 +42,19 @@ public sealed class Customer
         if (phoneNumber is not null) PhoneNumber = phoneNumber;
         if (tierCode is not null) TierCode = tierCode;
         if (identityReference is not null) IdentityReference = identityReference;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void DeductPoints(int points)
     {
         PointsBalance -= points;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AddPoints(int points)
     {
         PointsBalance += points;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -92,8 +92,8 @@ public sealed class Customer
             PointsBalance = 0,
             TierProgressPoints = 0,
             IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -114,8 +114,8 @@ public sealed class Customer
         int pointsBalance,
         int tierProgressPoints,
         bool isActive,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new Customer
         {

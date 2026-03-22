@@ -65,22 +65,22 @@ public sealed class IdentityDbContext : DbContext
 
             entity.Property(u => u.LastLoginAt)
                   .HasColumnName("LastLoginAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired(false);
 
             entity.Property(u => u.PasswordChangedAt)
                   .HasColumnName("PasswordChangedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(u => u.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(u => u.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
         });
 
@@ -117,17 +117,17 @@ public sealed class IdentityDbContext : DbContext
 
             entity.Property(r => r.ExpiresAt)
                   .HasColumnName("ExpiresAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(r => r.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(r => r.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.HasOne<UserAccount>()

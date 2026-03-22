@@ -9,5 +9,5 @@ public sealed class DisruptionResponse
     public int AffectedBookings { get; init; }
     public int NotificationsSent { get; init; }
     public int RebookingsInitiated { get; init; }
-    public DateTimeOffset ProcessedAt { get; init; }
+    public DateTime ProcessedAt { get; init; }
 }

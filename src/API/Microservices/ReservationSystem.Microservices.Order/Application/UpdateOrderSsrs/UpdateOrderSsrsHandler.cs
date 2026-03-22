@@ -57,7 +57,7 @@ public sealed class UpdateOrderSsrsHandler
             order.Version + 1,
             orderJson.ToJsonString(),
             order.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         await _repository.UpdateAsync(updated, cancellationToken);
 

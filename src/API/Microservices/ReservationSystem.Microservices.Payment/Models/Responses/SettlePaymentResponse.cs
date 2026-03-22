@@ -7,5 +7,5 @@ public sealed class SettlePaymentResponse
 {
     public string PaymentReference { get; init; } = string.Empty;
     public decimal SettledAmount { get; init; }
-    public DateTimeOffset? SettledAt { get; init; }
+    public DateTime? SettledAt { get; init; }
 }

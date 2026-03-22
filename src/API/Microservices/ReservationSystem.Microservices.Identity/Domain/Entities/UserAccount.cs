@@ -14,10 +14,10 @@ public sealed class UserAccount
     public bool IsEmailVerified { get; private set; }
     public bool IsLocked { get; private set; }
     public int FailedLoginAttempts { get; private set; }
-    public DateTimeOffset? LastLoginAt { get; private set; }
-    public DateTimeOffset PasswordChangedAt { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime? LastLoginAt { get; private set; }
+    public DateTime PasswordChangedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private UserAccount() { }
 
@@ -31,7 +31,7 @@ public sealed class UserAccount
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
         ArgumentException.ThrowIfNullOrWhiteSpace(passwordHash);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
 
         return new UserAccount
         {
@@ -61,10 +61,10 @@ public sealed class UserAccount
         bool isEmailVerified,
         bool isLocked,
         int failedLoginAttempts,
-        DateTimeOffset? lastLoginAt,
-        DateTimeOffset passwordChangedAt,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime? lastLoginAt,
+        DateTime passwordChangedAt,
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new UserAccount
         {
@@ -85,34 +85,34 @@ public sealed class UserAccount
     public void VerifyEmail()
     {
         IsEmailVerified = true;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void RecordSuccessfulLogin()
     {
         FailedLoginAttempts = 0;
-        LastLoginAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        LastLoginAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void RecordFailedLogin()
     {
         FailedLoginAttempts++;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Lock()
     {
         IsLocked = true;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ChangePassword(string newPasswordHash)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newPasswordHash);
         PasswordHash = newPasswordHash;
-        PasswordChangedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        PasswordChangedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ChangeEmail(string newEmail)
@@ -120,6 +120,6 @@ public sealed class UserAccount
         ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
         Email = newEmail;
         IsEmailVerified = false;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

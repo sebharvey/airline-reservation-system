@@ -21,7 +21,7 @@ public sealed class OrderResponse
     public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("ticketingTimeLimit")]
-    public DateTimeOffset? TicketingTimeLimit { get; init; }
+    public DateTime? TicketingTimeLimit { get; init; }
 
     [JsonPropertyName("totalAmount")]
     public decimal? TotalAmount { get; init; }
@@ -30,10 +30,10 @@ public sealed class OrderResponse
     public int Version { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 
     [JsonPropertyName("orderData")]
     public JsonElement? OrderData { get; init; }

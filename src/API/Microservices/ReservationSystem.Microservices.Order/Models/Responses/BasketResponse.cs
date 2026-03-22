@@ -33,7 +33,7 @@ public sealed class BasketResponse
     public decimal? TotalAmount { get; init; }
 
     [JsonPropertyName("expiresAt")]
-    public DateTimeOffset ExpiresAt { get; init; }
+    public DateTime ExpiresAt { get; init; }
 
     [JsonPropertyName("confirmedOrderId")]
     public Guid? ConfirmedOrderId { get; init; }
@@ -42,8 +42,8 @@ public sealed class BasketResponse
     public int Version { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

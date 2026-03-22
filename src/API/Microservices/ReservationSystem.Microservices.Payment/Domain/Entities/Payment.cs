@@ -18,11 +18,11 @@ public sealed class Payment
     public decimal AuthorisedAmount { get; private set; }
     public decimal? SettledAmount { get; private set; }
     public string Status { get; private set; } = string.Empty;
-    public DateTimeOffset AuthorisedAt { get; private set; }
-    public DateTimeOffset? SettledAt { get; private set; }
+    public DateTime AuthorisedAt { get; private set; }
+    public DateTime? SettledAt { get; private set; }
     public string? Description { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Payment() { }
 
@@ -45,7 +45,7 @@ public sealed class Payment
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
 
         return new Payment
         {
@@ -84,11 +84,11 @@ public sealed class Payment
         decimal authorisedAmount,
         decimal? settledAmount,
         string status,
-        DateTimeOffset authorisedAt,
-        DateTimeOffset? settledAt,
+        DateTime authorisedAt,
+        DateTime? settledAt,
         string? description,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new Payment
         {
@@ -114,11 +114,11 @@ public sealed class Payment
     public void Settle(decimal settledAmount)
     {
         SettledAmount = settledAmount;
-        SettledAt = DateTimeOffset.UtcNow;
+        SettledAt = DateTime.UtcNow;
         Status = settledAmount < AuthorisedAmount
             ? PaymentStatus.PartiallySettled
             : PaymentStatus.Settled;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Refund(decimal refundAmount)
@@ -126,7 +126,7 @@ public sealed class Payment
         Status = refundAmount < SettledAmount
             ? PaymentStatus.PartiallySettled
             : PaymentStatus.Refunded;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
 

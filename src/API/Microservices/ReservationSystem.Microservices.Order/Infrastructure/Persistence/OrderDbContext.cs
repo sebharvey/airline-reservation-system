@@ -64,7 +64,7 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(b => b.ExpiresAt)
                   .HasColumnName("ExpiresAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(b => b.ConfirmedOrderId)
@@ -84,12 +84,12 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(b => b.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(b => b.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
         });
 
@@ -130,7 +130,7 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(o => o.TicketingTimeLimit)
                   .HasColumnName("TicketingTimeLimit")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired(false);
 
             entity.Property(o => o.TotalAmount)
@@ -150,12 +150,12 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(o => o.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(o => o.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
         });
     }

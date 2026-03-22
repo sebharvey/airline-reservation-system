@@ -89,11 +89,11 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(c => c.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2");
 
             entity.Property(c => c.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2");
         });
 
         modelBuilder.Entity<LoyaltyTransaction>(entity =>
@@ -142,15 +142,15 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(t => t.TransactionDate)
                   .HasColumnName("TransactionDate")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2");
 
             entity.Property(t => t.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2");
 
             entity.Property(t => t.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2");
         });
     }
 }

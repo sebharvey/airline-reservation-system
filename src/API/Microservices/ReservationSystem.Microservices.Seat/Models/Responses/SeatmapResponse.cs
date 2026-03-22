@@ -11,8 +11,8 @@ public sealed class SeatmapResponse
     public bool IsActive { get; init; }
     public int TotalSeats { get; init; }
     public string CabinLayout { get; init; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }
 
 /// <summary>
@@ -27,6 +27,6 @@ public sealed class SeatmapListItemResponse
     public int Version { get; init; }
     public bool IsActive { get; init; }
     public int TotalSeats { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }

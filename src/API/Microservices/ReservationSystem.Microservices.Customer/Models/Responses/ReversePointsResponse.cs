@@ -8,5 +8,5 @@ public sealed class ReversePointsResponse
     public string RedemptionReference { get; init; } = string.Empty;
     public int PointsReleased { get; init; }
     public int NewPointsBalance { get; init; }
-    public DateTimeOffset ReversedAt { get; init; }
+    public DateTime ReversedAt { get; init; }
 }

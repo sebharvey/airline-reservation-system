@@ -33,7 +33,7 @@ public sealed class UpdateSeatmapHandler
             command.IsActive ?? existing.IsActive,
             command.CabinLayout ?? existing.CabinLayout,
             existing.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         var result = await _repository.UpdateAsync(updated, cancellationToken);
         _logger.LogInformation("Updated Seatmap {SeatmapId}", command.SeatmapId);

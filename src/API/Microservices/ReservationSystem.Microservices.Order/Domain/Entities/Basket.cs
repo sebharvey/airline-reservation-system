@@ -14,19 +14,19 @@ public sealed class Basket
     public decimal TotalSeatAmount { get; private set; }
     public decimal TotalBagAmount { get; private set; }
     public decimal? TotalAmount { get; private set; }
-    public DateTimeOffset ExpiresAt { get; private set; }
+    public DateTime ExpiresAt { get; private set; }
     public Guid? ConfirmedOrderId { get; private set; }
     public int Version { get; private set; }
     public string BasketData { get; private set; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Basket() { }
 
     public static Basket Create(
         string channelCode,
         string currencyCode,
-        DateTimeOffset expiresAt,
+        DateTime expiresAt,
         string basketData = "{}")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(channelCode);
@@ -46,8 +46,8 @@ public sealed class Basket
             ConfirmedOrderId = null,
             Version = 1,
             BasketData = basketData,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -60,12 +60,12 @@ public sealed class Basket
         decimal totalSeatAmount,
         decimal totalBagAmount,
         decimal? totalAmount,
-        DateTimeOffset expiresAt,
+        DateTime expiresAt,
         Guid? confirmedOrderId,
         int version,
         string basketData,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new Basket
         {
@@ -89,7 +89,7 @@ public sealed class Basket
     public void UpdateBasketData(string basketData)
     {
         BasketData = basketData;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
@@ -99,13 +99,13 @@ public sealed class Basket
         TotalSeatAmount = totalSeatAmount;
         TotalBagAmount = totalBagAmount;
         TotalAmount = (totalFareAmount ?? 0m) + totalSeatAmount + totalBagAmount;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Expire()
     {
         BasketStatus = BasketStatusValues.Expired;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
@@ -113,12 +113,12 @@ public sealed class Basket
     {
         BasketStatus = BasketStatusValues.Confirmed;
         ConfirmedOrderId = orderId;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
     public bool IsActive => BasketStatus == BasketStatusValues.Active;
-    public bool IsExpired => ExpiresAt <= DateTimeOffset.UtcNow || BasketStatus == BasketStatusValues.Expired;
+    public bool IsExpired => ExpiresAt <= DateTime.UtcNow || BasketStatus == BasketStatusValues.Expired;
 }
 
 public static class BasketStatusValues

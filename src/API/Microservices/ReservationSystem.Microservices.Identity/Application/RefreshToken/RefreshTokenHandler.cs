@@ -55,7 +55,7 @@ public sealed class RefreshTokenHandler
 
         var rawNewToken = GenerateSecureToken();
         var newTokenHash = LoginHandler.HashToken(rawNewToken);
-        var newExpiry = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays);
+        var newExpiry = DateTime.UtcNow.AddDays(RefreshTokenDays);
 
         var newRefreshToken = Domain.Entities.RefreshToken.Create(
             userAccountId: account.UserAccountId,

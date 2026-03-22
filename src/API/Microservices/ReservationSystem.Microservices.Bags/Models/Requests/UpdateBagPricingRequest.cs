@@ -8,10 +8,10 @@ public sealed class UpdateBagPricingRequest
     public decimal Price { get; init; }
 
     [JsonPropertyName("validFrom")]
-    public DateTimeOffset ValidFrom { get; init; }
+    public DateTime ValidFrom { get; init; }
 
     [JsonPropertyName("validTo")]
-    public DateTimeOffset? ValidTo { get; init; }
+    public DateTime? ValidTo { get; init; }
 
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }

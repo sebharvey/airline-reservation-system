@@ -12,10 +12,10 @@ public sealed class SeatPricing
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTimeOffset ValidFrom { get; private set; }
-    public DateTimeOffset? ValidTo { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime ValidFrom { get; private set; }
+    public DateTime? ValidTo { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private SeatPricing() { }
 
@@ -27,8 +27,8 @@ public sealed class SeatPricing
         string seatPosition,
         string currencyCode,
         decimal price,
-        DateTimeOffset validFrom,
-        DateTimeOffset? validTo = null)
+        DateTime validFrom,
+        DateTime? validTo = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cabinCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(seatPosition);
@@ -44,8 +44,8 @@ public sealed class SeatPricing
             IsActive = true,
             ValidFrom = validFrom,
             ValidTo = validTo,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -59,10 +59,10 @@ public sealed class SeatPricing
         string currencyCode,
         decimal price,
         bool isActive,
-        DateTimeOffset validFrom,
-        DateTimeOffset? validTo,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime validFrom,
+        DateTime? validTo,
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new SeatPricing
         {

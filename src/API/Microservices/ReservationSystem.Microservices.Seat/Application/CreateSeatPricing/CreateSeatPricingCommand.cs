@@ -8,5 +8,5 @@ public sealed record CreateSeatPricingCommand(
     string SeatPosition,
     string CurrencyCode,
     decimal Price,
-    DateTimeOffset ValidFrom,
-    DateTimeOffset? ValidTo);
+    DateTime ValidFrom,
+    DateTime? ValidTo);

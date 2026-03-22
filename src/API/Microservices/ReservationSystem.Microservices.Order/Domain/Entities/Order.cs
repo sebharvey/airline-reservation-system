@@ -11,12 +11,12 @@ public sealed class Order
     public string OrderStatus { get; private set; } = string.Empty;
     public string ChannelCode { get; private set; } = string.Empty;
     public string CurrencyCode { get; private set; } = string.Empty;
-    public DateTimeOffset? TicketingTimeLimit { get; private set; }
+    public DateTime? TicketingTimeLimit { get; private set; }
     public decimal? TotalAmount { get; private set; }
     public int Version { get; private set; }
     public string OrderData { get; private set; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Order() { }
 
@@ -40,8 +40,8 @@ public sealed class Order
             TotalAmount = totalAmount,
             Version = 1,
             OrderData = orderData,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -51,12 +51,12 @@ public sealed class Order
         string orderStatus,
         string channelCode,
         string currencyCode,
-        DateTimeOffset? ticketingTimeLimit,
+        DateTime? ticketingTimeLimit,
         decimal? totalAmount,
         int version,
         string orderData,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new Order
         {
@@ -79,21 +79,21 @@ public sealed class Order
         BookingReference = bookingReference;
     }
 
-    public void Confirm(string bookingReference, decimal totalAmount, string orderData, DateTimeOffset? ticketingTimeLimit)
+    public void Confirm(string bookingReference, decimal totalAmount, string orderData, DateTime? ticketingTimeLimit)
     {
         BookingReference = bookingReference;
         OrderStatus = OrderStatusValues.Confirmed;
         TotalAmount = totalAmount;
         OrderData = orderData;
         TicketingTimeLimit = ticketingTimeLimit;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
     public void UpdateOrderData(string orderData)
     {
         OrderData = orderData;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
@@ -101,14 +101,14 @@ public sealed class Order
     {
         OrderStatus = OrderStatusValues.Changed;
         OrderData = orderData;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
     public void Cancel()
     {
         OrderStatus = OrderStatusValues.Cancelled;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 
@@ -116,7 +116,7 @@ public sealed class Order
     {
         OrderStatus = OrderStatusValues.Cancelled;
         OrderData = orderData;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
         Version++;
     }
 

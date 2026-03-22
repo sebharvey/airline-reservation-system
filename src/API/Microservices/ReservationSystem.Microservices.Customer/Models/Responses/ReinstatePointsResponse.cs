@@ -9,5 +9,5 @@ public sealed class ReinstatePointsResponse
     public int PointsReinstated { get; init; }
     public int NewPointsBalance { get; init; }
     public Guid TransactionId { get; init; }
-    public DateTimeOffset ReinstatedAt { get; init; }
+    public DateTime ReinstatedAt { get; init; }
 }

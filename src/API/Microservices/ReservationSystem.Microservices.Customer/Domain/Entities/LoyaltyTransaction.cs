@@ -14,9 +14,9 @@ public sealed class LoyaltyTransaction
     public string? BookingReference { get; private set; }
     public string? FlightNumber { get; private set; }
     public string Description { get; private set; } = string.Empty;
-    public DateTimeOffset TransactionDate { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime TransactionDate { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private LoyaltyTransaction() { }
 
@@ -46,9 +46,9 @@ public sealed class LoyaltyTransaction
             BookingReference = bookingReference,
             FlightNumber = flightNumber,
             Description = description,
-            TransactionDate = DateTimeOffset.UtcNow,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            TransactionDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -64,9 +64,9 @@ public sealed class LoyaltyTransaction
         string? bookingReference,
         string? flightNumber,
         string description,
-        DateTimeOffset transactionDate,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime transactionDate,
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new LoyaltyTransaction
         {

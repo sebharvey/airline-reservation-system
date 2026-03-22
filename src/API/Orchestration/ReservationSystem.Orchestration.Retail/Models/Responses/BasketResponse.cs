@@ -9,8 +9,8 @@ public sealed class BasketResponse
     public IReadOnlyList<BasketPassenger> Passengers { get; init; } = [];
     public decimal TotalPrice { get; init; }
     public string Currency { get; init; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? ExpiresAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ExpiresAt { get; init; }
 }
 
 public sealed class BasketFlight
@@ -19,7 +19,7 @@ public sealed class BasketFlight
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
-    public DateTimeOffset DepartureTime { get; init; }
+    public DateTime DepartureTime { get; init; }
     public string CabinClass { get; init; } = string.Empty;
     public decimal Price { get; init; }
 }

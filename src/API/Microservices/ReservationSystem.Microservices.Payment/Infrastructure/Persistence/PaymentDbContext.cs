@@ -82,12 +82,12 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(p => p.AuthorisedAt)
                   .HasColumnName("AuthorisedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(p => p.SettledAt)
                   .HasColumnName("SettledAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired(false);
 
             entity.Property(p => p.Description)
@@ -97,12 +97,12 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(p => p.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(p => p.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
         });
 
@@ -144,12 +144,12 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(pe => pe.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.Property(pe => pe.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset")
+                  .HasColumnType("datetime2")
                   .IsRequired();
 
             entity.HasOne<Domain.Entities.Payment>()

@@ -12,8 +12,8 @@ public sealed class PaymentEvent
     public decimal Amount { get; private set; }
     public string CurrencyCode { get; private set; } = string.Empty;
     public string? Notes { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private PaymentEvent() { }
 
@@ -30,7 +30,7 @@ public sealed class PaymentEvent
         ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
 
         return new PaymentEvent
         {
@@ -55,8 +55,8 @@ public sealed class PaymentEvent
         decimal amount,
         string currencyCode,
         string? notes,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new PaymentEvent
         {

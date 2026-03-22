@@ -11,8 +11,8 @@ public sealed class AircraftType
     public string? FriendlyName { get; private set; }
     public int TotalSeats { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private AircraftType() { }
 
@@ -35,8 +35,8 @@ public sealed class AircraftType
             FriendlyName = friendlyName,
             TotalSeats = totalSeats,
             IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -49,8 +49,8 @@ public sealed class AircraftType
         string? friendlyName,
         int totalSeats,
         bool isActive,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new AircraftType
         {
