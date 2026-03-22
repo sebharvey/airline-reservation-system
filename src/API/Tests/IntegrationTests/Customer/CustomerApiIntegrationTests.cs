@@ -139,7 +139,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _updatedGivenName = _faker.Name.FirstName();
         _updatedSurname = _faker.Name.LastName();
         _updatedDateOfBirth = DateOnly.FromDateTime(_faker.Date.Past(50, DateTime.Today.AddYears(-18)));
-        _updatedNationality = _faker.Address.CountryCode();
+        _updatedNationality = _faker.Address.CountryCode().Trim();  // TODO: check - This must only be a two letter code
         _updatedPhoneNumber = _faker.Phone.PhoneNumber("0#########");
         _updatedPreferredLanguage = "de-DE";
 
