@@ -145,20 +145,20 @@ public sealed class AccountFunction
     }
 
     // -------------------------------------------------------------------------
-    // POST /v1/accounts/{identityReference:guid}/email/change-request
+    // POST /v1/accounts/{userAccountId:guid}/email/change-request
     // -------------------------------------------------------------------------
 
     [Function("EmailChangeRequest")]
     [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Accounts" }, Summary = "Request an email address change")]
-    [OpenApiParameter(name: "identityReference", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Identity reference")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Email change request: newEmail")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> EmailChangeRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
-        Guid identityReference,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
+        Guid userAccountId,
         CancellationToken cancellationToken)
     {
         EmailChangeRequest? request;
@@ -170,7 +170,7 @@ public sealed class AccountFunction
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Invalid JSON in EmailChangeRequest for identity {IdentityReference}", identityReference);
+            _logger.LogWarning(ex, "Invalid JSON in EmailChangeRequest for account {UserAccountId}", userAccountId);
             return await req.BadRequestAsync("Invalid JSON in request body.");
         }
 
@@ -179,13 +179,13 @@ public sealed class AccountFunction
 
         try
         {
-            var command = new EmailChangeRequestCommand(identityReference, request.NewEmail);
+            var command = new EmailChangeRequestCommand(userAccountId, request.NewEmail);
             await _emailChangeRequestHandler.HandleAsync(command, cancellationToken);
             return req.CreateResponse(HttpStatusCode.Accepted);
         }
         catch (KeyNotFoundException)
         {
-            return await req.NotFoundAsync($"No user account found for identity reference '{identityReference}'.");
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
         }
         catch (InvalidOperationException)
         {

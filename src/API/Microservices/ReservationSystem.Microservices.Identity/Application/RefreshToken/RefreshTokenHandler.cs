@@ -84,7 +84,7 @@ public sealed class RefreshTokenHandler
 
     private static string GenerateAccessToken(Domain.Entities.UserAccount account)
     {
-        var payload = $"{account.UserAccountId}:{account.IdentityReference}:{account.Email}:{DateTimeOffset.UtcNow.Ticks}";
+        var payload = $"{account.UserAccountId}:{account.Email}:{DateTimeOffset.UtcNow.Ticks}";
         var bytes = Encoding.UTF8.GetBytes(payload);
         return Convert.ToBase64String(bytes);
     }

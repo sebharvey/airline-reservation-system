@@ -8,7 +8,7 @@ public sealed class Customer
 {
     public Guid CustomerId { get; private set; }
     public string LoyaltyNumber { get; private set; } = string.Empty;
-    public Guid? IdentityReference { get; private set; }
+    public Guid? IdentityId { get; private set; }
     public string GivenName { get; private set; } = string.Empty;
     public string Surname { get; private set; } = string.Empty;
     public DateOnly? DateOfBirth { get; private set; }
@@ -32,7 +32,7 @@ public sealed class Customer
         string? preferredLanguage = null,
         string? phoneNumber = null,
         string? tierCode = null,
-        Guid? identityReference = null)
+        Guid? identityId = null)
     {
         if (givenName is not null) GivenName = givenName;
         if (surname is not null) Surname = surname;
@@ -41,7 +41,7 @@ public sealed class Customer
         if (preferredLanguage is not null) PreferredLanguage = preferredLanguage;
         if (phoneNumber is not null) PhoneNumber = phoneNumber;
         if (tierCode is not null) TierCode = tierCode;
-        if (identityReference is not null) IdentityReference = identityReference;
+        if (identityId is not null) IdentityId = identityId;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -66,7 +66,7 @@ public sealed class Customer
         string surname,
         string preferredLanguage,
         string tierCode,
-        Guid? identityReference = null,
+        Guid? identityId = null,
         DateOnly? dateOfBirth = null,
         string? nationality = null,
         string? phoneNumber = null)
@@ -81,7 +81,7 @@ public sealed class Customer
         {
             CustomerId = Guid.NewGuid(),
             LoyaltyNumber = loyaltyNumber,
-            IdentityReference = identityReference,
+            IdentityId = identityId,
             GivenName = givenName,
             Surname = surname,
             DateOfBirth = dateOfBirth,
@@ -103,7 +103,7 @@ public sealed class Customer
     public static Customer Reconstitute(
         Guid customerId,
         string loyaltyNumber,
-        Guid? identityReference,
+        Guid? identityId,
         string givenName,
         string surname,
         DateOnly? dateOfBirth,
@@ -121,7 +121,7 @@ public sealed class Customer
         {
             CustomerId = customerId,
             LoyaltyNumber = loyaltyNumber,
-            IdentityReference = identityReference,
+            IdentityId = identityId,
             GivenName = givenName,
             Surname = surname,
             DateOfBirth = dateOfBirth,

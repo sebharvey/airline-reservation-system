@@ -8,7 +8,6 @@ namespace ReservationSystem.Microservices.Identity.Domain.Entities;
 public sealed class UserAccount
 {
     public Guid UserAccountId { get; private set; }
-    public Guid IdentityReference { get; private set; }
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public bool IsEmailVerified { get; private set; }
@@ -36,7 +35,6 @@ public sealed class UserAccount
         return new UserAccount
         {
             UserAccountId = Guid.NewGuid(),
-            IdentityReference = Guid.NewGuid(),
             Email = email,
             PasswordHash = passwordHash,
             IsEmailVerified = false,
@@ -55,7 +53,6 @@ public sealed class UserAccount
     /// </summary>
     public static UserAccount Reconstitute(
         Guid userAccountId,
-        Guid identityReference,
         string email,
         string passwordHash,
         bool isEmailVerified,
@@ -69,7 +66,6 @@ public sealed class UserAccount
         return new UserAccount
         {
             UserAccountId = userAccountId,
-            IdentityReference = identityReference,
             Email = email,
             PasswordHash = passwordHash,
             IsEmailVerified = isEmailVerified,

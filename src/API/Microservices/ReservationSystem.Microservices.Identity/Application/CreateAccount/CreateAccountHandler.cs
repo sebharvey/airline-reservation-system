@@ -44,8 +44,7 @@ public sealed class CreateAccountHandler
 
         return new CreateAccountResponse
         {
-            UserAccountId = account.UserAccountId,
-            IdentityReference = account.IdentityReference
+            UserAccountId = account.UserAccountId
         };
     }
 }

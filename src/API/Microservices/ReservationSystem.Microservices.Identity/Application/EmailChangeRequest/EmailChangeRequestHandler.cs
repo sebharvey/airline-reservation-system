@@ -24,12 +24,12 @@ public sealed class EmailChangeRequestHandler
         EmailChangeRequestCommand command,
         CancellationToken cancellationToken = default)
     {
-        var account = await _userAccountRepository.GetByIdentityReferenceAsync(command.IdentityReference, cancellationToken);
+        var account = await _userAccountRepository.GetByIdAsync(command.UserAccountId, cancellationToken);
 
         if (account is null)
         {
-            _logger.LogDebug("Account not found for IdentityReference {IdentityReference}", command.IdentityReference);
-            throw new KeyNotFoundException($"No user account found for identity reference '{command.IdentityReference}'.");
+            _logger.LogDebug("Account not found for UserAccountId {UserAccountId}", command.UserAccountId);
+            throw new KeyNotFoundException($"No user account found for ID '{command.UserAccountId}'.");
         }
 
         var existingWithEmail = await _userAccountRepository.GetByEmailAsync(command.NewEmail, cancellationToken);

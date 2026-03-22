@@ -498,17 +498,17 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
     }
 
     [Fact, TestPriority(20)]
-    public async Task T20_CreateCustomer_WithIdentityReference()
+    public async Task T20_CreateCustomer_WithIdentityId()
     {
         // Arrange
-        var identityRef = Guid.NewGuid();
+        var identityId = Guid.NewGuid();
         var request = new
         {
             givenName = _faker.Name.FirstName(),
             surname = _faker.Name.LastName(),
             dateOfBirth = DateOnly.FromDateTime(_faker.Date.Past(30, DateTime.Today.AddYears(-18))).ToString("yyyy-MM-dd"),
             preferredLanguage = "fr",
-            identityReference = identityRef
+            identityId = identityId
         };
 
         // Act
@@ -519,11 +519,11 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         var createBody = await response.Content.ReadFromJsonAsync<CreateCustomerResponse>(JsonOptions);
         createBody.Should().NotBeNull();
 
-        // Verify identity reference was stored
+        // Verify identity id was stored
         var getResponse = await _client.GetAsync($"/api/v1/customers/{createBody!.LoyaltyNumber}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var getBody = await getResponse.Content.ReadFromJsonAsync<CustomerResponse>(JsonOptions);
-        getBody!.IdentityReference.Should().Be(identityRef);
+        getBody!.IdentityId.Should().Be(identityId);
 
         // Cleanup
         await _client.DeleteAsync($"/api/v1/customers/{createBody.LoyaltyNumber}");
@@ -586,7 +586,7 @@ public sealed class CustomerResponse
 {
     public Guid CustomerId { get; init; }
     public string LoyaltyNumber { get; init; } = string.Empty;
-    public Guid? IdentityReference { get; init; }
+    public Guid? IdentityId { get; init; }
     public string GivenName { get; init; } = string.Empty;
     public string Surname { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }

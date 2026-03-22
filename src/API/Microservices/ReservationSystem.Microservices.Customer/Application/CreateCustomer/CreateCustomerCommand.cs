@@ -8,4 +8,4 @@ public sealed record CreateCustomerCommand(
     string Surname,
     DateOnly? DateOfBirth,
     string PreferredLanguage,
-    Guid? IdentityReference);
+    Guid? IdentityId);

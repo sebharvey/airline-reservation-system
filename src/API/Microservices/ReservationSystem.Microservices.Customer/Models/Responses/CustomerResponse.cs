@@ -7,7 +7,7 @@ public sealed class CustomerResponse
 {
     public Guid CustomerId { get; init; }
     public string LoyaltyNumber { get; init; } = string.Empty;
-    public Guid? IdentityReference { get; init; }
+    public Guid? IdentityId { get; init; }
     public string GivenName { get; init; } = string.Empty;
     public string Surname { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }

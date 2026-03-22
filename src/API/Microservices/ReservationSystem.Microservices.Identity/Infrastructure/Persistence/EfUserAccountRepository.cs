@@ -30,13 +30,6 @@ public sealed class EfUserAccountRepository : IUserAccountRepository
             .FirstOrDefaultAsync(u => u.UserAccountId == userAccountId, cancellationToken);
     }
 
-    public async Task<UserAccount?> GetByIdentityReferenceAsync(Guid identityReference, CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.UserAccounts
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.IdentityReference == identityReference, cancellationToken);
-    }
-
     public async Task<UserAccount?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _dbContext.UserAccounts

@@ -12,8 +12,6 @@ public interface IUserAccountRepository
 {
     Task<UserAccount?> GetByIdAsync(Guid userAccountId, CancellationToken cancellationToken = default);
 
-    Task<UserAccount?> GetByIdentityReferenceAsync(Guid identityReference, CancellationToken cancellationToken = default);
-
     Task<UserAccount?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     Task CreateAsync(UserAccount userAccount, CancellationToken cancellationToken = default);

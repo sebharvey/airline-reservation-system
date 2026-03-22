@@ -86,7 +86,7 @@ public sealed class LoginHandler
         {
             AccessToken = accessToken,
             RefreshToken = rawRefreshToken,
-            IdentityReference = account.IdentityReference
+            UserAccountId = account.UserAccountId
         };
     }
 
@@ -116,7 +116,7 @@ public sealed class LoginHandler
 
     private static string GenerateAccessToken(UserAccount account)
     {
-        var payload = $"{account.UserAccountId}:{account.IdentityReference}:{account.Email}:{DateTimeOffset.UtcNow.Ticks}";
+        var payload = $"{account.UserAccountId}:{account.Email}:{DateTimeOffset.UtcNow.Ticks}";
         var bytes = Encoding.UTF8.GetBytes(payload);
         return Convert.ToBase64String(bytes);
     }

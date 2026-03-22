@@ -4,5 +4,5 @@ namespace ReservationSystem.Microservices.Identity.Application.EmailChangeReques
 /// Command carrying the data needed to initiate an email change request.
 /// </summary>
 public sealed record EmailChangeRequestCommand(
-    Guid IdentityReference,
+    Guid UserAccountId,
     string NewEmail);
