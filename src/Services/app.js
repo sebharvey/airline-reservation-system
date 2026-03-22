@@ -323,10 +323,10 @@ async function invokeOperation(serviceId, index) {
   }
   if (service.authType === 'host-key') {
     const encoded = localStorage.getItem('hostKey');
-    if (encoded) headers['x-functions-key'] = atob(encoded);
+    if (encoded) headers['x-functions-key'] = encoded;
   } else if (service.authType === 'bearer') {
     const encoded = localStorage.getItem('hostKey');
-    if (encoded) headers['Authorization'] = `Bearer ${atob(encoded)}`;
+    if (encoded) headers['Authorization'] = `Bearer ${encoded}`;
   }
 
   try {
