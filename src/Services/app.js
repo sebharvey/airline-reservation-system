@@ -14,11 +14,11 @@ function escapeText(str) {
 
 // ── Variables ──
 function loadVariables() {
-  try { return JSON.parse(localStorage.getItem('apiVariables') || '[]'); } catch (e) { return []; }
+  try { return JSON.parse(localStorage.getItem('apiVariables_' + selectedId) || '[]'); } catch (e) { return []; }
 }
 
 function saveVariables(vars) {
-  localStorage.setItem('apiVariables', JSON.stringify(vars));
+  localStorage.setItem('apiVariables_' + selectedId, JSON.stringify(vars));
 }
 
 function applyVariables(path) {
