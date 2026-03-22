@@ -159,6 +159,11 @@ public sealed class CustomerDbContext : DbContext
             entity.Property(t => t.UpdatedAt)
                   .HasColumnName("UpdatedAt")
                   .HasColumnType("datetime2");
+
+            entity.HasOne<Domain.Entities.Customer>()
+                  .WithMany()
+                  .HasForeignKey(t => t.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
