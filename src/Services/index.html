@@ -56,7 +56,7 @@
         <button class="secret-modal-close" onclick="closeSecretModal()" aria-label="Close">&times;</button>
       </div>
       <div class="secret-modal-body">
-        <p>Enter a secret password to use as the Host Key for authenticating non-anonymous microservice endpoints. The value will be base64-encoded and stored in local storage.</p>
+        <p>Enter a secret password to use as the Host Key for authenticating non-anonymous microservice endpoints.</p>
         <label class="secret-field-label" for="secretInput">Secret</label>
         <input class="secret-input" id="secretInput" type="password" placeholder="Enter secret..." autocomplete="new-password" oninput="onSecretInput()" onkeydown="onSecretKeyDown(event)" />
         <div class="secret-stored-info" id="secretStoredInfo">&#10003; A secret is currently stored. Saving will replace it.</div>
