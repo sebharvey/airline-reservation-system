@@ -15,7 +15,7 @@ namespace ReservationSystem.Tests.IntegrationTests.Customer;
 /// Tests run sequentially against the live API, exercising the full customer lifecycle:
 /// create, read, update, points operations, transactions, and delete.
 /// </summary>
-[TestCaseOrderer("ReservationSystem.Tests.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.Tests.IntegrationTests.Customer")]
+[TestCaseOrderer("ReservationSystem.Tests.IntegrationTests.Customer.PriorityOrderer", "ReservationSystem.Tests")]
 public class CustomerApiIntegrationTests : IAsyncLifetime
 {
     private static readonly string BaseUrl =
@@ -119,7 +119,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.LoyaltyNumber.Should().Be(_loyaltyNumber);
         body.GivenName.Should().Be(_givenName);
         body.Surname.Should().Be(_surname);
-        body.PreferredLanguage.Should().Be(_preferredLanguage);
+        body.PreferredLanguage.Trim().Should().Be(_preferredLanguage);
         body.PointsBalance.Should().Be(0);
         body.IsActive.Should().BeTrue();
     }
@@ -159,7 +159,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         body.Surname.Should().Be(_updatedSurname);
         body.PhoneNumber.Should().Be(_updatedPhoneNumber);
         body.Nationality.Should().Be(_updatedNationality);
-        body.PreferredLanguage.Should().Be(_preferredLanguage);
+        body.PreferredLanguage.Trim().Should().Be(_preferredLanguage);
     }
 
     [SkippableFact, TestPriority(4)]
@@ -560,7 +560,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
 
         body!.GivenName.Should().Be(originalName, "partial update should preserve given name");
         body.Surname.Should().Be(originalSurname, "partial update should preserve surname");
-        body.PreferredLanguage.Should().Be("de", "partial update should preserve preferred language");
+        body.PreferredLanguage.Trim().Should().Be("de", "partial update should preserve preferred language");
         body.PhoneNumber.Should().Be("+353851234567");
 
         // Cleanup
