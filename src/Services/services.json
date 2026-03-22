@@ -8,7 +8,21 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "bearer",
-      "callers": ["Web", "App", "NDC", "Kiosk", "Contact Centre", "Airport"]
+      "callers": ["Web", "App", "NDC", "Kiosk", "Contact Centre", "Airport"],
+      "operations": [
+        { "name": "Search Flights", "method": "POST", "path": "/api/v1/search" },
+        { "name": "Create Basket", "method": "POST", "path": "/api/v1/basket" },
+        { "name": "Get Basket", "method": "GET", "path": "/api/v1/basket/{basketId}" },
+        { "name": "Update Basket Flights", "method": "PUT", "path": "/api/v1/basket/{basketId}/flights" },
+        { "name": "Update Basket Passengers", "method": "PUT", "path": "/api/v1/basket/{basketId}/passengers" },
+        { "name": "Update Basket Seats", "method": "PUT", "path": "/api/v1/basket/{basketId}/seats" },
+        { "name": "Update Basket Bags", "method": "PUT", "path": "/api/v1/basket/{basketId}/bags" },
+        { "name": "Confirm Basket", "method": "POST", "path": "/api/v1/basket/{basketId}/confirm" },
+        { "name": "Get Order", "method": "GET", "path": "/api/v1/orders/{bookingRef}" },
+        { "name": "Update Order Seats", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/seats" },
+        { "name": "Update Order Bags", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/bags" },
+        { "name": "Cancel Order", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/cancel" }
+      ]
     },
     {
       "id": "loyalty-api",
@@ -18,7 +32,25 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "bearer",
-      "callers": ["Web", "App", "Contact Centre"]
+      "callers": ["Web", "App", "Contact Centre"],
+      "operations": [
+        { "name": "Login", "method": "POST", "path": "/api/v1/auth/login" },
+        { "name": "Refresh Token", "method": "POST", "path": "/api/v1/auth/refresh" },
+        { "name": "Logout", "method": "POST", "path": "/api/v1/auth/logout" },
+        { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request" },
+        { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset" },
+        { "name": "Register Member", "method": "POST", "path": "/api/v1/register" },
+        { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
+        { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request" },
+        { "name": "Verify Email Token", "method": "POST", "path": "/api/v1/email/verify" },
+        { "name": "Get Customer Profile", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/profile" },
+        { "name": "Update Customer Profile", "method": "PATCH", "path": "/api/v1/customers/{loyaltyNumber}/profile" },
+        { "name": "Get Customer Transactions", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/transactions" },
+        { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise" },
+        { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle" },
+        { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse" },
+        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" }
+      ]
     },
     {
       "id": "operations-api",
@@ -28,7 +60,10 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Ops Admin App"]
+      "callers": ["Ops Admin App"],
+      "operations": [
+        { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" }
+      ]
     },
     {
       "id": "disruption-api",
@@ -38,7 +73,11 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Flight Operations System (FOS)"]
+      "callers": ["Flight Operations System (FOS)"],
+      "operations": [
+        { "name": "Handle Delay", "method": "POST", "path": "/api/v1/disruptions/delay" },
+        { "name": "Handle Cancellation", "method": "POST", "path": "/api/v1/disruptions/cancellation" }
+      ]
     }
   ],
   "microservices": [
@@ -50,7 +89,20 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API", "Operations API", "Disruption API"]
+      "callers": ["Retail API", "Operations API", "Disruption API"],
+      "operations": [
+        { "name": "Create Flight", "method": "POST", "path": "/api/v1/flights" },
+        { "name": "Create Fare", "method": "POST", "path": "/api/v1/flights/{inventoryId}/fares" },
+        { "name": "Search Offers", "method": "POST", "path": "/api/v1/search" },
+        { "name": "Get Stored Offer", "method": "GET", "path": "/api/v1/offers/{offerId}" },
+        { "name": "Hold Inventory", "method": "POST", "path": "/api/v1/inventory/hold" },
+        { "name": "Sell Inventory", "method": "POST", "path": "/api/v1/inventory/sell" },
+        { "name": "Release Inventory", "method": "POST", "path": "/api/v1/inventory/release" },
+        { "name": "Cancel Inventory", "method": "PATCH", "path": "/api/v1/inventory/cancel" },
+        { "name": "Get Seat Availability", "method": "GET", "path": "/api/v1/flights/{flightId}/seat-availability" },
+        { "name": "Reserve Seat", "method": "POST", "path": "/api/v1/flights/{flightId}/seat-reservations" },
+        { "name": "Update Seat Status", "method": "PATCH", "path": "/api/v1/flights/{flightId}/seat-availability" }
+      ]
     },
     {
       "id": "order-ms",
@@ -60,7 +112,30 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API", "Disruption API"]
+      "callers": ["Retail API", "Disruption API"],
+      "operations": [
+        { "name": "Create Basket", "method": "POST", "path": "/api/v1/basket" },
+        { "name": "Get Basket", "method": "GET", "path": "/api/v1/basket/{basketId}" },
+        { "name": "Add Basket Offer", "method": "POST", "path": "/api/v1/basket/{basketId}/offers" },
+        { "name": "Update Basket Passengers", "method": "PUT", "path": "/api/v1/basket/{basketId}/passengers" },
+        { "name": "Update Basket Seats", "method": "PUT", "path": "/api/v1/basket/{basketId}/seats" },
+        { "name": "Update Basket Bags", "method": "PUT", "path": "/api/v1/basket/{basketId}/bags" },
+        { "name": "Update Basket SSRs", "method": "PUT", "path": "/api/v1/basket/{basketId}/ssrs" },
+        { "name": "Expire Basket", "method": "PATCH", "path": "/api/v1/basket/{basketId}/expire" },
+        { "name": "Create Order", "method": "POST", "path": "/api/v1/orders" },
+        { "name": "Retrieve Order", "method": "POST", "path": "/api/v1/orders/retrieve" },
+        { "name": "Query Orders", "method": "GET", "path": "/api/v1/orders" },
+        { "name": "Get Order", "method": "GET", "path": "/api/v1/orders/{bookingRef}" },
+        { "name": "Update Order Passengers", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/passengers" },
+        { "name": "Update Order Seats", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/seats" },
+        { "name": "Update Order Segments", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/segments" },
+        { "name": "Update Order Bags", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/bags" },
+        { "name": "Update Order SSRs", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/ssrs" },
+        { "name": "Change Order", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/change" },
+        { "name": "Cancel Order", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/cancel" },
+        { "name": "Rebook Order", "method": "PATCH", "path": "/api/v1/orders/{bookingRef}/rebook" },
+        { "name": "Check In", "method": "POST", "path": "/api/v1/orders/{bookingRef}/checkin" }
+      ]
     },
     {
       "id": "payment-ms",
@@ -70,7 +145,12 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API"]
+      "callers": ["Retail API"],
+      "operations": [
+        { "name": "Authorise Payment", "method": "POST", "path": "/api/v1/payment/authorise" },
+        { "name": "Settle Payment", "method": "POST", "path": "/api/v1/payment/{paymentReference}/settle" },
+        { "name": "Refund Payment", "method": "POST", "path": "/api/v1/payment/{paymentReference}/refund" }
+      ]
     },
     {
       "id": "delivery-ms",
@@ -80,7 +160,23 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API", "Disruption API"]
+      "callers": ["Retail API", "Disruption API"],
+      "operations": [
+        { "name": "Create Document", "method": "POST", "path": "/api/v1/documents" },
+        { "name": "Get Document", "method": "GET", "path": "/api/v1/documents/{documentId}" },
+        { "name": "Get Documents by Booking", "method": "GET", "path": "/api/v1/documents" },
+        { "name": "Void Document", "method": "PATCH", "path": "/api/v1/documents/{documentNumber}/void" },
+        { "name": "Create Manifest", "method": "POST", "path": "/api/v1/manifest" },
+        { "name": "Update Manifest Seat", "method": "PUT", "path": "/api/v1/manifest" },
+        { "name": "Patch Manifest", "method": "PATCH", "path": "/api/v1/manifest/{bookingRef}" },
+        { "name": "Update Flight Times", "method": "PATCH", "path": "/api/v1/manifest/{bookingRef}/flight" },
+        { "name": "Delete Manifest", "method": "DELETE", "path": "/api/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}" },
+        { "name": "Get Manifest", "method": "GET", "path": "/api/v1/manifest" },
+        { "name": "Create Boarding Cards", "method": "POST", "path": "/api/v1/boarding-cards" },
+        { "name": "Issue Tickets", "method": "POST", "path": "/api/v1/tickets" },
+        { "name": "Void Ticket", "method": "PATCH", "path": "/api/v1/tickets/{eTicketNumber}/void" },
+        { "name": "Reissue Tickets", "method": "POST", "path": "/api/v1/tickets/reissue" }
+      ]
     },
     {
       "id": "customer-ms",
@@ -90,7 +186,18 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Loyalty API", "Disruption API"]
+      "callers": ["Loyalty API", "Disruption API"],
+      "operations": [
+        { "name": "Create Customer", "method": "POST", "path": "/api/v1/customers" },
+        { "name": "Get Customer", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}" },
+        { "name": "Update Customer", "method": "PATCH", "path": "/api/v1/customers/{loyaltyNumber}" },
+        { "name": "Get Customer Transactions", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/transactions" },
+        { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise" },
+        { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle" },
+        { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse" },
+        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" },
+        { "name": "Delete Customer", "method": "DELETE", "path": "/api/v1/customers/{loyaltyNumber}" }
+      ]
     },
     {
       "id": "seat-ms",
@@ -100,7 +207,27 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API"]
+      "callers": ["Retail API"],
+      "operations": [
+        { "name": "Get All Aircraft Types", "method": "GET", "path": "/api/v1/aircraft-types" },
+        { "name": "Create Aircraft Type", "method": "POST", "path": "/api/v1/aircraft-types" },
+        { "name": "Get Aircraft Type", "method": "GET", "path": "/api/v1/aircraft-types/{aircraftTypeCode}" },
+        { "name": "Update Aircraft Type", "method": "PUT", "path": "/api/v1/aircraft-types/{aircraftTypeCode}" },
+        { "name": "Delete Aircraft Type", "method": "DELETE", "path": "/api/v1/aircraft-types/{aircraftTypeCode}" },
+        { "name": "Get Seat Offers", "method": "GET", "path": "/api/v1/seat-offers" },
+        { "name": "Get Seat Offer", "method": "GET", "path": "/api/v1/seat-offers/{seatOfferId}" },
+        { "name": "Get All Seat Pricing", "method": "GET", "path": "/api/v1/seat-pricing" },
+        { "name": "Create Seat Pricing", "method": "POST", "path": "/api/v1/seat-pricing" },
+        { "name": "Get Seat Pricing", "method": "GET", "path": "/api/v1/seat-pricing/{seatPricingId}" },
+        { "name": "Update Seat Pricing", "method": "PUT", "path": "/api/v1/seat-pricing/{seatPricingId}" },
+        { "name": "Delete Seat Pricing", "method": "DELETE", "path": "/api/v1/seat-pricing/{seatPricingId}" },
+        { "name": "Get Seatmap by Aircraft Type", "method": "GET", "path": "/api/v1/seatmap/{aircraftType}" },
+        { "name": "Get All Seatmaps", "method": "GET", "path": "/api/v1/seatmaps" },
+        { "name": "Get Seatmap", "method": "GET", "path": "/api/v1/seatmaps/{seatmapId}" },
+        { "name": "Create Seatmap", "method": "POST", "path": "/api/v1/seatmaps" },
+        { "name": "Update Seatmap", "method": "PUT", "path": "/api/v1/seatmaps/{seatmapId}" },
+        { "name": "Delete Seatmap", "method": "DELETE", "path": "/api/v1/seatmaps/{seatmapId}" }
+      ]
     },
     {
       "id": "bag-ms",
@@ -110,7 +237,21 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Retail API"]
+      "callers": ["Retail API"],
+      "operations": [
+        { "name": "Get All Bag Pricing", "method": "GET", "path": "/api/v1/bag-pricing" },
+        { "name": "Get Bag Pricing", "method": "GET", "path": "/api/v1/bag-pricing/{pricingId}" },
+        { "name": "Create Bag Pricing", "method": "POST", "path": "/api/v1/bag-pricing" },
+        { "name": "Update Bag Pricing", "method": "PUT", "path": "/api/v1/bag-pricing/{pricingId}" },
+        { "name": "Delete Bag Pricing", "method": "DELETE", "path": "/api/v1/bag-pricing/{pricingId}" },
+        { "name": "Get Bag Offers", "method": "GET", "path": "/api/v1/bags/offers" },
+        { "name": "Get Bag Offer", "method": "GET", "path": "/api/v1/bags/offers/{bagOfferId}" },
+        { "name": "Get All Bag Policies", "method": "GET", "path": "/api/v1/bag-policies" },
+        { "name": "Get Bag Policy", "method": "GET", "path": "/api/v1/bag-policies/{policyId}" },
+        { "name": "Create Bag Policy", "method": "POST", "path": "/api/v1/bag-policies" },
+        { "name": "Update Bag Policy", "method": "PUT", "path": "/api/v1/bag-policies/{policyId}" },
+        { "name": "Delete Bag Policy", "method": "DELETE", "path": "/api/v1/bag-policies/{policyId}" }
+      ]
     },
     {
       "id": "schedule-ms",
@@ -120,7 +261,11 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Operations API"]
+      "callers": ["Operations API"],
+      "operations": [
+        { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" },
+        { "name": "Update Schedule", "method": "PATCH", "path": "/api/v1/schedules/{scheduleId}" }
+      ]
     },
     {
       "id": "identity-ms",
@@ -130,7 +275,19 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": ["Loyalty API"]
+      "callers": ["Loyalty API"],
+      "operations": [
+        { "name": "Login", "method": "POST", "path": "/api/v1/auth/login" },
+        { "name": "Refresh Token", "method": "POST", "path": "/api/v1/auth/refresh" },
+        { "name": "Logout", "method": "POST", "path": "/api/v1/auth/logout" },
+        { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request" },
+        { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset" },
+        { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts" },
+        { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
+        { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
+        { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request" },
+        { "name": "Verify Email Change", "method": "POST", "path": "/api/v1/email/verify" }
+      ]
     }
   ],
   "other": [
@@ -142,7 +299,8 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
-      "callers": []
+      "callers": [],
+      "operations": []
     }
   ]
 }
