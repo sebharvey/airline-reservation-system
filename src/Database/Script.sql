@@ -917,8 +917,7 @@ CREATE TABLE [customer].[Customer] (
     CreatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Customer_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Customer_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Customer          PRIMARY KEY (CustomerId),
-    CONSTRAINT UQ_Customer_Loyalty  UNIQUE (LoyaltyNumber),
-    CONSTRAINT UQ_Customer_Identity UNIQUE (IdentityReference)
+    CONSTRAINT UQ_Customer_Loyalty  UNIQUE (LoyaltyNumber)
 );
 GO
 
