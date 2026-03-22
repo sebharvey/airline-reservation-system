@@ -31,6 +31,19 @@ public sealed class UpdateCustomerHandler
             return null;
         }
 
+        if (command.IdentityId.HasValue)
+        {
+            var existing = await _repository.GetByIdentityIdAsync(command.IdentityId.Value, cancellationToken);
+            if (existing is not null && existing.CustomerId != customer.CustomerId)
+            {
+                _logger.LogWarning(
+                    "IdentityId {IdentityId} is already associated with customer {ExistingCustomerId}",
+                    command.IdentityId.Value, existing.CustomerId);
+                throw new InvalidOperationException(
+                    $"IdentityId '{command.IdentityId.Value}' is already associated with another customer account.");
+            }
+        }
+
         customer.UpdateProfile(
             givenName: command.GivenName,
             surname: command.Surname,

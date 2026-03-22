@@ -160,7 +160,18 @@ public sealed class CustomerFunction
             return await req.BadRequestAsync("Request body is required.");
 
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
-        var customer = await _updateHandler.HandleAsync(command, cancellationToken);
+
+        Domain.Entities.Customer? customer;
+
+        try
+        {
+            customer = await _updateHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Conflict updating customer {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync(ex.Message);
+        }
 
         if (customer is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
