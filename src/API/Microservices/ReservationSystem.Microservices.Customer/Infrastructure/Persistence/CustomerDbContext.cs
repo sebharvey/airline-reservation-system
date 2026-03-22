@@ -18,7 +18,11 @@ public sealed class CustomerDbContext : DbContext
     {
         modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
-            entity.ToTable("Customer", "customer", t => t.HasTrigger("TR_Customer_UpdatedAt"));
+            entity.ToTable("Customer", "customer", t =>
+            {
+                t.HasTrigger("TR_Customer_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(c => c.CustomerId);
 
@@ -98,7 +102,11 @@ public sealed class CustomerDbContext : DbContext
 
         modelBuilder.Entity<LoyaltyTransaction>(entity =>
         {
-            entity.ToTable("LoyaltyTransaction", "customer", t => t.HasTrigger("TR_LoyaltyTransaction_UpdatedAt"));
+            entity.ToTable("LoyaltyTransaction", "customer", t =>
+            {
+                t.HasTrigger("TR_LoyaltyTransaction_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
 
             entity.HasKey(t => t.TransactionId);
 
