@@ -258,8 +258,49 @@
       background: var(--card-bg);
       border-radius: var(--radius-sm);
       border: 1px solid var(--border);
-      max-width: 800px;
+      width: 100%;
       transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .resources-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      width: 100%;
+      margin-top: 16px;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .resources-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .resources-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .resources-body {
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .resources-body svg {
+      opacity: 0.25;
+    }
+
+    .resources-placeholder-text {
+      font-size: 13px;
     }
 
     .detail-header {
@@ -678,6 +719,16 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        <div class="resources-card">
+          <div class="resources-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <span class="resources-title">Resources</span>
+          </div>
+          <div class="resources-body">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            <span class="resources-placeholder-text">Operations and resources for this API will appear here.</span>
           </div>
         </div>`;
     }
