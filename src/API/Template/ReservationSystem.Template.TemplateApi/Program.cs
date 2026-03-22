@@ -24,7 +24,6 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Template.TemplateApi.Swagger;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
-using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
@@ -50,11 +49,20 @@ var host = new HostBuilder()
             context.Configuration.GetSection(ExchangeRateClientOptions.SectionName));
 
         // ── Infrastructure ─────────────────────────────────────────────────────
-        services.AddSingleton<SqlConnectionFactory>();
-        services.AddScoped<ITemplateItemRepository, SqlTemplateItemRepository>();
+        // EF Core DbContext for [template].[Items] — scoped lifetime (one per function invocation).
+        services.AddDbContext<TemplateItemsDbContext>((provider, options) =>
+        {
+            var dbOptions = provider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
+                .Value;
+            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
+            {
+                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
+            });
+        });
+        services.AddScoped<ITemplateItemRepository, EfTemplateItemRepository>();
 
         // EF Core DbContext for [dbo].[Persons] — scoped lifetime (one per function invocation).
-        // Connection string is shared with the existing Dapper SqlConnectionFactory.
         services.AddDbContext<PersonsDbContext>((provider, options) =>
         {
             var dbOptions = provider
@@ -80,7 +88,7 @@ var host = new HostBuilder()
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck(
-            $"{nameof(SqlTemplateItemRepository)}.{nameof(ITemplateItemRepository.GetAllAsync)}",
+            $"{nameof(EfTemplateItemRepository)}.{nameof(ITemplateItemRepository.GetAllAsync)}",
             sp => ct => sp.GetRequiredService<ITemplateItemRepository>().GetAllAsync(ct));
 
         // ── Application use-case handlers ──────────────────────────────────────
