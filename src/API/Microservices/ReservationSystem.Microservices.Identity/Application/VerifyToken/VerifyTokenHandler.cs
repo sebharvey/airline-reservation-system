@@ -53,10 +53,11 @@ public sealed class VerifyTokenHandler
                 ClockSkew = TimeSpan.Zero
             };
 
-            principal = new JwtSecurityTokenHandler().ValidateToken(
+            var handler = new JwtSecurityTokenHandler { MapInboundClaims = false };
+            principal = handler.ValidateToken(
                 command.AccessToken, validationParameters, out _);
         }
-        catch (SecurityTokenException ex)
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
         {
             _logger.LogDebug("Token validation failed: {Message}", ex.Message);
             throw new UnauthorizedAccessException("Invalid or expired access token.");
