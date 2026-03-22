@@ -249,6 +249,36 @@ All mutating endpoints that operate on booking or ticket records accept a `versi
 
 ---
 
+## Entity Framework Core DbContext configuration
+
+Some microservices use EF Core instead of Dapper for persistence. When configuring a `DbContext` for a table that has database triggers, EF Core **must** be told about those triggers explicitly.
+
+### Why this is required
+
+EF Core uses SQL Server's `OUTPUT` clause to retrieve generated values after `INSERT` and `UPDATE`. SQL Server forbids a bare `OUTPUT` clause (without `INTO`) on tables that have enabled triggers. Without the declaration below, `SaveChangesAsync` will throw:
+
+> *Could not save changes because the target table has database triggers … The target table cannot have any enabled triggers if the statement contains an OUTPUT clause without INTO clause.*
+
+### How to declare a trigger
+
+In `OnModelCreating`, pass a table-builder action as the third argument to `ToTable` and call `HasTrigger` for every trigger defined on the table:
+
+```csharp
+entity.ToTable("Customer", "customer", t => t.HasTrigger("TR_Customer_UpdatedAt"));
+```
+
+Every table in this project has an `AFTER UPDATE` trigger named `TR_<TableName>_UpdatedAt` that maintains the `UpdatedAt` timestamp (see `src/Database/Script.sql`). **Every `ToTable` call for a table that has a trigger in `Script.sql` must include the corresponding `HasTrigger` declaration.**
+
+### Checklist for new EF Core DbContexts
+
+When adding a new `DbContext` or a new entity mapping:
+
+1. Search `src/Database/Script.sql` for `CREATE TRIGGER` entries matching the target table.
+2. For each trigger found, add `.HasTrigger("<trigger-name>")` inside the `ToTable` builder action.
+3. If the table has no trigger, the two-argument form `ToTable("Table", "schema")` is correct — do not add an empty builder.
+
+---
+
 ## Cross-References
 
 - **Domain model** — `design.md`: the authoritative source for what each domain owns and what capabilities it provides.

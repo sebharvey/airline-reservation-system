@@ -162,9 +162,10 @@ These rules are enforced by the principles documents and are non-negotiable:
 5. **Monetary amounts use `DECIMAL`, never floating-point.**
 6. **All timestamps are ISO 8601 UTC.**
 7. **IATA codes throughout.** Airport codes (`CHAR(3)` uppercase), passenger types (`ADT`, `CHD`, `INF`, `YTH`), aircraft codes (4-char Apex Air convention).
-8. **JSON field names are camelCase; database column names are PascalCase.**
-9. **URI paths use kebab-case; query parameters use camelCase.**
-10. **API versioning is URI-path-only:** `/v1/`, `/v2/` — no header or query-param versioning.
+8. **EF Core DbContexts must declare triggers.** Any `ToTable` mapping for a table that has an `AFTER` trigger in `src/Database/Script.sql` must include `HasTrigger("<trigger-name>")` inside the table-builder action, or `SaveChangesAsync` will fail at runtime. See `documentation/api.md` — *Entity Framework Core DbContext configuration*.
+9. **JSON field names are camelCase; database column names are PascalCase.**
+10. **URI paths use kebab-case; query parameters use camelCase.**
+11. **API versioning is URI-path-only:** `/v1/`, `/v2/` — no header or query-param versioning.
 
 ---
 
