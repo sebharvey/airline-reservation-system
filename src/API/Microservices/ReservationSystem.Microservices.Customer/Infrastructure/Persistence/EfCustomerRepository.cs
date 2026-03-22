@@ -27,6 +27,13 @@ public sealed class EfCustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(c => c.LoyaltyNumber == loyaltyNumber, cancellationToken);
     }
 
+    public async Task<Domain.Entities.Customer?> GetByIdentityIdAsync(Guid identityId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.IdentityId == identityId, cancellationToken);
+    }
+
     public async Task CreateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default)
     {
         _context.Customers.Add(customer);
