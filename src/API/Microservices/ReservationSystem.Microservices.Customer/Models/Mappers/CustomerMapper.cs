@@ -1,3 +1,4 @@
+using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
@@ -58,6 +59,11 @@ public static class CustomerMapper
             LoyaltyNumber: loyaltyNumber,
             RedemptionReference: request.RedemptionReference,
             Reason: request.Reason);
+
+    public static AddPointsCommand ToCommand(string loyaltyNumber, AddPointsRequest request) =>
+        new(
+            LoyaltyNumber: loyaltyNumber,
+            Points: request.Points);
 
     public static ReinstatePointsCommand ToCommand(string loyaltyNumber, ReinstatePointsRequest request) =>
         new(
@@ -157,5 +163,15 @@ public static class CustomerMapper
             NewPointsBalance = transaction.BalanceAfter,
             TransactionId = transaction.TransactionId,
             ReinstatedAt = transaction.TransactionDate
+        };
+
+    public static AddPointsResponse ToAddPointsResponse(string loyaltyNumber, Domain.Entities.LoyaltyTransaction transaction) =>
+        new()
+        {
+            LoyaltyNumber = loyaltyNumber,
+            PointsAdded = transaction.PointsDelta,
+            NewPointsBalance = transaction.BalanceAfter,
+            TransactionId = transaction.TransactionId,
+            AddedAt = transaction.TransactionDate
         };
 }

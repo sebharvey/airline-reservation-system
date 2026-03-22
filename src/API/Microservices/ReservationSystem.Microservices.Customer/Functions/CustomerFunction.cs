@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
 using ReservationSystem.Microservices.Customer.Application.DeleteCustomer;
@@ -36,6 +37,7 @@ public sealed class CustomerFunction
     private readonly SettlePointsHandler _settlePointsHandler;
     private readonly ReversePointsHandler _reversePointsHandler;
     private readonly ReinstatePointsHandler _reinstatePointsHandler;
+    private readonly AddPointsHandler _addPointsHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -48,6 +50,7 @@ public sealed class CustomerFunction
         SettlePointsHandler settlePointsHandler,
         ReversePointsHandler reversePointsHandler,
         ReinstatePointsHandler reinstatePointsHandler,
+        AddPointsHandler addPointsHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -59,6 +62,7 @@ public sealed class CustomerFunction
         _settlePointsHandler = settlePointsHandler;
         _reversePointsHandler = reversePointsHandler;
         _reinstatePointsHandler = reinstatePointsHandler;
+        _addPointsHandler = addPointsHandler;
         _logger = logger;
     }
 
@@ -366,6 +370,47 @@ public sealed class CustomerFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         var response = CustomerMapper.ToReinstateResponse(loyaltyNumber, transaction);
+        return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/customers/{loyaltyNumber}/points/add
+    // -------------------------------------------------------------------------
+
+    [Function("AddPoints")]
+    [OpenApiOperation(operationId: "AddPoints", tags: new[] { "Points" }, Summary = "Add points to a customer loyalty account")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Points to add")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddPoints(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/add")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        AddPointsRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<AddPointsRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in AddPoints request for {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null)
+            return await req.BadRequestAsync("Request body is required.");
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var transaction = await _addPointsHandler.HandleAsync(command, cancellationToken);
+
+        if (transaction is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToAddPointsResponse(loyaltyNumber, transaction);
         return await req.OkJsonAsync(response);
     }
 

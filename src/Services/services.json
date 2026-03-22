@@ -196,6 +196,7 @@
         { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle" },
         { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse" },
         { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" },
+        { "name": "Add Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/add", "defaultPayload": "{\n  \"points\": 5000\n}" },
         { "name": "Delete Customer", "method": "DELETE", "path": "/api/v1/customers/{loyaltyNumber}" }
       ]
     },
