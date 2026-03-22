@@ -750,7 +750,7 @@ Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separat
 | `bookingType` | string | `Revenue` or `Reward` |
 | `eTickets` | array | All issued e-ticket numbers per passenger per segment |
 | `paymentReferences` | array | All `PaymentReference` values issued during this confirmation |
-| `redemptionReference` | string | Points redemption reference for reward bookings. `null` for revenue bookings |
+| `redemptionReference` | string (UUID) | The `TransactionId` GUID of the points authorisation loyalty transaction, for reward bookings. `null` for revenue bookings |
 
 #### Error Responses
 
@@ -1160,7 +1160,7 @@ Reverse a points authorisation hold if a downstream step fails during reward boo
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `redemptionReference` | string | The redemption reference returned from the points authorisation call |
+| `redemptionReference` | string (UUID) | The `TransactionId` GUID returned from the points authorisation call |
 
 #### Request
 
@@ -1180,7 +1180,7 @@ Reverse a points authorisation hold if a downstream step fails during reward boo
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234",
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
   "pointsReleased": 50000,
   "newPointsBalance": 98250
 }

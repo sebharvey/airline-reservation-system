@@ -148,7 +148,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   let pointsRedemption: PointsRedemption | undefined;
   if (isReward && loyaltyNumber) {
     pointsRedemption = {
-      redemptionReference: 'AXRDM-' + randomNum(8),
+      redemptionReference: crypto.randomUUID(),
       loyaltyNumber,
       pointsRedeemed: basket.totalPointsAmount,
       status: 'Settled',

@@ -228,7 +228,7 @@ export class RetailApiService {
     _loyaltyNumber: string,
     _pointsAmount: number
   ): Observable<{ success: boolean; redemptionReference: string }> {
-    return of({ success: true, redemptionReference: 'AXRDM-' + Date.now() }).pipe(delay(API_DELAY_MS));
+    return of({ success: true, redemptionReference: crypto.randomUUID() }).pipe(delay(API_DELAY_MS));
   }
 
   /**

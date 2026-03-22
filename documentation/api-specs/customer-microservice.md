@@ -363,7 +363,7 @@ Authorise a points redemption hold against the customer's balance for a reward b
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234",
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
   "pointsAuthorised": 50000,
   "pointsHeld": 50000,
   "authorisedAt": "2026-03-17T14:22:00Z"
@@ -372,7 +372,7 @@ Authorise a points redemption hold against the customer's balance for a reward b
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `redemptionReference` | string | Unique identifier for this points authorisation hold; used in subsequent settle/reverse calls |
+| `redemptionReference` | string (UUID) | The `TransactionId` of the loyalty transaction record created for this hold. Used as the identifier in subsequent settle/reverse calls |
 | `pointsAuthorised` | integer | Number of points placed on hold |
 | `pointsHeld` | integer | Running total of points currently held against the customer's balance (after this hold) |
 | `authorisedAt` | string (datetime) | ISO 8601 UTC timestamp when the hold was placed |
@@ -408,19 +408,19 @@ Settle a previously authorised points redemption. Deducts the held points from t
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234"
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `redemptionReference` | string | Yes | The redemption reference returned from the prior authorise call |
+| `redemptionReference` | string (UUID) | Yes | The `TransactionId` GUID returned from the prior authorise call |
 
 #### Response — `200 OK`
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234",
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
   "pointsDeducted": 50000,
   "newPointsBalance": 48250,
   "transactionId": "f7a1b2c3-d4e5-6789-0abc-def123456789",
@@ -430,7 +430,7 @@ Settle a previously authorised points redemption. Deducts the held points from t
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `redemptionReference` | string | The redemption reference being settled |
+| `redemptionReference` | string (UUID) | The `TransactionId` of the loyalty transaction being settled |
 | `pointsDeducted` | integer | Number of points deducted from the balance |
 | `newPointsBalance` | integer | Updated `PointsBalance` after deduction |
 | `transactionId` | string (UUID) | Unique identifier of the `LoyaltyTransaction` record appended to the ledger |
@@ -466,21 +466,21 @@ Reverse a points authorisation hold, returning held points to the customer's ava
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234",
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
   "reason": "TicketingFailure"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `redemptionReference` | string | Yes | The redemption reference returned from the prior authorise call |
+| `redemptionReference` | string (UUID) | Yes | The `TransactionId` GUID returned from the prior authorise call |
 | `reason` | string | No | Reason for reversal, e.g. `TicketingFailure`, `PaymentFailure`, `BookingFailure` |
 
 #### Response — `200 OK`
 
 ```json
 {
-  "redemptionReference": "RDM-20260317-001234",
+  "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
   "pointsReleased": 50000,
   "newPointsBalance": 98250,
   "reversedAt": "2026-03-17T14:23:45Z"
@@ -489,7 +489,7 @@ Reverse a points authorisation hold, returning held points to the customer's ava
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `redemptionReference` | string | The redemption reference being reversed |
+| `redemptionReference` | string (UUID) | The `TransactionId` of the loyalty transaction being reversed |
 | `pointsReleased` | integer | Number of points returned to available balance |
 | `newPointsBalance` | integer | Updated `PointsBalance` after reversal |
 | `reversedAt` | string (datetime) | ISO 8601 UTC timestamp when reversal occurred |
@@ -741,7 +741,7 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/settle \
   -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "redemptionReference": "RDM-20260317-001234"
+    "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789"
   }'
 ```
 
@@ -753,7 +753,7 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/reverse \
   -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "redemptionReference": "RDM-20260317-001234",
+    "redemptionReference": "f7a1b2c3-d4e5-6789-0abc-def123456789",
     "reason": "TicketingFailure"
   }'
 ```

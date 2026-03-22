@@ -132,7 +132,7 @@ public static class CustomerMapper
     public static AuthorisePointsResponse ToAuthoriseResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            RedemptionReference = transaction.TransactionId.ToString(),
             PointsAuthorised = Math.Abs(transaction.PointsDelta),
             PointsHeld = Math.Abs(transaction.PointsDelta),
             AuthorisedAt = transaction.TransactionDate
@@ -141,7 +141,7 @@ public static class CustomerMapper
     public static SettlePointsResponse ToSettleResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            RedemptionReference = transaction.TransactionId.ToString(),
             PointsDeducted = Math.Abs(transaction.PointsDelta),
             NewPointsBalance = transaction.BalanceAfter,
             TransactionId = transaction.TransactionId,
@@ -151,7 +151,7 @@ public static class CustomerMapper
     public static ReversePointsResponse ToReverseResponse(Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            RedemptionReference = $"RDM-{transaction.TransactionDate:yyyyMMdd}-{transaction.TransactionId.ToString("N")[..6]}",
+            RedemptionReference = transaction.TransactionId.ToString(),
             PointsReleased = Math.Abs(transaction.PointsDelta),
             NewPointsBalance = transaction.BalanceAfter,
             ReversedAt = transaction.TransactionDate
