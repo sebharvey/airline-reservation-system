@@ -23,8 +23,10 @@ public sealed class CreateCustomerHandler
         CreateCustomerCommand command,
         CancellationToken cancellationToken = default)
     {
+        var loyaltyNumber = await GenerateUniqueLoyaltyNumberAsync(cancellationToken);
+
         var customer = Domain.Entities.Customer.Create(
-            loyaltyNumber: command.LoyaltyNumber,
+            loyaltyNumber: loyaltyNumber,
             givenName: command.GivenName,
             surname: command.Surname,
             preferredLanguage: command.PreferredLanguage,
@@ -37,5 +39,19 @@ public sealed class CreateCustomerHandler
         _logger.LogInformation("Created customer {LoyaltyNumber}", customer.LoyaltyNumber);
 
         return customer;
+    }
+
+    private async Task<string> GenerateUniqueLoyaltyNumberAsync(CancellationToken cancellationToken)
+    {
+        string loyaltyNumber;
+
+        do
+        {
+            var random = Random.Shared.Next(1000000, 9999999);
+            loyaltyNumber = $"AX{random}";
+        }
+        while (await _repository.GetByLoyaltyNumberAsync(loyaltyNumber, cancellationToken) is not null);
+
+        return loyaltyNumber;
     }
 }

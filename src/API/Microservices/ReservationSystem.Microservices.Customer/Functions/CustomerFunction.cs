@@ -96,8 +96,7 @@ public sealed class CustomerFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var loyaltyNumber = GenerateLoyaltyNumber();
-        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+        var command = CustomerMapper.ToCommand(request);
         var customer = await _createHandler.HandleAsync(command, cancellationToken);
         var response = CustomerMapper.ToCreateResponse(customer);
 
@@ -449,13 +448,4 @@ public sealed class CustomerFunction
         return req.NoContent();
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private static string GenerateLoyaltyNumber()
-    {
-        var random = Random.Shared.Next(1000000, 9999999);
-        return $"AX{random}";
-    }
 }
