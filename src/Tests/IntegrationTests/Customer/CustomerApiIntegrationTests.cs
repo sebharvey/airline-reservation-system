@@ -6,6 +6,7 @@ using Bogus;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace ReservationSystem.IntegrationTests.Customer;
 
