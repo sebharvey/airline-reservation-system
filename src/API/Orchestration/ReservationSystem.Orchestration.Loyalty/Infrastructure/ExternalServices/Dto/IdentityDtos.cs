@@ -3,7 +3,7 @@ namespace ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalService
 // Internal DTOs for deserialising Identity microservice responses.
 // These are not exposed beyond the infrastructure layer.
 
-internal sealed class IdentityLoginResponse
+public sealed class IdentityLoginResponse
 {
     public string AccessToken { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;
@@ -11,14 +11,14 @@ internal sealed class IdentityLoginResponse
     public DateTime ExpiresAt { get; init; }
 }
 
-internal sealed class IdentityRefreshTokenResponse
+public sealed class IdentityRefreshTokenResponse
 {
     public string AccessToken { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;
     public DateTime ExpiresAt { get; init; }
 }
 
-internal sealed class IdentityVerifyTokenResponse
+public sealed class IdentityVerifyTokenResponse
 {
     public bool Valid { get; init; }
     public Guid UserAccountId { get; init; }
