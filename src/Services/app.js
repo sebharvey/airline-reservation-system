@@ -160,10 +160,10 @@ function sidebarItem(s) {
   const active = selectedId === s.id ? ' active' : '';
   const r = healthResults[s.id];
   const time = r && r.responseTime ? `${r.responseTime}ms` : '';
-  return `<div class="sidebar-item${active}" onclick="selectService('${s.id}')" title="${s.name}">
-    <div class="status-icon">${getStatusIcon(s.id)}</div>
+  return `<div class="sidebar-item${active}" id="sidebar-item-${s.id}" onclick="selectService('${s.id}')" title="${s.name}">
+    <div class="status-icon" id="sidebar-icon-${s.id}">${getStatusIcon(s.id)}</div>
     <span class="service-name">${s.name}</span>
-    <span class="response-time">${time}</span>
+    <span class="response-time" id="sidebar-time-${s.id}">${time}</span>
   </div>`;
 }
 
@@ -182,15 +182,16 @@ function renderDetail(id) {
   const r = healthResults[s.id];
   const time = r && r.responseTime ? `${r.responseTime}ms` : '-';
   const checkedAt = r && r.checkedAt ? new Date(r.checkedAt).toLocaleTimeString() : '-';
-  const errorMsg = r && r.error ? `<div class="detail-field full-width"><span class="field-label">Error</span><span class="field-value" style="color:var(--error)">${r.error}</span></div>` : '';
+  const errorDisplay = r && r.error ? '' : 'display:none';
+  const errorText = r && r.error ? r.error : '';
 
   el.innerHTML = `
     <div class="detail-card">
       <div class="detail-header">
-        <div class="status-icon-lg ${cls}">${getStatusIcon(s.id, 'lg')}</div>
+        <div class="status-icon-lg ${cls}" id="detail-status-icon">${getStatusIcon(s.id, 'lg')}</div>
         <div>
           <div class="detail-title">${s.name}</div>
-          <span class="detail-status-label label-${cls}">${getStatusLabel(s.id)}</span>
+          <span class="detail-status-label label-${cls}" id="detail-status-label">${getStatusLabel(s.id)}</span>
         </div>
       </div>
       <div class="detail-body">
@@ -217,17 +218,17 @@ function renderDetail(id) {
           </div>
           <div class="detail-field">
             <span class="field-label">Response Time</span>
-            <span class="field-value">${time}</span>
+            <span class="field-value" id="detail-response-time">${time}</span>
           </div>
           <div class="detail-field">
             <span class="field-label">Last Checked</span>
-            <span class="field-value">${checkedAt}</span>
+            <span class="field-value" id="detail-last-checked">${checkedAt}</span>
           </div>
           <div class="detail-field">
             <span class="field-label">Group</span>
             <span class="field-value">${s.group === 'orchestration' ? 'Orchestration API' : s.group === 'microservice' ? 'Microservice' : 'Other'}</span>
           </div>
-          ${errorMsg}
+          <div class="detail-field full-width" id="detail-error-field" style="${errorDisplay}"><span class="field-label">Error</span><span class="field-value" id="detail-error-value" style="color:var(--error)">${errorText}</span></div>
           <div class="detail-field full-width">
             <span class="field-label">Callers</span>
             <div class="caller-tags">
@@ -408,10 +409,10 @@ async function checkHealth(service) {
     const elapsed = Math.round(performance.now() - start);
     healthResults[service.id] = { status: 'unhealthy', responseTime: elapsed, checkedAt: Date.now(), error: e.message || 'Network error' };
   }
-  // Live update sidebar and main as each check completes
+  // Live update only the status elements — preserves open accordions and form data
   updateCounts();
-  renderSidebar();
-  renderMain();
+  updateSidebarItemStatus(service.id);
+  updateDetailStatus(service.id);
 }
 
 function updateCounts() {
@@ -424,6 +425,41 @@ function updateCounts() {
   }
   document.getElementById('healthyCount').textContent = healthy;
   document.getElementById('unhealthyCount').textContent = unhealthy;
+}
+
+// ── Targeted status updates (avoids full re-render on health check) ──
+function updateSidebarItemStatus(serviceId) {
+  const iconEl = document.getElementById(`sidebar-icon-${serviceId}`);
+  const timeEl = document.getElementById(`sidebar-time-${serviceId}`);
+  if (!iconEl || !timeEl) return;
+  const r = healthResults[serviceId];
+  iconEl.innerHTML = getStatusIcon(serviceId);
+  timeEl.textContent = r && r.responseTime ? `${r.responseTime}ms` : '';
+}
+
+function updateDetailStatus(id) {
+  if (id !== selectedId) return;
+  const iconEl = document.getElementById('detail-status-icon');
+  const labelEl = document.getElementById('detail-status-label');
+  const timeEl = document.getElementById('detail-response-time');
+  const checkedEl = document.getElementById('detail-last-checked');
+  const errorField = document.getElementById('detail-error-field');
+  const errorValue = document.getElementById('detail-error-value');
+  if (!iconEl) return;
+  const r = healthResults[id];
+  const cls = getStatusClass(id);
+  iconEl.className = `status-icon-lg ${cls}`;
+  iconEl.innerHTML = getStatusIcon(id, 'lg');
+  labelEl.className = `detail-status-label label-${cls}`;
+  labelEl.textContent = getStatusLabel(id);
+  timeEl.textContent = r && r.responseTime ? `${r.responseTime}ms` : '-';
+  checkedEl.textContent = r && r.checkedAt ? new Date(r.checkedAt).toLocaleTimeString() : '-';
+  if (r && r.error) {
+    errorValue.textContent = r.error;
+    errorField.style.display = '';
+  } else {
+    errorField.style.display = 'none';
+  }
 }
 
 // ── Init ──
