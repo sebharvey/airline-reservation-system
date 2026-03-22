@@ -1262,6 +1262,33 @@ html.dark .status-err { background: rgba(239,68,68,0.2);  color: #f87171; }
   color: var(--error);
 }
 
+.logs-toolbar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-light);
+}
+
+.logs-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.logs-copy-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .logs-modal-close {
   background: none;
   border: 1px solid var(--border);

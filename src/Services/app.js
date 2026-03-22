@@ -153,6 +153,36 @@ function formatHeaders(headers) {
   return entries.map(([k, v]) => `${k}: ${v}`).join('\n');
 }
 
+function logToText(log) {
+  const date = new Date(log.timestamp);
+  const statusText = log.responseStatus ? `${log.responseStatus} ${log.responseStatusText || ''}`.trim() : 'ERROR';
+  const lines = [
+    `[${date.toLocaleString()}] ${log.method} ${log.url} — ${statusText}`,
+    `Service: ${log.serviceName || ''} › ${log.operationName || ''}`,
+    `--- Request Headers ---`,
+    formatHeaders(log.requestHeaders)
+  ];
+  if (log.requestBody) { lines.push(`--- Request Body ---`); lines.push(log.requestBody); }
+  lines.push(`--- Response Headers ---`);
+  lines.push(formatHeaders(log.responseHeaders));
+  if (log.responseBody) { lines.push(`--- Response Body ---`); lines.push(log.responseBody); }
+  if (log.error) { lines.push(`--- Error ---`); lines.push(log.error); }
+  return lines.join('\n');
+}
+
+function copyLogsToClipboard() {
+  const logs = loadLogs();
+  if (logs.length === 0) return;
+  const text = logs.map(logToText).join('\n\n' + '='.repeat(60) + '\n\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyLogsBtn');
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  });
+}
+
 function renderLogsModal() {
   const logs = loadLogs();
   const container = document.getElementById('logsContent');
@@ -161,7 +191,13 @@ function renderLogsModal() {
     container.innerHTML = `<div class="logs-empty">No API calls logged yet. Invoke an operation to see logs appear here.</div>`;
     return;
   }
-  container.innerHTML = logs.map((log, i) => {
+  const copyBtn = `<div class="logs-toolbar">
+    <button class="logs-copy-btn" id="copyLogsBtn" onclick="copyLogsToClipboard()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy all to clipboard
+    </button>
+  </div>`;
+  const entries = logs.map((log, i) => {
     const date = new Date(log.timestamp);
     let statusClass = 'status-err';
     if (log.responseStatus) {
@@ -171,16 +207,20 @@ function renderLogsModal() {
       else statusClass = 'status-5xx';
     }
     const statusText = log.responseStatus ? `${log.responseStatus} ${log.responseStatusText || ''}`.trim() : 'ERROR';
+    let displayPath = log.url;
+    try { displayPath = new URL(log.url).pathname; } catch (e) { /* keep full url if unparseable */ }
     return `<div class="log-entry" id="log-entry-${i}">
       <div class="log-summary" onclick="toggleLogEntry(${i})">
         <span class="method-badge method-${escapeHtml(log.method)}">${escapeHtml(log.method)}</span>
-        <span class="log-url">${escapeHtml(log.url)}</span>
+        <span class="log-url">${escapeHtml(displayPath)}</span>
         <span class="status-badge ${statusClass}" style="display:inline-block;flex-shrink:0">${statusText}</span>
         <span class="log-timestamp">${date.toLocaleString()}</span>
         <svg class="log-chevron" id="log-chevron-${i}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="log-detail" id="log-detail-${i}" style="display:none">
         <div class="log-meta">${escapeHtml(log.serviceName || '')} &rsaquo; ${escapeHtml(log.operationName || '')}</div>
+        <div class="log-section-label">Full URL</div>
+        <pre class="log-pre">${escapeText(log.url)}</pre>
         <div class="log-section-label">Request Headers</div>
         <pre class="log-pre">${escapeText(formatHeaders(log.requestHeaders))}</pre>
         ${log.requestBody ? `<div class="log-section-label">Request Body</div><pre class="log-pre">${escapeText(log.requestBody)}</pre>` : ''}
@@ -191,6 +231,7 @@ function renderLogsModal() {
       </div>
     </div>`;
   }).join('');
+  container.innerHTML = copyBtn + entries;
 }
 
 function toggleLogEntry(index) {
