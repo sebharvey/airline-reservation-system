@@ -35,7 +35,7 @@ public sealed class DeleteAccountHandler
             throw new KeyNotFoundException($"No user account found for ID '{command.UserAccountId}'.");
         }
 
-        await _refreshTokenRepository.RevokeAllForUserAsync(command.UserAccountId, cancellationToken);
+        await _refreshTokenRepository.DeleteAllForUserAsync(command.UserAccountId, cancellationToken);
         await _userAccountRepository.DeleteAsync(command.UserAccountId, cancellationToken);
 
         _logger.LogInformation("Deleted user account {UserAccountId}", command.UserAccountId);
