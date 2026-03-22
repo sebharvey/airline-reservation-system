@@ -20,7 +20,7 @@ public sealed class DeliveryDbContext : DbContext
         // ── Ticket ─────────────────────────────────────────────────────────
         modelBuilder.Entity<Ticket>(entity =>
         {
-            entity.ToTable("Ticket", "delivery");
+            entity.ToTable("Ticket", "delivery", t => t.HasTrigger("TR_Ticket_UpdatedAt"));
             entity.HasKey(t => t.TicketId);
             entity.Property(t => t.TicketId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(t => t.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
@@ -48,7 +48,7 @@ public sealed class DeliveryDbContext : DbContext
         // ── Manifest ───────────────────────────────────────────────────────
         modelBuilder.Entity<Manifest>(entity =>
         {
-            entity.ToTable("Manifest", "delivery");
+            entity.ToTable("Manifest", "delivery", t => t.HasTrigger("TR_Manifest_UpdatedAt"));
             entity.HasKey(m => m.ManifestId);
             entity.Property(m => m.ManifestId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(m => m.TicketId).HasColumnType("uniqueidentifier").IsRequired();
@@ -81,7 +81,7 @@ public sealed class DeliveryDbContext : DbContext
         // ── Document ───────────────────────────────────────────────────────
         modelBuilder.Entity<Document>(entity =>
         {
-            entity.ToTable("Document", "delivery");
+            entity.ToTable("Document", "delivery", t => t.HasTrigger("TR_Document_UpdatedAt"));
             entity.HasKey(d => d.DocumentId);
             entity.Property(d => d.DocumentId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(d => d.DocumentNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();

@@ -18,7 +18,7 @@ public sealed class ScheduleDbContext : DbContext
 
         modelBuilder.Entity<Domain.Entities.FlightSchedule>(entity =>
         {
-            entity.ToTable("FlightSchedule");
+            entity.ToTable("FlightSchedule", "schedule", t => t.HasTrigger("TR_FlightSchedule_UpdatedAt"));
             entity.HasKey(e => e.ScheduleId);
 
             entity.Property(e => e.ScheduleId)
