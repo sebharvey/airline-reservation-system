@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Identity.Application.CreateAccount;
@@ -87,6 +88,10 @@ public sealed class AccountFunction
             return httpResponse;
         }
         catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("An account with this email already exists.");
+        }
+        catch (DbUpdateException)
         {
             return await req.ConflictAsync("An account with this email already exists.");
         }

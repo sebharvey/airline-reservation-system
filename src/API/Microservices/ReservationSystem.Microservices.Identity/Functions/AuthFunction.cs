@@ -211,8 +211,15 @@ public sealed class AuthFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
-        var command = new Application.ResetPasswordRequest.ResetPasswordRequestCommand(request.Email);
-        await _resetPasswordRequestHandler.HandleAsync(command, cancellationToken);
+        try
+        {
+            var command = new Application.ResetPasswordRequest.ResetPasswordRequestCommand(request.Email);
+            await _resetPasswordRequestHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing password reset request");
+        }
 
         return req.CreateResponse(HttpStatusCode.Accepted);
     }

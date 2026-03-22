@@ -43,12 +43,6 @@ public sealed class LoginHandler
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
-        if (account.IsLocked)
-        {
-            _logger.LogDebug("Login failed: account is locked for {UserAccountId}", account.UserAccountId);
-            throw new InvalidOperationException("Account is locked due to repeated failed login attempts.");
-        }
-
         var passwordValid = VerifyPassword(command.Password, account.PasswordHash);
 
         if (!passwordValid)
@@ -62,6 +56,12 @@ public sealed class LoginHandler
 
             _logger.LogDebug("Login failed: invalid password for {UserAccountId}", account.UserAccountId);
             throw new UnauthorizedAccessException("Invalid credentials.");
+        }
+
+        if (account.IsLocked)
+        {
+            _logger.LogDebug("Login failed: account is locked for {UserAccountId}", account.UserAccountId);
+            throw new InvalidOperationException("Account is locked due to repeated failed login attempts.");
         }
 
         account.RecordSuccessfulLogin();
