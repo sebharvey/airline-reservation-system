@@ -67,6 +67,12 @@ public sealed class LoginHandler
             throw new InvalidOperationException("Account is locked due to repeated failed login attempts.");
         }
 
+        if (!account.IsEmailVerified)
+        {
+            _logger.LogDebug("Login failed: email not verified for {UserAccountId}", account.UserAccountId);
+            throw new InvalidOperationException("Email address has not been verified. Please verify your email before logging in.");
+        }
+
         account.RecordSuccessfulLogin();
         await _userAccountRepository.UpdateAsync(account, cancellationToken);
 
