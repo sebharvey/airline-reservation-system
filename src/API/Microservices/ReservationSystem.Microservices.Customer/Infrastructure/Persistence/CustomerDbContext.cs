@@ -62,12 +62,14 @@ public sealed class CustomerDbContext : DbContext
             entity.Property(c => c.Nationality)
                   .HasColumnName("Nationality")
                   .HasColumnType("char(3)")
-                  .IsRequired(false);
+                  .IsRequired(false)
+                  .HasConversion(v => v, v => v != null ? v.TrimEnd() : null);
 
             entity.Property(c => c.PreferredLanguage)
                   .HasColumnName("PreferredLanguage")
                   .HasColumnType("char(5)")
-                  .IsRequired();
+                  .IsRequired()
+                  .HasConversion(v => v, v => v != null ? v.TrimEnd() : v);
 
             entity.Property(c => c.PhoneNumber)
                   .HasColumnName("PhoneNumber")
