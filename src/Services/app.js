@@ -594,7 +594,7 @@ async function invokeOperation(serviceId, index) {
     if (encoded) headers['Authorization'] = `Bearer ${encoded}`;
   }
 
-  const requestBody = bodyTextarea && bodyTextarea.value.trim() ? bodyTextarea.value : null;
+  const requestBody = bodyTextarea && bodyTextarea.value.trim() ? applyVariables(bodyTextarea.value) : null;
 
   const logEntry = {
     timestamp: new Date().toISOString(),
