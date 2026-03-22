@@ -19,9 +19,10 @@ using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Customer.Swagger;
 using ReservationSystem.Shared.Common.Health;
 using Microsoft.EntityFrameworkCore;
+using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
@@ -32,14 +33,20 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
+        // ── Configuration ──────────────────────────────────────────────────────
+        // In Azure, set Application Settings: Database__ConnectionString, etc.
+        services.Configure<DatabaseOptions>(
+            context.Configuration.GetSection(DatabaseOptions.SectionName));
+
         // ── Infrastructure ─────────────────────────────────────────────────────
-        services.AddDbContext<CustomerDbContext>(options =>
+        services.AddDbContext<CustomerDbContext>((provider, options) =>
         {
-            var connectionString = context.Configuration["Database:ConnectionString"];
-            var commandTimeout = context.Configuration.GetValue<int>("Database:CommandTimeoutSeconds", 30);
-            options.UseSqlServer(connectionString, sqlOptions =>
+            var dbOptions = provider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
+                .Value;
+            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
             {
-                sqlOptions.CommandTimeout(commandTimeout);
+                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
             });
         });
         services.AddHttpClient();
