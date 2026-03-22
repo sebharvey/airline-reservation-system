@@ -33,7 +33,7 @@ public sealed class UpdateAircraftTypeHandler
             command.TotalSeats ?? existing.TotalSeats,
             command.IsActive ?? existing.IsActive,
             existing.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         var result = await _repository.UpdateAsync(updated, cancellationToken);
         _logger.LogInformation("Updated AircraftType {AircraftTypeCode}", command.AircraftTypeCode);

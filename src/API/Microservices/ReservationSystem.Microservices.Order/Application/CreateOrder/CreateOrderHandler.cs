@@ -72,7 +72,7 @@ public sealed class CreateOrderHandler
                 new JsonObject
                 {
                     ["event"] = "OrderConfirmed",
-                    ["timestamp"] = DateTimeOffset.UtcNow.ToString("o")
+                    ["timestamp"] = DateTime.UtcNow.ToString("o")
                 }
             }
         };

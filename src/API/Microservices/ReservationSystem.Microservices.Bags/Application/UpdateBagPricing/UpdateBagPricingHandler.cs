@@ -23,7 +23,7 @@ public sealed class UpdateBagPricingHandler
         var updated = BagPricing.Reconstitute(
             command.PricingId, existing.BagSequence, existing.CurrencyCode, command.Price,
             command.IsActive, command.ValidFrom, command.ValidTo,
-            existing.CreatedAt, DateTimeOffset.UtcNow);
+            existing.CreatedAt, DateTime.UtcNow);
 
         var result = await _repository.UpdateAsync(updated, cancellationToken);
         _logger.LogInformation("Updated BagPricing {PricingId}", command.PricingId);

@@ -11,8 +11,8 @@ public sealed class BagPolicy
     public int FreeBagsIncluded { get; private set; }
     public int MaxWeightKgPerBag { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private BagPolicy() { }
 
@@ -28,8 +28,8 @@ public sealed class BagPolicy
             FreeBagsIncluded = freeBagsIncluded,
             MaxWeightKgPerBag = maxWeightKgPerBag,
             IsActive = true,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -43,8 +43,8 @@ public sealed class BagPolicy
         int freeBagsIncluded,
         int maxWeightKgPerBag,
         bool isActive,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new BagPolicy
         {

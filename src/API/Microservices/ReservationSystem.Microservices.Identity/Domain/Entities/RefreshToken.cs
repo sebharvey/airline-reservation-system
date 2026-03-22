@@ -11,9 +11,9 @@ public sealed class RefreshToken
     public string TokenHash { get; private set; } = string.Empty;
     public string? DeviceHint { get; private set; }
     public bool IsRevoked { get; private set; }
-    public DateTimeOffset ExpiresAt { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime ExpiresAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private RefreshToken() { }
 
@@ -23,12 +23,12 @@ public sealed class RefreshToken
     public static RefreshToken Create(
         Guid userAccountId,
         string tokenHash,
-        DateTimeOffset expiresAt,
+        DateTime expiresAt,
         string? deviceHint = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTime.UtcNow;
 
         return new RefreshToken
         {
@@ -52,9 +52,9 @@ public sealed class RefreshToken
         string tokenHash,
         string? deviceHint,
         bool isRevoked,
-        DateTimeOffset expiresAt,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime expiresAt,
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new RefreshToken
         {
@@ -72,9 +72,9 @@ public sealed class RefreshToken
     public void Revoke()
     {
         IsRevoked = true;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAt;
+    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsValid => !IsRevoked && !IsExpired;
 }

@@ -49,7 +49,7 @@ public sealed class RebookOrderHandler
         {
             // Add rebook details to the order
             orderJson["rebookDetails"] = rebookNode.DeepClone();
-            orderJson["rebookedAt"] = DateTimeOffset.UtcNow.ToString("o");
+            orderJson["rebookedAt"] = DateTime.UtcNow.ToString("o");
         }
 
         var updated = Domain.Entities.Order.Reconstitute(
@@ -63,7 +63,7 @@ public sealed class RebookOrderHandler
             order.Version + 1,
             orderJson.ToJsonString(),
             order.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         await _repository.UpdateAsync(updated, cancellationToken);
 

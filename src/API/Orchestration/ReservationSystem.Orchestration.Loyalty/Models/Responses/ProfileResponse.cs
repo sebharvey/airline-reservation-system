@@ -10,5 +10,5 @@ public sealed class ProfileResponse
     public DateOnly? DateOfBirth { get; init; }
     public string Tier { get; init; } = string.Empty;
     public decimal PointsBalance { get; init; }
-    public DateTimeOffset MemberSince { get; init; }
+    public DateTime MemberSince { get; init; }
 }

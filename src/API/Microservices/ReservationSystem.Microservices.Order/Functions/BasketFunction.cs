@@ -132,8 +132,8 @@ public sealed class BasketFunction
             using var doc = JsonDocument.Parse(body);
             if (doc.RootElement.TryGetProperty("offerExpiresAt", out var expiresAtProp))
             {
-                var offerExpiresAt = expiresAtProp.GetDateTimeOffset();
-                if (offerExpiresAt <= DateTimeOffset.UtcNow)
+                var offerExpiresAt = expiresAtProp.GetDateTime();
+                if (offerExpiresAt <= DateTime.UtcNow)
                     return await req.GoneAsync("Offer has expired and is no longer available.");
             }
         }

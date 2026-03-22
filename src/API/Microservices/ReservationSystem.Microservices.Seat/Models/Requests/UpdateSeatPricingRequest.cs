@@ -10,6 +10,6 @@ public sealed class UpdateSeatPricingRequest
     public string? CurrencyCode { get; init; }
     public decimal? Price { get; init; }
     public bool? IsActive { get; init; }
-    public DateTimeOffset? ValidFrom { get; init; }
-    public DateTimeOffset? ValidTo { get; init; }
+    public DateTime? ValidFrom { get; init; }
+    public DateTime? ValidTo { get; init; }
 }

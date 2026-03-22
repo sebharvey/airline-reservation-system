@@ -11,8 +11,8 @@ public sealed class Seatmap
     public int Version { get; private set; }
     public bool IsActive { get; private set; }
     public string CabinLayout { get; private set; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private Seatmap() { }
 
@@ -34,8 +34,8 @@ public sealed class Seatmap
             Version = version,
             IsActive = true,
             CabinLayout = cabinLayout,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
@@ -48,8 +48,8 @@ public sealed class Seatmap
         int version,
         bool isActive,
         string cabinLayout,
-        DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTime createdAt,
+        DateTime updatedAt)
     {
         return new Seatmap
         {

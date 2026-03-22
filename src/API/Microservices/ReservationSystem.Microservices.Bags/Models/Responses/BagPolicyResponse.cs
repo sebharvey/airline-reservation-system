@@ -24,10 +24,10 @@ public sealed class BagPolicyResponse
     public bool IsActive { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }
 
 /// <summary>

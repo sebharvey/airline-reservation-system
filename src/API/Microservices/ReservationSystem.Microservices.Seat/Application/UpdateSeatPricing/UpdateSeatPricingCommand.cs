@@ -10,5 +10,5 @@ public sealed record UpdateSeatPricingCommand(
     string? CurrencyCode,
     decimal? Price,
     bool? IsActive,
-    DateTimeOffset? ValidFrom,
-    DateTimeOffset? ValidTo);
+    DateTime? ValidFrom,
+    DateTime? ValidTo);

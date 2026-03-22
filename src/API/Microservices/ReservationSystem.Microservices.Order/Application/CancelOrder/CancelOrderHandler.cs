@@ -47,7 +47,7 @@ public sealed class CancelOrderHandler
         var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
         var cancelInfo = new JsonObject
         {
-            ["cancelledAt"] = DateTimeOffset.UtcNow.ToString("o"),
+            ["cancelledAt"] = DateTime.UtcNow.ToString("o"),
             ["status"] = OrderStatusValues.Cancelled
         };
 
@@ -73,7 +73,7 @@ public sealed class CancelOrderHandler
         history.Add(new JsonObject
         {
             ["event"] = "OrderCancelled",
-            ["timestamp"] = DateTimeOffset.UtcNow.ToString("o")
+            ["timestamp"] = DateTime.UtcNow.ToString("o")
         });
         orderJson["history"] = history;
 

@@ -12,15 +12,15 @@ public sealed class BagPricing
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
     public bool IsActive { get; private set; }
-    public DateTimeOffset ValidFrom { get; private set; }
-    public DateTimeOffset? ValidTo { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTime ValidFrom { get; private set; }
+    public DateTime? ValidTo { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
 
     private BagPricing() { }
 
     public static BagPricing Create(int bagSequence, string currencyCode, decimal price,
-        DateTimeOffset validFrom, DateTimeOffset? validTo)
+        DateTime validFrom, DateTime? validTo)
     {
         return new BagPricing
         {
@@ -31,15 +31,15 @@ public sealed class BagPricing
             IsActive = true,
             ValidFrom = validFrom,
             ValidTo = validTo,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 
     public static BagPricing Reconstitute(
         Guid pricingId, int bagSequence, string currencyCode, decimal price,
-        bool isActive, DateTimeOffset validFrom, DateTimeOffset? validTo,
-        DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        bool isActive, DateTime validFrom, DateTime? validTo,
+        DateTime createdAt, DateTime updatedAt)
     {
         return new BagPricing
         {

@@ -166,6 +166,6 @@ public sealed class SqlBagPricingRepository : IBagPricingRepository
 
     private sealed record BagPricingRecord(
         Guid PricingId, int BagSequence, string CurrencyCode, decimal Price,
-        bool IsActive, DateTimeOffset ValidFrom, DateTimeOffset? ValidTo,
-        DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+        bool IsActive, DateTime ValidFrom, DateTime? ValidTo,
+        DateTime CreatedAt, DateTime UpdatedAt);
 }

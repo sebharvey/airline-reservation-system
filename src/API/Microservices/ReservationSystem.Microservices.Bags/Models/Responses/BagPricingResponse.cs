@@ -20,16 +20,16 @@ public sealed class BagPricingResponse
     public bool IsActive { get; init; }
 
     [JsonPropertyName("validFrom")]
-    public DateTimeOffset ValidFrom { get; init; }
+    public DateTime ValidFrom { get; init; }
 
     [JsonPropertyName("validTo")]
-    public DateTimeOffset? ValidTo { get; init; }
+    public DateTime? ValidTo { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }
 
 /// <summary>

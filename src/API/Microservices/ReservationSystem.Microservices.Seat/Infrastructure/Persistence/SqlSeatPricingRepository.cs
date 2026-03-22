@@ -114,6 +114,6 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
 
     private sealed record SeatPricingRecord(
         Guid SeatPricingId, string CabinCode, string SeatPosition, string CurrencyCode, decimal Price,
-        bool IsActive, DateTimeOffset ValidFrom, DateTimeOffset? ValidTo,
-        DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+        bool IsActive, DateTime ValidFrom, DateTime? ValidTo,
+        DateTime CreatedAt, DateTime UpdatedAt);
 }

@@ -11,8 +11,8 @@ public sealed class FlightOffer
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
-    public DateTimeOffset DepartureTime { get; init; }
-    public DateTimeOffset ArrivalTime { get; init; }
+    public DateTime DepartureTime { get; init; }
+    public DateTime ArrivalTime { get; init; }
     public string CabinClass { get; init; } = string.Empty;
     public decimal Price { get; init; }
     public string Currency { get; init; } = string.Empty;

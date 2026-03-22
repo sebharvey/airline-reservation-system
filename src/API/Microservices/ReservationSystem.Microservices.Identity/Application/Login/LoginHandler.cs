@@ -69,7 +69,7 @@ public sealed class LoginHandler
 
         var rawRefreshToken = GenerateSecureToken();
         var refreshTokenHash = HashToken(rawRefreshToken);
-        var refreshTokenExpiry = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays);
+        var refreshTokenExpiry = DateTime.UtcNow.AddDays(RefreshTokenDays);
 
         var refreshToken = RefreshTokenEntity.Create(
             userAccountId: account.UserAccountId,

@@ -130,5 +130,5 @@ public sealed class SqlSeatmapRepository : ISeatmapRepository
 
     private sealed record SeatmapRecord(
         Guid SeatmapId, string AircraftTypeCode, int Version, bool IsActive,
-        string CabinLayout, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+        string CabinLayout, DateTime CreatedAt, DateTime UpdatedAt);
 }

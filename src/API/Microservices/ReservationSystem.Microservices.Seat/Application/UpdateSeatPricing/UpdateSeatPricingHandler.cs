@@ -36,7 +36,7 @@ public sealed class UpdateSeatPricingHandler
             command.ValidFrom ?? existing.ValidFrom,
             command.ValidTo ?? existing.ValidTo,
             existing.CreatedAt,
-            DateTimeOffset.UtcNow);
+            DateTime.UtcNow);
 
         var result = await _repository.UpdateAsync(updated, cancellationToken);
         _logger.LogInformation("Updated SeatPricing {SeatPricingId}", command.SeatPricingId);

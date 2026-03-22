@@ -145,5 +145,5 @@ public sealed class SqlBagPolicyRepository : IBagPolicyRepository
 
     private sealed record BagPolicyRecord(
         Guid PolicyId, string CabinCode, int FreeBagsIncluded, int MaxWeightKgPerBag,
-        bool IsActive, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+        bool IsActive, DateTime CreatedAt, DateTime UpdatedAt);
 }

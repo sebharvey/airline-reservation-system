@@ -10,6 +10,6 @@ public sealed class AircraftTypeResponse
     public string? FriendlyName { get; init; }
     public int TotalSeats { get; init; }
     public bool IsActive { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset UpdatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }
