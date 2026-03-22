@@ -76,7 +76,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         _givenName = _faker.Name.FirstName();
         _surname = _faker.Name.LastName();
         _dateOfBirth = DateOnly.FromDateTime(_faker.Date.Past(50, DateTime.Today.AddYears(-18)));
-        _preferredLanguage = _faker.PickRandom("en", "fr", "de", "es", "it");
+        _preferredLanguage = _faker.PickRandom("en-GB", "de-DE");
 
         var request = new
         {
@@ -480,7 +480,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         {
             givenName = _faker.Name.FirstName(),
             surname = _faker.Name.LastName(),
-            preferredLanguage = "en"
+            preferredLanguage = "en-GB"
         };
 
         // Act
@@ -539,7 +539,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
         {
             givenName = originalName,
             surname = originalSurname,
-            preferredLanguage = "de"
+            preferredLanguage = "de-DE"
         };
 
         var createResponse = await _client.PostAsJsonAsync("/api/v1/customers", createRequest, JsonOptions);
@@ -560,7 +560,7 @@ public class CustomerApiIntegrationTests : IAsyncLifetime
 
         body!.GivenName.Should().Be(originalName, "partial update should preserve given name");
         body.Surname.Should().Be(originalSurname, "partial update should preserve surname");
-        body.PreferredLanguage.Trim().Should().Be("de", "partial update should preserve preferred language");
+        body.PreferredLanguage.Trim().Should().Be("de-DE", "partial update should preserve preferred language");
         body.PhoneNumber.Should().Be("+353851234567");
 
         // Cleanup
