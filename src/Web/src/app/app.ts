@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, NavigationEnd, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
@@ -26,27 +26,4 @@ export class App {
     ),
     { initialValue: false }
   );
-
-  showSecretModal = signal(false);
-  secretValue = signal('');
-  hasStoredSecret = signal(!!localStorage.getItem('hostKey'));
-
-  openSecretModal(): void {
-    this.secretValue.set('');
-    this.showSecretModal.set(true);
-  }
-
-  closeSecretModal(): void {
-    this.showSecretModal.set(false);
-    this.secretValue.set('');
-  }
-
-  saveSecret(): void {
-    const value = this.secretValue().trim();
-    if (!value) return;
-    const encoded = btoa(value);
-    localStorage.setItem('hostKey', encoded);
-    this.hasStoredSecret.set(true);
-    this.closeSecretModal();
-  }
 }

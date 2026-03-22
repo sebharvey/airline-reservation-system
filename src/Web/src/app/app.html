@@ -23,58 +23,18 @@
     @if (!isBoardingPass()) {
       <footer class="footer">
         <p>© 2026 Apex Air. All rights reserved.</p>
-        <div class="footer-actions">
-          <button
-            class="secret-btn"
-            (click)="openSecretModal()"
-            [attr.title]="hasStoredSecret() ? 'Update Host Key' : 'Add Host Key'"
-          >
-            <span class="secret-icon">{{ hasStoredSecret() ? '🔑' : '🔒' }}</span>
-            <span>{{ hasStoredSecret() ? 'Update Secret' : 'Add Secret' }}</span>
-          </button>
-          <button
-            class="theme-toggle"
-            (click)="theme.toggle()"
-            [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-            [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-          >
-            <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
-            <span class="toggle-track" [class.is-dark]="theme.isDark()">
-              <span class="toggle-thumb"></span>
-            </span>
-          </button>
-        </div>
+        <button
+          class="theme-toggle"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+          [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        >
+          <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+          <span class="toggle-track" [class.is-dark]="theme.isDark()">
+            <span class="toggle-thumb"></span>
+          </span>
+        </button>
       </footer>
-    }
-
-    @if (showSecretModal()) {
-      <div class="secret-overlay" (click)="closeSecretModal()">
-        <div class="secret-modal" (click)="$event.stopPropagation()">
-          <div class="secret-modal-header">
-            <h3>{{ hasStoredSecret() ? 'Update Host Key' : 'Add Host Key' }}</h3>
-            <button class="secret-modal-close" (click)="closeSecretModal()">✕</button>
-          </div>
-          <div class="secret-modal-body">
-            <p class="secret-hint">Enter the secret password used to authenticate with non-anonymous API endpoints.</p>
-            <div class="secret-field">
-              <label for="secret-input">Secret</label>
-              <input
-                id="secret-input"
-                type="password"
-                placeholder="Enter your secret..."
-                [value]="secretValue()"
-                (input)="secretValue.set($any($event.target).value)"
-                (keydown.enter)="saveSecret()"
-                autofocus
-              />
-            </div>
-          </div>
-          <div class="secret-modal-footer">
-            <button class="secret-cancel-btn" (click)="closeSecretModal()">Cancel</button>
-            <button class="secret-save-btn" (click)="saveSecret()" [disabled]="!secretValue().trim()">Save</button>
-          </div>
-        </div>
-      </div>
     }
 
   </div>
