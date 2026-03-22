@@ -72,4 +72,16 @@ public sealed class EfRefreshTokenRepository : IRefreshTokenRepository
 
         _logger.LogDebug("Revoked {Count} refresh tokens for UserAccount {UserAccountId}", tokens.Count, userAccountId);
     }
+
+    public async Task DeleteAllForUserAsync(Guid userAccountId, CancellationToken cancellationToken = default)
+    {
+        var tokens = await _dbContext.RefreshTokens
+            .Where(r => r.UserAccountId == userAccountId)
+            .ToListAsync(cancellationToken);
+
+        _dbContext.RefreshTokens.RemoveRange(tokens);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted {Count} refresh tokens for UserAccount {UserAccountId}", tokens.Count, userAccountId);
+    }
 }
