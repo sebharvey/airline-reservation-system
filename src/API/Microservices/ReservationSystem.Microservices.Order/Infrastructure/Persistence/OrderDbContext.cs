@@ -29,37 +29,37 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(b => b.ChannelCode)
                   .HasColumnName("ChannelCode")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(b => b.CurrencyCode)
                   .HasColumnName("CurrencyCode")
-                  .HasColumnType("nvarchar(3)")
+                  .HasColumnType("char(3)")
                   .IsRequired();
 
             entity.Property(b => b.BasketStatus)
                   .HasColumnName("BasketStatus")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(b => b.TotalFareAmount)
                   .HasColumnName("TotalFareAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired(false);
 
             entity.Property(b => b.TotalSeatAmount)
                   .HasColumnName("TotalSeatAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired();
 
             entity.Property(b => b.TotalBagAmount)
                   .HasColumnName("TotalBagAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired();
 
             entity.Property(b => b.TotalAmount)
                   .HasColumnName("TotalAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired(false);
 
             entity.Property(b => b.ExpiresAt)
@@ -106,7 +106,7 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(o => o.BookingReference)
                   .HasColumnName("BookingReference")
-                  .HasColumnType("nvarchar(6)")
+                  .HasColumnType("char(6)")
                   .IsRequired(false);
 
             entity.HasIndex(o => o.BookingReference)
@@ -115,17 +115,17 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(o => o.OrderStatus)
                   .HasColumnName("OrderStatus")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(o => o.ChannelCode)
                   .HasColumnName("ChannelCode")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(o => o.CurrencyCode)
                   .HasColumnName("CurrencyCode")
-                  .HasColumnType("nvarchar(3)")
+                  .HasColumnType("char(3)")
                   .IsRequired();
 
             entity.Property(o => o.TicketingTimeLimit)
@@ -135,7 +135,7 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(o => o.TotalAmount)
                   .HasColumnName("TotalAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired(false);
 
             entity.Property(o => o.Version)
