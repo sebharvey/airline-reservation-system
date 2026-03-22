@@ -132,5 +132,17 @@
       "authType": "host-key",
       "callers": ["Loyalty API"]
     }
+  ],
+  "other": [
+    {
+      "id": "template-api",
+      "name": "Template API",
+      "description": "Template API for the reservation system. Provides a baseline scaffolding for new API development.",
+      "baseUrl": "https://reservation-system-db-api-template-c7cbf3a2adfhfacu.ukwest-01.azurewebsites.net",
+      "healthEndpoint": "/api/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": []
+    }
   ]
 }
