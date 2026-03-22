@@ -994,7 +994,6 @@ GO
 IF OBJECT_ID('[identity].[UserAccount]', 'U') IS NULL
 CREATE TABLE [identity].[UserAccount] (
     UserAccountId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_UserAccount_Id      DEFAULT NEWID(),
-    IdentityReference   UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_UserAccount_IdRef   DEFAULT NEWID(),
     Email               VARCHAR(254)     NOT NULL,
     PasswordHash        VARCHAR(255)     NOT NULL,
     IsEmailVerified     BIT              NOT NULL CONSTRAINT DF_UserAccount_Verified DEFAULT 0,
@@ -1005,13 +1004,22 @@ CREATE TABLE [identity].[UserAccount] (
     CreatedAt           DATETIME2        NOT NULL CONSTRAINT DF_UserAccount_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt           DATETIME2        NOT NULL CONSTRAINT DF_UserAccount_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_UserAccount       PRIMARY KEY (UserAccountId),
-    CONSTRAINT UQ_UserAccount_Email UNIQUE (Email),
-    CONSTRAINT UQ_UserAccount_IdRef UNIQUE (IdentityReference)
+    CONSTRAINT UQ_UserAccount_Email UNIQUE (Email)
 );
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_UserAccount_Email' AND object_id = OBJECT_ID('[identity].[UserAccount]'))
     CREATE INDEX IX_UserAccount_Email ON [identity].[UserAccount] (Email);
+GO
+
+-- FK: customer.Customer.IdentityId → identity.UserAccount.UserAccountId ------
+IF NOT EXISTS (
+    SELECT 1 FROM sys.foreign_keys
+    WHERE name = 'FK_Customer_UserAccount'
+      AND parent_object_id = OBJECT_ID('[customer].[Customer]'))
+    ALTER TABLE [customer].[Customer]
+        ADD CONSTRAINT FK_Customer_UserAccount
+            FOREIGN KEY (IdentityId) REFERENCES [identity].[UserAccount](UserAccountId);
 GO
 
 IF OBJECT_ID('[identity].[TR_UserAccount_UpdatedAt]', 'TR') IS NULL
@@ -1153,23 +1161,23 @@ BEGIN TRY
     ('Platinum','Apex Platinum',100000,'2025-01-01');
 
     -- identity.UserAccount ----------------------------------------------------
-    DECLARE @IdRef1 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @IdRef2 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @IdRef3 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @AccId1 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @AccId2 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @AccId3 UNIQUEIDENTIFIER = NEWID();
 
-    INSERT INTO [identity].[UserAccount] (IdentityReference, Email, PasswordHash, IsEmailVerified) VALUES
-    (@IdRef1,'amara.okafor@example.com','$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash1placeholder==',1),
-    (@IdRef2,'james.chen@example.com',  '$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash2placeholder==',1),
-    (@IdRef3,'priya.sharma@example.com','$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash3placeholder==',0);
+    INSERT INTO [identity].[UserAccount] (UserAccountId, Email, PasswordHash, IsEmailVerified) VALUES
+    (@AccId1,'amara.okafor@example.com','$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash1placeholder==',1),
+    (@AccId2,'james.chen@example.com',  '$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash2placeholder==',1),
+    (@AccId3,'priya.sharma@example.com','$argon2id$v=19$m=65536,t=3,p=4$c2FsdHZhbHVl$hash3placeholder==',0);
 
     -- customer.Customer -------------------------------------------------------
     INSERT INTO [customer].[Customer]
         (LoyaltyNumber, IdentityId, GivenName, Surname, DateOfBirth,
          Nationality, PreferredLanguage, PhoneNumber, TierCode, PointsBalance, TierProgressPoints)
     VALUES
-    ('AX9876543',@IdRef1,'Amara','Okafor','1988-03-22','GBR','en-GB','+447700900123','Silver',  48250, 62100),
-    ('AX1234567',@IdRef2,'James','Chen',  '1979-11-05','GBR','en-GB','+447700900456','Gold',   112800,138400),
-    ('AX5554321',@IdRef3,'Priya','Sharma','1995-07-14','IND','en-GB','+447700900789','Blue',     3250,  3250);
+    ('AX9876543',@AccId1,'Amara','Okafor','1988-03-22','GBR','en-GB','+447700900123','Silver',  48250, 62100),
+    ('AX1234567',@AccId2,'James','Chen',  '1979-11-05','GBR','en-GB','+447700900456','Gold',   112800,138400),
+    ('AX5554321',@AccId3,'Priya','Sharma','1995-07-14','IND','en-GB','+447700900789','Blue',     3250,  3250);
 
     -- customer.LoyaltyTransaction ---------------------------------------------
     DECLARE @CustId1 UNIQUEIDENTIFIER = (SELECT CustomerId FROM [customer].[Customer] WHERE LoyaltyNumber = 'AX9876543');

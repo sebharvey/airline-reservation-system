@@ -93,16 +93,16 @@ public sealed class RegistrationFunction
     }
 
     // -------------------------------------------------------------------------
-    // POST /v1/accounts/{identityReference}/email/change-request
+    // POST /v1/accounts/{userAccountId}/email/change-request
     // -------------------------------------------------------------------------
 
     [Function("EmailChangeRequest")]
     [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Registration" }, Summary = "Request email change")]
-    [OpenApiParameter(name: "identityReference", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The identity reference")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account ID")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     public Task<HttpResponseData> EmailChangeRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
-        Guid identityReference,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
+        Guid userAccountId,
         CancellationToken cancellationToken)
     {
         throw new NotImplementedException();

@@ -39,8 +39,8 @@ public sealed class CustomerDbContext : DbContext
             entity.HasIndex(c => c.LoyaltyNumber)
                   .IsUnique();
 
-            entity.Property(c => c.IdentityReference)
-                  .HasColumnName("IdentityReference")
+            entity.Property(c => c.IdentityId)
+                  .HasColumnName("IdentityId")
                   .HasColumnType("uniqueidentifier")
                   .IsRequired(false);
 

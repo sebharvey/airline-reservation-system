@@ -29,7 +29,7 @@ public static class CustomerMapper
             Surname: request.Surname,
             DateOfBirth: request.DateOfBirth,
             PreferredLanguage: request.PreferredLanguage,
-            IdentityReference: request.IdentityReference);
+            IdentityId: request.IdentityId);
 
     public static UpdateCustomerCommand ToCommand(string loyaltyNumber, UpdateCustomerRequest request) =>
         new(
@@ -40,7 +40,7 @@ public static class CustomerMapper
             Nationality: request.Nationality,
             PhoneNumber: request.PhoneNumber,
             PreferredLanguage: request.PreferredLanguage,
-            IdentityReference: request.IdentityReference);
+            IdentityId: request.IdentityId);
 
     public static AuthorisePointsCommand ToCommand(string loyaltyNumber, AuthorisePointsRequest request) =>
         new(
@@ -82,7 +82,7 @@ public static class CustomerMapper
         {
             CustomerId = customer.CustomerId,
             LoyaltyNumber = customer.LoyaltyNumber,
-            IdentityReference = customer.IdentityReference,
+            IdentityId = customer.IdentityId,
             GivenName = customer.GivenName,
             Surname = customer.Surname,
             DateOfBirth = customer.DateOfBirth,

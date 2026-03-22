@@ -9,5 +9,5 @@ public sealed class CreateCustomerRequest
     public string Surname { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }
     public string PreferredLanguage { get; init; } = string.Empty;
-    public Guid? IdentityReference { get; init; }
+    public Guid? IdentityId { get; init; }
 }

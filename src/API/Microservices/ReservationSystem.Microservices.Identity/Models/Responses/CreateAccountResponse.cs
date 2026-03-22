@@ -5,6 +5,5 @@ namespace ReservationSystem.Microservices.Identity.Models.Responses;
 /// </summary>
 public sealed class CreateAccountResponse
 {
-    public Guid IdentityReference { get; init; }
     public Guid UserAccountId { get; init; }
 }

@@ -34,14 +34,6 @@ public sealed class IdentityDbContext : DbContext
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
 
-            entity.HasIndex(u => u.IdentityReference)
-                  .IsUnique();
-
-            entity.Property(u => u.IdentityReference)
-                  .HasColumnName("IdentityReference")
-                  .HasColumnType("uniqueidentifier")
-                  .IsRequired();
-
             entity.Property(u => u.Email)
                   .HasColumnName("Email")
                   .HasColumnType("varchar(254)")
