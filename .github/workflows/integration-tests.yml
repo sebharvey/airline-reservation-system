@@ -1,0 +1,58 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_project:
+        description: 'Test project to run (leave empty for all)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - Customer
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/Tests/IntegrationTests/**'
+      - '.github/workflows/integration-tests.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/Tests/IntegrationTests/**'
+      - '.github/workflows/integration-tests.yml'
+
+jobs:
+  customer-integration-tests:
+    name: Customer Microservice Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_project == '' || github.event.inputs.test_project == 'Customer' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj
+
+      - name: Build
+        run: dotnet build src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj --configuration Release --no-restore
+
+      - name: Run integration tests
+        env:
+          CUSTOMER_API_BASE_URL: ${{ secrets.CUSTOMER_API_BASE_URL }}
+          CUSTOMER_API_HOST_KEY: ${{ secrets.CUSTOMER_API_HOST_KEY }}
+        run: dotnet test src/Tests/IntegrationTests/Customer/ReservationSystem.IntegrationTests.Customer.csproj --configuration Release --no-build --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-integration-test-results
+          path: ./TestResults/*.trx
+          retention-days: 30
