@@ -1,20 +1,22 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
+using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Models.Responses;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace ReservationSystem.Microservices.Identity.Application.RefreshToken;
 
 /// <summary>
 /// Handles the <see cref="RefreshTokenCommand"/>.
-/// Validates the refresh token and issues a new access token.
+/// Validates the refresh token, rotates it (single-use), and issues a new JWT access token.
 /// </summary>
 public sealed class RefreshTokenHandler
 {
     private readonly IUserAccountRepository _userAccountRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly LoginHandler _loginHandler;
     private readonly ILogger<RefreshTokenHandler> _logger;
 
     private const int RefreshTokenDays = 30;
@@ -22,10 +24,12 @@ public sealed class RefreshTokenHandler
     public RefreshTokenHandler(
         IUserAccountRepository userAccountRepository,
         IRefreshTokenRepository refreshTokenRepository,
+        LoginHandler loginHandler,
         ILogger<RefreshTokenHandler> logger)
     {
         _userAccountRepository = userAccountRepository;
         _refreshTokenRepository = refreshTokenRepository;
+        _loginHandler = loginHandler;
         _logger = logger;
     }
 
@@ -65,27 +69,21 @@ public sealed class RefreshTokenHandler
 
         await _refreshTokenRepository.CreateAsync(newRefreshToken, cancellationToken);
 
-        var accessToken = GenerateAccessToken(account);
+        var (accessToken, expiresAt) = _loginHandler.GenerateJwt(account);
 
         _logger.LogInformation("Refresh token rotated for {UserAccountId}", account.UserAccountId);
 
         return new RefreshTokenResponse
         {
             AccessToken = accessToken,
-            RefreshToken = rawNewToken
+            RefreshToken = rawNewToken,
+            ExpiresAt = expiresAt
         };
     }
 
     private static string GenerateSecureToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes);
-    }
-
-    private static string GenerateAccessToken(Domain.Entities.UserAccount account)
-    {
-        var payload = $"{account.UserAccountId}:{account.Email}:{DateTimeOffset.UtcNow.Ticks}";
-        var bytes = Encoding.UTF8.GetBytes(payload);
         return Convert.ToBase64String(bytes);
     }
 }

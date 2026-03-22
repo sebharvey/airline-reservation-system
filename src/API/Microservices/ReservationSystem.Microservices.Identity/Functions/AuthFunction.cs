@@ -8,6 +8,7 @@ using ReservationSystem.Microservices.Identity.Application.Logout;
 using ReservationSystem.Microservices.Identity.Application.RefreshToken;
 using ReservationSystem.Microservices.Identity.Application.ResetPassword;
 using ReservationSystem.Microservices.Identity.Application.ResetPasswordRequest;
+using ReservationSystem.Microservices.Identity.Application.VerifyToken;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
 using ReservationSystem.Microservices.Identity.Models.Requests;
 using ReservationSystem.Shared.Common.Http;
@@ -19,11 +20,12 @@ namespace ReservationSystem.Microservices.Identity.Functions;
 
 /// <summary>
 /// HTTP-triggered functions for authentication endpoints.
-/// Handles login, refresh, logout, and password reset flows.
+/// Handles login, verify, refresh, logout, and password reset flows.
 /// </summary>
 public sealed class AuthFunction
 {
     private readonly LoginHandler _loginHandler;
+    private readonly VerifyTokenHandler _verifyTokenHandler;
     private readonly RefreshTokenHandler _refreshTokenHandler;
     private readonly LogoutHandler _logoutHandler;
     private readonly ResetPasswordRequestHandler _resetPasswordRequestHandler;
@@ -32,6 +34,7 @@ public sealed class AuthFunction
 
     public AuthFunction(
         LoginHandler loginHandler,
+        VerifyTokenHandler verifyTokenHandler,
         RefreshTokenHandler refreshTokenHandler,
         LogoutHandler logoutHandler,
         ResetPasswordRequestHandler resetPasswordRequestHandler,
@@ -39,6 +42,7 @@ public sealed class AuthFunction
         ILogger<AuthFunction> logger)
     {
         _loginHandler = loginHandler;
+        _verifyTokenHandler = verifyTokenHandler;
         _refreshTokenHandler = refreshTokenHandler;
         _logoutHandler = logoutHandler;
         _resetPasswordRequestHandler = resetPasswordRequestHandler;
@@ -97,6 +101,52 @@ public sealed class AuthFunction
             response.Headers.Add("Content-Type", "application/json");
             await response.WriteStringAsync(JsonSerializer.Serialize(
                 new { error = "Account is locked." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/auth/verify
+    // -------------------------------------------------------------------------
+
+    [Function("VerifyToken")]
+    [OpenApiOperation(operationId: "VerifyToken", tags: new[] { "Auth" }, Summary = "Verify an access token and return its claims")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Verify request: accessToken")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – token is valid")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – token invalid or expired")]
+    public async Task<HttpResponseData> Verify(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/verify")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        VerifyTokenRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<VerifyTokenRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in VerifyToken request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.AccessToken))
+            return await req.BadRequestAsync("The field 'accessToken' is required.");
+
+        try
+        {
+            var command = new VerifyTokenCommand(request.AccessToken);
+            var result = await _verifyTokenHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Invalid or expired access token." }, SharedJsonOptions.CamelCase));
             return response;
         }
     }

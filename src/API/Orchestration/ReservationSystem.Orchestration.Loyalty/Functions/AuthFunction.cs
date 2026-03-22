@@ -6,6 +6,8 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Login;
+using ReservationSystem.Orchestration.Loyalty.Application.Logout;
+using ReservationSystem.Orchestration.Loyalty.Application.RefreshToken;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using System.Net;
 using System.Text.Json;
@@ -15,17 +17,24 @@ namespace ReservationSystem.Orchestration.Loyalty.Functions;
 /// <summary>
 /// HTTP-triggered functions for authentication.
 /// Orchestrates calls to the Identity microservice.
+/// Login, refresh, and logout are public routes — no Bearer token required.
 /// </summary>
 public sealed class AuthFunction
 {
     private readonly LoginHandler _loginHandler;
+    private readonly RefreshTokenHandler _refreshTokenHandler;
+    private readonly LogoutHandler _logoutHandler;
     private readonly ILogger<AuthFunction> _logger;
 
     public AuthFunction(
         LoginHandler loginHandler,
+        RefreshTokenHandler refreshTokenHandler,
+        LogoutHandler logoutHandler,
         ILogger<AuthFunction> logger)
     {
         _loginHandler = loginHandler;
+        _refreshTokenHandler = refreshTokenHandler;
+        _logoutHandler = logoutHandler;
         _logger = logger;
     }
 
@@ -35,9 +44,10 @@ public sealed class AuthFunction
 
     [Function("Login")]
     [OpenApiOperation(operationId: "Login", tags: new[] { "Auth" }, Summary = "Login with email and password")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body: email, password")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – returns accessToken, refreshToken, expiresAt, tokenType")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized")]
     public async Task<HttpResponseData> Login(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -62,9 +72,28 @@ public sealed class AuthFunction
             return await req.BadRequestAsync("The fields 'email' and 'password' are required.");
         }
 
-        var command = new LoginCommand(request.Email, request.Password);
-        var result = await _loginHandler.HandleAsync(command, cancellationToken);
-        return await req.OkJsonAsync(result);
+        try
+        {
+            var command = new LoginCommand(request.Email, request.Password);
+            var result = await _loginHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 401)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Invalid credentials." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
+        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 403)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Forbidden);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Account is locked." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -72,13 +101,45 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("RefreshToken")]
-    [OpenApiOperation(operationId: "RefreshToken", tags: new[] { "Auth" }, Summary = "Refresh an access token")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
-    public Task<HttpResponseData> Refresh(
+    [OpenApiOperation(operationId: "RefreshToken", tags: new[] { "Auth" }, Summary = "Refresh an access token using a refresh token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body: refreshToken")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – returns new accessToken, refreshToken, expiresAt")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – refresh token invalid or expired")]
+    public async Task<HttpResponseData> Refresh(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/refresh")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        RefreshTokenRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<RefreshTokenRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in Refresh request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+            return await req.BadRequestAsync("The field 'refreshToken' is required.");
+
+        try
+        {
+            var command = new RefreshTokenCommand(request.RefreshToken);
+            var result = await _refreshTokenHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 401)
+        {
+            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(
+                new { error = "Invalid or expired refresh token." }, SharedJsonOptions.CamelCase));
+            return response;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -86,13 +147,32 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("Logout")]
-    [OpenApiOperation(operationId: "Logout", tags: new[] { "Auth" }, Summary = "Logout and invalidate token")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
-    public Task<HttpResponseData> Logout(
+    [OpenApiOperation(operationId: "Logout", tags: new[] { "Auth" }, Summary = "Logout and invalidate the refresh token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body: refreshToken")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> Logout(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/logout")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        LogoutRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<LogoutRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in Logout request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+            return await req.BadRequestAsync("The field 'refreshToken' is required.");
+
+        await _logoutHandler.HandleAsync(new LogoutCommand(request.RefreshToken), cancellationToken);
+        return req.CreateResponse(HttpStatusCode.OK);
     }
 
     // -------------------------------------------------------------------------
@@ -101,7 +181,7 @@ public sealed class AuthFunction
 
     [Function("PasswordResetRequest")]
     [OpenApiOperation(operationId: "PasswordResetRequest", tags: new[] { "Auth" }, Summary = "Request a password reset")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
     public Task<HttpResponseData> PasswordResetRequest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -115,7 +195,7 @@ public sealed class AuthFunction
 
     [Function("PasswordReset")]
     [OpenApiOperation(operationId: "PasswordReset", tags: new[] { "Auth" }, Summary = "Reset password with token")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     public Task<HttpResponseData> PasswordReset(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)

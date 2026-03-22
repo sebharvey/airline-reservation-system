@@ -249,6 +249,58 @@ public class IdentityApiIntegrationTests : IAsyncLifetime
         body!.Error.Should().Be("Invalid or expired refresh token.");
     }
 
+    [SkippableFact, IdentityTestPriority(10)]
+    public async Task T10_VerifyToken_WithValidAccessToken_ReturnsUserClaims()
+    {
+        SkipIfNoUserAccountId();
+        Skip.If(string.IsNullOrEmpty(_accessToken), "No access token from login step");
+
+        // Arrange
+        var request = new { accessToken = _accessToken };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/verify", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<VerifyTokenResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.Valid.Should().BeTrue();
+        body.UserAccountId.Should().Be(_userAccountId!.Value);
+        body.Email.Should().Be(TestEmail);
+    }
+
+    [Fact, IdentityTestPriority(11)]
+    public async Task T11_VerifyToken_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var request = new { accessToken = "not.a.valid.jwt.token" };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/verify", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.Error.Should().Be("Invalid or expired access token.");
+    }
+
+    [Fact, IdentityTestPriority(12)]
+    public async Task T12_VerifyToken_WithMissingToken_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new { accessToken = "" };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/auth/verify", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static void SkipIfNoUserAccountId()
     {
         Skip.If(!_userAccountId.HasValue, "Previous test did not produce a user account ID");
@@ -278,6 +330,13 @@ public sealed class RefreshTokenResponse
 public sealed class ErrorResponse
 {
     public string Error { get; init; } = string.Empty;
+}
+
+public sealed class VerifyTokenResponse
+{
+    public bool Valid { get; init; }
+    public Guid UserAccountId { get; init; }
+    public string Email { get; init; } = string.Empty;
 }
 
 #endregion

@@ -3,6 +3,10 @@ using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Loyalty.Application.Login;
 
+/// <summary>
+/// Orchestrates a login request by delegating credential validation and
+/// token issuance entirely to the Identity microservice.
+/// </summary>
 public sealed class LoginHandler
 {
     private readonly IdentityServiceClient _identityServiceClient;
@@ -12,8 +16,16 @@ public sealed class LoginHandler
         _identityServiceClient = identityServiceClient;
     }
 
-    public Task<LoginResponse> HandleAsync(LoginCommand command, CancellationToken cancellationToken)
+    public async Task<LoginResponse> HandleAsync(LoginCommand command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await _identityServiceClient.LoginAsync(command.Email, command.Password, cancellationToken);
+
+        return new LoginResponse
+        {
+            AccessToken = result.AccessToken,
+            RefreshToken = result.RefreshToken,
+            ExpiresAt = result.ExpiresAt,
+            TokenType = "Bearer"
+        };
     }
 }
