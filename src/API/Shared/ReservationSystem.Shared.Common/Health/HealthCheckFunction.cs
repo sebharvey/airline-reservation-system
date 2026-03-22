@@ -13,7 +13,7 @@ public class HealthCheckFunction(IEnumerable<IHealthCheckProvider> providers, IL
 {
     [Function("HealthCheck")]
     public Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/health")] HttpRequestData req)
     {
         return HealthCheckService.RunAsync(req, logger,
             providers.Select(p => (p.Name, (Func<CancellationToken, Task>)p.CheckAsync)).ToArray());
