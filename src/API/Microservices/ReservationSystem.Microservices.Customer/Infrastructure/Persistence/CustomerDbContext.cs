@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
 
 namespace ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
@@ -16,6 +17,14 @@ public sealed class CustomerDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var dateTimeOffsetConverter = new ValueConverter<DateTimeOffset, DateTime>(
+            v => v.UtcDateTime,
+            v => new DateTimeOffset(v, TimeSpan.Zero));
+
+        var nullableDateTimeOffsetConverter = new ValueConverter<DateTimeOffset?, DateTime?>(
+            v => v.HasValue ? v.Value.UtcDateTime : null,
+            v => v.HasValue ? new DateTimeOffset(v.Value, TimeSpan.Zero) : null);
+
         modelBuilder.Entity<Domain.Entities.Customer>(entity =>
         {
             entity.ToTable("Customer", "customer");
@@ -89,11 +98,13 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(c => c.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2")
+                  .HasConversion(dateTimeOffsetConverter);
 
             entity.Property(c => c.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2")
+                  .HasConversion(dateTimeOffsetConverter);
         });
 
         modelBuilder.Entity<LoyaltyTransaction>(entity =>
@@ -142,15 +153,18 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(t => t.TransactionDate)
                   .HasColumnName("TransactionDate")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2")
+                  .HasConversion(dateTimeOffsetConverter);
 
             entity.Property(t => t.CreatedAt)
                   .HasColumnName("CreatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2")
+                  .HasConversion(dateTimeOffsetConverter);
 
             entity.Property(t => t.UpdatedAt)
                   .HasColumnName("UpdatedAt")
-                  .HasColumnType("datetimeoffset");
+                  .HasColumnType("datetime2")
+                  .HasConversion(dateTimeOffsetConverter);
         });
     }
 }
