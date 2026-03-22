@@ -914,8 +914,8 @@ CREATE TABLE [customer].[Customer] (
     PointsBalance      INT              NOT NULL CONSTRAINT DF_Customer_Points   DEFAULT 0,
     TierProgressPoints INT              NOT NULL CONSTRAINT DF_Customer_Tier2    DEFAULT 0,
     IsActive           BIT              NOT NULL CONSTRAINT DF_Customer_Active   DEFAULT 1,
-    CreatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Customer_Created  DEFAULT SYSUTCDATETIME(),
-    UpdatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Customer_Updated  DEFAULT SYSUTCDATETIME(),
+    CreatedAt          DATETIMEOFFSET   NOT NULL CONSTRAINT DF_Customer_Created  DEFAULT SYSUTCDATETIME(),
+    UpdatedAt          DATETIMEOFFSET   NOT NULL CONSTRAINT DF_Customer_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Customer          PRIMARY KEY (CustomerId),
     CONSTRAINT UQ_Customer_Loyalty  UNIQUE (LoyaltyNumber),
     CONSTRAINT UQ_Customer_Identity UNIQUE (IdentityReference)
@@ -954,9 +954,9 @@ CREATE TABLE [customer].[LoyaltyTransaction] (
     BookingReference CHAR(6)              NULL,
     FlightNumber     VARCHAR(10)          NULL,
     Description      VARCHAR(255)     NOT NULL,
-    TransactionDate  DATETIME2        NOT NULL CONSTRAINT DF_LoyaltyTx_Date    DEFAULT SYSUTCDATETIME(),
-    CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_LoyaltyTx_Created DEFAULT SYSUTCDATETIME(),
-    UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_LoyaltyTx_Updated DEFAULT SYSUTCDATETIME(),
+    TransactionDate  DATETIMEOFFSET   NOT NULL CONSTRAINT DF_LoyaltyTx_Date    DEFAULT SYSUTCDATETIME(),
+    CreatedAt        DATETIMEOFFSET   NOT NULL CONSTRAINT DF_LoyaltyTx_Created DEFAULT SYSUTCDATETIME(),
+    UpdatedAt        DATETIMEOFFSET   NOT NULL CONSTRAINT DF_LoyaltyTx_Updated DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_LoyaltyTransaction          PRIMARY KEY (TransactionId),
     CONSTRAINT FK_LoyaltyTransaction_Customer FOREIGN KEY (CustomerId) REFERENCES [customer].[Customer](CustomerId),
     CONSTRAINT CHK_LoyaltyTransaction_Type    CHECK (TransactionType IN ('Earn','Redeem','Adjustment','Expiry','Reinstate'))
