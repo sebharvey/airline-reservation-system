@@ -747,22 +747,11 @@
 
       const services = allServices();
 
-      // Mark all as checking
-      for (const s of services) {
-        healthResults[s.id] = { status: 'checking' };
-      }
-      updateCounts();
-      renderSidebar();
-      renderMain();
-
-      // Run checks concurrently
+      // Run checks concurrently; keep showing last-known state while checks are in-flight
       const promises = services.map(s => checkHealth(s));
       await Promise.allSettled(promises);
 
       btn.classList.remove('spinning');
-      updateCounts();
-      renderSidebar();
-      renderMain();
     }
 
     async function checkHealth(service) {
