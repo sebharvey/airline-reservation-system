@@ -1,0 +1,62 @@
+# test
+
+name: Integration Tests - Customer Microservice
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_project:
+        description: 'Test project to run (leave empty for all)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - Customer
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/API/Tests/**'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Customer/**'
+      - '.github/workflows/integration-tests-customer-microservice.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/API/Tests/**'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Customer/**'
+      - '.github/workflows/integration-tests-customer-microservice.yml'
+
+jobs:
+  customer-integration-tests:
+    name: Customer Microservice Integration Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_project == '' || github.event.inputs.test_project == 'Customer' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/API/Tests/ReservationSystem.Tests.csproj
+
+      - name: Build
+        run: dotnet build src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-restore
+
+      - name: Run integration tests
+        env:
+          CUSTOMER_API_BASE_URL: ${{ secrets.CUSTOMER_API_BASE_URL }}
+          CUSTOMER_API_HOST_KEY: ${{ secrets.CUSTOMER_API_HOST_KEY }}
+        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-integration-test-results
+          path: ./TestResults/*.trx
+          retention-days: 30
