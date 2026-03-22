@@ -15,12 +15,14 @@ on:
     branches: [ main, master ]
     paths:
       - 'src/API/Tests/**'
-      - '.github/workflows/integration-tests-customer-microservice.yml'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Customer/**'
+      - '.github/workflows/integration-tests/customer-microservice.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'src/API/Tests/**'
-      - '.github/workflows/integration-tests-customer-microservice.yml'
+      - 'src/API/Microservices/ReservationSystem.Microservices.Customer/**'
+      - '.github/workflows/integration-tests/customer-microservice.yml'
 
 jobs:
   customer-integration-tests:
