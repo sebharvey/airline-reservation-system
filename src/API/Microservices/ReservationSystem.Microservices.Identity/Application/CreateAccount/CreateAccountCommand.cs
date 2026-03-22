@@ -5,5 +5,4 @@ namespace ReservationSystem.Microservices.Identity.Application.CreateAccount;
 /// </summary>
 public sealed record CreateAccountCommand(
     string Email,
-    string Password,
-    Guid CustomerId);
+    string Password);
