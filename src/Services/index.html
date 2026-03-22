@@ -129,6 +129,196 @@
       background: rgba(255,255,255,0.3);
     }
 
+    .secret-btn {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .secret-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .secret-btn.has-secret {
+      background: rgba(34,197,94,0.3);
+    }
+
+    .secret-btn.has-secret:hover {
+      background: rgba(34,197,94,0.45);
+    }
+
+    /* ── Secret Modal ── */
+    .secret-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: overlayFadeIn 0.18s ease;
+    }
+
+    @keyframes overlayFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .secret-modal {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      width: 90%;
+      max-width: 420px;
+      animation: modalSlideIn 0.22s ease;
+      overflow: hidden;
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .secret-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .secret-modal-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .secret-modal-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .secret-modal-close:hover {
+      background: var(--bg-light);
+      color: var(--text);
+    }
+
+    .secret-modal-body {
+      padding: 20px 24px;
+    }
+
+    .secret-modal-body p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .secret-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .secret-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .secret-input:focus {
+      border-color: var(--grad-start);
+    }
+
+    .secret-stored-info {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--success);
+      display: none;
+    }
+
+    .secret-stored-info.visible {
+      display: block;
+    }
+
+    .secret-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .secret-cancel-btn {
+      padding: 8px 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: none;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .secret-cancel-btn:hover {
+      background: var(--bg-light);
+    }
+
+    .secret-save-btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .secret-save-btn:hover {
+      opacity: 0.88;
+    }
+
+    .secret-save-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     .refresh-btn {
       background: rgba(255,255,255,0.18);
       border: none;
@@ -700,6 +890,13 @@
         <div class="summary-dot" style="background:var(--error)"></div>
         <span id="unhealthyCount">0</span> <span>Unhealthy</span>
       </div>
+      <button class="secret-btn" id="secretBtn" onclick="openSecretModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span id="secretBtnLabel">Add Secret</span>
+      </button>
       <button class="refresh-btn" id="refreshBtn" onclick="runHealthChecks()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
@@ -719,10 +916,79 @@
     <div class="main" id="main"></div>
   </div>
 
+  <!-- Secret Modal -->
+  <div class="secret-overlay" id="secretOverlay" style="display:none" onclick="onOverlayClick(event)">
+    <div class="secret-modal" onclick="event.stopPropagation()">
+      <div class="secret-modal-header">
+        <h2>&#128274; Host Key Secret</h2>
+        <button class="secret-modal-close" onclick="closeSecretModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="secret-modal-body">
+        <p>Enter a secret password to use as the Host Key for authenticating non-anonymous microservice endpoints. The value will be base64-encoded and stored in local storage.</p>
+        <label class="secret-field-label" for="secretInput">Secret</label>
+        <input class="secret-input" id="secretInput" type="password" placeholder="Enter secret..." autocomplete="new-password" oninput="onSecretInput()" onkeydown="onSecretKeyDown(event)" />
+        <div class="secret-stored-info" id="secretStoredInfo">&#10003; A secret is currently stored. Saving will replace it.</div>
+      </div>
+      <div class="secret-modal-footer">
+        <button class="secret-cancel-btn" onclick="closeSecretModal()">Cancel</button>
+        <button class="secret-save-btn" id="secretSaveBtn" onclick="saveSecret()" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let servicesData = null;
     let healthResults = {};
     let selectedId = 'retail-api';
+
+    // ── Secret Modal ──
+    function openSecretModal() {
+      document.getElementById('secretInput').value = '';
+      document.getElementById('secretSaveBtn').disabled = true;
+      const hasSecret = !!localStorage.getItem('hostKey');
+      const info = document.getElementById('secretStoredInfo');
+      info.classList.toggle('visible', hasSecret);
+      const overlay = document.getElementById('secretOverlay');
+      overlay.style.display = 'flex';
+      setTimeout(() => document.getElementById('secretInput').focus(), 50);
+    }
+
+    function closeSecretModal() {
+      document.getElementById('secretOverlay').style.display = 'none';
+    }
+
+    function onOverlayClick(event) {
+      if (event.target === document.getElementById('secretOverlay')) {
+        closeSecretModal();
+      }
+    }
+
+    function onSecretInput() {
+      const val = document.getElementById('secretInput').value;
+      document.getElementById('secretSaveBtn').disabled = val.trim().length === 0;
+    }
+
+    function onSecretKeyDown(event) {
+      if (event.key === 'Enter') saveSecret();
+      if (event.key === 'Escape') closeSecretModal();
+    }
+
+    function saveSecret() {
+      const val = document.getElementById('secretInput').value.trim();
+      if (!val) return;
+      const encoded = btoa(val);
+      localStorage.setItem('hostKey', encoded);
+      closeSecretModal();
+      updateSecretBtn();
+    }
+
+    function updateSecretBtn() {
+      const hasSecret = !!localStorage.getItem('hostKey');
+      const btn = document.getElementById('secretBtn');
+      const label = document.getElementById('secretBtnLabel');
+      btn.classList.toggle('has-secret', hasSecret);
+      label.textContent = hasSecret ? 'Secret Set' : 'Add Secret';
+    }
 
     // ── Theme ──
     function toggleTheme() {
@@ -739,6 +1005,8 @@
         document.getElementById('themeToggle').textContent = '\u2600\uFE0F';
       }
     })();
+
+    updateSecretBtn();
 
     // ── SVG icons ──
     function tickIcon(cls) {
