@@ -188,7 +188,7 @@
       "authType": "host-key",
       "callers": ["Loyalty API", "Disruption API"],
       "operations": [
-        { "name": "Create Customer", "method": "POST", "path": "/api/v1/customers" },
+        { "name": "Create Customer", "method": "POST", "path": "/api/v1/customers", "defaultPayload": "{\n  \"givenName\": \"Jane\",\n  \"surname\": \"Smith\",\n  \"dateOfBirth\": \"1990-06-15\",\n  \"preferredLanguage\": \"en\"\n}" },
         { "name": "Get Customer", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}" },
         { "name": "Update Customer", "method": "PATCH", "path": "/api/v1/customers/{loyaltyNumber}" },
         { "name": "Get Customer Transactions", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/transactions" },
