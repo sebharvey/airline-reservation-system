@@ -52,7 +52,7 @@ public sealed class ReversePointsHandler
             : $"Points reversal — {command.RedemptionReference} — {command.Reason}";
 
         var transaction = LoyaltyTransaction.Create(
-            loyaltyNumber: command.LoyaltyNumber,
+            customerId: customer.CustomerId,
             transactionType: "Adjustment",
             pointsDelta: pointsToRestore,
             balanceAfter: customer.PointsBalance,

@@ -365,7 +365,7 @@ public sealed class CustomerFunction
         if (transaction is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
-        var response = CustomerMapper.ToReinstateResponse(transaction);
+        var response = CustomerMapper.ToReinstateResponse(loyaltyNumber, transaction);
         return await req.OkJsonAsync(response);
     }
 

@@ -40,12 +40,12 @@ public sealed class IdentityDbContext : DbContext
 
             entity.Property(u => u.Email)
                   .HasColumnName("Email")
-                  .HasColumnType("nvarchar(320)")
+                  .HasColumnType("varchar(254)")
                   .IsRequired();
 
             entity.Property(u => u.PasswordHash)
                   .HasColumnName("PasswordHash")
-                  .HasColumnType("nvarchar(500)")
+                  .HasColumnType("varchar(255)")
                   .IsRequired();
 
             entity.Property(u => u.IsEmailVerified)
@@ -60,7 +60,7 @@ public sealed class IdentityDbContext : DbContext
 
             entity.Property(u => u.FailedLoginAttempts)
                   .HasColumnName("FailedLoginAttempts")
-                  .HasColumnType("int")
+                  .HasColumnType("tinyint")
                   .IsRequired();
 
             entity.Property(u => u.LastLoginAt)
@@ -102,12 +102,12 @@ public sealed class IdentityDbContext : DbContext
 
             entity.Property(r => r.TokenHash)
                   .HasColumnName("TokenHash")
-                  .HasColumnType("nvarchar(500)")
+                  .HasColumnType("varchar(255)")
                   .IsRequired();
 
             entity.Property(r => r.DeviceHint)
                   .HasColumnName("DeviceHint")
-                  .HasColumnType("nvarchar(200)")
+                  .HasColumnType("varchar(100)")
                   .IsRequired(false);
 
             entity.Property(r => r.IsRevoked)

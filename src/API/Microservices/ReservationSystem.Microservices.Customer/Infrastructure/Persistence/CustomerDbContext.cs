@@ -29,7 +29,7 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(c => c.LoyaltyNumber)
                   .HasColumnName("LoyaltyNumber")
-                  .HasColumnType("nvarchar(20)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.HasIndex(c => c.LoyaltyNumber)
@@ -42,12 +42,12 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(c => c.GivenName)
                   .HasColumnName("GivenName")
-                  .HasColumnType("nvarchar(100)")
+                  .HasColumnType("varchar(100)")
                   .IsRequired();
 
             entity.Property(c => c.Surname)
                   .HasColumnName("Surname")
-                  .HasColumnType("nvarchar(100)")
+                  .HasColumnType("varchar(100)")
                   .IsRequired();
 
             entity.Property(c => c.DateOfBirth)
@@ -57,22 +57,22 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(c => c.Nationality)
                   .HasColumnName("Nationality")
-                  .HasColumnType("nvarchar(3)")
+                  .HasColumnType("char(3)")
                   .IsRequired(false);
 
             entity.Property(c => c.PreferredLanguage)
                   .HasColumnName("PreferredLanguage")
-                  .HasColumnType("nvarchar(10)")
+                  .HasColumnType("char(5)")
                   .IsRequired();
 
             entity.Property(c => c.PhoneNumber)
                   .HasColumnName("PhoneNumber")
-                  .HasColumnType("nvarchar(30)")
+                  .HasColumnType("varchar(30)")
                   .IsRequired(false);
 
             entity.Property(c => c.TierCode)
                   .HasColumnName("TierCode")
-                  .HasColumnType("nvarchar(10)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(c => c.PointsBalance)
@@ -107,14 +107,14 @@ public sealed class CustomerDbContext : DbContext
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
 
-            entity.Property(t => t.LoyaltyNumber)
-                  .HasColumnName("LoyaltyNumber")
-                  .HasColumnType("nvarchar(20)")
+            entity.Property(t => t.CustomerId)
+                  .HasColumnName("CustomerId")
+                  .HasColumnType("uniqueidentifier")
                   .IsRequired();
 
             entity.Property(t => t.TransactionType)
                   .HasColumnName("TransactionType")
-                  .HasColumnType("nvarchar(20)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(t => t.PointsDelta)
@@ -127,17 +127,17 @@ public sealed class CustomerDbContext : DbContext
 
             entity.Property(t => t.BookingReference)
                   .HasColumnName("BookingReference")
-                  .HasColumnType("nvarchar(10)")
+                  .HasColumnType("char(6)")
                   .IsRequired(false);
 
             entity.Property(t => t.FlightNumber)
                   .HasColumnName("FlightNumber")
-                  .HasColumnType("nvarchar(10)")
+                  .HasColumnType("varchar(10)")
                   .IsRequired(false);
 
             entity.Property(t => t.Description)
                   .HasColumnName("Description")
-                  .HasColumnType("nvarchar(500)")
+                  .HasColumnType("varchar(255)")
                   .IsRequired();
 
             entity.Property(t => t.TransactionDate)

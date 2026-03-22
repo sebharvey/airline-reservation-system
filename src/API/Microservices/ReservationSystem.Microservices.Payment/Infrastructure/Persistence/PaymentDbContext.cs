@@ -32,52 +32,52 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(p => p.PaymentReference)
                   .HasColumnName("PaymentReference")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(p => p.BookingReference)
                   .HasColumnName("BookingReference")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("char(6)")
                   .IsRequired(false);
 
             entity.Property(p => p.PaymentType)
                   .HasColumnName("PaymentType")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(30)")
                   .IsRequired();
 
             entity.Property(p => p.Method)
                   .HasColumnName("Method")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(p => p.CardType)
                   .HasColumnName("CardType")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired(false);
 
             entity.Property(p => p.CardLast4)
                   .HasColumnName("CardLast4")
-                  .HasColumnType("nvarchar(4)")
+                  .HasColumnType("char(4)")
                   .IsRequired(false);
 
             entity.Property(p => p.CurrencyCode)
                   .HasColumnName("CurrencyCode")
-                  .HasColumnType("nvarchar(3)")
+                  .HasColumnType("char(3)")
                   .IsRequired();
 
             entity.Property(p => p.AuthorisedAmount)
                   .HasColumnName("AuthorisedAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired();
 
             entity.Property(p => p.SettledAmount)
                   .HasColumnName("SettledAmount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired(false);
 
             entity.Property(p => p.Status)
                   .HasColumnName("Status")
-                  .HasColumnType("nvarchar(20)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(p => p.AuthorisedAt)
@@ -92,7 +92,7 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(p => p.Description)
                   .HasColumnName("Description")
-                  .HasColumnType("nvarchar(500)")
+                  .HasColumnType("varchar(255)")
                   .IsRequired(false);
 
             entity.Property(p => p.CreatedAt)
@@ -124,22 +124,22 @@ public sealed class PaymentDbContext : DbContext
 
             entity.Property(pe => pe.EventType)
                   .HasColumnName("EventType")
-                  .HasColumnType("nvarchar(50)")
+                  .HasColumnType("varchar(20)")
                   .IsRequired();
 
             entity.Property(pe => pe.Amount)
                   .HasColumnName("Amount")
-                  .HasColumnType("decimal(18,2)")
+                  .HasColumnType("decimal(10,2)")
                   .IsRequired();
 
             entity.Property(pe => pe.CurrencyCode)
                   .HasColumnName("CurrencyCode")
-                  .HasColumnType("nvarchar(3)")
+                  .HasColumnType("char(3)")
                   .IsRequired();
 
             entity.Property(pe => pe.Notes)
                   .HasColumnName("Notes")
-                  .HasColumnType("nvarchar(500)")
+                  .HasColumnType("varchar(255)")
                   .IsRequired(false);
 
             entity.Property(pe => pe.CreatedAt)

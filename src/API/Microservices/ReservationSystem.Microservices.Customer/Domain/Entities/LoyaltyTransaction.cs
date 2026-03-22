@@ -7,7 +7,7 @@ namespace ReservationSystem.Microservices.Customer.Domain.Entities;
 public sealed class LoyaltyTransaction
 {
     public Guid TransactionId { get; private set; }
-    public string LoyaltyNumber { get; private set; } = string.Empty;
+    public Guid CustomerId { get; private set; }
     public string TransactionType { get; private set; } = string.Empty;
     public int PointsDelta { get; private set; }
     public int BalanceAfter { get; private set; }
@@ -24,7 +24,7 @@ public sealed class LoyaltyTransaction
     /// Factory method for creating a brand-new loyalty transaction.
     /// </summary>
     public static LoyaltyTransaction Create(
-        string loyaltyNumber,
+        Guid customerId,
         string transactionType,
         int pointsDelta,
         int balanceAfter,
@@ -32,14 +32,13 @@ public sealed class LoyaltyTransaction
         string? bookingReference = null,
         string? flightNumber = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(loyaltyNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(transactionType);
         ArgumentException.ThrowIfNullOrWhiteSpace(description);
 
         return new LoyaltyTransaction
         {
             TransactionId = Guid.NewGuid(),
-            LoyaltyNumber = loyaltyNumber,
+            CustomerId = customerId,
             TransactionType = transactionType,
             PointsDelta = pointsDelta,
             BalanceAfter = balanceAfter,
@@ -57,7 +56,7 @@ public sealed class LoyaltyTransaction
     /// </summary>
     public static LoyaltyTransaction Reconstitute(
         Guid transactionId,
-        string loyaltyNumber,
+        Guid customerId,
         string transactionType,
         int pointsDelta,
         int balanceAfter,
@@ -71,7 +70,7 @@ public sealed class LoyaltyTransaction
         return new LoyaltyTransaction
         {
             TransactionId = transactionId,
-            LoyaltyNumber = loyaltyNumber,
+            CustomerId = customerId,
             TransactionType = transactionType,
             PointsDelta = pointsDelta,
             BalanceAfter = balanceAfter,

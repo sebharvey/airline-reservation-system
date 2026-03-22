@@ -23,9 +23,13 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
 
     public async Task<IReadOnlyList<LoyaltyTransaction>> GetByLoyaltyNumberAsync(string loyaltyNumber, CancellationToken cancellationToken = default)
     {
+        var customerId = await ResolveCustomerIdAsync(loyaltyNumber, cancellationToken);
+        if (customerId is null)
+            return Array.Empty<LoyaltyTransaction>().AsReadOnly();
+
         var transactions = await _context.LoyaltyTransactions
             .AsNoTracking()
-            .Where(t => t.LoyaltyNumber == loyaltyNumber)
+            .Where(t => t.CustomerId == customerId.Value)
             .OrderByDescending(t => t.TransactionDate)
             .ToListAsync(cancellationToken);
 
@@ -34,9 +38,13 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
 
     public async Task<(IReadOnlyList<LoyaltyTransaction> Transactions, int TotalCount)> GetByLoyaltyNumberAsync(string loyaltyNumber, int page, int pageSize, CancellationToken cancellationToken = default)
     {
+        var customerId = await ResolveCustomerIdAsync(loyaltyNumber, cancellationToken);
+        if (customerId is null)
+            return (Array.Empty<LoyaltyTransaction>().AsReadOnly(), 0);
+
         var query = _context.LoyaltyTransactions
             .AsNoTracking()
-            .Where(t => t.LoyaltyNumber == loyaltyNumber);
+            .Where(t => t.CustomerId == customerId.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -51,9 +59,13 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
 
     public async Task<LoyaltyTransaction?> FindAuthorisationHoldAsync(string loyaltyNumber, string redemptionReference, CancellationToken cancellationToken = default)
     {
+        var customerId = await ResolveCustomerIdAsync(loyaltyNumber, cancellationToken);
+        if (customerId is null)
+            return null;
+
         return await _context.LoyaltyTransactions
             .AsNoTracking()
-            .Where(t => t.LoyaltyNumber == loyaltyNumber
+            .Where(t => t.CustomerId == customerId.Value
                 && t.TransactionType == "Redeem"
                 && t.Description.Contains(redemptionReference))
             .OrderByDescending(t => t.TransactionDate)
@@ -66,5 +78,14 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogDebug("Inserted LoyaltyTransaction {TransactionId} into [customer].[LoyaltyTransaction]", transaction.TransactionId);
+    }
+
+    private async Task<Guid?> ResolveCustomerIdAsync(string loyaltyNumber, CancellationToken cancellationToken)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .Where(c => c.LoyaltyNumber == loyaltyNumber)
+            .Select(c => (Guid?)c.CustomerId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
