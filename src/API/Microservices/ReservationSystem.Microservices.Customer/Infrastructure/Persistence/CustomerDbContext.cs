@@ -107,9 +107,9 @@ public sealed class CustomerDbContext : DbContext
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
 
-            entity.Property(t => t.LoyaltyNumber)
-                  .HasColumnName("LoyaltyNumber")
-                  .HasColumnType("nvarchar(20)")
+            entity.Property(t => t.CustomerId)
+                  .HasColumnName("CustomerId")
+                  .HasColumnType("uniqueidentifier")
                   .IsRequired();
 
             entity.Property(t => t.TransactionType)

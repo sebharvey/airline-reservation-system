@@ -149,10 +149,10 @@ public static class CustomerMapper
             ReversedAt = transaction.TransactionDate
         };
 
-    public static ReinstatePointsResponse ToReinstateResponse(Domain.Entities.LoyaltyTransaction transaction) =>
+    public static ReinstatePointsResponse ToReinstateResponse(string loyaltyNumber, Domain.Entities.LoyaltyTransaction transaction) =>
         new()
         {
-            LoyaltyNumber = transaction.LoyaltyNumber,
+            LoyaltyNumber = loyaltyNumber,
             PointsReinstated = transaction.PointsDelta,
             NewPointsBalance = transaction.BalanceAfter,
             TransactionId = transaction.TransactionId,

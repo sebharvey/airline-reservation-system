@@ -43,7 +43,7 @@ public sealed class SettlePointsHandler
         }
 
         var transaction = LoyaltyTransaction.Create(
-            loyaltyNumber: command.LoyaltyNumber,
+            customerId: customer.CustomerId,
             transactionType: "Redeem",
             pointsDelta: hold.PointsDelta,
             balanceAfter: customer.PointsBalance,

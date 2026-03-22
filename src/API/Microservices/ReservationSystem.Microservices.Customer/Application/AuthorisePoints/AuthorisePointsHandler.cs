@@ -38,7 +38,7 @@ public sealed class AuthorisePointsHandler
         await _customerRepository.UpdateAsync(customer, cancellationToken);
 
         var transaction = LoyaltyTransaction.Create(
-            loyaltyNumber: command.LoyaltyNumber,
+            customerId: customer.CustomerId,
             transactionType: "Redeem",
             pointsDelta: -command.Points,
             balanceAfter: customer.PointsBalance,

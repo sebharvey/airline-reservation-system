@@ -38,7 +38,7 @@ public sealed class ReinstatePointsHandler
         await _customerRepository.UpdateAsync(customer, cancellationToken);
 
         var transaction = LoyaltyTransaction.Create(
-            loyaltyNumber: command.LoyaltyNumber,
+            customerId: customer.CustomerId,
             transactionType: "Reinstate",
             pointsDelta: command.Points,
             balanceAfter: customer.PointsBalance,
