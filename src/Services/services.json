@@ -283,7 +283,7 @@
         { "name": "Logout", "method": "POST", "path": "/api/v1/auth/logout", "defaultPayload": "{\n  \"refreshToken\": \"{refreshToken}\"\n}" },
         { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\"\n}" },
         { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"{reset-token}\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
-        { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\",\n  \"customerId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\"\n}" },
         { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
         { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
         { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request", "defaultPayload": "{\n  \"newEmail\": \"jane.newemail@example.com\"\n}" },
