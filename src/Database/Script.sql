@@ -1107,6 +1107,32 @@ BEGIN TRANSACTION;
 
 BEGIN TRY
 
+    -- Truncate all tables in dependency order (children before parents) -----------
+    TRUNCATE TABLE [delivery].[Document];
+    TRUNCATE TABLE [delivery].[Manifest];
+    TRUNCATE TABLE [delivery].[Ticket];
+    TRUNCATE TABLE [payment].[PaymentEvent];
+    TRUNCATE TABLE [payment].[Payment];
+    TRUNCATE TABLE [order].[SsrCatalogue];
+    TRUNCATE TABLE [order].[Order];
+    TRUNCATE TABLE [order].[Basket];
+    TRUNCATE TABLE [offer].[StoredOffer];
+    TRUNCATE TABLE [offer].[Fare];
+    TRUNCATE TABLE [offer].[FlightInventory];
+    TRUNCATE TABLE [seat].[SeatPricing];
+    TRUNCATE TABLE [seat].[Seatmap];
+    TRUNCATE TABLE [seat].[AircraftType];
+    TRUNCATE TABLE [bag].[BagPricing];
+    TRUNCATE TABLE [bag].[BagPolicy];
+    TRUNCATE TABLE [schedule].[FlightSchedule];
+    TRUNCATE TABLE [customer].[LoyaltyTransaction];
+    TRUNCATE TABLE [customer].[Customer];
+    TRUNCATE TABLE [customer].[TierConfig];
+    TRUNCATE TABLE [identity].[RefreshToken];
+    TRUNCATE TABLE [identity].[UserAccount];
+    TRUNCATE TABLE [disruption].[DisruptionEvent];
+
+
     -- seat.AircraftType -------------------------------------------------------
     INSERT INTO [seat].[AircraftType] (AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats) VALUES
     ('A351','Airbus','Airbus A350-1000',331),
