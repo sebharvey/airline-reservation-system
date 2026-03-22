@@ -63,12 +63,14 @@ public sealed class EfLoyaltyTransactionRepository : ILoyaltyTransactionReposito
         if (customerId is null)
             return null;
 
+        if (!Guid.TryParse(redemptionReference, out var redemptionId))
+            return null;
+
         return await _context.LoyaltyTransactions
             .AsNoTracking()
             .Where(t => t.CustomerId == customerId.Value
                 && t.TransactionType == "Redeem"
-                && t.Description.Contains(redemptionReference))
-            .OrderByDescending(t => t.TransactionDate)
+                && t.TransactionId == redemptionId)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
