@@ -23,7 +23,7 @@ function saveVariables(vars) {
 
 function applyVariables(path) {
   const vars = loadVariables();
-  return path.replace(/\{([^}]+)\}/g, (match, name) => {
+  return path.replace(/\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g, (match, name) => {
     const v = vars.find(v => v.name === name);
     return v && v.value ? v.value : match;
   });
