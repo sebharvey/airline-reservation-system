@@ -903,7 +903,7 @@ IF OBJECT_ID('[customer].[Customer]', 'U') IS NULL
 CREATE TABLE [customer].[Customer] (
     CustomerId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Customer_Id       DEFAULT NEWID(),
     LoyaltyNumber      VARCHAR(20)      NOT NULL,
-    IdentityReference  UNIQUEIDENTIFIER     NULL,
+    IdentityId         UNIQUEIDENTIFIER     NULL,
     GivenName          VARCHAR(100)     NOT NULL,
     Surname            VARCHAR(100)     NOT NULL,
     DateOfBirth        DATE                 NULL,
@@ -1164,7 +1164,7 @@ BEGIN TRY
 
     -- customer.Customer -------------------------------------------------------
     INSERT INTO [customer].[Customer]
-        (LoyaltyNumber, IdentityReference, GivenName, Surname, DateOfBirth,
+        (LoyaltyNumber, IdentityId, GivenName, Surname, DateOfBirth,
          Nationality, PreferredLanguage, PhoneNumber, TierCode, PointsBalance, TierProgressPoints)
     VALUES
     ('AX9876543',@IdRef1,'Amara','Okafor','1988-03-22','GBR','en-GB','+447700900123','Silver',  48250, 62100),
