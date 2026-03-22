@@ -424,6 +424,25 @@
       text-decoration: underline;
     }
 
+    .btn-link {
+      display: inline-block;
+      padding: 4px 12px;
+      border: 1px solid var(--grad-start);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--grad-start) !important;
+      text-decoration: none !important;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .btn-link:hover {
+      background: var(--grad-start);
+      color: #fff !important;
+      text-decoration: none !important;
+    }
+
     .caller-tags {
       display: flex;
       flex-wrap: wrap;
@@ -694,9 +713,8 @@
               <div class="detail-field">
                 <span class="field-label">Swagger</span>
                 <span class="field-value">
-                  <a href="${s.baseUrl}${s.swaggerEndpoint}" target="_blank" rel="noopener">View JSON</a>
-                  &nbsp;&middot;&nbsp;
-                  <a href="https://editor.swagger.io/?url=${encodeURIComponent(s.baseUrl + s.swaggerEndpoint)}" target="_blank" rel="noopener">Open in Swagger Editor</a>
+                  <a class="btn-link" href="${s.baseUrl}${s.swaggerEndpoint}" target="_blank" rel="noopener">View JSON</a>
+                  <a class="btn-link" href="https://editor.swagger.io/?url=${encodeURIComponent(s.baseUrl + s.swaggerEndpoint)}" target="_blank" rel="noopener">Open in Swagger Editor</a>
                 </span>
               </div>
               <div class="detail-field">
