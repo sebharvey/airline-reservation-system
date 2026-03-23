@@ -66,7 +66,7 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/auth/login` | Authenticate with email and password; returns a short-lived JWT access token, a refresh token, and a customer profile summary |
+| `POST` | `/v1/auth/login` | Authenticate with email and password; returns a short-lived JWT access token, a refresh token, expiry, and the customer's `loyaltyNumber` |
 | `POST` | `/v1/auth/refresh` | Exchange a valid refresh token for a new access token and rotated refresh token (single-use semantics) |
 | `POST` | `/v1/auth/logout` | Revoke the current refresh token and invalidate the session |
 | `POST` | `/v1/auth/password/reset-request` | Request a password reset link; dispatched to the registered email address if found — response is identical regardless to prevent account enumeration |
@@ -305,6 +305,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 |--------|----------|-------------|
 | `POST` | `/v1/customers` | Create a new loyalty account (called by Loyalty API as the **first** step of registration, before the Identity account is created; `identityReference` is initially `null` and linked in a subsequent `PATCH`) |
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile, tier status, and points balance |
+| `GET` | `/v1/customers/by-identity/{identityId}` | Retrieve a customer profile by Identity MS account ID; used by the Loyalty API during login to resolve the loyalty number |
 | `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language, `identityReference`); also used by Loyalty API during registration to link the `identityReference` returned from the Identity MS after account creation |
 | `DELETE` | `/v1/customers/{loyaltyNumber}` | Delete a customer record (used for registration rollback — called by Loyalty API if Identity account creation fails, or if the subsequent `PATCH` to link the `identityReference` fails) |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |

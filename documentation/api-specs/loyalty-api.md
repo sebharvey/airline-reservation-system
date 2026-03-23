@@ -45,7 +45,7 @@ The Loyalty API is the single entry point for all loyalty-related channel reques
 | Service | Endpoints Called | Purpose |
 |---------|-----------------|---------|
 | **Identity MS** | `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/password/reset-request`, `POST /v1/auth/password/reset`, `POST /v1/accounts`, `DELETE /v1/accounts/{userAccountId}`, `POST /v1/accounts/{userAccountId}/verify-email`, `POST /v1/accounts/{identityReference}/email/change-request`, `POST /v1/email/verify` | All credential management, session management, and email verification operations |
-| **Customer MS** | `POST /v1/customers`, `GET /v1/customers/{loyaltyNumber}`, `PATCH /v1/customers/{loyaltyNumber}`, `DELETE /v1/customers/{loyaltyNumber}`, `GET /v1/customers/{loyaltyNumber}/transactions` | All profile, tier, points balance, and transaction history operations |
+| **Customer MS** | `POST /v1/customers`, `GET /v1/customers/{loyaltyNumber}`, `GET /v1/customers/by-identity/{identityId}`, `PATCH /v1/customers/{loyaltyNumber}`, `DELETE /v1/customers/{loyaltyNumber}`, `GET /v1/customers/{loyaltyNumber}/transactions` | All profile, tier, points balance, and transaction history operations |
 
 ---
 
@@ -134,14 +134,14 @@ Register a new loyalty programme member. Orchestrates the three-step creation of
 
 ### POST /v1/auth/login
 
-Authenticate with email and password. Delegates credential validation to the Identity MS. On success, returns a short-lived JWT access token, a single-use refresh token, and a customer profile summary fetched from the Customer MS using the returned `identityReference`.
+Authenticate with email and password. Delegates credential validation to the Identity MS. On success, returns a short-lived JWT access token, a single-use refresh token, and the customer's loyalty number looked up from the Customer MS.
 
 **When to use:** Called by channels when a user submits login credentials.
 
 **Side effects:**
 - Identity MS resets `FailedLoginAttempts` to 0 and updates `LastLoginAt`.
 - Identity MS creates a new `RefreshToken` record.
-- After receiving the `identityReference` from the Identity MS, the Loyalty API calls `GET /v1/customers/{loyaltyNumber}` on the Customer MS to fetch the profile summary to include in the response.
+- After receiving the `userAccountId` from the Identity MS, the Loyalty API calls `GET /v1/customers/by-identity/{identityId}` on the Customer MS to resolve the loyalty number and include it in the response.
 
 **Account lockout:** The Identity MS locks the account (`IsLocked = 1`) after 5 consecutive failed login attempts. Further attempts are rejected with `403 Forbidden` until the account is unlocked via password reset.
 
@@ -165,13 +165,9 @@ Authenticate with email and password. Delegates credential validation to the Ide
 {
   "accessToken": "eyJhbGciOiJSUzI1NiIs...",
   "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...",
-  "customer": {
-    "loyaltyNumber": "AX9876543",
-    "givenName": "Amara",
-    "surname": "Okafor",
-    "tierCode": "Silver",
-    "pointsBalance": 48250
-  }
+  "expiresAt": "2026-03-23T14:30:00Z",
+  "tokenType": "Bearer",
+  "loyaltyNumber": "AX9876543"
 }
 ```
 
@@ -179,11 +175,9 @@ Authenticate with email and password. Delegates credential validation to the Ide
 |-------|------|-------------|
 | `accessToken` | string | JWT access token with 15-minute TTL, signed with RS256 or ES256 |
 | `refreshToken` | string | Opaque single-use refresh token; must be exchanged before expiry |
-| `customer.loyaltyNumber` | string | Loyalty programme number |
-| `customer.givenName` | string | Customer's given name |
-| `customer.surname` | string | Customer's surname |
-| `customer.tierCode` | string | Current tier: `Blue`, `Silver`, `Gold`, or `Platinum` |
-| `customer.pointsBalance` | integer | Current redeemable points balance |
+| `expiresAt` | string (ISO 8601) | UTC expiry time of the access token |
+| `tokenType` | string | Always `Bearer` |
+| `loyaltyNumber` | string | The customer's loyalty programme number (e.g. `AX9876543`); use this for all subsequent Customer API calls |
 
 #### Error Responses
 

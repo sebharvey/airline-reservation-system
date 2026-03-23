@@ -163,6 +163,38 @@ GET /v1/customers/AX9876543
 
 ---
 
+### GET /v1/customers/by-identity/{identityId}
+
+Retrieve a customer profile by their Identity microservice account ID. Used by the Loyalty API immediately after login to resolve the loyalty number from the `userAccountId` returned by the Identity MS.
+
+**When to use:** Called internally by the Loyalty API during the login flow. Not intended for direct channel use.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `identityId` | string (UUID) | The `userAccountId` returned by the Identity MS at login |
+
+#### Request
+
+No request body. No query parameters.
+
+```
+GET /v1/customers/by-identity/c4f2e8a1-7b3d-4e9f-a6c1-2d8b5e0f3a7c
+```
+
+#### Response — `200 OK`
+
+Returns the full customer record (same schema as `GET /v1/customers/{loyaltyNumber}`).
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No customer found for the given identity ID |
+
+---
+
 ### PATCH /v1/customers/{loyaltyNumber}
 
 Update profile fields on an existing customer record. Only the fields included in the request body are updated; omitted fields are left unchanged.
