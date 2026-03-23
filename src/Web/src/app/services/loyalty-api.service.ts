@@ -120,7 +120,7 @@ function handleError(error: HttpErrorResponse): Observable<never> {
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
-const BASE = `${environment.loyaltyApiBaseUrl}/v1`;
+const BASE = `${environment.loyaltyApiBaseUrl}/api/v1`;
 
 @Injectable({ providedIn: 'root' })
 export class LoyaltyApiService {
