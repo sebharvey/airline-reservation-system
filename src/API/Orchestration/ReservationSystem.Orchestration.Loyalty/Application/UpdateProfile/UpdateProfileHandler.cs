@@ -11,8 +11,20 @@ public sealed class UpdateProfileHandler
         _customerServiceClient = customerServiceClient;
     }
 
-    public Task HandleAsync(UpdateProfileCommand command, CancellationToken cancellationToken)
+    /// <returns>True if updated; false if the customer was not found.</returns>
+    public async Task<bool> HandleAsync(UpdateProfileCommand command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var updateRequest = new
+        {
+            command.GivenName,
+            command.Surname,
+            command.DateOfBirth,
+            command.Nationality,
+            command.PhoneNumber,
+            command.PreferredLanguage
+        };
+
+        return await _customerServiceClient.UpdateCustomerAsync(
+            command.LoyaltyNumber, updateRequest, cancellationToken);
     }
 }

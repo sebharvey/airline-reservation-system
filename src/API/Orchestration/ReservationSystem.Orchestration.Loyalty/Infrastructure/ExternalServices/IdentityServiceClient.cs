@@ -71,4 +71,17 @@ public sealed class IdentityServiceClient
         var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/logout", body, JsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task<IdentityCreateAccountResponse> CreateAccountAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { email, password };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/accounts", body, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<IdentityCreateAccountResponse>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Identity MS create account.");
+    }
 }

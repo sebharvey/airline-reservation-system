@@ -24,3 +24,8 @@ public sealed class IdentityVerifyTokenResponse
     public Guid UserAccountId { get; init; }
     public string Email { get; init; } = string.Empty;
 }
+
+public sealed class IdentityCreateAccountResponse
+{
+    public Guid UserAccountId { get; init; }
+}

@@ -3,6 +3,15 @@ using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Loyalty.Application.Register;
 
+/// <summary>
+/// Orchestrates new member registration across the Customer and Identity microservices.
+///
+/// Sequence:
+///   1. Create customer record in Customer MS (no identity link yet).
+///   2. Create identity account in Identity MS (email + password).
+///   3. Patch customer with the resolved IdentityId to link the two records.
+///   4. Return profile response.
+/// </summary>
 public sealed class RegisterHandler
 {
     private readonly IdentityServiceClient _identityServiceClient;
@@ -16,8 +25,43 @@ public sealed class RegisterHandler
         _customerServiceClient = customerServiceClient;
     }
 
-    public Task<ProfileResponse> HandleAsync(RegisterCommand command, CancellationToken cancellationToken)
+    public async Task<ProfileResponse> HandleAsync(RegisterCommand command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        // Step 1: Create customer profile (no identity link yet).
+        var customer = await _customerServiceClient.CreateCustomerAsync(
+            command.FirstName,
+            command.LastName,
+            command.DateOfBirth,
+            "en-GB",
+            cancellationToken);
+
+        // Step 2: Create identity account.
+        var identity = await _identityServiceClient.CreateAccountAsync(
+            command.Email,
+            command.Password,
+            cancellationToken);
+
+        // Step 3: Link identity to customer.
+        await _customerServiceClient.LinkIdentityAsync(
+            customer.LoyaltyNumber,
+            identity.UserAccountId,
+            cancellationToken);
+
+        // Step 4: Fetch full customer record to populate the response.
+        var fullCustomer = await _customerServiceClient.GetCustomerAsync(
+            customer.LoyaltyNumber, cancellationToken);
+
+        return new ProfileResponse
+        {
+            LoyaltyNumber = customer.LoyaltyNumber,
+            FirstName = command.FirstName,
+            LastName = command.LastName,
+            Email = command.Email,
+            PhoneNumber = command.PhoneNumber,
+            DateOfBirth = command.DateOfBirth,
+            Tier = fullCustomer?.TierCode ?? customer.TierCode,
+            PointsBalance = fullCustomer?.PointsBalance ?? 0,
+            MemberSince = fullCustomer?.CreatedAt ?? DateTime.UtcNow
+        };
     }
 }
