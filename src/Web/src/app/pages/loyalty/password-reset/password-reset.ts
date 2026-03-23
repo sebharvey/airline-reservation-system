@@ -88,7 +88,7 @@ export class PasswordResetComponent {
         this.resetLoading.set(false);
         this.step.set('done');
       },
-      error: (err) => {
+      error: (err: { message?: string }) => {
         this.resetLoading.set(false);
         this.resetError.set(err?.message ?? 'Reset failed. Please try again.');
       }
