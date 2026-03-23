@@ -42,6 +42,7 @@ public sealed class CustomerFunction
     private readonly ReinstatePointsHandler _reinstatePointsHandler;
     private readonly AddPointsHandler _addPointsHandler;
     private readonly SearchCustomersHandler _searchHandler;
+    private readonly GetCustomerByIdentityHandler _getByIdentityHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -56,6 +57,7 @@ public sealed class CustomerFunction
         ReinstatePointsHandler reinstatePointsHandler,
         AddPointsHandler addPointsHandler,
         SearchCustomersHandler searchHandler,
+        GetCustomerByIdentityHandler getByIdentityHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -69,6 +71,7 @@ public sealed class CustomerFunction
         _reinstatePointsHandler = reinstatePointsHandler;
         _addPointsHandler = addPointsHandler;
         _searchHandler = searchHandler;
+        _getByIdentityHandler = getByIdentityHandler;
         _logger = logger;
     }
 
@@ -161,6 +164,30 @@ public sealed class CustomerFunction
 
         if (customer is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = CustomerMapper.ToResponse(customer);
+        return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/by-identity/{identityId}
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerByIdentity")]
+    [OpenApiOperation(operationId: "GetCustomerByIdentity", tags: new[] { "Customers" }, Summary = "Get a customer by identity ID")]
+    [OpenApiParameter(name: "identityId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Identity account ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetByIdentityId(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/by-identity/{identityId:guid}")] HttpRequestData req,
+        Guid identityId,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetCustomerByIdentityQuery(identityId);
+        var customer = await _getByIdentityHandler.HandleAsync(query, cancellationToken);
+
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for identity ID '{identityId}'.");
 
         var response = CustomerMapper.ToResponse(customer);
         return await req.OkJsonAsync(response);

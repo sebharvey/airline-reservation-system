@@ -69,6 +69,7 @@ var host = new HostBuilder()
         services.AddScoped<ReinstatePointsHandler>();
         services.AddScoped<AddPointsHandler>();
         services.AddScoped<SearchCustomersHandler>();
+        services.AddScoped<GetCustomerByIdentityHandler>();
     })
     .Build();
 
