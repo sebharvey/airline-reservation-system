@@ -34,6 +34,20 @@ public sealed class EfCustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(c => c.IdentityId == identityId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Domain.Entities.Customer>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .Where(c => c.LoyaltyNumber.Contains(searchTerm)
+                     || c.GivenName.Contains(searchTerm)
+                     || c.Surname.Contains(searchTerm)
+                     || (c.GivenName + " " + c.Surname).Contains(searchTerm))
+            .OrderBy(c => c.Surname)
+            .ThenBy(c => c.GivenName)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task CreateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default)
     {
         _context.Customers.Add(customer);

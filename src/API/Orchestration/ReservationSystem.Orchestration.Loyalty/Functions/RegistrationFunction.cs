@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Register;
+using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using System.Net;
 using System.Text.Json;
@@ -19,13 +20,16 @@ namespace ReservationSystem.Orchestration.Loyalty.Functions;
 public sealed class RegistrationFunction
 {
     private readonly RegisterHandler _registerHandler;
+    private readonly IdentityServiceClient _identityServiceClient;
     private readonly ILogger<RegistrationFunction> _logger;
 
     public RegistrationFunction(
         RegisterHandler registerHandler,
+        IdentityServiceClient identityServiceClient,
         ILogger<RegistrationFunction> logger)
     {
         _registerHandler = registerHandler;
+        _identityServiceClient = identityServiceClient;
         _logger = logger;
     }
 
@@ -72,8 +76,17 @@ public sealed class RegistrationFunction
             request.DateOfBirth,
             request.PhoneNumber);
 
-        var result = await _registerHandler.HandleAsync(command, cancellationToken);
-        return await req.CreatedAsync($"/v1/customers/{result.LoyaltyNumber}/profile", result);
+        try
+        {
+            var result = await _registerHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync(
+                $"/v1/customers/{result.LoyaltyNumber}/profile",
+                new { loyaltyNumber = result.LoyaltyNumber });
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("An account with this email address is already registered.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -83,13 +96,22 @@ public sealed class RegistrationFunction
     [Function("VerifyEmail")]
     [OpenApiOperation(operationId: "VerifyEmail", tags: new[] { "Registration" }, Summary = "Verify email address")]
     [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account identifier")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
-    public Task<HttpResponseData> VerifyEmail(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> VerifyEmail(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        try
+        {
+            await _identityServiceClient.VerifyEmailAsync(userAccountId, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
     }
 
     // -------------------------------------------------------------------------

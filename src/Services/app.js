@@ -525,6 +525,16 @@ function renderOperations(s) {
           <span class="path-label">URL Path</span>
           <input class="path-input" type="text" value="${op.path}" spellcheck="false" />
         </div>
+        <div class="op-headers-section">
+          <div class="op-headers-top-row">
+            <span class="path-label">Headers</span>
+            <button class="add-op-header-btn" onclick="addOpHeader('${s.id}', ${i})">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Header
+            </button>
+          </div>
+          <div id="op-headers-list-${s.id}-${i}">${renderOpHeaderRows(s.id, i)}</div>
+        </div>
         ${bodySection}
         <div class="invoke-row">
           <button class="invoke-btn" id="invoke-btn-${s.id}-${i}" onclick="invokeOperation('${s.id}', ${i})">${playIcon} Invoke</button>
@@ -551,6 +561,55 @@ function resetPayload(serviceId, index) {
 function toggleAccordion(serviceId, index) {
   const item = document.getElementById(`acc-${serviceId}-${index}`);
   if (item) item.classList.toggle('open');
+}
+
+// ── Per-operation custom headers ──
+function loadOpHeaders(serviceId, index) {
+  try { return JSON.parse(localStorage.getItem(`opHeaders_${serviceId}_${index}`) || '[]'); } catch (e) { return []; }
+}
+
+function saveOpHeaders(serviceId, index, headers) {
+  localStorage.setItem(`opHeaders_${serviceId}_${index}`, JSON.stringify(headers));
+}
+
+function renderOpHeaderRows(serviceId, index) {
+  const headers = loadOpHeaders(serviceId, index);
+  if (headers.length === 0) return '';
+  return headers.map((h, ri) => `
+    <div class="variable-row">
+      <input class="variable-name-input" type="text" placeholder="Header name" value="${escapeHtml(h.name)}"
+             oninput="updateOpHeaderName('${serviceId}', ${index}, ${ri}, this.value)" spellcheck="false" />
+      <span class="variable-equals">:</span>
+      <input class="variable-value-input" type="text" placeholder="Value" value="${escapeHtml(h.value)}"
+             oninput="updateOpHeaderValue('${serviceId}', ${index}, ${ri}, this.value)" spellcheck="false" />
+      <button class="variable-remove-btn" onclick="removeOpHeader('${serviceId}', ${index}, ${ri})" title="Remove">&times;</button>
+    </div>`).join('');
+}
+
+function addOpHeader(serviceId, index) {
+  const headers = loadOpHeaders(serviceId, index);
+  headers.push({ name: '', value: '' });
+  saveOpHeaders(serviceId, index, headers);
+  const list = document.getElementById(`op-headers-list-${serviceId}-${index}`);
+  if (list) list.innerHTML = renderOpHeaderRows(serviceId, index);
+}
+
+function removeOpHeader(serviceId, index, rowIndex) {
+  const headers = loadOpHeaders(serviceId, index);
+  headers.splice(rowIndex, 1);
+  saveOpHeaders(serviceId, index, headers);
+  const list = document.getElementById(`op-headers-list-${serviceId}-${index}`);
+  if (list) list.innerHTML = renderOpHeaderRows(serviceId, index);
+}
+
+function updateOpHeaderName(serviceId, index, rowIndex, value) {
+  const headers = loadOpHeaders(serviceId, index);
+  if (headers[rowIndex]) { headers[rowIndex].name = value; saveOpHeaders(serviceId, index, headers); }
+}
+
+function updateOpHeaderValue(serviceId, index, rowIndex, value) {
+  const headers = loadOpHeaders(serviceId, index);
+  if (headers[rowIndex]) { headers[rowIndex].value = value; saveOpHeaders(serviceId, index, headers); }
 }
 
 // ── Invoke operation ──
@@ -592,6 +651,11 @@ async function invokeOperation(serviceId, index) {
   } else if (service.authType === 'bearer') {
     const encoded = localStorage.getItem('hostKey');
     if (encoded) headers['Authorization'] = `Bearer ${encoded}`;
+  }
+
+  // Apply per-operation custom headers (override auth/default headers if same name)
+  for (const h of loadOpHeaders(serviceId, index)) {
+    if (h.name && h.name.trim()) headers[h.name.trim()] = h.value || '';
   }
 
   const requestBody = bodyTextarea && bodyTextarea.value.trim() ? applyVariables(bodyTextarea.value) : null;

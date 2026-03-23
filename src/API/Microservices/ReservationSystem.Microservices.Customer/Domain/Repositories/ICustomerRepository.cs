@@ -11,6 +11,8 @@ public interface ICustomerRepository
 
     Task<Domain.Entities.Customer?> GetByIdentityIdAsync(Guid identityId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Domain.Entities.Customer>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default);
+
     Task CreateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Domain.Entities.Customer customer, CancellationToken cancellationToken = default);

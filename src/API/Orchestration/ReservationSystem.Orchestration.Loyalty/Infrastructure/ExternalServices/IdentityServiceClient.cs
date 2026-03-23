@@ -1,4 +1,5 @@
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices.Dto;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -79,9 +80,26 @@ public sealed class IdentityServiceClient
     {
         var body = new { email, password };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/accounts", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException("An account with this email address is already registered.");
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<IdentityCreateAccountResponse>(JsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("Empty response from Identity MS create account.");
+    }
+
+    public async Task VerifyEmailAsync(Guid userAccountId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync(
+            $"/api/v1/accounts/{userAccountId}/verify-email",
+            content: null,
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No user account found for ID '{userAccountId}'.");
+
+        response.EnsureSuccessStatusCode();
     }
 }

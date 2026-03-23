@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Customer.Application.GetTransactions;
 using ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
 using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
+using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Models.Mappers;
 using ReservationSystem.Microservices.Customer.Models.Requests;
@@ -39,6 +40,7 @@ public sealed class CustomerFunction
     private readonly ReversePointsHandler _reversePointsHandler;
     private readonly ReinstatePointsHandler _reinstatePointsHandler;
     private readonly AddPointsHandler _addPointsHandler;
+    private readonly SearchCustomersHandler _searchHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -52,6 +54,7 @@ public sealed class CustomerFunction
         ReversePointsHandler reversePointsHandler,
         ReinstatePointsHandler reinstatePointsHandler,
         AddPointsHandler addPointsHandler,
+        SearchCustomersHandler searchHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -64,6 +67,7 @@ public sealed class CustomerFunction
         _reversePointsHandler = reversePointsHandler;
         _reinstatePointsHandler = reinstatePointsHandler;
         _addPointsHandler = addPointsHandler;
+        _searchHandler = searchHandler;
         _logger = logger;
     }
 
@@ -101,6 +105,31 @@ public sealed class CustomerFunction
         var response = CustomerMapper.ToCreateResponse(customer);
 
         return await req.CreatedAsync($"/v1/customers/{customer.LoyaltyNumber}", response);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/search?q=
+    // -------------------------------------------------------------------------
+
+    [Function("SearchCustomers")]
+    [OpenApiOperation(operationId: "SearchCustomers", tags: new[] { "Customers" }, Summary = "Search loyalty customers")]
+    [OpenApiParameter(name: "q", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Search term — partial match on loyalty number, given name or surname (max 50 results)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – missing search term")]
+    public async Task<HttpResponseData> Search(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/search")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var q = req.Query["q"];
+
+        if (string.IsNullOrWhiteSpace(q))
+            return await req.BadRequestAsync("Query parameter 'q' is required.");
+
+        var query = new SearchCustomersQuery(q.Trim());
+        var customers = await _searchHandler.HandleAsync(query, cancellationToken);
+        var results = customers.Select(CustomerMapper.ToResponse).ToList();
+
+        return await req.OkJsonAsync(new { results, count = results.Count });
     }
 
     // -------------------------------------------------------------------------

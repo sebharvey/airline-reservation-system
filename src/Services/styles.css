@@ -646,6 +646,41 @@ html.dark .method-DELETE { background: rgba(239,68,68,0.18);  color: #f87171; }
   word-break: break-all;
 }
 
+/* ── Per-operation custom headers ── */
+.op-headers-section {
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.op-headers-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.add-op-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.add-op-header-btn:hover {
+  background: var(--bg);
+  border-color: var(--grad-start);
+  color: var(--grad-start);
+}
+
 /* ── Invoke button ── */
 .invoke-row {
   display: flex;

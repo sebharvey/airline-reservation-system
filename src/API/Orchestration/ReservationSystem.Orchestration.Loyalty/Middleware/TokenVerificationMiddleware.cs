@@ -28,6 +28,8 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
         "PasswordResetRequest",
         "PasswordReset",
         "RegisterMember",
+        "HealthCheck",
+        "VerifyEmail",
     };
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
