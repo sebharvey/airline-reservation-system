@@ -241,6 +241,26 @@ export class LoyaltyApiService {
   }
 
   /**
+   * POST /auth/password-reset/request
+   * Sends a password-reset code to the given email address.
+   */
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http
+      .post<void>(`${BASE}/auth/password-reset/request`, { email })
+      .pipe(catchError(handleError));
+  }
+
+  /**
+   * POST /auth/password-reset/confirm
+   * Resets the password using the 6-digit code and the new password.
+   */
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http
+      .post<void>(`${BASE}/auth/password-reset/confirm`, { token, newPassword })
+      .pipe(catchError(handleError));
+  }
+
+  /**
    * POST /auth/logout
    * Revokes the current refresh token server-side.
    */
