@@ -247,7 +247,11 @@ function toggleLogEntry(index) {
 function openSecretModal() {
   document.getElementById('secretInput').value = '';
   document.getElementById('secretSaveBtn').disabled = true;
-  const hasSecret = !!localStorage.getItem('hostKey');
+  const service = findService(selectedId);
+  const isBearerAuth = service && service.authType === 'bearer';
+  const hasSecret = isBearerAuth ? !!localStorage.getItem('bearerToken') : !!localStorage.getItem('hostKey');
+  const input = document.getElementById('secretInput');
+  if (input) input.placeholder = isBearerAuth ? 'Bearer token / JWT' : 'Host key';
   const info = document.getElementById('secretStoredInfo');
   info.classList.toggle('visible', hasSecret);
   const overlay = document.getElementById('secretOverlay');
@@ -278,14 +282,20 @@ function onSecretKeyDown(event) {
 function saveSecret() {
   const val = document.getElementById('secretInput').value.trim();
   if (!val) return;
-  const encoded = btoa(val);
-  localStorage.setItem('hostKey', encoded);
+  const service = findService(selectedId);
+  const isBearerAuth = service && service.authType === 'bearer';
+  if (isBearerAuth) {
+    localStorage.setItem('bearerToken', val);
+  } else {
+    const encoded = btoa(val);
+    localStorage.setItem('hostKey', encoded);
+  }
   closeSecretModal();
   updateSecretBtn();
 }
 
 function updateSecretBtn() {
-  const hasSecret = !!localStorage.getItem('hostKey');
+  const hasSecret = !!localStorage.getItem('hostKey') || !!localStorage.getItem('bearerToken');
   const btn = document.getElementById('secretBtn');
   const label = document.getElementById('secretBtnLabel');
   btn.classList.toggle('has-secret', hasSecret);
@@ -587,11 +597,11 @@ async function invokeOperation(serviceId, index) {
     headers['Content-Type'] = 'application/json';
   }
   if (service.authType === 'host-key') {
-    const encoded = localStorage.getItem('hostKey');
-    if (encoded) headers['x-functions-key'] = encoded;
+    const key = localStorage.getItem('hostKey');
+    if (key) headers['x-functions-key'] = key;
   } else if (service.authType === 'bearer') {
-    const encoded = localStorage.getItem('hostKey');
-    if (encoded) headers['Authorization'] = `Bearer ${encoded}`;
+    const token = localStorage.getItem('bearerToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
   const requestBody = bodyTextarea && bodyTextarea.value.trim() ? applyVariables(bodyTextarea.value) : null;
@@ -683,9 +693,18 @@ async function runHealthChecks() {
 async function checkHealth(service) {
   const url = service.baseUrl + service.healthEndpoint;
   const start = performance.now();
+  const healthHeaders = {};
+  if (service.authType === 'host-key') {
+    const key = localStorage.getItem('hostKey');
+    if (key) healthHeaders['x-functions-key'] = key;
+  } else if (service.authType === 'bearer') {
+    const token = localStorage.getItem('bearerToken');
+    if (token) healthHeaders['Authorization'] = `Bearer ${token}`;
+  }
   try {
     const resp = await fetch(url, {
       method: 'GET',
+      headers: healthHeaders,
       mode: 'cors',
       signal: AbortSignal.timeout(10000)
     });
