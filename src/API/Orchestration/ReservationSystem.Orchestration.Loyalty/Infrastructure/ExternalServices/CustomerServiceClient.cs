@@ -41,6 +41,20 @@ public sealed class CustomerServiceClient
         return result ?? throw new InvalidOperationException("Empty response from Customer MS create customer.");
     }
 
+    public async Task<CustomerDto?> GetCustomerByIdentityIdAsync(
+        Guid identityId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/api/v1/customers/by-identity/{identityId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CustomerDto>(JsonOptions, cancellationToken);
+    }
+
     public async Task<CustomerDto?> GetCustomerAsync(
         string loyaltyNumber,
         CancellationToken cancellationToken = default)
