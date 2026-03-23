@@ -7,6 +7,7 @@ using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
+using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -36,8 +37,8 @@ public sealed class TicketFunction
     // POST /v1/tickets
     [Function("IssueTickets")]
     [OpenApiOperation(operationId: "IssueTickets", tags: new[] { "Tickets" }, Summary = "Issue e-tickets for a booking")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Ticket issuance request: bookingReference, passengers, segments")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(IssueTicketsRequest), Required = true, Description = "Ticket issuance request: bookingReference, passengers, segments")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(IssueTicketsResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> IssueTickets(
@@ -84,8 +85,8 @@ public sealed class TicketFunction
     [Function("VoidTicket")]
     [OpenApiOperation(operationId: "VoidTicket", tags: new[] { "Tickets" }, Summary = "Void an e-ticket")]
     [OpenApiParameter(name: "eTicketNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "E-ticket number")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Void request: reason")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(VoidTicketRequest), Required = true, Description = "Void request: reason")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(VoidTicketResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
@@ -133,8 +134,8 @@ public sealed class TicketFunction
     // POST /v1/tickets/reissue
     [Function("ReissueTickets")]
     [OpenApiOperation(operationId: "ReissueTickets", tags: new[] { "Tickets" }, Summary = "Reissue tickets (void old, issue new)")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Reissue request: voidedETicketNumbers, new ticket details")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ReissueTicketsRequest), Required = true, Description = "Reissue request: voidedETicketNumbers, new ticket details")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ReissueTicketsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ReissueTickets(

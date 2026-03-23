@@ -19,6 +19,8 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
+using ReservationSystem.Microservices.Offer.Models.Requests;
+using ReservationSystem.Microservices.Offer.Models.Responses;
 
 namespace ReservationSystem.Microservices.Offer.Functions;
 
@@ -68,8 +70,8 @@ public sealed class OfferFunction
     // POST /v1/flights
     [Function("CreateFlight")]
     [OpenApiOperation(operationId: "CreateFlight", tags: new[] { "Flights" }, Summary = "Create a new flight inventory record")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Flight details including flightNumber, departureDate, origin, destination, aircraftType, cabinCode, totalSeats")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateFlightRequest), Required = true, Description = "Flight details including flightNumber, departureDate, origin, destination, aircraftType, cabinCode, totalSeats")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(FlightInventoryResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – flight already exists")]
     public async Task<HttpResponseData> CreateFlight(
@@ -118,8 +120,8 @@ public sealed class OfferFunction
     [Function("CreateFare")]
     [OpenApiOperation(operationId: "CreateFare", tags: new[] { "Flights" }, Summary = "Add a fare to a flight inventory")]
     [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Fare details")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateFareRequest), Required = true, Description = "Fare details")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(FareResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> CreateFare(
@@ -165,8 +167,8 @@ public sealed class OfferFunction
     // POST /v1/search
     [Function("SearchOffers")]
     [OpenApiOperation(operationId: "SearchOffers", tags: new[] { "Offers" }, Summary = "Search for available flight offers")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Search criteria: origin, destination, departureDate, cabinCode, paxCount")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchOffersRequest), Required = true, Description = "Search criteria: origin, destination, departureDate, cabinCode, paxCount")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchOffersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Search(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,
@@ -232,7 +234,7 @@ public sealed class OfferFunction
     [Function("GetStoredOffer")]
     [OpenApiOperation(operationId: "GetStoredOffer", tags: new[] { "Offers" }, Summary = "Retrieve a stored offer by ID")]
     [OpenApiParameter(name: "offerId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Offer ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(StoredOfferResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "Gone – offer has expired")]
     public async Task<HttpResponseData> GetOffer(
@@ -290,8 +292,8 @@ public sealed class OfferFunction
     // POST /v1/inventory/hold
     [Function("HoldInventory")]
     [OpenApiOperation(operationId: "HoldInventory", tags: new[] { "Inventory" }, Summary = "Hold seats in inventory for a basket")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Hold request: inventoryId, cabinCode, paxCount, basketId")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HoldInventoryRequest), Required = true, Description = "Hold request: inventoryId, cabinCode, paxCount, basketId")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(InventoryStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity – insufficient seats")]
@@ -328,8 +330,8 @@ public sealed class OfferFunction
     // POST /v1/inventory/sell
     [Function("SellInventory")]
     [OpenApiOperation(operationId: "SellInventory", tags: new[] { "Inventory" }, Summary = "Sell (confirm) held inventory seats")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Sell request: inventoryIds, paxCount, basketId")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SellInventoryRequest), Required = true, Description = "Sell request: inventoryIds, paxCount, basketId")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SellInventoryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> Sell(
@@ -369,8 +371,8 @@ public sealed class OfferFunction
     // POST /v1/inventory/release
     [Function("ReleaseInventory")]
     [OpenApiOperation(operationId: "ReleaseInventory", tags: new[] { "Inventory" }, Summary = "Release held inventory seats")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Release request: inventoryId, paxCount, releaseType, basketId")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ReleaseInventoryRequest), Required = true, Description = "Release request: inventoryId, paxCount, releaseType, basketId")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(InventoryStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Release(
@@ -406,8 +408,8 @@ public sealed class OfferFunction
     // PATCH /v1/inventory/cancel
     [Function("CancelInventory")]
     [OpenApiOperation(operationId: "CancelInventory", tags: new[] { "Inventory" }, Summary = "Cancel all inventory for a flight")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Cancellation request: flightNumber, departureDate")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CancelInventoryRequest), Required = true, Description = "Cancellation request: flightNumber, departureDate")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CancelInventoryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Cancel(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/cancel")] HttpRequestData req,
@@ -440,7 +442,7 @@ public sealed class OfferFunction
     [Function("GetSeatAvailability")]
     [OpenApiOperation(operationId: "GetSeatAvailability", tags: new[] { "Seats" }, Summary = "Get seat availability for a flight")]
     [OpenApiParameter(name: "flightId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatAvailabilityResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatAvailability(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
@@ -471,8 +473,8 @@ public sealed class OfferFunction
     [Function("ReserveSeat")]
     [OpenApiOperation(operationId: "ReserveSeat", tags: new[] { "Seats" }, Summary = "Reserve specific seats on a flight")]
     [OpenApiParameter(name: "flightId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Seat reservation request: seatNumbers, basketId")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ReserveSeatRequest), Required = true, Description = "Seat reservation request: seatNumbers, basketId")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ReserveSeatResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – seat already reserved")]
     public async Task<HttpResponseData> ReserveSeat(
@@ -504,8 +506,8 @@ public sealed class OfferFunction
     [Function("UpdateSeatStatus")]
     [OpenApiOperation(operationId: "UpdateSeatStatus", tags: new[] { "Seats" }, Summary = "Update seat status for a flight")]
     [OpenApiParameter(name: "flightId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Seat status update request: updates array of seatNumber/status pairs")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSeatStatusRequest), Required = true, Description = "Seat status update request: updates array of seatNumber/status pairs")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateSeatStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeatStatus(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,

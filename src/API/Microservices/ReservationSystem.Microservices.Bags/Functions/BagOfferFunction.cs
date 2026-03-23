@@ -37,7 +37,7 @@ public sealed class BagOfferFunction
     [OpenApiOperation(operationId: "GetBagOffers", tags: new[] { "BagOffers" }, Summary = "Get bag offers for a flight and cabin")]
     [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The inventory (flight) ID")]
     [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The cabin code (F, J, W, or Y)")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagOffersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffers(
@@ -94,7 +94,7 @@ public sealed class BagOfferFunction
     [Function("GetBagOffer")]
     [OpenApiOperation(operationId: "GetBagOffer", tags: new[] { "BagOffers" }, Summary = "Validate a specific bag offer")]
     [OpenApiParameter(name: "bagOfferId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The bag offer ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagOfferValidationResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffer(

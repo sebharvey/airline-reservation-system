@@ -50,8 +50,8 @@ public sealed class ManifestFunction
     // POST /v1/manifest
     [Function("CreateManifest")]
     [OpenApiOperation(operationId: "CreateManifest", tags: new[] { "Manifest" }, Summary = "Create passenger manifest entries for a booking")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Manifest creation request: bookingReference, entries")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateManifestRequest), Required = true, Description = "Manifest creation request: bookingReference, entries")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateManifestResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateManifest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/manifest")] HttpRequestData req,
@@ -93,8 +93,8 @@ public sealed class ManifestFunction
     // PUT /v1/manifest
     [Function("UpdateManifestSeat")]
     [OpenApiOperation(operationId: "UpdateManifestSeat", tags: new[] { "Manifest" }, Summary = "Update seat assignments in the manifest")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Seat update request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateManifestSeatRequest), Required = true, Description = "Seat update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateCountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> UpdateManifestSeat(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/manifest")] HttpRequestData req,
@@ -131,8 +131,8 @@ public sealed class ManifestFunction
     [Function("PatchManifest")]
     [OpenApiOperation(operationId: "PatchManifest", tags: new[] { "Manifest" }, Summary = "Patch manifest entries for a booking")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Booking reference")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Patch request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(PatchManifestRequest), Required = true, Description = "Patch request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateCountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> PatchManifest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingRef}")] HttpRequestData req,
@@ -170,8 +170,8 @@ public sealed class ManifestFunction
     [Function("UpdateFlightTimes")]
     [OpenApiOperation(operationId: "UpdateFlightTimes", tags: new[] { "Manifest" }, Summary = "Update flight times in the manifest")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Booking reference")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Flight times update request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateFlightTimesRequest), Required = true, Description = "Flight times update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateCountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateFlightTimes(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingRef}/flight")] HttpRequestData req,
@@ -213,7 +213,7 @@ public sealed class ManifestFunction
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Booking reference")]
     [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Flight number")]
     [OpenApiParameter(name: "departureDate", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Departure date (yyyy-MM-dd)")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateCountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteManifest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
@@ -249,7 +249,7 @@ public sealed class ManifestFunction
     [OpenApiOperation(operationId: "GetManifest", tags: new[] { "Manifest" }, Summary = "Get the passenger manifest for a flight")]
     [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Flight number")]
     [OpenApiParameter(name: "departureDate", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Departure date (yyyy-MM-dd)")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetManifestResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetManifest(

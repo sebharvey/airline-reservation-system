@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Bags.Application.GetBagPricing;
 using ReservationSystem.Microservices.Bags.Application.UpdateBagPricing;
 using ReservationSystem.Microservices.Bags.Models.Mappers;
 using ReservationSystem.Microservices.Bags.Models.Requests;
+using ReservationSystem.Microservices.Bags.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Text.Json;
@@ -44,7 +45,7 @@ public sealed class BagPricingFunction
 
     [Function("GetAllBagPricings")]
     [OpenApiOperation(operationId: "GetAllBagPricings", tags: new[] { "BagPricing" }, Summary = "List all bag pricing rules")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -57,7 +58,7 @@ public sealed class BagPricingFunction
     [Function("GetBagPricing")]
     [OpenApiOperation(operationId: "GetBagPricing", tags: new[] { "BagPricing" }, Summary = "Get a bag pricing rule by ID")]
     [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
@@ -72,8 +73,8 @@ public sealed class BagPricingFunction
 
     [Function("CreateBagPricing")]
     [OpenApiOperation(operationId: "CreateBagPricing", tags: new[] { "BagPricing" }, Summary = "Create a new bag pricing rule")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The bag pricing rule to create")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBagPricingRequest), Required = true, Description = "The bag pricing rule to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(BagPricingResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
@@ -125,8 +126,8 @@ public sealed class BagPricingFunction
     [Function("UpdateBagPricing")]
     [OpenApiOperation(operationId: "UpdateBagPricing", tags: new[] { "BagPricing" }, Summary = "Update a bag pricing rule")]
     [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateBagPricingRequest), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(

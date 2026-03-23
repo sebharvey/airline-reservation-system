@@ -37,7 +37,7 @@ public sealed class SeatOfferFunction
     [OpenApiOperation(operationId: "GetSeatOffers", tags: new[] { "SeatOffers" }, Summary = "Get priced seat offers for a flight")]
     [OpenApiParameter(name: "flightId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The flight ID")]
     [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "The aircraft type code")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatOffersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffers(
@@ -149,7 +149,7 @@ public sealed class SeatOfferFunction
     [Function("GetSeatOffer")]
     [OpenApiOperation(operationId: "GetSeatOffer", tags: new[] { "SeatOffers" }, Summary = "Validate a specific seat offer")]
     [OpenApiParameter(name: "seatOfferId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The seat offer ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatOfferValidationResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffer(

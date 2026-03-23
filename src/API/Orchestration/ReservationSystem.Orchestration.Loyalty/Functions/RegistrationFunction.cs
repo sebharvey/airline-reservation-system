@@ -8,6 +8,7 @@ using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Register;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
+using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using System.Net;
 using System.Text.Json;
 
@@ -39,8 +40,8 @@ public sealed class RegistrationFunction
 
     [Function("RegisterMember")]
     [OpenApiOperation(operationId: "RegisterMember", tags: new[] { "Registration" }, Summary = "Register a new loyalty member")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RegisterRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(RegisterMemberResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Register(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/register")] HttpRequestData req,
@@ -121,7 +122,7 @@ public sealed class RegistrationFunction
     [Function("EmailChangeRequest")]
     [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Registration" }, Summary = "Request email change")]
     [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(EmailChangeResponse), Description = "OK")]
     public Task<HttpResponseData> EmailChangeRequest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
         Guid userAccountId,
@@ -136,7 +137,7 @@ public sealed class RegistrationFunction
 
     [Function("VerifyEmailToken")]
     [OpenApiOperation(operationId: "VerifyEmailToken", tags: new[] { "Registration" }, Summary = "Verify email change token")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(EmailChangeResponse), Description = "OK")]
     public Task<HttpResponseData> VerifyEmailToken(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)

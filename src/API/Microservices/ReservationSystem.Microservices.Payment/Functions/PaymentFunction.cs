@@ -5,6 +5,7 @@ using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
 using ReservationSystem.Microservices.Payment.Models.Requests;
+using ReservationSystem.Microservices.Payment.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -43,8 +44,8 @@ public sealed class PaymentFunction
 
     [Function("AuthorisePayment")]
     [OpenApiOperation(operationId: "AuthorisePayment", tags: new[] { "Payments" }, Summary = "Authorise a payment")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Payment authorisation request: amount, currencyCode, cardDetails, paymentType")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AuthorisePaymentRequest), Required = true, Description = "Payment authorisation request: amount, currencyCode, cardDetails, paymentType")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AuthorisePaymentResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> Authorise(
@@ -111,8 +112,8 @@ public sealed class PaymentFunction
     [Function("SettlePayment")]
     [OpenApiOperation(operationId: "SettlePayment", tags: new[] { "Payments" }, Summary = "Settle an authorised payment")]
     [OpenApiParameter(name: "paymentReference", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Payment reference")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Settlement request: settledAmount")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SettlePaymentRequest), Required = true, Description = "Settlement request: settledAmount")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SettlePaymentResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
@@ -175,8 +176,8 @@ public sealed class PaymentFunction
     [Function("RefundPayment")]
     [OpenApiOperation(operationId: "RefundPayment", tags: new[] { "Payments" }, Summary = "Refund a settled payment")]
     [OpenApiParameter(name: "paymentReference", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Payment reference")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Refund request: refundAmount, reason")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RefundPaymentRequest), Required = true, Description = "Refund request: refundAmount, reason")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RefundPaymentResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]

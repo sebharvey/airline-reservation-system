@@ -12,6 +12,7 @@ using ReservationSystem.Microservices.Seat.Application.UpdateSeatmap;
 using ReservationSystem.Microservices.Seat.Domain.Repositories;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
+using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -56,7 +57,7 @@ public sealed class SeatmapFunction
     [Function("GetSeatmap")]
     [OpenApiOperation(operationId: "GetSeatmap", tags: new[] { "Seatmaps" }, Summary = "Get the active seatmap for an aircraft type")]
     [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatmap(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmap/{aircraftType}")] HttpRequestData req,
@@ -85,7 +86,7 @@ public sealed class SeatmapFunction
 
     [Function("GetAllSeatmaps")]
     [OpenApiOperation(operationId: "GetAllSeatmaps", tags: new[] { "Seatmaps" }, Summary = "List all seatmaps")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapListItemResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAllSeatmaps(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -106,7 +107,7 @@ public sealed class SeatmapFunction
     [Function("GetSeatmapById")]
     [OpenApiOperation(operationId: "GetSeatmapById", tags: new[] { "Seatmaps" }, Summary = "Get a seatmap by ID")]
     [OpenApiParameter(name: "seatmapId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seatmap ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatmapById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
@@ -121,8 +122,8 @@ public sealed class SeatmapFunction
 
     [Function("CreateSeatmap")]
     [OpenApiOperation(operationId: "CreateSeatmap", tags: new[] { "Seatmaps" }, Summary = "Create a new seatmap")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The seatmap to create")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateSeatmapRequest), Required = true, Description = "The seatmap to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateSeatmap(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seatmaps")] HttpRequestData req,
@@ -170,8 +171,8 @@ public sealed class SeatmapFunction
     [Function("UpdateSeatmap")]
     [OpenApiOperation(operationId: "UpdateSeatmap", tags: new[] { "Seatmaps" }, Summary = "Update a seatmap")]
     [OpenApiParameter(name: "seatmapId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seatmap ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSeatmapRequest), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeatmap(

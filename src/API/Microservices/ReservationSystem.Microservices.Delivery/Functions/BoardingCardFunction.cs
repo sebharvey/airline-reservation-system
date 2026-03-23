@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Delivery.Application.CreateBoardingCards;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
+using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -28,8 +29,8 @@ public sealed class BoardingCardFunction
     // POST /v1/boarding-cards
     [Function("CreateBoardingCards")]
     [OpenApiOperation(operationId: "CreateBoardingCards", tags: new[] { "BoardingCards" }, Summary = "Create boarding cards for passengers")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Boarding card creation request: bookingReference, passengers")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBoardingCardsRequest), Required = true, Description = "Boarding card creation request: bookingReference, passengers")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateBoardingCardsResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateBoardingCards(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/boarding-cards")] HttpRequestData req,

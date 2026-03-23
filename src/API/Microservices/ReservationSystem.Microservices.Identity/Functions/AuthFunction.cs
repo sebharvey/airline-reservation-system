@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Identity.Application.ResetPasswordRequest;
 using ReservationSystem.Microservices.Identity.Application.VerifyToken;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
 using ReservationSystem.Microservices.Identity.Models.Requests;
+using ReservationSystem.Microservices.Identity.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -56,8 +57,8 @@ public sealed class AuthFunction
 
     [Function("Login")]
     [OpenApiOperation(operationId: "Login", tags: new[] { "Auth" }, Summary = "Authenticate a user and return tokens")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Login credentials: email, password")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – returns access token and refresh token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(LoginRequest), Required = true, Description = "Login credentials: email, password")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(LoginResponse), Description = "OK – returns access token and refresh token")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – invalid credentials")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Forbidden, Description = "Forbidden – account locked")]
@@ -111,8 +112,8 @@ public sealed class AuthFunction
 
     [Function("VerifyToken")]
     [OpenApiOperation(operationId: "VerifyToken", tags: new[] { "Auth" }, Summary = "Verify an access token and return its claims")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Verify request: accessToken")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – token is valid")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(VerifyTokenRequest), Required = true, Description = "Verify request: accessToken")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(VerifyTokenResponse), Description = "OK – token is valid")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – token invalid or expired")]
     public async Task<HttpResponseData> Verify(
@@ -157,8 +158,8 @@ public sealed class AuthFunction
 
     [Function("RefreshToken")]
     [OpenApiOperation(operationId: "RefreshToken", tags: new[] { "Auth" }, Summary = "Refresh an access token")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Refresh token request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RefreshTokenRequest), Required = true, Description = "Refresh token request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(RefreshTokenResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized")]
     public async Task<HttpResponseData> Refresh(
@@ -203,7 +204,7 @@ public sealed class AuthFunction
 
     [Function("Logout")]
     [OpenApiOperation(operationId: "Logout", tags: new[] { "Auth" }, Summary = "Logout and invalidate refresh token")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Logout request: refreshToken")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(LogoutRequest), Required = true, Description = "Logout request: refreshToken")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Logout(
@@ -238,7 +239,7 @@ public sealed class AuthFunction
 
     [Function("ResetPasswordRequest")]
     [OpenApiOperation(operationId: "ResetPasswordRequest", tags: new[] { "Auth" }, Summary = "Request a password reset email")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Reset request: email")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ResetPasswordRequestRequest), Required = true, Description = "Reset request: email")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> ResetPasswordRequest(
@@ -281,7 +282,7 @@ public sealed class AuthFunction
 
     [Function("ResetPassword")]
     [OpenApiOperation(operationId: "ResetPassword", tags: new[] { "Auth" }, Summary = "Reset password with token")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Reset request: token, newPassword")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ResetPasswordRequest), Required = true, Description = "Reset request: token, newPassword")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
     public async Task<HttpResponseData> ResetPassword(
