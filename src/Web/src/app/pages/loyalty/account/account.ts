@@ -152,6 +152,18 @@ export class LoyaltyAccountComponent implements OnInit {
       return;
     }
     this.syncProfileFromCustomer();
+    this.loadTransactions();
+  }
+
+  private loadTransactions(): void {
+    const c = this.customer();
+    if (!c) return;
+    this.loyaltyApi.getTransactions(c.loyaltyNumber).subscribe({
+      next: (transactions) => {
+        this.loyaltyState.updateCustomer({ ...c, transactions });
+      },
+      error: () => { /* silently ignore – existing data (if any) is preserved */ }
+    });
   }
 
   private syncProfileFromCustomer(): void {
@@ -234,7 +246,8 @@ export class LoyaltyAccountComponent implements OnInit {
 
   logout(): void {
     this.logoutLoading.set(true);
-    this.loyaltyApi.logout().subscribe({
+    const refreshToken = this.loyaltyState.session()?.refreshToken;
+    this.loyaltyApi.logout(refreshToken).subscribe({
       next: () => {
         this.loyaltyState.logout();
         this.logoutLoading.set(false);

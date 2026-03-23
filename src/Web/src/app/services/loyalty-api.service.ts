@@ -1,21 +1,22 @@
 /**
  * LoyaltyApiService
  *
- * Service for loyalty programme operations: authentication, registration,
- * profile management, and points/tier data.
+ * Connects to the real Loyalty REST API. All methods preserve the same
+ * Observable<T> contract as the previous mock implementation so no consumer
+ * changes are required beyond the account component's transaction loading.
  *
- * Currently returns mock data. To connect to the real Loyalty API, replace
- * each method body with an HttpClient call. The Observable<T> contract is
- * identical so no consumer changes are required.
+ * Authentication headers are injected automatically by loyaltyAuthInterceptor.
+ * Token refresh on 401 is also handled by the interceptor.
  *
- * Real API base: POST /v1/auth/login, GET /v1/customers/{loyaltyNumber}, etc.
+ * Real API base: https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net
  */
 
-import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { delay } from 'rxjs/operators';
-import { LoyaltyCustomer, AuthSession, LoyaltyTransaction } from '../models/loyalty.model';
-import { MOCK_LOYALTY_CUSTOMERS, MOCK_PASSWORDS } from '../data/mock/loyalty.mock';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, switchMap, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyTier, TransactionType } from '../models/loyalty.model';
+import { environment } from '../environments/environment';
 
 export interface LoginParams {
   email: string;
@@ -41,157 +42,212 @@ export interface UpdateProfileParams {
   preferredLanguage?: string;
 }
 
-const API_DELAY_MS = 600;
-let NEXT_LOYALTY_NUM = 5000000;
+// ── API response shapes ──────────────────────────────────────────────────────
+// These may differ from the internal model; mappers normalise them.
+
+interface ApiTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface ApiAuthResponse extends ApiTokens {
+  loyaltyNumber?: string;
+  customer?: ApiCustomerProfile;
+}
+
+interface ApiCustomerProfile {
+  loyaltyNumber: string;
+  givenName: string;
+  surname: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  nationality: string;
+  preferredLanguage: string;
+  tier: LoyaltyTier;
+  pointsBalance: number;
+  tierProgressPoints: number;
+  memberSince: string;
+}
+
+interface ApiTransaction {
+  transactionId: string;
+  type: TransactionType;
+  points: number;
+  description: string;
+  referenceBooking?: string;
+  transactionDate: string;
+  runningBalance: number;
+}
+
+// ── Mappers ──────────────────────────────────────────────────────────────────
+
+function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
+  return {
+    loyaltyNumber: api.loyaltyNumber,
+    givenName: api.givenName,
+    surname: api.surname,
+    email: api.email,
+    phone: api.phone ?? '',
+    dateOfBirth: api.dateOfBirth ?? '',
+    nationality: api.nationality ?? '',
+    preferredLanguage: api.preferredLanguage ?? 'en',
+    tier: api.tier ?? 'Blue',
+    pointsBalance: api.pointsBalance ?? 0,
+    tierProgressPoints: api.tierProgressPoints ?? 0,
+    memberSince: api.memberSince ?? '',
+    transactions: [] // loaded separately via getTransactions()
+  };
+}
+
+function mapTransaction(api: ApiTransaction): LoyaltyTransaction {
+  return {
+    transactionId: api.transactionId,
+    type: api.type,
+    points: api.points,
+    description: api.description,
+    referenceBooking: api.referenceBooking,
+    transactionDate: api.transactionDate,
+    runningBalance: api.runningBalance
+  };
+}
+
+function handleError(error: HttpErrorResponse): Observable<never> {
+  const apiMessage =
+    error.error?.message ??
+    error.error?.error ??
+    error.statusText ??
+    'An unexpected error occurred.';
+  return throwError(() => ({ status: error.status, message: apiMessage }));
+}
+
+// ── Service ──────────────────────────────────────────────────────────────────
+
+const BASE = environment.loyaltyApiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class LoyaltyApiService {
+  private readonly http = inject(HttpClient);
 
   /**
-   * POST /v1/auth/login
-   * Authenticate and return access token + customer profile.
+   * POST /auth/login
+   * Authenticates the user and returns an AuthSession.
+   * If the response does not embed a full customer profile the profile is
+   * fetched separately with the returned access token.
    */
   login(params: LoginParams): Observable<AuthSession> {
-    const customer = MOCK_LOYALTY_CUSTOMERS[params.email.toLowerCase().trim()];
-    const expectedPassword = MOCK_PASSWORDS[params.email.toLowerCase().trim()];
+    return this.http
+      .post<ApiAuthResponse>(`${BASE}/auth/login`, params)
+      .pipe(
+        switchMap((res) => {
+          const tokens: ApiTokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
 
-    if (!customer || params.password !== expectedPassword) {
-      return throwError(() => ({
-        status: 401,
-        message: 'Invalid email address or password.'
-      })).pipe(delay(API_DELAY_MS));
-    }
+          if (res.customer) {
+            return of<AuthSession>({
+              customer: mapCustomer(res.customer),
+              ...tokens
+            });
+          }
 
-    const session: AuthSession = {
-      customer: { ...customer },
-      accessToken: 'mock-access-token-' + Date.now(),
-      refreshToken: 'mock-refresh-token-' + Date.now()
-    };
-    return of(session).pipe(delay(API_DELAY_MS));
+          // Fetch profile separately when login only returns tokens + loyaltyNumber
+          const loyaltyNumber = res.loyaltyNumber ?? '';
+          return this.http
+            .get<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, {
+              headers: { Authorization: `Bearer ${tokens.accessToken}` }
+            })
+            .pipe(
+              map((profile): AuthSession => ({
+                customer: mapCustomer(profile),
+                ...tokens
+              }))
+            );
+        }),
+        catchError(handleError)
+      );
   }
 
   /**
-   * POST /v1/register
-   * Register a new loyalty programme member.
+   * POST /register
+   * Registers a new loyalty programme member and returns an AuthSession.
    */
   register(params: RegisterParams): Observable<AuthSession> {
-    // Simulate duplicate email check
-    if (MOCK_LOYALTY_CUSTOMERS[params.email.toLowerCase()]) {
-      return throwError(() => ({
-        status: 409,
-        message: 'An account with this email address already exists.'
-      })).pipe(delay(API_DELAY_MS));
-    }
+    return this.http
+      .post<ApiAuthResponse>(`${BASE}/register`, params)
+      .pipe(
+        switchMap((res) => {
+          const tokens: ApiTokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
 
-    const loyaltyNumber = 'AX' + String(NEXT_LOYALTY_NUM++);
-    const newCustomer: LoyaltyCustomer = {
-      loyaltyNumber,
-      givenName: params.givenName,
-      surname: params.surname,
-      email: params.email,
-      phone: params.phone,
-      dateOfBirth: params.dateOfBirth,
-      nationality: params.nationality,
-      preferredLanguage: 'en',
-      tier: 'Blue',
-      pointsBalance: 2500,
-      tierProgressPoints: 2500,
-      memberSince: new Date().toISOString().split('T')[0],
-      transactions: [
-        {
-          transactionId: 'TXN-WELCOME',
-          type: 'Accrual',
-          points: 2500,
-          description: 'Welcome bonus — new member registration',
-          transactionDate: new Date().toISOString(),
-          runningBalance: 2500
-        }
-      ]
-    };
+          if (res.customer) {
+            return of<AuthSession>({
+              customer: mapCustomer(res.customer),
+              ...tokens
+            });
+          }
 
-    // Add to mock store for the session
-    MOCK_LOYALTY_CUSTOMERS[params.email.toLowerCase()] = newCustomer;
-    MOCK_PASSWORDS[params.email.toLowerCase()] = params.password;
-
-    return of({
-      customer: newCustomer,
-      accessToken: 'mock-access-token-' + Date.now(),
-      refreshToken: 'mock-refresh-token-' + Date.now()
-    }).pipe(delay(API_DELAY_MS));
+          const loyaltyNumber = res.loyaltyNumber ?? '';
+          return this.http
+            .get<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, {
+              headers: { Authorization: `Bearer ${tokens.accessToken}` }
+            })
+            .pipe(
+              map((profile): AuthSession => ({
+                customer: mapCustomer(profile),
+                ...tokens
+              }))
+            );
+        }),
+        catchError(handleError)
+      );
   }
 
   /**
-   * GET /v1/customers/{loyaltyNumber}
-   * Retrieve customer profile, tier, and points balance.
+   * GET /customers/{loyaltyNumber}/profile
+   * Retrieves customer profile, tier and points balance.
+   * Transactions are not embedded here – use getTransactions() separately.
    */
   getCustomer(loyaltyNumber: string): Observable<LoyaltyCustomer> {
-    const customer = Object.values(MOCK_LOYALTY_CUSTOMERS).find(
-      c => c.loyaltyNumber === loyaltyNumber
-    );
-    if (!customer) {
-      return throwError(() => ({ status: 404, message: 'Customer not found' })).pipe(delay(API_DELAY_MS));
-    }
-    return of({ ...customer }).pipe(delay(API_DELAY_MS));
+    return this.http
+      .get<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`)
+      .pipe(
+        map(mapCustomer),
+        catchError(handleError)
+      );
   }
 
   /**
-   * GET /v1/customers/{loyaltyNumber}/transactions
-   * Retrieve paginated points transaction history.
+   * GET /customers/{loyaltyNumber}/transactions
+   * Retrieves the full points transaction history for the member.
    */
   getTransactions(loyaltyNumber: string): Observable<LoyaltyTransaction[]> {
-    const customer = Object.values(MOCK_LOYALTY_CUSTOMERS).find(
-      c => c.loyaltyNumber === loyaltyNumber
-    );
-    if (!customer) {
-      return throwError(() => ({ status: 404, message: 'Customer not found' })).pipe(delay(API_DELAY_MS));
-    }
-    return of([...customer.transactions]).pipe(delay(API_DELAY_MS));
+    return this.http
+      .get<ApiTransaction[]>(`${BASE}/customers/${loyaltyNumber}/transactions`)
+      .pipe(
+        map(txns => (Array.isArray(txns) ? txns.map(mapTransaction) : [])),
+        catchError(handleError)
+      );
   }
 
   /**
-   * PATCH /v1/customers/{loyaltyNumber}/profile
-   * Update profile details.
+   * PATCH /customers/{loyaltyNumber}/profile
+   * Updates editable profile fields and returns the updated customer.
    */
   updateProfile(loyaltyNumber: string, params: UpdateProfileParams): Observable<LoyaltyCustomer> {
-    const customer = Object.values(MOCK_LOYALTY_CUSTOMERS).find(
-      c => c.loyaltyNumber === loyaltyNumber
-    );
-    if (!customer) {
-      return throwError(() => ({ status: 404, message: 'Customer not found' })).pipe(delay(API_DELAY_MS));
-    }
-    Object.assign(customer, params);
-    return of({ ...customer }).pipe(delay(API_DELAY_MS));
+    return this.http
+      .patch<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, params)
+      .pipe(
+        map(mapCustomer),
+        catchError(handleError)
+      );
   }
 
   /**
-   * POST /v1/auth/password/reset-request
-   * Request a password reset link. Always returns success to prevent enumeration.
+   * POST /auth/logout
+   * Revokes the current refresh token server-side.
    */
-  requestPasswordReset(_email: string): Observable<void> {
-    // Always succeeds regardless of whether the email exists
-    return of(undefined).pipe(delay(API_DELAY_MS));
-  }
-
-  /**
-   * POST /v1/auth/password/reset
-   * Submit a new password using a valid single-use reset token.
-   * Mock: token '123456' always succeeds.
-   */
-  resetPassword(token: string, _newPassword: string): Observable<void> {
-    if (token !== '123456') {
-      return throwError(() => ({
-        status: 400,
-        message: 'Invalid or expired reset token. Please request a new link.'
-      })).pipe(delay(API_DELAY_MS));
-    }
-    return of(undefined).pipe(delay(API_DELAY_MS));
-  }
-
-  /**
-   * POST /v1/auth/logout
-   * Revoke current refresh token.
-   */
-  logout(): Observable<void> {
-    return of(undefined).pipe(delay(300));
+  logout(refreshToken?: string): Observable<void> {
+    const body = refreshToken ? { refreshToken } : {};
+    return this.http
+      .post<void>(`${BASE}/auth/logout`, body)
+      .pipe(catchError(() => of(undefined as void)));
   }
 }
