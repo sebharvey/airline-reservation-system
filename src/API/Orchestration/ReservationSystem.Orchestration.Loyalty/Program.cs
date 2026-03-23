@@ -15,6 +15,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.Register;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.AuthorisePoints;
+using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Middleware;
 
@@ -65,6 +66,7 @@ var host = new HostBuilder()
         services.AddScoped<RegisterHandler>();
         services.AddScoped<GetProfileHandler>();
         services.AddScoped<UpdateProfileHandler>();
+        services.AddScoped<GetTransactionsHandler>();
         services.AddScoped<AuthorisePointsHandler>();
     })
     .Build();

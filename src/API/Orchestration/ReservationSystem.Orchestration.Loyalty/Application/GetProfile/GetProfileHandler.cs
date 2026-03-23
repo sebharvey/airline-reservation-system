@@ -12,8 +12,24 @@ public sealed class GetProfileHandler
         _customerServiceClient = customerServiceClient;
     }
 
-    public Task<ProfileResponse?> HandleAsync(GetProfileQuery query, CancellationToken cancellationToken)
+    public async Task<ProfileResponse?> HandleAsync(GetProfileQuery query, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var customer = await _customerServiceClient.GetCustomerAsync(query.LoyaltyNumber, cancellationToken);
+
+        if (customer is null)
+            return null;
+
+        return new ProfileResponse
+        {
+            LoyaltyNumber = customer.LoyaltyNumber,
+            FirstName = customer.GivenName,
+            LastName = customer.Surname,
+            Email = query.UserEmail,
+            PhoneNumber = customer.PhoneNumber,
+            DateOfBirth = customer.DateOfBirth,
+            Tier = customer.TierCode,
+            PointsBalance = customer.PointsBalance,
+            MemberSince = customer.CreatedAt
+        };
     }
 }
