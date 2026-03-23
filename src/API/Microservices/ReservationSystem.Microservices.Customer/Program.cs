@@ -14,6 +14,7 @@ using ReservationSystem.Microservices.Customer.Application.GetTransactions;
 using ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
 using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
+using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
@@ -67,6 +68,7 @@ var host = new HostBuilder()
         services.AddScoped<ReversePointsHandler>();
         services.AddScoped<ReinstatePointsHandler>();
         services.AddScoped<AddPointsHandler>();
+        services.AddScoped<SearchCustomersHandler>();
     })
     .Build();
 
