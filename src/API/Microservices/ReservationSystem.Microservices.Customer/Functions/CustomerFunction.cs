@@ -108,28 +108,37 @@ public sealed class CustomerFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/customers/search?q=
+    // POST /v1/customers/search  (POST keeps PII out of URL logs)
     // -------------------------------------------------------------------------
 
     [Function("SearchCustomers")]
     [OpenApiOperation(operationId: "SearchCustomers", tags: new[] { "Customers" }, Summary = "Search loyalty customers")]
-    [OpenApiParameter(name: "q", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Search term — partial match on loyalty number, given name or surname (max 50 results)")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – missing search term")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Search query — contains match on name, exact match on loyalty number (max 50 results)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK – always returns an array, empty if no matches found")]
     public async Task<HttpResponseData> Search(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/search")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/search")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        var q = req.Query["q"];
+        SearchCustomersRequest? request;
 
-        if (string.IsNullOrWhiteSpace(q))
-            return await req.BadRequestAsync("Query parameter 'q' is required.");
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<SearchCustomersRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in SearchCustomers request");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
 
-        var query = new SearchCustomersQuery(q.Trim());
+        var searchTerm = request?.Query?.Trim() ?? string.Empty;
+
+        var query = new SearchCustomersQuery(searchTerm);
         var customers = await _searchHandler.HandleAsync(query, cancellationToken);
         var results = customers.Select(CustomerMapper.ToResponse).ToList();
 
-        return await req.OkJsonAsync(new { results, count = results.Count });
+        return await req.OkJsonAsync(results);
     }
 
     // -------------------------------------------------------------------------
