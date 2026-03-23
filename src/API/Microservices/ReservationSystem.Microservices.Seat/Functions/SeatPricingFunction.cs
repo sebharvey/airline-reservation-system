@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Seat.Application.GetSeatPricing;
 using ReservationSystem.Microservices.Seat.Application.UpdateSeatPricing;
 using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
+using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -44,7 +45,7 @@ public sealed class SeatPricingFunction
 
     [Function("GetAllSeatPricings")]
     [OpenApiOperation(operationId: "GetAllSeatPricings", tags: new[] { "SeatPricing" }, Summary = "List all seat pricing rules")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -55,8 +56,8 @@ public sealed class SeatPricingFunction
 
     [Function("CreateSeatPricing")]
     [OpenApiOperation(operationId: "CreateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Create a new seat pricing rule")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The seat pricing rule to create")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateSeatPricingRequest), Required = true, Description = "The seat pricing rule to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(SeatPricingResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
@@ -110,7 +111,7 @@ public sealed class SeatPricingFunction
     [Function("GetSeatPricing")]
     [OpenApiOperation(operationId: "GetSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Get a seat pricing rule by ID")]
     [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
@@ -126,8 +127,8 @@ public sealed class SeatPricingFunction
     [Function("UpdateSeatPricing")]
     [OpenApiOperation(operationId: "UpdateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Update a seat pricing rule")]
     [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The update request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSeatPricingRequest), Required = true, Description = "The update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(

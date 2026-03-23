@@ -8,6 +8,7 @@ using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
 using ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Disruption.Models.Requests;
+using ReservationSystem.Orchestration.Disruption.Models.Responses;
 using System.Net;
 using System.Text.Json;
 
@@ -40,8 +41,8 @@ public sealed class DisruptionFunction
 
     [Function("HandleDelay")]
     [OpenApiOperation(operationId: "HandleDelay", tags: new[] { "Disruptions" }, Summary = "Handle a flight delay")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HandleDelayRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(DisruptionResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> HandleDelay(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/delay")] HttpRequestData req,
@@ -83,8 +84,8 @@ public sealed class DisruptionFunction
 
     [Function("HandleCancellation")]
     [OpenApiOperation(operationId: "HandleCancellation", tags: new[] { "Disruptions" }, Summary = "Handle a flight cancellation with optional IROPS rebooking")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HandleCancellationRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(DisruptionResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> HandleCancellation(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/cancellation")] HttpRequestData req,

@@ -7,6 +7,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
+using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
 using System.Text.Json;
 
@@ -35,8 +36,8 @@ public sealed class SearchFunction
 
     [Function("SearchFlights")]
     [OpenApiOperation(operationId: "SearchFlights", tags: new[] { "Search" }, Summary = "Search for available flights")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Search(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,

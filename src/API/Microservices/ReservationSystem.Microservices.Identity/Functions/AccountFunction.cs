@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
 using ReservationSystem.Microservices.Identity.Models.Requests;
+using ReservationSystem.Microservices.Identity.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -52,8 +53,8 @@ public sealed class AccountFunction
 
     [Function("CreateAccount")]
     [OpenApiOperation(operationId: "CreateAccount", tags: new[] { "Accounts" }, Summary = "Create a new user account")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Account creation request: email, password")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateAccountRequest), Required = true, Description = "Account creation request: email, password")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateAccountResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
     public async Task<HttpResponseData> CreateAccount(
@@ -151,7 +152,7 @@ public sealed class AccountFunction
     [Function("EmailChangeRequest")]
     [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Accounts" }, Summary = "Request an email address change")]
     [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Email change request: newEmail")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(EmailChangeRequest), Required = true, Description = "Email change request: newEmail")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
@@ -199,7 +200,7 @@ public sealed class AccountFunction
 
     [Function("VerifyEmailChange")]
     [OpenApiOperation(operationId: "VerifyEmailChange", tags: new[] { "Accounts" }, Summary = "Verify email change with token")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Verification request: token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(VerifyEmailChangeRequest), Required = true, Description = "Verification request: token")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
     public async Task<HttpResponseData> VerifyEmailChange(
