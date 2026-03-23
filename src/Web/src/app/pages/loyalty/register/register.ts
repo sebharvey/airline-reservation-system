@@ -140,13 +140,13 @@ export class LoyaltyRegisterComponent {
 
     this.loading.set(true);
     this.loyaltyApi.register({
-      givenName: this.givenName(),
-      surname: this.surname(),
+      firstName: this.givenName(),
+      lastName: this.surname(),
       email: this.email(),
       password: this.password(),
       dateOfBirth: this.dateOfBirth(),
       nationality: this.nationality(),
-      phone: this.phone()
+      phoneNumber: this.phone()
     }).subscribe({
       next: (session) => {
         this.loyaltyState.setSession(session);

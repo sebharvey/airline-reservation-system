@@ -228,7 +228,7 @@ export class LoyaltyAccountComponent implements OnInit {
     this.loyaltyApi.updateProfile(c.loyaltyNumber, {
       givenName: this.profileGivenName(),
       surname: this.profileSurname(),
-      phone: this.profilePhone(),
+      phoneNumber: this.profilePhone(),
       nationality: this.profileNationality(),
       preferredLanguage: this.profileLanguage(),
     }).subscribe({
