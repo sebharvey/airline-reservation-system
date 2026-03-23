@@ -49,7 +49,7 @@ jobs:
         env:
           IDENTITY_API_BASE_URL: ${{ secrets.IDENTITY_API_BASE_URL }}
           IDENTITY_API_HOST_KEY: ${{ secrets.IDENTITY_API_HOST_KEY }}
-        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=identity-integration-results.trx" --results-directory ./TestResults
+        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ReservationSystem.Tests.IntegrationTests.Identity" --logger "trx;LogFileName=identity-integration-results.trx" --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
