@@ -66,7 +66,7 @@ export const loyaltyAuthInterceptor: HttpInterceptorFn = (
 
         return bypassHttp
           .post<TokenResponse>(
-            `${environment.loyaltyApiBaseUrl}/auth/refresh`,
+            `${environment.loyaltyApiBaseUrl}/v1/auth/refresh`,
             { refreshToken: session.refreshToken }
           )
           .pipe(

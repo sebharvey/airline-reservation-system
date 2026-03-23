@@ -123,7 +123,7 @@ function handleError(error: HttpErrorResponse): Observable<never> {
 
 // ── Service ──────────────────────────────────────────────────────────────────
 
-const BASE = environment.loyaltyApiBaseUrl;
+const BASE = `${environment.loyaltyApiBaseUrl}/v1`;
 
 @Injectable({ providedIn: 'root' })
 export class LoyaltyApiService {
@@ -246,7 +246,7 @@ export class LoyaltyApiService {
    */
   requestPasswordReset(email: string): Observable<void> {
     return this.http
-      .post<void>(`${BASE}/auth/password-reset/request`, { email })
+      .post<void>(`${BASE}/auth/password/reset-request`, { email })
       .pipe(catchError(handleError));
   }
 
@@ -256,7 +256,7 @@ export class LoyaltyApiService {
    */
   resetPassword(token: string, newPassword: string): Observable<void> {
     return this.http
-      .post<void>(`${BASE}/auth/password-reset/confirm`, { token, newPassword })
+      .post<void>(`${BASE}/auth/password/reset`, { token, newPassword })
       .pipe(catchError(handleError));
   }
 
