@@ -15,7 +15,6 @@ public sealed class Customer
     public string? Nationality { get; private set; }
     public string PreferredLanguage { get; private set; } = string.Empty;
     public string? PhoneNumber { get; private set; }
-    public string? Email { get; private set; }
     public string TierCode { get; private set; } = string.Empty;
     public int PointsBalance { get; private set; }
     public int TierProgressPoints { get; private set; }
@@ -32,7 +31,6 @@ public sealed class Customer
         string? nationality = null,
         string? preferredLanguage = null,
         string? phoneNumber = null,
-        string? email = null,
         string? tierCode = null,
         Guid? identityId = null,
         bool? isActive = null)
@@ -43,7 +41,6 @@ public sealed class Customer
         if (nationality is not null) Nationality = nationality;
         if (preferredLanguage is not null) PreferredLanguage = preferredLanguage;
         if (phoneNumber is not null) PhoneNumber = phoneNumber;
-        if (email is not null) Email = email;
         if (tierCode is not null) TierCode = tierCode;
         if (identityId is not null) IdentityId = identityId;
         if (isActive is not null) IsActive = isActive.Value;
