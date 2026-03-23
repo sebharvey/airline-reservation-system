@@ -24,19 +24,19 @@ export interface LoginParams {
 }
 
 export interface RegisterParams {
-  givenName: string;
-  surname: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   dateOfBirth: string;
   nationality: string;
-  phone: string;
+  phoneNumber: string;
 }
 
 export interface UpdateProfileParams {
   givenName?: string;
   surname?: string;
-  phone?: string;
+  phoneNumber?: string;
   dateOfBirth?: string;
   nationality?: string;
   preferredLanguage?: string;
@@ -57,16 +57,13 @@ interface ApiAuthResponse extends ApiTokens {
 
 interface ApiCustomerProfile {
   loyaltyNumber: string;
-  givenName: string;
-  surname: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   dateOfBirth: string;
-  nationality: string;
-  preferredLanguage: string;
   tier: LoyaltyTier;
   pointsBalance: number;
-  tierProgressPoints: number;
   memberSince: string;
 }
 
@@ -85,16 +82,16 @@ interface ApiTransaction {
 function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
   return {
     loyaltyNumber: api.loyaltyNumber,
-    givenName: api.givenName,
-    surname: api.surname,
+    givenName: api.firstName,
+    surname: api.lastName,
     email: api.email,
-    phone: api.phone ?? '',
+    phone: api.phoneNumber ?? '',
     dateOfBirth: api.dateOfBirth ?? '',
-    nationality: api.nationality ?? '',
-    preferredLanguage: api.preferredLanguage ?? 'en',
+    nationality: '',
+    preferredLanguage: 'en',
     tier: api.tier ?? 'Blue',
     pointsBalance: api.pointsBalance ?? 0,
-    tierProgressPoints: api.tierProgressPoints ?? 0,
+    tierProgressPoints: 0,
     memberSince: api.memberSince ?? '',
     transactions: [] // loaded separately via getTransactions()
   };
