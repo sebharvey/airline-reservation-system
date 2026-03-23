@@ -38,7 +38,7 @@ public sealed class PointsFunction
     [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PointsOperationResponse), Description = "OK")]
     public async Task<HttpResponseData> Authorise(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/authorise")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/customers/{loyaltyNumber}/points/authorise")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public sealed class PointsFunction
     [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PointsOperationResponse), Description = "OK")]
     public Task<HttpResponseData> Settle(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/settle")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/customers/{loyaltyNumber}/points/settle")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -72,7 +72,7 @@ public sealed class PointsFunction
     [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PointsOperationResponse), Description = "OK")]
     public Task<HttpResponseData> Reverse(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reverse")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/customers/{loyaltyNumber}/points/reverse")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -88,7 +88,7 @@ public sealed class PointsFunction
     [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PointsOperationResponse), Description = "OK")]
     public Task<HttpResponseData> Reinstate(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reinstate")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/customers/{loyaltyNumber}/points/reinstate")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {

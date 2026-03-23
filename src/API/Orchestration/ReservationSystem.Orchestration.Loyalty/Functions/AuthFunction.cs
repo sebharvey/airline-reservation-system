@@ -50,7 +50,7 @@ public sealed class AuthFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized")]
     public async Task<HttpResponseData> Login(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/login")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         LoginRequest? request;
@@ -108,7 +108,7 @@ public sealed class AuthFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – refresh token invalid or expired")]
     public async Task<HttpResponseData> Refresh(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/refresh")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/refresh")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         RefreshTokenRequest? request;
@@ -153,7 +153,7 @@ public sealed class AuthFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Logout(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/logout")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/logout")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         LogoutRequest? request;
@@ -184,7 +184,7 @@ public sealed class AuthFunction
     [OpenApiOperation(operationId: "PasswordResetRequest", tags: new[] { "Auth" }, Summary = "Request a password reset")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
     public Task<HttpResponseData> PasswordResetRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset-request")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
@@ -198,7 +198,7 @@ public sealed class AuthFunction
     [OpenApiOperation(operationId: "PasswordReset", tags: new[] { "Auth" }, Summary = "Reset password with token")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     public Task<HttpResponseData> PasswordReset(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
