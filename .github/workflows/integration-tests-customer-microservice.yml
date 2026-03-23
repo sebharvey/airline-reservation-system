@@ -51,7 +51,7 @@ jobs:
         env:
           CUSTOMER_API_BASE_URL: ${{ secrets.CUSTOMER_API_BASE_URL }}
           CUSTOMER_API_HOST_KEY: ${{ secrets.CUSTOMER_API_HOST_KEY }}
-        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
+        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~ReservationSystem.Tests.IntegrationTests.Customer" --logger "trx;LogFileName=customer-integration-results.trx" --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
