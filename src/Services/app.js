@@ -500,16 +500,15 @@ function renderOperations(s) {
   return ops.map((op, i) => {
     const isGet = op.method === 'GET' || op.method === 'DELETE';
     const defaultPayload = op.defaultPayload || '';
-    const resetBtn = defaultPayload
-      ? `<button class="reset-payload-btn" onclick="resetPayload('${s.id}', ${i})" title="Reset to default payload">
+    const savedUrl = loadOpUrl(s.id, i);
+    const urlValue = savedUrl !== null ? savedUrl : op.path;
+    const resetBtn = `<button class="reset-payload-btn" onclick="resetPayload('${s.id}', ${i})" title="Reset to defaults">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>
           Reset
-        </button>`
-      : '';
+        </button>`;
     const bodySection = isGet ? '' : `
       <div class="body-header-row">
         <div class="body-label">Request Body</div>
-        ${resetBtn}
       </div>
       <textarea class="body-textarea" id="body-${s.id}-${i}">${escapeText(defaultPayload)}</textarea>`;
     const playIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
@@ -523,7 +522,8 @@ function renderOperations(s) {
       <div class="accordion-body">
         <div class="path-row">
           <span class="path-label">URL Path</span>
-          <input class="path-input" type="text" value="${op.path}" spellcheck="false" />
+          <input class="path-input" type="text" value="${escapeHtml(urlValue)}" oninput="saveOpUrl('${s.id}', ${i}, this.value)" spellcheck="false" />
+          ${resetBtn}
         </div>
         <div class="op-headers-section">
           <div class="op-headers-top-row">
@@ -549,13 +549,30 @@ function renderOperations(s) {
   }).join('');
 }
 
+function loadOpUrl(serviceId, index) {
+  const stored = localStorage.getItem(`opUrl_${serviceId}_${index}`);
+  return stored !== null ? stored : null;
+}
+
+function saveOpUrl(serviceId, index, url) {
+  localStorage.setItem(`opUrl_${serviceId}_${index}`, url);
+}
+
 function resetPayload(serviceId, index) {
   const service = findService(serviceId);
   if (!service) return;
   const op = service.operations[index];
-  if (!op || !op.defaultPayload) return;
-  const textarea = document.getElementById(`body-${serviceId}-${index}`);
-  if (textarea) textarea.value = op.defaultPayload;
+  if (!op) return;
+  const item = document.getElementById(`acc-${serviceId}-${index}`);
+  if (item) {
+    const pathInput = item.querySelector('.path-input');
+    if (pathInput) pathInput.value = op.path;
+  }
+  localStorage.removeItem(`opUrl_${serviceId}_${index}`);
+  if (op.defaultPayload) {
+    const textarea = document.getElementById(`body-${serviceId}-${index}`);
+    if (textarea) textarea.value = op.defaultPayload;
+  }
 }
 
 function toggleAccordion(serviceId, index) {
