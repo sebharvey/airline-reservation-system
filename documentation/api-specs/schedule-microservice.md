@@ -350,4 +350,4 @@ curl -X PATCH https://{schedule-ms-host}/v1/schedules/b2c3d4e5-f6a7-8901-bcde-f1
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for schedule creation and inventory generation flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for schedule creation and inventory generation flows

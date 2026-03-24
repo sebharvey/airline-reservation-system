@@ -1684,7 +1684,7 @@ curl -X POST https://{retail-api-host}/v1/checkin/AB1234 \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all orchestration and microservice endpoints
-- [System Design](../design.md) — Bookflow, reward booking, manage-booking, OLCI, and IROPS sequence diagrams
+- [System Design](../system-overview.md) — Bookflow, reward booking, manage-booking, OLCI, and IROPS sequence diagrams
 - [Offer Microservice Specification](offer-microservice.md)
 - [Order Microservice Specification](order-microservice.md)
 - [Payment Microservice Specification](payment-microservice.md)

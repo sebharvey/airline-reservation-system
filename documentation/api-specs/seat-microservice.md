@@ -1110,4 +1110,4 @@ curl -X PUT https://{seat-ms-host}/v1/seat-pricing/d4e5f6a7-b8c9-0123-defa-23456
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including seatmap assembly sequence diagrams, post-sale seat selection flow, and OLCI seat assignment flow
+- [System Design](../system-overview.md) — Full domain design including seatmap assembly sequence diagrams, post-sale seat selection flow, and OLCI seat assignment flow

@@ -1,6 +1,6 @@
 # Web Development Guide
 
-This guide describes how to build the Apex Air Angular web application. Read `../agents.md` and `design.md` first to understand the domain model and capabilities before writing any code.
+This guide describes how to build the Apex Air Angular web application. Read `../CLAUDE.md` and `system-overview.md` first to understand the domain model and capabilities before writing any code.
 
 ---
 
@@ -97,7 +97,7 @@ Routes are defined in `app.routes.ts`. Follow these conventions:
 ```
 
 - Unknown paths redirect to `''` via `{ path: '**', redirectTo: '' }`.
-- New route groups must be added to `app.routes.ts` and must match the flow described in `design.md` for that capability.
+- New route groups must be added to `app.routes.ts` and must match the flow described in `design/<domain>.md` for that capability.
 
 ---
 
@@ -191,7 +191,7 @@ Models in `models/` are TypeScript interfaces that mirror the API response contr
 
 Follow this workflow when implementing a new feature in the web app:
 
-1. **Read `design.md`** — identify the domain capability you are implementing and the user journey it supports.
+1. **Read `system-overview.md` and `design/<domain>.md`** — identify the domain capability you are implementing and the user journey it supports.
 2. **Read `api-reference.md`** — identify all API endpoints the new pages will consume. Confirm they exist before building the UI.
 3. **Read `web.md` (this file)** — confirm which existing service, state service, or model you can reuse before creating new ones.
 4. **Create the route group** in `app.routes.ts` following the conventions above.
@@ -199,7 +199,7 @@ Follow this workflow when implementing a new feature in the web app:
 6. **Add API service methods** for each endpoint the flow uses.
 7. **Add TypeScript models** in `models/` for any new request/response shapes.
 8. **Create page components** under `pages/<flow>/`, one per route step.
-9. If the capability requires new backend endpoints that do not yet exist, design them in `design.md` and `api-reference.md` first — see `../agents.md` for the full design workflow.
+9. If the capability requires new backend endpoints that do not yet exist, design them in `design/<domain>.md` and `api-reference.md` first — see `../CLAUDE.md` for the full design workflow.
 
 ---
 
@@ -228,7 +228,7 @@ The development server runs at `http://localhost:4200/` and hot-reloads on file 
 
 ## Cross-References
 
-- **Domain capability model** — `design.md`: which capabilities exist and what they do — drive the UI from this.
+- **Domain capability model** — `system-overview.md` and `design/<domain>.md`: which capabilities exist and what they do — drive the UI from this.
 - **API endpoints** — `api-reference.md`: every endpoint the web app can call; verify verb, path, and shape before coding.
 - **Backend implementation** — `api.md`: how backend APIs are built; useful when a needed endpoint does not exist yet.
 - **Architecture rules** — `principles/architecture-principals.md`: the web app is a channel consumer — it talks to orchestration APIs only, never to microservices directly.

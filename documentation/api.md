@@ -1,6 +1,6 @@
 # API Development Guide
 
-This guide describes how to build backend APIs for the Apex Air Reservation System. Read `../agents.md` and `design.md` first to understand the domain model before writing any code.
+This guide describes how to build backend APIs for the Apex Air Reservation System. Read `../CLAUDE.md` and `system-overview.md` first to understand the domain model before writing any code.
 
 ---
 
@@ -64,7 +64,7 @@ The innermost layer. No dependencies on any other layer or on infrastructure.
 - `Repositories/` — repository interfaces only; no implementation
 - `ExternalServices/` — external service interfaces only (e.g. `ICurrencyExchangeClient`)
 
-Domain objects use meaningful, domain-specific fields. Do not use generic `Name`/`Status` placeholders — choose fields that reflect the actual airline domain concept (cross-reference `design.md` for the correct terminology).
+Domain objects use meaningful, domain-specific fields. Do not use generic `Name`/`Status` placeholders — choose fields that reflect the actual airline domain concept (cross-reference `system-overview.md` and `design/<domain>.md` for the correct terminology).
 
 ### Application layer (`Application/`)
 
@@ -195,7 +195,7 @@ Follow `principles/integration-principals.md` for the full set of rules. Key poi
 
 ## Adding a New Endpoint to an Existing API
 
-1. Read `design.md` — confirm the capability belongs to this service's bounded context.
+1. Read `system-overview.md` and `design/<domain>.md` — confirm the capability belongs to this service's bounded context.
 2. Read `api-reference.md` — confirm no conflicting endpoint already exists.
 3. Add the command/query and handler in `Application/UseCases/`.
 4. Add or extend the repository interface in `Domain/Repositories/`.
@@ -203,7 +203,7 @@ Follow `principles/integration-principals.md` for the full set of rules. Key poi
 6. Add request/response models and mapper in `Models/`.
 7. Add the HTTP trigger function or method in `Functions/`.
 8. Update `api-reference.md` with the new endpoint row.
-9. Update `design.md` if the endpoint represents new domain capability.
+9. Update `design/<domain>.md` if the endpoint represents new domain capability.
 
 ---
 
@@ -281,7 +281,7 @@ When adding a new `DbContext` or a new entity mapping:
 
 ## Cross-References
 
-- **Domain model** — `design.md`: the authoritative source for what each domain owns and what capabilities it provides.
+- **Domain model** — `system-overview.md`: architecture and domain capability model. `design/<domain>.md`: per-domain design, schemas, and flows.
 - **Endpoint catalogue** — `api-reference.md`: every existing endpoint; verify before adding new ones.
 - **Architecture rules** — `principles/architecture-principals.md`: DDD, microservices boundaries, no direct MS-to-MS calls.
 - **API conventions** — `principles/integration-principals.md`: REST style, HTTP codes, versioning, idempotency.

@@ -12,7 +12,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - The SSR catalogue is stored in a dedicated `retail.SsrCatalogue` table owned by the Retail API. The `GET /v1/ssr/options` endpoint reads from this table. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
 - Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
 
-## Data schema — `retail.SsrCatalogue`
+## `retail.SsrCatalogue` data schema
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
@@ -26,7 +26,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 
 > **Indexes:** `IX_SsrCatalogue_Code` on `(SsrCode)` WHERE `IsActive = 1`.
 
-## SSR catalogue CRUD endpoints (Retail API)
+## SSR Catalogue CRUD Endpoints (Retail API)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -54,7 +54,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 | `DEAF` | Accessibility | Deaf or severely hearing-impaired passenger |
 | `DPNA` | Accessibility | Disabled passenger needing assistance (general; use where a more specific code does not apply) |
 
-## SSR selection — bookflow
+## SSR Selection — Bookflow
 
 SSR selection is an optional bookflow step offered after passenger details are captured, alongside seat and bag selection.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 
 *Ref: SSR — selection during bookflow with basket update and manifest population at order confirmation*
 
-## SSR management — self-serve
+## SSR Management — Self-Serve
 
 Passengers may add, change, or remove SSRs post-booking through the manage-booking flow up to the amendment cut-off.
 

@@ -1118,4 +1118,4 @@ curl -X GET https://{offer-ms-host}/v1/flights/3fa85f64-5717-4562-b3fc-2c963f66a
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including search and stored offer sequence diagrams, bookflow inventory management, and IROPS inventory cancellation flows
+- [System Design](../system-overview.md) — Full domain design including search and stored offer sequence diagrams, bookflow inventory management, and IROPS inventory cancellation flows

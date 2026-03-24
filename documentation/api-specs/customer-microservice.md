@@ -833,4 +833,4 @@ curl -X DELETE https://{customer-ms-host}/v1/customers/AX9876543 \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for registration, profile update, and points accrual flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for registration, profile update, and points accrual flows

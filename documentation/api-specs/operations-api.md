@@ -347,5 +347,5 @@ curl -X POST https://{operations-api-host}/v1/schedules \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for schedule creation and inventory generation flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for schedule creation and inventory generation flows
 - [Schedule Microservice](schedule-microservice.md) — API specification for the Schedule MS (downstream persistence layer)

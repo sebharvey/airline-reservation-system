@@ -984,6 +984,6 @@ curl -X POST https://{loyalty-api-host}/v1/reward/f7a1b2c3-d4e5-6789-0abc-def123
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all orchestration API and microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for registration, login, password reset, email change, and points accrual flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for registration, login, password reset, email change, and points accrual flows
 - [Customer Microservice Specification](customer-microservice.md) — Full spec for the Customer MS (downstream from this API)
 - [Identity Microservice Specification](identity-microservice.md) — Full spec for the Identity MS (downstream from this API)

@@ -713,4 +713,4 @@ curl -X PUT https://{bag-ms-host}/v1/bag-pricing/b2c3d4e5-f6a7-8901-bcde-f123456
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including ancillary sequence diagrams for bookflow bag selection, post-sale bag addition, and OLCI bag purchase flows
+- [System Design](../system-overview.md) — Full domain design including ancillary sequence diagrams for bookflow bag selection, post-sale bag addition, and OLCI bag purchase flows
