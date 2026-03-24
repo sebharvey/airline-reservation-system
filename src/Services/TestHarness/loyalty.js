@@ -114,12 +114,10 @@
 
         steps.forEach((step, idx) => {
             const row = document.createElement('tr');
-            row.className = step.type === 'negative' ? 'step-negative' : 'step-positive';
 
-            // Step cell — number + badge
+            // Step cell — number only
             const tdStep = document.createElement('td');
-            const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
-            tdStep.innerHTML = `<div class="step-number">Step ${step.step}</div>${badge}`;
+            tdStep.innerHTML = `<div class="step-number">Step ${step.step}</div>`;
 
             // Name cell
             const tdName = document.createElement('td');
@@ -171,8 +169,7 @@
         const livePill = isLive
             ? '<span style="font-size:0.65rem;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0.1rem 0.4rem;margin-left:0.5rem;vertical-align:middle">LIVE</span>'
             : '';
-        const badge = `<span class="step-badge ${step.type}" style="margin-left:0.5rem;vertical-align:middle">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
-        modalTitle.innerHTML = `<span class="step-number" style="display:inline;font-size:1rem">Step ${step.step}</span> — ${esc(step.name)}${badge}${livePill}`;
+        modalTitle.innerHTML = `<span class="step-number" style="display:inline;font-size:1rem">Step ${step.step}</span> — ${esc(step.name)}${livePill}`;
 
         let html = '';
 
@@ -459,14 +456,12 @@
 
     function buildStepCell(step, idx) {
         const td = document.createElement('td');
-        const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
         const isLive = liveStepIndices.includes(idx);
         const liveIndicator = isLive
             ? '<div style="margin-top:0.4rem"><span style="font-size:0.65rem;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0.1rem 0.4rem">LIVE</span></div>'
             : '';
         td.innerHTML = `
             <div class="step-number">Step ${step.step}</div>
-            ${badge}
             <div class="step-name">${esc(step.name)}</div>
             <div class="step-desc">${esc(step.description)}</div>
             ${liveIndicator}

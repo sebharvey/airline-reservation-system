@@ -85,17 +85,6 @@ body {
     vertical-align: top;
 }
 
-/* Row type indicator — before any run */
-.harness-table tbody tr.step-positive td:first-child {
-    border-left: 3px solid var(--positive);
-}
-.harness-table tbody tr.step-negative td:first-child {
-    border-left: 3px solid var(--negative);
-}
-.harness-table tbody tr.step-negative {
-    background: var(--negative-bg);
-}
-
 /* Row result state — after live run */
 .harness-table tbody tr.result-pass td:first-child {
     border-left: 3px solid var(--positive);
@@ -126,27 +115,6 @@ body {
     font-size: 0.8rem;
     line-height: 1.5;
 }
-.step-badge {
-    display: inline-block;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.15rem 0.5rem;
-    border-radius: 3px;
-    margin-bottom: 0.4rem;
-}
-.step-badge.positive {
-    color: var(--positive);
-    background: var(--positive-bg);
-    border: 1px solid var(--positive-border);
-}
-.step-badge.negative {
-    color: var(--negative);
-    background: var(--negative-bg);
-    border: 1px solid var(--negative-border);
-}
-
 /* API call column */
 .method-badge {
     display: inline-block;
