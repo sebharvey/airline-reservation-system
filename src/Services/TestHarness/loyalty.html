@@ -523,12 +523,14 @@
     <label for="baseUrlOverride">Base URL:</label>
     <input type="text" id="baseUrlOverride" placeholder="Loading...">
     <span id="healthIndicator" class="health-indicator checking" title="Health check: /api/v1/health">…</span>
-    <button class="btn-run-all" id="btnRunAll" disabled>▶ Run Steps 1–4</button>
+    <label for="customerMsBaseUrl" style="margin-left:0.5rem;white-space:nowrap">Customer MS:</label>
+    <input type="text" id="customerMsBaseUrl" placeholder="Loading..." style="max-width:320px">
+    <button class="btn-run-all" id="btnRunAll" disabled>▶ Run Steps 1–5</button>
 </div>
 
 <div id="runtimeDataBanner" style="display:none;margin-bottom:1.5rem;padding:0.85rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
     <span style="font-weight:600;color:var(--accent);font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Runtime test data</span>
-    <span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">— generated fresh for this session, used across Steps 1, 3 &amp; 4</span>
+    <span style="color:var(--text-muted);font-size:0.72rem;margin-left:0.5rem">— generated fresh for this session, used across Steps 1, 2 &amp; 5</span>
     <div id="runtimeDataValues" style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.5rem"></div>
 </div>
 
@@ -608,6 +610,9 @@
     baseUrlInput.value = data.journey.baseUrl;
     document.getElementById('baseUrl').textContent = data.journey.baseUrl;
 
+    const customerMsBaseUrlInput = document.getElementById('customerMsBaseUrl');
+    customerMsBaseUrlInput.value = data.journey.customerMsBaseUrl || '';
+
     // Health check
     async function checkHealth() {
         const indicator = document.getElementById('healthIndicator');
@@ -642,7 +647,7 @@
     const liveChain = {};
 
     // Steps that support live invocation (indices into data.steps)
-    const liveStepIndices = [0, 1, 2, 3]; // Steps 1–4
+    const liveStepIndices = [0, 1, 2, 3, 4]; // Steps 1–5
 
     // Store row references and step data for live updates
     const rowRefs = [];
@@ -713,14 +718,18 @@
 
     async function runStep(ref) {
         const { step, responseCell, row, idx } = ref;
-        const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
+        const stepBaseUrlRef = step.apiCall.baseUrlRef || 'loyalty';
+        const baseUrl = stepBaseUrlRef === 'customer'
+            ? customerMsBaseUrlInput.value.replace(/\/+$/, '')
+            : baseUrlInput.value.replace(/\/+$/, '');
         const api = step.apiCall;
 
-        // Build the full URL
+        // Build the full URL, substituting path params from liveChain where available
         let endpoint = api.endpoint;
         if (api.pathParams) {
             for (const [k, v] of Object.entries(api.pathParams)) {
-                endpoint = endpoint.replace(`{${k}}`, v);
+                const chainedValue = liveChain[k];
+                endpoint = endpoint.replace(`{${k}}`, chainedValue !== undefined ? chainedValue : v);
             }
         }
         const url = baseUrl + endpoint;
@@ -790,10 +799,10 @@
                     const arrIdx = parseInt(arrayMatch[1], 10);
                     const prop = arrayMatch[2];
                     if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
-                        liveChain[prop] = liveBody[arrIdx][prop];
+                        liveChain[chain.as || prop] = liveBody[arrIdx][prop];
                     }
                 } else if (liveBody[field] !== undefined) {
-                    liveChain[field] = liveBody[field];
+                    liveChain[chain.as || field] = liveBody[field];
                 }
             });
         }

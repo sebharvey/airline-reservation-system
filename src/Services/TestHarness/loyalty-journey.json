@@ -3,7 +3,8 @@
     "name": "Login & Dashboard Flow",
     "description": "End-to-end customer journey covering registration, email verification, duplicate-email validation, authentication, profile management, and session lifecycle.",
     "domain": "Loyalty",
-    "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net"
+    "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net",
+    "customerMsBaseUrl": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net"
   },
   "steps": [
     {
@@ -45,13 +46,60 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [5, 6, 7] }
+        { "field": "loyaltyNumber", "usedInSteps": [6, 7, 8] }
       ]
     },
     {
       "step": 2,
+      "name": "Search customer by email",
+      "description": "Search the Customer MS for the newly registered account using the email address as the query. The response returns the customer record including identityId, which is the userAccountId stored on the customer record and is required as the path parameter for the verify-email call in Step 3.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/search",
+        "baseUrlRef": "customer",
+        "note": "POST is used to keep PII (email address) out of URL access logs. Returns an array; the first result's identityId is chained as userAccountId for Step 3."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "query": "__RAND_EMAIL__"
+        },
+        "dataChain": [
+          { "field": "query", "source": "Step 1 → runtime-generated email" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "loyaltyNumber": "AX9876543",
+            "identityId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+            "givenName": "Generated",
+            "surname": "Name",
+            "tierCode": "Blue",
+            "pointsBalance": 0,
+            "isActive": true
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns an array of matching customers. The first result contains identityId, which equals the UserAccountId from the Identity MS and is used as the path parameter for the verify-email call in Step 3.",
+        "keyFields": ["identityId", "loyaltyNumber"],
+        "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber is chained for reference. A 200 with an empty array means the search term did not match any customer."
+      },
+      "chainsTo": [
+        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 3,
       "name": "Verify email",
-      "description": "Call the verify-email GET endpoint, simulating a user clicking the confirmation link sent after registration. No authentication is required. The userAccountId is normally embedded in the confirmation email link by the Identity MS.",
+      "description": "Call the verify-email GET endpoint, simulating a user clicking the confirmation link sent after registration. No authentication is required. The userAccountId is chained from Step 2.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
@@ -60,11 +108,14 @@
         "pathParams": {
           "userAccountId": "7c2d3e4f-8901-2345-6789-abcdef012345"
         },
-        "note": "No auth required — public endpoint. userAccountId is issued by the Identity MS and embedded in the registration confirmation email; not returned in the registration API response."
+        "note": "No auth required — public endpoint. userAccountId is chained from Step 2 (Identity MS login); the fallback UUID is used if no live chain is available."
       },
       "request": {
         "headers": {},
-        "body": null
+        "body": null,
+        "dataChain": [
+          { "field": "userAccountId (path)", "source": "Step 2 → response.userAccountId" }
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -74,12 +125,12 @@
         "statusCode": 200,
         "description": "200 OK — email verified, account activated. No response body. The Identity MS sets IsEmailVerified to 1 for the account.",
         "keyFields": [],
-        "validationNotes": "Idempotent — calling again on an already-verified account still returns 200. A 404 means the userAccountId was not found. The test uses a pre-seeded account UUID; replace with the UUID from the registration confirmation email for a freshly-registered account."
+        "validationNotes": "Idempotent — calling again on an already-verified account still returns 200. A 404 means the userAccountId was not found."
       },
       "chainsTo": []
     },
     {
-      "step": 3,
+      "step": 4,
       "name": "Duplicate registration attempt",
       "description": "Attempt to register again using the same email address generated in Step 1. Validates that the API correctly rejects duplicate accounts with a 409 Conflict response.",
       "type": "negative",
@@ -122,7 +173,7 @@
       "chainsTo": []
     },
     {
-      "step": 4,
+      "step": 5,
       "name": "Login",
       "description": "Authenticate with the credentials registered in Step 1. Validates JWT issuance from the Identity MS and loyalty number resolution from the Customer MS.",
       "type": "positive",
@@ -161,13 +212,13 @@
         "validationNotes": "accessToken is a signed JWT (RS256). refreshToken is opaque and single-use. loyaltyNumber starts with 'AX' and is 9 characters. expiresAt is ISO 8601 UTC, approximately 15 minutes from now."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [5, 6, 7] },
-        { "field": "refreshToken", "usedInSteps": [5] },
-        { "field": "loyaltyNumber", "usedInSteps": [6, 7, 8] }
+        { "field": "accessToken", "usedInSteps": [6, 7, 8] },
+        { "field": "refreshToken", "usedInSteps": [6] },
+        { "field": "loyaltyNumber", "usedInSteps": [7, 8, 9] }
       ]
     },
     {
-      "step": 5,
+      "step": 6,
       "name": "Token refresh",
       "description": "Exchange the single-use refresh token from login for a new access token and refresh token pair. The old refresh token is revoked.",
       "type": "positive",
@@ -186,7 +237,7 @@
         "dataChain": [
           {
             "field": "refreshToken",
-            "source": "Step 4 → response.refreshToken"
+            "source": "Step 5 → response.refreshToken"
           }
         ]
       },
@@ -203,15 +254,15 @@
         "statusCode": 200,
         "description": "200 OK — new token pair issued. The previous refresh token is now invalid (single-use rotation).",
         "keyFields": ["accessToken", "refreshToken", "expiresAt", "tokenType"],
-        "validationNotes": "New accessToken replaces the one from Step 4. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 4 is revoked and cannot be reused."
+        "validationNotes": "New accessToken replaces the one from Step 5. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 5 is revoked and cannot be reused."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [6, 7, 8] },
-        { "field": "refreshToken", "usedInSteps": [9] }
+        { "field": "accessToken", "usedInSteps": [7, 8, 9] },
+        { "field": "refreshToken", "usedInSteps": [10] }
       ]
     },
     {
-      "step": 6,
+      "step": 7,
       "name": "View profile",
       "description": "Retrieve the authenticated customer's loyalty profile using the loyalty number from login and the refreshed access token.",
       "type": "positive",
@@ -231,11 +282,11 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 5 → response.accessToken"
+            "source": "Step 6 → response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 4 → response.loyaltyNumber"
+            "source": "Step 5 → response.loyaltyNumber"
           }
         ]
       },
@@ -262,7 +313,7 @@
       "chainsTo": []
     },
     {
-      "step": 7,
+      "step": 8,
       "name": "View transactions",
       "description": "Retrieve the transaction history for the authenticated customer. Shows point earn/redeem activity with pagination.",
       "type": "positive",
@@ -286,11 +337,11 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 5 → response.accessToken"
+            "source": "Step 6 → response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 4 → response.loyaltyNumber"
+            "source": "Step 5 → response.loyaltyNumber"
           }
         ]
       },
@@ -334,7 +385,7 @@
       "chainsTo": []
     },
     {
-      "step": 8,
+      "step": 9,
       "name": "Update profile",
       "description": "Patch the customer's profile with updated fields. Only the provided fields are modified; omitted fields remain unchanged.",
       "type": "positive",
@@ -359,11 +410,11 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 5 → response.accessToken"
+            "source": "Step 6 → response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 4 → response.loyaltyNumber"
+            "source": "Step 5 → response.loyaltyNumber"
           }
         ],
         "diff": {
@@ -385,7 +436,7 @@
       "chainsTo": []
     },
     {
-      "step": 9,
+      "step": 10,
       "name": "Logout",
       "description": "Invalidate the session by revoking the refresh token. The access token remains valid until its TTL expires (~15 min).",
       "type": "positive",
@@ -404,7 +455,7 @@
         "dataChain": [
           {
             "field": "refreshToken",
-            "source": "Step 5 → response.refreshToken"
+            "source": "Step 6 → response.refreshToken"
           }
         ]
       },
