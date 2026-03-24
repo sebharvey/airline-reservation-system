@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Air — Loyalty API Test Harness</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface-raised: #242837;
+            --border: #2e3348;
+            --text: #e1e4ed;
+            --text-muted: #8b90a5;
+            --accent: #6c8cff;
+            --accent-dim: rgba(108, 140, 255, 0.12);
+            --positive: #34d399;
+            --positive-bg: rgba(52, 211, 153, 0.08);
+            --positive-border: rgba(52, 211, 153, 0.25);
+            --negative: #f87171;
+            --negative-bg: rgba(248, 113, 113, 0.08);
+            --negative-border: rgba(248, 113, 113, 0.25);
+            --chain-highlight: #fbbf24;
+            --chain-bg: rgba(251, 191, 36, 0.10);
+            --method-get: #34d399;
+            --method-post: #6c8cff;
+            --method-patch: #fbbf24;
+            --method-delete: #f87171;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .header h1 span { color: var(--accent); }
+        .header .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .header .meta {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .header .meta code {
+            font-family: var(--font-mono);
+            background: var(--surface-raised);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--accent);
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.8rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .legend-swatch {
+            width: 12px; height: 12px;
+            border-radius: 3px;
+        }
+        .legend-swatch.positive { background: var(--positive); opacity: 0.7; }
+        .legend-swatch.negative { background: var(--negative); opacity: 0.7; }
+        .legend-swatch.chain    { background: var(--chain-highlight); opacity: 0.7; }
+
+        /* Table */
+        .harness-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85rem;
+        }
+        .harness-table thead th {
+            background: var(--surface);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .harness-table thead th:first-child { border-radius: 8px 0 0 0; }
+        .harness-table thead th:last-child  { border-radius: 0 8px 0 0; }
+
+        .harness-table tbody tr {
+            transition: background 0.15s;
+        }
+        .harness-table tbody tr:hover {
+            background: var(--surface);
+        }
+        .harness-table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        /* Row type indicator */
+        .harness-table tbody tr.step-positive td:first-child {
+            border-left: 3px solid var(--positive);
+        }
+        .harness-table tbody tr.step-negative td:first-child {
+            border-left: 3px solid var(--negative);
+        }
+        .harness-table tbody tr.step-negative {
+            background: var(--negative-bg);
+        }
+
+        /* Step column */
+        .step-number {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.15rem;
+        }
+        .step-name {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        .step-desc {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        .step-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            margin-bottom: 0.4rem;
+        }
+        .step-badge.positive {
+            color: var(--positive);
+            background: var(--positive-bg);
+            border: 1px solid var(--positive-border);
+        }
+        .step-badge.negative {
+            color: var(--negative);
+            background: var(--negative-bg);
+            border: 1px solid var(--negative-border);
+        }
+
+        /* API call column */
+        .method-badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.35rem;
+        }
+        .method-GET    { background: rgba(52,211,153,0.15); color: var(--method-get); }
+        .method-POST   { background: rgba(108,140,255,0.15); color: var(--method-post); }
+        .method-PATCH  { background: rgba(251,191,36,0.15); color: var(--method-patch); }
+        .method-DELETE { background: rgba(248,113,113,0.15); color: var(--method-delete); }
+
+        .endpoint-url {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text);
+            word-break: break-all;
+        }
+        .endpoint-url .path-param {
+            color: var(--chain-highlight);
+            font-weight: 600;
+        }
+        .api-note {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+            font-style: italic;
+        }
+
+        /* JSON blocks */
+        .json-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            line-height: 1.55;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 400px;
+            overflow-y: auto;
+            color: var(--text);
+        }
+        .json-block .json-key   { color: #7dd3fc; }
+        .json-block .json-str   { color: #86efac; }
+        .json-block .json-num   { color: #c4b5fd; }
+        .json-block .json-bool  { color: #fca5a5; }
+        .json-block .json-null  { color: var(--text-muted); font-style: italic; }
+
+        /* Chain indicators */
+        .chain-tag {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            background: var(--chain-bg);
+            color: var(--chain-highlight);
+            border: 1px solid rgba(251,191,36,0.3);
+            border-radius: 3px;
+            padding: 0.1rem 0.4rem;
+            margin: 0.15rem 0.15rem 0.15rem 0;
+        }
+        .chain-section {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed var(--border);
+        }
+        .chain-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Headers display */
+        .headers-block {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px dashed var(--border);
+        }
+        .headers-block .header-name  { color: #7dd3fc; }
+        .headers-block .header-value { color: var(--text); }
+
+        /* Diff display */
+        .diff-block {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed var(--border);
+        }
+        .diff-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        .diff-line {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            margin-bottom: 0.15rem;
+        }
+        .diff-from { background: rgba(248,113,113,0.12); color: #fca5a5; }
+        .diff-to   { background: rgba(52,211,153,0.12);  color: #86efac; }
+
+        /* Expected column */
+        .expected-status {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+        }
+        .expected-status.ok    { color: var(--positive); }
+        .expected-status.error { color: var(--negative); }
+
+        .expected-desc {
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+        .expected-fields {
+            margin-bottom: 0.4rem;
+        }
+        .expected-fields .field-tag {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            margin: 0.1rem 0.15rem 0.1rem 0;
+        }
+        .validation-notes {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            border-left: 2px solid var(--border);
+            padding-left: 0.6rem;
+        }
+
+        /* Status code styling in response */
+        .status-code {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.78rem;
+            margin-bottom: 0.4rem;
+        }
+        .status-code.s2xx { color: var(--positive); }
+        .status-code.s4xx { color: var(--negative); }
+
+        /* Column widths */
+        .harness-table th:nth-child(1),
+        .harness-table td:nth-child(1) { width: 16%; }
+        .harness-table th:nth-child(2),
+        .harness-table td:nth-child(2) { width: 14%; }
+        .harness-table th:nth-child(3),
+        .harness-table td:nth-child(3) { width: 24%; }
+        .harness-table th:nth-child(4),
+        .harness-table td:nth-child(4) { width: 22%; }
+        .harness-table th:nth-child(5),
+        .harness-table td:nth-child(5) { width: 24%; }
+
+        /* No-body placeholder */
+        .no-body {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.78rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Apex Air — <span>Loyalty API</span> Test Harness</h1>
+    <p class="subtitle">Login &amp; Dashboard Flow — ordered journey through authentication, profile, and session lifecycle</p>
+    <div class="meta">
+        <span>Base URL: <code id="baseUrl"></code></span>
+        <span>Domain: <code>Loyalty</code></span>
+    </div>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-swatch positive"></div> Happy path</div>
+    <div class="legend-item"><div class="legend-swatch negative"></div> Error validation</div>
+    <div class="legend-item"><div class="legend-swatch chain"></div> Data chained from prior step</div>
+</div>
+
+<table class="harness-table">
+    <thead>
+        <tr>
+            <th>Step</th>
+            <th>API Call</th>
+            <th>Request</th>
+            <th>Response</th>
+            <th>Expected Result</th>
+        </tr>
+    </thead>
+    <tbody id="journeyBody"></tbody>
+</table>
+
+<script>
+(async function () {
+
+    const res = await fetch('loyalty-journey.json');
+    const data = await res.json();
+
+    document.getElementById('baseUrl').textContent = data.journey.baseUrl;
+
+    const tbody = document.getElementById('journeyBody');
+
+    data.steps.forEach(step => {
+        const row = document.createElement('tr');
+        row.className = step.type === 'negative' ? 'step-negative' : 'step-positive';
+
+        // ---------- Col 1: Step ----------
+        row.appendChild(buildStepCell(step));
+
+        // ---------- Col 2: API Call ----------
+        row.appendChild(buildApiCallCell(step));
+
+        // ---------- Col 3: Request ----------
+        row.appendChild(buildRequestCell(step));
+
+        // ---------- Col 4: Response ----------
+        row.appendChild(buildResponseCell(step));
+
+        // ---------- Col 5: Expected ----------
+        row.appendChild(buildExpectedCell(step));
+
+        tbody.appendChild(row);
+    });
+
+    // =====================================================================
+    // Cell builders
+    // =====================================================================
+
+    function buildStepCell(step) {
+        const td = document.createElement('td');
+        const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
+        td.innerHTML = `
+            <div class="step-number">Step ${step.step}</div>
+            ${badge}
+            <div class="step-name">${esc(step.name)}</div>
+            <div class="step-desc">${esc(step.description)}</div>
+        `;
+        return td;
+    }
+
+    function buildApiCallCell(step) {
+        const td = document.createElement('td');
+        const api = step.apiCall;
+        const methodClass = 'method-' + api.method;
+
+        let endpointHtml = esc(api.endpoint);
+        // Highlight path params
+        endpointHtml = endpointHtml.replace(/\{(\w+)\}/g,
+            '<span class="path-param">{$1}</span>');
+
+        let html = `<span class="method-badge ${methodClass}">${api.method}</span><br>`;
+        html += `<span class="endpoint-url">${endpointHtml}</span>`;
+
+        if (api.note) {
+            html += `<div class="api-note">${esc(api.note)}</div>`;
+        }
+
+        if (api.pathParams) {
+            html += '<div style="margin-top:0.35rem">';
+            for (const [k, v] of Object.entries(api.pathParams)) {
+                html += `<span class="chain-tag">${esc(k)} = ${esc(String(v))}</span> `;
+            }
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildRequestCell(step) {
+        const td = document.createElement('td');
+        let html = '';
+
+        // Headers
+        if (step.request.headers && Object.keys(step.request.headers).length) {
+            html += '<div class="headers-block">';
+            for (const [k, v] of Object.entries(step.request.headers)) {
+                const isChained = step.request.dataChain &&
+                    step.request.dataChain.some(c => c.field === k || c.field === 'Authorization');
+                const val = isChained && k === 'Authorization'
+                    ? highlightChainValue(v)
+                    : `<span class="header-value">${esc(v)}</span>`;
+                html += `<span class="header-name">${esc(k)}:</span> ${val}<br>`;
+            }
+            html += '</div>';
+        }
+
+        // Body
+        if (step.request.body !== null && step.request.body !== undefined) {
+            html += '<div class="json-block">' + syntaxHighlight(step.request.body, step.request.dataChain) + '</div>';
+        } else {
+            html += '<div class="no-body">No request body</div>';
+        }
+
+        // Data chain annotations
+        if (step.request.dataChain && step.request.dataChain.length) {
+            html += '<div class="chain-section">';
+            html += '<div class="chain-label">Data chained from:</div>';
+            step.request.dataChain.forEach(c => {
+                html += `<span class="chain-tag">${esc(c.field)}</span> ← <span style="font-size:0.7rem;color:var(--text-muted)">${esc(c.source)}</span><br>`;
+            });
+            html += '</div>';
+        }
+
+        // Diff
+        if (step.request.diff) {
+            html += '<div class="diff-block">';
+            html += '<div class="diff-label">Field changes:</div>';
+            for (const [field, change] of Object.entries(step.request.diff)) {
+                html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
+                html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
+            }
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildResponseCell(step) {
+        const td = document.createElement('td');
+        const sc = step.response.statusCode;
+        const scClass = sc >= 200 && sc < 300 ? 's2xx' : 's4xx';
+        const scLabel = statusLabel(sc);
+
+        let html = `<div class="status-code ${scClass}">${sc} ${scLabel}</div>`;
+
+        if (step.response.body !== null && step.response.body !== undefined) {
+            html += '<div class="json-block">' + syntaxHighlight(step.response.body, null, step.chainsTo) + '</div>';
+        } else {
+            html += '<div class="no-body">No response body</div>';
+        }
+
+        // Chain-forward indicators
+        if (step.chainsTo && step.chainsTo.length) {
+            html += '<div class="chain-section">';
+            html += '<div class="chain-label">Chains forward to:</div>';
+            step.chainsTo.forEach(c => {
+                const steps = Array.isArray(c.usedInSteps) ? c.usedInSteps.join(', ') : c.usedInSteps;
+                html += `<span class="chain-tag">${esc(c.field)}</span> → <span style="font-size:0.7rem;color:var(--text-muted)">Step ${steps}</span><br>`;
+            });
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildExpectedCell(step) {
+        const td = document.createElement('td');
+        const ex = step.expected;
+        const scClass = ex.statusCode >= 200 && ex.statusCode < 300 ? 'ok' : 'error';
+
+        let html = `<div class="expected-status ${scClass}">${ex.statusCode} ${statusLabel(ex.statusCode)}</div>`;
+        html += `<div class="expected-desc">${esc(ex.description)}</div>`;
+
+        if (ex.keyFields && ex.keyFields.length) {
+            html += '<div class="expected-fields">';
+            ex.keyFields.forEach(f => {
+                html += `<span class="field-tag">${esc(f)}</span>`;
+            });
+            html += '</div>';
+        }
+
+        if (ex.validationNotes) {
+            html += `<div class="validation-notes">${esc(ex.validationNotes)}</div>`;
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    function esc(str) {
+        const el = document.createElement('span');
+        el.textContent = str;
+        return el.innerHTML;
+    }
+
+    function statusLabel(code) {
+        const labels = {
+            200: 'OK', 201: 'Created', 202: 'Accepted', 204: 'No Content',
+            400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden',
+            404: 'Not Found', 409: 'Conflict'
+        };
+        return labels[code] || '';
+    }
+
+    function highlightChainValue(val) {
+        return `<span style="color:var(--chain-highlight)">${esc(val)}</span>`;
+    }
+
+    /**
+     * Produce syntax-highlighted HTML for a JSON value.
+     * chainAnnotations: array of {field, source} for incoming chains
+     * chainsTo: array of {field, usedInSteps} for outgoing chains
+     */
+    function syntaxHighlight(obj, chainAnnotations, chainsTo) {
+        const raw = JSON.stringify(obj, null, 2);
+
+        // Collect chain field names for highlighting
+        const chainFields = new Set();
+        if (chainAnnotations) chainAnnotations.forEach(c => {
+            const f = c.field.replace(/ \(path\)$/, '');
+            chainFields.add(f);
+        });
+        if (chainsTo) chainsTo.forEach(c => {
+            // handle e.g. "[0].identityId"
+            const parts = c.field.split('.');
+            chainFields.add(parts[parts.length - 1]);
+        });
+
+        // Tokenize and highlight
+        return raw.replace(
+            /("(?:[^"\\]|\\.)*")\s*(:)?|(\b\d+\.?\d*\b)|(\btrue\b|\bfalse\b)|(\bnull\b)/g,
+            (match, str, colon, num, bool, nul) => {
+                if (str) {
+                    if (colon) {
+                        // It's a key
+                        const keyName = str.slice(1, -1);
+                        const cls = chainFields.has(keyName) ? 'json-key" style="color:var(--chain-highlight);font-weight:600' : 'json-key';
+                        return `<span class="${cls}">${esc(str)}</span>:`;
+                    }
+                    return `<span class="json-str">${esc(str)}</span>`;
+                }
+                if (num)  return `<span class="json-num">${esc(num)}</span>`;
+                if (bool) return `<span class="json-bool">${esc(bool)}</span>`;
+                if (nul)  return `<span class="json-null">${esc(nul)}</span>`;
+                return match;
+            }
+        );
+    }
+
+})();
+</script>
+</body>
+</html>
