@@ -4,7 +4,7 @@
     "description": "End-to-end customer journey covering registration, email verification, duplicate-email validation, authentication, profile management, and session lifecycle.",
     "domain": "Loyalty",
     "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net",
-    "identityBaseUrl": "https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net"
+    "customerMsBaseUrl": "https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net"
   },
   "steps": [
     {
@@ -52,44 +52,48 @@
     {
       "step": 2,
       "name": "Search customer by email",
-      "description": "Call the Identity MS login endpoint with the registered email and password to retrieve the userAccountId. This UUID is required for the verify-email path parameter and is not returned by the Loyalty API registration response.",
+      "description": "Search the Customer MS for the newly registered account using the email address as the query. The response returns the customer record including identityId, which is the userAccountId stored on the customer record and is required as the path parameter for the verify-email call in Step 3.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/v1/auth/login",
-        "baseUrlRef": "identity",
-        "note": "Called directly on the Identity MS (not via the Loyalty API) to obtain the userAccountId needed for Step 3."
+        "endpoint": "/api/v1/customers/search",
+        "baseUrlRef": "customer",
+        "note": "POST is used to keep PII (email address) out of URL access logs. Returns an array; the first result's identityId is chained as userAccountId for Step 3."
       },
       "request": {
         "headers": {
           "Content-Type": "application/json"
         },
         "body": {
-          "email": "__RAND_EMAIL__",
-          "password": "__RAND_PASSWORD__"
+          "query": "__RAND_EMAIL__"
         },
         "dataChain": [
-          { "field": "email", "source": "Step 1 → runtime-generated email" },
-          { "field": "password", "source": "Step 1 → runtime-generated password" }
+          { "field": "query", "source": "Step 1 → runtime-generated email" }
         ]
       },
       "response": {
         "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ...",
-          "userAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
-          "expiresAt": "2026-03-24T14:15:00Z"
-        }
+        "body": [
+          {
+            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "loyaltyNumber": "AX9876543",
+            "identityId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+            "givenName": "Generated",
+            "surname": "Name",
+            "tierCode": "Blue",
+            "pointsBalance": 0,
+            "isActive": true
+          }
+        ]
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — Identity MS returns the userAccountId alongside the JWT tokens. Only userAccountId is chained forward; the tokens from this step are discarded (a fresh login via the Loyalty API is performed in Step 5).",
-        "keyFields": ["userAccountId"],
-        "validationNotes": "userAccountId is the primary key of the identity.UserAccount record. It is distinct from identityReference (the cross-domain link stored on the Customer record). The returned accessToken and refreshToken are not used in subsequent steps."
+        "description": "200 OK — returns an array of matching customers. The first result contains identityId, which equals the UserAccountId from the Identity MS and is used as the path parameter for the verify-email call in Step 3.",
+        "keyFields": ["identityId", "loyaltyNumber"],
+        "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber is chained for reference. A 200 with an empty array means the search term did not match any customer."
       },
       "chainsTo": [
-        { "field": "userAccountId", "usedInSteps": [3] }
+        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3] }
       ]
     },
     {

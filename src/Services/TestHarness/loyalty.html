@@ -523,8 +523,8 @@
     <label for="baseUrlOverride">Base URL:</label>
     <input type="text" id="baseUrlOverride" placeholder="Loading...">
     <span id="healthIndicator" class="health-indicator checking" title="Health check: /api/v1/health">…</span>
-    <label for="identityBaseUrl" style="margin-left:0.5rem;white-space:nowrap">Identity MS:</label>
-    <input type="text" id="identityBaseUrl" placeholder="Loading..." style="max-width:320px">
+    <label for="customerMsBaseUrl" style="margin-left:0.5rem;white-space:nowrap">Customer MS:</label>
+    <input type="text" id="customerMsBaseUrl" placeholder="Loading..." style="max-width:320px">
     <button class="btn-run-all" id="btnRunAll" disabled>▶ Run Steps 1–5</button>
 </div>
 
@@ -610,8 +610,8 @@
     baseUrlInput.value = data.journey.baseUrl;
     document.getElementById('baseUrl').textContent = data.journey.baseUrl;
 
-    const identityBaseUrlInput = document.getElementById('identityBaseUrl');
-    identityBaseUrlInput.value = data.journey.identityBaseUrl || '';
+    const customerMsBaseUrlInput = document.getElementById('customerMsBaseUrl');
+    customerMsBaseUrlInput.value = data.journey.customerMsBaseUrl || '';
 
     // Health check
     async function checkHealth() {
@@ -719,8 +719,8 @@
     async function runStep(ref) {
         const { step, responseCell, row, idx } = ref;
         const stepBaseUrlRef = step.apiCall.baseUrlRef || 'loyalty';
-        const baseUrl = stepBaseUrlRef === 'identity'
-            ? identityBaseUrlInput.value.replace(/\/+$/, '')
+        const baseUrl = stepBaseUrlRef === 'customer'
+            ? customerMsBaseUrlInput.value.replace(/\/+$/, '')
             : baseUrlInput.value.replace(/\/+$/, '');
         const api = step.apiCall;
 
@@ -799,10 +799,10 @@
                     const arrIdx = parseInt(arrayMatch[1], 10);
                     const prop = arrayMatch[2];
                     if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
-                        liveChain[prop] = liveBody[arrIdx][prop];
+                        liveChain[chain.as || prop] = liveBody[arrIdx][prop];
                     }
                 } else if (liveBody[field] !== undefined) {
-                    liveChain[field] = liveBody[field];
+                    liveChain[chain.as || field] = liveBody[field];
                 }
             });
         }
