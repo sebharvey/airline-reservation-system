@@ -46,29 +46,29 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [6, 7, 8] }
+        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8] }
       ]
     },
     {
       "step": 2,
-      "name": "Search customer by email",
-      "description": "Search the Customer MS for the newly registered account using the email address as the query. The response returns the customer record including identityId, which is the userAccountId stored on the customer record and is required as the path parameter for the verify-email call in Step 3.",
+      "name": "Search customer by loyalty number",
+      "description": "Search the Customer MS for the newly registered account using the loyalty number returned from Step 1. The response returns the customer record including identityId, which is the userAccountId stored on the customer record and is required as the path parameter for the verify-email call in Step 3.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/customers/search",
         "baseUrlRef": "customer",
-        "note": "POST is used to keep PII (email address) out of URL access logs. Returns an array; the first result's identityId is chained as userAccountId for Step 3."
+        "note": "POST is used to keep PII out of URL access logs. Returns an array; the first result's identityId is chained as userAccountId for Step 3."
       },
       "request": {
         "headers": {
           "Content-Type": "application/json"
         },
         "body": {
-          "query": "__RAND_EMAIL__"
+          "loyaltyNumber": "AX9876543"
         },
         "dataChain": [
-          { "field": "query", "source": "Step 1 → runtime-generated email" }
+          { "field": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" }
         ]
       },
       "response": {
@@ -90,7 +90,7 @@
         "statusCode": 200,
         "description": "200 OK — returns an array of matching customers. The first result contains identityId, which equals the UserAccountId from the Identity MS and is used as the path parameter for the verify-email call in Step 3.",
         "keyFields": ["identityId", "loyaltyNumber"],
-        "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber is chained for reference. A 200 with an empty array means the search term did not match any customer."
+        "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber matches the value issued in Step 1. A 200 with an empty array means the loyalty number did not match any customer."
       },
       "chainsTo": [
         { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3] }
