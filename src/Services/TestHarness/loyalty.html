@@ -6,26 +6,26 @@
     <title>Apex Air — Loyalty API Test Harness</title>
     <style>
         :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface-raised: #242837;
-            --border: #2e3348;
-            --text: #e1e4ed;
-            --text-muted: #8b90a5;
-            --accent: #6c8cff;
-            --accent-dim: rgba(108, 140, 255, 0.12);
-            --positive: #34d399;
-            --positive-bg: rgba(52, 211, 153, 0.08);
-            --positive-border: rgba(52, 211, 153, 0.25);
-            --negative: #f87171;
-            --negative-bg: rgba(248, 113, 113, 0.08);
-            --negative-border: rgba(248, 113, 113, 0.25);
-            --chain-highlight: #fbbf24;
-            --chain-bg: rgba(251, 191, 36, 0.10);
-            --method-get: #34d399;
-            --method-post: #6c8cff;
-            --method-patch: #fbbf24;
-            --method-delete: #f87171;
+            --bg: #f5f7fb;
+            --surface: #ffffff;
+            --surface-raised: #edf0f7;
+            --border: #d0d5e4;
+            --text: #1a1d2e;
+            --text-muted: #6b7280;
+            --accent: #3b5bdb;
+            --accent-dim: rgba(59, 91, 219, 0.10);
+            --positive: #047857;
+            --positive-bg: rgba(4, 120, 87, 0.07);
+            --positive-border: rgba(4, 120, 87, 0.22);
+            --negative: #b91c1c;
+            --negative-bg: rgba(185, 28, 28, 0.06);
+            --negative-border: rgba(185, 28, 28, 0.22);
+            --chain-highlight: #b45309;
+            --chain-bg: rgba(180, 83, 9, 0.08);
+            --method-get: #047857;
+            --method-post: #3b5bdb;
+            --method-patch: #b45309;
+            --method-delete: #b91c1c;
             --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -70,6 +70,7 @@
             border-radius: 4px;
             font-size: 0.75rem;
             color: var(--accent);
+            border: 1px solid var(--border);
         }
 
         /* Legend */
@@ -98,9 +99,12 @@
             border-collapse: separate;
             border-spacing: 0;
             font-size: 0.85rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+            border-radius: 8px;
+            overflow: hidden;
         }
         .harness-table thead th {
-            background: var(--surface);
+            background: var(--surface-raised);
             color: var(--text-muted);
             font-weight: 600;
             font-size: 0.75rem;
@@ -113,14 +117,13 @@
             top: 0;
             z-index: 10;
         }
-        .harness-table thead th:first-child { border-radius: 8px 0 0 0; }
-        .harness-table thead th:last-child  { border-radius: 0 8px 0 0; }
 
         .harness-table tbody tr {
             transition: background 0.15s;
+            background: var(--surface);
         }
         .harness-table tbody tr:hover {
-            background: var(--surface);
+            background: #f0f3fb;
         }
         .harness-table tbody td {
             padding: 1rem;
@@ -128,7 +131,7 @@
             vertical-align: top;
         }
 
-        /* Row type indicator */
+        /* Row type indicator — before any run */
         .harness-table tbody tr.step-positive td:first-child {
             border-left: 3px solid var(--positive);
         }
@@ -137,6 +140,20 @@
         }
         .harness-table tbody tr.step-negative {
             background: var(--negative-bg);
+        }
+
+        /* Row result state — after live run */
+        .harness-table tbody tr.result-pass td:first-child {
+            border-left: 3px solid var(--positive);
+        }
+        .harness-table tbody tr.result-pass {
+            background: var(--positive-bg) !important;
+        }
+        .harness-table tbody tr.result-fail td:first-child {
+            border-left: 3px solid var(--negative);
+        }
+        .harness-table tbody tr.result-fail {
+            background: var(--negative-bg) !important;
         }
 
         /* Step column */
@@ -186,10 +203,10 @@
             border-radius: 4px;
             margin-bottom: 0.35rem;
         }
-        .method-GET    { background: rgba(52,211,153,0.15); color: var(--method-get); }
-        .method-POST   { background: rgba(108,140,255,0.15); color: var(--method-post); }
-        .method-PATCH  { background: rgba(251,191,36,0.15); color: var(--method-patch); }
-        .method-DELETE { background: rgba(248,113,113,0.15); color: var(--method-delete); }
+        .method-GET    { background: rgba(4,120,87,0.10); color: var(--method-get); }
+        .method-POST   { background: rgba(59,91,219,0.10); color: var(--method-post); }
+        .method-PATCH  { background: rgba(180,83,9,0.10); color: var(--method-patch); }
+        .method-DELETE { background: rgba(185,28,28,0.10); color: var(--method-delete); }
 
         .endpoint-url {
             font-family: var(--font-mono);
@@ -210,7 +227,7 @@
 
         /* JSON blocks */
         .json-block {
-            background: var(--surface);
+            background: var(--surface-raised);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 0.75rem;
@@ -223,10 +240,10 @@
             overflow-y: auto;
             color: var(--text);
         }
-        .json-block .json-key   { color: #7dd3fc; }
-        .json-block .json-str   { color: #86efac; }
-        .json-block .json-num   { color: #c4b5fd; }
-        .json-block .json-bool  { color: #fca5a5; }
+        .json-block .json-key   { color: #1d4ed8; }
+        .json-block .json-str   { color: #15803d; }
+        .json-block .json-num   { color: #7c3aed; }
+        .json-block .json-bool  { color: #b91c1c; }
         .json-block .json-null  { color: var(--text-muted); font-style: italic; }
 
         /* Chain indicators */
@@ -236,7 +253,7 @@
             font-size: 0.65rem;
             background: var(--chain-bg);
             color: var(--chain-highlight);
-            border: 1px solid rgba(251,191,36,0.3);
+            border: 1px solid rgba(180,83,9,0.25);
             border-radius: 3px;
             padding: 0.1rem 0.4rem;
             margin: 0.15rem 0.15rem 0.15rem 0;
@@ -261,7 +278,7 @@
             padding-bottom: 0.5rem;
             border-bottom: 1px dashed var(--border);
         }
-        .headers-block .header-name  { color: #7dd3fc; }
+        .headers-block .header-name  { color: #1d4ed8; }
         .headers-block .header-value { color: var(--text); }
 
         /* Diff display */
@@ -282,8 +299,8 @@
             border-radius: 3px;
             margin-bottom: 0.15rem;
         }
-        .diff-from { background: rgba(248,113,113,0.12); color: #fca5a5; }
-        .diff-to   { background: rgba(52,211,153,0.12);  color: #86efac; }
+        .diff-from { background: rgba(185,28,28,0.08); color: #b91c1c; }
+        .diff-to   { background: rgba(4,120,87,0.08);  color: #047857; }
 
         /* Expected column */
         .expected-status {
@@ -312,6 +329,7 @@
             padding: 0.1rem 0.4rem;
             border-radius: 3px;
             margin: 0.1rem 0.15rem 0.1rem 0;
+            border: 1px solid rgba(59,91,219,0.2);
         }
         .validation-notes {
             font-size: 0.75rem;
@@ -360,10 +378,12 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .run-controls label {
             font-size: 0.85rem;
             color: var(--text-muted);
+            white-space: nowrap;
         }
         .run-controls input {
             font-family: var(--font-mono);
@@ -374,12 +394,25 @@
             border-radius: 4px;
             color: var(--text);
             flex: 1;
-            max-width: 600px;
+            max-width: 560px;
         }
         .run-controls input:focus {
             outline: none;
             border-color: var(--accent);
         }
+
+        /* Health indicator */
+        .health-indicator {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 700;
+            width: 1.6rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .health-indicator.checking { color: var(--text-muted); }
+        .health-indicator.healthy  { color: var(--positive); }
+        .health-indicator.unhealthy { color: var(--negative); }
 
         .btn-run {
             display: inline-flex;
@@ -398,7 +431,7 @@
             white-space: nowrap;
         }
         .btn-run:hover {
-            background: rgba(108, 140, 255, 0.2);
+            background: rgba(59, 91, 219, 0.18);
         }
         .btn-run:disabled {
             opacity: 0.4;
@@ -420,9 +453,10 @@
             color: var(--positive);
             cursor: pointer;
             transition: background 0.15s;
+            white-space: nowrap;
         }
         .btn-run-all:hover {
-            background: rgba(52, 211, 153, 0.2);
+            background: rgba(4, 120, 87, 0.14);
         }
         .btn-run-all:disabled {
             opacity: 0.4;
@@ -488,6 +522,7 @@
 <div class="run-controls">
     <label for="baseUrlOverride">Base URL:</label>
     <input type="text" id="baseUrlOverride" placeholder="Loading...">
+    <span id="healthIndicator" class="health-indicator checking" title="Health check: /api/v1/health">…</span>
     <button class="btn-run-all" id="btnRunAll" disabled>▶ Run Steps 1 &amp; 2</button>
 </div>
 
@@ -513,6 +548,36 @@
     const baseUrlInput = document.getElementById('baseUrlOverride');
     baseUrlInput.value = data.journey.baseUrl;
     document.getElementById('baseUrl').textContent = data.journey.baseUrl;
+
+    // Health check
+    async function checkHealth() {
+        const indicator = document.getElementById('healthIndicator');
+        const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
+        indicator.textContent = '…';
+        indicator.className = 'health-indicator checking';
+        indicator.title = 'Health check: ' + baseUrl + '/api/v1/health';
+        try {
+            const r = await fetch(baseUrl + '/api/v1/health');
+            if (r.ok) {
+                indicator.textContent = '✓';
+                indicator.className = 'health-indicator healthy';
+            } else {
+                indicator.textContent = '✗';
+                indicator.className = 'health-indicator unhealthy';
+            }
+        } catch {
+            indicator.textContent = '✗';
+            indicator.className = 'health-indicator unhealthy';
+        }
+    }
+
+    // Run health check on load and when URL changes
+    checkHealth();
+    let healthDebounce;
+    baseUrlInput.addEventListener('input', () => {
+        clearTimeout(healthDebounce);
+        healthDebounce = setTimeout(checkHealth, 600);
+    });
 
     // Track live data chained between steps
     const liveChain = {};
@@ -572,7 +637,7 @@
     }
 
     async function runStep(ref) {
-        const { step, responseCell, idx } = ref;
+        const { step, responseCell, row, idx } = ref;
         const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
         const api = step.apiCall;
 
@@ -658,20 +723,24 @@
             });
         }
 
+        // Determine pass/fail and update row styling
+        const statusMatch = liveStatus === step.expected.statusCode;
+        row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
+        row.classList.add(statusMatch ? 'result-pass' : 'result-fail');
+
         // Render the live result into the response cell
-        appendLiveResult(responseCell, step, liveStatus, liveBody, liveError);
+        appendLiveResult(responseCell, step, liveStatus, liveBody, liveError, statusMatch);
     }
 
-    function appendLiveResult(cell, step, liveStatus, liveBody, liveError) {
-        const expectedStatus = step.expected.statusCode;
-        const statusMatch = liveStatus === expectedStatus;
-
+    function appendLiveResult(cell, step, liveStatus, liveBody, liveError, statusMatch) {
         const div = document.createElement('div');
         div.className = 'live-result';
 
         const scClass = statusMatch ? 'pass' : 'fail';
         const scLabel = statusLabel(liveStatus) || (liveError ? 'Network Error' : '');
-        const badge = statusMatch ? '<span class="result-badge pass">Pass</span>' : '<span class="result-badge fail">Fail</span>';
+        const badge = statusMatch
+            ? '<span class="result-badge pass">Pass</span>'
+            : '<span class="result-badge fail">Fail</span>';
 
         let html = '<div class="live-result-label">Live Response ' + badge + '</div>';
 

@@ -17,7 +17,7 @@
       "type": "negative",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/v1/register",
+        "endpoint": "/api/v1/register",
         "baseUrlRef": "loyalty"
       },
       "request": {
@@ -54,7 +54,7 @@
       "type": "positive",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/v1/auth/login",
+        "endpoint": "/api/v1/auth/login",
         "baseUrlRef": "loyalty"
       },
       "request": {
@@ -191,7 +191,7 @@
       "type": "positive",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/v1/auth/refresh",
+        "endpoint": "/api/v1/auth/refresh",
         "baseUrlRef": "loyalty"
       },
       "request": {
@@ -235,7 +235,7 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/v1/customers/{loyaltyNumber}/profile",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/profile",
         "baseUrlRef": "loyalty",
         "pathParams": {
           "loyaltyNumber": "AX1234567"
@@ -286,7 +286,7 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/v1/customers/{loyaltyNumber}/transactions?page=1&pageSize=20",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/transactions?page=1&pageSize=20",
         "baseUrlRef": "loyalty",
         "pathParams": {
           "loyaltyNumber": "AX1234567"
@@ -358,7 +358,7 @@
       "type": "positive",
       "apiCall": {
         "method": "PATCH",
-        "endpoint": "/v1/customers/{loyaltyNumber}/profile",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/profile",
         "baseUrlRef": "loyalty",
         "pathParams": {
           "loyaltyNumber": "AX1234567"
@@ -409,7 +409,7 @@
       "type": "positive",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/v1/auth/logout",
+        "endpoint": "/api/v1/auth/logout",
         "baseUrlRef": "loyalty"
       },
       "request": {
