@@ -1,0 +1,549 @@
+(async function () {
+
+    // =====================================================================
+    // Name pools for random test data generation
+    // =====================================================================
+
+    const FIRST_NAMES = [
+        'Amara', 'James', 'Priya', 'Liam', 'Fatima', 'Oliver', 'Sophie',
+        'Mohammed', 'Emily', 'Carlos', 'Aisha', 'Daniel', 'Charlotte',
+        'Ravi', 'Emma', 'Noah', 'Mia', 'David', 'Yuki', 'Thomas'
+    ];
+    const SURNAMES = [
+        'Okafor', 'Smith', 'Patel', 'Johnson', 'Ahmed', 'Garcia', 'Williams',
+        'Taylor', 'Kumar', 'Martinez', 'Anderson', 'Robinson', 'Harris',
+        'Lee', 'Wilson', 'Clark', 'Lewis', 'Walker', 'Hall', 'Brown'
+    ];
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function randDigits(n) { return Math.floor(Math.random() * Math.pow(10, n)).toString().padStart(n, '0'); }
+
+    // =====================================================================
+    // Runtime vars — regenerated fresh on every run
+    // =====================================================================
+
+    let runtimeVars = {};
+
+    function generateRuntimeVars() {
+        const givenName = pick(FIRST_NAMES);
+        const surname   = pick(SURNAMES);
+        const password  = 'Apex@ir2026!';
+        const email     = givenName.toLowerCase() + '.' +
+                          surname.toLowerCase() + '.' +
+                          randDigits(6) + '@testmail.example.com';
+        runtimeVars = { givenName, surname, password, email };
+    }
+
+    function applyRuntimeVars(obj) {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj === 'string') {
+            return obj
+                .replace(/__RAND_GIVEN_NAME__/g, runtimeVars.givenName)
+                .replace(/__RAND_SURNAME__/g,    runtimeVars.surname)
+                .replace(/__RAND_EMAIL__/g,      runtimeVars.email)
+                .replace(/__RAND_PASSWORD__/g,   runtimeVars.password);
+        }
+        if (Array.isArray(obj)) return obj.map(applyRuntimeVars);
+        if (typeof obj === 'object') {
+            const out = {};
+            for (const [k, v] of Object.entries(obj)) out[k] = applyRuntimeVars(v);
+            return out;
+        }
+        return obj;
+    }
+
+    // =====================================================================
+    // Load journey definition
+    // =====================================================================
+
+    const res = await fetch('loyalty-journey.json');
+    const raw = await res.json();
+
+    // =====================================================================
+    // Base URL inputs & health check
+    // =====================================================================
+
+    const baseUrlInput = document.getElementById('baseUrlOverride');
+    baseUrlInput.value = raw.journey.baseUrl;
+
+    const customerMsBaseUrlInput = document.getElementById('customerMsBaseUrl');
+    customerMsBaseUrlInput.value = raw.journey.customerMsBaseUrl || '';
+
+    async function checkHealth() {
+        const indicator = document.getElementById('healthIndicator');
+        const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
+        indicator.textContent = '…';
+        indicator.className = 'health-indicator checking';
+        indicator.title = 'Health check: ' + baseUrl + '/api/v1/health';
+        try {
+            const r = await fetch(baseUrl + '/api/v1/health');
+            if (r.ok) {
+                indicator.textContent = '✓';
+                indicator.className = 'health-indicator healthy';
+            } else {
+                indicator.textContent = '✗';
+                indicator.className = 'health-indicator unhealthy';
+            }
+        } catch {
+            indicator.textContent = '✗';
+            indicator.className = 'health-indicator unhealthy';
+        }
+    }
+
+    checkHealth();
+    let healthDebounce;
+    baseUrlInput.addEventListener('input', () => {
+        clearTimeout(healthDebounce);
+        healthDebounce = setTimeout(checkHealth, 600);
+    });
+
+    // =====================================================================
+    // Table setup
+    // =====================================================================
+
+    const liveStepIndices = [0, 1, 2, 3, 4]; // Steps 1–5
+    let liveChain = {};
+    let rowRefs = [];
+
+    const tbody = document.getElementById('journeyBody');
+
+    function buildTableRows(steps) {
+        tbody.innerHTML = '';
+        rowRefs = [];
+
+        steps.forEach((step, idx) => {
+            const row = document.createElement('tr');
+            row.className = step.type === 'negative' ? 'step-negative' : 'step-positive';
+
+            const stepCell    = buildStepCell(step, idx);
+            const responseCell = buildResponseCell(step);
+
+            row.appendChild(stepCell);
+            row.appendChild(buildApiCallCell(step));
+            row.appendChild(buildRequestCell(step));
+            row.appendChild(responseCell);
+            row.appendChild(buildExpectedCell(step));
+
+            tbody.appendChild(row);
+            rowRefs.push({ row, step, responseCell, idx });
+        });
+    }
+
+    // =====================================================================
+    // Runtime data banner
+    // =====================================================================
+
+    function updateRuntimeBanner() {
+        const banner   = document.getElementById('runtimeDataBanner');
+        const valuesEl = document.getElementById('runtimeDataValues');
+        valuesEl.innerHTML = '';
+        banner.style.display = '';
+        [
+            ['givenName', runtimeVars.givenName],
+            ['surname',   runtimeVars.surname],
+            ['email',     runtimeVars.email],
+            ['password',  runtimeVars.password]
+        ].forEach(([label, value]) => {
+            const chip = document.createElement('span');
+            chip.style.cssText = 'font-family:var(--font-mono);font-size:0.72rem;background:var(--surface-raised);border:1px solid var(--border);border-radius:4px;padding:0.2rem 0.6rem';
+            chip.innerHTML = `<span style="color:var(--text-muted)">${esc(label)}:</span> <span style="color:var(--accent)">${esc(value)}</span>`;
+            valuesEl.appendChild(chip);
+        });
+    }
+
+    // Initial render with first set of runtime vars
+    generateRuntimeVars();
+    const initialSteps = buildStepsWithVars();
+    buildTableRows(initialSteps);
+    updateRuntimeBanner();
+
+    // =====================================================================
+    // Run All button
+    // =====================================================================
+
+    const btnRunAll = document.getElementById('btnRunAll');
+    btnRunAll.disabled = false;
+    btnRunAll.addEventListener('click', runLiveSteps);
+
+    // =====================================================================
+    // Step data helpers
+    // =====================================================================
+
+    function buildStepsWithVars() {
+        return JSON.parse(JSON.stringify(raw.steps)).map(step => {
+            if (step.request && step.request.body) {
+                step.request.body = applyRuntimeVars(step.request.body);
+            }
+            return step;
+        });
+    }
+
+    // =====================================================================
+    // Live API invocation
+    // =====================================================================
+
+    async function runLiveSteps() {
+        btnRunAll.disabled = true;
+        btnRunAll.textContent = '⏳ Running…';
+
+        // Fresh test data for this run
+        generateRuntimeVars();
+        const currentSteps = buildStepsWithVars();
+
+        // Rebuild table with new runtime vars
+        buildTableRows(currentSteps);
+        updateRuntimeBanner();
+
+        // Reset chain
+        liveChain = {};
+
+        for (const stepIdx of liveStepIndices) {
+            await runStep(rowRefs[stepIdx], currentSteps);
+        }
+
+        btnRunAll.disabled = false;
+        btnRunAll.textContent = '▶ Run Steps 1–5';
+    }
+
+    async function runStep(ref, currentSteps) {
+        const { responseCell, row, idx } = ref;
+        const step = currentSteps[idx];
+
+        const stepBaseUrlRef = step.apiCall.baseUrlRef || 'loyalty';
+        const baseUrl = stepBaseUrlRef === 'customer'
+            ? customerMsBaseUrlInput.value.replace(/\/+$/, '')
+            : baseUrlInput.value.replace(/\/+$/, '');
+        const api = step.apiCall;
+
+        // Build the full URL, substituting path params from liveChain
+        let endpoint = api.endpoint;
+        if (api.pathParams) {
+            for (const [k, v] of Object.entries(api.pathParams)) {
+                const chainedValue = liveChain[k];
+                endpoint = endpoint.replace(`{${k}}`, chainedValue !== undefined ? chainedValue : v);
+            }
+        }
+        const url = baseUrl + endpoint;
+
+        // Build request options
+        const fetchOpts = {
+            method: api.method,
+            headers: {}
+        };
+
+        if (step.request.headers) {
+            Object.assign(fetchOpts.headers, step.request.headers);
+        }
+
+        // Deep-copy the body so we don't mutate the step definition
+        let requestBody = (step.request.body !== null && step.request.body !== undefined)
+            ? JSON.parse(JSON.stringify(step.request.body))
+            : null;
+
+        // Substitute chained values into request body fields
+        if (step.request.dataChain && requestBody) {
+            step.request.dataChain.forEach(chain => {
+                const fieldName = chain.field.replace(/ \(path\)$/, '');
+                if (fieldName in requestBody && liveChain[fieldName] !== undefined) {
+                    requestBody[fieldName] = liveChain[fieldName];
+                }
+            });
+        }
+
+        // Substitute chained Authorization header
+        if (step.request.dataChain) {
+            step.request.dataChain.forEach(chain => {
+                if (chain.field === 'Authorization' && liveChain['accessToken']) {
+                    fetchOpts.headers['Authorization'] = 'Bearer ' + liveChain['accessToken'];
+                }
+            });
+        }
+
+        if (requestBody !== null && requestBody !== undefined) {
+            fetchOpts.body = JSON.stringify(requestBody);
+        }
+
+        let liveStatus, liveBody, liveError;
+
+        try {
+            const response = await fetch(url, fetchOpts);
+            liveStatus = response.status;
+
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                liveBody = await response.json();
+            } else {
+                const text = await response.text();
+                liveBody = text.length > 0 ? text : null;
+            }
+        } catch (err) {
+            liveError = err.message;
+            liveStatus = 0;
+            liveBody = null;
+        }
+
+        // Store chained values from response
+        if (step.chainsTo && liveBody && typeof liveBody === 'object') {
+            step.chainsTo.forEach(chain => {
+                const field = chain.field;
+                const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
+                if (arrayMatch && Array.isArray(liveBody)) {
+                    const arrIdx = parseInt(arrayMatch[1], 10);
+                    const prop = arrayMatch[2];
+                    if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
+                        liveChain[chain.as || prop] = liveBody[arrIdx][prop];
+                    }
+                } else if (liveBody[field] !== undefined) {
+                    liveChain[chain.as || field] = liveBody[field];
+                }
+            });
+        }
+
+        // Determine pass/fail
+        const statusMatch = liveStatus === step.expected.statusCode;
+        row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
+        row.classList.add(statusMatch ? 'result-pass' : 'result-fail');
+
+        appendLiveResult(responseCell, step, liveStatus, liveBody, liveError, statusMatch, url);
+    }
+
+    function appendLiveResult(cell, step, liveStatus, liveBody, liveError, statusMatch, actualUrl) {
+        const div = document.createElement('div');
+        div.className = 'live-result';
+
+        const scClass = statusMatch ? 'pass' : 'fail';
+        const scLabel = statusLabel(liveStatus) || (liveError ? 'Network Error' : '');
+        const badge = statusMatch
+            ? '<span class="result-badge pass">Pass</span>'
+            : '<span class="result-badge fail">Fail</span>';
+
+        let html = '<div class="live-result-label">Live Response ' + badge + '</div>';
+
+        if (actualUrl) {
+            html += `<div class="live-url">→ ${esc(actualUrl)}</div>`;
+        }
+
+        if (liveError) {
+            html += `<div class="status-code fail">Error: ${esc(liveError)}</div>`;
+        } else {
+            html += `<div class="status-code ${scClass}">${liveStatus} ${esc(scLabel)}</div>`;
+        }
+
+        if (liveBody !== null && liveBody !== undefined) {
+            if (typeof liveBody === 'object') {
+                html += '<div class="json-block">' + syntaxHighlight(liveBody, null, step.chainsTo) + '</div>';
+            } else {
+                html += '<div class="json-block">' + esc(String(liveBody)) + '</div>';
+            }
+        } else if (!liveError) {
+            html += '<div class="no-body">No response body</div>';
+        }
+
+        div.innerHTML = html;
+        cell.appendChild(div);
+    }
+
+    // =====================================================================
+    // Cell builders
+    // =====================================================================
+
+    function buildStepCell(step, idx) {
+        const td = document.createElement('td');
+        const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
+        const isLive = liveStepIndices.includes(idx);
+        const liveIndicator = isLive
+            ? '<div style="margin-top:0.4rem"><span style="font-size:0.65rem;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0.1rem 0.4rem">LIVE</span></div>'
+            : '';
+        td.innerHTML = `
+            <div class="step-number">Step ${step.step}</div>
+            ${badge}
+            <div class="step-name">${esc(step.name)}</div>
+            <div class="step-desc">${esc(step.description)}</div>
+            ${liveIndicator}
+        `;
+        return td;
+    }
+
+    function buildApiCallCell(step) {
+        const td = document.createElement('td');
+        const api = step.apiCall;
+        const methodClass = 'method-' + api.method;
+
+        let endpointHtml = esc(api.endpoint);
+        endpointHtml = endpointHtml.replace(/\{(\w+)\}/g, '<span class="path-param">{$1}</span>');
+
+        let html = `<span class="method-badge ${methodClass}">${api.method}</span><br>`;
+        html += `<span class="endpoint-url">${endpointHtml}</span>`;
+
+        if (api.note) {
+            html += `<div class="api-note">${esc(api.note)}</div>`;
+        }
+
+        if (api.pathParams) {
+            html += '<div style="margin-top:0.35rem">';
+            for (const [k, v] of Object.entries(api.pathParams)) {
+                html += `<span class="chain-tag">${esc(k)} = ${esc(String(v))}</span> `;
+            }
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildRequestCell(step) {
+        const td = document.createElement('td');
+        let html = '';
+
+        if (step.request.headers && Object.keys(step.request.headers).length) {
+            html += '<div class="headers-block">';
+            for (const [k, v] of Object.entries(step.request.headers)) {
+                const isChained = step.request.dataChain &&
+                    step.request.dataChain.some(c => c.field === k || c.field === 'Authorization');
+                const val = isChained && k === 'Authorization'
+                    ? highlightChainValue(v)
+                    : `<span class="header-value">${esc(v)}</span>`;
+                html += `<span class="header-name">${esc(k)}:</span> ${val}<br>`;
+            }
+            html += '</div>';
+        }
+
+        if (step.request.body !== null && step.request.body !== undefined) {
+            html += '<div class="json-block">' + syntaxHighlight(step.request.body, step.request.dataChain) + '</div>';
+        } else {
+            html += '<div class="no-body">No request body</div>';
+        }
+
+        if (step.request.dataChain && step.request.dataChain.length) {
+            html += '<div class="chain-section">';
+            html += '<div class="chain-label">Data chained from:</div>';
+            step.request.dataChain.forEach(c => {
+                html += `<span class="chain-tag">${esc(c.field)}</span> ← <span style="font-size:0.7rem;color:var(--text-muted)">${esc(c.source)}</span><br>`;
+            });
+            html += '</div>';
+        }
+
+        if (step.request.diff) {
+            html += '<div class="diff-block">';
+            html += '<div class="diff-label">Field changes:</div>';
+            for (const [field, change] of Object.entries(step.request.diff)) {
+                html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
+                html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
+            }
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildResponseCell(step) {
+        const td = document.createElement('td');
+        const sc = step.response.statusCode;
+        const scClass = sc >= 200 && sc < 300 ? 's2xx' : 's4xx';
+        const scLabel = statusLabel(sc);
+
+        let html = `<div class="status-code ${scClass}">${sc} ${scLabel}</div>`;
+
+        if (step.response.body !== null && step.response.body !== undefined) {
+            html += '<div class="json-block">' + syntaxHighlight(step.response.body, null, step.chainsTo) + '</div>';
+        } else {
+            html += '<div class="no-body">No response body</div>';
+        }
+
+        if (step.chainsTo && step.chainsTo.length) {
+            html += '<div class="chain-section">';
+            html += '<div class="chain-label">Chains forward to:</div>';
+            step.chainsTo.forEach(c => {
+                const steps = Array.isArray(c.usedInSteps) ? c.usedInSteps.join(', ') : c.usedInSteps;
+                html += `<span class="chain-tag">${esc(c.field)}</span> → <span style="font-size:0.7rem;color:var(--text-muted)">Step ${steps}</span><br>`;
+            });
+            html += '</div>';
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    function buildExpectedCell(step) {
+        const td = document.createElement('td');
+        const ex = step.expected;
+        const scClass = ex.statusCode >= 200 && ex.statusCode < 300 ? 'ok' : 'error';
+
+        let html = `<div class="expected-status ${scClass}">${ex.statusCode} ${statusLabel(ex.statusCode)}</div>`;
+        html += `<div class="expected-desc">${esc(ex.description)}</div>`;
+
+        if (ex.keyFields && ex.keyFields.length) {
+            html += '<div class="expected-fields">';
+            ex.keyFields.forEach(f => {
+                html += `<span class="field-tag">${esc(f)}</span>`;
+            });
+            html += '</div>';
+        }
+
+        if (ex.validationNotes) {
+            html += `<div class="validation-notes">${esc(ex.validationNotes)}</div>`;
+        }
+
+        td.innerHTML = html;
+        return td;
+    }
+
+    // =====================================================================
+    // Helpers
+    // =====================================================================
+
+    function esc(str) {
+        const el = document.createElement('span');
+        el.textContent = str;
+        return el.innerHTML;
+    }
+
+    function statusLabel(code) {
+        const labels = {
+            200: 'OK', 201: 'Created', 202: 'Accepted', 204: 'No Content',
+            400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden',
+            404: 'Not Found', 409: 'Conflict'
+        };
+        return labels[code] || '';
+    }
+
+    function highlightChainValue(val) {
+        return `<span style="color:var(--chain-highlight)">${esc(val)}</span>`;
+    }
+
+    function syntaxHighlight(obj, chainAnnotations, chainsTo) {
+        const raw = JSON.stringify(obj, null, 2);
+
+        const chainFields = new Set();
+        if (chainAnnotations) chainAnnotations.forEach(c => {
+            const f = c.field.replace(/ \(path\)$/, '');
+            chainFields.add(f);
+        });
+        if (chainsTo) chainsTo.forEach(c => {
+            const parts = c.field.split('.');
+            chainFields.add(parts[parts.length - 1]);
+        });
+
+        return raw.replace(
+            /("(?:[^"\\]|\\.)*")\s*(:)?|(\b\d+\.?\d*\b)|(\btrue\b|\bfalse\b)|(\bnull\b)/g,
+            (match, str, colon, num, bool, nul) => {
+                if (str) {
+                    if (colon) {
+                        const keyName = str.slice(1, -1);
+                        const cls = chainFields.has(keyName)
+                            ? 'json-key" style="color:var(--chain-highlight);font-weight:600'
+                            : 'json-key';
+                        return `<span class="${cls}">${esc(str)}</span>:`;
+                    }
+                    return `<span class="json-str">${esc(str)}</span>`;
+                }
+                if (num)  return `<span class="json-num">${esc(num)}</span>`;
+                if (bool) return `<span class="json-bool">${esc(bool)}</span>`;
+                if (nul)  return `<span class="json-null">${esc(nul)}</span>`;
+                return match;
+            }
+        );
+    }
+
+})();
