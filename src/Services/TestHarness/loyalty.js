@@ -122,7 +122,7 @@
     // Table setup
     // =====================================================================
 
-    const liveStepIndices = [0, 1, 2, 3, 4]; // Steps 1–5
+    const liveStepIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // Steps 1–10
     let liveChain = {};
     let liveResults = {};
     let rowRefs = [];
@@ -323,7 +323,7 @@
         }
 
         btnRunAll.disabled = false;
-        btnRunAll.textContent = '▶ Run Steps 1–5';
+        btnRunAll.textContent = '▶ Run Steps 1–10';
     }
 
     async function runStep(ref, currentSteps) {
