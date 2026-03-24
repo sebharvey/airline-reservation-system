@@ -63,19 +63,20 @@ public sealed class RegistrationFunction
         if (request is null
             || string.IsNullOrWhiteSpace(request.Email)
             || string.IsNullOrWhiteSpace(request.Password)
-            || string.IsNullOrWhiteSpace(request.FirstName)
-            || string.IsNullOrWhiteSpace(request.LastName))
+            || string.IsNullOrWhiteSpace(request.GivenName)
+            || string.IsNullOrWhiteSpace(request.Surname))
         {
-            return await req.BadRequestAsync("The fields 'email', 'password', 'firstName', and 'lastName' are required.");
+            return await req.BadRequestAsync("The fields 'email', 'password', 'givenName', and 'surname' are required.");
         }
 
         var command = new RegisterCommand(
             request.Email,
             request.Password,
-            request.FirstName,
-            request.LastName,
+            request.GivenName,
+            request.Surname,
             request.DateOfBirth,
-            request.PhoneNumber);
+            request.PhoneNumber,
+            request.PreferredLanguage);
 
         try
         {
