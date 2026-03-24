@@ -13,7 +13,6 @@ public static class SharedJsonOptions
     /// </summary>
     public static readonly JsonSerializerOptions CamelCase = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 }

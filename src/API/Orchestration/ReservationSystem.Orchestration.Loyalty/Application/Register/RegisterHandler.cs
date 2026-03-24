@@ -29,10 +29,10 @@ public sealed class RegisterHandler
     {
         // Step 1: Create customer profile (no identity link yet).
         var customer = await _customerServiceClient.CreateCustomerAsync(
-            command.FirstName,
-            command.LastName,
+            command.GivenName,
+            command.Surname,
             command.DateOfBirth,
-            "en-GB",
+            command.PreferredLanguage ?? "en-GB",
             cancellationToken);
 
         // Step 2: Create identity account.
@@ -54,8 +54,8 @@ public sealed class RegisterHandler
         return new ProfileResponse
         {
             LoyaltyNumber = customer.LoyaltyNumber,
-            FirstName = command.FirstName,
-            LastName = command.LastName,
+            GivenName = command.GivenName,
+            Surname = command.Surname,
             Email = command.Email,
             PhoneNumber = command.PhoneNumber,
             DateOfBirth = command.DateOfBirth,

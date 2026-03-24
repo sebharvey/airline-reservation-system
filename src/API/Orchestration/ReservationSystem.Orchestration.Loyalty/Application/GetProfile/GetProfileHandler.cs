@@ -22,8 +22,8 @@ public sealed class GetProfileHandler
         return new ProfileResponse
         {
             LoyaltyNumber = customer.LoyaltyNumber,
-            FirstName = customer.GivenName,
-            LastName = customer.Surname,
+            GivenName = customer.GivenName,
+            Surname = customer.Surname,
             Email = query.UserEmail,
             PhoneNumber = customer.PhoneNumber,
             DateOfBirth = customer.DateOfBirth,
