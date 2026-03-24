@@ -3,8 +3,10 @@
     "name": "Login & Dashboard Flow",
     "description": "End-to-end customer journey covering registration, email verification, duplicate-email validation, authentication, profile management, and session lifecycle.",
     "domain": "Loyalty",
-    "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net",
-    "customerMsBaseUrl": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net"
+    "baseUrls": [
+      { "id": "loyalty", "label": "Loyalty API", "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
+      { "id": "customer", "label": "Customer MS", "url": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net" }
+    ]
   },
   "steps": [
     {
@@ -65,10 +67,10 @@
           "Content-Type": "application/json"
         },
         "body": {
-          "loyaltyNumber": "AX9876543"
+          "query": "AX9876543"
         },
         "dataChain": [
-          { "field": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" }
+          { "field": "query", "from": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" }
         ]
       },
       "response": {
