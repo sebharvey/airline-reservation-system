@@ -103,6 +103,7 @@
 
     const liveStepIndices = [0, 1, 2, 3, 4]; // Steps 1–5
     let liveChain = {};
+    let liveResults = {};
     let rowRefs = [];
 
     const tbody = document.getElementById('journeyBody');
@@ -115,18 +116,119 @@
             const row = document.createElement('tr');
             row.className = step.type === 'negative' ? 'step-negative' : 'step-positive';
 
-            const stepCell    = buildStepCell(step, idx);
-            const responseCell = buildResponseCell(step);
+            // Step cell — number + badge
+            const tdStep = document.createElement('td');
+            const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
+            tdStep.innerHTML = `<div class="step-number">Step ${step.step}</div>${badge}`;
 
-            row.appendChild(stepCell);
-            row.appendChild(buildApiCallCell(step));
-            row.appendChild(buildRequestCell(step));
-            row.appendChild(responseCell);
-            row.appendChild(buildExpectedCell(step));
+            // Name cell
+            const tdName = document.createElement('td');
+            tdName.innerHTML = `<div class="step-name">${esc(step.name)}</div>`;
 
+            // API call cell — method badge + endpoint only
+            const tdApi = document.createElement('td');
+            const api = step.apiCall;
+            let endpointHtml = esc(api.endpoint).replace(/\{(\w+)\}/g, '<span class="path-param">{$1}</span>');
+            tdApi.innerHTML = `<span class="method-badge method-${api.method}">${api.method}</span> <span class="endpoint-url">${endpointHtml}</span>`;
+
+            // Expected status cell
+            const tdExpected = document.createElement('td');
+            const ex = step.expected;
+            const scClass = ex.statusCode >= 200 && ex.statusCode < 300 ? 'ok' : 'error';
+            tdExpected.innerHTML = `<div class="expected-status ${scClass}">${ex.statusCode} ${statusLabel(ex.statusCode)}</div>`;
+
+            // Result cell — filled after live run
+            const tdResult = document.createElement('td');
+            tdResult.className = 'result-cell';
+
+            row.appendChild(tdStep);
+            row.appendChild(tdName);
+            row.appendChild(tdApi);
+            row.appendChild(tdExpected);
+            row.appendChild(tdResult);
+
+            const ref = { row, step, resultCell: tdResult, idx };
+            rowRefs.push(ref);
+
+            row.addEventListener('click', () => openStepModal(ref.currentStep || ref.step, ref.idx));
             tbody.appendChild(row);
-            rowRefs.push({ row, step, responseCell, idx });
         });
+    }
+
+    // =====================================================================
+    // Modal
+    // =====================================================================
+
+    const modalOverlay = document.getElementById('stepModal');
+    document.getElementById('modalClose').addEventListener('click', () => { modalOverlay.style.display = 'none'; });
+    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.style.display = 'none'; });
+
+    function openStepModal(step, idx) {
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody  = document.getElementById('modalBody');
+
+        const isLive = liveStepIndices.includes(idx);
+        const livePill = isLive
+            ? '<span style="font-size:0.65rem;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0.1rem 0.4rem;margin-left:0.5rem;vertical-align:middle">LIVE</span>'
+            : '';
+        const badge = `<span class="step-badge ${step.type}" style="margin-left:0.5rem;vertical-align:middle">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
+        modalTitle.innerHTML = `<span class="step-number" style="display:inline;font-size:1rem">Step ${step.step}</span> — ${esc(step.name)}${badge}${livePill}`;
+
+        let html = '';
+
+        if (step.description) {
+            html += `<div class="modal-section-desc">${esc(step.description)}</div>`;
+        }
+
+        html += '<div class="modal-section"><div class="modal-section-title">API Call</div>';
+        html += buildApiCallCell(step).innerHTML;
+        html += '</div>';
+
+        html += '<div class="modal-section"><div class="modal-section-title">Request</div>';
+        html += buildRequestCell(step).innerHTML;
+        html += '</div>';
+
+        html += '<div class="modal-section"><div class="modal-section-title">Expected Response</div>';
+        html += buildExpectedCell(step).innerHTML;
+        const respTd = buildResponseCell(step);
+        if (step.response.body !== null && step.response.body !== undefined) {
+            html += '<div style="margin-top:0.6rem">' + respTd.querySelector('.json-block').outerHTML + '</div>';
+        }
+        if (step.chainsTo && step.chainsTo.length) {
+            html += respTd.querySelector('.chain-section') ? respTd.querySelector('.chain-section').outerHTML : '';
+        }
+        html += '</div>';
+
+        const result = liveResults[idx];
+        if (result) {
+            const scClass = result.statusMatch ? 'pass' : 'fail';
+            const scLabel = statusLabel(result.liveStatus) || (result.liveError ? 'Network Error' : '');
+            const resBadge = result.statusMatch
+                ? '<span class="result-badge pass">Pass</span>'
+                : '<span class="result-badge fail">Fail</span>';
+
+            html += '<div class="modal-section"><div class="modal-section-title">Live Result</div>';
+            html += `<div class="live-result-label">Live Response ${resBadge}</div>`;
+            if (result.url) html += `<div class="live-url">→ ${esc(result.url)}</div>`;
+            if (result.liveError) {
+                html += `<div class="status-code fail">Error: ${esc(result.liveError)}</div>`;
+            } else {
+                html += `<div class="status-code ${scClass}">${result.liveStatus} ${esc(scLabel)}</div>`;
+            }
+            if (result.liveBody !== null && result.liveBody !== undefined) {
+                if (typeof result.liveBody === 'object') {
+                    html += '<div class="json-block">' + syntaxHighlight(result.liveBody, null, step.chainsTo) + '</div>';
+                } else {
+                    html += '<div class="json-block">' + esc(String(result.liveBody)) + '</div>';
+                }
+            } else if (!result.liveError) {
+                html += '<div class="no-body">No response body</div>';
+            }
+            html += '</div>';
+        }
+
+        modalBody.innerHTML = html;
+        modalOverlay.style.display = 'flex';
     }
 
     // =====================================================================
@@ -194,8 +296,9 @@
         buildTableRows(currentSteps);
         updateRuntimeBanner();
 
-        // Reset chain
+        // Reset chain and results
         liveChain = {};
+        liveResults = {};
 
         for (const stepIdx of liveStepIndices) {
             await runStep(rowRefs[stepIdx], currentSteps);
@@ -206,8 +309,9 @@
     }
 
     async function runStep(ref, currentSteps) {
-        const { responseCell, row, idx } = ref;
+        const { resultCell, row, idx } = ref;
         const step = currentSteps[idx];
+        ref.currentStep = step;
 
         const stepBaseUrlRef = step.apiCall.baseUrlRef || 'loyalty';
         const baseUrl = stepBaseUrlRef === 'customer'
@@ -304,7 +408,13 @@
         row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
         row.classList.add(statusMatch ? 'result-pass' : 'result-fail');
 
-        appendLiveResult(responseCell, step, liveStatus, liveBody, liveError, statusMatch, url);
+        // Store result for modal display
+        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, url };
+
+        // Update slim result cell with badge
+        resultCell.innerHTML = statusMatch
+            ? '<span class="result-badge pass">Pass</span>'
+            : '<span class="result-badge fail">Fail</span>';
     }
 
     function appendLiveResult(cell, step, liveStatus, liveBody, liveError, statusMatch, actualUrl) {
