@@ -60,41 +60,62 @@
     const raw = await res.json();
 
     // =====================================================================
-    // Base URL inputs & health check
+    // Base URL inputs & health checks — driven from journey.baseUrls
     // =====================================================================
 
-    const baseUrlInput = document.getElementById('baseUrlOverride');
-    baseUrlInput.value = raw.journey.baseUrl;
+    const baseUrlListEl = document.getElementById('baseUrlList');
 
-    const customerMsBaseUrlInput = document.getElementById('customerMsBaseUrl');
-    customerMsBaseUrlInput.value = raw.journey.customerMsBaseUrl || '';
+    function renderBaseUrlList() {
+        baseUrlListEl.innerHTML = '';
+        raw.journey.baseUrls.forEach(entry => {
+            const row = document.createElement('div');
+            row.className = 'base-url-row';
+            row.innerHTML =
+                '<label class="base-url-label">' + entry.label + '</label>' +
+                '<input type="text" id="baseUrl-' + entry.id + '" class="base-url-input" value="' + entry.url + '" spellcheck="false">' +
+                '<span id="health-' + entry.id + '" class="health-indicator checking" title="Health check: ' + entry.url + '/api/v1/health">\u2026</span>';
+            baseUrlListEl.appendChild(row);
+        });
+    }
 
-    async function checkHealth() {
-        const indicator = document.getElementById('healthIndicator');
-        const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
-        indicator.textContent = '…';
+    function getBaseUrl(ref) {
+        const input = document.getElementById('baseUrl-' + ref);
+        return input ? input.value.replace(/\/+$/, '') : '';
+    }
+
+    async function checkHealthForEntry(entry) {
+        const indicator = document.getElementById('health-' + entry.id);
+        if (!indicator) return;
+        const url = getBaseUrl(entry.id);
+        indicator.textContent = '\u2026';
         indicator.className = 'health-indicator checking';
-        indicator.title = 'Health check: ' + baseUrl + '/api/v1/health';
+        indicator.title = 'Health check: ' + url + '/api/v1/health';
         try {
-            const r = await fetch(baseUrl + '/api/v1/health');
+            const r = await fetch(url + '/api/v1/health');
             if (r.ok) {
-                indicator.textContent = '✓';
+                indicator.textContent = '\u2713';
                 indicator.className = 'health-indicator healthy';
             } else {
-                indicator.textContent = '✗';
+                indicator.textContent = '\u2717';
                 indicator.className = 'health-indicator unhealthy';
             }
         } catch {
-            indicator.textContent = '✗';
+            indicator.textContent = '\u2717';
             indicator.className = 'health-indicator unhealthy';
         }
     }
 
-    checkHealth();
+    function runAllHealthChecks() {
+        raw.journey.baseUrls.forEach(entry => checkHealthForEntry(entry));
+    }
+
+    renderBaseUrlList();
+    runAllHealthChecks();
+
     let healthDebounce;
-    baseUrlInput.addEventListener('input', () => {
+    baseUrlListEl.addEventListener('input', () => {
         clearTimeout(healthDebounce);
-        healthDebounce = setTimeout(checkHealth, 600);
+        healthDebounce = setTimeout(runAllHealthChecks, 600);
     });
 
     // =====================================================================
@@ -311,9 +332,7 @@
         ref.currentStep = step;
 
         const stepBaseUrlRef = step.apiCall.baseUrlRef || 'loyalty';
-        const baseUrl = stepBaseUrlRef === 'customer'
-            ? customerMsBaseUrlInput.value.replace(/\/+$/, '')
-            : baseUrlInput.value.replace(/\/+$/, '');
+        const baseUrl = getBaseUrl(stepBaseUrlRef) || getBaseUrl('loyalty');
         const api = step.apiCall;
 
         // Build the full URL, substituting path params from liveChain
@@ -345,8 +364,9 @@
         if (step.request.dataChain && requestBody) {
             step.request.dataChain.forEach(chain => {
                 const fieldName = chain.field.replace(/ \(path\)$/, '');
-                if (fieldName in requestBody && liveChain[fieldName] !== undefined) {
-                    requestBody[fieldName] = liveChain[fieldName];
+                const chainKey = chain.from || fieldName;
+                if (fieldName in requestBody && liveChain[chainKey] !== undefined) {
+                    requestBody[fieldName] = liveChain[chainKey];
                 }
             });
         }
