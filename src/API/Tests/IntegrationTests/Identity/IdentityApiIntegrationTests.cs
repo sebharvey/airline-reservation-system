@@ -154,8 +154,8 @@ public class IdentityApiIntegrationTests : IAsyncLifetime
         SkipIfNoUserAccountId();
 
         // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/v1/accounts/{_userAccountId}/verify-email", new { }, JsonOptions);
+        var response = await _client.GetAsync(
+            $"/api/v1/accounts/{_userAccountId}/verify-email");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

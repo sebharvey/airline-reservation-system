@@ -40,7 +40,7 @@
         { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\"\n}" },
         { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"{reset-token}\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
         { "name": "Register Member", "method": "POST", "path": "/api/v1/register", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"dateOfBirth\": \"1990-06-15\",\n  \"phoneNumber\": \"+44 7700 900000\"\n}" },
-        { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
+        { "name": "Verify Email", "method": "GET", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
         { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request" },
         { "name": "Verify Email Token", "method": "POST", "path": "/api/v1/email/verify" },
         { "name": "Get Customer Profile", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/profile" },
@@ -287,7 +287,7 @@
         { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"{reset-token}\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
         { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\"\n}" },
         { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
-        { "name": "Verify Email", "method": "POST", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
+        { "name": "Verify Email", "method": "GET", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
         { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request", "defaultPayload": "{\n  \"newEmail\": \"jane.newemail@example.com\"\n}" },
         { "name": "Verify Email Change", "method": "POST", "path": "/api/v1/email/verify", "defaultPayload": "{\n  \"token\": \"{verify-token}\"\n}" }
       ]

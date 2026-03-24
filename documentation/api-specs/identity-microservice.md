@@ -353,11 +353,11 @@ No response body. The user account and all associated refresh tokens have been d
 
 ---
 
-### POST /v1/accounts/{userAccountId}/verify-email
+### GET|POST /v1/accounts/{userAccountId}/verify-email
 
-Mark an email address as verified (`IsEmailVerified=1`).
+Mark an email address as verified (`IsEmailVerified=1`). Accepts both `GET` and `POST`. `GET` is the primary method, used when the user follows the verification link in their registration confirmation email. `POST` is available for direct API calls.
 
-**When to use:** Called by the Loyalty API after the user clicks the verification link in their registration confirmation email. This confirms ownership of the email address.
+**When to use:** Called by the Loyalty API after the user follows the verification link in their registration confirmation email. This confirms ownership of the email address.
 
 #### Path Parameters
 
@@ -370,7 +370,7 @@ Mark an email address as verified (`IsEmailVerified=1`).
 No request body.
 
 ```
-POST /v1/accounts/d5e6f7a8-b9c0-1234-5678-9abcdef01234/verify-email
+GET /v1/accounts/d5e6f7a8-b9c0-1234-5678-9abcdef01234/verify-email
 ```
 
 #### Response — `200 OK`
