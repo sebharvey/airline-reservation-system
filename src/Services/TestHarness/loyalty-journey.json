@@ -260,7 +260,7 @@
       },
       "chainsTo": [
         { "field": "accessToken", "usedInSteps": [7, 8, 9] },
-        { "field": "refreshToken", "usedInSteps": [10] }
+        { "field": "refreshToken", "usedInSteps": [11] }
       ]
     },
     {
@@ -439,6 +439,59 @@
     },
     {
       "step": 10,
+      "name": "Verify profile update",
+      "description": "Re-fetch the profile after the PATCH in Step 9 to confirm the updated fields are persisted. phoneNumber, preferredLanguage, and nationality should reflect the values submitted in Step 9.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/profile",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "firstName": "Generated",
+          "lastName": "Name",
+          "email": "generated.name@testmail.example.com",
+          "phoneNumber": "+447700900456",
+          "preferredLanguage": "fr",
+          "nationality": "GB",
+          "dateOfBirth": "1990-06-15",
+          "tier": "Blue",
+          "pointsBalance": 0,
+          "memberSince": "2026-03-24T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — profile returned with the updated values from Step 9. Confirms the PATCH was persisted.",
+        "keyFields": ["phoneNumber", "preferredLanguage", "nationality"],
+        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr', nationality must be 'GB'. All other fields should be unchanged from Step 7."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 11,
       "name": "Logout",
       "description": "Invalidate the session by revoking the refresh token. The access token remains valid until its TTL expires (~15 min).",
       "type": "positive",
