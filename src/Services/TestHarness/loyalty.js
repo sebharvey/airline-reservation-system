@@ -323,7 +323,7 @@
         }
 
         btnRunAll.disabled = false;
-        btnRunAll.textContent = '▶ Run Steps 1–10';
+        btnRunAll.textContent = '▶ Run';
     }
 
     async function runStep(ref, currentSteps) {
