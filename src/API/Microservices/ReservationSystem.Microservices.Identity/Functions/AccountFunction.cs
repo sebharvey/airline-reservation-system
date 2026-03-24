@@ -129,7 +129,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> VerifyEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {

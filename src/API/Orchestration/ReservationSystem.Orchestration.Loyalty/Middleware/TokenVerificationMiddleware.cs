@@ -30,6 +30,7 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
         "RegisterMember",
         "HealthCheck",
         "VerifyEmail",
+        "GetVerifyEmail",
     };
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
