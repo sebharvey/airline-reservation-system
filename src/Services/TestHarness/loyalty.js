@@ -122,7 +122,7 @@
     // Table setup
     // =====================================================================
 
-    const liveStepIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // Steps 1–10
+    const liveStepIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Steps 1–11
     let liveChain = {};
     let liveResults = {};
     let rowRefs = [];
