@@ -44,7 +44,7 @@ The Loyalty API is the single entry point for all loyalty-related channel reques
 
 | Service | Endpoints Called | Purpose |
 |---------|-----------------|---------|
-| **Identity MS** | `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/password/reset-request`, `POST /v1/auth/password/reset`, `POST /v1/accounts`, `DELETE /v1/accounts/{userAccountId}`, `POST /v1/accounts/{userAccountId}/verify-email`, `POST /v1/accounts/{identityReference}/email/change-request`, `POST /v1/email/verify` | All credential management, session management, and email verification operations |
+| **Identity MS** | `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/password/reset-request`, `POST /v1/auth/password/reset`, `POST /v1/accounts`, `DELETE /v1/accounts/{userAccountId}`, `GET /v1/accounts/{userAccountId}/verify-email`, `POST /v1/accounts/{identityReference}/email/change-request`, `POST /v1/email/verify` | All credential management, session management, and email verification operations |
 | **Customer MS** | `POST /v1/customers`, `GET /v1/customers/{loyaltyNumber}`, `GET /v1/customers/by-identity/{identityId}`, `PATCH /v1/customers/{loyaltyNumber}`, `DELETE /v1/customers/{loyaltyNumber}`, `GET /v1/customers/{loyaltyNumber}/transactions` | All profile, tier, points balance, and transaction history operations |
 
 ---
@@ -129,6 +129,38 @@ Register a new loyalty programme member. Orchestrates the three-step creation of
 | `400 Bad Request` | Missing required fields or invalid field format (e.g. malformed date, invalid language tag) |
 | `409 Conflict` | Email address is already registered. Response must not confirm the email belongs to an existing account — return a generic conflict message only |
 | `500 Internal Server Error` | Downstream microservice call failed; any partial records created are rolled back per the failure-handling rules above |
+
+---
+
+### GET /v1/accounts/{userAccountId}/verify-email
+
+Verify ownership of an email address. Delegates to the Identity MS. Called when the user follows the link in their registration confirmation email.
+
+**When to use:** The confirmation email sent after `POST /v1/register` contains a link of this form. When the user clicks it, the browser issues a `GET` request to this endpoint. No authentication is required.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `userAccountId` | string (UUID) | The user account identifier returned by the Identity MS during registration |
+
+#### Request
+
+No request body.
+
+```
+GET /v1/accounts/d5e6f7a8-b9c0-1234-5678-9abcdef01234/verify-email
+```
+
+#### Response — `200 OK`
+
+No response body. `IsEmailVerified` has been set to `1` on the Identity MS.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No user account found for the given `userAccountId` |
 
 ---
 

@@ -148,22 +148,20 @@
     },
     {
       "step": "3b",
-      "name": "Verify email / unlock account (direct microservice)",
-      "description": "Direct call to the Identity microservice to verify the account's email address, effectively unlocking it for first-time login. This simulates the email verification step that completes registration.",
+      "name": "Verify email / unlock account",
+      "description": "Call the Loyalty API to verify the account's email address, effectively unlocking it for first-time login. This simulates the user clicking the verification link in their registration confirmation email.",
       "type": "positive",
       "apiCall": {
-        "method": "POST",
+        "method": "GET",
         "endpoint": "/api/v1/accounts/{identityId}/verify-email",
-        "baseUrlRef": "identity",
+        "baseUrlRef": "loyalty",
         "pathParams": {
           "identityId": "7c2d3e4f-8901-2345-6789-abcdef012345"
         },
-        "note": "Direct microservice call — uses identityId from step 3a as the userAccountId path parameter"
+        "note": "No auth required — public endpoint; uses identityId from step 3a as the userAccountId path parameter"
       },
       "request": {
-        "headers": {
-          "x-functions-key": "{{identityMsFunctionKey}}"
-        },
+        "headers": {},
         "body": null,
         "dataChain": [
           {
