@@ -30,14 +30,24 @@
     <thead>
         <tr>
             <th>Step</th>
+            <th>Name</th>
             <th>API Call</th>
-            <th>Request</th>
-            <th>Response</th>
-            <th>Expected Result</th>
+            <th>Expected</th>
+            <th>Result</th>
         </tr>
     </thead>
     <tbody id="journeyBody"></tbody>
 </table>
+
+<div id="stepModal" class="modal-overlay" style="display:none">
+    <div class="modal">
+        <div class="modal-header">
+            <div id="modalTitle" class="modal-title"></div>
+            <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+    </div>
+</div>
 
 <script src="loyalty.js"></script>
 </body>
