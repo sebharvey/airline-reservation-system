@@ -319,4 +319,4 @@ curl -X POST https://{payment-ms-host}/v1/payment/AXPAY-0001/refund \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for booking and payment flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for booking and payment flows

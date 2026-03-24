@@ -1343,4 +1343,4 @@ curl -X PATCH https://{delivery-ms-host}/v1/manifest/AB1234/flight \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including booking confirmation, check-in, flight change, cancellation, and IROPS sequence diagrams
+- [System Design](../system-overview.md) — Full domain design including booking confirmation, check-in, flight change, cancellation, and IROPS sequence diagrams

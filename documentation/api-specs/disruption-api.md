@@ -378,4 +378,4 @@ curl -X POST https://{disruption-api-host}/v1/disruptions/cancellation \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for disruption handling flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for disruption handling flows

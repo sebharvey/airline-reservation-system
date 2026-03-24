@@ -1565,4 +1565,4 @@ curl -X PATCH https://{order-ms-host}/v1/orders/AB1234/rebook \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including bookflow, manage-booking, check-in, and IROPS sequence diagrams
+- [System Design](../system-overview.md) — Full domain design including bookflow, manage-booking, check-in, and IROPS sequence diagrams

@@ -166,4 +166,4 @@ curl -X {METHOD} https://{orchestration-host}/v1/{resource-path} \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams and data models
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams and data models

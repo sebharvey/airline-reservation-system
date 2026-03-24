@@ -591,4 +591,4 @@ curl -X POST https://{identity-ms-host}/v1/email/verify \
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
-- [System Design](../design.md) — Full domain design including sequence diagrams for registration, login, and password reset flows
+- [System Design](../system-overview.md) — Full domain design including sequence diagrams for registration, login, and password reset flows
