@@ -1,0 +1,442 @@
+{
+  "journey": {
+    "name": "Login & Dashboard Flow",
+    "description": "End-to-end customer journey covering registration validation, authentication, profile management, and session lifecycle.",
+    "domain": "Loyalty",
+    "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net",
+    "directMicroservices": {
+      "customer": "https://reservation-system-db-api-customer-{instance}.uksouth-01.azurewebsites.net",
+      "identity": "https://reservation-system-db-api-identity-{instance}.uksouth-01.azurewebsites.net"
+    }
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Attempt duplicate registration",
+      "description": "Try to register an account with an email that already exists. Validates the API correctly rejects duplicates with a 409 Conflict response.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/register",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "john.doe@example.com",
+          "password": "SecureP@ss123!",
+          "firstName": "John",
+          "lastName": "Doe",
+          "dateOfBirth": "1990-05-15",
+          "phoneNumber": "+447700900123"
+        }
+      },
+      "response": {
+        "statusCode": 409,
+        "body": {
+          "error": "An account with this email already exists."
+        }
+      },
+      "expected": {
+        "statusCode": 409,
+        "description": "409 Conflict — the email is already registered. Response body contains an error message. No loyalty number is returned.",
+        "keyFields": ["error"],
+        "validationNotes": "Confirms idempotency guard on registration. The existing account is not modified."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 2,
+      "name": "Login",
+      "description": "Authenticate with valid credentials to obtain a JWT access token, refresh token, and the customer's loyalty number.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/auth/login",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "john.doe@example.com",
+          "password": "SecureP@ss123!"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi...",
+          "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ...",
+          "expiresAt": "2026-03-24T14:15:00Z",
+          "tokenType": "Bearer",
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — credentials validated. Response contains a short-lived JWT access token (15 min TTL), a single-use refresh token, expiry timestamp, token type, and the customer's loyalty number.",
+        "keyFields": ["accessToken", "refreshToken", "expiresAt", "tokenType", "loyaltyNumber"],
+        "validationNotes": "accessToken is a signed JWT (RS256). refreshToken is opaque and single-use. loyaltyNumber starts with 'AX' and is 9 characters. expiresAt is ISO 8601 UTC, ~15 minutes from now."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [5, 6, 7] },
+        { "field": "refreshToken", "usedInSteps": [4] },
+        { "field": "loyaltyNumber", "usedInSteps": ["3a", 5, 6, 7] }
+      ]
+    },
+    {
+      "step": "3a",
+      "name": "Customer search (direct microservice)",
+      "description": "Direct call to the Customer microservice Search endpoint. Finds the customer record by loyalty number to retrieve the identity ID needed for account unlock.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/search",
+        "baseUrlRef": "customer",
+        "note": "Direct microservice call — not routed through the Loyalty orchestration API"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "x-functions-key": "{{customerMsFunctionKey}}"
+        },
+        "body": {
+          "query": "AX1234567"
+        },
+        "dataChain": [
+          {
+            "field": "query",
+            "source": "Step 2 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "customerId": "a3f1b2c4-5678-9abc-def0-1234567890ab",
+            "loyaltyNumber": "AX1234567",
+            "identityId": "7c2d3e4f-8901-2345-6789-abcdef012345",
+            "givenName": "John",
+            "surname": "Doe",
+            "dateOfBirth": "1990-05-15",
+            "nationality": null,
+            "preferredLanguage": "en",
+            "phoneNumber": "+447700900123",
+            "tierCode": "Blue",
+            "pointsBalance": 0,
+            "tierProgressPoints": 0,
+            "isActive": true,
+            "createdAt": "2026-03-24T10:00:00Z",
+            "updatedAt": "2026-03-24T10:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns an array of matching customer records. The identityId field links to the Identity microservice account.",
+        "keyFields": ["identityId", "loyaltyNumber", "customerId"],
+        "validationNotes": "Response is always an array (empty if no match). identityId is a GUID that maps to the UserAccountId in the Identity MS. Use this for the unlock call in step 3b."
+      },
+      "chainsTo": [
+        { "field": "[0].identityId", "usedInSteps": ["3b"] }
+      ]
+    },
+    {
+      "step": "3b",
+      "name": "Verify email / unlock account (direct microservice)",
+      "description": "Direct call to the Identity microservice to verify the account's email address, effectively unlocking it for first-time login. This simulates the email verification step that completes registration.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/accounts/{identityId}/verify-email",
+        "baseUrlRef": "identity",
+        "pathParams": {
+          "identityId": "7c2d3e4f-8901-2345-6789-abcdef012345"
+        },
+        "note": "Direct microservice call — uses identityId from step 3a as the userAccountId path parameter"
+      },
+      "request": {
+        "headers": {
+          "x-functions-key": "{{identityMsFunctionKey}}"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "identityId (path)",
+            "source": "Step 3a → response[0].identityId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — email verified, account unlocked. No response body.",
+        "keyFields": [],
+        "validationNotes": "Idempotent — calling again on an already-verified account still returns 200. A 404 means the identityId was not found."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Token refresh",
+      "description": "Exchange the single-use refresh token from login for a new access token and refresh token pair. The old refresh token is revoked.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/auth/refresh",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ..."
+        },
+        "dataChain": [
+          {
+            "field": "refreshToken",
+            "source": "Step 2 → response.refreshToken"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi..._NEW",
+          "refreshToken": "bmV3IHJlZnJlc2ggdG9rZW4gYWZ0ZXIgcm90YXRpb24...",
+          "expiresAt": "2026-03-24T14:30:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — new token pair issued. The previous refresh token is now invalid (single-use rotation).",
+        "keyFields": ["accessToken", "refreshToken", "expiresAt", "tokenType"],
+        "validationNotes": "New accessToken replaces the one from step 2. New refreshToken must be used for any subsequent refresh. Old refreshToken from step 2 is revoked and cannot be reused."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [5, 6, 7] },
+        { "field": "refreshToken", "usedInSteps": [8] }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "View profile",
+      "description": "Retrieve the authenticated customer's loyalty profile using the loyalty number from login and the refreshed access token.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/v1/customers/{loyaltyNumber}/profile",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 4 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 2 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "firstName": "John",
+          "lastName": "Doe",
+          "email": "john.doe@example.com",
+          "phoneNumber": "+447700900123",
+          "dateOfBirth": "1990-05-15",
+          "tier": "Blue",
+          "pointsBalance": 0,
+          "memberSince": "2026-03-24T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — full profile returned. Tier defaults to 'Blue' for new members. Points balance starts at 0.",
+        "keyFields": ["loyaltyNumber", "firstName", "lastName", "email", "tier", "pointsBalance", "memberSince"],
+        "validationNotes": "loyaltyNumber matches the value from login. tier is one of: Blue, Silver, Gold, Platinum. pointsBalance is a decimal. memberSince is ISO 8601 UTC."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "View transactions",
+      "description": "Retrieve the transaction history for the authenticated customer. Shows point earn/redeem activity with pagination.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/v1/customers/{loyaltyNumber}/transactions?page=1&pageSize=20",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        },
+        "queryParams": {
+          "page": 1,
+          "pageSize": 20
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 4 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 2 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "page": 1,
+          "pageSize": 20,
+          "totalCount": 2,
+          "transactions": [
+            {
+              "transactionId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+              "transactionType": "Earn",
+              "pointsDelta": 500,
+              "balanceAfter": 500,
+              "bookingReference": "ABCDEF",
+              "flightNumber": "AX101",
+              "description": "Flight earn — LHR to JFK",
+              "transactionDate": "2026-03-20T08:30:00Z"
+            },
+            {
+              "transactionId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+              "transactionType": "Redeem",
+              "pointsDelta": -200,
+              "balanceAfter": 300,
+              "bookingReference": null,
+              "flightNumber": null,
+              "description": "Lounge access redemption",
+              "transactionDate": "2026-03-22T14:00:00Z"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — paginated transaction history. Each transaction includes type, point delta (positive for earn, negative for redeem), running balance, and optional booking/flight references.",
+        "keyFields": ["loyaltyNumber", "page", "pageSize", "totalCount", "transactions"],
+        "validationNotes": "transactionType is one of: Earn, Redeem, Adjustment, Expiry, Reinstate. pointsDelta is positive for credits, negative for debits. balanceAfter is the running balance after each transaction. A new account may return an empty transactions array with totalCount 0."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Update profile",
+      "description": "Patch the customer's profile with updated fields. Only the provided fields are modified; omitted fields remain unchanged.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/v1/customers/{loyaltyNumber}/profile",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": {
+          "phoneNumber": "+447700900456",
+          "preferredLanguage": "fr",
+          "nationality": "GB"
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 4 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 2 → response.loyaltyNumber"
+          }
+        ],
+        "diff": {
+          "phoneNumber": { "from": "+447700900123", "to": "+447700900456" },
+          "preferredLanguage": { "from": "en", "to": "fr" },
+          "nationality": { "from": null, "to": "GB" }
+        }
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — profile updated successfully. No response body. A subsequent GET /profile would reflect the changes.",
+        "keyFields": [],
+        "validationNotes": "Only permitted fields are accepted: givenName, surname, dateOfBirth, nationality, phoneNumber, preferredLanguage. Fields like tier, points, identityId are ignored. Partial update — omitted fields are not cleared."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "Logout",
+      "description": "Invalidate the session by revoking the refresh token. The access token remains valid until its TTL expires (~15 min).",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/auth/logout",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "refreshToken": "bmV3IHJlZnJlc2ggdG9rZW4gYWZ0ZXIgcm90YXRpb24..."
+        },
+        "dataChain": [
+          {
+            "field": "refreshToken",
+            "source": "Step 4 → response.refreshToken"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — refresh token revoked. Session effectively terminated. The access token is still technically valid until its 15-minute TTL expires, but no new tokens can be obtained.",
+        "keyFields": [],
+        "validationNotes": "Attempting to use the revoked refresh token for a subsequent /auth/refresh call should return 401 Unauthorized."
+      },
+      "chainsTo": []
+    }
+  ]
+}
