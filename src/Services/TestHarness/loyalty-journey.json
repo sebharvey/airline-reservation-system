@@ -4,7 +4,7 @@
     "description": "End-to-end customer journey covering registration, email verification, duplicate-email validation, authentication, profile management, and session lifecycle.",
     "domain": "Loyalty",
     "baseUrl": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net",
-    "customerMsBaseUrl": "https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net"
+    "customerMsBaseUrl": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net"
   },
   "steps": [
     {
