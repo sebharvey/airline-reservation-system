@@ -91,6 +91,31 @@ public sealed class RegistrationFunction
     }
 
     // -------------------------------------------------------------------------
+    // GET /v1/accounts/{userAccountId}/verify-email
+    // -------------------------------------------------------------------------
+
+    [Function("GetVerifyEmail")]
+    [OpenApiOperation(operationId: "GetVerifyEmail", tags: new[] { "Registration" }, Summary = "Verify email address")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account identifier")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetVerifyEmail(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
+        Guid userAccountId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _identityServiceClient.GetVerifyEmailAsync(userAccountId, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // POST /v1/accounts/{userAccountId}/verify-email
     // -------------------------------------------------------------------------
 

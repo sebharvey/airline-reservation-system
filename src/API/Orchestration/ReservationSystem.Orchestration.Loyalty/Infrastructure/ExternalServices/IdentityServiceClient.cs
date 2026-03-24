@@ -102,4 +102,16 @@ public sealed class IdentityServiceClient
 
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task GetVerifyEmailAsync(Guid userAccountId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync(
+            $"/api/v1/accounts/{userAccountId}/verify-email",
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No user account found for ID '{userAccountId}'.");
+
+        response.EnsureSuccessStatusCode();
+    }
 }
