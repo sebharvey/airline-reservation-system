@@ -93,6 +93,60 @@ Create a new loyalty account. Called by the Loyalty API as the **first** step of
 
 ---
 
+### POST /v1/customers/search
+
+Search for loyalty customers by name or loyalty number. Used by the Loyalty API to support contact-centre member look-up flows.
+
+**When to use:** Called by the Loyalty API when an agent needs to locate a customer by partial name or loyalty number. POST is used instead of GET to avoid PII (names) appearing in URL access logs.
+
+#### Request
+
+```json
+{
+  "query": "Okafor"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `query` | string | Yes | Search term. Performs a partial match against `givenName` and `surname`, and an exact match against `loyaltyNumber`. Whitespace is trimmed before matching |
+
+#### Response — `200 OK`
+
+Always returns an array. Returns an empty array if no matches are found. Maximum 50 results are returned.
+
+```json
+[
+  {
+    "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "loyaltyNumber": "AX9876543",
+    "identityReference": "c4f2e8a1-7b3d-4e9f-a6c1-2d8b5e0f3a7c",
+    "givenName": "Amara",
+    "surname": "Okafor",
+    "dateOfBirth": "1988-03-22",
+    "nationality": "GBR",
+    "preferredLanguage": "en-GB",
+    "phoneNumber": "+447700900123",
+    "tierCode": "Silver",
+    "pointsBalance": 48250,
+    "tierProgressPoints": 62100,
+    "isActive": true,
+    "createdAt": "2024-06-15T09:30:00Z",
+    "updatedAt": "2025-11-02T14:22:00Z"
+  }
+]
+```
+
+Each item in the array uses the same shape as the `GET /v1/customers/{loyaltyNumber}` response. See the field table under that endpoint for field descriptions.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Invalid JSON in request body |
+
+---
+
 ### GET /v1/customers/{loyaltyNumber}
 
 Retrieve a customer's profile, tier status, and points balance. Used by the Loyalty API to serve the loyalty dashboard and to provide loyalty context during booking flows.
