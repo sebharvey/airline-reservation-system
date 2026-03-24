@@ -349,6 +349,123 @@
             font-style: italic;
             font-size: 0.78rem;
         }
+
+        /* Run controls */
+        .run-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .run-controls label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .run-controls input {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+            background: var(--surface-raised);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            flex: 1;
+            max-width: 600px;
+        }
+        .run-controls input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-run {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            border: 1px solid var(--accent);
+            background: var(--accent-dim);
+            color: var(--accent);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .btn-run:hover {
+            background: rgba(108, 140, 255, 0.2);
+        }
+        .btn-run:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-run.running {
+            border-color: var(--chain-highlight);
+            color: var(--chain-highlight);
+        }
+
+        .btn-run-all {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.45rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--positive);
+            background: var(--positive-bg);
+            color: var(--positive);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-run-all:hover {
+            background: rgba(52, 211, 153, 0.2);
+        }
+        .btn-run-all:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Live result overlay in response cell */
+        .live-result {
+            margin-top: 0.6rem;
+            padding-top: 0.6rem;
+            border-top: 2px solid var(--accent);
+        }
+        .live-result-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            margin-bottom: 0.35rem;
+        }
+        .live-result .status-code.pass { color: var(--positive); }
+        .live-result .status-code.fail { color: var(--negative); }
+
+        .result-badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            margin-left: 0.5rem;
+        }
+        .result-badge.pass {
+            background: var(--positive-bg);
+            color: var(--positive);
+            border: 1px solid var(--positive-border);
+        }
+        .result-badge.fail {
+            background: var(--negative-bg);
+            color: var(--negative);
+            border: 1px solid var(--negative-border);
+        }
     </style>
 </head>
 <body>
@@ -366,6 +483,12 @@
     <div class="legend-item"><div class="legend-swatch positive"></div> Happy path</div>
     <div class="legend-item"><div class="legend-swatch negative"></div> Error validation</div>
     <div class="legend-item"><div class="legend-swatch chain"></div> Data chained from prior step</div>
+</div>
+
+<div class="run-controls">
+    <label for="baseUrlOverride">Base URL:</label>
+    <input type="text" id="baseUrlOverride" placeholder="Loading...">
+    <button class="btn-run-all" id="btnRunAll" disabled>▶ Run Steps 1 &amp; 2</button>
 </div>
 
 <table class="harness-table">
@@ -387,16 +510,28 @@
     const res = await fetch('loyalty-journey.json');
     const data = await res.json();
 
+    const baseUrlInput = document.getElementById('baseUrlOverride');
+    baseUrlInput.value = data.journey.baseUrl;
     document.getElementById('baseUrl').textContent = data.journey.baseUrl;
+
+    // Track live data chained between steps
+    const liveChain = {};
+
+    // Steps that support live invocation (indices into data.steps)
+    const liveStepIndices = [0, 1]; // Steps 1 and 2
+
+    // Store row references and step data for live updates
+    const rowRefs = [];
 
     const tbody = document.getElementById('journeyBody');
 
-    data.steps.forEach(step => {
+    data.steps.forEach((step, idx) => {
         const row = document.createElement('tr');
         row.className = step.type === 'negative' ? 'step-negative' : 'step-positive';
 
         // ---------- Col 1: Step ----------
-        row.appendChild(buildStepCell(step));
+        const stepCell = buildStepCell(step, idx);
+        row.appendChild(stepCell);
 
         // ---------- Col 2: API Call ----------
         row.appendChild(buildApiCallCell(step));
@@ -405,26 +540,176 @@
         row.appendChild(buildRequestCell(step));
 
         // ---------- Col 4: Response ----------
-        row.appendChild(buildResponseCell(step));
+        const responseCell = buildResponseCell(step);
+        row.appendChild(responseCell);
 
         // ---------- Col 5: Expected ----------
         row.appendChild(buildExpectedCell(step));
 
         tbody.appendChild(row);
+        rowRefs.push({ row, step, responseCell, stepCell, idx });
     });
+
+    // Enable the Run All button
+    const btnRunAll = document.getElementById('btnRunAll');
+    btnRunAll.disabled = false;
+    btnRunAll.addEventListener('click', runFirstTwoSteps);
+
+    // =====================================================================
+    // Live API invocation
+    // =====================================================================
+
+    async function runFirstTwoSteps() {
+        btnRunAll.disabled = true;
+        btnRunAll.textContent = '⏳ Running…';
+
+        for (const stepIdx of liveStepIndices) {
+            const ref = rowRefs[stepIdx];
+            await runStep(ref);
+        }
+
+        btnRunAll.textContent = '✓ Done';
+    }
+
+    async function runStep(ref) {
+        const { step, responseCell, idx } = ref;
+        const baseUrl = baseUrlInput.value.replace(/\/+$/, '');
+        const api = step.apiCall;
+
+        // Build the full URL
+        let endpoint = api.endpoint;
+        if (api.pathParams) {
+            for (const [k, v] of Object.entries(api.pathParams)) {
+                endpoint = endpoint.replace(`{${k}}`, v);
+            }
+        }
+        const url = baseUrl + endpoint;
+
+        // Build request options
+        const fetchOpts = {
+            method: api.method,
+            headers: {}
+        };
+
+        // Apply headers from step definition
+        if (step.request.headers) {
+            Object.assign(fetchOpts.headers, step.request.headers);
+        }
+
+        // Substitute chained values into request body
+        let requestBody = step.request.body;
+        if (step.request.dataChain && requestBody) {
+            requestBody = JSON.parse(JSON.stringify(requestBody));
+            step.request.dataChain.forEach(chain => {
+                const fieldName = chain.field.replace(/ \(path\)$/, '');
+                if (fieldName in requestBody && liveChain[fieldName] !== undefined) {
+                    requestBody[fieldName] = liveChain[fieldName];
+                }
+            });
+        }
+
+        // Substitute chained Authorization header
+        if (step.request.dataChain) {
+            step.request.dataChain.forEach(chain => {
+                if (chain.field === 'Authorization' && liveChain['accessToken']) {
+                    fetchOpts.headers['Authorization'] = 'Bearer ' + liveChain['accessToken'];
+                }
+            });
+        }
+
+        if (requestBody !== null && requestBody !== undefined) {
+            fetchOpts.body = JSON.stringify(requestBody);
+        }
+
+        let liveStatus, liveBody, liveError;
+
+        try {
+            const response = await fetch(url, fetchOpts);
+            liveStatus = response.status;
+
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                liveBody = await response.json();
+            } else {
+                const text = await response.text();
+                liveBody = text.length > 0 ? text : null;
+            }
+        } catch (err) {
+            liveError = err.message;
+            liveStatus = 0;
+            liveBody = null;
+        }
+
+        // Store chained values from the response
+        if (step.chainsTo && liveBody && typeof liveBody === 'object') {
+            step.chainsTo.forEach(chain => {
+                const field = chain.field;
+                // Handle array notation like "[0].identityId"
+                const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
+                if (arrayMatch && Array.isArray(liveBody)) {
+                    const arrIdx = parseInt(arrayMatch[1], 10);
+                    const prop = arrayMatch[2];
+                    if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
+                        liveChain[prop] = liveBody[arrIdx][prop];
+                    }
+                } else if (liveBody[field] !== undefined) {
+                    liveChain[field] = liveBody[field];
+                }
+            });
+        }
+
+        // Render the live result into the response cell
+        appendLiveResult(responseCell, step, liveStatus, liveBody, liveError);
+    }
+
+    function appendLiveResult(cell, step, liveStatus, liveBody, liveError) {
+        const expectedStatus = step.expected.statusCode;
+        const statusMatch = liveStatus === expectedStatus;
+
+        const div = document.createElement('div');
+        div.className = 'live-result';
+
+        const scClass = statusMatch ? 'pass' : 'fail';
+        const scLabel = statusLabel(liveStatus) || (liveError ? 'Network Error' : '');
+        const badge = statusMatch ? '<span class="result-badge pass">Pass</span>' : '<span class="result-badge fail">Fail</span>';
+
+        let html = '<div class="live-result-label">Live Response ' + badge + '</div>';
+
+        if (liveError) {
+            html += `<div class="status-code fail">Error: ${esc(liveError)}</div>`;
+        } else {
+            html += `<div class="status-code ${scClass}">${liveStatus} ${esc(scLabel)}</div>`;
+        }
+
+        if (liveBody !== null && liveBody !== undefined) {
+            if (typeof liveBody === 'object') {
+                html += '<div class="json-block">' + syntaxHighlight(liveBody, null, step.chainsTo) + '</div>';
+            } else {
+                html += '<div class="json-block">' + esc(String(liveBody)) + '</div>';
+            }
+        } else if (!liveError) {
+            html += '<div class="no-body">No response body</div>';
+        }
+
+        div.innerHTML = html;
+        cell.appendChild(div);
+    }
 
     // =====================================================================
     // Cell builders
     // =====================================================================
 
-    function buildStepCell(step) {
+    function buildStepCell(step, idx) {
         const td = document.createElement('td');
         const badge = `<span class="step-badge ${step.type}">${step.type === 'negative' ? 'Error' : 'Happy path'}</span>`;
+        const isLive = liveStepIndices.includes(idx);
+        const liveIndicator = isLive ? '<div style="margin-top:0.4rem"><span style="font-size:0.65rem;font-family:var(--font-mono);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0.1rem 0.4rem">LIVE</span></div>' : '';
         td.innerHTML = `
             <div class="step-number">Step ${step.step}</div>
             ${badge}
             <div class="step-name">${esc(step.name)}</div>
             <div class="step-desc">${esc(step.description)}</div>
+            ${liveIndicator}
         `;
         return td;
     }
