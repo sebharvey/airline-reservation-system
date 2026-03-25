@@ -1,4 +1,5 @@
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -35,6 +36,10 @@ public sealed class CustomerServiceClient
     {
         var body = new { givenName, surname, dateOfBirth, preferredLanguage };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/customers", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<CreateCustomerDto>(JsonOptions, cancellationToken);
@@ -79,6 +84,9 @@ public sealed class CustomerServiceClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return false;
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
 
         response.EnsureSuccessStatusCode();
         return true;

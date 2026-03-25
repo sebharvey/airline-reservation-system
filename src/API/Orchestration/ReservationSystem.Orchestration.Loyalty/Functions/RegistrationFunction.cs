@@ -85,6 +85,10 @@ public sealed class RegistrationFunction
                 $"/v1/customers/{result.LoyaltyNumber}/profile",
                 new { loyaltyNumber = result.LoyaltyNumber });
         }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
         catch (InvalidOperationException)
         {
             return await req.ConflictAsync("An account with this email address is already registered.");

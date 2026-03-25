@@ -107,7 +107,16 @@ public sealed class ProfileFunction
             request.PhoneNumber,
             request.PreferredLanguage);
 
-        var found = await _updateProfileHandler.HandleAsync(command, cancellationToken);
+        bool found;
+
+        try
+        {
+            found = await _updateProfileHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
 
         if (!found)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");

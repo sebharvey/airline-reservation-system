@@ -60,13 +60,13 @@ Create a new loyalty account. Called by the Loyalty API as the **first** step of
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `givenName` | string | Yes | Customer's given (first) name. Max 100 characters |
-| `surname` | string | Yes | Customer's surname. Max 100 characters |
-| `dateOfBirth` | string (date) | No | ISO 8601 date, e.g. `"1988-03-22"` |
-| `preferredLanguage` | string | No | BCP 47 language tag, e.g. `"en-GB"`. Defaults to `en-GB` |
-| `identityReference` | string (UUID) | No | Opaque reference linking to the Identity microservice account. Null for legacy accounts without a login |
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `givenName` | string | Yes | Max 100 characters; must not be blank | Customer's given (first) name |
+| `surname` | string | Yes | Max 100 characters; must not be blank | Customer's surname |
+| `dateOfBirth` | string (date) | No | ISO 8601 date; must not be a future date | Date of birth, e.g. `"1988-03-22"` |
+| `preferredLanguage` | string | Yes | BCP 47 language tag, exactly 5 characters in `xx-XX` format (e.g. `en-GB`, `fr-FR`) | Preferred language. Bare language codes like `en` are rejected — the full region-qualified tag is required |
+| `identityReference` | string (UUID) | No | Valid UUID | Opaque reference linking to the Identity microservice account. Null for legacy accounts without a login |
 
 #### Response — `201 Created`
 
@@ -88,7 +88,7 @@ Create a new loyalty account. Called by the Loyalty API as the **first** step of
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields or invalid field format |
+| `400 Bad Request` | Missing required fields (`givenName`, `surname`, `preferredLanguage`), field exceeds max length, `preferredLanguage` not in `xx-XX` BCP 47 format, or `dateOfBirth` is a future date |
 | `409 Conflict` | Duplicate `identityReference` — account already exists for this identity |
 
 ---
@@ -195,7 +195,7 @@ GET /v1/customers/AX9876543
 | `givenName` | string | Customer's given name |
 | `surname` | string | Customer's surname |
 | `dateOfBirth` | string (date) | ISO 8601 date |
-| `nationality` | string | ISO 3166-1 alpha-3 country code (e.g. `GBR`) |
+| `nationality` | string | ISO 3166-1 alpha-2 country code (e.g. `GB`). Stored as `CHAR(3)` in the database but the API accepts and returns 2-letter codes only |
 | `preferredLanguage` | string | BCP 47 language tag |
 | `phoneNumber` | string | Phone number including country code |
 | `tierCode` | string | Current tier: `Blue`, `Silver`, `Gold`, or `Platinum` |
@@ -274,14 +274,14 @@ Send only the fields being changed:
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `givenName` | string | No | Max 100 characters |
-| `surname` | string | No | Max 100 characters |
-| `dateOfBirth` | string (date) | No | ISO 8601 date |
-| `nationality` | string | No | ISO 3166-1 alpha-3 country code |
-| `phoneNumber` | string | No | Phone number with country code. Max 30 characters |
-| `preferredLanguage` | string | No | BCP 47 language tag |
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `givenName` | string | No | Max 100 characters; must not be blank when provided | Customer's given name |
+| `surname` | string | No | Max 100 characters; must not be blank when provided | Customer's surname |
+| `dateOfBirth` | string (date) | No | ISO 8601 date; must not be a future date | Date of birth |
+| `nationality` | string | No | ISO 3166-1 alpha-2 country code, exactly 2 uppercase letters (e.g. `GB`, `US`, `NG`) | Nationality. Note: the database column is `CHAR(3)` (alpha-3) but the API enforces alpha-2 input only |
+| `phoneNumber` | string | No | Max 30 characters; must match phone format (e.g. `+447700900123`); must not be blank when provided | Phone number with international dialling code |
+| `preferredLanguage` | string | No | BCP 47 language tag, exactly 5 characters in `xx-XX` format (e.g. `en-GB`, `fr-FR`) | Preferred language. Bare language codes like `en` are rejected |
 
 > **`createdAt` and `updatedAt` are not accepted request fields.** These timestamps are managed entirely by SQL triggers on the database. Any attempt to pass them in a request body is silently ignored — the database trigger is the sole authority for both values.
 
@@ -313,7 +313,7 @@ Returns the full updated customer record (same schema as `GET /v1/customers/{loy
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Invalid field format (e.g. malformed date, invalid country code) |
+| `400 Bad Request` | Invalid field format: `preferredLanguage` not in `xx-XX` BCP 47 format, `nationality` not a 2-letter ISO 3166-1 alpha-2 code, `phoneNumber` exceeds 30 characters or contains invalid characters, `givenName`/`surname` exceed 100 characters or are blank, or `dateOfBirth` is a future date |
 | `404 Not Found` | No customer found for the given loyalty number |
 
 ---
