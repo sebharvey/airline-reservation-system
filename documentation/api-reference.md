@@ -6,6 +6,40 @@
 
 ---
 
+## Contents
+
+- [Retail API](#retail-api--full-api-spec)
+  - [Search & Basket](#search--basket)
+  - [Orders](#orders)
+  - [SSR](#ssr)
+  - [Flights & Seatmaps](#flights--seatmaps)
+  - [Check-in](#check-in)
+- [Loyalty API](#loyalty-api--full-api-spec)
+  - [Authentication](#authentication)
+  - [Account & Profile](#account--profile)
+- [Disruption API](#disruption-api--full-api-spec)
+- [Operations API](#operations-api--full-api-spec)
+- [Schedule Microservice](#schedule-microservice--full-api-spec)
+- [Offer Microservice](#offer-microservice--full-api-spec)
+- [Order Microservice](#order-microservice--full-api-spec)
+- [Payment Microservice](#payment-microservice--full-api-spec)
+- [Delivery Microservice](#delivery-microservice--full-api-spec)
+  - [Tickets](#tickets)
+  - [Manifest](#manifest)
+  - [Documents](#documents)
+  - [Boarding Cards](#boarding-cards)
+- [Seat Microservice](#seat-microservice--full-api-spec)
+- [Bag Microservice](#bag-microservice--full-api-spec)
+- [Identity Microservice](#identity-microservice--full-api-spec)
+  - [Authentication](#authentication-1)
+  - [Account Management](#account-management)
+- [Customer Microservice](#customer-microservice--full-api-spec)
+- [Airport API](#airport-api)
+- [Finance API](#finance-api)
+- [Accounting Microservice](#accounting-microservice)
+
+---
+
 ## Retail API — [Full API Spec](api-specs/retail-api.md)
 
 ### Search & Basket
