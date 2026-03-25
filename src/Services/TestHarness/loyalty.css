@@ -537,3 +537,144 @@ body {
     text-align: left;
     vertical-align: middle !important;
 }
+
+/* =====================================================================
+   Responsive — tablet and mobile
+   ===================================================================== */
+
+@media (max-width: 1024px) {
+    body { padding: 1rem; }
+    .header { margin-bottom: 1.5rem; padding-bottom: 1rem; }
+    .header h1 { font-size: 1.35rem; }
+
+    /* Column widths — relax for tablet */
+    .harness-table th:nth-child(1),
+    .harness-table td:nth-child(1) { width: auto; }
+    .harness-table th:nth-child(2),
+    .harness-table td:nth-child(2) { width: auto; }
+    .harness-table th:nth-child(3),
+    .harness-table td:nth-child(3) { width: auto; }
+    .harness-table th:nth-child(4),
+    .harness-table td:nth-child(4) { width: auto; }
+    .harness-table th:nth-child(5),
+    .harness-table td:nth-child(5) { width: auto; }
+}
+
+@media (max-width: 768px) {
+    body { padding: 0.75rem; }
+    .header { margin-bottom: 1rem; padding-bottom: 0.75rem; }
+    .header h1 { font-size: 1.15rem; }
+
+    /* Run controls — stack vertically */
+    .run-controls {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    .base-url-row {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+    .base-url-label {
+        width: 100%;
+        font-size: 0.72rem;
+    }
+    .base-url-input {
+        font-size: 0.72rem;
+        min-width: 0;
+    }
+    .btn-run-all {
+        align-self: stretch;
+        text-align: center;
+        padding: 0.6rem 1rem;
+    }
+
+    /* Runtime data banner */
+    #runtimeDataBanner {
+        padding: 0.6rem 0.75rem !important;
+    }
+    #runtimeDataValues {
+        flex-direction: column !important;
+    }
+
+    /* Table → stacked card layout */
+    .harness-table { box-shadow: none; border-radius: 0; }
+    .harness-table thead { display: none; }
+    .harness-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .harness-table tbody td {
+        display: block;
+        padding: 0.65rem 0.85rem;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .harness-table tbody td:last-child { border-bottom: none; }
+
+    /* First cell — step number + name inline */
+    .harness-table tbody td:nth-child(1) {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: var(--surface-raised);
+        padding: 0.6rem 0.85rem;
+    }
+    .step-number { font-size: 0.95rem; margin-bottom: 0; }
+
+    /* Result cell — right-align badge in card header */
+    .harness-table tbody td:nth-child(1)::after { content: none; }
+    .harness-table tbody td.result-cell {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 0.5rem 0.85rem;
+        background: var(--surface-raised);
+    }
+
+    /* Row result state — left border on card */
+    .harness-table tbody tr.result-pass {
+        border-left: 3px solid var(--positive);
+    }
+    .harness-table tbody tr.result-pass td:first-child {
+        border-left: none;
+    }
+    .harness-table tbody tr.result-fail {
+        border-left: 3px solid var(--negative);
+    }
+    .harness-table tbody tr.result-fail td:first-child {
+        border-left: none;
+    }
+
+    /* Endpoint URL wrapping */
+    .endpoint-url { font-size: 0.7rem; }
+    .json-block { font-size: 0.65rem; padding: 0.5rem; max-height: 200px; }
+
+    /* Modal — full screen on mobile */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal {
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 12px 12px 0 0;
+    }
+    .modal-header { padding: 1rem; }
+    .modal-body { padding: 0.85rem; }
+    .modal-section { padding: 0.65rem 0.75rem; }
+    .modal-title { font-size: 0.9rem; }
+}
+
+@media (max-width: 420px) {
+    body { padding: 0.5rem; }
+    .header h1 { font-size: 1rem; }
+    .harness-table tbody td { padding: 0.5rem 0.65rem; }
+    .endpoint-url { font-size: 0.65rem; }
+    .method-badge { font-size: 0.62rem; padding: 0.15rem 0.4rem; }
+    .json-block { font-size: 0.6rem; }
+    .expected-status { font-size: 0.75rem; }
+    .modal { max-height: 95vh; }
+}
