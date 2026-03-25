@@ -18,6 +18,7 @@ using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Models.Mappers;
 using ReservationSystem.Microservices.Customer.Models.Requests;
 using ReservationSystem.Microservices.Customer.Models.Responses;
+using ReservationSystem.Microservices.Customer.Validation;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
@@ -103,6 +104,12 @@ public sealed class CustomerFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var validationErrors = CustomerValidator.ValidateCreate(
+            request.GivenName, request.Surname, request.PreferredLanguage, request.DateOfBirth);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
 
         var command = CustomerMapper.ToCommand(request);
         var customer = await _createHandler.HandleAsync(command, cancellationToken);
@@ -224,6 +231,13 @@ public sealed class CustomerFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var validationErrors = CustomerValidator.ValidateUpdate(
+            request.GivenName, request.Surname, request.PreferredLanguage,
+            request.Nationality, request.PhoneNumber, request.DateOfBirth);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
 
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
 
