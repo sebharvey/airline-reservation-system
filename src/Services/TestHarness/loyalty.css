@@ -36,13 +36,10 @@ body {
 /* Header */
 .header {
     margin-bottom: 2.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
 }
 .header h1 {
     font-size: 1.75rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
 }
 .header h1 span { color: var(--accent); }
 
@@ -86,18 +83,44 @@ body {
 }
 
 /* Row result state — after live run */
+@keyframes glow-pass {
+    0% {
+        background: rgba(4, 120, 87, 0.38);
+        box-shadow: 0 0 22px rgba(4, 120, 87, 0.38);
+    }
+    100% {
+        background: var(--positive-bg);
+        box-shadow: none;
+    }
+}
+@keyframes glow-fail {
+    0% {
+        background: rgba(185, 28, 28, 0.3);
+        box-shadow: 0 0 22px rgba(185, 28, 28, 0.38);
+    }
+    100% {
+        background: var(--negative-bg);
+        box-shadow: none;
+    }
+}
+
 .harness-table tbody tr.result-pass td:first-child {
     border-left: 3px solid var(--positive);
 }
 .harness-table tbody tr.result-pass {
-    background: var(--positive-bg) !important;
+    background: var(--positive-bg);
+    animation: glow-pass 1.2s ease-out forwards;
 }
+.harness-table tbody tr.result-pass:hover { background: rgba(4, 120, 87, 0.13); }
+
 .harness-table tbody tr.result-fail td:first-child {
     border-left: 3px solid var(--negative);
 }
 .harness-table tbody tr.result-fail {
-    background: var(--negative-bg) !important;
+    background: var(--negative-bg);
+    animation: glow-fail 1.2s ease-out forwards;
 }
+.harness-table tbody tr.result-fail:hover { background: rgba(185, 28, 28, 0.11); }
 
 /* Step column */
 .step-number {
@@ -277,11 +300,9 @@ body {
 .harness-table th:nth-child(2),
 .harness-table td:nth-child(2) { width: 28%; }
 .harness-table th:nth-child(3),
-.harness-table td:nth-child(3) { width: 38%; }
+.harness-table td:nth-child(3) { width: 42%; }
 .harness-table th:nth-child(4),
-.harness-table td:nth-child(4) { width: 14%; }
-.harness-table th:nth-child(5),
-.harness-table td:nth-child(5) { width: 10%; }
+.harness-table td:nth-child(4) { width: 20%; }
 
 /* No-body placeholder */
 .no-body {
@@ -532,12 +553,6 @@ body {
     line-height: 1.6;
 }
 
-/* Result cell alignment */
-.result-cell {
-    text-align: left;
-    vertical-align: middle !important;
-}
-
 /* =====================================================================
    Responsive — tablet and mobile
    ===================================================================== */
@@ -556,8 +571,6 @@ body {
     .harness-table td:nth-child(3) { width: auto; }
     .harness-table th:nth-child(4),
     .harness-table td:nth-child(4) { width: auto; }
-    .harness-table th:nth-child(5),
-    .harness-table td:nth-child(5) { width: auto; }
 }
 
 @media (max-width: 768px) {
@@ -626,16 +639,6 @@ body {
         padding: 0.6rem 0.85rem;
     }
     .step-number { font-size: 0.95rem; margin-bottom: 0; }
-
-    /* Result cell — right-align badge in card header */
-    .harness-table tbody td:nth-child(1)::after { content: none; }
-    .harness-table tbody td.result-cell {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        padding: 0.5rem 0.85rem;
-        background: var(--surface-raised);
-    }
 
     /* Row result state — left border on card */
     .harness-table tbody tr.result-pass {

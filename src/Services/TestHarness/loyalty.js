@@ -156,17 +156,12 @@
             const scClass = ex.statusCode >= 200 && ex.statusCode < 300 ? 'ok' : 'error';
             tdExpected.innerHTML = `<div class="expected-status ${scClass}">${ex.statusCode} ${statusLabel(ex.statusCode)}</div>`;
 
-            // Result cell — filled after live run
-            const tdResult = document.createElement('td');
-            tdResult.className = 'result-cell';
-
             row.appendChild(tdStep);
             row.appendChild(tdName);
             row.appendChild(tdApi);
             row.appendChild(tdExpected);
-            row.appendChild(tdResult);
 
-            const ref = { row, step, resultCell: tdResult, idx };
+            const ref = { row, step, idx };
             rowRefs.push(ref);
 
             row.addEventListener('click', () => openStepModal(ref.currentStep || ref.step, ref.idx));
@@ -327,7 +322,7 @@
     }
 
     async function runStep(ref, currentSteps) {
-        const { resultCell, row, idx } = ref;
+        const { row, idx } = ref;
         const step = currentSteps[idx];
         ref.currentStep = step;
 
@@ -427,11 +422,6 @@
 
         // Store result for modal display
         liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, url };
-
-        // Update slim result cell with badge
-        resultCell.innerHTML = statusMatch
-            ? '<span class="result-badge pass">Pass</span>'
-            : '<span class="result-badge fail">Fail</span>';
     }
 
     function appendLiveResult(cell, step, liveStatus, liveBody, liveError, statusMatch, actualUrl) {
