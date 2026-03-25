@@ -95,14 +95,14 @@ Register a new loyalty programme member. Orchestrates the three-step creation of
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `givenName` | string | Yes | Customer's given (first) name. Max 100 characters |
-| `surname` | string | Yes | Customer's surname. Max 100 characters |
-| `dateOfBirth` | string (date) | No | ISO 8601 date, e.g. `"1988-03-22"` |
-| `email` | string | Yes | Email address for login. Must be unique. Max 254 characters (RFC 5321) |
-| `password` | string | Yes | Plaintext password; hashed with Argon2id by Identity MS before storage |
-| `preferredLanguage` | string | No | BCP 47 language tag, e.g. `"en-GB"`. Defaults to `en-GB` |
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `givenName` | string | Yes | Max 100 characters; must not be blank | Customer's given (first) name |
+| `surname` | string | Yes | Max 100 characters; must not be blank | Customer's surname |
+| `dateOfBirth` | string (date) | No | ISO 8601 date; must not be a future date | Date of birth, e.g. `"1988-03-22"` |
+| `email` | string | Yes | Max 254 characters (RFC 5321); must be unique | Email address for login |
+| `password` | string | Yes | | Plaintext password; hashed with Argon2id by Identity MS before storage |
+| `preferredLanguage` | string | No | BCP 47 language tag, exactly 5 characters in `xx-XX` format (e.g. `en-GB`, `fr-FR`). Bare codes like `en` are rejected | Preferred language. Defaults to `en-GB` |
 
 #### Response — `201 Created`
 
@@ -126,7 +126,7 @@ Register a new loyalty programme member. Orchestrates the three-step creation of
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields or invalid field format (e.g. malformed date, invalid language tag) |
+| `400 Bad Request` | Missing required fields (`givenName`, `surname`, `email`, `password`), `preferredLanguage` not in `xx-XX` BCP 47 format, `dateOfBirth` is a future date, or field exceeds max length |
 | `409 Conflict` | Email address is already registered. Response must not confirm the email belongs to an existing account — return a generic conflict message only |
 | `500 Internal Server Error` | Downstream microservice call failed; any partial records created are rolled back per the failure-handling rules above |
 
@@ -542,14 +542,14 @@ Send only the fields being changed:
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `givenName` | string | No | Max 100 characters |
-| `surname` | string | No | Max 100 characters |
-| `dateOfBirth` | string (date) | No | ISO 8601 date |
-| `nationality` | string | No | ISO 3166-1 alpha-3 country code |
-| `phoneNumber` | string | No | Phone number with country code. Max 30 characters |
-| `preferredLanguage` | string | No | BCP 47 language tag |
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `givenName` | string | No | Max 100 characters; must not be blank when provided | Customer's given name |
+| `surname` | string | No | Max 100 characters; must not be blank when provided | Customer's surname |
+| `dateOfBirth` | string (date) | No | ISO 8601 date; must not be a future date | Date of birth |
+| `nationality` | string | No | ISO 3166-1 alpha-2 country code, exactly 2 uppercase letters (e.g. `GB`, `US`, `NG`) | Nationality |
+| `phoneNumber` | string | No | Max 30 characters; must match phone format (e.g. `+447700900123`); must not be blank when provided | Phone number with international dialling code |
+| `preferredLanguage` | string | No | BCP 47 language tag, exactly 5 characters in `xx-XX` format (e.g. `en-GB`, `fr-FR`). Bare codes like `en` are rejected | Preferred language |
 
 #### Response — `200 OK`
 
@@ -559,7 +559,7 @@ Returns the full updated customer record in the same schema as `GET /v1/customer
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Invalid field format (e.g. malformed date, invalid country code) |
+| `400 Bad Request` | Invalid field format: `preferredLanguage` not in `xx-XX` BCP 47 format, `nationality` not a 2-letter ISO 3166-1 alpha-2 code, `phoneNumber` exceeds 30 characters or contains invalid characters, `givenName`/`surname` exceed 100 characters or are blank, or `dateOfBirth` is a future date |
 | `401 Unauthorized` | Missing or invalid JWT |
 | `404 Not Found` | No customer found for the given loyalty number |
 
