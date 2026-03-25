@@ -1,4 +1,5 @@
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -35,6 +36,10 @@ public sealed class CustomerServiceClient
     {
         var body = new { givenName, surname, dateOfBirth, preferredLanguage };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/customers", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await ReadErrorMessageAsync(response, cancellationToken));
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<CreateCustomerDto>(JsonOptions, cancellationToken);
@@ -80,6 +85,9 @@ public sealed class CustomerServiceClient
         if (response.StatusCode == HttpStatusCode.NotFound)
             return false;
 
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await ReadErrorMessageAsync(response, cancellationToken));
+
         response.EnsureSuccessStatusCode();
         return true;
     }
@@ -111,5 +119,24 @@ public sealed class CustomerServiceClient
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<TransactionsDto>(JsonOptions, cancellationToken);
+    }
+
+    private static async Task<string> ReadErrorMessageAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var apiError = await response.Content.ReadFromJsonAsync<ApiError>(JsonOptions, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(apiError?.Error))
+                return apiError.Error;
+        }
+        catch
+        {
+            // Fall through to raw body read
+        }
+
+        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+        return string.IsNullOrWhiteSpace(raw) ? "Validation failed." : raw;
     }
 }
