@@ -406,7 +406,7 @@
         },
         "body": {
           "phoneNumber": "+447700900456",
-          "preferredLanguage": "fr",
+          "preferredLanguage": "fr-FR",
           "nationality": "GB"
         },
         "dataChain": [
@@ -421,7 +421,7 @@
         ],
         "diff": {
           "phoneNumber": { "from": "+447700900123", "to": "+447700900456" },
-          "preferredLanguage": { "from": "en", "to": "fr" },
+          "preferredLanguage": { "from": "en-GB", "to": "fr-FR" },
           "nationality": { "from": null, "to": "GB" }
         }
       },
@@ -433,7 +433,7 @@
         "statusCode": 204,
         "description": "204 No Content — profile updated successfully. No response body. A subsequent GET /profile would reflect the changes.",
         "keyFields": [],
-        "validationNotes": "Only permitted fields are accepted: givenName, surname, dateOfBirth, nationality, phoneNumber, preferredLanguage. Fields like tier, points, identityId are ignored. Partial update — omitted fields are not cleared."
+        "validationNotes": "Only permitted fields are accepted: givenName, surname, dateOfBirth, nationality, phoneNumber, preferredLanguage. Fields like tier, points, identityId are ignored. Partial update — omitted fields are not cleared. preferredLanguage must be xx-XX BCP 47 format (e.g. fr-FR). nationality must be 2-letter ISO 3166-1 alpha-2 (e.g. GB)."
       },
       "chainsTo": []
     },
@@ -474,7 +474,7 @@
           "lastName": "Name",
           "email": "generated.name@testmail.example.com",
           "phoneNumber": "+447700900456",
-          "preferredLanguage": "fr",
+          "preferredLanguage": "fr-FR",
           "nationality": "GB",
           "dateOfBirth": "1990-06-15",
           "tier": "Blue",
@@ -486,7 +486,7 @@
         "statusCode": 200,
         "description": "200 OK — profile returned with the updated values from Step 9. Confirms the PATCH was persisted.",
         "keyFields": ["phoneNumber", "preferredLanguage", "nationality"],
-        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr', nationality must be 'GB'. All other fields should be unchanged from Step 7."
+        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr-FR', nationality must be 'GB'. All other fields should be unchanged from Step 7."
       },
       "chainsTo": []
     },
