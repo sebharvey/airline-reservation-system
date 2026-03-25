@@ -38,7 +38,7 @@ public sealed class CustomerServiceClient
         var response = await _httpClient.PostAsJsonAsync("/api/v1/customers", body, JsonOptions, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.BadRequest)
-            throw new ArgumentException(await ReadErrorMessageAsync(response, cancellationToken));
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
 
         response.EnsureSuccessStatusCode();
 
@@ -86,7 +86,7 @@ public sealed class CustomerServiceClient
             return false;
 
         if (response.StatusCode == HttpStatusCode.BadRequest)
-            throw new ArgumentException(await ReadErrorMessageAsync(response, cancellationToken));
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
 
         response.EnsureSuccessStatusCode();
         return true;
@@ -119,24 +119,5 @@ public sealed class CustomerServiceClient
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<TransactionsDto>(JsonOptions, cancellationToken);
-    }
-
-    private static async Task<string> ReadErrorMessageAsync(
-        HttpResponseMessage response,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var apiError = await response.Content.ReadFromJsonAsync<ApiError>(JsonOptions, cancellationToken);
-            if (!string.IsNullOrWhiteSpace(apiError?.Error))
-                return apiError.Error;
-        }
-        catch
-        {
-            // Fall through to raw body read
-        }
-
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        return string.IsNullOrWhiteSpace(raw) ? "Validation failed." : raw;
     }
 }
