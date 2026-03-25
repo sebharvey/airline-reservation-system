@@ -48,7 +48,7 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8] }
+        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10] }
       ]
     },
     {
@@ -214,9 +214,9 @@
         "validationNotes": "accessToken is a signed JWT (RS256). refreshToken is opaque and single-use. loyaltyNumber starts with 'AX' and is 9 characters. expiresAt is ISO 8601 UTC, approximately 15 minutes from now."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [6, 7, 8] },
+        { "field": "accessToken", "usedInSteps": [6, 7, 10] },
         { "field": "refreshToken", "usedInSteps": [6] },
-        { "field": "loyaltyNumber", "usedInSteps": [7, 8, 9] }
+        { "field": "loyaltyNumber", "usedInSteps": [7, 8, 9, 10, 11] }
       ]
     },
     {
@@ -259,8 +259,8 @@
         "validationNotes": "New accessToken replaces the one from Step 5. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 5 is revoked and cannot be reused."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [7, 8, 9] },
-        { "field": "refreshToken", "usedInSteps": [11] }
+        { "field": "accessToken", "usedInSteps": [7, 10, 11] },
+        { "field": "refreshToken", "usedInSteps": [13] }
       ]
     },
     {
@@ -316,8 +316,102 @@
     },
     {
       "step": 8,
+      "name": "Add points — first credit",
+      "description": "Call the Customer MS points/add endpoint to credit the account with an initial batch of points. This is the first of two point additions that will be verified in the transaction history in Step 10.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/points/add",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "points": 500,
+          "transactionType": "Earn",
+          "description": "Flight earn — LHR to JFK"
+        },
+        "dataChain": [
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "pointsAdded": 500,
+          "newPointsBalance": 500,
+          "transactionId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "addedAt": "2026-03-25T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 500 points credited to the account. Response confirms the points added, the new running balance, and the transaction ID for the ledger entry.",
+        "keyFields": ["loyaltyNumber", "pointsAdded", "newPointsBalance", "transactionId"],
+        "validationNotes": "pointsAdded must be 500. newPointsBalance must be 500 (account started at 0). transactionId is a non-empty GUID. loyaltyNumber matches the value from Step 5."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 9,
+      "name": "Add points — second credit",
+      "description": "Call the Customer MS points/add endpoint a second time to credit an additional batch of points. Together with Step 8, this creates two ledger entries that are verified in Step 10.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/points/add",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "points": 250,
+          "transactionType": "Earn",
+          "description": "Flight earn — AMS to DXB"
+        },
+        "dataChain": [
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "pointsAdded": 250,
+          "newPointsBalance": 750,
+          "transactionId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+          "addedAt": "2026-03-25T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 250 points credited to the account. newPointsBalance reflects the cumulative total after both additions (500 + 250 = 750).",
+        "keyFields": ["loyaltyNumber", "pointsAdded", "newPointsBalance", "transactionId"],
+        "validationNotes": "pointsAdded must be 250. newPointsBalance must be 750 (500 from Step 8 plus 250 from this call). transactionId is a non-empty GUID distinct from the one returned in Step 8."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 10,
       "name": "View transactions",
-      "description": "Retrieve the transaction history for the authenticated customer. Shows point earn/redeem activity with pagination.",
+      "description": "Retrieve the transaction history for the authenticated customer. Verifies that both point credits added in Steps 8 and 9 appear as distinct ledger entries with correct point deltas.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
@@ -360,34 +454,34 @@
               "transactionType": "Earn",
               "pointsDelta": 500,
               "balanceAfter": 500,
-              "bookingReference": "ABCDEF",
-              "flightNumber": "AX101",
+              "bookingReference": null,
+              "flightNumber": null,
               "description": "Flight earn — LHR to JFK",
-              "transactionDate": "2026-03-20T08:30:00Z"
+              "transactionDate": "2026-03-25T10:00:00Z"
             },
             {
               "transactionId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-              "transactionType": "Redeem",
-              "pointsDelta": -200,
-              "balanceAfter": 300,
+              "transactionType": "Earn",
+              "pointsDelta": 250,
+              "balanceAfter": 750,
               "bookingReference": null,
               "flightNumber": null,
-              "description": "Lounge access redemption",
-              "transactionDate": "2026-03-22T14:00:00Z"
+              "description": "Flight earn — AMS to DXB",
+              "transactionDate": "2026-03-25T10:05:00Z"
             }
           ]
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — paginated transaction history. Each transaction includes type, point delta (positive for earn, negative for redeem), running balance, and optional booking/flight references.",
+        "description": "200 OK — transaction history contains exactly 2 entries, one for each points/add call made in Steps 8 and 9. totalCount must be 2.",
         "keyFields": ["loyaltyNumber", "page", "pageSize", "totalCount", "transactions"],
-        "validationNotes": "transactionType is one of: Earn, Redeem, Adjustment, Expiry, Reinstate. pointsDelta is positive for credits, negative for debits. balanceAfter is the running balance after each transaction. A new account may return an empty transactions array with totalCount 0."
+        "validationNotes": "totalCount must be 2. transactions array must contain exactly 2 entries. First transaction: pointsDelta 500, transactionType Earn, description 'Flight earn — LHR to JFK'. Second transaction: pointsDelta 250, transactionType Earn, description 'Flight earn — AMS to DXB'. balanceAfter on the second transaction must be 750."
       },
       "chainsTo": []
     },
     {
-      "step": 9,
+      "step": 11,
       "name": "Update profile",
       "description": "Patch the customer's profile with updated fields. Only the provided fields are modified; omitted fields remain unchanged.",
       "type": "positive",
@@ -438,9 +532,9 @@
       "chainsTo": []
     },
     {
-      "step": 10,
+      "step": 12,
       "name": "Verify profile update",
-      "description": "Re-fetch the profile after the PATCH in Step 9 to confirm the updated fields are persisted. phoneNumber, preferredLanguage, and nationality should reflect the values submitted in Step 9.",
+      "description": "Re-fetch the profile after the PATCH in Step 11 to confirm the updated fields are persisted. phoneNumber, preferredLanguage, and nationality should reflect the values submitted in Step 11.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
@@ -478,20 +572,20 @@
           "nationality": "GB",
           "dateOfBirth": "1990-06-15",
           "tier": "Blue",
-          "pointsBalance": 0,
+          "pointsBalance": 750,
           "memberSince": "2026-03-24T10:00:00Z"
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — profile returned with the updated values from Step 9. Confirms the PATCH was persisted.",
+        "description": "200 OK — profile returned with the updated values from Step 11. Confirms the PATCH was persisted.",
         "keyFields": ["phoneNumber", "preferredLanguage", "nationality"],
-        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr-FR', nationality must be 'GB'. All other fields should be unchanged from Step 7."
+        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr-FR', nationality must be 'GB'. pointsBalance must be 750, reflecting the two credits added in Steps 8 and 9. All other fields should be unchanged from Step 7."
       },
       "chainsTo": []
     },
     {
-      "step": 11,
+      "step": 13,
       "name": "Logout",
       "description": "Invalidate the session by revoking the refresh token. The access token remains valid until its TTL expires (~15 min).",
       "type": "positive",
