@@ -57,19 +57,46 @@ public sealed class ScheduleFunction
             return await req.BadRequestAsync("The fields 'flightNumber', 'origin', 'destination', and 'aircraftType' are required.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.DepartureTime) || string.IsNullOrWhiteSpace(request.ArrivalTime))
+            return await req.BadRequestAsync("The fields 'departureTime' and 'arrivalTime' are required.");
+
+        if (string.IsNullOrWhiteSpace(request.ValidFrom) || string.IsNullOrWhiteSpace(request.ValidTo))
+            return await req.BadRequestAsync("The fields 'validFrom' and 'validTo' are required.");
+
+        if (request.DaysOfWeek is < 1 or > 127)
+            return await req.BadRequestAsync("The 'daysOfWeek' bitmask must be between 1 and 127.");
+
+        if (request.Cabins.Count == 0)
+            return await req.BadRequestAsync("At least one cabin definition is required.");
+
         var command = new CreateScheduleCommand(
             request.FlightNumber,
             request.Origin,
             request.Destination,
             request.DepartureTime,
             request.ArrivalTime,
+            request.ArrivalDayOffset,
+            request.DaysOfWeek,
             request.AircraftType,
-            request.EffectiveFrom,
-            request.EffectiveTo,
-            request.OperatingDays);
+            request.ValidFrom,
+            request.ValidTo,
+            request.Cabins);
 
-        var result = await _createScheduleHandler.HandleAsync(command, cancellationToken);
-        return await req.CreatedAsync($"/v1/schedules/{result.ScheduleId}", result);
+        try
+        {
+            var result = await _createScheduleHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync($"/v1/schedules/{result.ScheduleId}", result);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error in CreateSchedule");
+            return await req.BadRequestAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create schedule for {FlightNumber}", request.FlightNumber);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------

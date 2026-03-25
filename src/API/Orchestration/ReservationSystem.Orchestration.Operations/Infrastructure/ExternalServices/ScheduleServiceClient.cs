@@ -1,4 +1,7 @@
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
+using ReservationSystem.Shared.Common.Http;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -19,6 +22,38 @@ public sealed class ScheduleServiceClient
     public ScheduleServiceClient(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("ScheduleMs");
+    }
+
+    public async Task<CreateScheduleDto> CreateScheduleAsync(
+        object scheduleRequest,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/schedules", scheduleRequest, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<CreateScheduleDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Schedule MS create schedule.");
+    }
+
+    public async Task<UpdateScheduleDto> UpdateScheduleAsync(
+        Guid scheduleId,
+        int flightsCreated,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { flightsCreated };
+        var response = await _httpClient.PatchAsJsonAsync($"/api/v1/schedules/{scheduleId}", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Schedule '{scheduleId}' not found.");
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<UpdateScheduleDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Schedule MS update schedule.");
     }
 
     public async Task<ImportSsimResponse> ImportSsimAsync(
