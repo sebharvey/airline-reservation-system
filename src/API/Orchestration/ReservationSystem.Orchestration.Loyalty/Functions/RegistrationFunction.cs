@@ -144,33 +144,4 @@ public sealed class RegistrationFunction
         }
     }
 
-    // -------------------------------------------------------------------------
-    // POST /v1/accounts/{userAccountId}/email/change-request
-    // -------------------------------------------------------------------------
-
-    [Function("EmailChangeRequest")]
-    [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Registration" }, Summary = "Request email change")]
-    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account ID")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(EmailChangeResponse), Description = "OK")]
-    public Task<HttpResponseData> EmailChangeRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
-        Guid userAccountId,
-        CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/email/verify
-    // -------------------------------------------------------------------------
-
-    [Function("VerifyEmailToken")]
-    [OpenApiOperation(operationId: "VerifyEmailToken", tags: new[] { "Registration" }, Summary = "Verify email change token")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(EmailChangeResponse), Description = "OK")]
-    public Task<HttpResponseData> VerifyEmailToken(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/email/verify")] HttpRequestData req,
-        CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
-    }
 }
