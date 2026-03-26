@@ -6,7 +6,7 @@ The Order microservice manages the complete booking lifecycle — from basket cr
 - All state-changing operations publish an event to the event bus for downstream consumption (e.g. Accounting, Customer). Three event types are defined:
   - `OrderConfirmed` — published on initial order creation; consumed by Accounting (revenue recording) and Customer (points accrual if `loyaltyNumber` present). For reward bookings, the event includes `bookingType=Reward`, `totalPointsAmount`, and `redemptionReference` so Accounting can record the points liability separately from cash revenue.
   - `OrderChanged` — published on post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook); consumed by Accounting for revenue adjustment. For reward booking changes, includes `pointsAdjustment` (positive = additional points redeemed, negative = points reinstated) and updated `totalPointsAmount`.
-  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentReference` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
+  - `OrderCancelled` — published on voluntary cancellation; contains `refundableAmount` and `originalPaymentId` for Accounting to initiate refund processing. For reward bookings, additionally includes `bookingType=Reward`, `pointsReinstated` (total points restored to customer), and `redemptionReference` so Accounting can reverse the points liability entry.
 - The Order microservice is the sole owner of order state; all changes — PAX updates, seat changes, flight changes, ancillary additions, cancellations — are orchestrated through the Retail API.
 - An initial `OrderInit` status is supported for orders that are being assembled incrementally — particularly by Contact Centre agents using the Terminal app who build bookings in stages. An order in `OrderInit` cannot advance to `Confirmed` (and will not have a booking reference / PNR generated) until all mandatory fields are present: passenger names, itinerary, ticketing time limit, a contact field (email or phone), and the identity of the person creating the booking (sales agent reference, or `WEB` for web-originated orders). The `OrderInit` state is only relevant for Contact Centre channel bookings via the Terminal app; web, app, and kiosk bookings progress directly from basket creation to confirmation without entering `OrderInit`. **The Terminal app and the `OrderInit` flow are out of scope for the current release.** The `OrderStatus` field must include `OrderInit` as a valid value in the data model to support future implementation without a breaking schema change, but no endpoints or orchestration flows for `OrderInit` are built at this time.
 
@@ -120,21 +120,21 @@ sequenceDiagram
     end
 
     alt Revenue booking — authorise fare payment
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalFareAmount, currency, card details, description=Fare)
-        PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentReference-1)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalFareAmount, currency, card details, description=Fare)
+        PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentId-1)
     else Reward booking — authorise tax payment only
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
-        PaymentMS-->>RetailAPI: 200 OK — taxes authorisation confirmed (paymentReference-1)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
+        PaymentMS-->>RetailAPI: 200 OK — taxes authorisation confirmed (paymentId-1)
     end
 
     opt Seats were selected during bookflow
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalSeatAmount, card token from paymentReference-1, description=SeatAncillary)
-        PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentReference-2)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-2}/authorise (amount=totalSeatAmount, card token from paymentId-1, description=SeatAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — seat authorisation confirmed (paymentId-2)
     end
 
     opt Bags were selected during bookflow
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalBagAmount, card token from paymentReference-1, description=BagAncillary)
-        PaymentMS-->>RetailAPI: 200 OK — bag authorisation confirmed (paymentReference-3)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-3}/authorise (amount=totalBagAmount, card token from paymentId-1, description=BagAncillary)
+        PaymentMS-->>RetailAPI: 200 OK — bag authorisation confirmed (paymentId-3)
     end
 
     RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
@@ -148,13 +148,13 @@ sequenceDiagram
         Note over CustomerMS: PointsBalance decremented, LoyaltyTransaction appended (type=Redeem)
     end
 
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-1}/settle (settledAmount)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — payment settled
 
     alt Revenue booking
-        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentReferences — fare + any ancillaries)
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentIds — fare + any ancillaries)
     else Reward booking
-        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentReferences, redemptionReference, bookingType=Reward)
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentIds, redemptionReference, bookingType=Reward)
     end
     OrderMS-->>RetailAPI: 201 Created — order confirmed (6-digit bookingReference)
     Note over OrderMS: Basket record deleted on successful order confirmation
@@ -164,12 +164,12 @@ sequenceDiagram
 
     Note over RetailAPI, PaymentMS: Settle ancillary payments after order confirmation - failure does not roll back the booking but must be flagged for manual reconciliation
     opt Seats were selected during bookflow
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-2}/settle (settledAmount)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-2}/settle (settledAmount)
         PaymentMS-->>RetailAPI: 200 OK — seat payment settled
     end
 
     opt Bags were selected during bookflow
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference-3}/settle (settledAmount)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-3}/settle (settledAmount)
         PaymentMS-->>RetailAPI: 200 OK — bag payment settled
     end
 
@@ -261,7 +261,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - Basket is in `Active` status
   - `now < TicketingTimeLimit` — if elapsed, basket must be marked `Expired` and inventory released
   - All stored offers referenced in the basket are unconsumed and not expired
-  - Fare payment has been successfully authorised (`paymentReference` held)
+  - Fare payment has been successfully authorised (`paymentId` held)
 
 - **E-ticket issuance** (Retail API → Delivery MS):
   - Retail API calls `POST /v1/tickets` on the Delivery microservice, passing: basket ID, passenger details, and flight segments
@@ -273,11 +273,11 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - This step must complete before order confirmation is written
 
 - **Fare payment settlement** (Retail API → Payment MS):
-  - Retail API calls `POST /v1/payment/{paymentReference}/settle` to move the authorised fare payment to `Settled`
+  - Retail API calls `POST /v1/payment/{paymentId}/settle` to move the authorised fare payment to `Settled`
 
 - **Order confirmation** (Retail API → Order MS):
   - Retail API calls the Order microservice to convert the basket into a confirmed `order.Order` record
-  - Payload includes: basket ID, all e-ticket numbers (per PAX per segment), and all payment references
+  - Payload includes: basket ID, all e-ticket numbers (per PAX per segment), and all payment IDs
   - Order MS writes the `order.Order` row with `OrderStatus = Confirmed` and a generated 6-character `BookingReference`
   - Order MS hard-deletes the basket row
   - Order MS publishes `OrderConfirmed` event to the event bus
@@ -288,7 +288,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
 
 - **Ancillary settlement** (if seats or bags were selected during the bookflow):
   - Ancillary payments are authorised during the bookflow basket-confirm step, **before** order confirmation is written, so that all payment authorisations are in place when the order is created
-  - Settlement of each ancillary payment occurs **after** order confirmation: `POST /v1/payment/{paymentReference}/settle` is called once for seat ancillary and once for bag ancillary, each with their own `PaymentReference`
+  - Settlement of each ancillary payment occurs **after** order confirmation: `POST /v1/payment/{paymentId}/settle` is called once for seat ancillary and once for bag ancillary, each with their own `PaymentId`
   - Failure of an ancillary settlement does not roll back the confirmed booking (the order is already confirmed and e-tickets issued), but must be flagged for manual reconciliation via the Payment audit trail
 
 #### Reissuance
@@ -623,7 +623,7 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "totalPrice": 437.25,
       "isRefundable": true,
       "isChangeable": true,
-      "paymentReference": "AXPAY-0001",
+      "paymentId": "d4f5a6b7-1111-4c8d-9e0f-1a2b3c4d5e01",
       "eTickets": [
         { "passengerId": "PAX-1", "eTicketNumber": "932-1234567890" },
         { "passengerId": "PAX-2", "eTicketNumber": "932-1234567891" }
@@ -646,7 +646,7 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "totalPrice": 437.25,
       "isRefundable": true,
       "isChangeable": true,
-      "paymentReference": "AXPAY-0001",
+      "paymentId": "d4f5a6b7-1111-4c8d-9e0f-1a2b3c4d5e01",
       "eTickets": [
         { "passengerId": "PAX-1", "eTicketNumber": "932-1234567892" },
         { "passengerId": "PAX-2", "eTicketNumber": "932-1234567893" }
@@ -694,12 +694,12 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "unitPrice": 60.00,
       "taxes": 0.00,
       "totalPrice": 60.00,
-      "paymentReference": "AXPAY-0002"
+      "paymentId": "e5a6b7c8-2222-4d9e-af01-2b3c4d5e6f02"
     }
   ],
   "payments": [
     {
-      "paymentReference": "AXPAY-0001",
+      "paymentId": "d4f5a6b7-1111-4c8d-9e0f-1a2b3c4d5e01",
       "description": "Fare — LHR-JFK-LHR, 2 PAX",
       "method": "CreditCard",
       "cardLast4": "4242",
@@ -712,7 +712,7 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
       "settledAt": "2025-06-01T10:32:00Z"
     },
     {
-      "paymentReference": "AXPAY-0002",
+      "paymentId": "e5a6b7c8-2222-4d9e-af01-2b3c4d5e6f02",
       "description": "Bag ancillary — SEG-1, PAX-1, 1 additional bag",
       "method": "CreditCard",
       "cardLast4": "4242",

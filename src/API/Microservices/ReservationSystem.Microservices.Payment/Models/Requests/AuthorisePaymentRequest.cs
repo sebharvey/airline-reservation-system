@@ -3,25 +3,13 @@ using System.Text.Json.Serialization;
 namespace ReservationSystem.Microservices.Payment.Models.Requests;
 
 /// <summary>
-/// HTTP request body for POST /v1/payment/authorise.
-/// Matches the API specification contract with nested cardDetails object.
+/// HTTP request body for POST /v1/payment/{paymentId}/authorise.
+/// Card details only — amount and order context are already set at initialisation.
 /// </summary>
 public sealed class AuthorisePaymentRequest
 {
-    [JsonPropertyName("amount")]
-    public decimal Amount { get; init; }
-
-    [JsonPropertyName("currencyCode")]
-    public string CurrencyCode { get; init; } = string.Empty;
-
     [JsonPropertyName("cardDetails")]
     public CardDetailsRequest? CardDetails { get; init; }
-
-    [JsonPropertyName("paymentType")]
-    public string PaymentType { get; init; } = string.Empty;
-
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
 }
 
 /// <summary>

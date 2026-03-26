@@ -43,7 +43,7 @@ Indexes must be designed around documented read access patterns and reviewed reg
 
 - Every table has at minimum its primary key index; additional indexes justified by a documented query pattern and dropped if unused.
 - Partial (filtered) indexes used where queries consistently target a row subset (e.g. basket expiry job indexes only `BasketStatus = 'Active'`).
-- Unique indexes enforce business-level uniqueness constraints (e.g. `BookingReference`, `LoyaltyNumber`, `PaymentReference`, compound seat/passenger constraints on manifests); not left to application-layer enforcement alone.
+- Unique indexes enforce business-level uniqueness constraints (e.g. `BookingReference`, `LoyaltyNumber`, `PaymentId`, compound seat/passenger constraints on manifests); not left to application-layer enforcement alone.
 
 ---
 

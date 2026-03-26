@@ -91,11 +91,11 @@ sequenceDiagram
 
     Note over RetailAPI, PaymentMS: Take payment for seat ancillary
     RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=SeatAncillary)
-    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference)
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentId)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — seat payment settled
 
-    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds, PAX seats, paymentReference)
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds, PAX seats, paymentId)
     OrderMS-->>RetailAPI: 200 OK — order updated with Seat order items
 
     RetailAPI->>DeliveryMS: POST /v1/tickets/reissue (bookingReference, updated seat assignments)

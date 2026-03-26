@@ -1,0 +1,494 @@
+{
+  "journey": {
+    "name": "Payment API Test",
+    "description": "Tests all Payment microservice endpoints — initialise, authorise, settle, void, and refund — with happy path and negative scenarios.",
+    "domain": "Payment",
+    "baseUrls": [
+      { "id": "payment", "label": "Payment MS", "url": "https://reservation-system-db-microservice-payment-uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Initialise payment",
+      "description": "Create a new payment record. Returns a paymentId (GUID) used in all subsequent operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/initialise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "bookingReference": "TS1234",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "currencyCode": "GBP",
+          "amount": 250.00,
+          "description": "Test payment"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "amount": 250.00,
+          "status": "Initialised"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — payment initialised. Returns generated paymentId, amount, and Initialised status.",
+        "keyFields": ["paymentId", "amount", "status"],
+        "validationNotes": "paymentId is a GUID. status = 'Initialised'. amount matches the request."
+      },
+      "chainsTo": [
+        { "field": "paymentId", "as": "paymentIdA", "usedInSteps": [2, 3, 9, 11] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Authorise payment",
+      "description": "Authorise the initialised payment with card details. Creates a PaymentEvent row.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/authorise",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-1" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "authorisedAmount": 250.00,
+          "status": "Authorised"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment authorised. CardType derived from BIN, CardLast4 extracted, PaymentEvent created.",
+        "keyFields": ["paymentId", "authorisedAmount", "status"],
+        "validationNotes": "status = 'Authorised'. authorisedAmount matches the amount set at initialisation."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 3,
+      "name": "Settle payment",
+      "description": "Settle the authorised payment, capturing funds. Updates PaymentEvent to Settled.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/settle",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-1" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 250.00
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "settledAmount": 250.00,
+          "settledAt": "2026-03-26T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment settled. Funds captured. PaymentEvent updated to Settled.",
+        "keyFields": ["paymentId", "settledAmount", "settledAt"],
+        "validationNotes": "settledAmount matches request. settledAt is UTC ISO 8601."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Initialise payment (void path)",
+      "description": "Create a second payment to test the void flow.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/initialise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "bookingReference": "TS1234",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "currencyCode": "GBP",
+          "amount": 75.00,
+          "description": "Test payment for void"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+          "amount": 75.00,
+          "status": "Initialised"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — second payment initialised for void test.",
+        "keyFields": ["paymentId", "amount", "status"],
+        "validationNotes": "New paymentId distinct from Step 1."
+      },
+      "chainsTo": [
+        { "field": "paymentId", "as": "paymentIdB", "usedInSteps": [5, 6, 10] }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Authorise payment (void path)",
+      "description": "Authorise the second payment before voiding it.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/authorise",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-4" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "cardDetails": {
+            "cardNumber": "5425233430109903",
+            "expiryDate": "01/29",
+            "cvv": "456",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+          "authorisedAmount": 75.00,
+          "status": "Authorised"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment authorised with Mastercard (5xxx BIN).",
+        "keyFields": ["paymentId", "authorisedAmount", "status"],
+        "validationNotes": "authorisedAmount = 75.00. status = 'Authorised'."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Void payment",
+      "description": "Void the authorised payment, releasing held funds. Updates PaymentEvent to Voided.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/void",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-4" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "reason": "TestVoid"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+          "status": "Voided"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment voided. Held funds released.",
+        "keyFields": ["paymentId", "status"],
+        "validationNotes": "status = 'Voided'."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Initialise payment (refund path)",
+      "description": "Create a third payment to test the full init-auth-settle-refund lifecycle.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/initialise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "bookingReference": "TS5678",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "currencyCode": "GBP",
+          "amount": 120.00,
+          "description": "Test payment for refund"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "amount": 120.00,
+          "status": "Initialised"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — third payment initialised for refund test.",
+        "keyFields": ["paymentId", "amount", "status"],
+        "validationNotes": "New paymentId for the refund scenario."
+      },
+      "chainsTo": [
+        { "field": "paymentId", "as": "paymentIdC", "usedInSteps": [8, 9, 10, 12] }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Authorise payment (refund path)",
+      "description": "Authorise the third payment.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/authorise",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-7" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "authorisedAmount": 120.00,
+          "status": "Authorised"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment authorised.",
+        "keyFields": ["paymentId", "authorisedAmount", "status"],
+        "validationNotes": "authorisedAmount = 120.00."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 9,
+      "name": "Settle payment (refund path)",
+      "description": "Settle the third payment so it can be refunded.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/settle",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-7" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 120.00
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "settledAmount": 120.00,
+          "settledAt": "2026-03-26T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment settled.",
+        "keyFields": ["paymentId", "settledAmount", "settledAt"],
+        "validationNotes": "settledAmount = 120.00."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 10,
+      "name": "Refund payment",
+      "description": "Refund the settled payment in full. Creates a new PaymentEvent with EventType = Refunded.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/refund",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-7" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "refundAmount": 120.00,
+          "reason": "TestRefund"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "refundedAmount": 120.00,
+          "status": "Refunded"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — full refund processed.",
+        "keyFields": ["paymentId", "refundedAmount", "status"],
+        "validationNotes": "refundedAmount = 120.00. status = 'Refunded'."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 11,
+      "name": "Settle already-settled payment (409)",
+      "description": "Attempt to settle the payment from Step 3 again. Expects 409 Conflict.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/settle",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-1" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 250.00
+        }
+      },
+      "response": {
+        "statusCode": 409,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 409,
+        "description": "409 Conflict — payment already settled.",
+        "keyFields": [],
+        "validationNotes": "Double-settle is rejected."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 12,
+      "name": "Void already-voided payment (409)",
+      "description": "Attempt to void the payment from Step 6 again. Expects 409 Conflict.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{paymentId}/void",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentId": "from-step-4" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "reason": "Duplicate void attempt"
+        }
+      },
+      "response": {
+        "statusCode": 409,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 409,
+        "description": "409 Conflict — payment not in Authorised status.",
+        "keyFields": [],
+        "validationNotes": "Cannot void a payment that is already voided."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 13,
+      "name": "Authorise non-existent payment (404)",
+      "description": "Attempt to authorise a paymentId that does not exist.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/00000000-0000-0000-0000-000000000000/authorise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 404,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "404 Not Found — no payment exists for this paymentId.",
+        "keyFields": [],
+        "validationNotes": "Zero UUID returns not found."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 14,
+      "name": "Settle non-existent payment (404)",
+      "description": "Attempt to settle a paymentId that does not exist.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/00000000-0000-0000-0000-000000000000/settle",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 100.00
+        }
+      },
+      "response": {
+        "statusCode": 404,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "404 Not Found — no payment exists for this paymentId.",
+        "keyFields": [],
+        "validationNotes": "Zero UUID returns not found."
+      },
+      "chainsTo": []
+    }
+  ]
+}

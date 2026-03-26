@@ -9,6 +9,7 @@ namespace ReservationSystem.Microservices.Payment.Application.SettlePayment;
 /// <summary>
 /// Handles the <see cref="SettlePaymentCommand"/>.
 /// Settles a previously authorised payment by capturing the funds.
+/// Updates the existing PaymentEvent row created at authorisation.
 /// </summary>
 public sealed class SettlePaymentHandler
 {
@@ -25,28 +26,27 @@ public sealed class SettlePaymentHandler
 
     /// <summary>
     /// Settles the payment identified by the command.
-    /// Returns null when the payment reference does not exist.
-    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be settled
-    /// (wrong status or amount exceeds authorised amount).
+    /// Returns null when the paymentId does not exist.
+    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be settled.
     /// </summary>
     public async Task<SettlePaymentResponse?> HandleAsync(
         SettlePaymentCommand command,
         CancellationToken cancellationToken = default)
     {
-        var payment = await _repository.GetByReferenceAsync(command.PaymentReference, cancellationToken);
+        var payment = await _repository.GetByIdAsync(command.PaymentId, cancellationToken);
 
         if (payment is null)
         {
-            _logger.LogWarning("Settlement requested for unknown payment {PaymentReference}", command.PaymentReference);
+            _logger.LogWarning("Settlement requested for unknown payment {PaymentId}", command.PaymentId);
             return null;
         }
 
         if (payment.Status != PaymentStatus.Authorised)
         {
-            _logger.LogWarning("Cannot settle payment {PaymentReference} — current status is {Status}",
-                command.PaymentReference, payment.Status);
+            _logger.LogWarning("Cannot settle payment {PaymentId} — current status is {Status}",
+                command.PaymentId, payment.Status);
             throw new InvalidOperationException(
-                $"Payment '{command.PaymentReference}' cannot be settled — current status is '{payment.Status}'.");
+                $"Payment '{command.PaymentId}' cannot be settled — current status is '{payment.Status}'.");
         }
 
         if (command.Amount > payment.AuthorisedAmount)
@@ -55,20 +55,29 @@ public sealed class SettlePaymentHandler
                 $"Settled amount ({command.Amount}) exceeds authorised amount ({payment.AuthorisedAmount}).");
         }
 
+        // TODO: Call payment gateway to capture / settle the authorised funds.
+        // Use the gateway authorisation reference obtained during the authorise step.
+        // On failure, leave the payment in Authorised status and return an error.
+
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
-        var paymentEvent = PaymentEvent.Create(
-            payment.PaymentId,
-            PaymentEventType.Settled,
-            command.Amount,
-            payment.CurrencyCode,
-            $"Payment settled for {command.Amount} {payment.CurrencyCode}");
+        var paymentEvent = await _repository.GetEventByPaymentIdAsync(payment.PaymentId, cancellationToken);
 
-        await _repository.CreateEventAsync(paymentEvent, cancellationToken);
+        if (paymentEvent is not null)
+        {
+            var eventType = command.Amount < payment.AuthorisedAmount
+                ? PaymentEventType.PartialSettlement
+                : PaymentEventType.Settled;
 
-        _logger.LogInformation("Settled payment {PaymentReference} for {Amount} {Currency}",
-            command.PaymentReference, command.Amount, payment.CurrencyCode);
+            paymentEvent.Update(eventType, command.Amount,
+                $"Payment settled for {command.Amount} {payment.CurrencyCode}");
+
+            await _repository.UpdateEventAsync(paymentEvent, cancellationToken);
+        }
+
+        _logger.LogInformation("Settled payment {PaymentId} for {Amount} {Currency}",
+            command.PaymentId, command.Amount, payment.CurrencyCode);
 
         return PaymentMapper.ToSettleResponse(payment);
     }

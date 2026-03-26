@@ -7,8 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
+using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
+using ReservationSystem.Microservices.Payment.Application.VoidPayment;
 using ReservationSystem.Microservices.Payment.Domain.Repositories;
 using ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Payment.Swagger;
@@ -49,9 +51,11 @@ var host = new HostBuilder()
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Application use-case handlers ──────────────────────────────────────
+        services.AddScoped<InitialisePaymentHandler>();
         services.AddScoped<AuthorisePaymentHandler>();
         services.AddScoped<SettlePaymentHandler>();
         services.AddScoped<RefundPaymentHandler>();
+        services.AddScoped<VoidPaymentHandler>();
     })
     .Build();
 

@@ -145,7 +145,7 @@ Accountable document records for non-fare ancillary sales — analogous to Elect
 | ETicketNumber | VARCHAR(20) | No | | | Associated e-ticket (links the ancillary to the travel segment it covers) |
 | PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
 | SegmentRef | VARCHAR(20) | No | | | Segment identifier the ancillary applies to (e.g. `SEG-1`) |
-| PaymentReference | VARCHAR(20) | No | | | Associated payment reference, e.g. `AXPAY-0002` |
+| PaymentId | UNIQUEIDENTIFIER | No | | | Associated payment identifier (GUID) |
 | Amount | DECIMAL(10,2) | No | | | Amount charged for this ancillary item |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | IsVoided | BIT | No | `0` | | Set to `1` if the ancillary is refunded or reversed |
@@ -155,7 +155,7 @@ Accountable document records for non-fare ancillary sales — analogous to Elect
 
 ### `DocumentData` JSON structure
 
-Typed columns already present on `delivery.Document` (`documentNumber`, `documentType`, `bookingReference`, `eTicketNumber`, `passengerId`, `segmentRef`, `paymentReference`, `amount`, `currencyCode`, `isVoided`, `createdAt`, `updatedAt`) are excluded from the JSON. The JSON carries the IATA EMD service detail and price breakdown that varies by ancillary type, plus a coupon status and void history.
+Typed columns already present on `delivery.Document` (`documentNumber`, `documentType`, `bookingReference`, `eTicketNumber`, `passengerId`, `segmentRef`, `paymentId`, `amount`, `currencyCode`, `isVoided`, `createdAt`, `updatedAt`) are excluded from the JSON. The JSON carries the IATA EMD service detail and price breakdown that varies by ancillary type, plus a coupon status and void history.
 
 The top-level `ancillaryDetail` object is a discriminated union — its shape depends on `documentType`.
 

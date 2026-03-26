@@ -25,28 +25,27 @@ public sealed class RefundPaymentHandler
 
     /// <summary>
     /// Refunds the payment identified by the command.
-    /// Returns null when the payment reference does not exist.
-    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be refunded
-    /// (wrong status or amount exceeds settled amount).
+    /// Returns null when the paymentId does not exist.
+    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be refunded.
     /// </summary>
     public async Task<RefundPaymentResponse?> HandleAsync(
         RefundPaymentCommand command,
         CancellationToken cancellationToken = default)
     {
-        var payment = await _repository.GetByReferenceAsync(command.PaymentReference, cancellationToken);
+        var payment = await _repository.GetByIdAsync(command.PaymentId, cancellationToken);
 
         if (payment is null)
         {
-            _logger.LogWarning("Refund requested for unknown payment {PaymentReference}", command.PaymentReference);
+            _logger.LogWarning("Refund requested for unknown payment {PaymentId}", command.PaymentId);
             return null;
         }
 
         if (payment.Status != PaymentStatus.Settled && payment.Status != PaymentStatus.PartiallySettled)
         {
-            _logger.LogWarning("Cannot refund payment {PaymentReference} — current status is {Status}",
-                command.PaymentReference, payment.Status);
+            _logger.LogWarning("Cannot refund payment {PaymentId} — current status is {Status}",
+                command.PaymentId, payment.Status);
             throw new InvalidOperationException(
-                $"Payment '{command.PaymentReference}' cannot be refunded — current status is '{payment.Status}'.");
+                $"Payment '{command.PaymentId}' cannot be refunded — current status is '{payment.Status}'.");
         }
 
         if (command.Amount > payment.SettledAmount)
@@ -54,6 +53,10 @@ public sealed class RefundPaymentHandler
             throw new ArgumentException(
                 $"Refund amount ({command.Amount}) exceeds settled amount ({payment.SettledAmount}).");
         }
+
+        // TODO: Call payment gateway to process the refund against the original transaction.
+        // Use the gateway settlement reference. On failure, leave payment status unchanged
+        // and return an error.
 
         payment.Refund(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
@@ -67,8 +70,8 @@ public sealed class RefundPaymentHandler
 
         await _repository.CreateEventAsync(paymentEvent, cancellationToken);
 
-        _logger.LogInformation("Refunded payment {PaymentReference} for {Amount} {Currency} — reason: {Reason}",
-            command.PaymentReference, command.Amount, payment.CurrencyCode, command.Reason);
+        _logger.LogInformation("Refunded payment {PaymentId} for {Amount} {Currency} — reason: {Reason}",
+            command.PaymentId, command.Amount, payment.CurrencyCode, command.Reason);
 
         return PaymentMapper.ToRefundResponse(payment, command.Amount);
     }

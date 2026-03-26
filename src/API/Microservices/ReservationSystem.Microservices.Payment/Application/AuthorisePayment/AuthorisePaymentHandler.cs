@@ -8,8 +8,8 @@ namespace ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
 
 /// <summary>
 /// Handles the <see cref="AuthorisePaymentCommand"/>.
-/// Derives CardType from BIN range, extracts CardLast4, creates the Payment
-/// and a corresponding audit event, then persists both.
+/// Derives CardType from BIN range, extracts CardLast4, authorises the payment
+/// and creates a corresponding PaymentEvent, then persists both.
 /// Full card number and CVV are discarded after processing (PCI DSS).
 /// </summary>
 public sealed class AuthorisePaymentHandler
@@ -25,49 +25,59 @@ public sealed class AuthorisePaymentHandler
         _logger = logger;
     }
 
-    public async Task<AuthorisePaymentResponse> HandleAsync(
+    /// <summary>
+    /// Authorises the payment identified by the command.
+    /// Returns null when the paymentId does not exist.
+    /// Throws <see cref="InvalidOperationException"/> when the payment exists but cannot be authorised.
+    /// </summary>
+    public async Task<AuthorisePaymentResponse?> HandleAsync(
         AuthorisePaymentCommand command,
         CancellationToken cancellationToken = default)
     {
+        var payment = await _repository.GetByIdAsync(command.PaymentId, cancellationToken);
+
+        if (payment is null)
+        {
+            _logger.LogWarning("Authorisation requested for unknown payment {PaymentId}", command.PaymentId);
+            return null;
+        }
+
+        if (payment.Status != PaymentStatus.Initialised)
+        {
+            _logger.LogWarning("Cannot authorise payment {PaymentId} — current status is {Status}",
+                command.PaymentId, payment.Status);
+            throw new InvalidOperationException(
+                $"Payment '{command.PaymentId}' cannot be authorised — current status is '{payment.Status}'.");
+        }
+
         var cardLast4 = command.CardNumber.Length >= 4
             ? command.CardNumber[^4..]
             : command.CardNumber;
 
         var cardType = DeriveCardType(command.CardNumber);
-        var paymentReference = await GeneratePaymentReferenceAsync(cancellationToken);
 
-        var payment = Domain.Entities.Payment.Create(
-            paymentReference: paymentReference,
-            bookingReference: null,
-            paymentType: command.PaymentType,
-            method: "CreditCard",
-            cardType: cardType,
-            cardLast4: cardLast4,
-            currencyCode: command.CurrencyCode,
-            authorisedAmount: command.Amount,
-            description: command.Description);
+        // TODO: Call payment gateway (e.g. Adyen, Stripe, Worldpay) to authorise the card.
+        // The gateway call should use the full card number, expiry, CVV, and amount held on
+        // the Payment record. On success, persist the gateway authorisation code / token
+        // (in memory only — never to the database). On decline, set Status = Declined and
+        // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
 
-        await _repository.CreateAsync(payment, cancellationToken);
+        payment.Authorise(payment.Amount, cardType, cardLast4);
+        await _repository.UpdateAsync(payment, cancellationToken);
 
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
             PaymentEventType.Authorised,
-            command.Amount,
-            command.CurrencyCode,
-            $"Payment authorised for {command.PaymentType}");
+            payment.Amount,
+            payment.CurrencyCode,
+            $"Payment authorised for {payment.PaymentType}");
 
         await _repository.CreateEventAsync(paymentEvent, cancellationToken);
 
-        _logger.LogInformation("Authorised payment {PaymentReference} for {Amount} {Currency}",
-            paymentReference, command.Amount, command.CurrencyCode);
+        _logger.LogInformation("Authorised payment {PaymentId} for {Amount} {Currency}",
+            payment.PaymentId, payment.Amount, payment.CurrencyCode);
 
         return PaymentMapper.ToAuthoriseResponse(payment);
-    }
-
-    private async Task<string> GeneratePaymentReferenceAsync(CancellationToken cancellationToken)
-    {
-        var sequence = await _repository.GetNextSequenceAsync(cancellationToken);
-        return $"AXPAY-{sequence:D4}";
     }
 
     private static string DeriveCardType(string cardNumber)

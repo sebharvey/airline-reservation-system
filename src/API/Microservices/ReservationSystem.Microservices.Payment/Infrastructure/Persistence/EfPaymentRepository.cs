@@ -30,13 +30,6 @@ public sealed class EfPaymentRepository : IPaymentRepository
             .FirstOrDefaultAsync(p => p.PaymentId == paymentId, cancellationToken);
     }
 
-    public async Task<Domain.Entities.Payment?> GetByReferenceAsync(string paymentReference, CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.Payments
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.PaymentReference == paymentReference, cancellationToken);
-    }
-
     public async Task CreateAsync(Domain.Entities.Payment payment, CancellationToken cancellationToken = default)
     {
         _dbContext.Payments.Add(payment);
@@ -64,9 +57,20 @@ public sealed class EfPaymentRepository : IPaymentRepository
         _logger.LogDebug("Inserted PaymentEvent {PaymentEventId} into [payment].[PaymentEvent]", paymentEvent.PaymentEventId);
     }
 
-    public async Task<int> GetNextSequenceAsync(CancellationToken cancellationToken = default)
+    public async Task UpdateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default)
     {
-        var count = await _dbContext.Payments.CountAsync(cancellationToken);
-        return count + 1;
+        _dbContext.PaymentEvents.Update(paymentEvent);
+        var rowsAffected = await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (rowsAffected == 0)
+            _logger.LogWarning("UpdateEventAsync found no row for PaymentEvent {PaymentEventId}", paymentEvent.PaymentEventId);
+        else
+            _logger.LogDebug("Updated PaymentEvent {PaymentEventId} in [payment].[PaymentEvent]", paymentEvent.PaymentEventId);
+    }
+
+    public async Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PaymentEvents
+            .FirstOrDefaultAsync(pe => pe.PaymentId == paymentId, cancellationToken);
     }
 }

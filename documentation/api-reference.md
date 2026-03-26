@@ -206,9 +206,11 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/payment/authorise` | Authorise a card payment; returns a PaymentReference |
-| `POST` | `/v1/payment/{paymentReference}/settle` | Settle a previously authorised payment |
-| `POST` | `/v1/payment/{paymentReference}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
+| `POST` | `/v1/payment/initialise` | Initialise a payment with order details; returns a `paymentId` (GUID) for use in subsequent operations |
+| `POST` | `/v1/payment/{paymentId}/authorise` | Authorise an initialised payment with card details; creates a `PaymentEvent` row |
+| `POST` | `/v1/payment/{paymentId}/settle` | Settle a previously authorised payment; updates the `PaymentEvent` row |
+| `POST` | `/v1/payment/{paymentId}/void` | Void a previously authorised payment, releasing held funds; updates the `PaymentEvent` row |
+| `POST` | `/v1/payment/{paymentId}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
 
 ---
 
