@@ -207,10 +207,12 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/payment/initialise` | Initialise a payment with order details; returns a `paymentId` (GUID) for use in subsequent operations |
-| `POST` | `/v1/payment/{paymentId}/authorise` | Authorise an initialised payment with card details; creates a `PaymentEvent` row |
-| `POST` | `/v1/payment/{paymentId}/settle` | Settle a previously authorised payment; updates the `PaymentEvent` row |
+| `POST` | `/v1/payment/{paymentId}/authorise` | Authorise an initialised payment with card details; creates an `Authorised` `PaymentEvent` row |
+| `POST` | `/v1/payment/{paymentId}/settle` | Settle a previously authorised payment; creates a `Settled` or `PartialSettlement` `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/void` | Void a previously authorised payment, releasing held funds; updates the `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
+| `GET` | `/v1/payment/{paymentId}` | Retrieve a payment record by ID; returns the full payment including current status, authorised and settled amounts |
+| `GET` | `/v1/payment/{paymentId}/events` | Retrieve all payment events for a payment in chronological order; reflects the full lifecycle history (Authorised, Settled, Voided, Refunded, etc.) |
 
 ---
 

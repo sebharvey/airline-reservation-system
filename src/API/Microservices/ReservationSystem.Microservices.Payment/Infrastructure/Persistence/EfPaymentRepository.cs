@@ -73,4 +73,13 @@ public sealed class EfPaymentRepository : IPaymentRepository
         return await _dbContext.PaymentEvents
             .FirstOrDefaultAsync(pe => pe.PaymentId == paymentId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<PaymentEvent>> GetEventsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PaymentEvents
+            .AsNoTracking()
+            .Where(pe => pe.PaymentId == paymentId)
+            .OrderBy(pe => pe.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -62,19 +62,18 @@ public sealed class SettlePaymentHandler
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
-        var paymentEvent = await _repository.GetEventByPaymentIdAsync(payment.PaymentId, cancellationToken);
+        var eventType = command.Amount < payment.AuthorisedAmount
+            ? PaymentEventType.PartialSettlement
+            : PaymentEventType.Settled;
 
-        if (paymentEvent is not null)
-        {
-            var eventType = command.Amount < payment.AuthorisedAmount
-                ? PaymentEventType.PartialSettlement
-                : PaymentEventType.Settled;
+        var settleEvent = PaymentEvent.Create(
+            payment.PaymentId,
+            eventType,
+            command.Amount,
+            payment.CurrencyCode,
+            $"Payment settled for {command.Amount} {payment.CurrencyCode}");
 
-            paymentEvent.Update(eventType, command.Amount,
-                $"Payment settled for {command.Amount} {payment.CurrencyCode}");
-
-            await _repository.UpdateEventAsync(paymentEvent, cancellationToken);
-        }
+        await _repository.CreateEventAsync(settleEvent, cancellationToken);
 
         _logger.LogInformation("Settled payment {PaymentId} for {Amount} {Currency}",
             command.PaymentId, command.Amount, payment.CurrencyCode);

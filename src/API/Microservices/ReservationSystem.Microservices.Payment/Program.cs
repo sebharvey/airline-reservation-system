@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
+using ReservationSystem.Microservices.Payment.Application.GetPayment;
+using ReservationSystem.Microservices.Payment.Application.GetPaymentEvents;
 using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
@@ -56,6 +58,8 @@ var host = new HostBuilder()
         services.AddScoped<SettlePaymentHandler>();
         services.AddScoped<RefundPaymentHandler>();
         services.AddScoped<VoidPaymentHandler>();
+        services.AddScoped<GetPaymentHandler>();
+        services.AddScoped<GetPaymentEventsHandler>();
     })
     .Build();
 
