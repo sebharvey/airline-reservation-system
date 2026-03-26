@@ -477,6 +477,128 @@ h1 {
     overflow: hidden;
   }
 
+  /* ── Cloud animations ── */
+  @keyframes cloud-drift {
+    0%   { opacity: 0.07; transform: translateX(0); }
+    50%  { opacity: 0.15; transform: translateX(18px); }
+    100% { opacity: 0.07; transform: translateX(0); }
+  }
+
+  @keyframes cloud-drift-reverse {
+    0%   { opacity: 0.05; transform: translateX(0); }
+    50%  { opacity: 0.12; transform: translateX(-14px); }
+    100% { opacity: 0.05; transform: translateX(0); }
+  }
+
+  .clouds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* Cloud shape: wide oval body + two circular bumps */
+  .cloud {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 100px;
+  }
+
+  .cloud::before,
+  .cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+  }
+
+  /* Cloud 1 — large, left side */
+  .cloud-1 {
+    width: 220px;
+    height: 55px;
+    top: 22%;
+    left: 6%;
+    animation: cloud-drift 14s ease-in-out infinite;
+  }
+  .cloud-1::before {
+    width: 90px;
+    height: 90px;
+    top: -45px;
+    left: 30px;
+  }
+  .cloud-1::after {
+    width: 65px;
+    height: 65px;
+    top: -32px;
+    left: 90px;
+  }
+
+  /* Cloud 2 — medium, far right */
+  .cloud-2 {
+    width: 170px;
+    height: 42px;
+    top: 35%;
+    right: 7%;
+    animation: cloud-drift-reverse 18s ease-in-out infinite;
+    animation-delay: -6s;
+  }
+  .cloud-2::before {
+    width: 68px;
+    height: 68px;
+    top: -36px;
+    left: 22px;
+  }
+  .cloud-2::after {
+    width: 52px;
+    height: 52px;
+    top: -26px;
+    left: 74px;
+  }
+
+  /* Cloud 3 — small, upper center-left */
+  .cloud-3 {
+    width: 130px;
+    height: 34px;
+    top: 12%;
+    left: 32%;
+    animation: cloud-drift 11s ease-in-out infinite;
+    animation-delay: -4s;
+  }
+  .cloud-3::before {
+    width: 52px;
+    height: 52px;
+    top: -28px;
+    left: 18px;
+  }
+  .cloud-3::after {
+    width: 40px;
+    height: 40px;
+    top: -20px;
+    left: 58px;
+  }
+
+  /* Cloud 4 — small, lower right */
+  .cloud-4 {
+    width: 150px;
+    height: 38px;
+    bottom: 18%;
+    right: 20%;
+    animation: cloud-drift-reverse 16s ease-in-out infinite;
+    animation-delay: -10s;
+  }
+  .cloud-4::before {
+    width: 60px;
+    height: 60px;
+    top: -32px;
+    left: 20px;
+  }
+  .cloud-4::after {
+    width: 46px;
+    height: 46px;
+    top: -24px;
+    left: 68px;
+  }
+
   /* Subtle mesh glow behind hero text */
   .hero::before {
     content: '';

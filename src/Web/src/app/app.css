@@ -311,6 +311,15 @@
     min-height: initial;
   }
 
+  /* White card wrapper for non-home pages */
+  .content-card {
+    background: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.03);
+    margin-top: 32px;
+    margin-bottom: 32px;
+  }
+
   /* ── Full-width footer ── */
   .footer {
     width: 100%;

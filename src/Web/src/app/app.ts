@@ -26,4 +26,13 @@ export class App {
     ),
     { initialValue: false }
   );
+
+  isHome = toSignal(
+    this.#router.events.pipe(
+      filter(e => e instanceof NavigationEnd),
+      map(() => this.#router.url === '/'),
+      startWith(this.#router.url === '/')
+    ),
+    { initialValue: this.#router.url === '/' }
+  );
 }

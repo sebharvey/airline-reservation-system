@@ -16,7 +16,7 @@
       </nav>
     }
 
-    <main class="content">
+    <main class="content" [class.content-card]="!isHome() && !isBoardingPass()">
       <router-outlet />
     </main>
 
