@@ -139,18 +139,19 @@
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/schedules` | Create a flight schedule; orchestrates: (1) persists the schedule definition via Schedule MS, (2) generates `FlightInventory` records in the Offer domain via Offer MS for every operating date within the `ValidFrom`–`ValidTo` window that matches the `daysOfWeek` pattern, (3) updates the `FlightsCreated` count on the schedule record; returns `scheduleId` and the count of flights created. Fares are applied separately via `POST /v1/flights/{inventoryId}/fares` in the Offer domain |
+| `POST` | `/v1/schedules/ssim` | Bulk-import schedules from an IATA SSIM Chapter 7 plain-text file; forwards the file body to the Schedule MS, which parses all Type 3 leg records and persists each as a `FlightSchedule`; returns a summary of imported schedules with `scheduleId`, route, validity window, and operating date count per record |
 
 ---
 
 ## Schedule Microservice — [Full API Spec](api-specs/schedule-microservice.md)
 
-The Schedule microservice is the internal persistence layer for flight schedule definitions. It is called by the Operations API during schedule creation to store the schedule record and to update the `FlightsCreated` count after the Operations API has generated inventory in the Offer domain. It also exposes a SSIM export endpoint for distributing timetable data to GDS systems and airport partners.
+The Schedule microservice is the internal persistence layer for flight schedule definitions. It is called by the Operations API during schedule creation to store the schedule record, to update the `FlightsCreated` count after inventory generation, and to bulk-import schedules from an IATA SSIM Chapter 7 file.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/schedules` | Persist a validated flight schedule definition; enumerate operating dates in the `ValidFrom`–`ValidTo` window matching the `DaysOfWeek` bitmask; returns `scheduleId` and the list of operating dates |
 | `PATCH` | `/v1/schedules/{scheduleId}` | Update the `FlightsCreated` count on a schedule record after the Operations API has completed bulk `FlightInventory` generation in the Offer domain |
-| `GET` | `/v1/schedules/ssim` | Export all schedules as an IATA SSIM Chapter 7 file (plain ASCII, 200-char fixed-width records, CRLF line endings); returns `text/plain` with a `Content-Disposition: attachment` header for direct download |
+| `POST` | `/v1/schedules/ssim` | Parse an IATA SSIM Chapter 7 plain-text file (`text/plain` request body) and persist each Type 3 flight leg record as a `FlightSchedule`; accepts optional `createdBy` query parameter; returns count and per-schedule summary (`scheduleId`, route, validity window, operating date count) |
 
 ---
 

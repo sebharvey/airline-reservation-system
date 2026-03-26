@@ -95,4 +95,20 @@ public static class ScheduleMapper
             ScheduleId = schedule.ScheduleId,
             FlightsCreated = schedule.FlightsCreated
         };
+
+    public static ImportSsimResponse ToImportResponse(IReadOnlyList<Domain.Entities.FlightSchedule> schedules) =>
+        new()
+        {
+            Count = schedules.Count,
+            Schedules = schedules.Select(s => new ImportedScheduleItem
+            {
+                ScheduleId       = s.ScheduleId,
+                FlightNumber     = s.FlightNumber,
+                Origin           = s.Origin,
+                Destination      = s.Destination,
+                ValidFrom        = s.ValidFrom.ToString("yyyy-MM-dd"),
+                ValidTo          = s.ValidTo.ToString("yyyy-MM-dd"),
+                OperatingDateCount = s.GetOperatingDates().Count
+            }).ToList().AsReadOnly()
+        };
 }

@@ -62,9 +62,9 @@ sequenceDiagram
 
 *Ref: schedule creation — Operations API orchestrates: Schedule MS persists the schedule and returns operating dates, Operations API calls Offer MS to create FlightInventory records, then updates the FlightsCreated count via Schedule MS. Fares are applied separately via `POST /v1/flights/{inventoryId}/fares` in the Offer domain.*
 
-## SSIM export
+## SSIM import
 
-The Schedule MS exposes `GET /v1/schedules/ssim` which returns all active schedules encoded as an IATA SSIM Chapter 7 file. This file can be ingested directly by any GDS, PSS, or airport system that supports the SSIM standard.
+The Operations API exposes `POST /v1/schedules/ssim` which accepts an IATA SSIM Chapter 7 plain-text file in the request body and bulk-creates `FlightSchedule` records. The Operations API forwards the raw file body to the Schedule MS `POST /v1/schedules/ssim` endpoint, which parses the file and persists each Type 3 leg record. A reference SSIM file for the 2026 season is available at `res/schedules/flight-schedule-2026.ssim`.
 
 ### What is SSIM?
 
@@ -81,7 +81,7 @@ The file format is fixed-width and positional — every character position in ev
 | Type 3 | `3` | Flight leg record — one per `FlightSchedule` row; carries the operating pattern |
 | Type 5 | `5` | Trailer — count of Type 3 records for validation |
 
-Type 3 is the substance of the file. Each record encodes a complete operating pattern for one flight leg across its season window.
+Type 3 is the substance of the file. Each record encodes a complete operating pattern for one flight leg across its season window. The parser (`SsimParser`) only processes Type 3 records with service type `Y` (scheduled passenger); all other record types are silently skipped.
 
 ### Type 3 positional layout
 
@@ -114,6 +114,8 @@ Type 3 is the substance of the file. Each record encodes a complete operating pa
 | 66–67 | 2 | Operating carrier code | `AX` |
 | 68–200 | 133 | Space-padded to record width | |
 
+All field positions are 0-indexed in `SsimParser`. A line must be at least 68 characters long to be processed.
+
 ### Days-of-week encoding
 
 The 7-character days-of-week field uses **absolute positions**, not sequential digits. Position 1 always represents Monday, position 7 always represents Sunday. An operating day shows its position digit; a non-operating day is a space character.
@@ -137,11 +139,32 @@ Examples:
 | `96` | `     67` | Sat, Sun |
 | `1` | `1      ` | Monday only |
 
+### Flight number round-trip
+
+The SSIM numeric field is a 4-digit zero-padded integer (e.g. `0001`). The parser strips leading zeros and pads to a minimum of 3 digits to reconstruct the internal flight number: `AX` + `0001` → `AX001`; `AX` + `1001` → `AX1001`.
+
+### Aircraft type code mapping
+
+SSIM uses 3-character equipment codes; the system stores 4-character IATA codes. The parser maps known codes on import:
+
+| SSIM code | Internal code |
+|---|---|
+| `351` | `A351` |
+| `789` | `B789` |
+| `339` | `A339` |
+| `788` | `B788` |
+| `77W` | `B77W` |
+| `744` | `B744` |
+| `333` | `A333` |
+| `359` | `A359` |
+
+Unknown codes are passed through unchanged.
+
 ### UTC offset handling
 
-Times in the SSIM file are local at the origin airport, with the UTC offset field set to `+00`. This matches the storage convention in `FlightSchedule.DepartureTime` and `.ArrivalTime`, which hold local schedule times. Downstream consumers (PSS, GDS) must apply the true UTC offset for each airport when converting to UTC for internal storage — this is the consumer's responsibility and a well-known SSIM integration requirement.
+Times in the SSIM file are local at the origin airport, with the UTC offset field set to `+00`. This matches the storage convention in `FlightSchedule.DepartureTime` and `.ArrivalTime`, which hold local schedule times. Downstream consumers (PSS, GDS) must apply the true UTC offset for each airport when converting to UTC for internal storage.
 
-### Example output
+### Example SSIM file
 
 ```
 1IATA  AX              20260101 20261231AX  SCHED  20260326
@@ -153,25 +176,26 @@ Times in the SSIM file are local at the origin airport, with the UTC offset fiel
 
 ### Amendments and deletions
 
-The SSIM standard supports amendment records (prefixed `D` for deletion, `N` for new pattern) to represent in-season changes. The current implementation generates a full base-pattern file. Amendment records are not yet supported; a schedule change requires creating a new `FlightSchedule` record.
+The SSIM standard supports amendment records (prefixed `D` for deletion, `N` for new pattern) to represent in-season changes. The current implementation imports full base-pattern files only. Amendment records are not yet supported; a schedule change requires creating a new `FlightSchedule` record.
 
-### SSIM export sequence diagram
+### SSIM import sequence diagram
 
 ```mermaid
 sequenceDiagram
     actor OpsUser as Operations User
     participant OpsApp as Ops Admin App
+    participant OpsAPI as Operations API
     participant ScheduleMS as Schedule [MS]
 
-    OpsUser->>OpsApp: Request SSIM export
-    OpsApp->>ScheduleMS: GET /v1/schedules/ssim
-    ScheduleMS->>ScheduleMS: Load all FlightSchedule records ordered by FlightNumber
-    ScheduleMS->>ScheduleMS: Build Type 1 header (sender, season window, file date)
-    ScheduleMS->>ScheduleMS: Build Type 2 carrier header (IATA season designator)
-    loop For each FlightSchedule
-        ScheduleMS->>ScheduleMS: Build Type 3 leg record (200-char fixed-width, CRLF)
+    OpsUser->>OpsApp: Upload SSIM file
+    OpsApp->>OpsAPI: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
+    OpsAPI->>ScheduleMS: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
+    ScheduleMS->>ScheduleMS: SsimParser.Parse — split lines, skip non-Type-3 and non-Y records
+    loop For each Type 3 record
+        ScheduleMS->>ScheduleMS: Extract carrier, flightNum, period, daysOfWeek, route, times, equipment
+        ScheduleMS->>ScheduleMS: FlightSchedule.Create — persist to [schedule].[FlightSchedule]
     end
-    ScheduleMS->>ScheduleMS: Build Type 5 trailer (leg count)
-    ScheduleMS-->>OpsApp: 200 OK — text/plain; charset=us-ascii, Content-Disposition: attachment; filename=schedules_YYYYMMDD.ssim
-    OpsApp-->>OpsUser: Download SSIM file
+    ScheduleMS-->>OpsAPI: 200 OK — { count, schedules: [{ scheduleId, flightNumber, origin, destination, validFrom, validTo, operatingDateCount }] }
+    OpsAPI-->>OpsApp: 200 OK — import summary
+    OpsApp-->>OpsUser: N schedules imported
 ```

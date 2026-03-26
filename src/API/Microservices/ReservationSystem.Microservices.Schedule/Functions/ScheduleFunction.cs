@@ -6,14 +6,12 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
 using ReservationSystem.Microservices.Schedule.Application.Ssim;
 using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
-using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Schedule.Functions;
@@ -26,18 +24,18 @@ public sealed class ScheduleFunction
 {
     private readonly CreateScheduleHandler _createHandler;
     private readonly UpdateScheduleHandler _updateHandler;
-    private readonly IFlightScheduleRepository _repository;
+    private readonly ImportSsimHandler _importSsimHandler;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
         CreateScheduleHandler createHandler,
         UpdateScheduleHandler updateHandler,
-        IFlightScheduleRepository repository,
+        ImportSsimHandler importSsimHandler,
         ILogger<ScheduleFunction> logger)
     {
         _createHandler = createHandler;
         _updateHandler = updateHandler;
-        _repository = repository;
+        _importSsimHandler = importSsimHandler;
         _logger = logger;
     }
 
@@ -161,32 +159,43 @@ public sealed class ScheduleFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/schedules/ssim
+    // POST /v1/schedules/ssim
     // -------------------------------------------------------------------------
 
-    [Function("ExportSsim")]
-    [OpenApiOperation(operationId: "ExportSsim", tags: new[] { "Schedules" }, Summary = "Export all schedules as an IATA SSIM Chapter 7 file")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "SSIM file content (plain ASCII, 200-char fixed-width records, CRLF line endings)")]
+    [Function("ImportSsim")]
+    [OpenApiOperation(operationId: "ImportSsim", tags: new[] { "Schedules" }, Summary = "Import schedules from an IATA SSIM Chapter 7 file")]
+    [OpenApiParameter(name: "createdBy", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Identity of the user performing the import (defaults to 'ssim-import')")]
+    [OpenApiRequestBody(contentType: "text/plain", bodyType: typeof(string), Required = true, Description = "SSIM Chapter 7 plain-text file content")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSsimResponse), Description = "OK — returns count and summary of imported schedules")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
-    public async Task<HttpResponseData> ExportSsim(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules/ssim")] HttpRequestData req,
+    public async Task<HttpResponseData> ImportSsim(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/ssim")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var createdBy = qs["createdBy"] ?? "ssim-import";
+
+        string ssimText;
+        using (var reader = new System.IO.StreamReader(req.Body))
+        {
+            ssimText = await reader.ReadToEndAsync(cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(ssimText))
+            return await req.BadRequestAsync("Request body must contain SSIM file content.");
+
         try
         {
-            var schedules = await _repository.GetAllAsync(cancellationToken);
-            var fileDate = DateOnly.FromDateTime(DateTime.UtcNow);
-            var ssimContent = SsimGenerator.Generate(schedules, fileDate);
+            var schedules = await _importSsimHandler.HandleAsync(
+                new ImportSsimCommand(ssimText, createdBy), cancellationToken);
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "text/plain; charset=us-ascii");
-            response.Headers.Add("Content-Disposition", $"attachment; filename=\"schedules_{fileDate:yyyyMMdd}.ssim\"");
-            await response.WriteStringAsync(ssimContent, Encoding.ASCII);
-            return response;
+            var response = ScheduleMapper.ToImportResponse(schedules);
+            return await req.OkJsonAsync(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate SSIM export");
+            _logger.LogError(ex, "Failed to import SSIM file");
             return await req.InternalServerErrorAsync();
         }
     }
