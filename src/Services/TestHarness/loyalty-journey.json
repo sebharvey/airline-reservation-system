@@ -95,7 +95,7 @@
         "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber matches the value issued in Step 1. A 200 with an empty array means the loyalty number did not match any customer."
       },
       "chainsTo": [
-        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3] }
+        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3, 14] }
       ]
     },
     {
@@ -259,7 +259,7 @@
         "validationNotes": "New accessToken replaces the one from Step 5. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 5 is revoked and cannot be reused."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [7, 10, 11] },
+        { "field": "accessToken", "usedInSteps": [7, 10, 11, 14] },
         { "field": "refreshToken", "usedInSteps": [13] }
       ]
     },
@@ -617,6 +617,178 @@
         "description": "200 OK — refresh token revoked. Session effectively terminated. The access token is still technically valid until its 15-minute TTL expires, but no new tokens can be obtained.",
         "keyFields": [],
         "validationNotes": "Attempting to use the revoked refresh token for a subsequent /auth/refresh call should return 401 Unauthorized."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 14,
+      "name": "Request email change",
+      "description": "Submit an email change request for the authenticated account. The Identity MS generates an EmailResetToken GUID and (in production) emails the token to the new address. The token is not returned in the response — delivery is out of scope for this test; the step validates that the orchestration layer accepts the request and returns 202 Accepted.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/accounts/{userAccountId}/email/change-request",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "userAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234"
+        },
+        "note": "Protected route — requires valid Bearer token. userAccountId is chained from Step 2 (Customer MS search response [0].identityId)."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": {
+          "newEmail": "changed.email.test@testmail.example.com"
+        },
+        "dataChain": [
+          { "field": "userAccountId (path)", "source": "Step 2 → response[0].identityId" },
+          { "field": "Authorization", "source": "Step 6 → response.accessToken" }
+        ]
+      },
+      "response": {
+        "statusCode": 202,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 202,
+        "description": "202 Accepted — email change request received. The Identity MS has set EmailResetToken on the UserAccount row. No response body. In production the token would be emailed to the new address.",
+        "keyFields": [],
+        "validationNotes": "202 with no body is the only success response. A 404 means the userAccountId was not found. A 409 means the new email address is already registered to another account. A 401 means the Bearer token was missing or invalid."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 15,
+      "name": "Verify email change — invalid token",
+      "description": "Attempt to verify an email change using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account email.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/email/verify",
+        "baseUrlRef": "loyalty",
+        "note": "Public route — no Bearer token required. The token is embedded in the request body, simulating a user clicking a link that includes the token."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "00000000-0000-0000-0000-000000000000",
+          "newEmail": "changed.email.test@testmail.example.com"
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "Invalid or expired verification token."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — the token does not match any pending email change. Response body contains an error message. The account email is unchanged.",
+        "keyFields": ["error"],
+        "validationNotes": "The all-zeros GUID will never match a real EmailResetToken. The error message must not reveal whether the account exists."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 16,
+      "name": "Password reset request — known email",
+      "description": "Submit a password reset request for the email address registered in Step 1. The Identity MS generates a PasswordResetToken GUID and (in production) emails a reset link. The step validates enumeration protection — 202 Accepted is always returned regardless of whether the email exists.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/password/reset-request",
+        "baseUrlRef": "loyalty",
+        "note": "Public route — no authentication required. Always returns 202 to prevent account enumeration."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "__RAND_EMAIL__"
+        },
+        "dataChain": [
+          { "field": "email", "source": "Step 1 → runtime-generated email" }
+        ]
+      },
+      "response": {
+        "statusCode": 202,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 202,
+        "description": "202 Accepted — request acknowledged. A PasswordResetToken has been set on the UserAccount row for the matching email. In production the token is emailed to the user. No body.",
+        "keyFields": [],
+        "validationNotes": "Response is always 202, even if the email is not registered, to prevent account enumeration. No response body."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 17,
+      "name": "Password reset request — unknown email",
+      "description": "Submit a password reset request for an email address that does not exist in the system. Validates that the enumeration protection policy returns 202 Accepted even when no matching account is found.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/password/reset-request",
+        "baseUrlRef": "loyalty",
+        "note": "Public route. Returning 202 for unknown emails prevents attackers from discovering which addresses are registered."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "no-such-account@testmail.example.com"
+        }
+      },
+      "response": {
+        "statusCode": 202,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 202,
+        "description": "202 Accepted — same response as for a known email. The Identity MS silently discards the request when no matching account is found. No response body.",
+        "keyFields": [],
+        "validationNotes": "The response must be identical to Step 16. Any difference in status code or body between known and unknown emails constitutes an account enumeration vulnerability."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 18,
+      "name": "Password reset — invalid token",
+      "description": "Attempt to reset the password using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account password.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/password/reset",
+        "baseUrlRef": "loyalty",
+        "note": "Public route — no Bearer token required. The token is submitted in the body, simulating a user clicking a reset link."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "00000000-0000-0000-0000-000000000000",
+          "newPassword": "NewPassword1!"
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "Invalid or expired reset token."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — the token does not match any pending password reset. Response body contains an error message. The account password is unchanged.",
+        "keyFields": ["error"],
+        "validationNotes": "The all-zeros GUID will never match a real PasswordResetToken. A 200 would indicate a security vulnerability allowing password reset without a valid token."
       },
       "chainsTo": []
     }
