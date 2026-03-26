@@ -30,7 +30,6 @@ public sealed class CreateScheduleHandler
             command.AircraftType,
             command.ValidFrom,
             command.ValidTo,
-            command.CabinFares,
             command.CreatedBy);
 
         await _repository.CreateAsync(schedule, cancellationToken);

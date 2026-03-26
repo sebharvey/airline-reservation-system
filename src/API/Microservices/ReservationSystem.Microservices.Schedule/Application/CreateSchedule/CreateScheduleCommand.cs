@@ -11,5 +11,4 @@ public sealed record CreateScheduleCommand(
     string AircraftType,
     DateTime ValidFrom,
     DateTime ValidTo,
-    string CabinFares,
     string CreatedBy);

@@ -830,12 +830,10 @@ CREATE TABLE [schedule].[FlightSchedule] (
     ValidFrom        DATE             NOT NULL,
     ValidTo          DATE             NOT NULL,
     FlightsCreated   INT              NOT NULL CONSTRAINT DF_FlightSchedule_Flights DEFAULT 0,
-    CabinFares       NVARCHAR(MAX)    NOT NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_FlightSchedule_Created DEFAULT SYSUTCDATETIME(),
     CreatedBy        VARCHAR(100)     NOT NULL,
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_FlightSchedule_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_FlightSchedule             PRIMARY KEY (ScheduleId),
-    CONSTRAINT CHK_FlightSchedule_CabinFares CHECK (ISJSON(CabinFares) = 1)
+    CONSTRAINT PK_FlightSchedule PRIMARY KEY (ScheduleId)
 );
 GO
 
@@ -1229,14 +1227,10 @@ BEGIN TRY
     -- schedule.FlightSchedule -------------------------------------------------
     INSERT INTO [schedule].[FlightSchedule]
         (FlightNumber, Origin, Destination, DepartureTime, ArrivalTime, ArrivalDayOffset,
-         DaysOfWeek, AircraftType, ValidFrom, ValidTo, FlightsCreated, CabinFares, CreatedBy)
+         DaysOfWeek, AircraftType, ValidFrom, ValidTo, FlightsCreated, CreatedBy)
     VALUES
-    ('AX001','LHR','JFK','08:00','11:10',0,127,'A351','2026-01-01','2026-12-31',365,
-     N'{"cabins":[{"cabinCode":"J","totalSeats":48,"fares":[{"fareBasisCode":"JFLEXGB","fareFamily":"Business Flex","currencyCode":"GBP","baseFareAmount":1250.00,"taxAmount":182.50,"isRefundable":true,"isChangeable":true,"changeFeeAmount":0.00,"cancellationFeeAmount":0.00,"pointsPrice":125000,"pointsTaxes":182.50},{"fareBasisCode":"JSAVERGB","fareFamily":"Business Saver","currencyCode":"GBP","baseFareAmount":950.00,"taxAmount":182.50,"isRefundable":false,"isChangeable":true,"changeFeeAmount":150.00,"cancellationFeeAmount":0.00,"pointsPrice":95000,"pointsTaxes":182.50}]},{"cabinCode":"W","totalSeats":56,"fares":[{"fareBasisCode":"WFLEXGB","fareFamily":"Premium Economy Flex","currencyCode":"GBP","baseFareAmount":650.00,"taxAmount":130.00,"isRefundable":true,"isChangeable":true,"changeFeeAmount":0.00,"cancellationFeeAmount":0.00,"pointsPrice":65000,"pointsTaxes":130.00}]},{"cabinCode":"Y","totalSeats":227,"fares":[{"fareBasisCode":"YFLEXGB","fareFamily":"Economy Flex","currencyCode":"GBP","baseFareAmount":350.00,"taxAmount":97.25,"isRefundable":true,"isChangeable":true,"changeFeeAmount":0.00,"cancellationFeeAmount":0.00,"pointsPrice":35000,"pointsTaxes":97.25},{"fareBasisCode":"YLOWUK","fareFamily":"Economy Light","currencyCode":"GBP","baseFareAmount":149.00,"taxAmount":97.25,"isRefundable":false,"isChangeable":false,"changeFeeAmount":0.00,"cancellationFeeAmount":149.00,"pointsPrice":null,"pointsTaxes":null}]}]}',
-     'ops-admin@apexair.com'),
-    ('AX002','JFK','LHR','13:00','01:15',1,127,'A351','2026-01-01','2026-12-31',365,
-     N'{"cabins":[{"cabinCode":"J","totalSeats":48,"fares":[{"fareBasisCode":"JFLEXGB","fareFamily":"Business Flex","currencyCode":"GBP","baseFareAmount":1250.00,"taxAmount":182.50,"isRefundable":true,"isChangeable":true,"changeFeeAmount":0.00,"cancellationFeeAmount":0.00,"pointsPrice":125000,"pointsTaxes":182.50}]},{"cabinCode":"Y","totalSeats":227,"fares":[{"fareBasisCode":"YFLEXGB","fareFamily":"Economy Flex","currencyCode":"GBP","baseFareAmount":350.00,"taxAmount":97.25,"isRefundable":true,"isChangeable":true,"changeFeeAmount":0.00,"cancellationFeeAmount":0.00,"pointsPrice":35000,"pointsTaxes":97.25},{"fareBasisCode":"YLOWUK","fareFamily":"Economy Light","currencyCode":"GBP","baseFareAmount":149.00,"taxAmount":97.25,"isRefundable":false,"isChangeable":false,"changeFeeAmount":0.00,"cancellationFeeAmount":149.00,"pointsPrice":null,"pointsTaxes":null}]}]}',
-     'ops-admin@apexair.com');
+    ('AX001','LHR','JFK','08:00','11:10',0,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com'),
+    ('AX002','JFK','LHR','13:00','01:15',1,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com');
 
     -- offer.FlightInventory ---------------------------------------------------
     DECLARE @InvId_AX001_J UNIQUEIDENTIFIER = NEWID();
