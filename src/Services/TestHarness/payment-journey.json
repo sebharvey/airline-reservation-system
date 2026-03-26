@@ -4,7 +4,7 @@
     "description": "Tests all Payment microservice endpoints — initialise, authorise, settle, void, and refund — with happy path and negative scenarios.",
     "domain": "Payment",
     "baseUrls": [
-      { "id": "payment", "label": "Payment MS", "url": "https://reservation-system-db-microservice-payment-uksouth-01.azurewebsites.net" }
+      { "id": "payment", "label": "Payment MS", "url": "https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net" }
     ]
   },
   "steps": [
