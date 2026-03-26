@@ -164,8 +164,12 @@ public sealed class PaymentFunction
         if (!IsValidLuhn(cardNumber))
             return await req.BadRequestAsync("Card number is invalid.");
 
+        if (request.Amount.HasValue && request.Amount.Value <= 0)
+            return await req.BadRequestAsync("The 'amount' must be greater than zero when provided.");
+
         var command = new AuthorisePaymentCommand(
             paymentGuid,
+            request.Amount,
             cardNumber,
             request.CardDetails.ExpiryDate,
             request.CardDetails.Cvv,

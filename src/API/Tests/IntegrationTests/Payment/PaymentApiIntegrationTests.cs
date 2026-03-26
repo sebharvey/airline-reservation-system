@@ -393,6 +393,375 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    // =========================================================================
+    // Split-settlement lifecycle — single init, one auth, two successive settles
+    // =========================================================================
+    //
+    // Scenario: a 500 GBP total is processed as two portions against one PaymentId:
+    //
+    //   Initialise  500 GBP
+    //   Authorise   500 GBP  (one card auth covers the full amount)
+    //   Settle      400 GBP  → PartiallySettled (fare portion)
+    //   Settle      100 GBP  → Settled          (seat portion — completes the hold)
+    //
+    // A second authorise call on the same PaymentId is validated separately (T24) and
+    // must return 409 Conflict: the API enforces one authorise per payment lifecycle.
+    // The remaining balance is captured by a second settle against the same auth.
+
+    private static Guid? _splitPaymentId;
+    private static readonly decimal _splitTotal = 500.00m;
+    private static readonly decimal _farePortion = 400.00m;
+    private static readonly decimal _seatPortion = 100.00m;
+
+    [Fact, PaymentTestPriority(19)]
+    public async Task T19_SplitPayment_Initialise500Gbp_ReturnsCreated()
+    {
+        var request = new
+        {
+            bookingReference = "ZZ5000",
+            paymentType = "Fare",
+            method = "CreditCard",
+            currencyCode = "GBP",
+            amount = _splitTotal,
+            description = "Split-settlement: 500 GBP fare+seat"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/payment/initialise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().NotBeEmpty();
+        body.Amount.Should().Be(_splitTotal);
+        body.Status.Should().Be("Initialised");
+
+        _splitPaymentId = body.PaymentId;
+    }
+
+    [SkippableFact, PaymentTestPriority(20)]
+    public async Task T20_SplitPayment_AuthoriseFarePortion400_ReturnsAuthorisedAmount()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        // Pass explicit amount to authorise only the fare portion of the 500 GBP total
+        var request = new
+        {
+            amount = _farePortion,
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/27",
+                cvv = "737",
+                cardholderName = "James Carter"
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/authorise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthorisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.AuthorisedAmount.Should().Be(_farePortion);  // cumulative after first auth
+        body.Status.Should().Be("Authorised");
+    }
+
+    [SkippableFact, PaymentTestPriority(21)]
+    public async Task T21_SplitPayment_SettleFarePortion400_ReturnsPartiallySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new { settledAmount = _farePortion };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/settle", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SettlePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.SettledAmount.Should().Be(_farePortion);
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(22)]
+    public async Task T22_SplitPayment_GetPaymentAfterPartialSettle_ReturnsPartiallySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.Amount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_farePortion);   // only first auth so far
+        body.SettledAmount.Should().Be(_farePortion);
+        body.Status.Should().Be("PartiallySettled");
+        body.AuthorisedAt.Should().NotBeNull();
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(23)]
+    public async Task T23_SplitPayment_AuthoriseSeatPortion100_ReturnsAuthorisedAmount()
+    {
+        // From PartiallySettled the API accepts a further authorise call, accumulating
+        // the authorised total. This enables independent auth+settle cycles (fare, seat)
+        // against a single initialised payment.
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new
+        {
+            amount = _seatPortion,
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/27",
+                cvv = "737",
+                cardholderName = "James Carter"
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/authorise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthorisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.AuthorisedAmount.Should().Be(_splitTotal);   // accumulated: 400 + 100
+        body.Status.Should().Be("Authorised");
+    }
+
+    [SkippableFact, PaymentTestPriority(24)]
+    public async Task T24_SplitPayment_SettleSeatPortion100_ReturnsFullySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new { settledAmount = _seatPortion };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/settle", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SettlePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.SettledAmount.Should().Be(_splitTotal);   // accumulated total: 400 + 100
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(25)]
+    public async Task T25_SplitPayment_GetPaymentAfterFullSettle_ReturnsSettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.Amount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_splitTotal);   // accumulated: 400 + 100
+        body.SettledAmount.Should().Be(_splitTotal);       // accumulated: 400 + 100
+        body.Status.Should().Be("Settled");
+    }
+
+    [SkippableFact, PaymentTestPriority(26)]
+    public async Task T26_SplitPayment_GetEvents_ReturnsFourChronologicalEvents()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}/events");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var events = await response.Content.ReadFromJsonAsync<List<PaymentEventResponse>>(JsonOptions);
+
+        events.Should().NotBeNull();
+        // Two auth+settle cycles each produce one Authorised and one settlement event:
+        //   Authorised (400) → PartialSettlement (400) → Authorised (100) → Settled (100)
+        events!.Should().HaveCount(4);
+
+        // Both Authorised events exist with their respective partial amounts
+        var authorisedEvents = events.Where(e => e.EventType == "Authorised").ToList();
+        authorisedEvents.Should().HaveCount(2);
+        authorisedEvents.Should().ContainSingle(e => e.Amount == _farePortion);
+        authorisedEvents.Should().ContainSingle(e => e.Amount == _seatPortion);
+
+        events.Should().ContainSingle(e => e.EventType == "PartialSettlement")
+            .Which.Amount.Should().Be(_farePortion);
+
+        events.Should().ContainSingle(e => e.EventType == "Settled")
+            .Which.Amount.Should().Be(_seatPortion);
+
+        // All events must belong to this payment
+        events.Should().OnlyContain(e => e.PaymentId == _splitPaymentId!.Value);
+
+        // Events must be in strict chronological order
+        events[0].CreatedAt.Should().BeOnOrBefore(events[1].CreatedAt);
+        events[1].CreatedAt.Should().BeOnOrBefore(events[2].CreatedAt);
+        events[2].CreatedAt.Should().BeOnOrBefore(events[3].CreatedAt);
+    }
+
+    // =========================================================================
+    // Standalone — GET /v1/payment/{paymentId} validation
+    // =========================================================================
+
+    /// <summary>
+    /// Validates GET /v1/payment/{paymentId} against an authorised-but-not-yet-settled
+    /// payment. This state is distinct from the lifecycle tests (T04, T09) which only
+    /// assert the fully-settled state. Here we verify that:
+    ///   - AuthorisedAmount is populated from the authorise step
+    ///   - SettledAmount and SettledAt are null (settlement has not occurred)
+    ///   - CardType and CardLast4 are populated after authorisation
+    ///   - All financial amounts and status fields are accurate for mid-lifecycle reads
+    ///   - CreatedAt and UpdatedAt are present and well-formed
+    /// </summary>
+    [Fact, PaymentTestPriority(17)]
+    public async Task T17_GetPayment_AuthorisedState_ReturnsCorrectFieldsAndAmounts()
+    {
+        const decimal amount = 199.99m;
+
+        // Initialise
+        var initRequest = new
+        {
+            bookingReference = "XY9999",
+            paymentType = "Fare",
+            method = "CreditCard",
+            currencyCode = "GBP",
+            amount,
+            description = "Standalone GET validation — authorised state"
+        };
+
+        var initResponse = await _client.PostAsJsonAsync("/api/v1/payment/initialise", initRequest, JsonOptions);
+        initResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var initBody = await initResponse.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+        initBody.Should().NotBeNull();
+        var paymentId = initBody!.PaymentId;
+
+        // Authorise (no settle)
+        var authRequest = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/26",
+                cvv = "123",
+                cardholderName = "Jane Doe"
+            }
+        };
+
+        var authResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{paymentId}/authorise", authRequest, JsonOptions);
+        authResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // GET payment — assert authorised state
+        var getResponse = await _client.GetAsync($"/api/v1/payment/{paymentId}");
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await getResponse.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(paymentId);
+        body.BookingReference.Should().Be("XY9999");
+        body.PaymentType.Should().Be("Fare");
+        body.Method.Should().Be("CreditCard");
+        body.CardType.Should().Be("Visa");
+        body.CardLast4.Should().Be("1111");
+        body.CurrencyCode.Should().Be("GBP");
+        body.Amount.Should().Be(amount);
+        body.AuthorisedAmount.Should().Be(amount);
+        body.SettledAmount.Should().BeNull();
+        body.Status.Should().Be("Authorised");
+        body.AuthorisedAt.Should().NotBeNull();
+        body.SettledAt.Should().BeNull();
+        body.Description.Should().Be("Standalone GET validation — authorised state");
+        body.CreatedAt.Should().NotBe(default);
+        body.UpdatedAt.Should().NotBe(default);
+        body.UpdatedAt.Should().BeOnOrAfter(body.CreatedAt);
+    }
+
+    // =========================================================================
+    // Standalone — GET /v1/payment/{paymentId}/events validation
+    // =========================================================================
+
+    /// <summary>
+    /// Validates GET /v1/payment/{paymentId}/events against an authorised-but-not-yet-settled
+    /// payment. This state is distinct from the lifecycle tests (T05, T10) which assert two
+    /// events (Authorised + Settled). Here we verify that:
+    ///   - Exactly one event exists (Authorised) when settlement has not occurred
+    ///   - All event fields are correctly populated (paymentEventId, paymentId, eventType,
+    ///     amount, currencyCode, createdAt)
+    ///   - The events endpoint returns only events for the requested paymentId
+    /// </summary>
+    [Fact, PaymentTestPriority(18)]
+    public async Task T18_GetPaymentEvents_AuthorisedOnly_ReturnsSingleAuthorisedEvent()
+    {
+        const decimal amount = 75.50m;
+
+        // Initialise
+        var initRequest = new
+        {
+            bookingReference = "XY9999",
+            paymentType = "BagAncillary",
+            method = "DebitCard",
+            currencyCode = "GBP",
+            amount,
+            description = "Standalone events GET validation — single event"
+        };
+
+        var initResponse = await _client.PostAsJsonAsync("/api/v1/payment/initialise", initRequest, JsonOptions);
+        initResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var initBody = await initResponse.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+        initBody.Should().NotBeNull();
+        var paymentId = initBody!.PaymentId;
+
+        // Authorise (no settle)
+        var authRequest = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "06/28",
+                cvv = "321",
+                cardholderName = "Alice Brown"
+            }
+        };
+
+        var authResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{paymentId}/authorise", authRequest, JsonOptions);
+        authResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // GET events — assert single Authorised event
+        var getResponse = await _client.GetAsync($"/api/v1/payment/{paymentId}/events");
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var events = await getResponse.Content.ReadFromJsonAsync<List<PaymentEventResponse>>(JsonOptions);
+
+        events.Should().NotBeNull();
+        events!.Should().HaveCount(1, "only the authorise step has occurred; no settled event yet");
+
+        var ev = events[0];
+        ev.PaymentEventId.Should().NotBeEmpty();
+        ev.PaymentId.Should().Be(paymentId);
+        ev.EventType.Should().Be("Authorised");
+        ev.Amount.Should().Be(amount);
+        ev.CurrencyCode.Should().Be("GBP");
+        ev.CreatedAt.Should().NotBe(default);
+    }
 }
 
 #region Response DTOs

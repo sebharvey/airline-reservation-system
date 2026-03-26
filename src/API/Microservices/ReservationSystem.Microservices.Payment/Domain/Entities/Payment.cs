@@ -108,9 +108,17 @@ public sealed class Payment
         };
     }
 
+    /// <summary>
+    /// Records a card authorisation against this payment.
+    /// <para>
+    /// <see cref="AuthorisedAmount"/> accumulates across multiple calls, supporting
+    /// partial authorisation (multiple auth+settle cycles against one initialised payment).
+    /// May be called from <c>Initialised</c> or <c>PartiallySettled</c> status.
+    /// </para>
+    /// </summary>
     public void Authorise(decimal authorisedAmount, string? cardType, string? cardLast4)
     {
-        AuthorisedAmount = authorisedAmount;
+        AuthorisedAmount = (AuthorisedAmount ?? 0m) + authorisedAmount;
         CardType = cardType;
         CardLast4 = cardLast4;
         AuthorisedAt = DateTime.UtcNow;
@@ -118,11 +126,19 @@ public sealed class Payment
         UpdatedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Records a settlement capture against this payment.
+    /// <para>
+    /// <see cref="SettledAmount"/> accumulates across multiple calls. Status becomes
+    /// <c>Settled</c> once the running total reaches the full initialised
+    /// <see cref="Amount"/>; otherwise it becomes <c>PartiallySettled</c>.
+    /// </para>
+    /// </summary>
     public void Settle(decimal settledAmount)
     {
-        SettledAmount = settledAmount;
+        SettledAmount = (SettledAmount ?? 0m) + settledAmount;
         SettledAt = DateTime.UtcNow;
-        Status = settledAmount < AuthorisedAmount
+        Status = SettledAmount < Amount
             ? PaymentStatus.PartiallySettled
             : PaymentStatus.Settled;
         UpdatedAt = DateTime.UtcNow;

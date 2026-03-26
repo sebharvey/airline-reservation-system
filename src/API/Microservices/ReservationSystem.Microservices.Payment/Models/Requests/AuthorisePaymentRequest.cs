@@ -4,10 +4,19 @@ namespace ReservationSystem.Microservices.Payment.Models.Requests;
 
 /// <summary>
 /// HTTP request body for POST /v1/payment/{paymentId}/authorise.
-/// Card details only — amount and order context are already set at initialisation.
+/// Supports partial authorisation: when <see cref="Amount"/> is provided, only that
+/// portion of the initialised total is authorised. Omitting it authorises the full
+/// remaining uninitialised amount, preserving backwards compatibility.
 /// </summary>
 public sealed class AuthorisePaymentRequest
 {
+    /// <summary>
+    /// Amount to authorise. Optional — when omitted the full remaining uninitialised
+    /// amount is authorised. Must be greater than zero when provided.
+    /// </summary>
+    [JsonPropertyName("amount")]
+    public decimal? Amount { get; init; }
+
     [JsonPropertyName("cardDetails")]
     public CardDetailsRequest? CardDetails { get; init; }
 }
