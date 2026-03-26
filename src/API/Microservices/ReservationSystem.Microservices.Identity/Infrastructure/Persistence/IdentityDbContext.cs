@@ -69,6 +69,16 @@ public sealed class IdentityDbContext : DbContext
                   .HasColumnType("datetime2")
                   .IsRequired();
 
+            entity.Property(u => u.PasswordResetToken)
+                  .HasColumnName("PasswordResetToken")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired(false);
+
+            entity.Property(u => u.EmailResetToken)
+                  .HasColumnName("EmailResetToken")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired(false);
+
             entity.Property(u => u.CreatedAt)
                   .HasColumnName("CreatedAt")
                   .HasColumnType("datetime2")

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Identity.Application.ResetPassword;
@@ -10,13 +11,16 @@ namespace ReservationSystem.Microservices.Identity.Application.ResetPassword;
 public sealed class ResetPasswordHandler
 {
     private readonly IUserAccountRepository _userAccountRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ILogger<ResetPasswordHandler> _logger;
 
     public ResetPasswordHandler(
         IUserAccountRepository userAccountRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         ILogger<ResetPasswordHandler> logger)
     {
         _userAccountRepository = userAccountRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _logger = logger;
     }
 
@@ -24,21 +28,22 @@ public sealed class ResetPasswordHandler
         ResetPasswordCommand command,
         CancellationToken cancellationToken = default)
     {
-        // In a production system, the reset token would be validated against a stored,
-        // time-limited token. For this implementation, we validate the inputs and log.
-        if (string.IsNullOrWhiteSpace(command.Token))
-            throw new ArgumentException("Reset token is required.");
+        if (!Guid.TryParse(command.Token, out var tokenGuid))
+            throw new ArgumentException("Invalid reset token.");
 
-        if (string.IsNullOrWhiteSpace(command.NewPassword))
-            throw new ArgumentException("New password is required.");
+        var account = await _userAccountRepository.GetByPasswordResetTokenAsync(tokenGuid, cancellationToken);
 
-        // A production implementation would:
-        // 1. Look up the account by the reset token hash
-        // 2. Validate the token has not expired (1-hour TTL)
-        // 3. Hash the new password with Argon2id
-        // 4. Update PasswordHash, set PasswordChangedAt, reset IsLocked/FailedLoginAttempts
-        // 5. Revoke all active refresh tokens
-        _logger.LogInformation("Password reset completed via token");
-        await Task.CompletedTask;
+        if (account is null)
+            throw new ArgumentException("Invalid or expired reset token.");
+
+        var newPasswordHash = LoginHandler.HashPassword(command.NewPassword);
+        account.ChangePassword(newPasswordHash);
+        account.Unlock();
+        account.ClearPasswordResetToken();
+
+        await _userAccountRepository.UpdateAsync(account, cancellationToken);
+        await _refreshTokenRepository.RevokeAllForUserAsync(account.UserAccountId, cancellationToken);
+
+        _logger.LogInformation("Password reset completed for {UserAccountId}", account.UserAccountId);
     }
 }

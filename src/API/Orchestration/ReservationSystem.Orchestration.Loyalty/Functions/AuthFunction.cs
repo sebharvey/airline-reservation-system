@@ -7,6 +7,8 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Login;
 using ReservationSystem.Orchestration.Loyalty.Application.Logout;
+using ReservationSystem.Orchestration.Loyalty.Application.PasswordReset;
+using ReservationSystem.Orchestration.Loyalty.Application.PasswordResetRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.RefreshToken;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
@@ -18,24 +20,30 @@ namespace ReservationSystem.Orchestration.Loyalty.Functions;
 /// <summary>
 /// HTTP-triggered functions for authentication.
 /// Orchestrates calls to the Identity microservice.
-/// Login, refresh, and logout are public routes — no Bearer token required.
+/// Login, refresh, logout, password reset request, and password reset are public routes — no Bearer token required.
 /// </summary>
 public sealed class AuthFunction
 {
     private readonly LoginHandler _loginHandler;
     private readonly RefreshTokenHandler _refreshTokenHandler;
     private readonly LogoutHandler _logoutHandler;
+    private readonly PasswordResetRequestHandler _passwordResetRequestHandler;
+    private readonly PasswordResetHandler _passwordResetHandler;
     private readonly ILogger<AuthFunction> _logger;
 
     public AuthFunction(
         LoginHandler loginHandler,
         RefreshTokenHandler refreshTokenHandler,
         LogoutHandler logoutHandler,
+        PasswordResetRequestHandler passwordResetRequestHandler,
+        PasswordResetHandler passwordResetHandler,
         ILogger<AuthFunction> logger)
     {
         _loginHandler = loginHandler;
         _refreshTokenHandler = refreshTokenHandler;
         _logoutHandler = logoutHandler;
+        _passwordResetRequestHandler = passwordResetRequestHandler;
+        _passwordResetHandler = passwordResetHandler;
         _logger = logger;
     }
 
@@ -181,13 +189,42 @@ public sealed class AuthFunction
     // -------------------------------------------------------------------------
 
     [Function("PasswordResetRequest")]
-    [OpenApiOperation(operationId: "PasswordResetRequest", tags: new[] { "Auth" }, Summary = "Request a password reset")]
+    [OpenApiOperation(operationId: "PasswordResetRequest", tags: new[] { "Auth" }, Summary = "Request a password reset email")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(PasswordResetRequestRequest), Required = true, Description = "Request body: email")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
-    public Task<HttpResponseData> PasswordResetRequest(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> PasswordResetRequest(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        PasswordResetRequestRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<PasswordResetRequestRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in PasswordResetRequest");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.Email))
+            return await req.BadRequestAsync("The field 'email' is required.");
+
+        try
+        {
+            var command = new PasswordResetRequestCommand(request.Email);
+            await _passwordResetRequestHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception in PasswordResetRequest");
+            return await req.InternalServerErrorAsync();
+        }
+
+        return req.CreateResponse(HttpStatusCode.Accepted);
     }
 
     // -------------------------------------------------------------------------
@@ -196,11 +233,42 @@ public sealed class AuthFunction
 
     [Function("PasswordReset")]
     [OpenApiOperation(operationId: "PasswordReset", tags: new[] { "Auth" }, Summary = "Reset password with token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(PasswordResetRequest), Required = true, Description = "Request body: token, newPassword")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
-    public Task<HttpResponseData> PasswordReset(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
+    public async Task<HttpResponseData> PasswordReset(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        PasswordResetRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<PasswordResetRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in PasswordReset");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null
+            || string.IsNullOrWhiteSpace(request.Token)
+            || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return await req.BadRequestAsync("The fields 'token' and 'newPassword' are required.");
+        }
+
+        try
+        {
+            var command = new PasswordResetCommand(request.Token, request.NewPassword);
+            await _passwordResetHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (ArgumentException)
+        {
+            return await req.BadRequestAsync("Invalid or expired reset token.");
+        }
     }
 }

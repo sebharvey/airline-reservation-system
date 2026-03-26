@@ -31,6 +31,7 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
         "HealthCheck",
         "VerifyEmail",
         "GetVerifyEmail",
+        "VerifyEmailChange",
     };
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
