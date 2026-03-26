@@ -393,6 +393,155 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    // =========================================================================
+    // Standalone — GET /v1/payment/{paymentId} validation
+    // =========================================================================
+
+    /// <summary>
+    /// Validates GET /v1/payment/{paymentId} against an authorised-but-not-yet-settled
+    /// payment. This state is distinct from the lifecycle tests (T04, T09) which only
+    /// assert the fully-settled state. Here we verify that:
+    ///   - AuthorisedAmount is populated from the authorise step
+    ///   - SettledAmount and SettledAt are null (settlement has not occurred)
+    ///   - CardType and CardLast4 are populated after authorisation
+    ///   - All financial amounts and status fields are accurate for mid-lifecycle reads
+    ///   - CreatedAt and UpdatedAt are present and well-formed
+    /// </summary>
+    [Fact, PaymentTestPriority(17)]
+    public async Task T17_GetPayment_AuthorisedState_ReturnsCorrectFieldsAndAmounts()
+    {
+        const decimal amount = 199.99m;
+
+        // Initialise
+        var initRequest = new
+        {
+            bookingReference = "XY9999",
+            paymentType = "Fare",
+            method = "CreditCard",
+            currencyCode = "GBP",
+            amount,
+            description = "Standalone GET validation — authorised state"
+        };
+
+        var initResponse = await _client.PostAsJsonAsync("/api/v1/payment/initialise", initRequest, JsonOptions);
+        initResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var initBody = await initResponse.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+        initBody.Should().NotBeNull();
+        var paymentId = initBody!.PaymentId;
+
+        // Authorise (no settle)
+        var authRequest = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/26",
+                cvv = "123",
+                cardholderName = "Jane Doe"
+            }
+        };
+
+        var authResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{paymentId}/authorise", authRequest, JsonOptions);
+        authResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // GET payment — assert authorised state
+        var getResponse = await _client.GetAsync($"/api/v1/payment/{paymentId}");
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await getResponse.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(paymentId);
+        body.BookingReference.Should().Be("XY9999");
+        body.PaymentType.Should().Be("Fare");
+        body.Method.Should().Be("CreditCard");
+        body.CardType.Should().Be("Visa");
+        body.CardLast4.Should().Be("1111");
+        body.CurrencyCode.Should().Be("GBP");
+        body.Amount.Should().Be(amount);
+        body.AuthorisedAmount.Should().Be(amount);
+        body.SettledAmount.Should().BeNull();
+        body.Status.Should().Be("Authorised");
+        body.AuthorisedAt.Should().NotBeNull();
+        body.SettledAt.Should().BeNull();
+        body.Description.Should().Be("Standalone GET validation — authorised state");
+        body.CreatedAt.Should().NotBe(default);
+        body.UpdatedAt.Should().NotBe(default);
+        body.UpdatedAt.Should().BeOnOrAfter(body.CreatedAt);
+    }
+
+    // =========================================================================
+    // Standalone — GET /v1/payment/{paymentId}/events validation
+    // =========================================================================
+
+    /// <summary>
+    /// Validates GET /v1/payment/{paymentId}/events against an authorised-but-not-yet-settled
+    /// payment. This state is distinct from the lifecycle tests (T05, T10) which assert two
+    /// events (Authorised + Settled). Here we verify that:
+    ///   - Exactly one event exists (Authorised) when settlement has not occurred
+    ///   - All event fields are correctly populated (paymentEventId, paymentId, eventType,
+    ///     amount, currencyCode, createdAt)
+    ///   - The events endpoint returns only events for the requested paymentId
+    /// </summary>
+    [Fact, PaymentTestPriority(18)]
+    public async Task T18_GetPaymentEvents_AuthorisedOnly_ReturnsSingleAuthorisedEvent()
+    {
+        const decimal amount = 75.50m;
+
+        // Initialise
+        var initRequest = new
+        {
+            bookingReference = "XY9999",
+            paymentType = "BagAncillary",
+            method = "DebitCard",
+            currencyCode = "GBP",
+            amount,
+            description = "Standalone events GET validation — single event"
+        };
+
+        var initResponse = await _client.PostAsJsonAsync("/api/v1/payment/initialise", initRequest, JsonOptions);
+        initResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var initBody = await initResponse.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+        initBody.Should().NotBeNull();
+        var paymentId = initBody!.PaymentId;
+
+        // Authorise (no settle)
+        var authRequest = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "06/28",
+                cvv = "321",
+                cardholderName = "Alice Brown"
+            }
+        };
+
+        var authResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{paymentId}/authorise", authRequest, JsonOptions);
+        authResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // GET events — assert single Authorised event
+        var getResponse = await _client.GetAsync($"/api/v1/payment/{paymentId}/events");
+
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var events = await getResponse.Content.ReadFromJsonAsync<List<PaymentEventResponse>>(JsonOptions);
+
+        events.Should().NotBeNull();
+        events!.Should().HaveCount(1, "only the authorise step has occurred; no settled event yet");
+
+        var ev = events[0];
+        ev.PaymentEventId.Should().NotBeEmpty();
+        ev.PaymentId.Should().Be(paymentId);
+        ev.EventType.Should().Be("Authorised");
+        ev.Amount.Should().Be(amount);
+        ev.CurrencyCode.Should().Be("GBP");
+        ev.CreatedAt.Should().NotBe(default);
+    }
 }
 
 #region Response DTOs
