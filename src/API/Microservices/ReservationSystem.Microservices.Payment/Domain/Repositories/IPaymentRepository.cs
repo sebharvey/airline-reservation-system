@@ -21,4 +21,6 @@ public interface IPaymentRepository
     Task UpdateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
 
     Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PaymentEvent>> GetEventsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 }

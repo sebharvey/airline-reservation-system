@@ -1,3 +1,4 @@
+using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Models.Responses;
 
 namespace ReservationSystem.Microservices.Payment.Models.Mappers;
@@ -54,5 +55,38 @@ public static class PaymentMapper
         {
             PaymentId = payment.PaymentId,
             Status = payment.Status
+        };
+
+    public static PaymentResponse ToPaymentResponse(Domain.Entities.Payment payment) =>
+        new()
+        {
+            PaymentId = payment.PaymentId,
+            BookingReference = payment.BookingReference,
+            PaymentType = payment.PaymentType,
+            Method = payment.Method,
+            CardType = payment.CardType,
+            CardLast4 = payment.CardLast4,
+            CurrencyCode = payment.CurrencyCode,
+            Amount = payment.Amount,
+            AuthorisedAmount = payment.AuthorisedAmount,
+            SettledAmount = payment.SettledAmount,
+            Status = payment.Status,
+            AuthorisedAt = payment.AuthorisedAt,
+            SettledAt = payment.SettledAt,
+            Description = payment.Description,
+            CreatedAt = payment.CreatedAt,
+            UpdatedAt = payment.UpdatedAt
+        };
+
+    public static PaymentEventResponse ToPaymentEventResponse(PaymentEvent paymentEvent) =>
+        new()
+        {
+            PaymentEventId = paymentEvent.PaymentEventId,
+            PaymentId = paymentEvent.PaymentId,
+            EventType = paymentEvent.EventType,
+            Amount = paymentEvent.Amount,
+            CurrencyCode = paymentEvent.CurrencyCode,
+            Notes = paymentEvent.Notes,
+            CreatedAt = paymentEvent.CreatedAt
         };
 }

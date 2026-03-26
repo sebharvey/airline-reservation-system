@@ -2,6 +2,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
+using ReservationSystem.Microservices.Payment.Application.GetPayment;
+using ReservationSystem.Microservices.Payment.Application.GetPaymentEvents;
 using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
@@ -28,6 +30,8 @@ public sealed class PaymentFunction
     private readonly SettlePaymentHandler _settleHandler;
     private readonly RefundPaymentHandler _refundHandler;
     private readonly VoidPaymentHandler _voidHandler;
+    private readonly GetPaymentHandler _getPaymentHandler;
+    private readonly GetPaymentEventsHandler _getPaymentEventsHandler;
     private readonly ILogger<PaymentFunction> _logger;
 
     public PaymentFunction(
@@ -36,6 +40,8 @@ public sealed class PaymentFunction
         SettlePaymentHandler settleHandler,
         RefundPaymentHandler refundHandler,
         VoidPaymentHandler voidHandler,
+        GetPaymentHandler getPaymentHandler,
+        GetPaymentEventsHandler getPaymentEventsHandler,
         ILogger<PaymentFunction> logger)
     {
         _initialiseHandler = initialiseHandler;
@@ -43,6 +49,8 @@ public sealed class PaymentFunction
         _settleHandler = settleHandler;
         _refundHandler = refundHandler;
         _voidHandler = voidHandler;
+        _getPaymentHandler = getPaymentHandler;
+        _getPaymentEventsHandler = getPaymentEventsHandler;
         _logger = logger;
     }
 
@@ -371,6 +379,76 @@ public sealed class PaymentFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to refund payment {PaymentId}", paymentId);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/payment/{paymentId}
+    // -------------------------------------------------------------------------
+
+    [Function("GetPayment")]
+    [OpenApiOperation(operationId: "GetPayment", tags: new[] { "Payments" }, Summary = "Get a payment record by ID")]
+    [OpenApiParameter(name: "paymentId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Payment ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PaymentResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> GetPayment(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment/{paymentId}")] HttpRequestData req,
+        string paymentId,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(paymentId, out var paymentGuid))
+            return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
+
+        try
+        {
+            var result = await _getPaymentHandler.HandleAsync(new GetPaymentQuery(paymentGuid), cancellationToken);
+
+            if (result is null)
+                return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
+
+            return await req.OkJsonAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve payment {PaymentId}", paymentId);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/payment/{paymentId}/events
+    // -------------------------------------------------------------------------
+
+    [Function("GetPaymentEvents")]
+    [OpenApiOperation(operationId: "GetPaymentEvents", tags: new[] { "Payments" }, Summary = "Get all payment events for a payment")]
+    [OpenApiParameter(name: "paymentId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Payment ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PaymentEventResponse[]), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> GetPaymentEvents(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment/{paymentId}/events")] HttpRequestData req,
+        string paymentId,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(paymentId, out var paymentGuid))
+            return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
+
+        try
+        {
+            var result = await _getPaymentEventsHandler.HandleAsync(new GetPaymentEventsQuery(paymentGuid), cancellationToken);
+
+            if (result is null)
+                return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
+
+            return await req.OkJsonAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve events for payment {PaymentId}", paymentId);
             return await req.InternalServerErrorAsync();
         }
     }
