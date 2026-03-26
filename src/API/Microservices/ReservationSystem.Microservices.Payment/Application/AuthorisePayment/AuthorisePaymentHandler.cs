@@ -42,13 +42,20 @@ public sealed class AuthorisePaymentHandler
             return null;
         }
 
-        if (payment.Status != PaymentStatus.Initialised)
+        if (payment.Status != PaymentStatus.Initialised && payment.Status != PaymentStatus.PartiallySettled)
         {
             _logger.LogWarning("Cannot authorise payment {PaymentId} — current status is {Status}",
                 command.PaymentId, payment.Status);
             throw new InvalidOperationException(
                 $"Payment '{command.PaymentId}' cannot be authorised — current status is '{payment.Status}'.");
         }
+
+        // When no explicit amount is supplied, authorise the full remaining uninitialised balance.
+        var remaining = payment.Amount - (payment.AuthorisedAmount ?? 0m);
+        var amountToAuthorise = command.Amount ?? remaining;
+
+        if (amountToAuthorise <= 0)
+            throw new ArgumentException("Amount to authorise must be greater than zero.");
 
         var cardLast4 = command.CardNumber.Length >= 4
             ? command.CardNumber[^4..]
@@ -62,13 +69,13 @@ public sealed class AuthorisePaymentHandler
         // (in memory only — never to the database). On decline, set Status = Declined and
         // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
 
-        payment.Authorise(payment.Amount, cardType, cardLast4);
+        payment.Authorise(amountToAuthorise, cardType, cardLast4);
         await _repository.UpdateAsync(payment, cancellationToken);
 
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
             PaymentEventType.Authorised,
-            payment.Amount,
+            amountToAuthorise,
             payment.CurrencyCode,
             $"Payment authorised for {payment.PaymentType}");
 

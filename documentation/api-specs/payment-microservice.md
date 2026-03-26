@@ -139,7 +139,9 @@ Initialise a payment with order details. Creates a `Payment` record with `Status
 
 ### POST /v1/payment/{paymentId}/authorise
 
-Authorise a card payment against the payment provider for a previously initialised payment. Updates the `Payment` record with card details and sets `Status = Authorised`. Creates a `PaymentEvent` row with `EventType = Authorised`.
+Authorise a card payment against the payment provider. Updates the `Payment` record with card details and sets `Status = Authorised`. Creates a `PaymentEvent` row with `EventType = Authorised`.
+
+Supports **partial authorisation**: when `amount` is provided, only that portion is authorised and `AuthorisedAmount` accumulates across multiple calls. This enables independent auth+settle cycles (e.g. fare and seat) against a single initialised payment. May be called from `Initialised` or `PartiallySettled` status.
 
 **When to use:** During booking confirmation, after initialisation. The Retail API calls this endpoint with the `paymentId` and card details.
 
@@ -153,6 +155,7 @@ Authorise a card payment against the payment provider for a previously initialis
 
 ```json
 {
+  "amount": 400.00,
   "cardDetails": {
     "cardNumber": "4111111111111234",
     "expiryDate": "12/28",
@@ -164,6 +167,7 @@ Authorise a card payment against the payment provider for a previously initialis
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `amount` | number | No | Amount to authorise. When omitted, the full remaining uninitialised balance is authorised. Must be greater than zero when provided |
 | `cardDetails` | object | Yes | Card details object (see below) |
 | `cardDetails.cardNumber` | string | Yes | Full card number (PAN). Held in memory only — never persisted |
 | `cardDetails.expiryDate` | string | Yes | Card expiry in `MM/YY` format |
@@ -177,7 +181,7 @@ Authorise a card payment against the payment provider for a previously initialis
 ```json
 {
   "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "authorisedAmount": 459.99,
+  "authorisedAmount": 400.00,
   "status": "Authorised"
 }
 ```
@@ -185,16 +189,16 @@ Authorise a card payment against the payment provider for a previously initialis
 | Field | Type | Description |
 |-------|------|-------------|
 | `paymentId` | string (uuid) | The payment identifier |
-| `authorisedAmount` | number | Amount successfully authorised |
+| `authorisedAmount` | number | Cumulative authorised amount after this call |
 | `status` | string | Payment status — `Authorised` on success |
 
 #### Error Responses
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields or invalid field format (e.g. malformed card number, invalid paymentId) |
+| `400 Bad Request` | Missing required fields, invalid field format, or `amount` ≤ 0 |
 | `404 Not Found` | No payment found for the given `paymentId` |
-| `409 Conflict` | Payment is not in `Initialised` status — already authorised, settled, or voided |
+| `409 Conflict` | Payment is not in `Initialised` or `PartiallySettled` status — cannot be authorised in its current state |
 | `422 Unprocessable Entity` | Card declined by payment provider — insufficient funds, expired card, or fraud check failure |
 
 ---

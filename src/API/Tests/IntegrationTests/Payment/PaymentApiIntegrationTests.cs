@@ -441,12 +441,14 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, PaymentTestPriority(20)]
-    public async Task T20_SplitPayment_Authorise_ReturnsFullAuthorisedAmount()
+    public async Task T20_SplitPayment_AuthoriseFarePortion400_ReturnsAuthorisedAmount()
     {
         Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
 
+        // Pass explicit amount to authorise only the fare portion of the 500 GBP total
         var request = new
         {
+            amount = _farePortion,
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -464,8 +466,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_splitPaymentId!.Value);
-        // The authorise step covers the full initialised amount — splitting happens at settle time
-        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_farePortion);  // cumulative after first auth
         body.Status.Should().Be("Authorised");
     }
 
@@ -501,7 +502,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_splitPaymentId!.Value);
         body.Amount.Should().Be(_splitTotal);
-        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_farePortion);   // only first auth so far
         body.SettledAmount.Should().Be(_farePortion);
         body.Status.Should().Be("PartiallySettled");
         body.AuthorisedAt.Should().NotBeNull();
@@ -509,16 +510,16 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
     }
 
     [SkippableFact, PaymentTestPriority(23)]
-    public async Task T23_SplitPayment_SecondAuthorise_ReturnsConflict()
+    public async Task T23_SplitPayment_AuthoriseSeatPortion100_ReturnsAuthorisedAmount()
     {
-        // The API enforces one authorise per payment lifecycle. Once a payment has been
-        // (partially) settled it is no longer in Initialised status, so a second authorise
-        // call must be rejected with 409 Conflict. The remaining balance is captured via
-        // a second settle call (T24) against the same original authorisation.
+        // From PartiallySettled the API accepts a further authorise call, accumulating
+        // the authorised total. This enables independent auth+settle cycles (fare, seat)
+        // against a single initialised payment.
         Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
 
         var request = new
         {
+            amount = _seatPortion,
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -531,7 +532,13 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var response = await _client.PostAsJsonAsync(
             $"/api/v1/payment/{_splitPaymentId}/authorise", request, JsonOptions);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthorisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.AuthorisedAmount.Should().Be(_splitTotal);   // accumulated: 400 + 100
+        body.Status.Should().Be("Authorised");
     }
 
     [SkippableFact, PaymentTestPriority(24)]
@@ -549,7 +556,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_splitPaymentId!.Value);
-        body.SettledAmount.Should().Be(_seatPortion);
+        body.SettledAmount.Should().Be(_splitTotal);   // accumulated total: 400 + 100
         body.SettledAt.Should().NotBeNull();
     }
 
@@ -566,12 +573,13 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_splitPaymentId!.Value);
         body.Amount.Should().Be(_splitTotal);
-        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_splitTotal);   // accumulated: 400 + 100
+        body.SettledAmount.Should().Be(_splitTotal);       // accumulated: 400 + 100
         body.Status.Should().Be("Settled");
     }
 
     [SkippableFact, PaymentTestPriority(26)]
-    public async Task T26_SplitPayment_GetEvents_ReturnsChronologicalEvents()
+    public async Task T26_SplitPayment_GetEvents_ReturnsFourChronologicalEvents()
     {
         Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
 
@@ -581,11 +589,15 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var events = await response.Content.ReadFromJsonAsync<List<PaymentEventResponse>>(JsonOptions);
 
         events.Should().NotBeNull();
-        // Authorised event + PartialSettlement event + Settled event
-        events!.Should().HaveCount(3);
+        // Two auth+settle cycles each produce one Authorised and one settlement event:
+        //   Authorised (400) → PartialSettlement (400) → Authorised (100) → Settled (100)
+        events!.Should().HaveCount(4);
 
-        events.Should().ContainSingle(e => e.EventType == "Authorised")
-            .Which.Amount.Should().Be(_splitTotal);
+        // Both Authorised events exist with their respective partial amounts
+        var authorisedEvents = events.Where(e => e.EventType == "Authorised").ToList();
+        authorisedEvents.Should().HaveCount(2);
+        authorisedEvents.Should().ContainSingle(e => e.Amount == _farePortion);
+        authorisedEvents.Should().ContainSingle(e => e.Amount == _seatPortion);
 
         events.Should().ContainSingle(e => e.EventType == "PartialSettlement")
             .Which.Amount.Should().Be(_farePortion);
@@ -599,6 +611,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         // Events must be in strict chronological order
         events[0].CreatedAt.Should().BeOnOrBefore(events[1].CreatedAt);
         events[1].CreatedAt.Should().BeOnOrBefore(events[2].CreatedAt);
+        events[2].CreatedAt.Should().BeOnOrBefore(events[3].CreatedAt);
     }
 
     // =========================================================================

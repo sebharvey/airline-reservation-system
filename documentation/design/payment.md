@@ -12,10 +12,22 @@ The Payment microservice is the financial orchestration layer for all Apex Air t
 Payment processing follows a three-step lifecycle: initialise, authorise, and settle. Each transaction is tracked by a unique `PaymentId` (GUID) generated at initialisation and returned to the Retail API for use in all subsequent operations.
 
 - The Retail API first calls the initialise endpoint with order details (amount, currency, payment type, description) to create the payment record. The Payment MS generates a `PaymentId` and returns it.
-- The Retail API then calls the authorise endpoint with the `PaymentId` and card details to authorise the payment against the card processor. A `PaymentEvent` row is created at this point.
-- Fare payment is authorised and settled during the booking confirmation flow; ancillary payments (seat, bag) are authorised upfront and settled after order confirmation. On settlement, the existing `PaymentEvent` row is updated.
-- If an authorised payment needs to be cancelled before settlement, the void endpoint releases the held funds and updates the `PaymentEvent` row.
+- The Retail API then calls the authorise endpoint with the `PaymentId`, card details, and optionally an explicit `amount`. A `PaymentEvent` row with `EventType = Authorised` is created per call. `AuthorisedAmount` accumulates across calls.
+- Fare payment is authorised and settled during the booking confirmation flow; ancillary payments (seat, bag) are authorised upfront and settled after order confirmation. Each settle call creates a new `PaymentEvent` row (`PartialSettlement` or `Settled`). `SettledAmount` accumulates across calls.
+- If an authorised payment needs to be cancelled before settlement, the void endpoint releases the held funds and creates a `Voided` PaymentEvent.
 - The Payment DB is the system of record for all financial transactions.
+
+### Partial authorisation (split payment)
+
+A single initialised payment can be authorised and settled in multiple cycles — for example, a 500 GBP total split into a 400 GBP fare portion and a 100 GBP seat portion:
+
+1. Initialise once for 500 GBP → `Initialised`
+2. Authorise 400 GBP (fare) → `Authorised`, `AuthorisedAmount = 400`
+3. Settle 400 GBP → `PartiallySettled`, `SettledAmount = 400`
+4. Authorise 100 GBP (seat) → `Authorised`, `AuthorisedAmount = 500` (accumulated)
+5. Settle 100 GBP → `Settled`, `SettledAmount = 500` (accumulated)
+
+Each authorise call may be made from `Initialised` or `PartiallySettled` status. Each produces its own `PaymentEvent` row.
 
 ```mermaid
 sequenceDiagram

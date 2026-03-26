@@ -49,10 +49,12 @@ public sealed class SettlePaymentHandler
                 $"Payment '{command.PaymentId}' cannot be settled — current status is '{payment.Status}'.");
         }
 
-        if (command.Amount > payment.AuthorisedAmount)
+        // Total settled after this call must not exceed total authorised
+        var totalSettledAfter = (payment.SettledAmount ?? 0m) + command.Amount;
+        if (totalSettledAfter > payment.AuthorisedAmount)
         {
             throw new ArgumentException(
-                $"Settled amount ({command.Amount}) exceeds authorised amount ({payment.AuthorisedAmount}).");
+                $"Total settled amount ({totalSettledAfter}) would exceed total authorised amount ({payment.AuthorisedAmount}).");
         }
 
         // TODO: Call payment gateway to capture / settle the authorised funds.
@@ -62,9 +64,10 @@ public sealed class SettlePaymentHandler
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
-        var eventType = command.Amount < payment.AuthorisedAmount
-            ? PaymentEventType.PartialSettlement
-            : PaymentEventType.Settled;
+        // Derive event type from post-settle status: fully settled → Settled, otherwise PartialSettlement
+        var eventType = payment.Status == PaymentStatus.Settled
+            ? PaymentEventType.Settled
+            : PaymentEventType.PartialSettlement;
 
         var settleEvent = PaymentEvent.Create(
             payment.PaymentId,
