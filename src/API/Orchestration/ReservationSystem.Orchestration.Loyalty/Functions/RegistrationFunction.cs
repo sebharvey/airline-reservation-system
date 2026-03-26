@@ -9,6 +9,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.Register;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
+using ReservationSystem.Orchestration.Loyalty.Validation;
 using System.Net;
 using System.Text.Json;
 
@@ -60,17 +61,15 @@ public sealed class RegistrationFunction
             return await req.BadRequestAsync("Invalid JSON in request body.");
         }
 
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.Email)
-            || string.IsNullOrWhiteSpace(request.Password)
-            || string.IsNullOrWhiteSpace(request.GivenName)
-            || string.IsNullOrWhiteSpace(request.Surname))
-        {
-            return await req.BadRequestAsync("The fields 'email', 'password', 'givenName', and 'surname' are required.");
-        }
+        var validationErrors = LoyaltyValidator.ValidateRegister(
+            request?.Email, request?.Password, request?.GivenName, request?.Surname,
+            request?.DateOfBirth, request?.PhoneNumber, request?.PreferredLanguage);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
 
         var command = new RegisterCommand(
-            request.Email,
+            request!.Email,
             request.Password,
             request.GivenName,
             request.Surname,

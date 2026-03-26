@@ -11,6 +11,15 @@ public static partial class CustomerValidator
     private const int MaxGivenNameLength = 100;
     private const int MaxSurnameLength = 100;
     private const int MaxPhoneNumberLength = 30;
+    private const int MaxRedemptionReferenceLength = 100;
+    private const int MaxDescriptionLength = 500;
+    private const int MaxReasonLength = 500;
+    private const int MaxBookingReferenceLength = 10;
+    private const int MinSearchQueryLength = 2;
+    private const int MaxSearchQueryLength = 100;
+
+    private static readonly IReadOnlySet<string> ValidTransactionTypes =
+        new HashSet<string>(StringComparer.Ordinal) { "Earn", "Redeem", "Adjustment", "Expiry", "Reinstate" };
 
     /// <summary>
     /// BCP 47 language tag: two lowercase letters, hyphen, two uppercase letters (e.g. en-GB, fr-FR).
@@ -110,6 +119,125 @@ public static partial class CustomerValidator
 
         if (dateOfBirth.HasValue && dateOfBirth.Value > DateOnly.FromDateTime(DateTime.UtcNow))
             errors.Add("The 'dateOfBirth' field must not be a future date.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/authorise.
+    /// </summary>
+    public static List<string> ValidateAuthorisePoints(int points, Guid basketId)
+    {
+        var errors = new List<string>();
+
+        if (points <= 0)
+            errors.Add("The 'points' field must be a positive integer.");
+
+        if (basketId == Guid.Empty)
+            errors.Add("The 'basketId' field must be a valid non-empty GUID.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/settle.
+    /// </summary>
+    public static List<string> ValidateSettlePoints(string? redemptionReference)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(redemptionReference))
+            errors.Add("The 'redemptionReference' field is required.");
+        else if (redemptionReference.Length > MaxRedemptionReferenceLength)
+            errors.Add($"The 'redemptionReference' field must not exceed {MaxRedemptionReferenceLength} characters.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/reverse.
+    /// </summary>
+    public static List<string> ValidateReversePoints(string? redemptionReference)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(redemptionReference))
+            errors.Add("The 'redemptionReference' field is required.");
+        else if (redemptionReference.Length > MaxRedemptionReferenceLength)
+            errors.Add($"The 'redemptionReference' field must not exceed {MaxRedemptionReferenceLength} characters.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/reinstate.
+    /// </summary>
+    public static List<string> ValidateReinstatePoints(int points, string? bookingReference, string? reason)
+    {
+        var errors = new List<string>();
+
+        if (points <= 0)
+            errors.Add("The 'points' field must be a positive integer.");
+
+        if (string.IsNullOrWhiteSpace(bookingReference))
+            errors.Add("The 'bookingReference' field is required.");
+        else if (bookingReference.Length > MaxBookingReferenceLength)
+            errors.Add($"The 'bookingReference' field must not exceed {MaxBookingReferenceLength} characters.");
+
+        if (string.IsNullOrWhiteSpace(reason))
+            errors.Add("The 'reason' field is required.");
+        else if (reason.Length > MaxReasonLength)
+            errors.Add($"The 'reason' field must not exceed {MaxReasonLength} characters.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/add.
+    /// </summary>
+    public static List<string> ValidateAddPoints(int points, string? transactionType, string? description)
+    {
+        var errors = new List<string>();
+
+        if (points == 0)
+            errors.Add("The 'points' field must not be zero.");
+
+        if (string.IsNullOrWhiteSpace(transactionType))
+        {
+            errors.Add("The 'transactionType' field is required.");
+        }
+        else if (!ValidTransactionTypes.Contains(transactionType))
+        {
+            errors.Add($"The 'transactionType' field must be one of: {string.Join(", ", ValidTransactionTypes)}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+            errors.Add("The 'description' field is required.");
+        else if (description.Length > MaxDescriptionLength)
+            errors.Add($"The 'description' field must not exceed {MaxDescriptionLength} characters.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/search.
+    /// </summary>
+    public static List<string> ValidateSearch(string? query)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            errors.Add("The 'query' field is required.");
+        }
+        else
+        {
+            if (query.Trim().Length < MinSearchQueryLength)
+                errors.Add($"The 'query' field must be at least {MinSearchQueryLength} characters.");
+
+            if (query.Length > MaxSearchQueryLength)
+                errors.Add($"The 'query' field must not exceed {MaxSearchQueryLength} characters.");
+        }
 
         return errors;
     }

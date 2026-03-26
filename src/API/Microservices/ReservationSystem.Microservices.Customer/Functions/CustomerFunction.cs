@@ -143,7 +143,12 @@ public sealed class CustomerFunction
             return await req.BadRequestAsync("Invalid JSON in request body.");
         }
 
-        var searchTerm = request?.Query?.Trim() ?? string.Empty;
+        var searchErrors = CustomerValidator.ValidateSearch(request?.Query);
+
+        if (searchErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", searchErrors));
+
+        var searchTerm = request!.Query.Trim();
 
         var query = new SearchCustomersQuery(searchTerm);
         var customers = await _searchHandler.HandleAsync(query, cancellationToken);
@@ -331,6 +336,11 @@ public sealed class CustomerFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
+        var authoriseErrors = CustomerValidator.ValidateAuthorisePoints(request.Points, request.BasketId);
+
+        if (authoriseErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", authoriseErrors));
+
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
         var transaction = await _authorisePointsHandler.HandleAsync(command, cancellationToken);
 
@@ -371,6 +381,11 @@ public sealed class CustomerFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var settleErrors = CustomerValidator.ValidateSettlePoints(request.RedemptionReference);
+
+        if (settleErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", settleErrors));
 
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
         var transaction = await _settlePointsHandler.HandleAsync(command, cancellationToken);
@@ -413,6 +428,11 @@ public sealed class CustomerFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
+        var reverseErrors = CustomerValidator.ValidateReversePoints(request.RedemptionReference);
+
+        if (reverseErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", reverseErrors));
+
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
         var transaction = await _reversePointsHandler.HandleAsync(command, cancellationToken);
 
@@ -454,6 +474,11 @@ public sealed class CustomerFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
+        var reinstateErrors = CustomerValidator.ValidateReinstatePoints(request.Points, request.BookingReference, request.Reason);
+
+        if (reinstateErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", reinstateErrors));
+
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
         var transaction = await _reinstatePointsHandler.HandleAsync(command, cancellationToken);
 
@@ -494,6 +519,11 @@ public sealed class CustomerFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var addErrors = CustomerValidator.ValidateAddPoints(request.Points, request.TransactionType, request.Description);
+
+        if (addErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", addErrors));
 
         var command = CustomerMapper.ToCommand(loyaltyNumber, request);
 
