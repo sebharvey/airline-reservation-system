@@ -839,6 +839,39 @@
         "validationNotes": "Events in order: Authorised(400) → PartialSettlement(400) → Authorised(100) → Settled(100). Each event records the amount for that individual operation."
       },
       "chainsTo": []
+    },
+    {
+      "step": 24,
+      "name": "Authorise with invalid Luhn card number (400)",
+      "description": "Attempt to authorise using a card number that fails the Luhn check. Expects 400 Bad Request — Luhn validation runs before the payment lookup.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/00000000-0000-0000-0000-000000000000/authorise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "123",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — card number fails Luhn check. Rejected before any payment lookup.",
+        "keyFields": [],
+        "validationNotes": "Luhn validation fires first (before 404 check). 4111111111111234 has an invalid check digit."
+      },
+      "chainsTo": []
     }
   ]
 }
