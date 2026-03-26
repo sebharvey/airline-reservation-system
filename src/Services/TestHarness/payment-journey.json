@@ -44,7 +44,7 @@
         "validationNotes": "paymentId is a GUID. status = 'Initialised'. amount matches the request."
       },
       "chainsTo": [
-        { "field": "paymentId", "as": "paymentIdA", "usedInSteps": [2, 3, 9, 11] }
+        { "field": "paymentId", "as": "paymentIdA", "usedInSteps": [2, 3, 9, 11, 15, 16] }
       ]
     },
     {
@@ -487,6 +487,356 @@
         "description": "404 Not Found — no payment exists for this paymentId.",
         "keyFields": [],
         "validationNotes": "Zero UUID returns not found."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 15,
+      "name": "Get payment record",
+      "description": "Retrieve the full payment record for the settled payment from Step 1. Verifies all lifecycle fields are populated.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/payment/{paymentIdA}",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentIdA": "from-step-1" }
+      },
+      "request": {
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "cardType": "Visa",
+          "cardLast4": "1234",
+          "currencyCode": "GBP",
+          "amount": 250.00,
+          "authorisedAmount": 250.00,
+          "settledAmount": 250.00,
+          "status": "Settled",
+          "description": "Test payment"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — full payment record returned. All lifecycle fields populated after init → auth → settle.",
+        "keyFields": ["paymentId", "status", "amount", "authorisedAmount", "settledAmount"],
+        "validationNotes": "status = 'Settled'. amount = authorisedAmount = settledAmount = 250.00. cardLast4 present, full PAN absent."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 16,
+      "name": "Get payment events",
+      "description": "Retrieve all PaymentEvent rows for the settled payment from Step 1. Expects one event with EventType = Settled.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/payment/{paymentIdA}/events",
+        "baseUrlRef": "payment",
+        "pathParams": { "paymentIdA": "from-step-1" }
+      },
+      "request": {
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "paymentEventId": "d4e5f6a7-b8c9-0123-def0-456789012345",
+            "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "eventType": "Settled",
+            "amount": 250.00,
+            "currencyCode": "GBP"
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — array of PaymentEvent records returned. One event (Settled) for a simple init-auth-settle flow.",
+        "keyFields": ["paymentEventId", "paymentId", "eventType", "amount"],
+        "validationNotes": "Array with one entry. eventType = 'Settled'. amount = 250.00. Events ordered chronologically."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 17,
+      "name": "Initialise payment (split scenario)",
+      "description": "Create a 500 GBP payment to test partial authorisation: fare (400 GBP) and seat (100 GBP) authorised and settled independently.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/initialise",
+        "baseUrlRef": "payment"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "bookingReference": "TS9999",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "currencyCode": "GBP",
+          "amount": 500.00,
+          "description": "Split payment test LHR-JFK, 2 PAX"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "amount": 500.00,
+          "status": "Initialised"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — 500 GBP payment initialised for the split auth/settle scenario.",
+        "keyFields": ["paymentId", "amount", "status"],
+        "validationNotes": "status = 'Initialised'. amount = 500.00. paymentId chains to steps 18–23."
+      },
+      "chainsTo": [
+        { "field": "paymentId", "as": "splitPaymentId", "usedInSteps": [18, 19, 20, 21, 22, 23] }
+      ]
+    },
+    {
+      "step": 18,
+      "name": "Authorise fare portion (400 GBP)",
+      "description": "First authorisation: 400 GBP for the fare portion. Passes explicit amount in request body.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{splitPaymentId}/authorise",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "amount": 400.00,
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "authorisedAmount": 400.00,
+          "status": "Authorised"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 400 GBP fare portion authorised. authorisedAmount accumulates from zero.",
+        "keyFields": ["paymentId", "authorisedAmount", "status"],
+        "validationNotes": "status = 'Authorised'. authorisedAmount = 400.00 (first auth). PaymentEvent row created."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 19,
+      "name": "Settle fare portion (400 GBP)",
+      "description": "Settle the 400 GBP fare authorisation. Payment enters PartiallySettled — 100 GBP still outstanding.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{splitPaymentId}/settle",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 400.00
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "settledAmount": 400.00,
+          "status": "PartiallySettled"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 400 GBP fare settled. status = PartiallySettled because settledAmount (400) < total amount (500).",
+        "keyFields": ["paymentId", "settledAmount", "status"],
+        "validationNotes": "status = 'PartiallySettled'. settledAmount = 400.00. PaymentEvent eventType = 'PartialSettlement'."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 20,
+      "name": "Authorise seat portion (100 GBP)",
+      "description": "Second authorisation: 100 GBP for the seat ancillary. Payment status must allow re-authorisation from PartiallySettled.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{splitPaymentId}/authorise",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "amount": 100.00,
+          "cardDetails": {
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Test User"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "authorisedAmount": 500.00,
+          "status": "Authorised"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 100 GBP seat portion authorised. authorisedAmount accumulates to 500.00 (400 + 100).",
+        "keyFields": ["paymentId", "authorisedAmount", "status"],
+        "validationNotes": "status = 'Authorised'. authorisedAmount = 500.00 (cumulative). A second PaymentEvent row is created."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 21,
+      "name": "Settle seat portion (100 GBP)",
+      "description": "Settle the 100 GBP seat authorisation. settledAmount accumulates to 500.00 — payment is now fully Settled.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/payment/{splitPaymentId}/settle",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "settledAmount": 100.00
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "settledAmount": 500.00,
+          "status": "Settled"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 100 GBP seat settled. settledAmount accumulates to 500.00 (400 + 100) — full amount captured.",
+        "keyFields": ["paymentId", "settledAmount", "status"],
+        "validationNotes": "status = 'Settled'. settledAmount = 500.00 (cumulative). PaymentEvent eventType = 'Settled'."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 22,
+      "name": "Get split payment record (verify Settled)",
+      "description": "Retrieve the payment record after two auth+settle cycles. Verifies cumulative authorisedAmount and settledAmount both equal 500.00 with status Settled.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/payment/{splitPaymentId}",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+          "paymentType": "Fare",
+          "method": "CreditCard",
+          "currencyCode": "GBP",
+          "amount": 500.00,
+          "authorisedAmount": 500.00,
+          "settledAmount": 500.00,
+          "status": "Settled",
+          "description": "Split payment test LHR-JFK, 2 PAX"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — payment record reflects full two-cycle settlement. All three amounts equal 500.00.",
+        "keyFields": ["paymentId", "status", "amount", "authorisedAmount", "settledAmount"],
+        "validationNotes": "status = 'Settled'. amount = authorisedAmount = settledAmount = 500.00. Verifies cumulative accumulation across two auth/settle cycles."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 23,
+      "name": "Get split payment events (verify 4 events)",
+      "description": "Retrieve all PaymentEvent rows for the split payment. Expects 4 events in chronological order: Authorised(400), PartialSettlement(400), Authorised(100), Settled(100).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/payment/{splitPaymentId}/events",
+        "baseUrlRef": "payment",
+        "pathParams": { "splitPaymentId": "from-step-17" }
+      },
+      "request": {
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "paymentEventId": "f6a7b8c9-d0e1-2345-f012-678901234567",
+            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+            "eventType": "Authorised",
+            "amount": 400.00,
+            "currencyCode": "GBP"
+          },
+          {
+            "paymentEventId": "a7b8c9d0-e1f2-3456-0123-789012345678",
+            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+            "eventType": "PartialSettlement",
+            "amount": 400.00,
+            "currencyCode": "GBP"
+          },
+          {
+            "paymentEventId": "b8c9d0e1-f2a3-4567-1234-890123456789",
+            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+            "eventType": "Authorised",
+            "amount": 100.00,
+            "currencyCode": "GBP"
+          },
+          {
+            "paymentEventId": "c9d0e1f2-a3b4-5678-2345-901234567890",
+            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
+            "eventType": "Settled",
+            "amount": 100.00,
+            "currencyCode": "GBP"
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — 4 PaymentEvent rows returned in chronological order for the two auth+settle cycles.",
+        "keyFields": ["paymentEventId", "paymentId", "eventType", "amount"],
+        "validationNotes": "Events in order: Authorised(400) → PartialSettlement(400) → Authorised(100) → Settled(100). Each event records the amount for that individual operation."
       },
       "chainsTo": []
     }
