@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
 using ReservationSystem.Microservices.Identity.Models.Requests;
 using ReservationSystem.Microservices.Identity.Models.Responses;
+using ReservationSystem.Microservices.Identity.Validation;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -76,6 +77,11 @@ public sealed class AccountFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var validationErrors = IdentityValidator.ValidateCreateAccount(request.Email, request.Password);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
 
         try
         {
@@ -178,6 +184,11 @@ public sealed class AccountFunction
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
 
+        var emailErrors = IdentityValidator.ValidateEmailField(request.NewEmail);
+
+        if (emailErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", emailErrors));
+
         try
         {
             var command = new EmailChangeRequestCommand(userAccountId, request.NewEmail);
@@ -222,6 +233,11 @@ public sealed class AccountFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var tokenErrors = IdentityValidator.ValidateRequiredToken(request.Token, "token");
+
+        if (tokenErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", tokenErrors));
 
         try
         {

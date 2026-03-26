@@ -10,6 +10,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
+using ReservationSystem.Orchestration.Loyalty.Validation;
 using System.Net;
 using System.Text.Json;
 
@@ -97,6 +98,13 @@ public sealed class ProfileFunction
 
         if (request is null)
             return await req.BadRequestAsync("Request body is required.");
+
+        var validationErrors = LoyaltyValidator.ValidateUpdateProfile(
+            request.GivenName, request.Surname, request.DateOfBirth,
+            request.Nationality, request.PhoneNumber, request.PreferredLanguage);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
 
         var command = new UpdateProfileCommand(
             loyaltyNumber,
