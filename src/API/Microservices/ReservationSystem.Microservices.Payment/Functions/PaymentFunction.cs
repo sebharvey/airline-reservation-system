@@ -159,9 +159,14 @@ public sealed class PaymentFunction
             || string.IsNullOrWhiteSpace(request.CardDetails.Cvv))
             return await req.BadRequestAsync("Card details (cardNumber, expiryDate, cvv) are required.");
 
+        var cardNumber = request.CardDetails.CardNumber.Replace(" ", "").Replace("-", "");
+
+        if (!IsValidLuhn(cardNumber))
+            return await req.BadRequestAsync("Card number is invalid.");
+
         var command = new AuthorisePaymentCommand(
             paymentGuid,
-            request.CardDetails.CardNumber,
+            cardNumber,
             request.CardDetails.ExpiryDate,
             request.CardDetails.Cvv,
             request.CardDetails.CardholderName);
@@ -451,5 +456,38 @@ public sealed class PaymentFunction
             _logger.LogError(ex, "Failed to retrieve events for payment {PaymentId}", paymentId);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Luhn algorithm — validates card number check digit
+    // -------------------------------------------------------------------------
+
+    private static bool IsValidLuhn(string cardNumber)
+    {
+        if (string.IsNullOrWhiteSpace(cardNumber))
+            return false;
+
+        var sum = 0;
+        var alternate = false;
+
+        for (var i = cardNumber.Length - 1; i >= 0; i--)
+        {
+            if (!char.IsDigit(cardNumber[i]))
+                return false;
+
+            var digit = cardNumber[i] - '0';
+
+            if (alternate)
+            {
+                digit *= 2;
+                if (digit > 9)
+                    digit -= 9;
+            }
+
+            sum += digit;
+            alternate = !alternate;
+        }
+
+        return sum % 10 == 0;
     }
 }
