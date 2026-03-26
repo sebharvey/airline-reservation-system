@@ -203,7 +203,7 @@ Ancillary accountable document records — EMD (Electronic Miscellaneous Documen
 | `ETicketNumber` | VARCHAR(20) | No | | | Associated e-ticket; links ancillary to the travel segment it covers |
 | `PassengerId` | VARCHAR(20) | No | | | PAX reference from the order |
 | `SegmentRef` | VARCHAR(20) | No | | | Segment identifier the ancillary applies to, e.g. `SEG-1` |
-| `PaymentReference` | VARCHAR(20) | No | | | Associated payment reference, e.g. `AXPAY-0002` |
+| `PaymentId` | VARCHAR(20) | No | | | Associated payment identifier, e.g. `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
 | `Amount` | DECIMAL(10,2) | No | | | Amount charged for this ancillary item |
 | `CurrencyCode` | CHAR(3) | No | `'GBP'` | | ISO 4217 |
 | `IsVoided` | BIT | No | `0` | | Set to `1` if the ancillary is refunded or reversed |
@@ -989,7 +989,7 @@ Issue an ancillary document (`delivery.Document` record) for a post-sale ancilla
   "eTicketNumber": "932-1234567890",
   "passengerId": "PAX-1",
   "segmentRef": "SEG-1",
-  "paymentReference": "AXPAY-0002",
+  "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "amount": 60.00,
   "currencyCode": "GBP",
   "documentData": {
@@ -1023,7 +1023,7 @@ Issue an ancillary document (`delivery.Document` record) for a post-sale ancilla
 | `eTicketNumber` | string | Yes | Associated e-ticket number linking the ancillary to its travel segment |
 | `passengerId` | string | Yes | PAX reference |
 | `segmentRef` | string | Yes | Segment identifier the ancillary applies to, e.g. `SEG-1` |
-| `paymentReference` | string | Yes | Payment reference from the Payment MS, e.g. `AXPAY-0002` |
+| `paymentId` | string | Yes | Payment identifier from the Payment MS, e.g. `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
 | `amount` | number | Yes | Amount charged. Decimal, 2 places |
 | `currencyCode` | string | Yes | ISO 4217 currency code |
 | `documentData` | object | Yes | Full ancillary detail. See DocumentData JSON Structure |

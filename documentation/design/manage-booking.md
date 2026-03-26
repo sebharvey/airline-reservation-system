@@ -64,7 +64,7 @@ sequenceDiagram
     Traveller->>Web: Navigate to manage booking and request a flight change
     Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: POST /v1/orders/retrieve
-    OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentReference, bookingType, loyaltyNumber, totalPointsAmount)
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentId, bookingType, loyaltyNumber, totalPointsAmount)
     RetailAPI-->>Web: 200 OK — current booking with change conditions
 
     alt Fare is not changeable (isChangeable = false)
@@ -90,7 +90,7 @@ sequenceDiagram
             Web-->>Traveller: Confirm change and provide payment details
             Web->>RetailAPI: POST /v1/orders/{bookingRef}/change (newOfferId, totalDue, paymentDetails)
             RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=totalDue, currency, cardDetails, description=FareChange)
-            PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
+            PaymentMS-->>RetailAPI: 200 OK — paymentId, authorisedAmount
         else No additional charge (totalDue = 0 — fully flexible fare, new fare equal or lower)
             RetailAPI-->>Web: Change summary — no additional payment required
             Web-->>Traveller: Confirm change
@@ -118,7 +118,7 @@ sequenceDiagram
 
         opt Tax difference applies (taxDifference > 0)
             RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount=taxDifference, currency, cardDetails, description=RewardChangeTaxes)
-            PaymentMS-->>RetailAPI: 200 OK — paymentReference, authorisedAmount
+            PaymentMS-->>RetailAPI: 200 OK — paymentId, authorisedAmount
         end
     end
 
@@ -137,9 +137,9 @@ sequenceDiagram
     OfferMS-->>RetailAPI: 200 OK — seats released from original flight- SeatsAvailable incremented
 
     alt Revenue booking
-        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentReference)
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, changeFee, addCollect, paymentId)
     else Reward booking
-        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, pointsDifference, redemptionReference, taxPaymentReference, bookingType=Reward)
+        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/change (cancelledSegmentId, newOfferId, pointsDifference, redemptionReference, taxPaymentId, bookingType=Reward)
     end
     OrderMS-->>RetailAPI: 200 OK — order updated (OrderStatus=Changed)- OrderChanged event published
 
@@ -160,10 +160,10 @@ sequenceDiagram
     end
 
     alt Revenue booking — payment was collected (totalDue > 0)
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=totalDue)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount=totalDue)
         PaymentMS-->>RetailAPI: 200 OK — add-collect and change fee settled
     else Reward booking — tax difference was collected (taxDifference > 0)
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount=taxDifference)
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount=taxDifference)
         PaymentMS-->>RetailAPI: 200 OK — tax difference settled
     end
 
@@ -179,10 +179,10 @@ A voluntary cancellation is a customer-initiated request governed by the fare co
 
 - Fares are non-refundable (full forfeiture), partially refundable (fixed cancellation fee deducted), or fully refundable (total amount returned).
 - Regardless of refundability, the e-ticket must be voided and inventory released — a cancelled booking must not hold seat inventory.
-- When a refund is due, the Order MS publishes an `OrderCancelled` event (containing `refundableAmount` and `originalPaymentReference`) to the Accounting system via the event bus. The Accounting system is responsible for initiating and settling the refund with the external payments provider — this is handled entirely outside the reservation system's synchronous booking path.
+- When a refund is due, the Order MS publishes an `OrderCancelled` event (containing `refundableAmount` and `originalPaymentId`) to the Accounting system via the event bus. The Accounting system is responsible for initiating and settling the refund with the external payments provider — this is handled entirely outside the reservation system's synchronous booking path.
 - Government-imposed taxes (e.g. UK Air Passenger Duty) may be refundable even on non-refundable fares; selective tax refund handling is out of scope for this phase.
 
-> **Refund responsibility boundary:** Refund execution is fully external to the reservation system. The reservation system raises the `OrderCancelled` event with the refundable amount and payment reference; the Accounting system consumes this event and issues the refund directly to the payment provider. The reservation system's Payment MS (`POST /v1/payment/{paymentReference}/refund`) is not called as part of the voluntary cancellation flow — it exists only for scenarios where the reservation system itself must initiate a refund programmatically (e.g. automated reversals triggered by payment failures during the bookflow).
+> **Refund responsibility boundary:** Refund execution is fully external to the reservation system. The reservation system raises the `OrderCancelled` event with the refundable amount and payment reference; the Accounting system consumes this event and issues the refund directly to the payment provider. The reservation system's Payment MS (`POST /v1/payment/{paymentId}/refund`) is not called as part of the voluntary cancellation flow — it exists only for scenarios where the reservation system itself must initiate a refund programmatically (e.g. automated reversals triggered by payment failures during the bookflow).
 
 ```mermaid
 sequenceDiagram
@@ -198,7 +198,7 @@ sequenceDiagram
     Traveller->>Web: Navigate to manage booking and request cancellation
     Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
     RetailAPI->>OrderMS: POST /v1/orders/retrieve
-    OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentReference, bookingType, loyaltyNumber, totalPointsAmount, redemptionReference)
+    OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentId, bookingType, loyaltyNumber, totalPointsAmount, redemptionReference)
 
     alt Revenue booking
         Note over RetailAPI: refundableAmount = isRefundable ? (totalPaid − cancellationFee) : 0
@@ -235,7 +235,7 @@ sequenceDiagram
     OrderMS-->>RetailAPI: 200 OK — OrderStatus=Cancelled- OrderChanged event published
 
     alt Revenue booking — refund is due (isRefundable = true)
-        OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=totalPaid−cancellationFee, originalPaymentReference)
+        OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=totalPaid−cancellationFee, originalPaymentId)
         RetailAPI-->>Web: 200 OK — booking cancelled- refund raised with Accounting system
         Web-->>Traveller: Booking cancelled — your refund will be processed by the Accounting team
     else Revenue booking — non-refundable fare (isRefundable = false)
@@ -243,7 +243,7 @@ sequenceDiagram
         Web-->>Traveller: Booking cancelled — no refund will be issued
     else Reward booking — points restored, tax refund if applicable
         opt Tax refund is due (taxRefundable > 0)
-            OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=taxRefundable, originalPaymentReference, bookingType=Reward)
+            OrderMS-)AccountingMS: OrderCancelled event (bookingRef, refundableAmount=taxRefundable, originalPaymentId, bookingType=Reward)
         end
         RetailAPI-->>Web: 200 OK — booking cancelled- points restored to loyalty account
         Web-->>Traveller: Booking cancelled — points have been restored to your account

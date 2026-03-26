@@ -89,11 +89,11 @@ sequenceDiagram
         BagMS-->>RetailAPI: 200 OK — validated (IsConsumed=0, unexpired, price locked)
     end
     RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
-    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference)
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentId)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — bag payment settled
 
-    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentReference)
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentId)
     OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items- OrderChanged event published
 
     RetailAPI-->>Web: 200 OK — bags confirmed (bookingReference, updated order summary)

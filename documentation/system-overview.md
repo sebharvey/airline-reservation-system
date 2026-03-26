@@ -280,7 +280,7 @@ Apex Air (IATA carrier code **AX**) operates a hub-and-spoke network from London
 - Offer consumption: `IsConsumed` set to 1 atomically to prevent duplicate use
 - Basket lifecycle: transient Order DB record, hard-deleted on sale, 60-minute expiry matching StoredOffer
 - Optimistic Concurrency Control: integer `Version` column on booking/ticket records
-- Payment DB: `PaymentReference` is shared key between Payment and Order domains
+- Payment DB: `paymentId` (GUID) is the sole identifier for payments, shared between Payment and Order domains
 - SeatPricing: fleet-wide position-based pricing, Retail API merges layout + pricing + availability
 - Delivery DB: owns Ticket, Manifest, Document tables; never reads from `order.Order` directly
 - Manifest seatmap validation: orchestration layer validates `SeatNumber` against active seatmap before calling Delivery MS

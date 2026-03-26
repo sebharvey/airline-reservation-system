@@ -14,7 +14,7 @@ The data model and event contracts are established now to ensure downstream fina
 |---|---|---|
 | `OrderConfirmed` | Order MS | Revenue recording — order and ancillary revenue capture; revenue attribution by type (fare, seat, bag). For reward bookings (`bookingType=Reward`), records points liability separately from cash revenue. |
 | `OrderChanged` | Order MS | Revenue adjustment for post-sale modifications (seat change, bag addition, flight change, SSR update, IROPS rebook). For reward booking changes, includes `pointsAdjustment` and updated `totalPointsAmount`. |
-| `OrderCancelled` | Order MS | Refund identification and processing; contains `refundableAmount` and `originalPaymentReference`. For reward bookings, includes `pointsReinstated` and `redemptionReference` to reverse the points liability entry. |
+| `OrderCancelled` | Order MS | Refund identification and processing; contains `refundableAmount` and `originalPaymentId`. For reward bookings, includes `pointsReinstated` and `redemptionReference` to reverse the points liability entry. |
 | `TicketIssued` | Delivery MS | Records revenue from e-ticket creation. |
 | `TicketVoided` | Delivery MS | Reverses the revenue entry for a voided e-ticket. |
 | `DocumentIssued` | Delivery MS | Records ancillary financial transactions from EMD-equivalent document creation. |

@@ -627,7 +627,7 @@ During the bookflow, the Retail API calls the Bag MS once per flight segment to 
 2. **Passenger selects additional bags.**
 3. **Retail API → Bag MS:** `GET /v1/bags/offers/{bagOfferId}` — validate each selected offer.
 4. **Retail API → Payment MS:** Authorise and settle bag payment.
-5. **Retail API → Order MS:** `PATCH /v1/orders/{bookingRef}/bags` — add bag order items with `paymentReference`.
+5. **Retail API → Order MS:** `PATCH /v1/orders/{bookingRef}/bags` — add bag order items with `paymentId`.
 6. **Retail API → Delivery MS:** Issue `delivery.Document` (type `BagAncillary`).
 
 ### OLCI (Online Check-In) Bag Addition

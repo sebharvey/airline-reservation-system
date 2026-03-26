@@ -158,13 +158,13 @@ Confirmed post-sale record. Created once the basket is confirmed — payment tak
 
 #### OrderData JSON Structure
 
-Aligned to IATA ONE Order concepts. Contains: `dataLists` (passengers array, flightSegments array), `orderItems` (array of flight, seat, and bag order items with `offerId`, fare details, `eTickets`, `seatAssignments`, `paymentReference`), `payments` (array of payment records), `history` (append-only event log).
+Aligned to IATA ONE Order concepts. Contains: `dataLists` (passengers array, flightSegments array), `orderItems` (array of flight, seat, and bag order items with `offerId`, fare details, `eTickets`, `seatAssignments`, `paymentId`), `payments` (array of payment records), `history` (append-only event log).
 
 For reward bookings, add to `OrderData`: `bookingType: "Reward"`, `totalPointsAmount`, `pointsRedemption` object (`redemptionReference`, `loyaltyNumber`, `pointsRedeemed`, `status`). The standard `payments` array covers cash transactions (taxes and ancillaries only for reward bookings).
 
 Each `flightSegment` includes: `segmentId`, `flightNumber`, `origin`, `destination`, `departureDateTime`, `arrivalDateTime`, `aircraftType`, `operatingCarrier`, `marketingCarrier`, `cabinCode`, `bookingClass`.
 
-Each `orderItem` of type `Flight` includes: `orderItemId`, `type: "Flight"`, `segmentRef`, `passengerRefs`, `offerId`, `fareBasisCode`, `fareFamily`, `unitPrice`, `taxes`, `totalPrice`, `isRefundable`, `isChangeable`, `paymentReference`, `eTickets` (array of `{passengerId, eTicketNumber}`), `seatAssignments` (array of `{passengerId, seatNumber}`).
+Each `orderItem` of type `Flight` includes: `orderItemId`, `type: "Flight"`, `segmentRef`, `passengerRefs`, `offerId`, `fareBasisCode`, `fareFamily`, `unitPrice`, `taxes`, `totalPrice`, `isRefundable`, `isChangeable`, `paymentId`, `eTickets` (array of `{passengerId, eTicketNumber}`), `seatAssignments` (array of `{passengerId, seatNumber}`).
 
 ---
 
@@ -615,9 +615,9 @@ Confirm a basket and create a permanent order record. Sets `OrderStatus = Confir
     { "passengerId": "PAX-1", "segmentId": "SEG-1", "eTicketNumber": "932-1234567890" },
     { "passengerId": "PAX-2", "segmentId": "SEG-1", "eTicketNumber": "932-1234567891" }
   ],
-  "paymentReferences": [
-    { "type": "Fare", "paymentReference": "AXPAY-0001", "amount": 5900.00 },
-    { "type": "BagAncillary", "paymentReference": "AXPAY-0002", "amount": 60.00 }
+  "paymentIds": [
+    { "type": "Fare", "paymentId": "b7e4f2a1-3c89-4d56-a1e2-f34567890abc", "amount": 5900.00 },
+    { "type": "BagAncillary", "paymentId": "c8f5a3b2-4d90-5e67-b2f3-a45678901bcd", "amount": 60.00 }
   ],
   "redemptionReference": null,
   "bookingType": "Revenue"
@@ -631,10 +631,10 @@ Confirm a basket and create a permanent order record. Sets `OrderStatus = Confir
 | `eTickets[].passengerId` | string | Yes | PAX reference |
 | `eTickets[].segmentId` | string | Yes | Segment reference |
 | `eTickets[].eTicketNumber` | string | Yes | IATA-format e-ticket number, e.g. `932-1234567890` |
-| `paymentReferences` | array | Yes | Payment references from the Payment MS. One per payment type |
-| `paymentReferences[].type` | string | Yes | `Fare`, `SeatAncillary`, `BagAncillary`, `RewardTaxes` |
-| `paymentReferences[].paymentReference` | string | Yes | e.g. `AXPAY-0001` |
-| `paymentReferences[].amount` | number | Yes | Amount for this payment line. Decimal, 2 places |
+| `paymentIds` | array | Yes | Payment IDs from the Payment MS. One per payment type |
+| `paymentIds[].type` | string | Yes | `Fare`, `SeatAncillary`, `BagAncillary`, `RewardTaxes` |
+| `paymentIds[].paymentId` | string (UUID) | Yes | e.g. `b7e4f2a1-3c89-4d56-a1e2-f34567890abc` |
+| `paymentIds[].amount` | number | Yes | Amount for this payment line. Decimal, 2 places |
 | `redemptionReference` | string | No | Required when `bookingType=Reward`. The `RedemptionReference` from the Customer MS points settle call |
 | `bookingType` | string | No | `Revenue` (default) or `Reward` |
 
@@ -877,7 +877,7 @@ Update seat assignments on a confirmed order. Updates `seatAssignments` within `
       "seatOfferId": "so-3fa85f64-3A-v1",
       "seatNumber": "3A",
       "eTicketNumber": "932-1234567900",
-      "paymentReference": "AXPAY-0003"
+      "paymentId": "d9a6b4c3-5e01-6f78-c3a4-b56789012cde"
     }
   ],
   "version": 3
@@ -892,7 +892,7 @@ Update seat assignments on a confirmed order. Updates `seatAssignments` within `
 | `seatUpdates[].seatOfferId` | string | Yes | New `SeatOfferId` |
 | `seatUpdates[].seatNumber` | string | Yes | New seat number |
 | `seatUpdates[].eTicketNumber` | string | Yes | New e-ticket number (post-reissuance) |
-| `seatUpdates[].paymentReference` | string | No | Payment reference for the seat ancillary charge. `null` for OLCI (no-charge) and Business/First Class seats |
+| `seatUpdates[].paymentId` | string (UUID) | No | Payment ID for the seat ancillary charge. `null` for OLCI (no-charge) and Business/First Class seats |
 | `version` | integer | Yes | Current `Version` for OCC |
 
 #### Response — `200 OK`
@@ -1004,7 +1004,7 @@ Apply a confirmed flight change, recording the new segment, add-collect amount, 
   ],
   "changeFeeAmount": 0.00,
   "addCollectAmount": 200.00,
-  "paymentReference": "AXPAY-0004",
+  "paymentId": "e0b7c5d4-6f12-7a89-d4b5-c67890123def",
   "bookingType": "Revenue",
   "pointsDifference": null,
   "redemptionReference": null,
@@ -1025,7 +1025,7 @@ Apply a confirmed flight change, recording the new segment, add-collect amount, 
 | `newETickets` | array | Yes | New e-ticket numbers issued by Delivery MS |
 | `changeFeeAmount` | number | Yes | Change fee charged. `0.00` if none |
 | `addCollectAmount` | number | Yes | Fare difference (add-collect). `0.00` if none |
-| `paymentReference` | string | No | Payment reference for the add-collect + change fee. `null` if `totalDue = 0` |
+| `paymentId` | string (UUID) | No | Payment ID for the add-collect + change fee. `null` if `totalDue = 0` |
 | `bookingType` | string | No | `Revenue` (default) or `Reward` |
 | `pointsDifference` | integer | No | For reward bookings: positive = additional points redeemed; negative = points to be reinstated |
 | `redemptionReference` | string | No | For reward bookings where additional points were authorised |
@@ -1054,11 +1054,11 @@ Apply a confirmed flight change, recording the new segment, add-collect amount, 
 
 ### PATCH /v1/orders/{bookingRef}/cancel
 
-Mark an order as cancelled with reason and any cancellation fee. Sets `OrderStatus = Cancelled`. Publishes `OrderCancelled` event containing `refundableAmount` and `originalPaymentReference` for the Accounting MS to initiate refund processing.
+Mark an order as cancelled with reason and any cancellation fee. Sets `OrderStatus = Cancelled`. Publishes `OrderCancelled` event containing `refundableAmount` and `originalPaymentId` for the Accounting MS to initiate refund processing.
 
 **When to use:** Called by the Retail API after all cancellation steps succeed: e-tickets voided (Delivery MS), manifest deleted (Delivery MS), inventory released (Offer MS), and for reward bookings, points reinstated (Customer MS).
 
-> **Refund responsibility:** Refund execution is external to the reservation system. The `OrderCancelled` event carries `refundableAmount` and `paymentReference`; the Accounting MS consumes this and issues the refund to the payment provider. The Payment MS `POST /v1/payment/{paymentReference}/refund` is **not** called by the Retail API during voluntary cancellation — it is used only for automated reversals during booking flow failures.
+> **Refund responsibility:** Refund execution is external to the reservation system. The `OrderCancelled` event carries `refundableAmount` and `paymentId`; the Accounting MS consumes this and issues the refund to the payment provider. The Payment MS `POST /v1/payment/{paymentId}/refund` is **not** called by the Retail API during voluntary cancellation — it is used only for automated reversals during booking flow failures.
 
 #### Path Parameters
 
@@ -1073,7 +1073,7 @@ Mark an order as cancelled with reason and any cancellation fee. Sets `OrderStat
   "reason": "VoluntaryCancellation",
   "cancellationFeeAmount": 0.00,
   "refundableAmount": 5960.00,
-  "originalPaymentReference": "AXPAY-0001",
+  "originalPaymentId": "b7e4f2a1-3c89-4d56-a1e2-f34567890abc",
   "bookingType": "Revenue",
   "pointsReinstated": null,
   "redemptionReference": null,
@@ -1086,7 +1086,7 @@ Mark an order as cancelled with reason and any cancellation fee. Sets `OrderStat
 | `reason` | string | Yes | `VoluntaryCancellation` |
 | `cancellationFeeAmount` | number | Yes | Fee deducted from refund. `0.00` for fully refundable fares |
 | `refundableAmount` | number | Yes | Amount to be refunded: `totalPaid − cancellationFee`. `0.00` for non-refundable fares |
-| `originalPaymentReference` | string | Yes | The fare payment reference from the Payment MS |
+| `originalPaymentId` | string (UUID) | Yes | The fare payment ID from the Payment MS |
 | `bookingType` | string | No | `Revenue` (default) or `Reward` |
 | `pointsReinstated` | integer | No | For reward bookings: total points restored to customer balance |
 | `redemptionReference` | string | No | For reward bookings: the redemption reference for accounting reconciliation |
@@ -1210,7 +1210,7 @@ Add or update bag order items on a confirmed order. Updates `orderItems` in `Ord
       "bagSequence": 1,
       "price": 60.00,
       "currencyCode": "GBP",
-      "paymentReference": "AXPAY-0005"
+      "paymentId": "f1c8d6e5-7a23-8b90-e5c6-d78901234ef0"
     }
   ],
   "version": 3
@@ -1226,7 +1226,7 @@ Add or update bag order items on a confirmed order. Updates `orderItems` in `Ord
 | `bagItems[].bagSequence` | integer | Yes | Additional bag sequence number |
 | `bagItems[].price` | number | Yes | Price paid. Decimal, 2 places |
 | `bagItems[].currencyCode` | string | Yes | ISO 4217 |
-| `bagItems[].paymentReference` | string | Yes | Payment reference from Payment MS |
+| `bagItems[].paymentId` | string (UUID) | Yes | Payment ID from Payment MS |
 | `version` | integer | Yes | Current `Version` for OCC |
 
 #### Response — `200 OK`
@@ -1496,7 +1496,7 @@ curl -X POST https://{order-ms-host}/v1/orders \
   -d '{
     "basketId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "eTickets": [{ "passengerId": "PAX-1", "segmentId": "SEG-1", "eTicketNumber": "932-1234567890" }],
-    "paymentReferences": [{ "type": "Fare", "paymentReference": "AXPAY-0001", "amount": 5960.00 }],
+    "paymentIds": [{ "type": "Fare", "paymentId": "b7e4f2a1-3c89-4d56-a1e2-f34567890abc", "amount": 5960.00 }],
     "bookingType": "Revenue"
   }'
 ```
@@ -1530,7 +1530,7 @@ curl -X PATCH https://{order-ms-host}/v1/orders/AB1234/cancel \
     "reason": "VoluntaryCancellation",
     "cancellationFeeAmount": 0.00,
     "refundableAmount": 5960.00,
-    "originalPaymentReference": "AXPAY-0001",
+    "originalPaymentId": "b7e4f2a1-3c89-4d56-a1e2-f34567890abc",
     "bookingType": "Revenue",
     "version": 3
   }'

@@ -79,7 +79,7 @@ The Retail API is solely responsible for all inventory hold and release operatio
 
 ### Payment Authorise-and-Settle
 
-Payment authorisation and settlement are separate steps. Multiple independent authorisations are made during basket confirmation — one per payment line (fare, seat ancillary, bag ancillary). Each has its own `PaymentReference`.
+Payment authorisation and settlement are separate steps. Multiple independent authorisations are made during basket confirmation — one per payment line (fare, seat ancillary, bag ancillary). Each has its own `PaymentId`.
 
 - Fare and reward-tax authorisations are settled after `POST /v1/orders` succeeds.
 - Ancillary authorisations (seat, bag) are settled after order confirmation — failure to settle an ancillary does not roll back the confirmed order but must be flagged for manual reconciliation.
@@ -135,7 +135,7 @@ SSR changes do **not** trigger e-ticket reissuance — SSR codes are not encoded
 
 ### Voluntary Cancellation — Refund Boundary
 
-Refund execution is external to the reservation system. The Retail API voids e-tickets, releases inventory, raises the `OrderCancelled` event (via the Order MS with `refundableAmount`), and returns. The Accounting system consumes this event and initiates the refund with the payment provider. `POST /v1/payment/{paymentReference}/refund` on Payment MS is **not** called for voluntary cancellations — it exists only for automated reversals during booking flow failures (e.g. ticketing failure after payment authorisation).
+Refund execution is external to the reservation system. The Retail API voids e-tickets, releases inventory, raises the `OrderCancelled` event (via the Order MS with `refundableAmount`), and returns. The Accounting system consumes this event and initiates the refund with the payment provider. `POST /v1/payment/{paymentId}/refund` on Payment MS is **not** called for voluntary cancellations — it exists only for automated reversals during booking flow failures (e.g. ticketing failure after payment authorisation).
 
 **`refundableAmount` calculation (revenue):** `isRefundable ? (totalPaid − cancellationFeeAmount) : 0`.
 
@@ -674,10 +674,10 @@ Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separat
 6. **Issue e-tickets** — `POST /v1/tickets` on Delivery MS. If this fails: reverse points hold (reward), void all payment authorisations, release inventory, return error.
 7. **Sell inventory** — `POST /v1/inventory/sell` on Offer MS for all inventory IDs in the basket. If this fails after 3 retries: void payments, return error. Do not confirm order.
 8. **(Reward only) Settle points** — `POST /v1/customers/{loyaltyNumber}/points/settle` on Customer MS.
-9. **Settle fare/tax payment** — `POST /v1/payment/{paymentReference}/settle` on Payment MS.
+9. **Settle fare/tax payment** — `POST /v1/payment/{paymentId}/settle` on Payment MS.
 10. **Confirm order** — `POST /v1/orders` on Order MS. Returns `bookingReference`. Basket is hard-deleted by Order MS.
 11. **Validate seat numbers and write manifest** — `GET /v1/seatmap/{aircraftType}` on Seat MS to validate each seat, then `POST /v1/manifest` on Delivery MS.
-12. **Settle ancillary payments** (if applicable) — `POST /v1/payment/{paymentReference}/settle` per ancillary. Failure does not roll back the confirmed booking — flag for manual reconciliation.
+12. **Settle ancillary payments** (if applicable) — `POST /v1/payment/{paymentId}/settle` per ancillary. Failure does not roll back the confirmed booking — flag for manual reconciliation.
 13. **(If paid seats selected) Issue seat documents** — `POST /v1/documents` on Delivery MS per charged seat, `documentType=SeatAncillary`.
 14. **(If bags selected) Issue bag documents** — `POST /v1/documents` on Delivery MS per bag, `documentType=BagAncillary`.
 
@@ -738,7 +738,7 @@ Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separat
       "departureDate": "2026-08-15"
     }
   ],
-  "paymentReferences": ["AXPAY-0001"],
+  "paymentIds": ["a1b2c3d4-e5f6-7890-abcd-ef1234567890"],
   "redemptionReference": null
 }
 ```
@@ -749,7 +749,7 @@ Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separat
 | `orderStatus` | string | `Confirmed` |
 | `bookingType` | string | `Revenue` or `Reward` |
 | `eTickets` | array | All issued e-ticket numbers per passenger per segment |
-| `paymentReferences` | array | All `PaymentReference` values issued during this confirmation |
+| `paymentIds` | array | All `PaymentId` values issued during this confirmation |
 | `redemptionReference` | string (UUID) | The `TransactionId` GUID of the points authorisation loyalty transaction, for reward bookings. `null` for revenue bookings |
 
 #### Error Responses
@@ -855,7 +855,7 @@ Add or change seat selection on a confirmed order. Full ancillary charge applies
 2. For each `seatOfferId`: `GET /v1/seat-offers/{seatOfferId}` on Seat MS — validate and price.
 3. `POST /v1/flights/{flightId}/seat-reservations` on Offer MS — soft-reserve seats.
 4. `POST /v1/payment/authorise` on Payment MS — `description=SeatAncillary`.
-5. `POST /v1/payment/{paymentReference}/settle`.
+5. `POST /v1/payment/{paymentId}/settle`.
 6. `PATCH /v1/orders/{bookingRef}/seats` on Order MS.
 7. `POST /v1/tickets/reissue` on Delivery MS, `reason=SeatChange`.
 8. `PUT /v1/manifest` on Delivery MS — update seat numbers and e-ticket numbers.
@@ -894,7 +894,7 @@ Add or change seat selection on a confirmed order. Full ancillary charge applies
 {
   "bookingReference": "AB1234",
   "totalSeatAmount": 70.00,
-  "paymentReference": "AXPAY-0003",
+  "paymentId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
   "newETicketNumbers": ["932-1234567901"]
 }
 ```
@@ -923,7 +923,7 @@ Change a confirmed flight to a new itinerary. Governed by the fare conditions of
 **IROPS fare override:** When `reason=FlightCancellation` is present (Disruption API context), the Order MS overrides all fare conditions and allows free rebooking regardless of fare type.
 
 **Orchestration sequence:**
-1. Retrieve order — confirm `isChangeable = true`, collect `changeFee`, `originalBaseFare`, `originalPaymentReference`.
+1. Retrieve order — confirm `isChangeable = true`, collect `changeFee`, `originalBaseFare`, `originalPaymentId`.
 2. `POST /v1/search` on Offer MS — reshop for replacement flight.
 3. (Revenue, `totalDue > 0`) `POST /v1/payment/authorise` on Payment MS, `description=FareChange`.
 4. (Reward, `pointsDifference > 0`) `POST /v1/customers/{loyaltyNumber}/points/authorise` on Customer MS.
@@ -937,8 +937,8 @@ Change a confirmed flight to a new itinerary. Governed by the fare conditions of
 12. `POST /v1/manifest` on Delivery MS — write manifest for replacement flight.
 13. (Reward, `pointsDifference > 0`) `POST /v1/customers/{loyaltyNumber}/points/settle`.
 14. (Reward, `pointsDifference < 0`) `POST /v1/customers/{loyaltyNumber}/points/reinstate`.
-15. (Revenue, `totalDue > 0`) `POST /v1/payment/{paymentReference}/settle`.
-16. (Reward, `taxDifference > 0`) `POST /v1/payment/{paymentReference}/settle`.
+15. (Revenue, `totalDue > 0`) `POST /v1/payment/{paymentId}/settle`.
+16. (Reward, `taxDifference > 0`) `POST /v1/payment/{paymentId}/settle`.
 
 #### Path Parameters
 
@@ -974,7 +974,7 @@ Change a confirmed flight to a new itinerary. Governed by the fare conditions of
   "newFlightNumber": "AX003",
   "newDepartureDate": "2026-08-16",
   "totalDue": 150.00,
-  "paymentReference": "AXPAY-0004",
+  "paymentId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
   "newETicketNumbers": ["932-1234567902"]
 }
 ```
@@ -1003,7 +1003,7 @@ Cancel a confirmed booking. Voids e-tickets, releases inventory, reinstates poin
 3. `DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` on Delivery MS per segment.
 4. `POST /v1/inventory/release` on Offer MS (`releaseType=Sold`) per inventory ID.
 5. (Reward) `POST /v1/customers/{loyaltyNumber}/points/reinstate` on Customer MS, `reason=VoluntaryCancellation`.
-6. `PATCH /v1/orders/{bookingRef}/cancel` on Order MS. Publishes `OrderCancelled` event with `refundableAmount` and `originalPaymentReference`.
+6. `PATCH /v1/orders/{bookingRef}/cancel` on Order MS. Publishes `OrderCancelled` event with `refundableAmount` and `originalPaymentId`.
 7. (If ancillary documents exist and refund is due) `PATCH /v1/documents/{documentNumber}/void` on Delivery MS per ancillary document.
 
 #### Path Parameters
@@ -1047,7 +1047,7 @@ Add or update checked bag selection on a confirmed order. Issues a `BagAncillary
 **Orchestration sequence:**
 1. For each `bagOfferId`: `GET /v1/bags/offers/{bagOfferId}` on Bag MS — validate and price.
 2. `POST /v1/payment/authorise` on Payment MS — `description=BagAncillary`.
-3. `POST /v1/payment/{paymentReference}/settle`.
+3. `POST /v1/payment/{paymentId}/settle`.
 4. `PATCH /v1/orders/{bookingRef}/bags` on Order MS. Publishes `OrderChanged` event.
 5. `POST /v1/documents` on Delivery MS per bag, `documentType=BagAncillary`.
 
@@ -1084,7 +1084,7 @@ Add or update checked bag selection on a confirmed order. Issues a `BagAncillary
 {
   "bookingReference": "AB1234",
   "totalBagAmount": 60.00,
-  "paymentReference": "AXPAY-0005"
+  "paymentId": "d4e5f6a7-b8c9-0123-defa-234567890123"
 }
 ```
 

@@ -108,4 +108,4 @@ Dependencies must be continuously scanned and security testing conducted regular
 A documented incident response plan must exist and be tested regularly.
 
 - Plan defines escalation paths, communication responsibilities, containment procedures, and post-incident review obligations; UK GDPR 72-hour breach notification timeline explicitly addressed.
-- All services emit sufficient telemetry for forensic investigation; logs must be centralised, tamper-evident, and searchable; correlation identifiers (`BookingReference`, `BasketId`, `PaymentReference`) present in all log entries.
+- All services emit sufficient telemetry for forensic investigation; logs must be centralised, tamper-evident, and searchable; correlation identifiers (`BookingReference`, `BasketId`, `PaymentId`) present in all log entries.
