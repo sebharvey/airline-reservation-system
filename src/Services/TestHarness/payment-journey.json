@@ -62,7 +62,7 @@
         "headers": { "Content-Type": "application/json" },
         "body": {
           "cardDetails": {
-            "cardNumber": "4111111111111234",
+            "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
             "cardholderName": "Test User"
@@ -281,7 +281,7 @@
         "headers": { "Content-Type": "application/json" },
         "body": {
           "cardDetails": {
-            "cardNumber": "4111111111111234",
+            "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
             "cardholderName": "Test User"
@@ -443,7 +443,7 @@
         "headers": { "Content-Type": "application/json" },
         "body": {
           "cardDetails": {
-            "cardNumber": "4111111111111234",
+            "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
             "cardholderName": "Test User"
@@ -512,7 +512,7 @@
           "paymentType": "Fare",
           "method": "CreditCard",
           "cardType": "Visa",
-          "cardLast4": "1234",
+          "cardLast4": "1111",
           "currencyCode": "GBP",
           "amount": 250.00,
           "authorisedAmount": 250.00,
@@ -619,7 +619,7 @@
         "body": {
           "amount": 400.00,
           "cardDetails": {
-            "cardNumber": "4111111111111234",
+            "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
             "cardholderName": "Test User"
@@ -691,7 +691,7 @@
         "body": {
           "amount": 100.00,
           "cardDetails": {
-            "cardNumber": "4111111111111234",
+            "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
             "cardholderName": "Test User"
