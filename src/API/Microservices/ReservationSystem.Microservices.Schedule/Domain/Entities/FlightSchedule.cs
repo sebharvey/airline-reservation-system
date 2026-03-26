@@ -18,7 +18,6 @@ public sealed class FlightSchedule
     public DateTime ValidFrom { get; private set; }
     public DateTime ValidTo { get; private set; }
     public int FlightsCreated { get; private set; }
-    public string CabinFares { get; private set; } = string.Empty;
     public string CreatedBy { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -39,14 +38,12 @@ public sealed class FlightSchedule
         string aircraftType,
         DateTime validFrom,
         DateTime validTo,
-        string cabinFares,
         string createdBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(flightNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
         ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftType);
-        ArgumentException.ThrowIfNullOrWhiteSpace(cabinFares);
         ArgumentException.ThrowIfNullOrWhiteSpace(createdBy);
 
         var now = DateTime.UtcNow;
@@ -64,7 +61,6 @@ public sealed class FlightSchedule
             ValidFrom = validFrom,
             ValidTo = validTo,
             FlightsCreated = 0,
-            CabinFares = cabinFares,
             CreatedBy = createdBy,
             CreatedAt = now,
             UpdatedAt = now
@@ -87,7 +83,6 @@ public sealed class FlightSchedule
         DateTime validFrom,
         DateTime validTo,
         int flightsCreated,
-        string cabinFares,
         string createdBy,
         DateTime createdAt,
         DateTime updatedAt)
@@ -106,7 +101,6 @@ public sealed class FlightSchedule
             ValidFrom = validFrom,
             ValidTo = validTo,
             FlightsCreated = flightsCreated,
-            CabinFares = cabinFares,
             CreatedBy = createdBy,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt

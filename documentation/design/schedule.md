@@ -1,12 +1,12 @@
 # Schedule domain
 
-The Schedule capability allows operations staff to define repeating flight schedules. A single `POST /v1/schedules` creates the schedule record and triggers bulk `FlightInventory` and `Fare` generation in the Offer domain for every operating date in the `ValidFrom`–`ValidTo` window that matches the days-of-week bitmask. Generated inventory is immediately live for search with no additional activation step. Pricing (base fare, taxes, refundability, changeability) is supplied at schedule creation time and written directly to `offer.Fare` — one row per fare per operating date per cabin.
+The Schedule capability allows operations staff to define repeating flight schedules. A single `POST /v1/schedules` creates the schedule record and triggers bulk `FlightInventory` generation in the Offer domain for every operating date in the `ValidFrom`–`ValidTo` window that matches the days-of-week bitmask. Generated inventory is immediately live for search with no additional activation step.
+
+Fares are **not** defined at schedule creation time. Once inventory is live, pricing is applied through the Offer microservice using `POST /v1/flights/{inventoryId}/fares` — one call per fare per inventory record. This keeps pricing concerns cleanly inside the Offer domain.
 
 The schedule record persists in the Schedule domain as the operational source of truth; subsequent modifications or extensions require a new schedule definition.
 
 ## Data schema — `schedule.FlightSchedule`
-
-The former `schedule.ScheduleCabin` and `schedule.ScheduleFare` tables have been consolidated into `schedule.FlightSchedule`. Cabin and fare definitions are stored in a single `CabinFares` JSON column — they are always read and written together as a unit, and are never queried individually by the Schedule MS. Removing the two child tables eliminates two FK joins on every schedule read and simplifies the write path to a single `INSERT`.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
@@ -22,89 +22,12 @@ The former `schedule.ScheduleCabin` and `schedule.ScheduleFare` tables have been
 | ValidFrom | DATE | No | | | First operating date (inclusive) |
 | ValidTo | DATE | No | | | Last operating date (inclusive) |
 | FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
-| CabinFares | NVARCHAR(MAX) | No | | | JSON array of cabin and fare definitions (see example below) |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
-> **Constraints:** `CHK_CabinFares` — `ISJSON(CabinFares) = 1`.
-
-### CabinFares JSON structure
-
-```json
-{
-  "cabins": [
-    {
-      "cabinCode": "J",
-      "totalSeats": 48,
-      "fares": [
-        {
-          "fareBasisCode": "JFLEXGB",
-          "fareFamily": "Business Flex",
-          "currencyCode": "GBP",
-          "baseFareAmount": 1250.00,
-          "taxAmount": 182.50,
-          "isRefundable": true,
-          "isChangeable": true,
-          "changeFeeAmount": 0.00,
-          "cancellationFeeAmount": 0.00,
-          "pointsPrice": 125000,
-          "pointsTaxes": 182.50
-        },
-        {
-          "fareBasisCode": "JSAVERGB",
-          "fareFamily": "Business Saver",
-          "currencyCode": "GBP",
-          "baseFareAmount": 950.00,
-          "taxAmount": 182.50,
-          "isRefundable": false,
-          "isChangeable": true,
-          "changeFeeAmount": 150.00,
-          "cancellationFeeAmount": 0.00,
-          "pointsPrice": 95000,
-          "pointsTaxes": 182.50
-        }
-      ]
-    },
-    {
-      "cabinCode": "Y",
-      "totalSeats": 220,
-      "fares": [
-        {
-          "fareBasisCode": "YFLEXGB",
-          "fareFamily": "Economy Flex",
-          "currencyCode": "GBP",
-          "baseFareAmount": 350.00,
-          "taxAmount": 97.25,
-          "isRefundable": true,
-          "isChangeable": true,
-          "changeFeeAmount": 0.00,
-          "cancellationFeeAmount": 0.00,
-          "pointsPrice": 35000,
-          "pointsTaxes": 97.25
-        },
-        {
-          "fareBasisCode": "YLOWUK",
-          "fareFamily": "Economy Light",
-          "currencyCode": "GBP",
-          "baseFareAmount": 149.00,
-          "taxAmount": 97.25,
-          "isRefundable": false,
-          "isChangeable": false,
-          "changeFeeAmount": 0.00,
-          "cancellationFeeAmount": 149.00,
-          "pointsPrice": null,
-          "pointsTaxes": null
-        }
-      ]
-    }
-  ]
-}
-```
-
-> `cabinCode` values: `F` · `J` · `W` · `Y`. `totalSeats` is sourced from the aircraft configuration for that cabin. `pointsPrice` and `pointsTaxes` are `null` for revenue-only fares. `changeFeeAmount` and `cancellationFeeAmount` default to `0.00`; non-changeable fares use `0.00` for `changeFeeAmount` since the change is simply not permitted. The Schedule MS copies this JSON verbatim into the response; the Operations API then reads each cabin and fare entry to drive the per-date `offer.FlightInventory` and `offer.Fare` creation calls to the Offer MS.
 
 ## Create schedule sequence diagram
 
@@ -116,24 +39,18 @@ sequenceDiagram
     participant ScheduleMS as Schedule [MS]
     participant OfferMS as Offer [MS]
 
-    OpsUser->>OpsApp: Define schedule (flightNumber, route, times, days, aircraft, window, cabins, fares)
+    OpsUser->>OpsApp: Define schedule (flightNumber, route, times, days, aircraft, window)
     OpsApp->>ScheduleAPI: POST /v1/schedules
 
     ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
-    ScheduleMS->>ScheduleMS: Persist single FlightSchedule record (CabinFares JSON contains all cabin and fare definitions)
+    ScheduleMS->>ScheduleMS: Persist FlightSchedule record
     ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
-    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[], cabinFareDefinitions[]
+    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[]
 
     loop For each operating date × cabin
         ScheduleAPI->>OfferMS: POST /v1/flights (flightNumber, departureDate, departureTime, arrivalTime, arrivalDayOffset, origin, destination, aircraftType, cabinCode, totalSeats)
-        OfferMS->>OfferMS: Insert offer.FlightInventory (DepartureTime, ArrivalTime, ArrivalDayOffset, SeatsAvailable = TotalSeats, SeatsHeld = 0, SeatsSold = 0, Status = Active)
+        OfferMS->>OfferMS: Insert offer.FlightInventory (SeatsAvailable = TotalSeats, SeatsHeld = 0, SeatsSold = 0, Status = Active)
         OfferMS-->>ScheduleAPI: 201 Created — inventoryId
-
-        loop For each fare defined for this cabin
-            ScheduleAPI->>OfferMS: POST /v1/flights/{inventoryId}/fares (fareBasisCode, fareFamily, bookingClass, baseFareAmount, taxAmount, isRefundable, isChangeable)
-            OfferMS->>OfferMS: Insert offer.Fare linked to InventoryId
-            OfferMS-->>ScheduleAPI: 201 Created — fareId
-        end
     end
 
     ScheduleAPI->>ScheduleMS: PATCH /v1/schedules/{scheduleId} (flightsCreated=N)
@@ -143,4 +60,118 @@ sequenceDiagram
     OpsApp-->>OpsUser: Schedule created — N flights added to inventory
 ```
 
-*Ref: schedule creation — Operations API orchestrates: Schedule MS persists the schedule and returns operating dates, Operations API calls Offer MS directly to create FlightInventory and Fare records, then updates the FlightsCreated count via Schedule MS*
+*Ref: schedule creation — Operations API orchestrates: Schedule MS persists the schedule and returns operating dates, Operations API calls Offer MS to create FlightInventory records, then updates the FlightsCreated count via Schedule MS. Fares are applied separately via `POST /v1/flights/{inventoryId}/fares` in the Offer domain.*
+
+## SSIM export
+
+The Schedule MS exposes `GET /v1/schedules/ssim` which returns all active schedules encoded as an IATA SSIM Chapter 7 file. This file can be ingested directly by any GDS, PSS, or airport system that supports the SSIM standard.
+
+### What is SSIM?
+
+SSIM (Standard Schedules Information Manual) is an IATA standard defining a plain ASCII flat-file format for airline schedule exchange. It is used industry-wide for bulk timetable distribution to GDS systems, airport slot coordinators, codeshare partners, and other downstream consumers.
+
+The file format is fixed-width and positional — every character position in every record has a defined meaning. Records are exactly **200 characters wide**, space-padded, and terminated with CRLF. The conventional file extension is `.ssim`.
+
+### Record types
+
+| Record type | First char | Purpose |
+|---|---|---|
+| Type 1 | `1` | Transmission header — sender, season window, file creation date |
+| Type 2 | `2` | Carrier header — airline designator and IATA season code |
+| Type 3 | `3` | Flight leg record — one per `FlightSchedule` row; carries the operating pattern |
+| Type 5 | `5` | Trailer — count of Type 3 records for validation |
+
+Type 3 is the substance of the file. Each record encodes a complete operating pattern for one flight leg across its season window.
+
+### Type 3 positional layout
+
+| Positions | Width | Content | Example |
+|---|---|---|---|
+| 1 | 1 | Record type | `3` |
+| 2 | 1 | Operational suffix (space = active) | ` ` |
+| 3–4 | 2 | Airline IATA designator | `AX` |
+| 5 | 1 | Space | ` ` |
+| 6–9 | 4 | Flight number, zero-padded | `0001` |
+| 10 | 1 | Space | ` ` |
+| 11 | 1 | Service type (`Y` = scheduled passenger) | `Y` |
+| 12 | 1 | Space | ` ` |
+| 13–20 | 8 | Period start `YYYYMMDD` | `20260101` |
+| 21 | 1 | Space | ` ` |
+| 22–29 | 8 | Period end `YYYYMMDD` | `20261231` |
+| 30–31 | 2 | Itinerary variation (unused for non-stop) | `  ` |
+| 32–38 | 7 | Days-of-week mask (see below) | `1234567` |
+| 39 | 1 | Space | ` ` |
+| 40–42 | 3 | Departure station IATA code | `LHR` |
+| 43–46 | 4 | Departure time local `HHMM` | `0800` |
+| 47–49 | 3 | Departure UTC offset | `+00` |
+| 50–53 | 4 | Arrival time local `HHMM` | `1110` |
+| 54 | 1 | Arrival day offset (`0` = same day, `1` = next day) | `0` |
+| 55 | 1 | Space | ` ` |
+| 56–58 | 3 | Destination station IATA code | `JFK` |
+| 59–61 | 3 | Spaces | `   ` |
+| 62–64 | 3 | Equipment IATA type code (first 3 chars) | `A35` |
+| 65 | 1 | Space | ` ` |
+| 66–67 | 2 | Operating carrier code | `AX` |
+| 68–200 | 133 | Space-padded to record width | |
+
+### Days-of-week encoding
+
+The 7-character days-of-week field uses **absolute positions**, not sequential digits. Position 1 always represents Monday, position 7 always represents Sunday. An operating day shows its position digit; a non-operating day is a space character.
+
+| DaysOfWeek bitmask bit | SSIM position | Day |
+|---|---|---|
+| bit 0 (value 1) | position 1 | Monday |
+| bit 1 (value 2) | position 2 | Tuesday |
+| bit 2 (value 4) | position 3 | Wednesday |
+| bit 3 (value 8) | position 4 | Thursday |
+| bit 4 (value 16) | position 5 | Friday |
+| bit 5 (value 32) | position 6 | Saturday |
+| bit 6 (value 64) | position 7 | Sunday |
+
+Examples:
+
+| DaysOfWeek value | SSIM string | Meaning |
+|---|---|---|
+| `127` | `1234567` | Daily |
+| `21` | `1 3 5  ` | Mon, Wed, Fri |
+| `96` | `     67` | Sat, Sun |
+| `1` | `1      ` | Monday only |
+
+### UTC offset handling
+
+Times in the SSIM file are local at the origin airport, with the UTC offset field set to `+00`. This matches the storage convention in `FlightSchedule.DepartureTime` and `.ArrivalTime`, which hold local schedule times. Downstream consumers (PSS, GDS) must apply the true UTC offset for each airport when converting to UTC for internal storage — this is the consumer's responsibility and a well-known SSIM integration requirement.
+
+### Example output
+
+```
+1IATA  AX              20260101 20261231AX  SCHED  20260326
+2AX  01W20260101 20261231
+3 AX 0001 Y 20260101 20261231  1234567 LHR0800+001110 0 JFK   A35 AX
+3 AX 0002 Y 20260101 20261231  1234567 JFK1300+000115 1 LHR   A35 AX
+5       2
+```
+
+### Amendments and deletions
+
+The SSIM standard supports amendment records (prefixed `D` for deletion, `N` for new pattern) to represent in-season changes. The current implementation generates a full base-pattern file. Amendment records are not yet supported; a schedule change requires creating a new `FlightSchedule` record.
+
+### SSIM export sequence diagram
+
+```mermaid
+sequenceDiagram
+    actor OpsUser as Operations User
+    participant OpsApp as Ops Admin App
+    participant ScheduleMS as Schedule [MS]
+
+    OpsUser->>OpsApp: Request SSIM export
+    OpsApp->>ScheduleMS: GET /v1/schedules/ssim
+    ScheduleMS->>ScheduleMS: Load all FlightSchedule records ordered by FlightNumber
+    ScheduleMS->>ScheduleMS: Build Type 1 header (sender, season window, file date)
+    ScheduleMS->>ScheduleMS: Build Type 2 carrier header (IATA season designator)
+    loop For each FlightSchedule
+        ScheduleMS->>ScheduleMS: Build Type 3 leg record (200-char fixed-width, CRLF)
+    end
+    ScheduleMS->>ScheduleMS: Build Type 5 trailer (leg count)
+    ScheduleMS-->>OpsApp: 200 OK — text/plain; charset=us-ascii, Content-Disposition: attachment; filename=schedules_YYYYMMDD.ssim
+    OpsApp-->>OpsUser: Download SSIM file
+```

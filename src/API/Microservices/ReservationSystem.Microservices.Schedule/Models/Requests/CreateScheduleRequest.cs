@@ -37,9 +37,6 @@ public sealed class CreateScheduleRequest
     [JsonPropertyName("validTo")]
     public string ValidTo { get; init; } = string.Empty;
 
-    [JsonPropertyName("cabinFares")]
-    public object? CabinFares { get; init; }
-
     [JsonPropertyName("createdBy")]
     public string CreatedBy { get; init; } = string.Empty;
 }

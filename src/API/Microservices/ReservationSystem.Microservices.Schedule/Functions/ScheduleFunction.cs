@@ -4,13 +4,16 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
+using ReservationSystem.Microservices.Schedule.Application.Ssim;
 using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
+using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Schedule.Functions;
@@ -23,15 +26,18 @@ public sealed class ScheduleFunction
 {
     private readonly CreateScheduleHandler _createHandler;
     private readonly UpdateScheduleHandler _updateHandler;
+    private readonly IFlightScheduleRepository _repository;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
         CreateScheduleHandler createHandler,
         UpdateScheduleHandler updateHandler,
+        IFlightScheduleRepository repository,
         ILogger<ScheduleFunction> logger)
     {
         _createHandler = createHandler;
         _updateHandler = updateHandler;
+        _repository = repository;
         _logger = logger;
     }
 
@@ -150,6 +156,37 @@ public sealed class ScheduleFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update schedule {ScheduleId}", scheduleId);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/schedules/ssim
+    // -------------------------------------------------------------------------
+
+    [Function("ExportSsim")]
+    [OpenApiOperation(operationId: "ExportSsim", tags: new[] { "Schedules" }, Summary = "Export all schedules as an IATA SSIM Chapter 7 file")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "SSIM file content (plain ASCII, 200-char fixed-width records, CRLF line endings)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> ExportSsim(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules/ssim")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var schedules = await _repository.GetAllAsync(cancellationToken);
+            var fileDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            var ssimContent = SsimGenerator.Generate(schedules, fileDate);
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "text/plain; charset=us-ascii");
+            response.Headers.Add("Content-Disposition", $"attachment; filename=\"schedules_{fileDate:yyyyMMdd}.ssim\"");
+            await response.WriteStringAsync(ssimContent, Encoding.ASCII);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate SSIM export");
             return await req.InternalServerErrorAsync();
         }
     }

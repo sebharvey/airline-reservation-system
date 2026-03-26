@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Microservices.Schedule.Models.Responses;
@@ -48,9 +47,6 @@ public sealed class ScheduleResponse
     [JsonPropertyName("operatingDates")]
     public IReadOnlyList<string> OperatingDates { get; init; } = [];
 
-    [JsonPropertyName("cabinFareDefinitions")]
-    public JsonElement? CabinFareDefinitions { get; init; }
-
     [JsonPropertyName("createdBy")]
     public string CreatedBy { get; init; } = string.Empty;
 
@@ -63,7 +59,7 @@ public sealed class ScheduleResponse
 
 /// <summary>
 /// HTTP response body for POST /v1/schedules (201 Created).
-/// Spec defines only 3 fields: scheduleId, operatingDates, cabinFareDefinitions.
+/// Returns scheduleId and the list of operating dates within the schedule window.
 /// </summary>
 public sealed class CreateScheduleResponse
 {
@@ -72,9 +68,6 @@ public sealed class CreateScheduleResponse
 
     [JsonPropertyName("operatingDates")]
     public IReadOnlyList<string> OperatingDates { get; init; } = [];
-
-    [JsonPropertyName("cabinFareDefinitions")]
-    public JsonElement? CabinFareDefinitions { get; init; }
 }
 
 /// <summary>

@@ -1,9 +1,7 @@
-using System.Text.Json;
 using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
 using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
-using ReservationSystem.Shared.Common.Json;
 
 namespace ReservationSystem.Microservices.Schedule.Models.Mappers;
 
@@ -23,10 +21,6 @@ public static class ScheduleMapper
         var validFrom = DateTime.Parse(request.ValidFrom);
         var validTo = DateTime.Parse(request.ValidTo);
 
-        var cabinFaresJson = request.CabinFares is not null
-            ? JsonSerializer.Serialize(request.CabinFares, SharedJsonOptions.CamelCase)
-            : "[]";
-
         return new CreateScheduleCommand(
             FlightNumber: request.FlightNumber,
             Origin: request.Origin,
@@ -38,7 +32,6 @@ public static class ScheduleMapper
             AircraftType: request.AircraftType,
             ValidFrom: validFrom,
             ValidTo: validTo,
-            CabinFares: cabinFaresJson,
             CreatedBy: request.CreatedBy);
     }
 
@@ -53,12 +46,6 @@ public static class ScheduleMapper
 
     public static ScheduleResponse ToResponse(Domain.Entities.FlightSchedule schedule)
     {
-        JsonElement? cabinFareDefinitions = null;
-        if (!string.IsNullOrWhiteSpace(schedule.CabinFares))
-        {
-            cabinFareDefinitions = JsonSerializer.Deserialize<JsonElement>(schedule.CabinFares);
-        }
-
         var operatingDates = schedule.GetOperatingDates()
             .Select(d => d.ToString("yyyy-MM-dd"))
             .ToList()
@@ -79,7 +66,6 @@ public static class ScheduleMapper
             ValidTo = schedule.ValidTo.ToString("yyyy-MM-dd"),
             FlightsCreated = schedule.FlightsCreated,
             OperatingDates = operatingDates,
-            CabinFareDefinitions = cabinFareDefinitions,
             CreatedBy = schedule.CreatedBy,
             CreatedAt = schedule.CreatedAt,
             UpdatedAt = schedule.UpdatedAt
@@ -91,12 +77,6 @@ public static class ScheduleMapper
 
     public static CreateScheduleResponse ToCreateResponse(Domain.Entities.FlightSchedule schedule)
     {
-        JsonElement? cabinFareDefinitions = null;
-        if (!string.IsNullOrWhiteSpace(schedule.CabinFares))
-        {
-            cabinFareDefinitions = JsonSerializer.Deserialize<JsonElement>(schedule.CabinFares);
-        }
-
         var operatingDates = schedule.GetOperatingDates()
             .Select(d => d.ToString("yyyy-MM-dd"))
             .ToList()
@@ -105,8 +85,7 @@ public static class ScheduleMapper
         return new CreateScheduleResponse
         {
             ScheduleId = schedule.ScheduleId,
-            OperatingDates = operatingDates,
-            CabinFareDefinitions = cabinFareDefinitions
+            OperatingDates = operatingDates
         };
     }
 

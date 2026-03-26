@@ -89,11 +89,6 @@ public sealed class ScheduleDbContext : DbContext
                   .HasColumnType("int")
                   .IsRequired();
 
-            entity.Property(e => e.CabinFares)
-                  .HasColumnName("CabinFares")
-                  .HasColumnType("nvarchar(max)")
-                  .IsRequired();
-
             entity.Property(e => e.CreatedBy)
                   .HasColumnName("CreatedBy")
                   .HasColumnType("varchar(100)")
