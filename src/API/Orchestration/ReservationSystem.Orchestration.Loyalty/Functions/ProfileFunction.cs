@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using ReservationSystem.Orchestration.Loyalty.Application.EmailChangeRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
+using ReservationSystem.Orchestration.Loyalty.Application.VerifyEmailChange;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using ReservationSystem.Orchestration.Loyalty.Validation;
@@ -19,24 +21,31 @@ namespace ReservationSystem.Orchestration.Loyalty.Functions;
 /// <summary>
 /// HTTP-triggered functions for customer profile and transaction management.
 /// Orchestrates calls to the Customer microservice.
-/// All routes require a valid Bearer token (enforced by TokenVerificationMiddleware).
+/// All routes require a valid Bearer token (enforced by TokenVerificationMiddleware),
+/// except VerifyEmailChange which is a public link-click endpoint.
 /// </summary>
 public sealed class ProfileFunction
 {
     private readonly GetProfileHandler _getProfileHandler;
     private readonly UpdateProfileHandler _updateProfileHandler;
     private readonly GetTransactionsHandler _getTransactionsHandler;
+    private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
+    private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
     private readonly ILogger<ProfileFunction> _logger;
 
     public ProfileFunction(
         GetProfileHandler getProfileHandler,
         UpdateProfileHandler updateProfileHandler,
         GetTransactionsHandler getTransactionsHandler,
+        EmailChangeRequestHandler emailChangeRequestHandler,
+        VerifyEmailChangeHandler verifyEmailChangeHandler,
         ILogger<ProfileFunction> logger)
     {
         _getProfileHandler = getProfileHandler;
         _updateProfileHandler = updateProfileHandler;
         _getTransactionsHandler = getTransactionsHandler;
+        _emailChangeRequestHandler = emailChangeRequestHandler;
+        _verifyEmailChangeHandler = verifyEmailChangeHandler;
         _logger = logger;
     }
 
@@ -166,5 +175,99 @@ public sealed class ProfileFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/accounts/{identityReference}/email/change-request  [Protected]
+    // -------------------------------------------------------------------------
+
+    [Function("EmailChangeRequest")]
+    [OpenApiOperation(operationId: "EmailChangeRequest", tags: new[] { "Profile" }, Summary = "Request an email address change")]
+    [OpenApiParameter(name: "identityReference", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user account identity reference (GUID)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(EmailChangeRequestRequest), Required = true, Description = "Request body: newEmail")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Accepted, Description = "Accepted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
+    public async Task<HttpResponseData> EmailChangeRequest(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
+        Guid identityReference,
+        CancellationToken cancellationToken)
+    {
+        EmailChangeRequestRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<EmailChangeRequestRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in EmailChangeRequest for {IdentityReference}", identityReference);
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.NewEmail))
+            return await req.BadRequestAsync("The field 'newEmail' is required.");
+
+        try
+        {
+            var command = new EmailChangeRequestCommand(identityReference, request.NewEmail);
+            await _emailChangeRequestHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.Accepted);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No account found for identity reference '{identityReference}'.");
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("The new email address is already registered to another account.");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/email/verify  [Public – link-click from email]
+    // -------------------------------------------------------------------------
+
+    [Function("VerifyEmailChange")]
+    [OpenApiOperation(operationId: "VerifyEmailChange", tags: new[] { "Profile" }, Summary = "Verify email change with token")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(VerifyEmailChangeRequest), Required = true, Description = "Request body: token, newEmail")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
+    public async Task<HttpResponseData> VerifyEmailChange(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/email/verify")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        VerifyEmailChangeRequest? request;
+
+        try
+        {
+            request = await JsonSerializer.DeserializeAsync<VerifyEmailChangeRequest>(
+                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON in VerifyEmailChange");
+            return await req.BadRequestAsync("Invalid JSON in request body.");
+        }
+
+        if (request is null
+            || string.IsNullOrWhiteSpace(request.Token)
+            || string.IsNullOrWhiteSpace(request.NewEmail))
+        {
+            return await req.BadRequestAsync("The fields 'token' and 'newEmail' are required.");
+        }
+
+        try
+        {
+            var command = new VerifyEmailChangeCommand(request.Token, request.NewEmail);
+            await _verifyEmailChangeHandler.HandleAsync(command, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (ArgumentException)
+        {
+            return await req.BadRequestAsync("Invalid or expired verification token.");
+        }
     }
 }

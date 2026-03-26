@@ -8,14 +8,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Orchestration.Loyalty.Swagger;
+using ReservationSystem.Orchestration.Loyalty.Application.EmailChangeRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.Login;
 using ReservationSystem.Orchestration.Loyalty.Application.Logout;
+using ReservationSystem.Orchestration.Loyalty.Application.PasswordReset;
+using ReservationSystem.Orchestration.Loyalty.Application.PasswordResetRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.RefreshToken;
 using ReservationSystem.Orchestration.Loyalty.Application.Register;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.AuthorisePoints;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
+using ReservationSystem.Orchestration.Loyalty.Application.VerifyEmailChange;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Middleware;
 
@@ -63,11 +67,15 @@ var host = new HostBuilder()
         services.AddScoped<LoginHandler>();
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<LogoutHandler>();
+        services.AddScoped<PasswordResetRequestHandler>();
+        services.AddScoped<PasswordResetHandler>();
         services.AddScoped<RegisterHandler>();
         services.AddScoped<GetProfileHandler>();
         services.AddScoped<UpdateProfileHandler>();
         services.AddScoped<GetTransactionsHandler>();
         services.AddScoped<AuthorisePointsHandler>();
+        services.AddScoped<EmailChangeRequestHandler>();
+        services.AddScoped<VerifyEmailChangeHandler>();
     })
     .Build();
 

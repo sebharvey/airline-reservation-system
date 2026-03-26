@@ -37,6 +37,20 @@ public sealed class EfUserAccountRepository : IUserAccountRepository
             .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
+    public async Task<UserAccount?> GetByPasswordResetTokenAsync(Guid token, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.UserAccounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.PasswordResetToken == token, cancellationToken);
+    }
+
+    public async Task<UserAccount?> GetByEmailResetTokenAsync(Guid token, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.UserAccounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.EmailResetToken == token, cancellationToken);
+    }
+
     public async Task CreateAsync(UserAccount userAccount, CancellationToken cancellationToken = default)
     {
         _dbContext.UserAccounts.Add(userAccount);

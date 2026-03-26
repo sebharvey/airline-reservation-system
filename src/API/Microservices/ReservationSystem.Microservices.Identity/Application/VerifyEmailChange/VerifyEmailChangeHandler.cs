@@ -10,13 +10,16 @@ namespace ReservationSystem.Microservices.Identity.Application.VerifyEmailChange
 public sealed class VerifyEmailChangeHandler
 {
     private readonly IUserAccountRepository _userAccountRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ILogger<VerifyEmailChangeHandler> _logger;
 
     public VerifyEmailChangeHandler(
         IUserAccountRepository userAccountRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         ILogger<VerifyEmailChangeHandler> logger)
     {
         _userAccountRepository = userAccountRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _logger = logger;
     }
 
@@ -24,16 +27,21 @@ public sealed class VerifyEmailChangeHandler
         VerifyEmailChangeCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(command.Token))
-            throw new ArgumentException("Verification token is required.");
+        if (!Guid.TryParse(command.Token, out var tokenGuid))
+            throw new ArgumentException("Invalid verification token.");
 
-        // In a production system, this would:
-        // 1. Look up the pending email change by token hash
-        // 2. Validate the token has not expired
-        // 3. Update the Email column on the account
-        // 4. Set IsEmailVerified = true
-        // 5. Revoke all active refresh tokens to force re-authentication
-        _logger.LogInformation("Email change verified via token");
-        await Task.CompletedTask;
+        var account = await _userAccountRepository.GetByEmailResetTokenAsync(tokenGuid, cancellationToken);
+
+        if (account is null)
+            throw new ArgumentException("Invalid or expired verification token.");
+
+        account.ChangeEmail(command.NewEmail);
+        account.VerifyEmail();
+        account.ClearEmailResetToken();
+
+        await _userAccountRepository.UpdateAsync(account, cancellationToken);
+        await _refreshTokenRepository.RevokeAllForUserAsync(account.UserAccountId, cancellationToken);
+
+        _logger.LogInformation("Email change completed for {UserAccountId}", account.UserAccountId);
     }
 }

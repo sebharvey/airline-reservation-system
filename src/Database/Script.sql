@@ -1006,6 +1006,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_UserAccount_Email' AND
     CREATE INDEX IX_UserAccount_Email ON [identity].[UserAccount] (Email);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[identity].[UserAccount]') AND name = 'PasswordResetToken')
+    ALTER TABLE [identity].[UserAccount] ADD PasswordResetToken UNIQUEIDENTIFIER NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[identity].[UserAccount]') AND name = 'EmailResetToken')
+    ALTER TABLE [identity].[UserAccount] ADD EmailResetToken UNIQUEIDENTIFIER NULL;
+GO
+
 -- FK: customer.Customer.IdentityId → identity.UserAccount.UserAccountId ------
 IF NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys

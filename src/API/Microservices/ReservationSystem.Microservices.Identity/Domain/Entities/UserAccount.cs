@@ -15,6 +15,8 @@ public sealed class UserAccount
     public int FailedLoginAttempts { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
     public DateTime PasswordChangedAt { get; private set; }
+    public Guid? PasswordResetToken { get; private set; }
+    public Guid? EmailResetToken { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -42,6 +44,8 @@ public sealed class UserAccount
             FailedLoginAttempts = 0,
             LastLoginAt = null,
             PasswordChangedAt = now,
+            PasswordResetToken = null,
+            EmailResetToken = null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -60,6 +64,8 @@ public sealed class UserAccount
         int failedLoginAttempts,
         DateTime? lastLoginAt,
         DateTime passwordChangedAt,
+        Guid? passwordResetToken,
+        Guid? emailResetToken,
         DateTime createdAt,
         DateTime updatedAt)
     {
@@ -73,6 +79,8 @@ public sealed class UserAccount
             FailedLoginAttempts = failedLoginAttempts,
             LastLoginAt = lastLoginAt,
             PasswordChangedAt = passwordChangedAt,
+            PasswordResetToken = passwordResetToken,
+            EmailResetToken = emailResetToken,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
@@ -103,6 +111,13 @@ public sealed class UserAccount
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void Unlock()
+    {
+        IsLocked = false;
+        FailedLoginAttempts = 0;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void ChangePassword(string newPasswordHash)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(newPasswordHash);
@@ -116,6 +131,30 @@ public sealed class UserAccount
         ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
         Email = newEmail;
         IsEmailVerified = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPasswordResetToken(Guid token)
+    {
+        PasswordResetToken = token;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ClearPasswordResetToken()
+    {
+        PasswordResetToken = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetEmailResetToken(Guid token)
+    {
+        EmailResetToken = token;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ClearEmailResetToken()
+    {
+        EmailResetToken = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

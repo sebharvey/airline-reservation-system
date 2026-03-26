@@ -40,8 +40,11 @@ public sealed class EmailChangeRequestHandler
             throw new InvalidOperationException("The new email address is already registered to another account.");
         }
 
-        // In a production system, this would generate a verification token,
-        // persist it, and send a confirmation email to the new address.
-        _logger.LogInformation("Email change request initiated for {UserAccountId} to new email", account.UserAccountId);
+        var token = Guid.NewGuid();
+        account.SetEmailResetToken(token);
+        await _userAccountRepository.UpdateAsync(account, cancellationToken);
+
+        // Token delivery (email with verification link) is handled out of band.
+        _logger.LogInformation("Email change token generated for {UserAccountId}: {Token}", account.UserAccountId, token);
     }
 }

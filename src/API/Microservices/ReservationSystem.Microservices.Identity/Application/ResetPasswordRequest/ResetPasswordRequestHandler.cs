@@ -33,9 +33,11 @@ public sealed class ResetPasswordRequestHandler
             return;
         }
 
-        // In a production system, this would generate a time-limited reset token,
-        // persist it, and dispatch an email with a reset link.
-        // For now, we log the intent — the token delivery mechanism is out of scope.
-        _logger.LogInformation("Password reset token generated for {UserAccountId}", account.UserAccountId);
+        var token = Guid.NewGuid();
+        account.SetPasswordResetToken(token);
+        await _userAccountRepository.UpdateAsync(account, cancellationToken);
+
+        // Token delivery (email with reset link) is handled out of band.
+        _logger.LogInformation("Password reset token generated for {UserAccountId}: {Token}", account.UserAccountId, token);
     }
 }

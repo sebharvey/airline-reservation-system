@@ -14,6 +14,7 @@ using ReservationSystem.Microservices.Identity.Models.Responses;
 using ReservationSystem.Microservices.Identity.Validation;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 
@@ -235,13 +236,15 @@ public sealed class AccountFunction
             return await req.BadRequestAsync("Request body is required.");
 
         var tokenErrors = IdentityValidator.ValidateRequiredToken(request.Token, "token");
+        var emailErrors = IdentityValidator.ValidateEmailField(request.NewEmail);
+        var allErrors = tokenErrors.Concat(emailErrors).ToList();
 
-        if (tokenErrors.Count > 0)
-            return await req.BadRequestAsync(string.Join(" ", tokenErrors));
+        if (allErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", allErrors));
 
         try
         {
-            var command = new VerifyEmailChangeCommand(request.Token);
+            var command = new VerifyEmailChangeCommand(request.Token, request.NewEmail);
             await _verifyEmailChangeHandler.HandleAsync(command, cancellationToken);
             return req.CreateResponse(HttpStatusCode.OK);
         }

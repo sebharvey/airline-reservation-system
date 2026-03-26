@@ -114,4 +114,48 @@ public sealed class IdentityServiceClient
 
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task PasswordResetRequestAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var body = new { email };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/password/reset-request", body, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task PasswordResetAsync(string token, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var body = new { token, newPassword };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/auth/password/reset", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException("Invalid or expired reset token.");
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task EmailChangeRequestAsync(Guid userAccountId, string newEmail, CancellationToken cancellationToken = default)
+    {
+        var body = new { newEmail };
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/accounts/{userAccountId}/email/change-request", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No user account found for ID '{userAccountId}'.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException("The new email address is already registered to another account.");
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task VerifyEmailChangeAsync(string token, string newEmail, CancellationToken cancellationToken = default)
+    {
+        var body = new { token, newEmail };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/email/verify", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException("Invalid or expired verification token.");
+
+        response.EnsureSuccessStatusCode();
+    }
 }
