@@ -49,6 +49,10 @@ public sealed class VoidPaymentHandler
                 $"Payment '{command.PaymentId}' cannot be voided — current status is '{payment.Status}'.");
         }
 
+        // TODO: Call payment gateway to void / reverse the authorisation hold.
+        // Use the gateway authorisation reference obtained during the authorise step.
+        // On failure, leave the payment in Authorised status and return an error.
+
         payment.Void();
         await _repository.UpdateAsync(payment, cancellationToken);
 

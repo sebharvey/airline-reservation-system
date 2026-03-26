@@ -54,6 +54,10 @@ public sealed class RefundPaymentHandler
                 $"Refund amount ({command.Amount}) exceeds settled amount ({payment.SettledAmount}).");
         }
 
+        // TODO: Call payment gateway to process the refund against the original transaction.
+        // Use the gateway settlement reference. On failure, leave payment status unchanged
+        // and return an error.
+
         payment.Refund(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 

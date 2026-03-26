@@ -56,6 +56,12 @@ public sealed class AuthorisePaymentHandler
 
         var cardType = DeriveCardType(command.CardNumber);
 
+        // TODO: Call payment gateway (e.g. Adyen, Stripe, Worldpay) to authorise the card.
+        // The gateway call should use the full card number, expiry, CVV, and amount held on
+        // the Payment record. On success, persist the gateway authorisation code / token
+        // (in memory only — never to the database). On decline, set Status = Declined and
+        // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
+
         payment.Authorise(payment.Amount, cardType, cardLast4);
         await _repository.UpdateAsync(payment, cancellationToken);
 

@@ -9,6 +9,8 @@ The Payment microservice is the financial orchestration layer for all Apex Air t
 
 > **Important:** The Payment microservice is an internal service. It is not called directly by channels (Web, App, NDC). All channel-facing requests are routed through the **Retail API** orchestration layer, which handles JWT validation before forwarding calls to this service. See the [Security](#security) section for details on how calls are authenticated.
 
+> **Payment gateway integration (future):** In a production environment the Payment microservice will call an external payment gateway (e.g. Adyen, Stripe, Worldpay) to perform card authorisation, settlement, void, and refund operations against the acquiring bank. This integration is not yet implemented. The current codebase contains placeholder comments in the authorise, settle, void, and refund handlers at the points where the gateway call should be made. When the gateway adapter is built it will sit behind an `IPaymentGateway` interface so the provider can be swapped without changing business logic.
+
 ---
 
 ## Security

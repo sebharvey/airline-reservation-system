@@ -55,6 +55,10 @@ public sealed class SettlePaymentHandler
                 $"Settled amount ({command.Amount}) exceeds authorised amount ({payment.AuthorisedAmount}).");
         }
 
+        // TODO: Call payment gateway to capture / settle the authorised funds.
+        // Use the gateway authorisation reference obtained during the authorise step.
+        // On failure, leave the payment in Authorised status and return an error.
+
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
