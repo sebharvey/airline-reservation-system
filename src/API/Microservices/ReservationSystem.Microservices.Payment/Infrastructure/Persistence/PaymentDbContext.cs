@@ -34,11 +34,6 @@ public sealed class PaymentDbContext : DbContext
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
 
-            entity.Property(p => p.PaymentReference)
-                  .HasColumnName("PaymentReference")
-                  .HasColumnType("varchar(20)")
-                  .IsRequired();
-
             entity.Property(p => p.BookingReference)
                   .HasColumnName("BookingReference")
                   .HasColumnType("char(6)")
@@ -69,10 +64,15 @@ public sealed class PaymentDbContext : DbContext
                   .HasColumnType("char(3)")
                   .IsRequired();
 
+            entity.Property(p => p.Amount)
+                  .HasColumnName("Amount")
+                  .HasColumnType("decimal(10,2)")
+                  .IsRequired();
+
             entity.Property(p => p.AuthorisedAmount)
                   .HasColumnName("AuthorisedAmount")
                   .HasColumnType("decimal(10,2)")
-                  .IsRequired();
+                  .IsRequired(false);
 
             entity.Property(p => p.SettledAmount)
                   .HasColumnName("SettledAmount")
@@ -87,7 +87,7 @@ public sealed class PaymentDbContext : DbContext
             entity.Property(p => p.AuthorisedAt)
                   .HasColumnName("AuthorisedAt")
                   .HasColumnType("datetime2")
-                  .IsRequired();
+                  .IsRequired(false);
 
             entity.Property(p => p.SettledAt)
                   .HasColumnName("SettledAt")

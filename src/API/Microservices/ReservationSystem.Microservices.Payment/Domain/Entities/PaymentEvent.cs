@@ -1,8 +1,8 @@
 namespace ReservationSystem.Microservices.Payment.Domain.Entities;
 
 /// <summary>
-/// Domain entity representing an event that occurred against a payment (e.g. authorise, settle, refund).
-/// Provides an audit trail of all payment lifecycle transitions.
+/// Domain entity representing a payment event tracking the lifecycle of a payment.
+/// Created at authorisation and updated on settle or void.
 /// </summary>
 public sealed class PaymentEvent
 {
@@ -18,7 +18,7 @@ public sealed class PaymentEvent
     private PaymentEvent() { }
 
     /// <summary>
-    /// Factory method for creating a new payment event.
+    /// Factory method for creating a new payment event at authorisation time.
     /// </summary>
     public static PaymentEvent Create(
         Guid paymentId,
@@ -69,6 +69,18 @@ public sealed class PaymentEvent
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
+    }
+
+    /// <summary>
+    /// Updates the event on settlement or void.
+    /// </summary>
+    public void Update(string eventType, decimal amount, string? notes = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        EventType = eventType;
+        Amount = amount;
+        Notes = notes;
+        UpdatedAt = DateTime.UtcNow;
     }
 }
 

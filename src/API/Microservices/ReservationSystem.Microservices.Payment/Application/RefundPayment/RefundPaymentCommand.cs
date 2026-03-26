@@ -4,6 +4,6 @@ namespace ReservationSystem.Microservices.Payment.Application.RefundPayment;
 /// Command carrying the data needed to refund a settled payment.
 /// </summary>
 public sealed record RefundPaymentCommand(
-    string PaymentReference,
+    Guid PaymentId,
     decimal Amount,
     string Reason);

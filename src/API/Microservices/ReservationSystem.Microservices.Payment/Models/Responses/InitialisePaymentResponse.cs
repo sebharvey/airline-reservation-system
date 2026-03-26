@@ -1,11 +1,11 @@
 namespace ReservationSystem.Microservices.Payment.Models.Responses;
 
 /// <summary>
-/// HTTP response body for POST /v1/payment/{paymentId}/authorise.
+/// HTTP response body for POST /v1/payment/initialise.
 /// </summary>
-public sealed class AuthorisePaymentResponse
+public sealed class InitialisePaymentResponse
 {
     public Guid PaymentId { get; init; }
-    public decimal AuthorisedAmount { get; init; }
+    public decimal Amount { get; init; }
     public string Status { get; init; } = string.Empty;
 }

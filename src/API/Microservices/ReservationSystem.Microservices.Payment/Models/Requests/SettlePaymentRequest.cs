@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace ReservationSystem.Microservices.Payment.Models.Requests;
 
 /// <summary>
-/// HTTP request body for POST /v1/payment/{paymentReference}/settle.
+/// HTTP request body for POST /v1/payment/{paymentId}/settle.
 /// </summary>
 public sealed class SettlePaymentRequest
 {

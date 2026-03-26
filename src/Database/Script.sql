@@ -411,25 +411,24 @@ GO
 IF OBJECT_ID('[payment].[Payment]', 'U') IS NULL
 CREATE TABLE [payment].[Payment] (
     PaymentId        UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Payment_Id       DEFAULT NEWID(),
-    PaymentReference VARCHAR(20)      NOT NULL,
     BookingReference CHAR(6)              NULL,
     PaymentType      VARCHAR(30)      NOT NULL,
     Method           VARCHAR(20)      NOT NULL,
     CardType         VARCHAR(20)          NULL,
     CardLast4        CHAR(4)              NULL,
     CurrencyCode     CHAR(3)          NOT NULL CONSTRAINT DF_Payment_Currency DEFAULT 'GBP',
-    AuthorisedAmount DECIMAL(10,2)    NOT NULL,
+    Amount           DECIMAL(10,2)    NOT NULL,
+    AuthorisedAmount DECIMAL(10,2)        NULL,
     SettledAmount    DECIMAL(10,2)        NULL,
     Status           VARCHAR(20)      NOT NULL,
-    AuthorisedAt     DATETIME2        NOT NULL CONSTRAINT DF_Payment_AuthAt   DEFAULT SYSUTCDATETIME(),
+    AuthorisedAt     DATETIME2            NULL,
     SettledAt        DATETIME2            NULL,
     Description      VARCHAR(255)         NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Payment           PRIMARY KEY (PaymentId),
-    CONSTRAINT UQ_Payment_Reference UNIQUE (PaymentReference),
     CONSTRAINT CHK_Payment_Type     CHECK (PaymentType IN ('Fare','SeatAncillary','BagAncillary','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes')),
-    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Authorised','Settled','PartiallySettled','Refunded','Declined','Voided'))
+    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Settled','PartiallySettled','Refunded','Declined','Voided'))
 );
 GO
 
@@ -437,9 +436,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Payment_BookingReferen
     CREATE INDEX IX_Payment_BookingReference
         ON [payment].[Payment] (BookingReference)
         WHERE BookingReference IS NOT NULL;
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Payment_PaymentReference' AND object_id = OBJECT_ID('[payment].[Payment]'))
-    CREATE INDEX IX_Payment_PaymentReference ON [payment].[Payment] (PaymentReference);
 GO
 
 IF OBJECT_ID('[payment].[TR_Payment_UpdatedAt]', 'TR') IS NULL
@@ -1290,12 +1286,12 @@ BEGIN TRY
     DECLARE @PayId3 UNIQUEIDENTIFIER = NEWID();
 
     INSERT INTO [payment].[Payment]
-        (PaymentId, PaymentReference, BookingReference, PaymentType, Method, CardType, CardLast4,
-         AuthorisedAmount, SettledAmount, Status, SettledAt, Description)
+        (PaymentId, BookingReference, PaymentType, Method, CardType, CardLast4,
+         Amount, AuthorisedAmount, SettledAmount, Status, AuthorisedAt, SettledAt, Description)
     VALUES
-    (@PayId1,'AXPAY-0001','AB1234','Fare',        'CreditCard','Visa',      '4242',2865.00,2865.00,'Settled',SYSUTCDATETIME(),'Fare — AX001 LHR-JFK + AX002 JFK-LHR, Business Flex, 2 PAX'),
-    (@PayId2,'AXPAY-0002','AB1234','BagAncillary','CreditCard','Visa',      '4242',  60.00,  60.00,'Settled',SYSUTCDATETIME(),'Bag ancillary — AX001 LHR-JFK, PAX-1, 1 additional bag'),
-    (@PayId3,'AXPAY-0003','JC0005','Fare',        'CreditCard','Mastercard','1234', 309.50, 309.50,'Settled',SYSUTCDATETIME(),'Fare — AX411 LHR-DEL, Economy Light, 1 PAX');
+    (@PayId1,'AB1234','Fare',        'CreditCard','Visa',      '4242',2865.00,2865.00,2865.00,'Settled',SYSUTCDATETIME(),SYSUTCDATETIME(),'Fare — AX001 LHR-JFK + AX002 JFK-LHR, Business Flex, 2 PAX'),
+    (@PayId2,'AB1234','BagAncillary','CreditCard','Visa',      '4242',  60.00,  60.00,  60.00,'Settled',SYSUTCDATETIME(),SYSUTCDATETIME(),'Bag ancillary — AX001 LHR-JFK, PAX-1, 1 additional bag'),
+    (@PayId3,'JC0005','Fare',        'CreditCard','Mastercard','1234', 309.50, 309.50, 309.50,'Settled',SYSUTCDATETIME(),SYSUTCDATETIME(),'Fare — AX411 LHR-DEL, Economy Light, 1 PAX');
 
     -- payment.PaymentEvent ----------------------------------------------------
     INSERT INTO [payment].[PaymentEvent] (PaymentId, EventType, Amount, Notes) VALUES

@@ -8,17 +8,17 @@ namespace ReservationSystem.Microservices.Payment.Domain.Entities;
 public sealed class Payment
 {
     public Guid PaymentId { get; private set; }
-    public string PaymentReference { get; private set; } = string.Empty;
     public string? BookingReference { get; private set; }
     public string PaymentType { get; private set; } = string.Empty;
     public string Method { get; private set; } = string.Empty;
     public string? CardType { get; private set; }
     public string? CardLast4 { get; private set; }
     public string CurrencyCode { get; private set; } = string.Empty;
-    public decimal AuthorisedAmount { get; private set; }
+    public decimal Amount { get; private set; }
+    public decimal? AuthorisedAmount { get; private set; }
     public decimal? SettledAmount { get; private set; }
     public string Status { get; private set; } = string.Empty;
-    public DateTime AuthorisedAt { get; private set; }
+    public DateTime? AuthorisedAt { get; private set; }
     public DateTime? SettledAt { get; private set; }
     public string? Description { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -27,20 +27,17 @@ public sealed class Payment
     private Payment() { }
 
     /// <summary>
-    /// Factory method for creating a brand-new payment. Assigns a new PaymentId and timestamps.
+    /// Factory method for initialising a new payment. Assigns a new PaymentId and timestamps.
+    /// Called during the initialise step before card authorisation.
     /// </summary>
-    public static Payment Create(
-        string paymentReference,
+    public static Payment Initialise(
         string? bookingReference,
         string paymentType,
         string method,
-        string? cardType,
-        string? cardLast4,
         string currencyCode,
-        decimal authorisedAmount,
+        decimal amount,
         string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(paymentReference);
         ArgumentException.ThrowIfNullOrWhiteSpace(paymentType);
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
@@ -50,17 +47,17 @@ public sealed class Payment
         return new Payment
         {
             PaymentId = Guid.NewGuid(),
-            PaymentReference = paymentReference,
             BookingReference = bookingReference,
             PaymentType = paymentType,
             Method = method,
-            CardType = cardType,
-            CardLast4 = cardLast4,
+            CardType = null,
+            CardLast4 = null,
             CurrencyCode = currencyCode,
-            AuthorisedAmount = authorisedAmount,
+            Amount = amount,
+            AuthorisedAmount = null,
             SettledAmount = null,
-            Status = PaymentStatus.Authorised,
-            AuthorisedAt = now,
+            Status = PaymentStatus.Initialised,
+            AuthorisedAt = null,
             SettledAt = null,
             Description = description,
             CreatedAt = now,
@@ -74,17 +71,17 @@ public sealed class Payment
     /// </summary>
     public static Payment Reconstitute(
         Guid paymentId,
-        string paymentReference,
         string? bookingReference,
         string paymentType,
         string method,
         string? cardType,
         string? cardLast4,
         string currencyCode,
-        decimal authorisedAmount,
+        decimal amount,
+        decimal? authorisedAmount,
         decimal? settledAmount,
         string status,
-        DateTime authorisedAt,
+        DateTime? authorisedAt,
         DateTime? settledAt,
         string? description,
         DateTime createdAt,
@@ -93,13 +90,13 @@ public sealed class Payment
         return new Payment
         {
             PaymentId = paymentId,
-            PaymentReference = paymentReference,
             BookingReference = bookingReference,
             PaymentType = paymentType,
             Method = method,
             CardType = cardType,
             CardLast4 = cardLast4,
             CurrencyCode = currencyCode,
+            Amount = amount,
             AuthorisedAmount = authorisedAmount,
             SettledAmount = settledAmount,
             Status = status,
@@ -111,6 +108,16 @@ public sealed class Payment
         };
     }
 
+    public void Authorise(decimal authorisedAmount, string? cardType, string? cardLast4)
+    {
+        AuthorisedAmount = authorisedAmount;
+        CardType = cardType;
+        CardLast4 = cardLast4;
+        AuthorisedAt = DateTime.UtcNow;
+        Status = PaymentStatus.Authorised;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Settle(decimal settledAmount)
     {
         SettledAmount = settledAmount;
@@ -118,6 +125,12 @@ public sealed class Payment
         Status = settledAmount < AuthorisedAmount
             ? PaymentStatus.PartiallySettled
             : PaymentStatus.Settled;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Void()
+    {
+        Status = PaymentStatus.Voided;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -136,6 +149,7 @@ public sealed class Payment
 /// </summary>
 public static class PaymentStatus
 {
+    public const string Initialised = "Initialised";
     public const string Authorised = "Authorised";
     public const string Settled = "Settled";
     public const string PartiallySettled = "PartiallySettled";

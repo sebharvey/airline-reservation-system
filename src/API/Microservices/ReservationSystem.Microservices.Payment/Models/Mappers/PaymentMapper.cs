@@ -17,18 +17,26 @@ public static class PaymentMapper
     // Domain entity → HTTP response
     // -------------------------------------------------------------------------
 
+    public static InitialisePaymentResponse ToInitialiseResponse(Domain.Entities.Payment payment) =>
+        new()
+        {
+            PaymentId = payment.PaymentId,
+            Amount = payment.Amount,
+            Status = payment.Status
+        };
+
     public static AuthorisePaymentResponse ToAuthoriseResponse(Domain.Entities.Payment payment) =>
         new()
         {
-            PaymentReference = payment.PaymentReference,
-            AuthorisedAmount = payment.AuthorisedAmount,
+            PaymentId = payment.PaymentId,
+            AuthorisedAmount = payment.AuthorisedAmount ?? 0m,
             Status = payment.Status
         };
 
     public static SettlePaymentResponse ToSettleResponse(Domain.Entities.Payment payment) =>
         new()
         {
-            PaymentReference = payment.PaymentReference,
+            PaymentId = payment.PaymentId,
             SettledAmount = payment.SettledAmount ?? 0m,
             SettledAt = payment.SettledAt
         };
@@ -36,8 +44,15 @@ public static class PaymentMapper
     public static RefundPaymentResponse ToRefundResponse(Domain.Entities.Payment payment, decimal refundedAmount) =>
         new()
         {
-            PaymentReference = payment.PaymentReference,
+            PaymentId = payment.PaymentId,
             RefundedAmount = refundedAmount,
+            Status = payment.Status
+        };
+
+    public static VoidPaymentResponse ToVoidResponse(Domain.Entities.Payment payment) =>
+        new()
+        {
+            PaymentId = payment.PaymentId,
             Status = payment.Status
         };
 }

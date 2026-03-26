@@ -12,13 +12,13 @@ public interface IPaymentRepository
 {
     Task<Entities.Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 
-    Task<Entities.Payment?> GetByReferenceAsync(string paymentReference, CancellationToken cancellationToken = default);
-
     Task CreateAsync(Entities.Payment payment, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Entities.Payment payment, CancellationToken cancellationToken = default);
 
     Task CreateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
 
-    Task<int> GetNextSequenceAsync(CancellationToken cancellationToken = default);
+    Task UpdateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
+
+    Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 }

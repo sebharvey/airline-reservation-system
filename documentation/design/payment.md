@@ -4,15 +4,18 @@
 
 The Payment microservice is the financial orchestration layer for all Apex Air transactions, interfacing with the external card payment processor on behalf of all channels.
 
-- A single booking generates multiple independent payment transactions: fare, seat ancillary, and bag ancillary are each authorised and settled separately with their own `PaymentReference`.
+- A single booking generates multiple independent payment transactions: fare, seat ancillary, and bag ancillary are each initialised, authorised, and settled separately with their own `PaymentId`.
 - Granular transactions enable precise revenue attribution, targeted partial refunds, and PCI DSS compliance — card data is handled and discarded entirely within the Payment MS boundary.
 
-## Authorise and settle
+## Initialise, authorise, and settle
 
-Authorisation and settlement are separate steps; each transaction is tracked by a unique `PaymentReference` returned to the Retail API and stored against the relevant order items.
+Payment processing follows a three-step lifecycle: initialise, authorise, and settle. Each transaction is tracked by a unique `PaymentId` (GUID) generated at initialisation and returned to the Retail API for use in all subsequent operations.
 
-- Fare payment is authorised and settled during the booking confirmation flow; ancillary payments (seat, bag) are authorised upfront and settled after order confirmation.
-- The Payment DB is the system of record for all financial transactions — every authorisation and settlement event is logged in `payment.PaymentEvent` as an immutable audit trail.
+- The Retail API first calls the initialise endpoint with order details (amount, currency, payment type, description) to create the payment record. The Payment MS generates a `PaymentId` and returns it.
+- The Retail API then calls the authorise endpoint with the `PaymentId` and card details to authorise the payment against the card processor. A `PaymentEvent` row is created at this point.
+- Fare payment is authorised and settled during the booking confirmation flow; ancillary payments (seat, bag) are authorised upfront and settled after order confirmation. On settlement, the existing `PaymentEvent` row is updated.
+- If an authorised payment needs to be cancelled before settlement, the void endpoint releases the held funds and updates the `PaymentEvent` row.
+- The Payment DB is the system of record for all financial transactions.
 
 ```mermaid
 sequenceDiagram
@@ -20,45 +23,71 @@ sequenceDiagram
     participant PaymentMS as Payment [MS]
     participant PaymentDB as Payment DB
 
-    RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, currency, card details, description)
-    PaymentMS->>PaymentDB: Insert Payment record (status=Authorised)
-    PaymentDB-->>PaymentMS: 201 Created — paymentReference generated
-    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentReference, authorisedAmount)
+    RetailAPI->>PaymentMS: POST /v1/payment/initialise (amount, currency, paymentType, method, description)
+    PaymentMS->>PaymentDB: Insert Payment record (status=Initialised)
+    PaymentDB-->>PaymentMS: 201 Created — paymentId generated
+    PaymentMS-->>RetailAPI: 201 Created — paymentId, amount, status
 
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentReference}/settle (settledAmount)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/authorise (card details)
+    PaymentMS->>PaymentDB: Update Payment record (status=Authorised, cardType, cardLast4, authorisedAmount, authorisedAt)
+    PaymentMS->>PaymentDB: Insert PaymentEvent record (eventType=Authorised)
+    PaymentDB-->>PaymentMS: 200 OK — authorisation recorded
+    PaymentMS-->>RetailAPI: 200 OK — authorisation confirmed (paymentId, authorisedAmount)
+
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount)
     PaymentMS->>PaymentDB: Update Payment record (status=Settled, settledAt)
+    PaymentMS->>PaymentDB: Update PaymentEvent record (eventType=Settled)
     PaymentDB-->>PaymentMS: 200 OK — settlement recorded
-    PaymentMS-->>RetailAPI: 200 OK — settlement confirmed (paymentReference, settledAmount)
+    PaymentMS-->>RetailAPI: 200 OK — settlement confirmed (paymentId, settledAmount)
 ```
 
-*Ref: payment - card authorisation and settlement sequence*
+*Ref: payment - initialise, card authorisation and settlement sequence*
+
+## Void
+
+A void cancels an authorised payment before settlement, releasing the held funds back to the cardholder. The `PaymentEvent` row created at authorisation is updated with `EventType = Voided`.
+
+```mermaid
+sequenceDiagram
+    participant RetailAPI as Retail API
+    participant PaymentMS as Payment [MS]
+    participant PaymentDB as Payment DB
+
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/void (optional reason)
+    PaymentMS->>PaymentDB: Update Payment record (status=Voided)
+    PaymentMS->>PaymentDB: Update PaymentEvent record (eventType=Voided)
+    PaymentDB-->>PaymentMS: 200 OK — void recorded
+    PaymentMS-->>RetailAPI: 200 OK — void confirmed (paymentId, status)
+```
+
+*Ref: payment - void sequence*
 
 ## Data schema
 
-The Payment domain uses two tables: `Payment` (one row per transaction, tracking lifecycle from authorisation to settlement) and `PaymentEvent` (immutable append-only audit log of every individual event — authorised, settled, refunded, declined). A single `Payment` may have multiple `PaymentEvent` rows.
+The Payment domain uses two tables: `Payment` (one row per transaction, tracking lifecycle from initialisation through authorisation to settlement or void) and `PaymentEvent` (one row per authorisation, updated on settlement or void to reflect the current state).
 
 ### `payment.Payment`
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
-| PaymentId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| PaymentReference | VARCHAR(20) | No | | UK | Human-readable reference, e.g. `AXPAY-0001`; generated at authorisation |
-| BookingReference | CHAR(6) | Yes | | | Set once the order is confirmed; null during initial authorisation |
+| PaymentId | UNIQUEIDENTIFIER | No | NEWID() | PK | Returned to Retail API at initialisation |
+| BookingReference | CHAR(6) | Yes | | | Set once the order is confirmed; null during initial payment flow |
 | PaymentType | VARCHAR(30) | No | | | `Fare` · `SeatAncillary` · `BagAncillary` · `FareChange` · `Cancellation` · `Refund` |
 | Method | VARCHAR(20) | No | | | `CreditCard` · `DebitCard` · `PayPal` · `ApplePay` |
-| CardType | VARCHAR(20) | Yes | | | `Visa` · `Mastercard` · `Amex` · etc.; null for non-card methods |
-| CardLast4 | CHAR(4) | Yes | | | Last 4 digits only — full PAN must never be stored |
+| CardType | VARCHAR(20) | Yes | | | `Visa` · `Mastercard` · `Amex` · etc.; null until authorisation |
+| CardLast4 | CHAR(4) | Yes | | | Last 4 digits only — full PAN must never be stored; null until authorisation |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
-| AuthorisedAmount | DECIMAL(10,2) | No | | | Amount approved by the payment processor |
+| Amount | DECIMAL(10,2) | No | | | Intended payment amount, set at initialisation |
+| AuthorisedAmount | DECIMAL(10,2) | Yes | | | Amount approved by the payment processor; null until authorisation |
 | SettledAmount | DECIMAL(10,2) | Yes | | | Null until settlement; may differ from `AuthorisedAmount` on partial settlement |
-| Status | VARCHAR(20) | No | | | `Authorised` · `Settled` · `PartiallySettled` · `Refunded` · `Declined` · `Voided` |
-| AuthorisedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| Status | VARCHAR(20) | No | | | `Initialised` · `Authorised` · `Settled` · `PartiallySettled` · `Refunded` · `Declined` · `Voided` |
+| AuthorisedAt | DATETIME2 | Yes | | | Null until authorisation |
 | SettledAt | DATETIME2 | Yes | | | Null until settlement |
 | Description | VARCHAR(255) | Yes | | | Human-readable description, e.g. `'Fare LHR-JFK-LHR, 2 PAX'` |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-> **Indexes:** `IX_Payment_BookingReference` on `(BookingReference)` WHERE `BookingReference IS NOT NULL`. `IX_Payment_PaymentReference` on `(PaymentReference)`.
+> **Indexes:** `IX_Payment_BookingReference` on `(BookingReference)` WHERE `BookingReference IS NOT NULL`.
 > **PCI DSS:** Full card numbers, CVV codes, and raw processor tokens must never be stored. Only `CardLast4` and `CardType` are retained. The processor token used during the transaction lifetime is held in memory only and discarded after settlement.
 
 ### `payment.PaymentEvent`
@@ -75,8 +104,6 @@ The Payment domain uses two tables: `Payment` (one row per transaction, tracking
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_PaymentEvent_PaymentId` on `(PaymentId)`.
-> **Immutability:** `PaymentEvent` rows are append-only and must never be updated or deleted. They form the authoritative audit trail for every financial event in the system.
-
-> **PaymentReference format:** `PaymentReference` values follow the format `AXPAY-{sequence}` (e.g. `AXPAY-0001`). The sequence is generated by the Payment microservice at authorisation time and is guaranteed unique within the system. This reference is passed back to the Retail API and stored on each `orderItem` in `OrderData`, linking financial records to the order line items they cover.
+> **Lifecycle:** A `PaymentEvent` row is created when a payment is authorised and updated when the payment is subsequently settled or voided. Refund operations create a new `PaymentEvent` row.
 
 > **PCI DSS:** Full card numbers, CVV codes, and raw processor tokens must never be stored in the Payment DB. Only `CardLast4` and `CardType` are retained. The payment processor token used during the transaction lifetime is held in memory only and discarded after settlement.
