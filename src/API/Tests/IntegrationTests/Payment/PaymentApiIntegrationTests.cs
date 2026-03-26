@@ -395,6 +395,213 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
     }
 
     // =========================================================================
+    // Split-settlement lifecycle — single init, one auth, two successive settles
+    // =========================================================================
+    //
+    // Scenario: a 500 GBP total is processed as two portions against one PaymentId:
+    //
+    //   Initialise  500 GBP
+    //   Authorise   500 GBP  (one card auth covers the full amount)
+    //   Settle      400 GBP  → PartiallySettled (fare portion)
+    //   Settle      100 GBP  → Settled          (seat portion — completes the hold)
+    //
+    // A second authorise call on the same PaymentId is validated separately (T24) and
+    // must return 409 Conflict: the API enforces one authorise per payment lifecycle.
+    // The remaining balance is captured by a second settle against the same auth.
+
+    private static Guid? _splitPaymentId;
+    private static readonly decimal _splitTotal = 500.00m;
+    private static readonly decimal _farePortion = 400.00m;
+    private static readonly decimal _seatPortion = 100.00m;
+
+    [Fact, PaymentTestPriority(19)]
+    public async Task T19_SplitPayment_Initialise500Gbp_ReturnsCreated()
+    {
+        var request = new
+        {
+            bookingReference = "ZZ5000",
+            paymentType = "Fare",
+            method = "CreditCard",
+            currencyCode = "GBP",
+            amount = _splitTotal,
+            description = "Split-settlement: 500 GBP fare+seat"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/payment/initialise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<InitialisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().NotBeEmpty();
+        body.Amount.Should().Be(_splitTotal);
+        body.Status.Should().Be("Initialised");
+
+        _splitPaymentId = body.PaymentId;
+    }
+
+    [SkippableFact, PaymentTestPriority(20)]
+    public async Task T20_SplitPayment_Authorise_ReturnsFullAuthorisedAmount()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/27",
+                cvv = "737",
+                cardholderName = "James Carter"
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/authorise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<AuthorisePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        // The authorise step covers the full initialised amount — splitting happens at settle time
+        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.Status.Should().Be("Authorised");
+    }
+
+    [SkippableFact, PaymentTestPriority(21)]
+    public async Task T21_SplitPayment_SettleFarePortion400_ReturnsPartiallySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new { settledAmount = _farePortion };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/settle", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SettlePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.SettledAmount.Should().Be(_farePortion);
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(22)]
+    public async Task T22_SplitPayment_GetPaymentAfterPartialSettle_ReturnsPartiallySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.Amount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.SettledAmount.Should().Be(_farePortion);
+        body.Status.Should().Be("PartiallySettled");
+        body.AuthorisedAt.Should().NotBeNull();
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(23)]
+    public async Task T23_SplitPayment_SecondAuthorise_ReturnsConflict()
+    {
+        // The API enforces one authorise per payment lifecycle. Once a payment has been
+        // (partially) settled it is no longer in Initialised status, so a second authorise
+        // call must be rejected with 409 Conflict. The remaining balance is captured via
+        // a second settle call (T24) against the same original authorisation.
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new
+        {
+            cardDetails = new
+            {
+                cardNumber = "4111111111111111",
+                expiryDate = "12/27",
+                cvv = "737",
+                cardholderName = "James Carter"
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/authorise", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [SkippableFact, PaymentTestPriority(24)]
+    public async Task T24_SplitPayment_SettleSeatPortion100_ReturnsFullySettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var request = new { settledAmount = _seatPortion };
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/v1/payment/{_splitPaymentId}/settle", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SettlePaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.SettledAmount.Should().Be(_seatPortion);
+        body.SettledAt.Should().NotBeNull();
+    }
+
+    [SkippableFact, PaymentTestPriority(25)]
+    public async Task T25_SplitPayment_GetPaymentAfterFullSettle_ReturnsSettled()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<PaymentResponse>(JsonOptions);
+
+        body.Should().NotBeNull();
+        body!.PaymentId.Should().Be(_splitPaymentId!.Value);
+        body.Amount.Should().Be(_splitTotal);
+        body.AuthorisedAmount.Should().Be(_splitTotal);
+        body.Status.Should().Be("Settled");
+    }
+
+    [SkippableFact, PaymentTestPriority(26)]
+    public async Task T26_SplitPayment_GetEvents_ReturnsChronologicalEvents()
+    {
+        Skip.If(_splitPaymentId is null, "No splitPaymentId from T19");
+
+        var response = await _client.GetAsync($"/api/v1/payment/{_splitPaymentId}/events");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var events = await response.Content.ReadFromJsonAsync<List<PaymentEventResponse>>(JsonOptions);
+
+        events.Should().NotBeNull();
+        // Authorised event + PartialSettlement event + Settled event
+        events!.Should().HaveCount(3);
+
+        events.Should().ContainSingle(e => e.EventType == "Authorised")
+            .Which.Amount.Should().Be(_splitTotal);
+
+        events.Should().ContainSingle(e => e.EventType == "PartialSettlement")
+            .Which.Amount.Should().Be(_farePortion);
+
+        events.Should().ContainSingle(e => e.EventType == "Settled")
+            .Which.Amount.Should().Be(_seatPortion);
+
+        // All events must belong to this payment
+        events.Should().OnlyContain(e => e.PaymentId == _splitPaymentId!.Value);
+
+        // Events must be in strict chronological order
+        events[0].CreatedAt.Should().BeOnOrBefore(events[1].CreatedAt);
+        events[1].CreatedAt.Should().BeOnOrBefore(events[2].CreatedAt);
+    }
+
+    // =========================================================================
     // Standalone — GET /v1/payment/{paymentId} validation
     // =========================================================================
 
