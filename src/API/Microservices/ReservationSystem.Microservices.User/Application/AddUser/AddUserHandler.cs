@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.User.Domain.Entities;
 using ReservationSystem.Microservices.User.Domain.Repositories;
 using ReservationSystem.Microservices.User.Models.Responses;
 using System.Security.Cryptography;
@@ -41,7 +40,7 @@ public sealed class AddUserHandler
         }
 
         var passwordHash = HashPassword(command.Password);
-        var user = User.Create(command.Username, command.Email, passwordHash, command.FirstName, command.LastName);
+        var user = Domain.Entities.User.Create(command.Username, command.Email, passwordHash, command.FirstName, command.LastName);
 
         await _userRepository.CreateAsync(user, cancellationToken);
 

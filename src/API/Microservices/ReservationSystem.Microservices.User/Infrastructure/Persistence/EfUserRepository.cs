@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.User.Domain.Entities;
 using ReservationSystem.Microservices.User.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.User.Infrastructure.Persistence;
@@ -23,28 +22,28 @@ public sealed class EfUserRepository : IUserRepository
         _logger = logger;
     }
 
-    public async Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
     }
 
-    public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
     }
 
-    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Domain.Entities.User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.Users
             .AsNoTracking()
@@ -53,7 +52,7 @@ public sealed class EfUserRepository : IUserRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task CreateAsync(User user, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(Domain.Entities.User user, CancellationToken cancellationToken = default)
     {
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -61,7 +60,7 @@ public sealed class EfUserRepository : IUserRepository
         _logger.LogDebug("Inserted User {UserId} into [user].[User]", user.UserId);
     }
 
-    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Domain.Entities.User user, CancellationToken cancellationToken = default)
     {
         _dbContext.Users.Update(user);
         var rowsAffected = await _dbContext.SaveChangesAsync(cancellationToken);
