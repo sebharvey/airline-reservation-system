@@ -1,9 +1,8 @@
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 
@@ -16,11 +15,7 @@ public sealed class CustomerServiceClient
 {
     private readonly HttpClient _httpClient;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = SharedJsonOptions.CamelCaseIgnoreNull;
 
     public CustomerServiceClient(IHttpClientFactory httpClientFactory)
     {

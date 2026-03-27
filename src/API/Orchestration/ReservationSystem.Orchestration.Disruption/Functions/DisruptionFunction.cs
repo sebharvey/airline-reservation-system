@@ -4,13 +4,11 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
 using ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Disruption.Models.Requests;
 using ReservationSystem.Orchestration.Disruption.Models.Responses;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Disruption.Functions;
 
@@ -48,25 +46,11 @@ public sealed class DisruptionFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/delay")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        HandleDelayRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<HandleDelayRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<HandleDelayRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in HandleDelay request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FlightNumber)
-            || request.DelayMinutes <= 0)
-        {
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber) || request.DelayMinutes <= 0)
             return await req.BadRequestAsync("The fields 'flightNumber' and 'delayMinutes' (greater than 0) are required.");
-        }
 
         var command = new HandleDelayCommand(
             request.FlightNumber,
@@ -91,24 +75,11 @@ public sealed class DisruptionFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/cancellation")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        HandleCancellationRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<HandleCancellationRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<HandleCancellationRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in HandleCancellation request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FlightNumber))
-        {
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber))
             return await req.BadRequestAsync("The field 'flightNumber' is required.");
-        }
 
         var command = new HandleCancellationCommand(
             request.FlightNumber,

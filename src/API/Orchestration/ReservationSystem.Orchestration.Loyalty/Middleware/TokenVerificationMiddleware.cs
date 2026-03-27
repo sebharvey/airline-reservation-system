@@ -3,8 +3,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.DependencyInjection;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
-using System.Net;
-using System.Text.Json;
+using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Loyalty.Middleware;
 
@@ -89,11 +88,6 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
 
     private static async Task RejectAsync(FunctionContext context, HttpRequestData requestData)
     {
-        var response = requestData.CreateResponse(HttpStatusCode.Unauthorized);
-        response.Headers.Add("Content-Type", "application/json");
-        await response.WriteStringAsync(
-            JsonSerializer.Serialize(new { error = "Unauthorized." }));
-
-        context.GetInvocationResult().Value = response;
+        context.GetInvocationResult().Value = await requestData.UnauthorizedAsync("Unauthorized.");
     }
 }

@@ -10,9 +10,7 @@ using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 using System.Web;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
@@ -49,20 +47,8 @@ public sealed class DocumentFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/documents")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateDocumentRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateDocumentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateDocument request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateDocumentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.DocumentType))
             return await req.BadRequestAsync("The 'documentType' field is required.");
@@ -148,20 +134,8 @@ public sealed class DocumentFunction
         string documentNumber,
         CancellationToken cancellationToken)
     {
-        VoidDocumentRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<VoidDocumentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in VoidDocument request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<VoidDocumentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.Reason))
             return await req.BadRequestAsync("The 'reason' field is required.");

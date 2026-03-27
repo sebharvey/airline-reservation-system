@@ -14,7 +14,6 @@ using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
 using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
 
@@ -129,19 +128,10 @@ public sealed class SeatmapFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateSeatmapRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateSeatmapRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateSeatmap request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatmapRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        if (request is null || string.IsNullOrWhiteSpace(request.AircraftTypeCode))
+        if (string.IsNullOrWhiteSpace(request!.AircraftTypeCode))
             return await req.BadRequestAsync("aircraftTypeCode is required.");
 
         if (request.CabinLayout.ValueKind == JsonValueKind.Undefined)
@@ -180,20 +170,8 @@ public sealed class SeatmapFunction
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
-        UpdateSeatmapRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateSeatmapRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateSeatmap request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateSeatmapRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var command = SeatMapper.ToCommand(seatmapId, request);
         var updated = await _updateSeatmapHandler.HandleAsync(command, cancellationToken);

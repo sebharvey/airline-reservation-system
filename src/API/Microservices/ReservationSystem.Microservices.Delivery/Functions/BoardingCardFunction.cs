@@ -7,9 +7,7 @@ using ReservationSystem.Microservices.Delivery.Application.CreateBoardingCards;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
 
@@ -36,20 +34,8 @@ public sealed class BoardingCardFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/boarding-cards")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateBoardingCardsRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateBoardingCardsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateBoardingCards request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateBoardingCardsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.BookingReference))
             return await req.BadRequestAsync("The 'bookingReference' field is required.");
