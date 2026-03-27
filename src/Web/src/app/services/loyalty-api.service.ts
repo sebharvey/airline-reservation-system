@@ -56,6 +56,21 @@ export interface UpdatePreferencesParams {
   appNotificationsEnabled: boolean;
 }
 
+export interface TransferPointsParams {
+  recipientLoyaltyNumber: string;
+  recipientEmail: string;
+  points: number;
+}
+
+export interface TransferPointsResult {
+  senderLoyaltyNumber: string;
+  recipientLoyaltyNumber: string;
+  pointsTransferred: number;
+  senderNewBalance: number;
+  recipientNewBalance: number;
+  transferredAt: string;
+}
+
 // ── API response shapes ──────────────────────────────────────────────────────
 // These may differ from the internal model; mappers normalise them.
 
@@ -317,6 +332,16 @@ export class LoyaltyApiService {
   resetPassword(token: string, newPassword: string): Observable<void> {
     return this.http
       .post<void>(`${BASE}/auth/password/reset`, { token, newPassword })
+      .pipe(catchError(handleError));
+  }
+
+  /**
+   * POST /customers/{loyaltyNumber}/points/transfer
+   * Transfers points to another loyalty account after email verification.
+   */
+  transferPoints(loyaltyNumber: string, params: TransferPointsParams): Observable<TransferPointsResult> {
+    return this.http
+      .post<TransferPointsResult>(`${BASE}/customers/${loyaltyNumber}/points/transfer`, params)
       .pipe(catchError(handleError));
   }
 

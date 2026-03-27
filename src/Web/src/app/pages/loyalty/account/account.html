@@ -76,6 +76,11 @@
     >Transactions</button>
     <button
       class="tab"
+      [class.active]="activeTab() === 'transfer'"
+      (click)="setTab('transfer')"
+    >Transfer</button>
+    <button
+      class="tab"
       [class.active]="activeTab() === 'profile'"
       (click)="setTab('profile')"
     >Profile</button>
@@ -193,6 +198,93 @@
           </table>
         </div>
       }
+    </div>
+  }
+
+  <!-- Transfer Points Tab -->
+  @if (activeTab() === 'transfer') {
+    <div class="tab-content fade-in">
+      <div class="transfer-card">
+        <h3 class="section-heading">Transfer Points</h3>
+        <p class="transfer-desc">Send points to another Apex Air loyalty member. You must enter their loyalty number and registered email address — both are verified before the transfer is processed.</p>
+
+        @if (!transferResult()) {
+          <form class="form" (submit)="$event.preventDefault(); submitTransfer()">
+
+            <div class="transfer-balance-hint">
+              Available balance: <strong>{{ customer()!.pointsBalance.toLocaleString() }} points</strong>
+            </div>
+
+            <div class="field">
+              <label for="tRecipientLoyaltyNumber">Recipient Loyalty Number</label>
+              <input
+                id="tRecipientLoyaltyNumber"
+                type="text"
+                placeholder="e.g. AX1234567"
+                [value]="transferRecipientLoyaltyNumber()"
+                (input)="transferRecipientLoyaltyNumber.set($any($event.target).value)"
+              />
+            </div>
+
+            <div class="field">
+              <label for="tRecipientEmail">Recipient Email Address</label>
+              <input
+                id="tRecipientEmail"
+                type="email"
+                placeholder="Registered email of the recipient"
+                [value]="transferRecipientEmail()"
+                (input)="transferRecipientEmail.set($any($event.target).value)"
+              />
+            </div>
+
+            <div class="field">
+              <label for="tPoints">Points to Transfer</label>
+              <input
+                id="tPoints"
+                type="number"
+                min="1"
+                [max]="customer()!.pointsBalance"
+                placeholder="Enter amount"
+                [value]="transferPointsAmount() ?? ''"
+                (input)="transferPointsAmount.set(+$any($event.target).value || null)"
+              />
+            </div>
+
+            @if (transferError()) {
+              <div class="error-banner" role="alert">{{ transferError() }}</div>
+            }
+
+            <button type="submit" class="btn-primary" [disabled]="transferLoading()">
+              @if (transferLoading()) {
+                <span class="spinner"></span> Transferring...
+              } @else {
+                Transfer Points
+              }
+            </button>
+          </form>
+
+        } @else {
+          <div class="transfer-result">
+            <div class="transfer-result-icon">&#10003;</div>
+            <p class="transfer-result-title">Transfer Successful</p>
+            <div class="transfer-result-rows">
+              <div class="transfer-result-row">
+                <span class="transfer-result-label">Points transferred</span>
+                <span class="transfer-result-value points-positive">{{ transferResult()!.pointsTransferred.toLocaleString() }}</span>
+              </div>
+              <div class="transfer-result-row">
+                <span class="transfer-result-label">Recipient</span>
+                <span class="transfer-result-value font-mono">{{ transferResult()!.recipientLoyaltyNumber }}</span>
+              </div>
+              <div class="transfer-result-row">
+                <span class="transfer-result-label">Your new balance</span>
+                <span class="transfer-result-value">{{ transferResult()!.senderNewBalance.toLocaleString() }} pts</span>
+              </div>
+            </div>
+            <button class="btn-secondary transfer-again-btn" (click)="resetTransfer()">Make Another Transfer</button>
+          </div>
+        }
+      </div>
     </div>
   }
 
