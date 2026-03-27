@@ -168,4 +168,20 @@ public sealed class IdentityServiceClient
 
         return await response.Content.ReadFromJsonAsync<IdentityAccountSummaryDto>(JsonOptions, cancellationToken);
     }
+
+    public async Task<IdentityAccountSummaryDto?> GetAccountByEmailAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var encodedEmail = Uri.EscapeDataString(email);
+        var response = await _httpClient.GetAsync(
+            $"/api/v1/accounts/by-email?email={encodedEmail}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<IdentityAccountSummaryDto>(JsonOptions, cancellationToken);
+    }
 }
