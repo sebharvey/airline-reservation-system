@@ -7,7 +7,7 @@ import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
-export type AccountTab = 'overview' | 'transactions' | 'profile';
+export type AccountTab = 'overview' | 'transactions' | 'profile' | 'preferences';
 
 interface TierBenefit {
   tier: LoyaltyTier;
@@ -99,12 +99,33 @@ export class LoyaltyAccountComponent implements OnInit {
   profileSurname = signal('');
   profilePhone = signal('');
   profileDateOfBirth = signal('');
+  profileGender = signal('');
   profileNationality = signal('');
   profileLanguage = signal('');
+  profileAddressLine1 = signal('');
+  profileAddressLine2 = signal('');
+  profileCity = signal('');
+  profileStateOrRegion = signal('');
+  profilePostalCode = signal('');
+  profileCountryCode = signal('');
 
   profileLoading = signal(false);
   profileError = signal<string | null>(null);
   profileSuccess = signal(false);
+
+  // Preferences signals
+  prefsMarketing = signal(false);
+  prefsAnalytics = signal(false);
+  prefsFunctional = signal(true);
+  prefsAppNotifications = signal(true);
+  preferencesLoading = signal(false);
+  preferencesError = signal<string | null>(null);
+  preferencesSuccess = signal(false);
+
+  // Delete account signals
+  deleteConfirm = signal(false);
+  deleteLoading = signal(false);
+  deleteError = signal<string | null>(null);
 
   logoutLoading = signal(false);
 
@@ -154,6 +175,7 @@ export class LoyaltyAccountComponent implements OnInit {
     }
     this.syncProfileFromCustomer();
     this.loadTransactions();
+    this.loadPreferences();
   }
 
   private loadTransactions(): void {
@@ -174,8 +196,15 @@ export class LoyaltyAccountComponent implements OnInit {
     this.profileSurname.set(c.surname);
     this.profilePhone.set(c.phone);
     this.profileDateOfBirth.set(c.dateOfBirth);
+    this.profileGender.set(c.gender ?? '');
     this.profileNationality.set(c.nationality);
     this.profileLanguage.set(c.preferredLanguage);
+    this.profileAddressLine1.set(c.addressLine1 ?? '');
+    this.profileAddressLine2.set(c.addressLine2 ?? '');
+    this.profileCity.set(c.city ?? '');
+    this.profileStateOrRegion.set(c.stateOrRegion ?? '');
+    this.profilePostalCode.set(c.postalCode ?? '');
+    this.profileCountryCode.set(c.countryCode ?? '');
   }
 
   setTab(tab: AccountTab): void {
@@ -183,6 +212,12 @@ export class LoyaltyAccountComponent implements OnInit {
     if (tab === 'profile') {
       this.profileError.set(null);
       this.profileSuccess.set(false);
+    }
+    if (tab === 'preferences') {
+      this.preferencesError.set(null);
+      this.preferencesSuccess.set(false);
+      this.deleteConfirm.set(false);
+      this.deleteError.set(null);
     }
   }
 
@@ -232,8 +267,15 @@ export class LoyaltyAccountComponent implements OnInit {
       surname: this.profileSurname(),
       phoneNumber: this.profilePhone(),
       dateOfBirth: this.profileDateOfBirth() || undefined,
+      gender: this.profileGender() || undefined,
       nationality: this.profileNationality(),
       preferredLanguage: this.profileLanguage(),
+      addressLine1: this.profileAddressLine1() || undefined,
+      addressLine2: this.profileAddressLine2() || undefined,
+      city: this.profileCity() || undefined,
+      stateOrRegion: this.profileStateOrRegion() || undefined,
+      postalCode: this.profilePostalCode() || undefined,
+      countryCode: this.profileCountryCode() || undefined,
     }).subscribe({
       next: (updated) => {
         this.loyaltyState.updateCustomer(updated);
@@ -243,6 +285,74 @@ export class LoyaltyAccountComponent implements OnInit {
       error: (err) => {
         this.profileLoading.set(false);
         this.profileError.set(err?.message ?? 'Failed to save profile. Please try again.');
+      }
+    });
+  }
+
+  loadPreferences(): void {
+    const c = this.customer();
+    if (!c) return;
+    this.loyaltyApi.getPreferences(c.loyaltyNumber).subscribe({
+      next: (prefs) => {
+        this.prefsMarketing.set(prefs.marketingEnabled);
+        this.prefsAnalytics.set(prefs.analyticsEnabled);
+        this.prefsFunctional.set(prefs.functionalEnabled);
+        this.prefsAppNotifications.set(prefs.appNotificationsEnabled);
+        this.loyaltyState.updateCustomer({ ...c, preferences: prefs });
+      },
+      error: () => { /* silently ignore; defaults remain */ }
+    });
+  }
+
+  savePreferences(): void {
+    const c = this.customer();
+    if (!c) return;
+
+    this.preferencesError.set(null);
+    this.preferencesSuccess.set(false);
+    this.preferencesLoading.set(true);
+
+    this.loyaltyApi.updatePreferences(c.loyaltyNumber, {
+      marketingEnabled: this.prefsMarketing(),
+      analyticsEnabled: this.prefsAnalytics(),
+      functionalEnabled: this.prefsFunctional(),
+      appNotificationsEnabled: this.prefsAppNotifications(),
+    }).subscribe({
+      next: () => {
+        this.preferencesLoading.set(false);
+        this.preferencesSuccess.set(true);
+        this.loyaltyState.updateCustomer({
+          ...c,
+          preferences: {
+            marketingEnabled: this.prefsMarketing(),
+            analyticsEnabled: this.prefsAnalytics(),
+            functionalEnabled: this.prefsFunctional(),
+            appNotificationsEnabled: this.prefsAppNotifications(),
+          }
+        });
+      },
+      error: (err) => {
+        this.preferencesLoading.set(false);
+        this.preferencesError.set(err?.message ?? 'Failed to save preferences. Please try again.');
+      }
+    });
+  }
+
+  deleteAccount(): void {
+    const c = this.customer();
+    if (!c) return;
+
+    this.deleteError.set(null);
+    this.deleteLoading.set(true);
+
+    this.loyaltyApi.deleteAccount(c.loyaltyNumber).subscribe({
+      next: () => {
+        this.loyaltyState.logout();
+        this.router.navigate(['/loyalty']);
+      },
+      error: (err) => {
+        this.deleteLoading.set(false);
+        this.deleteError.set(err?.message ?? 'Failed to delete account. Please try again.');
       }
     });
   }

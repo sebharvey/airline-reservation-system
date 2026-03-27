@@ -15,7 +15,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, switchMap, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyTier, TransactionType } from '../models/loyalty.model';
+import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyPreferences, LoyaltyTier, TransactionType } from '../models/loyalty.model';
 import { environment } from '../environments/environment';
 
 export interface LoginParams {
@@ -38,8 +38,22 @@ export interface UpdateProfileParams {
   surname?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
+  gender?: string;
   nationality?: string;
   preferredLanguage?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateOrRegion?: string;
+  postalCode?: string;
+  countryCode?: string;
+}
+
+export interface UpdatePreferencesParams {
+  marketingEnabled: boolean;
+  analyticsEnabled: boolean;
+  functionalEnabled: boolean;
+  appNotificationsEnabled: boolean;
 }
 
 // ── API response shapes ──────────────────────────────────────────────────────
@@ -62,9 +76,25 @@ interface ApiCustomerProfile {
   email: string;
   phoneNumber?: string;
   dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  preferredLanguage?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateOrRegion?: string;
+  postalCode?: string;
+  countryCode?: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   memberSince: string;
+}
+
+interface ApiPreferences {
+  marketingEnabled: boolean;
+  analyticsEnabled: boolean;
+  functionalEnabled: boolean;
+  appNotificationsEnabled: boolean;
 }
 
 interface ApiTransaction {
@@ -96,13 +126,30 @@ function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
     email: api.email,
     phone: api.phoneNumber ?? '',
     dateOfBirth: api.dateOfBirth ?? '',
-    nationality: '',
-    preferredLanguage: 'en',
+    gender: api.gender ?? '',
+    nationality: api.nationality ?? '',
+    preferredLanguage: api.preferredLanguage ?? 'en',
+    addressLine1: api.addressLine1 ?? '',
+    addressLine2: api.addressLine2 ?? '',
+    city: api.city ?? '',
+    stateOrRegion: api.stateOrRegion ?? '',
+    postalCode: api.postalCode ?? '',
+    countryCode: api.countryCode ?? '',
     tier: api.tier ?? 'Blue',
     pointsBalance: api.pointsBalance ?? 0,
     tierProgressPoints: 0,
     memberSince: api.memberSince ?? '',
-    transactions: [] // loaded separately via getTransactions()
+    transactions: [],
+    preferences: null
+  };
+}
+
+function mapPreferences(api: ApiPreferences): LoyaltyPreferences {
+  return {
+    marketingEnabled: api.marketingEnabled,
+    analyticsEnabled: api.analyticsEnabled,
+    functionalEnabled: api.functionalEnabled,
+    appNotificationsEnabled: api.appNotificationsEnabled
   };
 }
 
@@ -244,6 +291,36 @@ export class LoyaltyApiService {
         switchMap(() => this.getCustomer(loyaltyNumber)),
         catchError(handleError)
       );
+  }
+
+  /**
+   * GET /customers/{loyaltyNumber}/preferences
+   */
+  getPreferences(loyaltyNumber: string): Observable<LoyaltyPreferences> {
+    return this.http
+      .get<ApiPreferences>(`${BASE}/customers/${loyaltyNumber}/preferences`)
+      .pipe(
+        map(mapPreferences),
+        catchError(handleError)
+      );
+  }
+
+  /**
+   * PUT /customers/{loyaltyNumber}/preferences
+   */
+  updatePreferences(loyaltyNumber: string, params: UpdatePreferencesParams): Observable<void> {
+    return this.http
+      .put<void>(`${BASE}/customers/${loyaltyNumber}/preferences`, params)
+      .pipe(catchError(handleError));
+  }
+
+  /**
+   * DELETE /customers/{loyaltyNumber}/account
+   */
+  deleteAccount(loyaltyNumber: string): Observable<void> {
+    return this.http
+      .delete<void>(`${BASE}/customers/${loyaltyNumber}/account`)
+      .pipe(catchError(handleError));
   }
 
   /**

@@ -19,9 +19,16 @@ public sealed class UpdateProfileHandler
             command.GivenName,
             command.Surname,
             command.DateOfBirth,
+            command.Gender,
             command.Nationality,
             command.PhoneNumber,
-            command.PreferredLanguage
+            command.PreferredLanguage,
+            command.AddressLine1,
+            command.AddressLine2,
+            command.City,
+            command.StateOrRegion,
+            command.PostalCode,
+            command.CountryCode
         };
 
         return await _customerServiceClient.UpdateCustomerAsync(

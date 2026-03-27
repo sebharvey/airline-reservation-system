@@ -3,6 +3,8 @@ import { Router, NavigationEnd, RouterOutlet, RouterLink, RouterLinkActive } fro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { ThemeService } from './services/theme.service';
+import { LoyaltyStateService } from './services/loyalty-state.service';
+import { LoyaltyApiService } from './services/loyalty-api.service';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +14,8 @@ import { ThemeService } from './services/theme.service';
 })
 export class App {
   theme = inject(ThemeService);
+  loyaltyState = inject(LoyaltyStateService);
+  private readonly loyaltyApi = inject(LoyaltyApiService);
 
   #router = inject(Router);
 
@@ -35,4 +39,12 @@ export class App {
     ),
     { initialValue: this.#router.url === '/' }
   );
+
+  logout(): void {
+    const refreshToken = this.loyaltyState.session()?.refreshToken;
+    this.loyaltyApi.logout(refreshToken).subscribe({
+      next: () => { this.loyaltyState.logout(); this.#router.navigate(['/loyalty']); },
+      error: () => { this.loyaltyState.logout(); this.#router.navigate(['/loyalty']); }
+    });
+  }
 }

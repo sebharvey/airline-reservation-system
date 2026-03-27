@@ -1,10 +1,12 @@
 using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
+using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
+using ReservationSystem.Microservices.Customer.Domain.Entities;
 using ReservationSystem.Microservices.Customer.Models.Requests;
 using ReservationSystem.Microservices.Customer.Models.Responses;
 
@@ -37,9 +39,16 @@ public static class CustomerMapper
             GivenName: request.GivenName,
             Surname: request.Surname,
             DateOfBirth: request.DateOfBirth,
+            Gender: request.Gender,
             Nationality: request.Nationality,
             PhoneNumber: request.PhoneNumber,
             PreferredLanguage: request.PreferredLanguage,
+            AddressLine1: request.AddressLine1,
+            AddressLine2: request.AddressLine2,
+            City: request.City,
+            StateOrRegion: request.StateOrRegion,
+            PostalCode: request.PostalCode,
+            CountryCode: request.CountryCode,
             IdentityId: request.IdentityId,
             TierCode: request.TierCode,
             IsActive: request.IsActive);
@@ -88,9 +97,16 @@ public static class CustomerMapper
             GivenName = customer.GivenName,
             Surname = customer.Surname,
             DateOfBirth = customer.DateOfBirth,
+            Gender = customer.Gender,
             Nationality = customer.Nationality,
             PreferredLanguage = customer.PreferredLanguage,
             PhoneNumber = customer.PhoneNumber,
+            AddressLine1 = customer.AddressLine1,
+            AddressLine2 = customer.AddressLine2,
+            City = customer.City,
+            StateOrRegion = customer.StateOrRegion,
+            PostalCode = customer.PostalCode,
+            CountryCode = customer.CountryCode,
             TierCode = customer.TierCode,
             PointsBalance = customer.PointsBalance,
             TierProgressPoints = customer.TierProgressPoints,
@@ -177,4 +193,22 @@ public static class CustomerMapper
             TransactionId = transaction.TransactionId,
             AddedAt = transaction.TransactionDate
         };
+
+    public static CustomerPreferencesResponse ToPreferencesResponse(CustomerPreferences preferences) =>
+        new()
+        {
+            CustomerId = preferences.CustomerId,
+            MarketingEnabled = preferences.MarketingEnabled,
+            AnalyticsEnabled = preferences.AnalyticsEnabled,
+            FunctionalEnabled = preferences.FunctionalEnabled,
+            AppNotificationsEnabled = preferences.AppNotificationsEnabled
+        };
+
+    public static UpdatePreferencesCommand ToCommand(string loyaltyNumber, UpdatePreferencesRequest request) =>
+        new(
+            LoyaltyNumber: loyaltyNumber,
+            MarketingEnabled: request.MarketingEnabled,
+            AnalyticsEnabled: request.AnalyticsEnabled,
+            FunctionalEnabled: request.FunctionalEnabled,
+            AppNotificationsEnabled: request.AppNotificationsEnabled);
 }

@@ -12,6 +12,12 @@
             <a routerLink="/flight-status" routerLinkActive="active">Status</a>
             <a routerLink="/loyalty" routerLinkActive="active" class="nav-loyalty">Rewards</a>
           </div>
+          @if (loyaltyState.isLoggedIn()) {
+            <div class="nav-user">
+              <span class="nav-user-name">{{ loyaltyState.currentCustomer()?.givenName }} {{ loyaltyState.currentCustomer()?.surname }}</span>
+              <button class="nav-logout-btn" (click)="logout()">Sign Out</button>
+            </div>
+          }
         </div>
       </nav>
     }

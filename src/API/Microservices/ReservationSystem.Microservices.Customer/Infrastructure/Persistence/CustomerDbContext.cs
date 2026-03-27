@@ -13,6 +13,7 @@ public sealed class CustomerDbContext : DbContext
 
     public DbSet<Domain.Entities.Customer> Customers => Set<Domain.Entities.Customer>();
     public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
+    public DbSet<CustomerPreferences> CustomerPreferences => Set<CustomerPreferences>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,11 @@ public sealed class CustomerDbContext : DbContext
                   .HasColumnType("date")
                   .IsRequired(false);
 
+            entity.Property(c => c.Gender)
+                  .HasColumnName("Gender")
+                  .HasColumnType("varchar(20)")
+                  .IsRequired(false);
+
             entity.Property(c => c.Nationality)
                   .HasColumnName("Nationality")
                   .HasColumnType("char(3)")
@@ -75,6 +81,37 @@ public sealed class CustomerDbContext : DbContext
                   .HasColumnName("PhoneNumber")
                   .HasColumnType("varchar(30)")
                   .IsRequired(false);
+
+            entity.Property(c => c.AddressLine1)
+                  .HasColumnName("AddressLine1")
+                  .HasColumnType("varchar(150)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.AddressLine2)
+                  .HasColumnName("AddressLine2")
+                  .HasColumnType("varchar(150)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.City)
+                  .HasColumnName("City")
+                  .HasColumnType("varchar(100)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.StateOrRegion)
+                  .HasColumnName("StateOrRegion")
+                  .HasColumnType("varchar(100)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.PostalCode)
+                  .HasColumnName("PostalCode")
+                  .HasColumnType("varchar(20)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.CountryCode)
+                  .HasColumnName("CountryCode")
+                  .HasColumnType("char(2)")
+                  .IsRequired(false)
+                  .HasConversion(v => v, v => v != null ? v.TrimEnd() : null);
 
             entity.Property(c => c.TierCode)
                   .HasColumnName("TierCode")
@@ -166,6 +203,59 @@ public sealed class CustomerDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(t => t.CustomerId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CustomerPreferences>(entity =>
+        {
+            entity.ToTable("Preferences", "customer", t =>
+            {
+                t.HasTrigger("TR_Preferences_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+
+            entity.HasKey(p => p.PreferenceId);
+
+            entity.Property(p => p.PreferenceId)
+                  .HasColumnName("PreferenceId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedNever();
+
+            entity.Property(p => p.CustomerId)
+                  .HasColumnName("CustomerId")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired();
+
+            entity.HasIndex(p => p.CustomerId)
+                  .IsUnique();
+
+            entity.Property(p => p.MarketingEnabled)
+                  .HasColumnName("MarketingEnabled")
+                  .HasColumnType("bit");
+
+            entity.Property(p => p.AnalyticsEnabled)
+                  .HasColumnName("AnalyticsEnabled")
+                  .HasColumnType("bit");
+
+            entity.Property(p => p.FunctionalEnabled)
+                  .HasColumnName("FunctionalEnabled")
+                  .HasColumnType("bit");
+
+            entity.Property(p => p.AppNotificationsEnabled)
+                  .HasColumnName("AppNotificationsEnabled")
+                  .HasColumnType("bit");
+
+            entity.Property(p => p.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2");
+
+            entity.Property(p => p.UpdatedAt)
+                  .HasColumnName("UpdatedAt")
+                  .HasColumnType("datetime2");
+
+            entity.HasOne<Domain.Entities.Customer>()
+                  .WithOne()
+                  .HasForeignKey<CustomerPreferences>(p => p.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

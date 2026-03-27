@@ -3,6 +3,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 
@@ -96,6 +97,50 @@ public sealed class CustomerServiceClient
         var response = await _httpClient.PatchAsJsonAsync(
             $"/api/v1/customers/{loyaltyNumber}", body, JsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<CustomerPreferencesDto?> GetPreferencesAsync(
+        string loyaltyNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync(
+            $"/api/v1/customers/{loyaltyNumber}/preferences", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CustomerPreferencesDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task<bool> UpdatePreferencesAsync(
+        string loyaltyNumber,
+        object preferencesRequest,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync(
+            $"/api/v1/customers/{loyaltyNumber}/preferences", preferencesRequest, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<bool> DeleteCustomerAsync(
+        string loyaltyNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync(
+            $"/api/v1/customers/{loyaltyNumber}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        response.EnsureSuccessStatusCode();
+        return true;
     }
 
     public async Task<TransactionsDto?> GetTransactionsAsync(
