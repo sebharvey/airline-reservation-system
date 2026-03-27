@@ -1,0 +1,59 @@
+using ReservationSystem.Shared.Common.Validation;
+
+namespace ReservationSystem.Microservices.User.Validation;
+
+/// <summary>
+/// Validates user fields for account creation and login endpoints.
+/// Returns a list of human-readable error messages; an empty list means valid.
+/// </summary>
+public static class UserValidator
+{
+    /// <summary>
+    /// Validate fields for POST /v1/users (add user).
+    /// </summary>
+    public static List<string> ValidateAddUser(
+        string? username,
+        string? email,
+        string? password,
+        string? firstName,
+        string? lastName)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(username))
+            errors.Add("The 'username' field is required.");
+        else if (username.Length > 100)
+            errors.Add("The 'username' field must not exceed 100 characters.");
+
+        CommonFieldValidator.ValidateEmail(email, errors);
+        CommonFieldValidator.ValidatePassword(password, errors);
+
+        if (string.IsNullOrWhiteSpace(firstName))
+            errors.Add("The 'firstName' field is required.");
+        else if (firstName.Length > 100)
+            errors.Add("The 'firstName' field must not exceed 100 characters.");
+
+        if (string.IsNullOrWhiteSpace(lastName))
+            errors.Add("The 'lastName' field is required.");
+        else if (lastName.Length > 100)
+            errors.Add("The 'lastName' field must not exceed 100 characters.");
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/users/login.
+    /// </summary>
+    public static List<string> ValidateLogin(string? username, string? password)
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(username))
+            errors.Add("The 'username' field is required.");
+
+        if (string.IsNullOrWhiteSpace(password))
+            errors.Add("The 'password' field is required.");
+
+        return errors;
+    }
+}

@@ -32,7 +32,8 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │   │   ├── ssr.md
 │   │   ├── customer.md
 │   │   ├── identity.md
-│   │   └── accounting.md
+│   │   ├── accounting.md
+│   │   └── user.md
 │   ├── api-reference.md                  ← all API endpoints, verbs, and descriptions
 │   ├── api.md                            ← how to build backend microservices and APIs
 │   ├── web.md                            ← how to build the Angular web front-end
@@ -77,6 +78,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 | `documentation/api-specs/<service>.md` | When implementing a specific service API. Request/response shapes, error codes. |
 | `documentation/principles/*.md` | Architecture, integration, security, data, infrastructure, and coding rules. |
 | `src/Database/Script.sql` | When working with data. Authoritative database schema with all tables, triggers, constraints. |
+| `documentation/design/user.md` | When working on the User domain. Employee user account schema, login flow, account lockout. |
 
 ---
 

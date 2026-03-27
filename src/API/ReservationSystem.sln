@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Microserv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Microservices.Seat", "Microservices/ReservationSystem.Microservices.Seat/ReservationSystem.Microservices.Seat.csproj", "{E1F2A3B4-C5D6-7890-4567-901234567890}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Microservices.User", "Microservices/ReservationSystem.Microservices.User/ReservationSystem.Microservices.User.csproj", "{E7F8A9B0-C1D2-3456-7890-123456789ABC}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Orchestration.Retail", "Orchestration/ReservationSystem.Orchestration.Retail/ReservationSystem.Orchestration.Retail.csproj", "{F2A3B4C5-D6E7-8901-5678-012345678901}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Orchestration.Loyalty", "Orchestration/ReservationSystem.Orchestration.Loyalty/ReservationSystem.Orchestration.Loyalty.csproj", "{A3B4C5D6-E7F8-9012-6789-123456789012}"
@@ -84,6 +86,10 @@ Global
 		{E1F2A3B4-C5D6-7890-4567-901234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1F2A3B4-C5D6-7890-4567-901234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1F2A3B4-C5D6-7890-4567-901234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7F8A9B0-C1D2-3456-7890-123456789ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7F8A9B0-C1D2-3456-7890-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7F8A9B0-C1D2-3456-7890-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7F8A9B0-C1D2-3456-7890-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F2A3B4C5-D6E7-8901-5678-012345678901}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F2A3B4C5-D6E7-8901-5678-012345678901}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2A3B4C5-D6E7-8901-5678-012345678901}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -34,6 +34,9 @@
   - [Authentication](#authentication-1)
   - [Account Management](#account-management)
 - [Customer Microservice](#customer-microservice--full-api-spec)
+- [User Microservice](#user-microservice)
+  - [Authentication](#authentication-2)
+  - [User management](#user-management)
 - [Airport API](#airport-api)
 - [Finance API](#finance-api)
 - [Accounting Microservice](#accounting-microservice)
@@ -355,6 +358,25 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a held points redemption; releases held points back to available balance |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change; appends a `Reinstate` transaction to the ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance using a caller-supplied transaction type and description; validates `transactionType` against the permitted set (`Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) |
+
+---
+
+## User Microservice
+
+The User microservice owns employee user accounts for the Apex Air reservation system. It is the sole store of employee credentials and account state. It has no dependency on the Identity microservice (which manages loyalty member credentials) — the two domains are completely separate.
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/users/login` | Authenticate an employee with username and password; returns a JWT access token (15-minute TTL) on success; increments failed attempt counter and locks account at threshold (5 attempts) on failure |
+
+### User management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/users` | Create a new employee user account (`username`, `email`, `password`, `firstName`, `lastName`); returns `201 Created` with the new `userId`; rejects with `409 Conflict` if `username` or `email` is already registered |
+| `GET` | `/v1/users` | Retrieve all employee user accounts; `passwordHash` is never returned |
 
 ---
 
