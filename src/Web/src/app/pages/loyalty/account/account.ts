@@ -2,12 +2,12 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LoyaltyApiService } from '../../../services/loyalty-api.service';
+import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
-export type AccountTab = 'overview' | 'transactions' | 'profile' | 'preferences';
+export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'preferences';
 
 interface TierBenefit {
   tier: LoyaltyTier;
@@ -123,6 +123,14 @@ export class LoyaltyAccountComponent implements OnInit {
   preferencesError = signal<string | null>(null);
   preferencesSuccess = signal(false);
 
+  // Transfer points signals
+  transferRecipientLoyaltyNumber = signal('');
+  transferRecipientEmail = signal('');
+  transferPointsAmount = signal<number | null>(null);
+  transferLoading = signal(false);
+  transferError = signal<string | null>(null);
+  transferResult = signal<TransferPointsResult | null>(null);
+
   // Delete account signals
   deleteConfirm = signal(false);
   deleteLoading = signal(false);
@@ -214,6 +222,13 @@ export class LoyaltyAccountComponent implements OnInit {
       this.profileError.set(null);
       this.profileSuccess.set(false);
     }
+    if (tab === 'transfer') {
+      this.transferError.set(null);
+      this.transferResult.set(null);
+      this.transferRecipientLoyaltyNumber.set('');
+      this.transferRecipientEmail.set('');
+      this.transferPointsAmount.set(null);
+    }
     if (tab === 'preferences') {
       this.preferencesError.set(null);
       this.preferencesSuccess.set(false);
@@ -248,6 +263,54 @@ export class LoyaltyAccountComponent implements OnInit {
 
   isPositivePoints(points: number): boolean {
     return points > 0;
+  }
+
+  submitTransfer(): void {
+    const c = this.customer();
+    if (!c) return;
+
+    this.transferError.set(null);
+    this.transferResult.set(null);
+
+    const recipientLoyaltyNumber = this.transferRecipientLoyaltyNumber().trim();
+    const recipientEmail = this.transferRecipientEmail().trim();
+    const points = this.transferPointsAmount();
+
+    if (!recipientLoyaltyNumber || !recipientEmail || !points || points <= 0) {
+      this.transferError.set('Please enter the recipient\'s loyalty number, email address, and a positive points amount.');
+      return;
+    }
+
+    if (recipientLoyaltyNumber.toLowerCase() === c.loyaltyNumber.toLowerCase()) {
+      this.transferError.set('You cannot transfer points to your own account.');
+      return;
+    }
+
+    if (points > c.pointsBalance) {
+      this.transferError.set(`Insufficient points balance. You have ${c.pointsBalance.toLocaleString()} points available.`);
+      return;
+    }
+
+    this.transferLoading.set(true);
+    this.loyaltyApi.transferPoints(c.loyaltyNumber, { recipientLoyaltyNumber, recipientEmail, points }).subscribe({
+      next: (result) => {
+        this.transferLoading.set(false);
+        this.transferResult.set(result);
+        this.loyaltyState.updateCustomer({ ...c, pointsBalance: result.senderNewBalance });
+      },
+      error: (err) => {
+        this.transferLoading.set(false);
+        this.transferError.set(err?.message ?? 'Transfer failed. Please check the details and try again.');
+      }
+    });
+  }
+
+  resetTransfer(): void {
+    this.transferResult.set(null);
+    this.transferError.set(null);
+    this.transferRecipientLoyaltyNumber.set('');
+    this.transferRecipientEmail.set('');
+    this.transferPointsAmount.set(null);
   }
 
   saveProfile(): void {
