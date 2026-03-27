@@ -4,7 +4,7 @@
     "description": "End-to-end journey covering employee user creation, duplicate-username validation, listing all users, successful login with JWT issuance, and login failure with wrong credentials.",
     "domain": "User",
     "baseUrls": [
-      { "id": "user", "label": "User MS", "url": "http://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net" }
+      { "id": "user", "label": "User MS", "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net" }
     ]
   },
   "steps": [
