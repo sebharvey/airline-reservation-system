@@ -98,6 +98,7 @@ export class LoyaltyAccountComponent implements OnInit {
   profileGivenName = signal('');
   profileSurname = signal('');
   profilePhone = signal('');
+  profileDateOfBirth = signal('');
   profileNationality = signal('');
   profileLanguage = signal('');
 
@@ -172,6 +173,7 @@ export class LoyaltyAccountComponent implements OnInit {
     this.profileGivenName.set(c.givenName);
     this.profileSurname.set(c.surname);
     this.profilePhone.set(c.phone);
+    this.profileDateOfBirth.set(c.dateOfBirth);
     this.profileNationality.set(c.nationality);
     this.profileLanguage.set(c.preferredLanguage);
   }
@@ -229,6 +231,7 @@ export class LoyaltyAccountComponent implements OnInit {
       givenName: this.profileGivenName(),
       surname: this.profileSurname(),
       phoneNumber: this.profilePhone(),
+      dateOfBirth: this.profileDateOfBirth() || undefined,
       nationality: this.profileNationality(),
       preferredLanguage: this.profileLanguage(),
     }).subscribe({

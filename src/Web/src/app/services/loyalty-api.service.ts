@@ -57,11 +57,11 @@ interface ApiAuthResponse extends ApiTokens {
 
 interface ApiCustomerProfile {
   loyaltyNumber: string;
-  firstName: string;
-  lastName: string;
+  givenName: string;
+  surname: string;
   email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   memberSince: string;
@@ -69,12 +69,21 @@ interface ApiCustomerProfile {
 
 interface ApiTransaction {
   transactionId: string;
-  type: TransactionType;
-  points: number;
+  transactionType: string;
+  pointsDelta: number;
+  balanceAfter: number;
+  bookingReference?: string;
+  flightNumber?: string;
   description: string;
-  referenceBooking?: string;
   transactionDate: string;
-  runningBalance: number;
+}
+
+interface ApiTransactionsResponse {
+  loyaltyNumber: string;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  transactions: ApiTransaction[];
 }
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
@@ -82,8 +91,8 @@ interface ApiTransaction {
 function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
   return {
     loyaltyNumber: api.loyaltyNumber,
-    givenName: api.firstName,
-    surname: api.lastName,
+    givenName: api.givenName,
+    surname: api.surname,
     email: api.email,
     phone: api.phoneNumber ?? '',
     dateOfBirth: api.dateOfBirth ?? '',
@@ -100,12 +109,12 @@ function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
 function mapTransaction(api: ApiTransaction): LoyaltyTransaction {
   return {
     transactionId: api.transactionId,
-    type: api.type,
-    points: api.points,
+    type: api.transactionType as TransactionType,
+    points: api.pointsDelta,
     description: api.description,
-    referenceBooking: api.referenceBooking,
+    referenceBooking: api.bookingReference,
     transactionDate: api.transactionDate,
-    runningBalance: api.runningBalance
+    runningBalance: api.balanceAfter
   };
 }
 
@@ -217,9 +226,9 @@ export class LoyaltyApiService {
    */
   getTransactions(loyaltyNumber: string): Observable<LoyaltyTransaction[]> {
     return this.http
-      .get<ApiTransaction[]>(`${BASE}/customers/${loyaltyNumber}/transactions`)
+      .get<ApiTransactionsResponse>(`${BASE}/customers/${loyaltyNumber}/transactions`)
       .pipe(
-        map(txns => (Array.isArray(txns) ? txns.map(mapTransaction) : [])),
+        map(res => (Array.isArray(res?.transactions) ? res.transactions.map(mapTransaction) : [])),
         catchError(handleError)
       );
   }
@@ -230,9 +239,9 @@ export class LoyaltyApiService {
    */
   updateProfile(loyaltyNumber: string, params: UpdateProfileParams): Observable<LoyaltyCustomer> {
     return this.http
-      .patch<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, params)
+      .patch<void>(`${BASE}/customers/${loyaltyNumber}/profile`, params)
       .pipe(
-        map(mapCustomer),
+        switchMap(() => this.getCustomer(loyaltyNumber)),
         catchError(handleError)
       );
   }

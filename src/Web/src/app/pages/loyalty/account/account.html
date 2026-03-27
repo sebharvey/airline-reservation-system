@@ -220,6 +220,16 @@
           </div>
 
           <div class="field">
+            <label for="pDob">Date of Birth</label>
+            <input
+              id="pDob"
+              type="date"
+              [value]="profileDateOfBirth()"
+              (input)="profileDateOfBirth.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
             <label for="pNationality">Nationality</label>
             <select
               id="pNationality"
