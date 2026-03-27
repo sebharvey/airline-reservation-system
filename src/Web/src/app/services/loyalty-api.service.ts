@@ -181,6 +181,9 @@ function mapTransaction(api: ApiTransaction): LoyaltyTransaction {
 }
 
 function handleError(error: HttpErrorResponse): Observable<never> {
+  if (error.status === 0) {
+    return throwError(() => ({ status: 0, message: 'Unable to reach the server. Please check your connection and try again.' }));
+  }
   const apiMessage =
     error.error?.message ??
     error.error?.error ??
