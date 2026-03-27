@@ -145,6 +145,26 @@ public sealed class CustomerServiceClient
         return true;
     }
 
+    public async Task AddPointsAsync(
+        string loyaltyNumber,
+        int points,
+        string transactionType,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { points, transactionType, description };
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/customers/{loyaltyNumber}/points/add", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException($"Customer '{loyaltyNumber}' not found when awarding points.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<TransactionsDto?> GetTransactionsAsync(
         string loyaltyNumber,
         int page,

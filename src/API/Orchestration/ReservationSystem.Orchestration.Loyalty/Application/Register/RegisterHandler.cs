@@ -10,7 +10,8 @@ namespace ReservationSystem.Orchestration.Loyalty.Application.Register;
 ///   1. Create customer record in Customer MS (no identity link yet).
 ///   2. Create identity account in Identity MS (email + password).
 ///   3. Patch customer with the resolved IdentityId to link the two records.
-///   4. Return profile response.
+///   4. Award 1,500 sign-up bonus points (Earn transaction) to the new customer.
+///   5. Return profile response.
 /// </summary>
 public sealed class RegisterHandler
 {
@@ -49,7 +50,15 @@ public sealed class RegisterHandler
             identity.UserAccountId,
             cancellationToken);
 
-        // Step 4: Fetch full customer record to populate the response.
+        // Step 4: Award sign-up bonus points.
+        await _customerServiceClient.AddPointsAsync(
+            customer.LoyaltyNumber,
+            points: 1500,
+            transactionType: "Earn",
+            description: "Sign up bonus",
+            cancellationToken);
+
+        // Step 5: Fetch full customer record to populate the response.
         var fullCustomer = await _customerServiceClient.GetCustomerAsync(
             customer.LoyaltyNumber, cancellationToken);
 
