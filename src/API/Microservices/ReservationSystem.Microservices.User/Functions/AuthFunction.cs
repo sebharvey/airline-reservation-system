@@ -63,5 +63,10 @@ public sealed class AuthFunction
         {
             return await req.ForbiddenAsync("Account is locked or inactive.");
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during login");
+            return await req.InternalServerErrorAsync();
+        }
     }
 }
