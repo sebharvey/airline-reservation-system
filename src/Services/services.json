@@ -147,9 +147,13 @@
       "authType": "host-key",
       "callers": ["Retail API"],
       "operations": [
-        { "name": "Authorise Payment", "method": "POST", "path": "/api/v1/payment/authorise" },
-        { "name": "Settle Payment", "method": "POST", "path": "/api/v1/payment/{paymentReference}/settle" },
-        { "name": "Refund Payment", "method": "POST", "path": "/api/v1/payment/{paymentReference}/refund" }
+        { "name": "Initialise Payment", "method": "POST", "path": "/api/v1/payment/initialise", "defaultPayload": "{\n  \"paymentType\": \"Fare\",\n  \"method\": \"CreditCard\",\n  \"currencyCode\": \"GBP\",\n  \"amount\": 450.00,\n  \"description\": \"Fare LHR-JFK, 2 PAX\"\n}" },
+        { "name": "Authorise Payment", "method": "POST", "path": "/api/v1/payment/{paymentId}/authorise", "defaultPayload": "{\n  \"amount\": 450.00,\n  \"cardDetails\": {\n    \"cardNumber\": \"4532015112830366\",\n    \"expiryDate\": \"12/26\",\n    \"cvv\": \"123\",\n    \"cardholderName\": \"Jane Smith\"\n  }\n}" },
+        { "name": "Settle Payment", "method": "POST", "path": "/api/v1/payment/{paymentId}/settle", "defaultPayload": "{\n  \"settledAmount\": 450.00\n}" },
+        { "name": "Void Payment", "method": "POST", "path": "/api/v1/payment/{paymentId}/void", "defaultPayload": "{\n  \"reason\": \"Customer cancelled before settlement\"\n}" },
+        { "name": "Refund Payment", "method": "POST", "path": "/api/v1/payment/{paymentId}/refund", "defaultPayload": "{\n  \"refundAmount\": 450.00,\n  \"reason\": \"Customer cancellation refund\"\n}" },
+        { "name": "Get Payment", "method": "GET", "path": "/api/v1/payment/{paymentId}" },
+        { "name": "Get Payment Events", "method": "GET", "path": "/api/v1/payment/{paymentId}/events" }
       ]
     },
     {
