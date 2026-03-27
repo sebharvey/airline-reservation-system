@@ -28,9 +28,11 @@ public sealed class CustomerServiceClient
         string surname,
         DateOnly? dateOfBirth,
         string preferredLanguage,
+        string? phoneNumber = null,
+        string? nationality = null,
         CancellationToken cancellationToken = default)
     {
-        var body = new { givenName, surname, dateOfBirth, preferredLanguage };
+        var body = new { givenName, surname, dateOfBirth, preferredLanguage, phoneNumber, nationality };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/customers", body, JsonOptions, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.BadRequest)

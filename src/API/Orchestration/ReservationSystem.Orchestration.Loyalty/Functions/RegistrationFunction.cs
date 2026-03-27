@@ -63,6 +63,7 @@ public sealed class RegistrationFunction
             request.Surname,
             request.DateOfBirth,
             request.PhoneNumber,
+            request.Nationality,
             request.PreferredLanguage);
 
         try

@@ -7,4 +7,5 @@ public sealed record RegisterCommand(
     string Surname,
     DateOnly? DateOfBirth,
     string? PhoneNumber,
+    string? Nationality,
     string? PreferredLanguage);

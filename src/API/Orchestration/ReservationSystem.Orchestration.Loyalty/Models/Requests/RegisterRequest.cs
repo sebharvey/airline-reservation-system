@@ -8,5 +8,6 @@ public sealed class RegisterRequest
     public string Surname { get; init; } = string.Empty;
     public DateOnly? DateOfBirth { get; init; }
     public string? PhoneNumber { get; init; }
+    public string? Nationality { get; init; }
     public string? PreferredLanguage { get; init; }
 }
