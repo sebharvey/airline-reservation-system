@@ -122,6 +122,7 @@
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback (e.g. ticketing failure after points authorisation) |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed; appends a `Reinstate` transaction to the loyalty ledger; used by Retail API on voluntary cancellation (reward bookings) and by Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance; caller supplies `transactionType` (must be one of `Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) and `description`; intended for manual adjustments and testing |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/transfer` | Transfer points from the authenticated member's account to another loyalty account; requires the recipient's loyalty number and email address — both are verified to match the same account before points move; each account receives an `Adjustment` transaction recording the counterpart's loyalty number |
 | `GET` | `/v1/accounts/{userAccountId}/verify-email` | Verify ownership of an email address; called when the user follows the link in their registration confirmation email; delegates to Identity MS |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
@@ -337,6 +338,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 |--------|----------|-------------|
 | `POST` | `/v1/accounts` | Create a new login account (called by Loyalty API during registration, after the Customer record is already created; accepts `customerId` to associate the identity with the existing customer) |
 | `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback — called by Loyalty API if the post-identity `PATCH` to link the `identityReference` on the Customer record fails) |
+| `GET` | `/v1/accounts/{userAccountId}` | Retrieve account summary (user account ID, email, and email verification status) by identity account ID; called by the Loyalty API during points transfer to verify the recipient's email address against their loyalty number |
 | `GET`, `POST` | `/v1/accounts/{userAccountId}/verify-email` | Mark an email address as verified; GET is used when the user follows the link in their confirmation email, POST is used for direct API calls |
 | `POST` | `/v1/accounts/{identityReference}/email/change-request` | Initiate an email change; generates verification token and sends link to new address |
 | `POST` | `/v1/email/verify` | Validate a change-request token; updates email and invalidates all active refresh tokens |
@@ -358,6 +360,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a held points redemption; releases held points back to available balance |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change; appends a `Reinstate` transaction to the ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance using a caller-supplied transaction type and description; validates `transactionType` against the permitted set (`Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/transfer` | Transfer points from the sender's account to a recipient account; debits sender and credits recipient atomically; appends an `Adjustment` transaction to each account with the counterpart's loyalty number in the description; called by the Loyalty API after email/loyalty-number verification |
 
 ---
 

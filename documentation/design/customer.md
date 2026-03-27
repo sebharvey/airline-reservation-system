@@ -119,7 +119,7 @@ Each `LoyaltyTransaction` row carries a `TransactionType` that describes why poi
 |---|---|---|---|
 | `Earn` | Positive | Points accrued when a customer completes a flight. Calculated from fare paid, cabin class, and tier at time of travel. Also used for welcome bonuses on new registrations. | *+8,750 pts — Flight LHR-JFK-LHR, Business Flex* |
 | `Redeem` | Negative | Points spent against a future booking such as an award flight or cabin upgrade. | *−5,000 pts — Upgrade to Business Class* |
-| `Adjustment` | Positive or Negative | Manual correction applied by a customer service agent, always accompanied by a reason. Covers goodwill gestures, error corrections, and partner earn reconciliations. | *+2,500 pts — Goodwill gesture, disruption on AX301* |
+| `Adjustment` | Positive or Negative | Manual correction applied by a customer service agent, or a member-initiated points transfer. Covers goodwill gestures, error corrections, partner earn reconciliations, and peer-to-peer transfers. | *+2,500 pts — Goodwill gesture, disruption on AX301*; *−500 pts — Points transferred to AX1234567* |
 | `Expiry` | Negative | Points removed automatically when an account fails to meet the programme's activity threshold within the defined period. Triggered by a scheduled background process. | *−1,500 pts — Activity threshold not met* |
 | `Reinstate` | Positive | Reversal of a previous `Expiry` or erroneous `Redeem` transaction. Typically initiated by a customer service agent after review. | *+1,500 pts — Reinstatement of expired points (case #4412)* |
 
@@ -317,6 +317,65 @@ sequenceDiagram
 
 ---
 
+### Transfer Points
+
+A loyalty member may transfer points from their own account to another member's account. To prevent fraud and misdirection, the caller must supply both the recipient's loyalty number and their registered email address — both are verified to match the same account before any points move.
+
+- The sender must have a sufficient `PointsBalance` to cover the transfer; the request is rejected if the balance is insufficient.
+- Self-transfer is not permitted — sender and recipient loyalty numbers must differ.
+- Both accounts receive an `Adjustment` transaction: a negative delta on the sender's ledger and a positive delta on the recipient's ledger. Each transaction's `Description` field records the counterpart's loyalty number so the movement is traceable on both statements.
+- Email verification is performed by the Loyalty API before the Customer MS transfer call: it resolves the recipient's `IdentityReference`, retrieves the registered email from the Identity MS, and compares case-insensitively. If they do not match, the transfer is rejected with `400 Bad Request` before any balance changes are made.
+- The debit and credit happen atomically within the Customer MS — either both succeed or neither does.
+
+```mermaid
+sequenceDiagram
+    actor Member
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity [MS]
+    participant CustomerMS as Customer [MS]
+
+    Member->>Web: Enter recipient loyalty number, recipient email, and points to transfer
+    Web->>LoyaltyAPI: POST /v1/customers/{loyaltyNumber}/points/transfer { recipientLoyaltyNumber, recipientEmail, points } — Bearer {accessToken}
+
+    LoyaltyAPI->>LoyaltyAPI: Validate JWT; validate request fields (points > 0, recipientLoyaltyNumber present, valid email, sender ≠ recipient)
+
+    LoyaltyAPI->>CustomerMS: GET /v1/customers/{recipientLoyaltyNumber}
+    CustomerMS-->>LoyaltyAPI: 200 OK — recipient profile (including identityReference)
+
+    alt Recipient not found
+        LoyaltyAPI-->>Web: 404 Not Found
+        Web-->>Member: Recipient account not found
+    end
+
+    LoyaltyAPI->>IdentityMS: GET /v1/accounts/{identityReference}
+    IdentityMS-->>LoyaltyAPI: 200 OK — { userAccountId, email, isEmailVerified }
+
+    LoyaltyAPI->>LoyaltyAPI: Compare identity email with recipientEmail (case-insensitive)
+
+    alt Email does not match
+        LoyaltyAPI-->>Web: 400 Bad Request — recipient loyalty number and email do not match
+        Web-->>Member: The details provided do not match a registered account
+    end
+
+    LoyaltyAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/transfer { recipientLoyaltyNumber, points }
+    Note over CustomerMS: Verify sender has sufficient balance<br/>Debit sender: Adjustment −points, description = "Points transferred to {recipientLoyaltyNumber}"<br/>Credit recipient: Adjustment +points, description = "Points received from {senderLoyaltyNumber}"
+
+    alt Insufficient balance
+        CustomerMS-->>LoyaltyAPI: 400 Bad Request — insufficient points
+        LoyaltyAPI-->>Web: 400 Bad Request
+        Web-->>Member: Insufficient points balance
+    end
+
+    CustomerMS-->>LoyaltyAPI: 200 OK — { senderLoyaltyNumber, recipientLoyaltyNumber, pointsTransferred, senderNewBalance, recipientNewBalance, transferredAt }
+    LoyaltyAPI-->>Web: 200 OK — transfer summary
+    Web-->>Member: Transfer successful — updated balance shown
+```
+
+*Ref: customer loyalty - peer-to-peer points transfer with email verification, debit/credit adjustment transactions, and counterpart loyalty number in description*
+
+---
+
 ### Data Schema — Customer
 
 The Customer domain uses three tables: `Customer` (profile, tier, and points balances), `LoyaltyTransaction` (immutable append-only points movement log), and `TierConfig` (qualifying thresholds per tier, used for tier upgrade evaluation).
@@ -387,5 +446,5 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 
 > **TierProgressPoints vs PointsBalance:** These two values are tracked separately. `PointsBalance` is the redeemable balance available to spend. `TierProgressPoints` accumulates qualifying activity for tier evaluation and may be reset annually or per programme rules — it is not decremented when points are redeemed. Tier evaluation logic (when to upgrade or downgrade a member) is the responsibility of the Customer microservice and runs as a background process or is triggered by each `Earn` transaction.
 
-> **Transaction types:** `Earn` — points accrued from a completed flight. `Redeem` — points redeemed against a future booking (award bookings, future phase). `Adjustment` — manual correction applied by a customer service agent with a reason. `Expiry` — points removed due to account inactivity or programme rules. `Reinstate` — reversal of an expiry or erroneous redemption.
+> **Transaction types:** `Earn` — points accrued from a completed flight. `Redeem` — points redeemed against a future booking (award bookings, future phase). `Adjustment` — manual correction applied by a customer service agent with a reason, or a member-initiated peer-to-peer points transfer (debit on sender, credit on recipient, each carrying the counterpart's loyalty number in the description). `Expiry` — points removed due to account inactivity or programme rules. `Reinstate` — reversal of an expiry or erroneous redemption.
 

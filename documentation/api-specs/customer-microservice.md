@@ -714,6 +714,80 @@ Add points directly to a customer's loyalty balance. Appends a transaction to th
 
 ---
 
+### POST /v1/customers/{loyaltyNumber}/points/transfer
+
+Transfer points from the sender's account to a recipient account. Debits the sender and credits the recipient atomically, appending an `Adjustment` transaction to each account's ledger. The debit transaction description records the recipient's loyalty number; the credit transaction description records the sender's loyalty number.
+
+**When to use:** Called by the Loyalty API after it has independently verified that the recipient's loyalty number and email address match a registered account. The Customer MS performs no email verification — it trusts that the Loyalty API has already completed this check.
+
+**Balance check:** If the sender's `PointsBalance` is less than the requested `points`, the request is rejected with `400 Bad Request` and no changes are made.
+
+**Atomicity:** Both the debit on the sender and the credit on the recipient are applied within the same database operation. A failure after the sender debit but before the recipient credit leaves no partial state visible to external callers — the whole operation either succeeds or fails.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The sender's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "recipientLoyaltyNumber": "AX1234567",
+  "points": 500
+}
+```
+
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `recipientLoyaltyNumber` | string | Yes | Must not be blank; must differ from sender's loyalty number | The loyalty number of the account to receive the points |
+| `points` | integer | Yes | Must be a positive integer | Number of points to transfer |
+
+#### Response — `200 OK`
+
+```json
+{
+  "senderLoyaltyNumber": "AX9876543",
+  "recipientLoyaltyNumber": "AX1234567",
+  "pointsTransferred": 500,
+  "senderNewBalance": 1000,
+  "recipientNewBalance": 2000,
+  "senderTransactionId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "recipientTransactionId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "transferredAt": "2026-03-27T10:15:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `senderLoyaltyNumber` | string | The sender's loyalty number |
+| `recipientLoyaltyNumber` | string | The recipient's loyalty number |
+| `pointsTransferred` | integer | Number of points transferred |
+| `senderNewBalance` | integer | Sender's `PointsBalance` after deduction |
+| `recipientNewBalance` | integer | Recipient's `PointsBalance` after credit |
+| `senderTransactionId` | string (UUID) | `TransactionId` of the debit `LoyaltyTransaction` appended to the sender's ledger |
+| `recipientTransactionId` | string (UUID) | `TransactionId` of the credit `LoyaltyTransaction` appended to the recipient's ledger |
+| `transferredAt` | string (datetime) | ISO 8601 UTC timestamp when the transfer completed |
+
+#### Ledger entries
+
+Two `LoyaltyTransaction` records are appended (one per account):
+
+| Account | `TransactionType` | `PointsDelta` | Example `Description` |
+|---------|------------------|--------------|----------------------|
+| Sender | `Adjustment` | Negative (−`points`) | `"Points transferred to AX1234567"` |
+| Recipient | `Adjustment` | Positive (+`points`) | `"Points received from AX9876543"` |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields, points not positive, sender and recipient loyalty numbers are the same, or sender has insufficient points balance |
+| `404 Not Found` | Sender or recipient account not found |
+
+---
+
 ### DELETE /v1/customers/{loyaltyNumber}
 
 Delete a customer record. Used exclusively for registration rollback — called by the Loyalty API if Identity account creation fails (step 2 of registration), or if the subsequent `PATCH` to link the `identityReference` fails (step 3 of registration). Partial registration states must not be left in the system.
@@ -869,6 +943,19 @@ curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/add \
     "points": 5000,
     "transactionType": "Adjustment",
     "description": "Added initial points balance for testing"
+  }'
+```
+
+### Transferring points between loyalty accounts
+
+```bash
+curl -X POST https://{customer-ms-host}/v1/customers/AX9876543/points/transfer \
+  -H "Content-Type: application/json" \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "recipientLoyaltyNumber": "AX1234567",
+    "points": 500
   }'
 ```
 
