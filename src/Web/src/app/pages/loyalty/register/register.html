@@ -1,4 +1,12 @@
 <div class="page fade-in">
+  @if (registered()) {
+    <div class="page-header">
+      <span class="page-icon">&#9993;</span>
+      <h2>Check your email</h2>
+      <p>We've sent a verification link to <strong>{{ email() }}</strong>. Please verify your email address to activate your account.</p>
+    </div>
+    <p class="login-link">Already verified? <a [routerLink]="['/loyalty']">Sign in here</a></p>
+  } @else {
   <div class="page-header">
     <span class="page-icon">&#11088;</span>
     <h2>Join Apex Rewards</h2>
@@ -148,4 +156,5 @@
   </form>
 
   <p class="login-link">Already a member? <a [routerLink]="['/loyalty']">Sign in here</a></p>
+  }
 </div>
