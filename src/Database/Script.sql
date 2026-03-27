@@ -2,7 +2,7 @@
 -- APEX AIR RESERVATION SYSTEM — DATABASE SCHEMA & SEED DATA
 -- =============================================================================
 -- Domains: offer, order (incl. SsrCatalogue), payment, delivery,
---          seat, bag, schedule, customer, identity, disruption
+--          seat, bag, schedule, customer, identity, disruption, user
 --
 -- Structure:
 --   SECTION 1 — DROP everything (triggers, indexes, tables, schemas)
@@ -39,6 +39,7 @@ IF OBJECT_ID('[customer].[TR_Customer_UpdatedAt]',       'TR') IS NOT NULL DROP 
 IF OBJECT_ID('[customer].[TR_LoyaltyTransaction_UpdatedAt]','TR') IS NOT NULL DROP TRIGGER [customer].[TR_LoyaltyTransaction_UpdatedAt];
 IF OBJECT_ID('[identity].[TR_UserAccount_UpdatedAt]',    'TR') IS NOT NULL DROP TRIGGER [identity].[TR_UserAccount_UpdatedAt];
 IF OBJECT_ID('[identity].[TR_RefreshToken_UpdatedAt]',   'TR') IS NOT NULL DROP TRIGGER [identity].[TR_RefreshToken_UpdatedAt];
+IF OBJECT_ID('[user].[TR_User_UpdatedAt]',               'TR') IS NOT NULL DROP TRIGGER [user].[TR_User_UpdatedAt];
 GO
 
 PRINT 'Triggers dropped.';
@@ -85,6 +86,9 @@ IF OBJECT_ID('[customer].[TierConfig]',          'U') IS NOT NULL DROP TABLE [cu
 IF OBJECT_ID('[identity].[RefreshToken]', 'U') IS NOT NULL DROP TABLE [identity].[RefreshToken];
 IF OBJECT_ID('[identity].[UserAccount]',  'U') IS NOT NULL DROP TABLE [identity].[UserAccount];
 
+-- user
+IF OBJECT_ID('[user].[User]', 'U') IS NOT NULL DROP TABLE [user].[User];
+
 -- disruption
 IF OBJECT_ID('[disruption].[DisruptionEvent]', 'U') IS NOT NULL DROP TABLE [disruption].[DisruptionEvent];
 GO
@@ -102,6 +106,7 @@ IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'schedule')   DROP SCHEMA [sch
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'customer')   DROP SCHEMA [customer];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'identity')   DROP SCHEMA [identity];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'disruption') DROP SCHEMA [disruption];
+IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'user')       DROP SCHEMA [user];
 GO
 
 PRINT 'Schemas dropped.';
@@ -121,6 +126,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'schedule')   EXEC('CREATE
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'customer')   EXEC('CREATE SCHEMA [customer]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'identity')   EXEC('CREATE SCHEMA [identity]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'disruption') EXEC('CREATE SCHEMA [disruption]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'user')       EXEC('CREATE SCHEMA [user]');
 GO
 
 PRINT 'Schemas created.';
@@ -1097,6 +1103,53 @@ CREATE TABLE [disruption].[DisruptionEvent] (
     CONSTRAINT CHK_DisruptionEvent_Type   CHECK (EventType IN ('Delay','Cancellation')),
     CONSTRAINT CHK_DisruptionEvent_Status CHECK (Status    IN ('Received','Processing','Completed','Failed'))
 );
+GO
+
+-- =============================================================================
+-- USER DOMAIN
+-- =============================================================================
+
+-- user.User -------------------------------------------------------------------
+IF OBJECT_ID('[user].[User]', 'U') IS NULL
+CREATE TABLE [user].[User] (
+    UserId              UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_User_UserId              DEFAULT NEWID(),
+    Username            VARCHAR(100)     NOT NULL,
+    Email               VARCHAR(254)     NOT NULL,
+    PasswordHash        VARCHAR(255)     NOT NULL,
+    FirstName           NVARCHAR(100)    NOT NULL,
+    LastName            NVARCHAR(100)    NOT NULL,
+    IsActive            BIT              NOT NULL CONSTRAINT DF_User_IsActive            DEFAULT 1,
+    IsLocked            BIT              NOT NULL CONSTRAINT DF_User_IsLocked            DEFAULT 0,
+    FailedLoginAttempts TINYINT          NOT NULL CONSTRAINT DF_User_FailedLoginAttempts DEFAULT 0,
+    LastLoginAt         DATETIME2            NULL,
+    CreatedAt           DATETIME2        NOT NULL CONSTRAINT DF_User_CreatedAt           DEFAULT SYSUTCDATETIME(),
+    UpdatedAt           DATETIME2        NOT NULL CONSTRAINT DF_User_UpdatedAt           DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_User          PRIMARY KEY (UserId),
+    CONSTRAINT UQ_User_Username UNIQUE      (Username),
+    CONSTRAINT UQ_User_Email    UNIQUE      (Email)
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_User_Username' AND object_id = OBJECT_ID('[user].[User]'))
+    CREATE INDEX IX_User_Username ON [user].[User] (Username);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_User_Email' AND object_id = OBJECT_ID('[user].[User]'))
+    CREATE INDEX IX_User_Email ON [user].[User] (Email);
+GO
+
+IF OBJECT_ID('[user].[TR_User_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [user].[TR_User_UpdatedAt]
+        ON [user].[User]
+        AFTER UPDATE AS
+            UPDATE [user].[User]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [user].[User] t
+            INNER JOIN inserted i ON t.UserId = i.UserId;
+    ');
+END
 GO
 
 PRINT 'All tables, indexes and triggers created.';
