@@ -300,6 +300,7 @@ export class LoyaltyAccountComponent implements OnInit {
         this.transferLoading.set(false);
         this.transferResult.set(result);
         this.loyaltyState.updateCustomer({ ...c, pointsBalance: result.senderNewBalance });
+        this.loadTransactions();
       },
       error: (err) => {
         this.transferLoading.set(false);
