@@ -193,6 +193,33 @@ input:focus {
   background: var(--bg-light);
   border-radius: var(--radius-md);
   padding: 16px 20px;
+  border: 1px solid var(--border);
+}
+
+.tier-progression {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.tier-pip {
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.tier-arrow-sep {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .perks-title {
