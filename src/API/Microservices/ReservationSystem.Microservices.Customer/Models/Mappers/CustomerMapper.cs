@@ -1,5 +1,6 @@
 using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Application.CreateCustomer;
+using ReservationSystem.Microservices.Customer.Application.TransferPoints;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
@@ -213,4 +214,10 @@ public static class CustomerMapper
             AnalyticsEnabled: request.AnalyticsEnabled,
             FunctionalEnabled: request.FunctionalEnabled,
             AppNotificationsEnabled: request.AppNotificationsEnabled);
+
+    public static TransferPointsCommand ToCommand(string senderLoyaltyNumber, TransferPointsRequest request) =>
+        new(
+            SenderLoyaltyNumber: senderLoyaltyNumber,
+            RecipientLoyaltyNumber: request.RecipientLoyaltyNumber,
+            Points: request.Points);
 }

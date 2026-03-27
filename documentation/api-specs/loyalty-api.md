@@ -44,8 +44,8 @@ The Loyalty API is the single entry point for all loyalty-related channel reques
 
 | Service | Endpoints Called | Purpose |
 |---------|-----------------|---------|
-| **Identity MS** | `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/password/reset-request`, `POST /v1/auth/password/reset`, `POST /v1/accounts`, `DELETE /v1/accounts/{userAccountId}`, `GET /v1/accounts/{userAccountId}/verify-email`, `POST /v1/accounts/{identityReference}/email/change-request`, `POST /v1/email/verify` | All credential management, session management, and email verification operations |
-| **Customer MS** | `POST /v1/customers`, `GET /v1/customers/{loyaltyNumber}`, `GET /v1/customers/by-identity/{identityId}`, `PATCH /v1/customers/{loyaltyNumber}`, `DELETE /v1/customers/{loyaltyNumber}`, `GET /v1/customers/{loyaltyNumber}/transactions` | All profile, tier, points balance, and transaction history operations |
+| **Identity MS** | `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/password/reset-request`, `POST /v1/auth/password/reset`, `POST /v1/accounts`, `DELETE /v1/accounts/{userAccountId}`, `GET /v1/accounts/{userAccountId}`, `GET /v1/accounts/{userAccountId}/verify-email`, `POST /v1/accounts/{identityReference}/email/change-request`, `POST /v1/email/verify` | All credential management, session management, and email verification operations; `GET /v1/accounts/{userAccountId}` is called during points transfer to verify the recipient's email address |
+| **Customer MS** | `POST /v1/customers`, `GET /v1/customers/{loyaltyNumber}`, `GET /v1/customers/by-identity/{identityId}`, `PATCH /v1/customers/{loyaltyNumber}`, `DELETE /v1/customers/{loyaltyNumber}`, `GET /v1/customers/{loyaltyNumber}/transactions`, `POST /v1/customers/{loyaltyNumber}/points/transfer` | All profile, tier, points balance, and transaction history operations; `POST .../points/transfer` is called after email verification to execute the debit/credit |
 
 ---
 
@@ -822,6 +822,70 @@ No response body. The email address has been updated and all active sessions hav
 
 ---
 
+### POST /v1/customers/{loyaltyNumber}/points/transfer
+
+Transfer points from the authenticated member's account to another loyalty account. The caller must supply the recipient's loyalty number and their registered email address; both are verified to confirm they match the same account before any balance changes are made. Each account receives an `Adjustment` transaction recording the counterpart's loyalty number in the description.
+
+**When to use:** Called by channels when a logged-in member wants to send points to another Apex Air loyalty member.
+
+**Authorisation:** JWT must be valid. The `loyaltyNumber` in the path must correspond to the authenticated user's account (the sender).
+
+**Verification flow:** The Loyalty API resolves the recipient's `IdentityReference` from the Customer MS, then calls `GET /v1/accounts/{userAccountId}` on the Identity MS to retrieve the registered email address. The supplied `recipientEmail` is compared case-insensitively. If they do not match, the transfer is rejected before any points move.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `loyaltyNumber` | string | The sender's unique loyalty number |
+
+#### Request
+
+```json
+{
+  "recipientLoyaltyNumber": "AX1234567",
+  "recipientEmail": "recipient@example.com",
+  "points": 500
+}
+```
+
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `recipientLoyaltyNumber` | string | Yes | Must not be blank; must differ from sender's loyalty number | The loyalty number of the account to receive the points |
+| `recipientEmail` | string | Yes | Valid email format | The email address registered to the recipient's loyalty account — used for verification |
+| `points` | integer | Yes | Must be a positive integer | Number of points to transfer |
+
+#### Response — `200 OK`
+
+```json
+{
+  "senderLoyaltyNumber": "AX9876543",
+  "recipientLoyaltyNumber": "AX1234567",
+  "pointsTransferred": 500,
+  "senderNewBalance": 1000,
+  "recipientNewBalance": 2000,
+  "transferredAt": "2026-03-27T10:15:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `senderLoyaltyNumber` | string | The sender's loyalty number |
+| `recipientLoyaltyNumber` | string | The recipient's loyalty number |
+| `pointsTransferred` | integer | Number of points transferred |
+| `senderNewBalance` | integer | Sender's `PointsBalance` after deduction |
+| `recipientNewBalance` | integer | Recipient's `PointsBalance` after credit |
+| `transferredAt` | string (datetime) | ISO 8601 UTC timestamp of when the transfer completed |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Validation failure (points not positive, `recipientLoyaltyNumber` missing, sender and recipient are the same account, invalid email format), recipient loyalty number and email do not match a registered account, or sender has insufficient points balance |
+| `401 Unauthorized` | Missing or invalid JWT |
+| `404 Not Found` | Sender or recipient account not found |
+
+---
+
 ## Points Accrual on Booking Confirmation (Event-Driven)
 
 The Loyalty API does not participate in points accrual directly. When an order is confirmed, the Order MS publishes an `OrderConfirmed` event to the Azure Service Bus. The Customer MS consumes this event and calculates accrual.
@@ -995,6 +1059,20 @@ curl -X POST https://{loyalty-api-host}/v1/email/verify \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
     "token": "f8e7d6c5b4a3..."
+  }'
+```
+
+### Transfer points to another loyalty account
+
+```bash
+curl -X POST https://{loyalty-api-host}/v1/customers/AX9876543/points/transfer \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIs..." \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "recipientLoyaltyNumber": "AX1234567",
+    "recipientEmail": "recipient@example.com",
+    "points": 500
   }'
 ```
 

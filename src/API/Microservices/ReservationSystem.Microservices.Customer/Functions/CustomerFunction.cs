@@ -14,6 +14,7 @@ using ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
 using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
+using ReservationSystem.Microservices.Customer.Application.TransferPoints;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Application.GetPreferences;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
@@ -45,6 +46,7 @@ public sealed class CustomerFunction
     private readonly AddPointsHandler _addPointsHandler;
     private readonly SearchCustomersHandler _searchHandler;
     private readonly GetCustomerByIdentityHandler _getByIdentityHandler;
+    private readonly TransferPointsHandler _transferPointsHandler;
     private readonly GetPreferencesHandler _getPreferencesHandler;
     private readonly UpdatePreferencesHandler _updatePreferencesHandler;
     private readonly ILogger<CustomerFunction> _logger;
@@ -62,6 +64,7 @@ public sealed class CustomerFunction
         AddPointsHandler addPointsHandler,
         SearchCustomersHandler searchHandler,
         GetCustomerByIdentityHandler getByIdentityHandler,
+        TransferPointsHandler transferPointsHandler,
         GetPreferencesHandler getPreferencesHandler,
         UpdatePreferencesHandler updatePreferencesHandler,
         ILogger<CustomerFunction> logger)
@@ -78,6 +81,7 @@ public sealed class CustomerFunction
         _addPointsHandler = addPointsHandler;
         _searchHandler = searchHandler;
         _getByIdentityHandler = getByIdentityHandler;
+        _transferPointsHandler = transferPointsHandler;
         _getPreferencesHandler = getPreferencesHandler;
         _updatePreferencesHandler = updatePreferencesHandler;
         _logger = logger;
@@ -432,6 +436,51 @@ public sealed class CustomerFunction
 
         var response = CustomerMapper.ToAddPointsResponse(loyaltyNumber, transaction);
         return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/customers/{loyaltyNumber}/points/transfer
+    // -------------------------------------------------------------------------
+
+    [Function("TransferPoints")]
+    [OpenApiOperation(operationId: "TransferPoints", tags: new[] { "Points" }, Summary = "Transfer points from one loyalty account to another")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Sender's customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(TransferPointsRequest), Required = true, Description = "Transfer request — recipient loyalty number and points to transfer")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TransferPointsResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — validation failure or insufficient points")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — sender or recipient not found")]
+    public async Task<HttpResponseData> TransferPoints(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/transfer")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<TransferPointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var transferErrors = CustomerValidator.ValidateTransferPoints(
+            loyaltyNumber, request!.RecipientLoyaltyNumber, request.Points);
+
+        if (transferErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", transferErrors));
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request);
+
+        TransferPointsResponse? result;
+
+        try
+        {
+            result = await _transferPointsHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Insufficient points for transfer from {LoyaltyNumber}", loyaltyNumber);
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        if (result is null)
+            return await req.NotFoundAsync("Sender or recipient account not found.");
+
+        return await req.OkJsonAsync(result);
     }
 
     // -------------------------------------------------------------------------

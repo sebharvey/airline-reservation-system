@@ -175,4 +175,25 @@ public static class CustomerValidator
 
         return errors;
     }
+
+    /// <summary>
+    /// Validate fields for POST /v1/customers/{loyaltyNumber}/points/transfer.
+    /// </summary>
+    public static List<string> ValidateTransferPoints(
+        string? senderLoyaltyNumber,
+        string? recipientLoyaltyNumber,
+        int points)
+    {
+        var errors = new List<string>();
+
+        if (points <= 0)
+            errors.Add("The 'points' field must be a positive integer.");
+
+        if (string.IsNullOrWhiteSpace(recipientLoyaltyNumber))
+            errors.Add("The 'recipientLoyaltyNumber' field is required.");
+        else if (string.Equals(senderLoyaltyNumber, recipientLoyaltyNumber, StringComparison.OrdinalIgnoreCase))
+            errors.Add("The sender and recipient loyalty numbers must be different.");
+
+        return errors;
+    }
 }

@@ -182,4 +182,25 @@ public sealed class CustomerServiceClient
 
         return await response.Content.ReadFromJsonAsync<TransactionsDto>(JsonOptions, cancellationToken);
     }
+
+    public async Task<TransferPointsResultDto?> TransferPointsAsync(
+        string senderLoyaltyNumber,
+        string recipientLoyaltyNumber,
+        int points,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { recipientLoyaltyNumber, points };
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/customers/{senderLoyaltyNumber}/points/transfer", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<TransferPointsResultDto>(JsonOptions, cancellationToken);
+    }
 }
