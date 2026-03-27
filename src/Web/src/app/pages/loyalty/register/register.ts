@@ -1,9 +1,8 @@
 import { Component, inject, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
-import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 
 export interface Country {
   code: string;
@@ -62,8 +61,6 @@ export const COUNTRIES: Country[] = [
 })
 export class LoyaltyRegisterComponent {
   private readonly loyaltyApi = inject(LoyaltyApiService);
-  private readonly loyaltyState = inject(LoyaltyStateService);
-  private readonly router = inject(Router);
 
   readonly countries = COUNTRIES;
 
@@ -78,6 +75,7 @@ export class LoyaltyRegisterComponent {
   showPassword = signal(false);
   showConfirmPassword = signal(false);
   loading = signal(false);
+  registered = signal(false);
   errorMessage = signal<string | null>(null);
 
   readonly today = new Date().toISOString().split('T')[0];
@@ -148,10 +146,9 @@ export class LoyaltyRegisterComponent {
       nationality: this.nationality(),
       phoneNumber: this.phone()
     }).subscribe({
-      next: (session) => {
-        this.loyaltyState.setSession(session);
+      next: () => {
         this.loading.set(false);
-        this.router.navigate(['/loyalty/account']);
+        this.registered.set(true);
       },
       error: (err) => {
         this.loading.set(false);

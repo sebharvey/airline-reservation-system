@@ -221,36 +221,13 @@ export class LoyaltyApiService {
 
   /**
    * POST /register
-   * Registers a new loyalty programme member and returns an AuthSession.
+   * Registers a new loyalty programme member. The user must verify their
+   * email address before they can log in, so no session is returned.
    */
-  register(params: RegisterParams): Observable<AuthSession> {
+  register(params: RegisterParams): Observable<void> {
     return this.http
-      .post<ApiAuthResponse>(`${BASE}/register`, params)
-      .pipe(
-        switchMap((res) => {
-          const tokens: ApiTokens = { accessToken: res.accessToken, refreshToken: res.refreshToken };
-
-          if (res.customer) {
-            return of<AuthSession>({
-              customer: mapCustomer(res.customer),
-              ...tokens
-            });
-          }
-
-          const loyaltyNumber = res.loyaltyNumber ?? '';
-          return this.http
-            .get<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, {
-              headers: { Authorization: `Bearer ${tokens.accessToken}` }
-            })
-            .pipe(
-              map((profile): AuthSession => ({
-                customer: mapCustomer(profile),
-                ...tokens
-              }))
-            );
-        }),
-        catchError(handleError)
-      );
+      .post<void>(`${BASE}/register`, params)
+      .pipe(catchError(handleError));
   }
 
   /**

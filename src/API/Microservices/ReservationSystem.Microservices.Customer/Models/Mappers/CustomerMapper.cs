@@ -31,7 +31,9 @@ public static class CustomerMapper
             Surname: request.Surname,
             DateOfBirth: request.DateOfBirth,
             PreferredLanguage: request.PreferredLanguage,
-            IdentityId: request.IdentityId);
+            IdentityId: request.IdentityId,
+            PhoneNumber: request.PhoneNumber,
+            Nationality: request.Nationality);
 
     public static UpdateCustomerCommand ToCommand(string loyaltyNumber, UpdateCustomerRequest request) =>
         new(

@@ -10,4 +10,6 @@ public sealed class CreateCustomerRequest
     public DateOnly? DateOfBirth { get; init; }
     public string PreferredLanguage { get; init; } = string.Empty;
     public Guid? IdentityId { get; init; }
+    public string? PhoneNumber { get; init; }
+    public string? Nationality { get; init; }
 }

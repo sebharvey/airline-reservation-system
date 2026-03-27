@@ -33,6 +33,8 @@ public sealed class RegisterHandler
             command.Surname,
             command.DateOfBirth,
             command.PreferredLanguage ?? "en-GB",
+            command.PhoneNumber,
+            command.Nationality,
             cancellationToken);
 
         // Step 2: Create identity account.
