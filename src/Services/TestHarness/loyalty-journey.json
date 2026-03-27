@@ -296,8 +296,8 @@
         "statusCode": 200,
         "body": {
           "loyaltyNumber": "AX1234567",
-          "firstName": "John",
-          "lastName": "Doe",
+          "givenName": "John",
+          "surname": "Doe",
           "email": "john.doe@example.com",
           "phoneNumber": "+447700900123",
           "dateOfBirth": "1990-05-15",
@@ -309,7 +309,7 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — full profile returned. Tier defaults to 'Blue' for new members. Points balance starts at 0.",
-        "keyFields": ["loyaltyNumber", "firstName", "lastName", "email", "tier", "pointsBalance", "memberSince"],
+        "keyFields": ["loyaltyNumber", "givenName", "surname", "email", "tier", "pointsBalance", "memberSince"],
         "validationNotes": "loyaltyNumber matches the value from login. tier is one of: Blue, Silver, Gold, Platinum. pointsBalance is a decimal. memberSince is ISO 8601 UTC."
       },
       "chainsTo": []
@@ -564,8 +564,8 @@
         "statusCode": 200,
         "body": {
           "loyaltyNumber": "AX1234567",
-          "firstName": "Generated",
-          "lastName": "Name",
+          "givenName": "Generated",
+          "surname": "Name",
           "email": "generated.name@testmail.example.com",
           "phoneNumber": "+447700900456",
           "preferredLanguage": "fr-FR",
