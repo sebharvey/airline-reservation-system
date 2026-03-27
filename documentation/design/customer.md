@@ -40,6 +40,10 @@ sequenceDiagram
     Note over CustomerMS: Link identity to customer record
     CustomerMS-->>LoyaltyAPI: 200 OK
 
+    LoyaltyAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/add (points=1500, transactionType=Earn, description="Sign up bonus")
+    Note over CustomerMS: Append Earn transaction (1,500 pts)<br/>PointsBalance = 1,500
+    CustomerMS-->>LoyaltyAPI: 200 OK — transaction record
+
     LoyaltyAPI->>LoyaltyAPI: Trigger confirmation email (email, givenName, loyaltyNumber)
 
     LoyaltyAPI-->>Web: 201 Created — registration successful (loyaltyNumber, givenName, tierCode)
