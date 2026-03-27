@@ -5,17 +5,23 @@
   <div class="account-header">
     <div class="account-hero">
       <div class="member-info">
-        <div
-          class="tier-badge"
-          [style.background]="tierInfo()!.color"
-        >
-          {{ tierInfo()!.label }}
+        <div class="member-avatar">
+          {{ customer()!.givenName[0] }}{{ customer()!.surname[0] }}
         </div>
-        <h2>{{ customer()!.givenName }} {{ customer()!.surname }}</h2>
-        <p class="loyalty-number">Loyalty No. {{ customer()!.loyaltyNumber }}</p>
-        <p class="member-since">Member since {{ formatDate(customer()!.memberSince) }}</p>
+        <div class="member-text">
+          <div
+            class="tier-badge"
+            [style.background]="tierInfo()!.color"
+          >
+            {{ tierInfo()!.label }}
+          </div>
+          <h2>{{ customer()!.givenName }} {{ customer()!.surname }}</h2>
+          <p class="loyalty-number">Loyalty No. {{ customer()!.loyaltyNumber }}</p>
+          <p class="member-since">Member since {{ formatDate(customer()!.memberSince) }}</p>
+        </div>
       </div>
       <div class="points-display">
+        <span class="points-sparkle">&#10022;</span>
         <span class="points-value">{{ customer()!.pointsBalance.toLocaleString() }}</span>
         <span class="points-label">Apex Points</span>
       </div>
@@ -90,20 +96,23 @@
     <div class="tab-content fade-in">
       <div class="quick-stats">
         <div class="stat-card">
+          <span class="stat-icon" style="color: var(--grad-start)">&#10022;</span>
           <span class="stat-value">{{ customer()!.pointsBalance.toLocaleString() }}</span>
           <span class="stat-label">Points Balance</span>
         </div>
         <div class="stat-card">
+          <span class="stat-icon" style="color: var(--grad-start)">&#9992;</span>
           <span class="stat-value">{{ customer()!.transactions.length }}</span>
           <span class="stat-label">Transactions</span>
         </div>
         <div class="stat-card">
+          <span class="stat-icon" [style.color]="tierInfo()!.color">&#9670;</span>
           <span class="stat-value" [style.color]="tierInfo()!.color">{{ tierInfo()!.label }}</span>
           <span class="stat-label">Current Tier</span>
         </div>
       </div>
 
-      <div class="benefits-card">
+      <div class="benefits-card" [style.border-left-color]="tierInfo()!.color">
         <h3 class="benefits-title">
           <span class="tier-dot" [style.background]="tierInfo()!.color"></span>
           {{ tierInfo()!.label }} Member Benefits
@@ -124,6 +133,7 @@
           <div class="recent-list">
             @for (tx of sortedTransactions().slice(0, 3); track tx.transactionId) {
               <div class="recent-item">
+                <span class="tx-dot" [class.dot-positive]="isPositivePoints(tx.points)" [class.dot-negative]="!isPositivePoints(tx.points)"></span>
                 <div class="recent-item-info">
                   <span class="recent-desc">{{ tx.description }}</span>
                   <span class="recent-date">{{ formatDate(tx.transactionDate) }}</span>
