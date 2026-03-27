@@ -68,21 +68,8 @@ public sealed class PaymentFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/initialise")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        InitialisePaymentRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<InitialisePaymentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in InitialisePayment request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<InitialisePaymentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.PaymentType))
             return await req.BadRequestAsync("The 'paymentType' field is required.");
@@ -137,21 +124,8 @@ public sealed class PaymentFunction
         if (!Guid.TryParse(paymentId, out var paymentGuid))
             return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
 
-        AuthorisePaymentRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<AuthorisePaymentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in AuthorisePayment request for {PaymentId}", paymentId);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<AuthorisePaymentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.CardDetails is null
             || string.IsNullOrWhiteSpace(request.CardDetails.CardNumber)
@@ -216,21 +190,8 @@ public sealed class PaymentFunction
         if (!Guid.TryParse(paymentId, out var paymentGuid))
             return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
 
-        SettlePaymentRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<SettlePaymentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in SettlePayment request for {PaymentId}", paymentId);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<SettlePaymentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.SettledAmount <= 0)
             return await req.BadRequestAsync("The 'settledAmount' must be greater than zero.");
@@ -342,21 +303,8 @@ public sealed class PaymentFunction
         if (!Guid.TryParse(paymentId, out var paymentGuid))
             return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
 
-        RefundPaymentRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<RefundPaymentRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in RefundPayment request for {PaymentId}", paymentId);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<RefundPaymentRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.RefundAmount <= 0)
             return await req.BadRequestAsync("The 'refundAmount' must be greater than zero.");

@@ -14,9 +14,7 @@ using ReservationSystem.Microservices.Identity.Models.Requests;
 using ReservationSystem.Microservices.Identity.Models.Responses;
 using ReservationSystem.Microservices.Identity.Validation;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Identity.Functions;
 
@@ -67,45 +65,26 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        LoginRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<LoginRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<LoginRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in Login request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var loginErrors = IdentityValidator.ValidateLogin(request?.Email, request?.Password);
-
+        var loginErrors = IdentityValidator.ValidateLogin(request!.Email, request.Password);
         if (loginErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", loginErrors));
 
         try
         {
-            var command = IdentityMapper.ToCommand(request!);
+            var command = IdentityMapper.ToCommand(request);
             var result = await _loginHandler.HandleAsync(command, cancellationToken);
             return await req.OkJsonAsync(result);
         }
         catch (UnauthorizedAccessException)
         {
-            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Invalid credentials." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.UnauthorizedAsync("Invalid credentials.");
         }
         catch (InvalidOperationException)
         {
-            var response = req.CreateResponse(HttpStatusCode.Forbidden);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Account is locked." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.ForbiddenAsync("Account is locked.");
         }
     }
 
@@ -123,21 +102,10 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/verify")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        VerifyTokenRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<VerifyTokenRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<VerifyTokenRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in VerifyToken request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var accessTokenErrors = IdentityValidator.ValidateRequiredToken(request?.AccessToken, "accessToken");
-
+        var accessTokenErrors = IdentityValidator.ValidateRequiredToken(request!.AccessToken, "accessToken");
         if (accessTokenErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", accessTokenErrors));
 
@@ -149,11 +117,7 @@ public sealed class AuthFunction
         }
         catch (UnauthorizedAccessException)
         {
-            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Invalid or expired access token." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.UnauthorizedAsync("Invalid or expired access token.");
         }
     }
 
@@ -171,37 +135,22 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/refresh")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        RefreshTokenRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<RefreshTokenRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<RefreshTokenRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in RefreshToken request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var refreshErrors = IdentityValidator.ValidateRequiredToken(request?.RefreshToken, "refreshToken");
-
+        var refreshErrors = IdentityValidator.ValidateRequiredToken(request!.RefreshToken, "refreshToken");
         if (refreshErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", refreshErrors));
 
         try
         {
-            var command = IdentityMapper.ToCommand(request!);
+            var command = IdentityMapper.ToCommand(request);
             var result = await _refreshTokenHandler.HandleAsync(command, cancellationToken);
             return await req.OkJsonAsync(result);
         }
         catch (UnauthorizedAccessException)
         {
-            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Invalid or expired refresh token." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.UnauthorizedAsync("Invalid or expired refresh token.");
         }
     }
 
@@ -218,25 +167,14 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/logout")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        LogoutRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<LogoutRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<LogoutRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in Logout request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var logoutErrors = IdentityValidator.ValidateRequiredToken(request?.RefreshToken, "refreshToken");
-
+        var logoutErrors = IdentityValidator.ValidateRequiredToken(request!.RefreshToken, "refreshToken");
         if (logoutErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", logoutErrors));
 
-        var command = new LogoutCommand(request!.RefreshToken);
+        var command = new LogoutCommand(request.RefreshToken);
         await _logoutHandler.HandleAsync(command, cancellationToken);
 
         return req.CreateResponse(HttpStatusCode.OK);
@@ -255,27 +193,16 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        ResetPasswordRequestRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<ResetPasswordRequestRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<ResetPasswordRequestRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in ResetPasswordRequest request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var emailErrors = IdentityValidator.ValidateEmailField(request?.Email);
-
+        var emailErrors = IdentityValidator.ValidateEmailField(request!.Email);
         if (emailErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", emailErrors));
 
         try
         {
-            var command = new Application.ResetPasswordRequest.ResetPasswordRequestCommand(request!.Email);
+            var command = new Application.ResetPasswordRequest.ResetPasswordRequestCommand(request.Email);
             await _resetPasswordRequestHandler.HandleAsync(command, cancellationToken);
         }
         catch (Exception ex)
@@ -300,27 +227,16 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        ResetPasswordRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<ResetPasswordRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<ResetPasswordRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in ResetPassword request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var resetErrors = IdentityValidator.ValidateResetPassword(request?.Token, request?.NewPassword);
-
+        var resetErrors = IdentityValidator.ValidateResetPassword(request!.Token, request.NewPassword);
         if (resetErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", resetErrors));
 
         try
         {
-            var command = new Application.ResetPassword.ResetPasswordCommand(request!.Token, request.NewPassword);
+            var command = new Application.ResetPassword.ResetPasswordCommand(request.Token, request.NewPassword);
             await _resetPasswordHandler.HandleAsync(command, cancellationToken);
             return req.CreateResponse(HttpStatusCode.OK);
         }

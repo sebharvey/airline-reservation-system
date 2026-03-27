@@ -12,9 +12,7 @@ using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
 using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
 
@@ -64,20 +62,8 @@ public sealed class SeatPricingFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateSeatPricingRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateSeatPricingRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateSeatPricing request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatPricingRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.CabinCode) || request.CabinCode is not ("W" or "Y"))
             return await req.BadRequestAsync("cabinCode must be 'W' or 'Y'. Business (J) and First (F) carry no ancillary charge.");
@@ -136,20 +122,8 @@ public sealed class SeatPricingFunction
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
-        UpdateSeatPricingRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateSeatPricingRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateSeatPricing request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateSeatPricingRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.Price.HasValue && request.Price.Value <= 0)
             return await req.BadRequestAsync("price must be > 0.");

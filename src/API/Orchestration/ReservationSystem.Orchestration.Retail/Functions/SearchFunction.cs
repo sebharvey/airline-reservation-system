@@ -4,12 +4,10 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -43,21 +41,10 @@ public sealed class SearchFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        SearchRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<SearchRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<SearchRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in SearchFlights request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.Origin)
+        if (string.IsNullOrWhiteSpace(request!.Origin)
             || string.IsNullOrWhiteSpace(request.Destination)
             || request.PassengerCount < 1)
         {

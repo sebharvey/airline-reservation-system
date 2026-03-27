@@ -4,7 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
+using ReservationSystem.Shared.Common.Models;
 using ReservationSystem.Orchestration.Loyalty.Application.EmailChangeRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
@@ -14,7 +14,6 @@ using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using ReservationSystem.Orchestration.Loyalty.Validation;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
 
@@ -92,21 +91,8 @@ public sealed class ProfileFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        UpdateProfileRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateProfileRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateProfile request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateProfileRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var validationErrors = LoyaltyValidator.ValidateUpdateProfile(
             request.GivenName, request.Surname, request.DateOfBirth,
@@ -157,19 +143,9 @@ public sealed class ProfileFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        int page = 1;
-        int pageSize = 20;
-
-        var pageParam = req.Query["page"];
-        if (!string.IsNullOrEmpty(pageParam) && int.TryParse(pageParam, out var parsedPage))
-            page = parsedPage;
-
-        var pageSizeParam = req.Query["pageSize"];
-        if (!string.IsNullOrEmpty(pageSizeParam) && int.TryParse(pageSizeParam, out var parsedPageSize))
-            pageSize = parsedPageSize;
-
+        var paged = PagedRequest.From(req);
         var result = await _getTransactionsHandler.HandleAsync(
-            new GetTransactionsQuery(loyaltyNumber, page, pageSize), cancellationToken);
+            new GetTransactionsQuery(loyaltyNumber, paged.Page, paged.PageSize), cancellationToken);
 
         if (result is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
@@ -194,20 +170,10 @@ public sealed class ProfileFunction
         Guid identityReference,
         CancellationToken cancellationToken)
     {
-        EmailChangeRequestRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<EmailChangeRequestRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<EmailChangeRequestRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in EmailChangeRequest for {IdentityReference}", identityReference);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.NewEmail))
+        if (string.IsNullOrWhiteSpace(request!.NewEmail))
             return await req.BadRequestAsync("The field 'newEmail' is required.");
 
         try
@@ -239,25 +205,11 @@ public sealed class ProfileFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        VerifyEmailChangeRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<VerifyEmailChangeRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<VerifyEmailChangeRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in VerifyEmailChange");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.Token)
-            || string.IsNullOrWhiteSpace(request.NewEmail))
-        {
+        if (string.IsNullOrWhiteSpace(request!.Token) || string.IsNullOrWhiteSpace(request.NewEmail))
             return await req.BadRequestAsync("The fields 'token' and 'newEmail' are required.");
-        }
 
         try
         {

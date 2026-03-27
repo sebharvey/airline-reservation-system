@@ -12,9 +12,7 @@ using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 using System.Web;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
@@ -57,20 +55,8 @@ public sealed class ManifestFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/manifest")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateManifestRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateManifestRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateManifest request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateManifestRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.BookingReference))
             return await req.BadRequestAsync("The 'bookingReference' field is required.");
@@ -100,20 +86,8 @@ public sealed class ManifestFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/manifest")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        UpdateManifestSeatRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateManifestSeatRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateManifestSeat request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateManifestSeatRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         try
         {
@@ -139,20 +113,8 @@ public sealed class ManifestFunction
         string bookingRef,
         CancellationToken cancellationToken)
     {
-        PatchManifestRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<PatchManifestRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in PatchManifest request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<PatchManifestRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         try
         {
@@ -178,20 +140,8 @@ public sealed class ManifestFunction
         string bookingRef,
         CancellationToken cancellationToken)
     {
-        UpdateFlightTimesRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateFlightTimesRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateFlightTimes request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateFlightTimesRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         try
         {

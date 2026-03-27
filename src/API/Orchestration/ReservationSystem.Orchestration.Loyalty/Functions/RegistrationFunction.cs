@@ -4,14 +4,12 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Register;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using ReservationSystem.Orchestration.Loyalty.Validation;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
 
@@ -48,22 +46,12 @@ public sealed class RegistrationFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/register")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        RegisterRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<RegisterRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in RegisterMember request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<RegisterRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var validationErrors = LoyaltyValidator.ValidateRegister(
-            request?.Email, request?.Password, request?.GivenName, request?.Surname,
-            request?.DateOfBirth, request?.PhoneNumber, request?.PreferredLanguage);
+            request!.Email, request.Password, request.GivenName, request.Surname,
+            request.DateOfBirth, request.PhoneNumber, request.PreferredLanguage);
 
         if (validationErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", validationErrors));

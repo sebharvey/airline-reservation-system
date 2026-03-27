@@ -4,13 +4,11 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -47,23 +45,11 @@ public sealed class BasketFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateBasketRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateBasketRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateBasket request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.CustomerId))
-        {
+        if (string.IsNullOrWhiteSpace(request!.CustomerId))
             return await req.BadRequestAsync("The field 'customerId' is required.");
-        }
 
         var command = new CreateBasketCommand(request.CustomerId, request.LoyaltyNumber);
         var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
@@ -165,23 +151,11 @@ public sealed class BasketFunction
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        ConfirmBasketRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<ConfirmBasketRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<ConfirmBasketRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in ConfirmBasket request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.PaymentMethod))
-        {
+        if (string.IsNullOrWhiteSpace(request!.PaymentMethod))
             return await req.BadRequestAsync("The field 'paymentMethod' is required.");
-        }
 
         var command = new ConfirmBasketCommand(
             basketId,

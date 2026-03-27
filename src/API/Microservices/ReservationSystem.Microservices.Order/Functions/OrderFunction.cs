@@ -69,19 +69,10 @@ public sealed class OrderFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders")] HttpRequestData req,
         CancellationToken ct)
     {
-        CreateOrderRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateOrderRequest>(
-                req.Body, SharedJsonOptions.CamelCase, ct);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateOrder request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateOrderRequest>(_logger, ct);
+        if (error is not null) return error;
 
-        if (request is null || request.BasketId == Guid.Empty)
+        if (request!.BasketId == Guid.Empty)
             return await req.BadRequestAsync("The field 'basketId' is required.");
 
         if (request.BookingType == "Reward" && string.IsNullOrWhiteSpace(request.RedemptionReference))

@@ -151,6 +151,36 @@ public static class HttpResponseExtensions
         return response;
     }
 
+    /// <summary>
+    /// 401 Unauthorized — authentication required or credentials invalid.
+    /// </summary>
+    public static async Task<HttpResponseData> UnauthorizedAsync(
+        this HttpRequestData req, string message, string? correlationId = null)
+    {
+        var response = req.CreateResponse(HttpStatusCode.Unauthorized);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(
+            JsonSerializer.Serialize(
+                ApiError.From(message, errorCode: "UNAUTHORIZED", correlationId: correlationId),
+                SharedJsonOptions.CamelCase));
+        return response;
+    }
+
+    /// <summary>
+    /// 403 Forbidden — authenticated but not authorised for this operation.
+    /// </summary>
+    public static async Task<HttpResponseData> ForbiddenAsync(
+        this HttpRequestData req, string message, string? correlationId = null)
+    {
+        var response = req.CreateResponse(HttpStatusCode.Forbidden);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(
+            JsonSerializer.Serialize(
+                ApiError.From(message, errorCode: "FORBIDDEN", correlationId: correlationId),
+                SharedJsonOptions.CamelCase));
+        return response;
+    }
+
     // -------------------------------------------------------------------------
     // 5xx Server Errors
     // -------------------------------------------------------------------------

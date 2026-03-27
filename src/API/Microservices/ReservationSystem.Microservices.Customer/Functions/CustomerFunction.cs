@@ -2,7 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
+using ReservationSystem.Shared.Common.Models;
 using ReservationSystem.Microservices.Customer.Application.AddPoints;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
 using ReservationSystem.Microservices.Customer.Application.AuthorisePoints;
@@ -20,7 +20,6 @@ using ReservationSystem.Microservices.Customer.Models.Requests;
 using ReservationSystem.Microservices.Customer.Models.Responses;
 using ReservationSystem.Microservices.Customer.Validation;
 using System.Net;
-using System.Text.Json;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
 
@@ -89,24 +88,11 @@ public sealed class CustomerFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateCustomerRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateCustomerRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateCustomer request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateCustomerRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var validationErrors = CustomerValidator.ValidateCreate(
-            request.GivenName, request.Surname, request.PreferredLanguage, request.DateOfBirth);
+            request!.GivenName, request.Surname, request.PreferredLanguage, request.DateOfBirth);
 
         if (validationErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", validationErrors));
@@ -130,27 +116,14 @@ public sealed class CustomerFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/search")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        SearchCustomersRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<SearchCustomersRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<SearchCustomersRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in SearchCustomers request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        var searchErrors = CustomerValidator.ValidateSearch(request?.Query);
-
+        var searchErrors = CustomerValidator.ValidateSearch(request!.Query);
         if (searchErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", searchErrors));
 
-        var searchTerm = request!.Query.Trim();
-
-        var query = new SearchCustomersQuery(searchTerm);
+        var query = new SearchCustomersQuery(request.Query.Trim());
         var customers = await _searchHandler.HandleAsync(query, cancellationToken);
         var results = customers.Select(CustomerMapper.ToResponse).ToList();
 
@@ -221,24 +194,11 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        UpdateCustomerRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateCustomerRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateCustomer request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateCustomerRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var validationErrors = CustomerValidator.ValidateUpdate(
-            request.GivenName, request.Surname, request.PreferredLanguage,
+            request!.GivenName, request.Surname, request.PreferredLanguage,
             request.Nationality, request.PhoneNumber, request.DateOfBirth);
 
         if (validationErrors.Count > 0)
@@ -287,20 +247,10 @@ public sealed class CustomerFunction
         if (customer is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
-        int page = 1;
-        int pageSize = 20;
-
-        var pageParam = req.Query["page"];
-        if (!string.IsNullOrEmpty(pageParam) && int.TryParse(pageParam, out var parsedPage))
-            page = parsedPage;
-
-        var pageSizeParam = req.Query["pageSize"];
-        if (!string.IsNullOrEmpty(pageSizeParam) && int.TryParse(pageSizeParam, out var parsedPageSize))
-            pageSize = parsedPageSize;
-
-        var query = new GetTransactionsQuery(loyaltyNumber, page, pageSize);
+        var paged = PagedRequest.From(req);
+        var query = new GetTransactionsQuery(loyaltyNumber, paged.Page, paged.PageSize);
         var (transactions, totalCount) = await _getTransactionsHandler.HandleAsync(query, cancellationToken);
-        var response = CustomerMapper.ToResponse(loyaltyNumber, transactions, page, pageSize, totalCount);
+        var response = CustomerMapper.ToResponse(loyaltyNumber, transactions, paged.Page, paged.PageSize, totalCount);
 
         return await req.OkJsonAsync(response);
     }
@@ -320,24 +270,10 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        AuthorisePointsRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<AuthorisePointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<AuthorisePointsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in AuthorisePoints request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
-
-        var authoriseErrors = CustomerValidator.ValidateAuthorisePoints(request.Points, request.BasketId);
-
+        var authoriseErrors = CustomerValidator.ValidateAuthorisePoints(request!.Points, request.BasketId);
         if (authoriseErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", authoriseErrors));
 
@@ -366,24 +302,10 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        SettlePointsRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<SettlePointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<SettlePointsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in SettlePoints request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
-
-        var settleErrors = CustomerValidator.ValidateSettlePoints(request.RedemptionReference);
-
+        var settleErrors = CustomerValidator.ValidateSettlePoints(request!.RedemptionReference);
         if (settleErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", settleErrors));
 
@@ -412,24 +334,10 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        ReversePointsRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<ReversePointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<ReversePointsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in ReversePoints request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
-
-        var reverseErrors = CustomerValidator.ValidateReversePoints(request.RedemptionReference);
-
+        var reverseErrors = CustomerValidator.ValidateReversePoints(request!.RedemptionReference);
         if (reverseErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", reverseErrors));
 
@@ -458,24 +366,10 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        ReinstatePointsRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<ReinstatePointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<ReinstatePointsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in ReinstatePoints request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
-
-        var reinstateErrors = CustomerValidator.ValidateReinstatePoints(request.Points, request.BookingReference, request.Reason);
-
+        var reinstateErrors = CustomerValidator.ValidateReinstatePoints(request!.Points, request.BookingReference, request.Reason);
         if (reinstateErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", reinstateErrors));
 
@@ -504,24 +398,10 @@ public sealed class CustomerFunction
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
-        AddPointsRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<AddPointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<AddPointsRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in AddPoints request for {LoyaltyNumber}", loyaltyNumber);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
-
-        var addErrors = CustomerValidator.ValidateAddPoints(request.Points, request.TransactionType, request.Description);
-
+        var addErrors = CustomerValidator.ValidateAddPoints(request!.Points, request.TransactionType, request.Description);
         if (addErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", addErrors));
 
@@ -568,5 +448,4 @@ public sealed class CustomerFunction
 
         return req.NoContent();
     }
-
 }

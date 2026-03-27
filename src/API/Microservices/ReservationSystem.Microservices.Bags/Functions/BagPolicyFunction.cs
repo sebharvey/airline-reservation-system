@@ -12,9 +12,7 @@ using ReservationSystem.Microservices.Bags.Models.Mappers;
 using ReservationSystem.Microservices.Bags.Models.Requests;
 using ReservationSystem.Microservices.Bags.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Bags.Functions;
 
@@ -81,19 +79,10 @@ public sealed class BagPolicyFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateBagPolicyRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateBagPolicyRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateBagPolicy request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateBagPolicyRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        if (request is null || string.IsNullOrWhiteSpace(request.CabinCode))
+        if (string.IsNullOrWhiteSpace(request!.CabinCode))
             return await req.BadRequestAsync("The 'cabinCode' field is required.");
 
         if (request.CabinCode is not ("F" or "J" or "W" or "Y"))
@@ -131,20 +120,8 @@ public sealed class BagPolicyFunction
         Guid policyId,
         CancellationToken cancellationToken)
     {
-        UpdateBagPolicyRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateBagPolicyRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateBagPolicy request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateBagPolicyRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.MaxWeightKgPerBag <= 0)
             return await req.BadRequestAsync("maxWeightKgPerBag must be > 0.");

@@ -63,21 +63,8 @@ public sealed class AccountFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateAccountRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateAccountRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateAccount request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateAccountRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var validationErrors = IdentityValidator.ValidateCreateAccount(request.Email, request.Password);
 
@@ -169,21 +156,8 @@ public sealed class AccountFunction
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
-        EmailChangeRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<EmailChangeRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in EmailChangeRequest for account {UserAccountId}", userAccountId);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<EmailChangeRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var emailErrors = IdentityValidator.ValidateEmailField(request.NewEmail);
 
@@ -219,21 +193,8 @@ public sealed class AccountFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        VerifyEmailChangeRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<VerifyEmailChangeRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in VerifyEmailChange request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<VerifyEmailChangeRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var tokenErrors = IdentityValidator.ValidateRequiredToken(request.Token, "token");
         var emailErrors = IdentityValidator.ValidateEmailField(request.NewEmail);

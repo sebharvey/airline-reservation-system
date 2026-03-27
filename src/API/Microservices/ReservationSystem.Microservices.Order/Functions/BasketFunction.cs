@@ -65,19 +65,10 @@ public sealed class BasketFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken ct)
     {
-        CreateBasketRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateBasketRequest>(
-                req.Body, SharedJsonOptions.CamelCase, ct);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateBasket request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, ct);
+        if (error is not null) return error;
 
-        if (request is null || string.IsNullOrWhiteSpace(request.ChannelCode))
+        if (string.IsNullOrWhiteSpace(request!.ChannelCode))
             return await req.BadRequestAsync("The field 'channelCode' is required.");
 
         if (request.BookingType == "Reward" &&

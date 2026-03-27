@@ -13,9 +13,7 @@ using ReservationSystem.Microservices.Seat.Models.Mappers;
 using ReservationSystem.Microservices.Seat.Models.Requests;
 using ReservationSystem.Microservices.Seat.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Seat.Functions;
 
@@ -71,19 +69,10 @@ public sealed class AircraftTypeFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/aircraft-types")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateAircraftTypeRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateAircraftTypeRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateAircraftType request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateAircraftTypeRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        if (request is null || string.IsNullOrWhiteSpace(request.AircraftTypeCode))
+        if (string.IsNullOrWhiteSpace(request!.AircraftTypeCode))
             return await req.BadRequestAsync("aircraftTypeCode is required.");
 
         if (request.AircraftTypeCode.Length != 4)
@@ -136,20 +125,8 @@ public sealed class AircraftTypeFunction
         string aircraftTypeCode,
         CancellationToken cancellationToken)
     {
-        UpdateAircraftTypeRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateAircraftTypeRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateAircraftType request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateAircraftTypeRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var command = SeatMapper.ToCommand(aircraftTypeCode, request);
         var updated = await _updateHandler.HandleAsync(command, cancellationToken);

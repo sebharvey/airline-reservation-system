@@ -4,7 +4,6 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Loyalty.Application.Login;
 using ReservationSystem.Orchestration.Loyalty.Application.Logout;
 using ReservationSystem.Orchestration.Loyalty.Application.PasswordReset;
@@ -13,7 +12,6 @@ using ReservationSystem.Orchestration.Loyalty.Application.RefreshToken;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
 
@@ -61,25 +59,11 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        LoginRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<LoginRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<LoginRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in Login request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.Email)
-            || string.IsNullOrWhiteSpace(request.Password))
-        {
+        if (string.IsNullOrWhiteSpace(request!.Email) || string.IsNullOrWhiteSpace(request.Password))
             return await req.BadRequestAsync("The fields 'email' and 'password' are required.");
-        }
 
         try
         {
@@ -89,19 +73,11 @@ public sealed class AuthFunction
         }
         catch (HttpRequestException ex) when ((int?)ex.StatusCode is 401)
         {
-            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Invalid credentials." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.UnauthorizedAsync("Invalid credentials.");
         }
         catch (HttpRequestException ex) when ((int?)ex.StatusCode is 403)
         {
-            var response = req.CreateResponse(HttpStatusCode.Forbidden);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Account is locked." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.ForbiddenAsync("Account is locked.");
         }
     }
 
@@ -119,20 +95,10 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/refresh")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        RefreshTokenRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<RefreshTokenRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<RefreshTokenRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in Refresh request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+        if (string.IsNullOrWhiteSpace(request!.RefreshToken))
             return await req.BadRequestAsync("The field 'refreshToken' is required.");
 
         try
@@ -143,11 +109,7 @@ public sealed class AuthFunction
         }
         catch (HttpRequestException ex) when ((int?)ex.StatusCode is 401)
         {
-            var response = req.CreateResponse(HttpStatusCode.Unauthorized);
-            response.Headers.Add("Content-Type", "application/json");
-            await response.WriteStringAsync(JsonSerializer.Serialize(
-                new { error = "Invalid or expired refresh token." }, SharedJsonOptions.CamelCase));
-            return response;
+            return await req.UnauthorizedAsync("Invalid or expired refresh token.");
         }
     }
 
@@ -164,20 +126,10 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/logout")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        LogoutRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<LogoutRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<LogoutRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in Logout request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.RefreshToken))
+        if (string.IsNullOrWhiteSpace(request!.RefreshToken))
             return await req.BadRequestAsync("The field 'refreshToken' is required.");
 
         await _logoutHandler.HandleAsync(new LogoutCommand(request.RefreshToken), cancellationToken);
@@ -197,20 +149,10 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset-request")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        PasswordResetRequestRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<PasswordResetRequestRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<PasswordResetRequestRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in PasswordResetRequest");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null || string.IsNullOrWhiteSpace(request.Email))
+        if (string.IsNullOrWhiteSpace(request!.Email))
             return await req.BadRequestAsync("The field 'email' is required.");
 
         try
@@ -240,25 +182,11 @@ public sealed class AuthFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/password/reset")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        PasswordResetRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<PasswordResetRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<PasswordResetRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in PasswordReset");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.Token)
-            || string.IsNullOrWhiteSpace(request.NewPassword))
-        {
+        if (string.IsNullOrWhiteSpace(request!.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
             return await req.BadRequestAsync("The fields 'token' and 'newPassword' are required.");
-        }
 
         try
         {

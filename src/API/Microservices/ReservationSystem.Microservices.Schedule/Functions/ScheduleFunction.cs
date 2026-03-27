@@ -10,9 +10,7 @@ using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Schedule.Functions;
 
@@ -53,21 +51,8 @@ public sealed class ScheduleFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateScheduleRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateScheduleRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateSchedule request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateScheduleRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (string.IsNullOrWhiteSpace(request.FlightNumber))
             return await req.BadRequestAsync("The 'flightNumber' field is required.");
@@ -123,21 +108,8 @@ public sealed class ScheduleFunction
         Guid scheduleId,
         CancellationToken cancellationToken)
     {
-        UpdateScheduleRequest? request;
-
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateScheduleRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateSchedule request for {ScheduleId}", scheduleId);
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateScheduleRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         var command = ScheduleMapper.ToCommand(scheduleId, request);
 

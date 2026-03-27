@@ -13,8 +13,6 @@ using ReservationSystem.Microservices.Bags.Models.Mappers;
 using ReservationSystem.Microservices.Bags.Models.Requests;
 using ReservationSystem.Microservices.Bags.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
-using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Bags.Functions;
 
@@ -81,20 +79,8 @@ public sealed class BagPricingFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateBagPricingRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateBagPricingRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateBagPricing request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateBagPricingRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.BagSequence is not (1 or 2 or 99))
             return await req.BadRequestAsync("bagSequence must be 1, 2, or 99.");
@@ -135,20 +121,8 @@ public sealed class BagPricingFunction
         Guid pricingId,
         CancellationToken cancellationToken)
     {
-        UpdateBagPricingRequest? request;
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<UpdateBagPricingRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in UpdateBagPricing request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null)
-            return await req.BadRequestAsync("Request body is required.");
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateBagPricingRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
         if (request.Price <= 0)
             return await req.BadRequestAsync("price must be > 0.");

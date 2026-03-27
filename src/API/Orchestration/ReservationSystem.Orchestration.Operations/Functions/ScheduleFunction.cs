@@ -4,13 +4,11 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Shared.Common.Json;
 using ReservationSystem.Orchestration.Operations.Application.CreateSchedule;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Models.Requests;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
-using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Operations.Functions;
 
@@ -48,21 +46,10 @@ public sealed class ScheduleFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        CreateScheduleRequest? request;
+        var (request, error) = await req.TryDeserializeBodyAsync<CreateScheduleRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
 
-        try
-        {
-            request = await JsonSerializer.DeserializeAsync<CreateScheduleRequest>(
-                req.Body, SharedJsonOptions.CamelCase, cancellationToken);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogWarning(ex, "Invalid JSON in CreateSchedule request");
-            return await req.BadRequestAsync("Invalid JSON in request body.");
-        }
-
-        if (request is null
-            || string.IsNullOrWhiteSpace(request.FlightNumber)
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber)
             || string.IsNullOrWhiteSpace(request.Origin)
             || string.IsNullOrWhiteSpace(request.Destination)
             || string.IsNullOrWhiteSpace(request.AircraftType))
