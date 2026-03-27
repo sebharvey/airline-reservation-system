@@ -39,8 +39,10 @@ var host = new HostBuilder()
         // ── Configuration ──────────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
-        services.Configure<JwtOptions>(
-            context.Configuration.GetSection(JwtOptions.SectionName));
+        services.AddOptions<JwtOptions>()
+            .Bind(context.Configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddDbContext<IdentityDbContext>((provider, options) =>
