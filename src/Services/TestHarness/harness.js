@@ -1,11 +1,30 @@
 (async function () {
 
     // =====================================================================
-    // Query string — select journey config
+    // Available journey configs
     // =====================================================================
 
+    const CONFIGS = [
+        { value: 'payment',  label: 'Payment' },
+        { value: 'user',     label: 'User' },
+        { value: 'loyalty',  label: 'Loyalty' }
+    ];
+
+    // =====================================================================
+    // Config dropdown — populate and select initial value
+    // =====================================================================
+
+    const configSelect = document.getElementById('configSelect');
     const params = new URLSearchParams(window.location.search);
-    const config = params.get('config') || 'payment';
+    let config = params.get('config') || 'payment';
+
+    CONFIGS.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.value;
+        opt.textContent = c.label;
+        if (c.value === config) opt.selected = true;
+        configSelect.appendChild(opt);
+    });
 
     // =====================================================================
     // Name pools for random test data generation
@@ -56,32 +75,190 @@
     }
 
     // =====================================================================
+    // API interaction log
+    // =====================================================================
+
+    let apiLog = [];
+
+    function logInteraction(entry) {
+        apiLog.push(entry);
+    }
+
+    function formatLogForCopy() {
+        if (apiLog.length === 0) return 'No API interactions recorded.';
+
+        const lines = [];
+        lines.push('='.repeat(80));
+        lines.push('Apex Air Test Harness — API Log');
+        lines.push('Journey: ' + (raw ? (raw.journey.domain || config) : config));
+        lines.push('Timestamp: ' + new Date().toISOString());
+        lines.push('='.repeat(80));
+
+        apiLog.forEach((entry, i) => {
+            lines.push('');
+            lines.push('-'.repeat(80));
+            lines.push('Step ' + entry.step + ': ' + entry.name);
+            lines.push('-'.repeat(80));
+            lines.push('');
+            lines.push('REQUEST');
+            lines.push('  ' + entry.method + ' ' + entry.url);
+            lines.push('');
+            if (entry.requestHeaders && Object.keys(entry.requestHeaders).length) {
+                lines.push('  Headers:');
+                for (const [k, v] of Object.entries(entry.requestHeaders)) {
+                    lines.push('    ' + k + ': ' + v);
+                }
+                lines.push('');
+            }
+            if (entry.requestBody !== null && entry.requestBody !== undefined) {
+                lines.push('  Body:');
+                lines.push(indent(formatBody(entry.requestBody), '    '));
+            } else {
+                lines.push('  Body: (none)');
+            }
+            lines.push('');
+            lines.push('RESPONSE');
+            if (entry.error) {
+                lines.push('  Error: ' + entry.error);
+            } else {
+                lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
+                lines.push('');
+                if (entry.responseBody !== null && entry.responseBody !== undefined) {
+                    lines.push('  Body:');
+                    lines.push(indent(formatBody(entry.responseBody), '    '));
+                } else {
+                    lines.push('  Body: (none)');
+                }
+            }
+        });
+
+        lines.push('');
+        lines.push('='.repeat(80));
+        lines.push('End of log (' + apiLog.length + ' interactions)');
+        lines.push('='.repeat(80));
+
+        return lines.join('\n');
+    }
+
+    function formatBody(body) {
+        if (typeof body === 'string') return body;
+        return JSON.stringify(body, null, 2);
+    }
+
+    function indent(text, prefix) {
+        return text.split('\n').map(line => prefix + line).join('\n');
+    }
+
+    // =====================================================================
+    // Copy Logs button
+    // =====================================================================
+
+    const btnCopyLogs = document.getElementById('btnCopyLogs');
+
+    btnCopyLogs.addEventListener('click', async () => {
+        const text = formatLogForCopy();
+        try {
+            await navigator.clipboard.writeText(text);
+            btnCopyLogs.textContent = '\u2713 Copied';
+            btnCopyLogs.classList.add('copied');
+            setTimeout(() => {
+                btnCopyLogs.textContent = '\uD83D\uDCCB Copy Logs';
+                btnCopyLogs.classList.remove('copied');
+            }, 2000);
+        } catch {
+            // Fallback for non-secure contexts
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            btnCopyLogs.textContent = '\u2713 Copied';
+            btnCopyLogs.classList.add('copied');
+            setTimeout(() => {
+                btnCopyLogs.textContent = '\uD83D\uDCCB Copy Logs';
+                btnCopyLogs.classList.remove('copied');
+            }, 2000);
+        }
+    });
+
+    // =====================================================================
     // Load journey definition
     // =====================================================================
 
-    const res = await fetch(config + '-journey.json');
-    const raw = await res.json();
+    let raw;
+
+    async function loadJourney(configName) {
+        const res = await fetch(configName + '-journey.json');
+        raw = await res.json();
+        config = configName;
+        initJourney();
+    }
 
     // =====================================================================
-    // Page title — driven from journey config
+    // State
     // =====================================================================
 
-    const journeyTitle = raw.journey.domain || config;
-    document.title = 'Apex Air \u2014 ' + journeyTitle + ' API Test Harness';
-    document.getElementById('journeyTitle').textContent = journeyTitle + ' API';
+    let liveStepIndices, liveChain, liveResults, rowRefs, hasRuntimeVars, defaultBaseUrlId;
 
-    // =====================================================================
-    // Detect runtime variable substitution
-    // =====================================================================
-
-    const hasRuntimeVars = JSON.stringify(raw.steps).includes('__RAND_');
-
-    // =====================================================================
-    // Base URL inputs & health checks — driven from journey.baseUrls
-    // =====================================================================
-
+    const tbody = document.getElementById('journeyBody');
     const baseUrlListEl = document.getElementById('baseUrlList');
-    const defaultBaseUrlId = raw.journey.baseUrls[0].id;
+    const btnRunAll = document.getElementById('btnRunAll');
+
+    // =====================================================================
+    // Initialise journey after load or switch
+    // =====================================================================
+
+    function initJourney() {
+        // Page title
+        const journeyTitle = raw.journey.domain || config;
+        document.title = 'Apex Air \u2014 ' + journeyTitle + ' API Test Harness';
+        document.getElementById('journeyTitle').textContent = journeyTitle + ' API';
+
+        // Detect runtime variable substitution
+        hasRuntimeVars = JSON.stringify(raw.steps).includes('__RAND_');
+
+        // Base URLs
+        defaultBaseUrlId = raw.journey.baseUrls[0].id;
+        renderBaseUrlList();
+        runAllHealthChecks();
+
+        // Table setup
+        liveStepIndices = raw.steps.map((_, i) => i);
+        liveChain = {};
+        liveResults = {};
+        rowRefs = [];
+
+        // Clear logs on journey switch
+        apiLog = [];
+        btnCopyLogs.disabled = true;
+
+        // Initial render
+        if (hasRuntimeVars) {
+            generateRuntimeVars();
+            buildTableRows(buildStepsWithVars());
+            updateRuntimeBanner();
+        } else {
+            document.getElementById('runtimeDataBanner').style.display = 'none';
+            buildTableRows(JSON.parse(JSON.stringify(raw.steps)));
+        }
+
+        btnRunAll.disabled = false;
+    }
+
+    // =====================================================================
+    // Config dropdown change handler
+    // =====================================================================
+
+    configSelect.addEventListener('change', () => {
+        loadJourney(configSelect.value);
+    });
+
+    // =====================================================================
+    // Base URL inputs & health checks
+    // =====================================================================
 
     function renderBaseUrlList() {
         baseUrlListEl.innerHTML = '';
@@ -127,9 +304,6 @@
         raw.journey.baseUrls.forEach(entry => checkHealthForEntry(entry));
     }
 
-    renderBaseUrlList();
-    runAllHealthChecks();
-
     let healthDebounce;
     baseUrlListEl.addEventListener('input', () => {
         clearTimeout(healthDebounce);
@@ -139,13 +313,6 @@
     // =====================================================================
     // Table setup
     // =====================================================================
-
-    const liveStepIndices = raw.steps.map((_, i) => i);
-    let liveChain = {};
-    let liveResults = {};
-    let rowRefs = [];
-
-    const tbody = document.getElementById('journeyBody');
 
     function buildTableRows(steps) {
         tbody.innerHTML = '';
@@ -294,23 +461,9 @@
     }
 
     // =====================================================================
-    // Initial render
-    // =====================================================================
-
-    if (hasRuntimeVars) {
-        generateRuntimeVars();
-        buildTableRows(buildStepsWithVars());
-        updateRuntimeBanner();
-    } else {
-        buildTableRows(JSON.parse(JSON.stringify(raw.steps)));
-    }
-
-    // =====================================================================
     // Run All button
     // =====================================================================
 
-    const btnRunAll = document.getElementById('btnRunAll');
-    btnRunAll.disabled = false;
     btnRunAll.addEventListener('click', runLiveSteps);
 
     // =====================================================================
@@ -320,6 +473,11 @@
     async function runLiveSteps() {
         btnRunAll.disabled = true;
         btnRunAll.textContent = '\u23F3 Running\u2026';
+        btnCopyLogs.disabled = true;
+        configSelect.disabled = true;
+
+        // Clear previous logs
+        apiLog = [];
 
         let currentSteps;
         if (hasRuntimeVars) {
@@ -340,6 +498,8 @@
 
         btnRunAll.disabled = false;
         btnRunAll.textContent = '\u25B6 Run';
+        btnCopyLogs.disabled = false;
+        configSelect.disabled = false;
     }
 
     async function runStep(ref, currentSteps) {
@@ -418,6 +578,19 @@
             liveStatus = 0;
             liveBody = null;
         }
+
+        // Log this interaction
+        logInteraction({
+            step: step.step,
+            name: step.name,
+            method: api.method,
+            url: url,
+            requestHeaders: { ...fetchOpts.headers },
+            requestBody: requestBody,
+            status: liveStatus,
+            responseBody: liveBody,
+            error: liveError || null
+        });
 
         // Store chained values from response (supports array indexing e.g. [0].identityId)
         if (step.chainsTo && liveBody && typeof liveBody === 'object') {
@@ -649,5 +822,11 @@
             }
         );
     }
+
+    // =====================================================================
+    // Boot — load initial journey
+    // =====================================================================
+
+    await loadJourney(config);
 
 })();
