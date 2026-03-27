@@ -1,0 +1,208 @@
+{
+  "journey": {
+    "name": "User Account & Authentication Flow",
+    "description": "End-to-end journey covering employee user creation, duplicate-username validation, listing all users, successful login with JWT issuance, and login failure with wrong credentials.",
+    "domain": "User",
+    "baseUrls": [
+      { "id": "user", "label": "User MS", "url": "http://localhost:7071" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Add user",
+      "description": "Create a new Apex Air employee user account with a randomly generated name, email, and username. Validates the full creation flow including password hashing and uniqueness checks.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created. Response contains the new userId GUID. Password is stored as a SHA-256 hash; plain text is never persisted.",
+        "keyFields": ["userId"],
+        "validationNotes": "userId is a non-empty GUID. username and email must be unique — attempting to create another account with the same values returns 409 Conflict (see Step 2). Name and email are runtime-generated values unique to this test run."
+      },
+      "chainsTo": [
+        { "field": "userId", "usedInSteps": [4] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Duplicate username attempt",
+      "description": "Attempt to create a second account using the same username generated in Step 1. Validates that the API correctly rejects the duplicate with a 409 Conflict response and does not modify the original account.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "different.email@testmail.example.com",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" },
+          { "field": "firstName", "source": "Step 1 → runtime-generated given name" },
+          { "field": "lastName", "source": "Step 1 → runtime-generated surname" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 409,
+        "body": {
+          "error": "A user with this username already exists."
+        }
+      },
+      "expected": {
+        "statusCode": 409,
+        "description": "409 Conflict — the username from Step 1 is already registered. The original account is unaffected. Response body contains an error message.",
+        "keyFields": ["error"],
+        "validationNotes": "Uses the exact same username as Step 1 but a different email address, confirming that the username uniqueness constraint is enforced independently of email."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 3,
+      "name": "Get all users",
+      "description": "Retrieve the full list of employee user accounts. The account created in Step 1 must appear in the results. Confirms that passwordHash is never returned in list responses.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {},
+        "body": null
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "username": "Generated.Name",
+            "email": "generated.name.123456@testmail.example.com",
+            "firstName": "Generated",
+            "lastName": "Name",
+            "isActive": true,
+            "isLocked": false,
+            "lastLoginAt": null,
+            "createdAt": "2026-03-27T10:00:00Z"
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns an array of all employee user accounts ordered by lastName then firstName. The account created in Step 1 must be present. passwordHash is never included.",
+        "keyFields": ["userId", "username", "email", "firstName", "lastName", "isActive", "isLocked"],
+        "validationNotes": "Response is always an array (empty array if no users exist). passwordHash must not appear on any object. isActive is true and isLocked is false for a freshly created account. lastLoginAt is null until the first successful login."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Login — valid credentials",
+      "description": "Authenticate the employee account created in Step 1 using the runtime-generated username and password. Validates JWT issuance, account state update (LastLoginAt, FailedLoginAttempts reset), and correct response shape.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users/login",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWIyYzNkNC...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-03-27T10:15:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — credentials validated. Response contains a signed JWT access token (15-minute TTL), the userId, and the token expiry timestamp. LastLoginAt and FailedLoginAttempts are updated on the account.",
+        "keyFields": ["accessToken", "userId", "expiresAt"],
+        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 1. expiresAt is ISO 8601 UTC approximately 15 minutes from now. FailedLoginAttempts on the account is reset to 0."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [] },
+        { "field": "userId", "usedInSteps": [] }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Login — wrong password",
+      "description": "Attempt to authenticate using the correct username from Step 1 but an incorrect password. Validates that the API returns 401 Unauthorized and increments the FailedLoginAttempts counter on the account.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users/login",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "WrongPassword99!"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" }
+        ]
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Invalid credentials."
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — password does not match the stored hash. FailedLoginAttempts is incremented. After 5 consecutive failures the account is locked and further attempts return 403 Forbidden.",
+        "keyFields": ["error"],
+        "validationNotes": "The error message must not reveal whether the username exists (generic 'Invalid credentials' only). The account is not locked after a single failure — only after 5 consecutive failures."
+      },
+      "chainsTo": []
+    }
+  ]
+}
