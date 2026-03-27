@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using ReservationSystem.Microservices.User.Domain.Entities;
 
 namespace ReservationSystem.Microservices.User.Infrastructure.Persistence;
 
@@ -13,11 +12,11 @@ public sealed class UserDbContext : DbContext
 {
     public UserDbContext(DbContextOptions<UserDbContext> options) : base(options) { }
 
-    public DbSet<User> Users => Set<User>();
+    public DbSet<Domain.Entities.User> Users => Set<Domain.Entities.User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<Domain.Entities.User>(entity =>
         {
             entity.ToTable("User", "user", t =>
             {

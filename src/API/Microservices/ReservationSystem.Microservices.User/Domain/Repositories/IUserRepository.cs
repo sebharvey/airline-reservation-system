@@ -1,5 +1,3 @@
-using ReservationSystem.Microservices.User.Domain.Entities;
-
 namespace ReservationSystem.Microservices.User.Domain.Repositories;
 
 /// <summary>
@@ -9,15 +7,15 @@ namespace ReservationSystem.Microservices.User.Domain.Repositories;
 /// </summary>
 public interface IUserRepository
 {
-    Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Entities.User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default);
+    Task<Entities.User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default);
 
-    Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<Entities.User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Entities.User>> GetAllAsync(CancellationToken cancellationToken = default);
 
-    Task CreateAsync(User user, CancellationToken cancellationToken = default);
+    Task CreateAsync(Entities.User user, CancellationToken cancellationToken = default);
 
-    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Entities.User user, CancellationToken cancellationToken = default);
 }

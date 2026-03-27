@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using ReservationSystem.Microservices.User.Domain.Entities;
 using ReservationSystem.Microservices.User.Domain.Repositories;
 using ReservationSystem.Microservices.User.Infrastructure.Configuration;
 using ReservationSystem.Microservices.User.Models.Responses;
@@ -100,7 +99,7 @@ public sealed class LoginHandler
         return Convert.ToBase64String(bytes);
     }
 
-    internal (string Token, DateTime ExpiresAt) GenerateJwt(User user)
+    internal (string Token, DateTime ExpiresAt) GenerateJwt(Domain.Entities.User user)
     {
         var keyBytes = Convert.FromBase64String(_jwtOptions.Secret);
         var key = new SymmetricSecurityKey(keyBytes);
