@@ -128,7 +128,7 @@ function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
     dateOfBirth: api.dateOfBirth ?? '',
     gender: api.gender ?? '',
     nationality: api.nationality ?? '',
-    preferredLanguage: api.preferredLanguage ?? 'en',
+    preferredLanguage: api.preferredLanguage ?? 'en-GB',
     addressLine1: api.addressLine1 ?? '',
     addressLine2: api.addressLine2 ?? '',
     city: api.city ?? '',

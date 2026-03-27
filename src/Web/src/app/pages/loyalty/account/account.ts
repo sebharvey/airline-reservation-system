@@ -62,16 +62,17 @@ const TRANSACTION_TYPE_CONFIG: Record<TransactionType, { label: string; cssClass
 };
 
 const LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'it', name: 'Italian' },
-  { code: 'pt', name: 'Portuguese' },
-  { code: 'ar', name: 'Arabic' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'hi', name: 'Hindi' },
+  { code: 'en-GB', name: 'English (UK)' },
+  { code: 'en-US', name: 'English (US)' },
+  { code: 'fr-FR', name: 'French' },
+  { code: 'de-DE', name: 'German' },
+  { code: 'es-ES', name: 'Spanish' },
+  { code: 'it-IT', name: 'Italian' },
+  { code: 'pt-PT', name: 'Portuguese' },
+  { code: 'ar-SA', name: 'Arabic' },
+  { code: 'zh-CN', name: 'Chinese' },
+  { code: 'ja-JP', name: 'Japanese' },
+  { code: 'hi-IN', name: 'Hindi' },
 ];
 
 @Component({
