@@ -338,7 +338,7 @@ sequenceDiagram
     Member->>Web: Enter recipient loyalty number, recipient email, and points to transfer
     Web->>LoyaltyAPI: POST /v1/customers/{loyaltyNumber}/points/transfer { recipientLoyaltyNumber, recipientEmail, points } — Bearer {accessToken}
 
-    LoyaltyAPI->>LoyaltyAPI: Validate JWT; validate request fields (points > 0, recipientLoyaltyNumber present, valid email, sender ≠ recipient)
+    LoyaltyAPI->>LoyaltyAPI: Validate JWT - validate request fields (points > 0, recipientLoyaltyNumber present, valid email, sender ≠ recipient)
 
     LoyaltyAPI->>CustomerMS: GET /v1/customers/{recipientLoyaltyNumber}
     CustomerMS-->>LoyaltyAPI: 200 OK — recipient profile (including identityReference)
