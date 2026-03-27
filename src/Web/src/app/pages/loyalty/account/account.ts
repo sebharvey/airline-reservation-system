@@ -192,7 +192,10 @@ export class LoyaltyAccountComponent implements OnInit {
     if (!c) return;
     this.loyaltyApi.getTransactions(c.loyaltyNumber).subscribe({
       next: (transactions) => {
-        this.loyaltyState.updateCustomer({ ...c, transactions });
+        const current = this.customer();
+        if (current) {
+          this.loyaltyState.updateCustomer({ ...current, transactions });
+        }
       },
       error: () => { /* silently ignore – existing data (if any) is preserved */ }
     });
@@ -297,6 +300,7 @@ export class LoyaltyAccountComponent implements OnInit {
         this.transferLoading.set(false);
         this.transferResult.set(result);
         this.loyaltyState.updateCustomer({ ...c, pointsBalance: result.senderNewBalance });
+        this.loadTransactions();
       },
       error: (err) => {
         this.transferLoading.set(false);
@@ -362,7 +366,10 @@ export class LoyaltyAccountComponent implements OnInit {
         this.prefsAnalytics.set(prefs.analyticsEnabled);
         this.prefsFunctional.set(prefs.functionalEnabled);
         this.prefsAppNotifications.set(prefs.appNotificationsEnabled);
-        this.loyaltyState.updateCustomer({ ...c, preferences: prefs });
+        const current = this.customer();
+        if (current) {
+          this.loyaltyState.updateCustomer({ ...current, preferences: prefs });
+        }
       },
       error: () => { /* silently ignore; defaults remain */ }
     });
