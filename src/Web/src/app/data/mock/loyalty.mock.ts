@@ -9,11 +9,24 @@ export const MOCK_LOYALTY_CUSTOMERS: Record<string, LoyaltyCustomer> = {
     phone: '+447700900100',
     dateOfBirth: '1985-03-12',
     nationality: 'GBR',
+    gender: 'PreferNotToSay',
     preferredLanguage: 'en',
+    addressLine1: '12 Heathrow Close',
+    addressLine2: '',
+    city: 'London',
+    stateOrRegion: 'England',
+    postalCode: 'TW6 1AA',
+    countryCode: 'GBR',
     tier: 'Gold',
     pointsBalance: 42500,
     tierProgressPoints: 42500,
     memberSince: '2019-06-15',
+    preferences: {
+      marketingEnabled: true,
+      analyticsEnabled: true,
+      functionalEnabled: true,
+      appNotificationsEnabled: true
+    },
     transactions: [
       {
         transactionId: 'TXN-001',
@@ -111,11 +124,24 @@ export const MOCK_LOYALTY_CUSTOMERS: Record<string, LoyaltyCustomer> = {
     phone: '+447711223344',
     dateOfBirth: '1990-11-08',
     nationality: 'GBR',
+    gender: 'PreferNotToSay',
     preferredLanguage: 'en',
+    addressLine1: '45 Victoria Street',
+    addressLine2: '',
+    city: 'London',
+    stateOrRegion: 'England',
+    postalCode: 'SW1H 0ET',
+    countryCode: 'GBR',
     tier: 'Silver',
     pointsBalance: 18200,
     tierProgressPoints: 18200,
     memberSince: '2022-03-10',
+    preferences: {
+      marketingEnabled: false,
+      analyticsEnabled: true,
+      functionalEnabled: true,
+      appNotificationsEnabled: false
+    },
     transactions: [
       {
         transactionId: 'TXN-S001',
