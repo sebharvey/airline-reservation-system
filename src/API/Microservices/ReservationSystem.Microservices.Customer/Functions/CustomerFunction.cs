@@ -15,6 +15,8 @@ using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
+using ReservationSystem.Microservices.Customer.Application.GetPreferences;
+using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
 using ReservationSystem.Microservices.Customer.Models.Mappers;
 using ReservationSystem.Microservices.Customer.Models.Requests;
 using ReservationSystem.Microservices.Customer.Models.Responses;
@@ -43,6 +45,8 @@ public sealed class CustomerFunction
     private readonly AddPointsHandler _addPointsHandler;
     private readonly SearchCustomersHandler _searchHandler;
     private readonly GetCustomerByIdentityHandler _getByIdentityHandler;
+    private readonly GetPreferencesHandler _getPreferencesHandler;
+    private readonly UpdatePreferencesHandler _updatePreferencesHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -58,6 +62,8 @@ public sealed class CustomerFunction
         AddPointsHandler addPointsHandler,
         SearchCustomersHandler searchHandler,
         GetCustomerByIdentityHandler getByIdentityHandler,
+        GetPreferencesHandler getPreferencesHandler,
+        UpdatePreferencesHandler updatePreferencesHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -72,6 +78,8 @@ public sealed class CustomerFunction
         _addPointsHandler = addPointsHandler;
         _searchHandler = searchHandler;
         _getByIdentityHandler = getByIdentityHandler;
+        _getPreferencesHandler = getPreferencesHandler;
+        _updatePreferencesHandler = updatePreferencesHandler;
         _logger = logger;
     }
 
@@ -444,6 +452,56 @@ public sealed class CustomerFunction
         var deleted = await _deleteHandler.HandleAsync(command, cancellationToken);
 
         if (!deleted)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/{loyaltyNumber}/preferences
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerPreferences")]
+    [OpenApiOperation(operationId: "GetCustomerPreferences", tags: new[] { "Preferences" }, Summary = "Get preference settings for a customer")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerPreferencesResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetPreferences(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetPreferencesQuery(loyaltyNumber);
+        var preferences = await _getPreferencesHandler.HandleAsync(query, cancellationToken);
+
+        if (preferences is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(CustomerMapper.ToPreferencesResponse(preferences));
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/customers/{loyaltyNumber}/preferences
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateCustomerPreferences")]
+    [OpenApiOperation(operationId: "UpdateCustomerPreferences", tags: new[] { "Preferences" }, Summary = "Replace preference settings for a customer")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdatePreferencesRequest), Required = true, Description = "Preference flags")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdatePreferences(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdatePreferencesRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var command = CustomerMapper.ToCommand(loyaltyNumber, request!);
+        var updated = await _updatePreferencesHandler.HandleAsync(command, cancellationToken);
+
+        if (!updated)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return req.NoContent();

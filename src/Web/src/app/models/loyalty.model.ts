@@ -1,5 +1,13 @@
 export type LoyaltyTier = 'Blue' | 'Silver' | 'Gold' | 'Platinum';
 export type TransactionType = 'Accrual' | 'Redemption' | 'Adjustment' | 'Expiry';
+export type Gender = 'Male' | 'Female' | 'NonBinary' | 'Other' | 'PreferNotToSay';
+
+export interface LoyaltyPreferences {
+  marketingEnabled: boolean;
+  analyticsEnabled: boolean;
+  functionalEnabled: boolean;
+  appNotificationsEnabled: boolean;
+}
 
 export interface LoyaltyTransaction {
   transactionId: string;
@@ -27,13 +35,21 @@ export interface LoyaltyCustomer {
   email: string;
   phone: string;
   dateOfBirth: string;
+  gender: string;
   nationality: string;
   preferredLanguage: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  stateOrRegion: string;
+  postalCode: string;
+  countryCode: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   tierProgressPoints: number;
   memberSince: string;
   transactions: LoyaltyTransaction[];
+  preferences: LoyaltyPreferences | null;
 }
 
 export interface AuthSession {

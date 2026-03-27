@@ -73,6 +73,11 @@
       [class.active]="activeTab() === 'profile'"
       (click)="setTab('profile')"
     >Profile</button>
+    <button
+      class="tab"
+      [class.active]="activeTab() === 'preferences'"
+      (click)="setTab('preferences')"
+    >Settings</button>
   </div>
 
   <!-- Overview Tab -->
@@ -220,6 +225,32 @@
           </div>
 
           <div class="field">
+            <label for="pDob">Date of Birth</label>
+            <input
+              id="pDob"
+              type="date"
+              [value]="profileDateOfBirth()"
+              (input)="profileDateOfBirth.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
+            <label for="pGender">Gender</label>
+            <select
+              id="pGender"
+              [value]="profileGender()"
+              (change)="profileGender.set($any($event.target).value)"
+            >
+              <option value="">Prefer not to say</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="NonBinary">Non-binary</option>
+              <option value="Other">Other</option>
+              <option value="PreferNotToSay">Prefer not to say</option>
+            </select>
+          </div>
+
+          <div class="field">
             <label for="pNationality">Nationality</label>
             <select
               id="pNationality"
@@ -231,6 +262,76 @@
                 <option [value]="country.code" [selected]="country.code === profileNationality()">{{ country.name }}</option>
               }
             </select>
+          </div>
+
+          <div class="section-divider">Address</div>
+
+          <div class="field">
+            <label for="pAddr1">Address Line 1</label>
+            <input
+              id="pAddr1"
+              type="text"
+              [value]="profileAddressLine1()"
+              (input)="profileAddressLine1.set($any($event.target).value)"
+              placeholder="Street address"
+            />
+          </div>
+
+          <div class="field">
+            <label for="pAddr2">Address Line 2</label>
+            <input
+              id="pAddr2"
+              type="text"
+              [value]="profileAddressLine2()"
+              (input)="profileAddressLine2.set($any($event.target).value)"
+              placeholder="Apartment, suite, etc. (optional)"
+            />
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="pCity">City</label>
+              <input
+                id="pCity"
+                type="text"
+                [value]="profileCity()"
+                (input)="profileCity.set($any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label for="pState">State / Region</label>
+              <input
+                id="pState"
+                type="text"
+                [value]="profileStateOrRegion()"
+                (input)="profileStateOrRegion.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="pPostal">Postal Code</label>
+              <input
+                id="pPostal"
+                type="text"
+                [value]="profilePostalCode()"
+                (input)="profilePostalCode.set($any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label for="pCountry">Country</label>
+              <select
+                id="pCountry"
+                [value]="profileCountryCode()"
+                (change)="profileCountryCode.set($any($event.target).value)"
+              >
+                <option value="">Select country</option>
+                @for (country of countries; track country.code) {
+                  <option [value]="country.code" [selected]="country.code === profileCountryCode()">{{ country.name }}</option>
+                }
+              </select>
+            </div>
           </div>
 
           <div class="field">
@@ -268,6 +369,110 @@
           </button>
         </form>
       </div>
+    </div>
+  }
+
+  <!-- Preferences Tab -->
+  @if (activeTab() === 'preferences') {
+    <div class="tab-content fade-in">
+
+      <div class="prefs-card">
+        <h3 class="section-heading">Communication Preferences</h3>
+        <p class="prefs-desc">Choose how we can use your data and contact you.</p>
+
+        <div class="pref-item">
+          <div class="pref-info">
+            <span class="pref-label">Marketing communications</span>
+            <span class="pref-hint">Offers, promotions, and news about Apex Air</span>
+          </div>
+          <button
+            class="toggle-btn"
+            [class.on]="prefsMarketing()"
+            (click)="prefsMarketing.set(!prefsMarketing())"
+            [attr.aria-label]="prefsMarketing() ? 'Disable marketing' : 'Enable marketing'"
+          ><span class="toggle-knob"></span></button>
+        </div>
+
+        <div class="pref-item">
+          <div class="pref-info">
+            <span class="pref-label">Analytics</span>
+            <span class="pref-hint">Help us improve by sharing usage data</span>
+          </div>
+          <button
+            class="toggle-btn"
+            [class.on]="prefsAnalytics()"
+            (click)="prefsAnalytics.set(!prefsAnalytics())"
+            [attr.aria-label]="prefsAnalytics() ? 'Disable analytics' : 'Enable analytics'"
+          ><span class="toggle-knob"></span></button>
+        </div>
+
+        <div class="pref-item">
+          <div class="pref-info">
+            <span class="pref-label">Functional preferences</span>
+            <span class="pref-hint">Remember region and language settings</span>
+          </div>
+          <button
+            class="toggle-btn"
+            [class.on]="prefsFunctional()"
+            (click)="prefsFunctional.set(!prefsFunctional())"
+            [attr.aria-label]="prefsFunctional() ? 'Disable functional' : 'Enable functional'"
+          ><span class="toggle-knob"></span></button>
+        </div>
+
+        <div class="pref-item">
+          <div class="pref-info">
+            <span class="pref-label">App notifications</span>
+            <span class="pref-hint">Flight updates, check-in reminders, and alerts</span>
+          </div>
+          <button
+            class="toggle-btn"
+            [class.on]="prefsAppNotifications()"
+            (click)="prefsAppNotifications.set(!prefsAppNotifications())"
+            [attr.aria-label]="prefsAppNotifications() ? 'Disable notifications' : 'Enable notifications'"
+          ><span class="toggle-knob"></span></button>
+        </div>
+
+        @if (preferencesError()) {
+          <div class="error-banner" role="alert">{{ preferencesError() }}</div>
+        }
+
+        @if (preferencesSuccess()) {
+          <div class="success-banner" role="status">Preferences saved.</div>
+        }
+
+        <button class="btn-primary" (click)="savePreferences()" [disabled]="preferencesLoading()">
+          @if (preferencesLoading()) {
+            <span class="spinner"></span> Saving...
+          } @else {
+            Save Preferences
+          }
+        </button>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="danger-zone">
+        <h3 class="danger-title">Danger Zone</h3>
+        <p class="danger-desc">Permanently delete your loyalty account and all associated data. This cannot be undone.</p>
+
+        @if (!deleteConfirm()) {
+          <button class="btn-danger" (click)="deleteConfirm.set(true)">Delete My Account</button>
+        } @else {
+          <div class="delete-confirm-box">
+            <p class="delete-confirm-msg">Are you sure? This will permanently delete your account, points balance, and transaction history.</p>
+            @if (deleteError()) {
+              <div class="error-banner" role="alert">{{ deleteError() }}</div>
+            }
+            <div class="delete-confirm-actions">
+              <button class="btn-secondary" (click)="deleteConfirm.set(false)" [disabled]="deleteLoading()">Cancel</button>
+              <button class="btn-danger" (click)="deleteAccount()" [disabled]="deleteLoading()">
+                @if (deleteLoading()) { <span class="spinner-sm"></span> }
+                Yes, Delete Account
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
     </div>
   }
 

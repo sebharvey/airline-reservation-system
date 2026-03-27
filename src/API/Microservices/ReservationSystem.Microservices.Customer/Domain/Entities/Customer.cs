@@ -12,9 +12,16 @@ public sealed class Customer
     public string GivenName { get; private set; } = string.Empty;
     public string Surname { get; private set; } = string.Empty;
     public DateOnly? DateOfBirth { get; private set; }
+    public string? Gender { get; private set; }
     public string? Nationality { get; private set; }
     public string PreferredLanguage { get; private set; } = string.Empty;
     public string? PhoneNumber { get; private set; }
+    public string? AddressLine1 { get; private set; }
+    public string? AddressLine2 { get; private set; }
+    public string? City { get; private set; }
+    public string? StateOrRegion { get; private set; }
+    public string? PostalCode { get; private set; }
+    public string? CountryCode { get; private set; }
     public string TierCode { get; private set; } = string.Empty;
     public int PointsBalance { get; private set; }
     public int TierProgressPoints { get; private set; }
@@ -28,9 +35,16 @@ public sealed class Customer
         string? givenName = null,
         string? surname = null,
         DateOnly? dateOfBirth = null,
+        string? gender = null,
         string? nationality = null,
         string? preferredLanguage = null,
         string? phoneNumber = null,
+        string? addressLine1 = null,
+        string? addressLine2 = null,
+        string? city = null,
+        string? stateOrRegion = null,
+        string? postalCode = null,
+        string? countryCode = null,
         string? tierCode = null,
         Guid? identityId = null,
         bool? isActive = null)
@@ -38,9 +52,16 @@ public sealed class Customer
         if (givenName is not null) GivenName = givenName;
         if (surname is not null) Surname = surname;
         if (dateOfBirth is not null) DateOfBirth = dateOfBirth;
+        if (gender is not null) Gender = gender;
         if (nationality is not null) Nationality = nationality;
         if (preferredLanguage is not null) PreferredLanguage = preferredLanguage;
         if (phoneNumber is not null) PhoneNumber = phoneNumber;
+        if (addressLine1 is not null) AddressLine1 = addressLine1;
+        if (addressLine2 is not null) AddressLine2 = addressLine2;
+        if (city is not null) City = city;
+        if (stateOrRegion is not null) StateOrRegion = stateOrRegion;
+        if (postalCode is not null) PostalCode = postalCode;
+        if (countryCode is not null) CountryCode = countryCode;
         if (tierCode is not null) TierCode = tierCode;
         if (identityId is not null) IdentityId = identityId;
         if (isActive is not null) IsActive = isActive.Value;
@@ -70,6 +91,7 @@ public sealed class Customer
         string tierCode,
         Guid? identityId = null,
         DateOnly? dateOfBirth = null,
+        string? gender = null,
         string? nationality = null,
         string? phoneNumber = null)
     {
@@ -87,6 +109,7 @@ public sealed class Customer
             GivenName = givenName,
             Surname = surname,
             DateOfBirth = dateOfBirth,
+            Gender = gender,
             Nationality = nationality,
             PreferredLanguage = preferredLanguage,
             PhoneNumber = phoneNumber,
@@ -109,9 +132,16 @@ public sealed class Customer
         string givenName,
         string surname,
         DateOnly? dateOfBirth,
+        string? gender,
         string? nationality,
         string preferredLanguage,
         string? phoneNumber,
+        string? addressLine1,
+        string? addressLine2,
+        string? city,
+        string? stateOrRegion,
+        string? postalCode,
+        string? countryCode,
         string tierCode,
         int pointsBalance,
         int tierProgressPoints,
@@ -127,9 +157,16 @@ public sealed class Customer
             GivenName = givenName,
             Surname = surname,
             DateOfBirth = dateOfBirth,
+            Gender = gender,
             Nationality = nationality,
             PreferredLanguage = preferredLanguage,
             PhoneNumber = phoneNumber,
+            AddressLine1 = addressLine1,
+            AddressLine2 = addressLine2,
+            City = city,
+            StateOrRegion = stateOrRegion,
+            PostalCode = postalCode,
+            CountryCode = countryCode,
             TierCode = tierCode,
             PointsBalance = pointsBalance,
             TierProgressPoints = tierProgressPoints,

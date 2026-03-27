@@ -15,7 +15,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, switchMap, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyTier, TransactionType } from '../models/loyalty.model';
+import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyPreferences, LoyaltyTier, TransactionType } from '../models/loyalty.model';
 import { environment } from '../environments/environment';
 
 export interface LoginParams {
@@ -38,8 +38,22 @@ export interface UpdateProfileParams {
   surname?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
+  gender?: string;
   nationality?: string;
   preferredLanguage?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateOrRegion?: string;
+  postalCode?: string;
+  countryCode?: string;
+}
+
+export interface UpdatePreferencesParams {
+  marketingEnabled: boolean;
+  analyticsEnabled: boolean;
+  functionalEnabled: boolean;
+  appNotificationsEnabled: boolean;
 }
 
 // ── API response shapes ──────────────────────────────────────────────────────
@@ -57,24 +71,49 @@ interface ApiAuthResponse extends ApiTokens {
 
 interface ApiCustomerProfile {
   loyaltyNumber: string;
-  firstName: string;
-  lastName: string;
+  givenName: string;
+  surname: string;
   email: string;
-  phoneNumber: string;
-  dateOfBirth: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  preferredLanguage?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateOrRegion?: string;
+  postalCode?: string;
+  countryCode?: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   memberSince: string;
 }
 
+interface ApiPreferences {
+  marketingEnabled: boolean;
+  analyticsEnabled: boolean;
+  functionalEnabled: boolean;
+  appNotificationsEnabled: boolean;
+}
+
 interface ApiTransaction {
   transactionId: string;
-  type: TransactionType;
-  points: number;
+  transactionType: string;
+  pointsDelta: number;
+  balanceAfter: number;
+  bookingReference?: string;
+  flightNumber?: string;
   description: string;
-  referenceBooking?: string;
   transactionDate: string;
-  runningBalance: number;
+}
+
+interface ApiTransactionsResponse {
+  loyaltyNumber: string;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  transactions: ApiTransaction[];
 }
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
@@ -82,30 +121,47 @@ interface ApiTransaction {
 function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
   return {
     loyaltyNumber: api.loyaltyNumber,
-    givenName: api.firstName,
-    surname: api.lastName,
+    givenName: api.givenName,
+    surname: api.surname,
     email: api.email,
     phone: api.phoneNumber ?? '',
     dateOfBirth: api.dateOfBirth ?? '',
-    nationality: '',
-    preferredLanguage: 'en',
+    gender: api.gender ?? '',
+    nationality: api.nationality ?? '',
+    preferredLanguage: api.preferredLanguage ?? 'en',
+    addressLine1: api.addressLine1 ?? '',
+    addressLine2: api.addressLine2 ?? '',
+    city: api.city ?? '',
+    stateOrRegion: api.stateOrRegion ?? '',
+    postalCode: api.postalCode ?? '',
+    countryCode: api.countryCode ?? '',
     tier: api.tier ?? 'Blue',
     pointsBalance: api.pointsBalance ?? 0,
     tierProgressPoints: 0,
     memberSince: api.memberSince ?? '',
-    transactions: [] // loaded separately via getTransactions()
+    transactions: [],
+    preferences: null
+  };
+}
+
+function mapPreferences(api: ApiPreferences): LoyaltyPreferences {
+  return {
+    marketingEnabled: api.marketingEnabled,
+    analyticsEnabled: api.analyticsEnabled,
+    functionalEnabled: api.functionalEnabled,
+    appNotificationsEnabled: api.appNotificationsEnabled
   };
 }
 
 function mapTransaction(api: ApiTransaction): LoyaltyTransaction {
   return {
     transactionId: api.transactionId,
-    type: api.type,
-    points: api.points,
+    type: api.transactionType as TransactionType,
+    points: api.pointsDelta,
     description: api.description,
-    referenceBooking: api.referenceBooking,
+    referenceBooking: api.bookingReference,
     transactionDate: api.transactionDate,
-    runningBalance: api.runningBalance
+    runningBalance: api.balanceAfter
   };
 }
 
@@ -217,9 +273,9 @@ export class LoyaltyApiService {
    */
   getTransactions(loyaltyNumber: string): Observable<LoyaltyTransaction[]> {
     return this.http
-      .get<ApiTransaction[]>(`${BASE}/customers/${loyaltyNumber}/transactions`)
+      .get<ApiTransactionsResponse>(`${BASE}/customers/${loyaltyNumber}/transactions`)
       .pipe(
-        map(txns => (Array.isArray(txns) ? txns.map(mapTransaction) : [])),
+        map(res => (Array.isArray(res?.transactions) ? res.transactions.map(mapTransaction) : [])),
         catchError(handleError)
       );
   }
@@ -230,11 +286,41 @@ export class LoyaltyApiService {
    */
   updateProfile(loyaltyNumber: string, params: UpdateProfileParams): Observable<LoyaltyCustomer> {
     return this.http
-      .patch<ApiCustomerProfile>(`${BASE}/customers/${loyaltyNumber}/profile`, params)
+      .patch<void>(`${BASE}/customers/${loyaltyNumber}/profile`, params)
       .pipe(
-        map(mapCustomer),
+        switchMap(() => this.getCustomer(loyaltyNumber)),
         catchError(handleError)
       );
+  }
+
+  /**
+   * GET /customers/{loyaltyNumber}/preferences
+   */
+  getPreferences(loyaltyNumber: string): Observable<LoyaltyPreferences> {
+    return this.http
+      .get<ApiPreferences>(`${BASE}/customers/${loyaltyNumber}/preferences`)
+      .pipe(
+        map(mapPreferences),
+        catchError(handleError)
+      );
+  }
+
+  /**
+   * PUT /customers/{loyaltyNumber}/preferences
+   */
+  updatePreferences(loyaltyNumber: string, params: UpdatePreferencesParams): Observable<void> {
+    return this.http
+      .put<void>(`${BASE}/customers/${loyaltyNumber}/preferences`, params)
+      .pipe(catchError(handleError));
+  }
+
+  /**
+   * DELETE /customers/{loyaltyNumber}/account
+   */
+  deleteAccount(loyaltyNumber: string): Observable<void> {
+    return this.http
+      .delete<void>(`${BASE}/customers/${loyaltyNumber}/account`)
+      .pipe(catchError(handleError));
   }
 
   /**

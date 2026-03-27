@@ -16,6 +16,8 @@ using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
+using ReservationSystem.Microservices.Customer.Application.GetPreferences;
+using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Customer.Swagger;
@@ -53,6 +55,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddScoped<ICustomerRepository, EfCustomerRepository>();
         services.AddScoped<ILoyaltyTransactionRepository, EfLoyaltyTransactionRepository>();
+        services.AddScoped<ICustomerPreferencesRepository, EfCustomerPreferencesRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
@@ -70,6 +73,8 @@ var host = new HostBuilder()
         services.AddScoped<AddPointsHandler>();
         services.AddScoped<SearchCustomersHandler>();
         services.AddScoped<GetCustomerByIdentityHandler>();
+        services.AddScoped<GetPreferencesHandler>();
+        services.AddScoped<UpdatePreferencesHandler>();
     })
     .Build();
 

@@ -5,9 +5,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Models;
+using ReservationSystem.Orchestration.Loyalty.Application.DeleteAccount;
 using ReservationSystem.Orchestration.Loyalty.Application.EmailChangeRequest;
+using ReservationSystem.Orchestration.Loyalty.Application.GetPreferences;
 using ReservationSystem.Orchestration.Loyalty.Application.GetProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
+using ReservationSystem.Orchestration.Loyalty.Application.UpdatePreferences;
 using ReservationSystem.Orchestration.Loyalty.Application.UpdateProfile;
 using ReservationSystem.Orchestration.Loyalty.Application.VerifyEmailChange;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
@@ -28,6 +31,9 @@ public sealed class ProfileFunction
     private readonly GetProfileHandler _getProfileHandler;
     private readonly UpdateProfileHandler _updateProfileHandler;
     private readonly GetTransactionsHandler _getTransactionsHandler;
+    private readonly GetPreferencesHandler _getPreferencesHandler;
+    private readonly UpdatePreferencesHandler _updatePreferencesHandler;
+    private readonly DeleteAccountHandler _deleteAccountHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
     private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
     private readonly ILogger<ProfileFunction> _logger;
@@ -36,6 +42,9 @@ public sealed class ProfileFunction
         GetProfileHandler getProfileHandler,
         UpdateProfileHandler updateProfileHandler,
         GetTransactionsHandler getTransactionsHandler,
+        GetPreferencesHandler getPreferencesHandler,
+        UpdatePreferencesHandler updatePreferencesHandler,
+        DeleteAccountHandler deleteAccountHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
         VerifyEmailChangeHandler verifyEmailChangeHandler,
         ILogger<ProfileFunction> logger)
@@ -43,6 +52,9 @@ public sealed class ProfileFunction
         _getProfileHandler = getProfileHandler;
         _updateProfileHandler = updateProfileHandler;
         _getTransactionsHandler = getTransactionsHandler;
+        _getPreferencesHandler = getPreferencesHandler;
+        _updatePreferencesHandler = updatePreferencesHandler;
+        _deleteAccountHandler = deleteAccountHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
         _verifyEmailChangeHandler = verifyEmailChangeHandler;
         _logger = logger;
@@ -106,9 +118,16 @@ public sealed class ProfileFunction
             request.GivenName,
             request.Surname,
             request.DateOfBirth,
+            request.Gender,
             request.Nationality,
             request.PhoneNumber,
-            request.PreferredLanguage);
+            request.PreferredLanguage,
+            request.AddressLine1,
+            request.AddressLine2,
+            request.City,
+            request.StateOrRegion,
+            request.PostalCode,
+            request.CountryCode);
 
         bool found;
 
@@ -151,6 +170,89 @@ public sealed class ProfileFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/{loyaltyNumber}/preferences
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerPreferences")]
+    [OpenApiOperation(operationId: "GetCustomerPreferences", tags: new[] { "Preferences" }, Summary = "Get preference settings")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PreferencesResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetPreferences(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var result = await _getPreferencesHandler.HandleAsync(new GetPreferencesQuery(loyaltyNumber), cancellationToken);
+
+        if (result is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(new PreferencesResponse
+        {
+            MarketingEnabled = result.MarketingEnabled,
+            AnalyticsEnabled = result.AnalyticsEnabled,
+            FunctionalEnabled = result.FunctionalEnabled,
+            AppNotificationsEnabled = result.AppNotificationsEnabled
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/customers/{loyaltyNumber}/preferences
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateCustomerPreferences")]
+    [OpenApiOperation(operationId: "UpdateCustomerPreferences", tags: new[] { "Preferences" }, Summary = "Replace preference settings")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdatePreferencesRequest), Required = true, Description = "Preference flags")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdatePreferences(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "api/v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdatePreferencesRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var command = new UpdatePreferencesCommand(
+            loyaltyNumber,
+            request!.MarketingEnabled,
+            request.AnalyticsEnabled,
+            request.FunctionalEnabled,
+            request.AppNotificationsEnabled);
+
+        var updated = await _updatePreferencesHandler.HandleAsync(command, cancellationToken);
+
+        if (!updated)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/customers/{loyaltyNumber}/account
+    // -------------------------------------------------------------------------
+
+    [Function("DeleteLoyaltyAccount")]
+    [OpenApiOperation(operationId: "DeleteLoyaltyAccount", tags: new[] { "Profile" }, Summary = "Delete loyalty account")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DeleteAccount(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "api/v1/customers/{loyaltyNumber}/account")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await _deleteAccountHandler.HandleAsync(new DeleteAccountCommand(loyaltyNumber), cancellationToken);
+
+        if (!deleted)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
     }
 
     // -------------------------------------------------------------------------

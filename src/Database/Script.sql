@@ -907,9 +907,16 @@ CREATE TABLE [customer].[Customer] (
     GivenName          VARCHAR(100)     NOT NULL,
     Surname            VARCHAR(100)     NOT NULL,
     DateOfBirth        DATE                 NULL,
+    Gender             VARCHAR(20)          NULL,
     Nationality        CHAR(3)              NULL,
     PreferredLanguage  CHAR(5)              NULL CONSTRAINT DF_Customer_Lang     DEFAULT 'en-GB',
     PhoneNumber        VARCHAR(30)          NULL,
+    AddressLine1       VARCHAR(150)         NULL,
+    AddressLine2       VARCHAR(150)         NULL,
+    City               VARCHAR(100)         NULL,
+    StateOrRegion      VARCHAR(100)         NULL,
+    PostalCode         VARCHAR(20)          NULL,
+    CountryCode        CHAR(2)              NULL,
     TierCode           VARCHAR(20)      NOT NULL CONSTRAINT DF_Customer_Tier     DEFAULT 'Blue',
     PointsBalance      INT              NOT NULL CONSTRAINT DF_Customer_Points   DEFAULT 0,
     TierProgressPoints INT              NOT NULL CONSTRAINT DF_Customer_Tier2    DEFAULT 0,
@@ -984,6 +991,70 @@ BEGIN
             INNER JOIN inserted i ON t.TransactionId = i.TransactionId;
     ');
 END
+GO
+
+-- customer.Preferences --------------------------------------------------------
+IF OBJECT_ID('[customer].[Preferences]', 'U') IS NULL
+CREATE TABLE [customer].[Preferences] (
+    PreferenceId            UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Preferences_Id       DEFAULT NEWID(),
+    CustomerId              UNIQUEIDENTIFIER NOT NULL,
+    MarketingEnabled        BIT              NOT NULL CONSTRAINT DF_Prefs_Marketing       DEFAULT 0,
+    AnalyticsEnabled        BIT              NOT NULL CONSTRAINT DF_Prefs_Analytics       DEFAULT 0,
+    FunctionalEnabled       BIT              NOT NULL CONSTRAINT DF_Prefs_Functional      DEFAULT 1,
+    AppNotificationsEnabled BIT              NOT NULL CONSTRAINT DF_Prefs_AppNotify       DEFAULT 1,
+    CreatedAt               DATETIME2        NOT NULL CONSTRAINT DF_Prefs_Created         DEFAULT SYSUTCDATETIME(),
+    UpdatedAt               DATETIME2        NOT NULL CONSTRAINT DF_Prefs_Updated         DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_Preferences             PRIMARY KEY (PreferenceId),
+    CONSTRAINT UQ_Preferences_Customer    UNIQUE (CustomerId),
+    CONSTRAINT FK_Preferences_Customer    FOREIGN KEY (CustomerId) REFERENCES [customer].[Customer](CustomerId)
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Preferences_Customer' AND object_id = OBJECT_ID('[customer].[Preferences]'))
+    CREATE INDEX IX_Preferences_Customer ON [customer].[Preferences] (CustomerId);
+GO
+
+IF OBJECT_ID('[customer].[TR_Preferences_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [customer].[TR_Preferences_UpdatedAt]
+        ON [customer].[Preferences]
+        AFTER UPDATE AS
+            UPDATE [customer].[Preferences]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [customer].[Preferences] t
+            INNER JOIN inserted i ON t.PreferenceId = i.PreferenceId;
+    ');
+END
+GO
+
+-- Incremental column additions (for existing deployments) --------------------
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'Gender')
+    ALTER TABLE [customer].[Customer] ADD Gender VARCHAR(20) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'AddressLine1')
+    ALTER TABLE [customer].[Customer] ADD AddressLine1 VARCHAR(150) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'AddressLine2')
+    ALTER TABLE [customer].[Customer] ADD AddressLine2 VARCHAR(150) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'City')
+    ALTER TABLE [customer].[Customer] ADD City VARCHAR(100) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'StateOrRegion')
+    ALTER TABLE [customer].[Customer] ADD StateOrRegion VARCHAR(100) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PostalCode')
+    ALTER TABLE [customer].[Customer] ADD PostalCode VARCHAR(20) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'CountryCode')
+    ALTER TABLE [customer].[Customer] ADD CountryCode CHAR(2) NULL;
 GO
 
 -- =============================================================================

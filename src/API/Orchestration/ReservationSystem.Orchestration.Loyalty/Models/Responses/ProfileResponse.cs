@@ -8,6 +8,15 @@ public sealed class ProfileResponse
     public string Email { get; init; } = string.Empty;
     public string? PhoneNumber { get; init; }
     public DateOnly? DateOfBirth { get; init; }
+    public string? Gender { get; init; }
+    public string? Nationality { get; init; }
+    public string? PreferredLanguage { get; init; }
+    public string? AddressLine1 { get; init; }
+    public string? AddressLine2 { get; init; }
+    public string? City { get; init; }
+    public string? StateOrRegion { get; init; }
+    public string? PostalCode { get; init; }
+    public string? CountryCode { get; init; }
     public string Tier { get; init; } = string.Empty;
     public decimal PointsBalance { get; init; }
     public DateTime MemberSince { get; init; }
