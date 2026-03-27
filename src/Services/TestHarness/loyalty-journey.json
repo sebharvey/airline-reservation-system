@@ -48,7 +48,7 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 25] }
+        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 28, 29, 30, 31, 32, 34] }
       ]
     },
     {
@@ -1096,15 +1096,379 @@
     },
     {
       "step": 25,
-      "name": "Delete account",
-      "description": "Delete the loyalty account created in Step 1. This is the final cleanup step — it removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
+      "name": "Register recipient account",
+      "description": "Register a second loyalty account to act as the transfer recipient. Uses freshly generated random credentials distinct from the sender account registered in Step 1. The loyaltyNumber returned is used as the transfer target in subsequent steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/register",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "givenName": "__RAND_GIVEN_NAME__",
+          "surname": "__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "dateOfBirth": "1985-03-22",
+          "preferredLanguage": "en-GB"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "givenName": "Generated",
+          "tierCode": "Blue",
+          "message": "Registration successful. Please check your email to verify your account."
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — recipient account registered. loyaltyNumber identifies the recipient account for transfer steps.",
+        "keyFields": ["loyaltyNumber"],
+        "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue'. Store the returned loyaltyNumber and the email used in the request body for use in the transfer step."
+      },
+      "chainsTo": [
+        { "field": "loyaltyNumber", "as": "recipientLoyaltyNumber", "usedInSteps": [26, 27, 28, 29, 30, 31, 33] },
+        { "field": "request.body.email", "as": "recipientEmail", "usedInSteps": [28, 31] }
+      ]
+    },
+    {
+      "step": 26,
+      "name": "Search recipient account by loyalty number",
+      "description": "Search the Customer MS for the recipient account using the loyalty number from Step 25. Retrieves the identityId needed for email verification in Step 27.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/search",
+        "baseUrlRef": "customer",
+        "note": "POST keeps PII out of URL access logs. Returns an array; the first result's identityId is chained for the email verification step."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "query": "AX1234567"
+        },
+        "dataChain": [
+          { "field": "query", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "loyaltyNumber": "AX1234567",
+            "identityId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+            "givenName": "Generated",
+            "tierCode": "Blue",
+            "pointsBalance": 1500
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns the recipient customer record. identityId is required for the verify-email call in Step 27.",
+        "keyFields": ["identityId", "loyaltyNumber"],
+        "validationNotes": "Response is an array. pointsBalance should reflect the 1,500 registration bonus."
+      },
+      "chainsTo": [
+        { "field": "[0].identityId", "as": "recipientUserAccountId", "usedInSteps": [27] }
+      ]
+    },
+    {
+      "step": 27,
+      "name": "Verify recipient email",
+      "description": "Verify the recipient account's email address so the account is fully active before being used as a transfer target.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/accounts/{recipientUserAccountId}/verify-email",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "recipientUserAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234"
+        },
+        "note": "recipientUserAccountId is chained from Step 26 ([0].identityId)."
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "recipientUserAccountId (path)", "source": "Step 26 → response[0].identityId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — recipient email verified. The account is now fully active.",
+        "keyFields": [],
+        "validationNotes": "A 404 means the identityId was not found. This step is required before the transfer to ensure the recipient account is fully registered."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 28,
+      "name": "Transfer points to recipient — positive",
+      "description": "Transfer 500 points from the sender account (Step 1) to the recipient account (Step 25). The request must include the recipient's loyalty number and email address for verification. Uses the sender's access token from the re-login in Step 18.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/points/transfer",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX9876543"
+        },
+        "note": "Protected route — requires valid Bearer token. loyaltyNumber in path is the sender's loyalty number from Step 1."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._RELOGIN"
+        },
+        "body": {
+          "recipientLoyaltyNumber": "AX1234567",
+          "recipientEmail": "__RAND_EMAIL__",
+          "points": 500
+        },
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "from": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" },
+          { "field": "recipientLoyaltyNumber", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" },
+          { "field": "recipientEmail", "from": "recipientEmail", "source": "Step 25 → request.body.email" },
+          { "field": "Authorization", "source": "Step 18 → response.accessToken" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "senderLoyaltyNumber": "AX9876543",
+          "recipientLoyaltyNumber": "AX1234567",
+          "pointsTransferred": 500,
+          "senderNewBalance": 1000,
+          "recipientNewBalance": 2000,
+          "transferredAt": "2026-03-27T12:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — points transferred. senderNewBalance reflects the deduction; recipientNewBalance reflects the credit. Both accounts should have Adjustment transactions visible in their transaction history.",
+        "keyFields": ["senderLoyaltyNumber", "recipientLoyaltyNumber", "pointsTransferred", "senderNewBalance", "recipientNewBalance"],
+        "validationNotes": "pointsTransferred must equal the requested 500. senderNewBalance = senderPreviousBalance - 500. recipientNewBalance = recipientPreviousBalance + 500. The sender started with 1,500 bonus points so senderNewBalance should be 1,000."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 29,
+      "name": "Verify sender balance reduced",
+      "description": "Retrieve the sender's customer record from the Customer MS to confirm the points balance was correctly debited after the transfer in Step 28.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "loyaltyNumber": "AX9876543"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "from": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX9876543",
+          "pointsBalance": 1000,
+          "tierCode": "Blue"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — sender's pointsBalance is 1,000 (1,500 registration bonus minus 500 transferred). The Customer MS record reflects the debit.",
+        "keyFields": ["pointsBalance"],
+        "validationNotes": "pointsBalance must equal sender's previous balance minus the 500 points transferred in Step 28. An Adjustment transaction with description 'Points transferred to {recipientLoyaltyNumber}' should appear in the sender's transaction history."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 30,
+      "name": "Verify recipient balance increased",
+      "description": "Retrieve the recipient's customer record from the Customer MS to confirm the points balance was correctly credited after the transfer in Step 28.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{recipientLoyaltyNumber}",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "recipientLoyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "recipientLoyaltyNumber (path)", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "pointsBalance": 2000,
+          "tierCode": "Blue"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — recipient's pointsBalance is 2,000 (1,500 registration bonus plus 500 transferred). The Customer MS record reflects the credit.",
+        "keyFields": ["pointsBalance"],
+        "validationNotes": "pointsBalance must equal recipient's previous balance plus the 500 points transferred in Step 28. An Adjustment transaction with description 'Points received from {senderLoyaltyNumber}' should appear in the recipient's transaction history."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 31,
+      "name": "Transfer points — wrong recipient email",
+      "description": "Attempt to transfer points to the recipient account using an incorrect email address. The Loyalty API must verify that the supplied email matches the recipient's registered Identity account — this request deliberately uses a wrong email to validate the verification logic.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/points/transfer",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX9876543"
+        },
+        "note": "Protected route — requires valid Bearer token."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._RELOGIN"
+        },
+        "body": {
+          "recipientLoyaltyNumber": "AX1234567",
+          "recipientEmail": "wrong.email@doesnotexist.example.com",
+          "points": 100
+        },
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "from": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" },
+          { "field": "recipientLoyaltyNumber", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" },
+          { "field": "Authorization", "source": "Step 18 → response.accessToken" }
+        ]
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "The recipient loyalty number and email address do not match a registered account."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — the supplied email does not match the email registered for the given recipientLoyaltyNumber. No points are transferred. The sender's balance is unchanged.",
+        "keyFields": ["error"],
+        "validationNotes": "The error message must not reveal whether the loyalty number or the email is wrong. No points should move — confirm sender and recipient balances are unchanged by re-running Steps 29 and 30."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 32,
+      "name": "Transfer points — insufficient balance",
+      "description": "Attempt to transfer more points than the sender currently holds. The sender has 1,000 points remaining after Step 28; this request asks for 5,000, which exceeds the available balance.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/points/transfer",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX9876543"
+        },
+        "note": "Protected route — requires valid Bearer token."
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._RELOGIN"
+        },
+        "body": {
+          "recipientLoyaltyNumber": "AX1234567",
+          "recipientEmail": "__RAND_EMAIL__",
+          "points": 5000
+        },
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "from": "loyaltyNumber", "source": "Step 1 → response.loyaltyNumber" },
+          { "field": "recipientLoyaltyNumber", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" },
+          { "field": "recipientEmail", "from": "recipientEmail", "source": "Step 25 → request.body.email" },
+          { "field": "Authorization", "source": "Step 18 → response.accessToken" }
+        ]
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "Insufficient points balance."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — the sender does not have sufficient points to complete the transfer. No points are moved. The response body includes an error message stating the available and requested amounts.",
+        "keyFields": ["error"],
+        "validationNotes": "error message should indicate the available balance and the requested amount. Both sender and recipient balances must remain unchanged from their values after Step 28."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 33,
+      "name": "Delete recipient account",
+      "description": "Delete the recipient loyalty account created in Step 25. Cleanup step to remove the test recipient's Customer MS record.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/customers/{recipientLoyaltyNumber}/account",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "recipientLoyaltyNumber": "AX1234567"
+        },
+        "note": "This step uses the same delete endpoint as the sender cleanup — no Bearer token is documented here as delete is internal-only in this test environment."
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "recipientLoyaltyNumber (path)", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — recipient account deleted. A subsequent GET for this loyalty number returns 404.",
+        "keyFields": [],
+        "validationNotes": "Idempotent — a repeat call returns 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 34,
+      "name": "Delete sender account",
+      "description": "Delete the sender loyalty account created in Step 1. Final cleanup step — removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
       "type": "positive",
       "apiCall": {
         "method": "DELETE",
         "endpoint": "/api/v1/customers/{loyaltyNumber}/account",
         "baseUrlRef": "loyalty",
         "pathParams": {
-          "loyaltyNumber": "AX1234567"
+          "loyaltyNumber": "AX9876543"
         }
       },
       "request": {
@@ -1119,7 +1483,8 @@
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "from": "loyaltyNumber",
+            "source": "Step 1 → response.loyaltyNumber"
           }
         ]
       },
@@ -1129,9 +1494,9 @@
       },
       "expected": {
         "statusCode": 204,
-        "description": "204 No Content — loyalty account deleted. The Customer MS record is removed. No response body. A subsequent GET /profile for this loyalty number would return 404.",
+        "description": "204 No Content — sender loyalty account deleted. The Customer MS record is removed. No response body. A subsequent GET /profile for this loyalty number would return 404.",
         "keyFields": [],
-        "validationNotes": "Idempotent — calling again returns 404 (already deleted). This is the final test step and serves as cleanup for the runtime-generated account."
+        "validationNotes": "Idempotent — calling again returns 404 (already deleted). This is the final test step and serves as cleanup for the runtime-generated sender account."
       },
       "chainsTo": []
     }

@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
+using ReservationSystem.Microservices.Identity.Application.GetAccount;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
@@ -28,6 +29,7 @@ public sealed class AccountFunction
 {
     private readonly CreateAccountHandler _createAccountHandler;
     private readonly DeleteAccountHandler _deleteAccountHandler;
+    private readonly GetAccountHandler _getAccountHandler;
     private readonly VerifyEmailHandler _verifyEmailHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
     private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
@@ -36,6 +38,7 @@ public sealed class AccountFunction
     public AccountFunction(
         CreateAccountHandler createAccountHandler,
         DeleteAccountHandler deleteAccountHandler,
+        GetAccountHandler getAccountHandler,
         VerifyEmailHandler verifyEmailHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
         VerifyEmailChangeHandler verifyEmailChangeHandler,
@@ -43,6 +46,7 @@ public sealed class AccountFunction
     {
         _createAccountHandler = createAccountHandler;
         _deleteAccountHandler = deleteAccountHandler;
+        _getAccountHandler = getAccountHandler;
         _verifyEmailHandler = verifyEmailHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
         _verifyEmailChangeHandler = verifyEmailChangeHandler;
@@ -85,6 +89,35 @@ public sealed class AccountFunction
         {
             return await req.ConflictAsync("An account with this email already exists.");
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/accounts/{userAccountId:guid}
+    // -------------------------------------------------------------------------
+
+    [Function("GetAccount")]
+    [OpenApiOperation(operationId: "GetAccount", tags: new[] { "Accounts" }, Summary = "Get a user account summary by ID")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AccountSummaryResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetAccount(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
+        Guid userAccountId,
+        CancellationToken cancellationToken)
+    {
+        var account = await _getAccountHandler.HandleAsync(new GetAccountQuery(userAccountId), cancellationToken);
+
+        if (account is null)
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+
+        var response = new AccountSummaryResponse
+        {
+            UserAccountId = account.UserAccountId,
+            Email = account.Email,
+            IsEmailVerified = account.IsEmailVerified
+        };
+
+        return await req.OkJsonAsync(response);
     }
 
     // -------------------------------------------------------------------------

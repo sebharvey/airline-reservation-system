@@ -65,3 +65,15 @@ public sealed class TransactionsDto
     public int TotalCount { get; init; }
     public IReadOnlyList<TransactionDto> Transactions { get; init; } = [];
 }
+
+public sealed class TransferPointsResultDto
+{
+    public string SenderLoyaltyNumber { get; init; } = string.Empty;
+    public string RecipientLoyaltyNumber { get; init; } = string.Empty;
+    public int PointsTransferred { get; init; }
+    public int SenderNewBalance { get; init; }
+    public int RecipientNewBalance { get; init; }
+    public Guid SenderTransactionId { get; init; }
+    public Guid RecipientTransactionId { get; init; }
+    public DateTime TransferredAt { get; init; }
+}

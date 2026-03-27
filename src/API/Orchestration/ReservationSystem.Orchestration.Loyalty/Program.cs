@@ -22,6 +22,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.UpdatePreferences;
 using ReservationSystem.Orchestration.Loyalty.Application.DeleteAccount;
 using ReservationSystem.Orchestration.Loyalty.Application.AuthorisePoints;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
+using ReservationSystem.Orchestration.Loyalty.Application.TransferPoints;
 using ReservationSystem.Orchestration.Loyalty.Application.VerifyEmailChange;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Middleware;
@@ -80,6 +81,7 @@ var host = new HostBuilder()
         services.AddScoped<DeleteAccountHandler>();
         services.AddScoped<GetTransactionsHandler>();
         services.AddScoped<AuthorisePointsHandler>();
+        services.AddScoped<TransferPointsHandler>();
         services.AddScoped<EmailChangeRequestHandler>();
         services.AddScoped<VerifyEmailChangeHandler>();
     })

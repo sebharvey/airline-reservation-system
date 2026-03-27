@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Identity.Swagger;
 using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
+using ReservationSystem.Microservices.Identity.Application.GetAccount;
 using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Application.Logout;
 using ReservationSystem.Microservices.Identity.Application.RefreshToken;
@@ -71,6 +72,7 @@ var host = new HostBuilder()
         services.AddScoped<ResetPasswordHandler>();
         services.AddScoped<CreateAccountHandler>();
         services.AddScoped<DeleteAccountHandler>();
+        services.AddScoped<GetAccountHandler>();
         services.AddScoped<VerifyEmailHandler>();
         services.AddScoped<EmailChangeRequestHandler>();
         services.AddScoped<VerifyEmailChangeHandler>();

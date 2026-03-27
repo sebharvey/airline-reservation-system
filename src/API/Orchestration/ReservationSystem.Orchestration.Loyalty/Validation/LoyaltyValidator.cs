@@ -32,6 +32,30 @@ public static class LoyaltyValidator
     }
 
     /// <summary>
+    /// Validate fields for the POST /api/v1/customers/{loyaltyNumber}/points/transfer endpoint.
+    /// </summary>
+    public static List<string> ValidateTransferPoints(
+        string? senderLoyaltyNumber,
+        string? recipientLoyaltyNumber,
+        string? recipientEmail,
+        int points)
+    {
+        var errors = new List<string>();
+
+        if (points <= 0)
+            errors.Add("The 'points' field must be a positive integer.");
+
+        if (string.IsNullOrWhiteSpace(recipientLoyaltyNumber))
+            errors.Add("The 'recipientLoyaltyNumber' field is required.");
+        else if (string.Equals(senderLoyaltyNumber, recipientLoyaltyNumber, StringComparison.OrdinalIgnoreCase))
+            errors.Add("The sender and recipient loyalty numbers must be different.");
+
+        CommonFieldValidator.ValidateEmail(recipientEmail, errors);
+
+        return errors;
+    }
+
+    /// <summary>
     /// Validate fields for the PATCH /api/v1/customers/{loyaltyNumber}/profile (update profile) endpoint.
     /// Only supplied (non-null) fields are validated.
     /// </summary>

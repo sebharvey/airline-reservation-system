@@ -15,6 +15,7 @@ using ReservationSystem.Microservices.Customer.Application.ReinstatePoints;
 using ReservationSystem.Microservices.Customer.Application.ReversePoints;
 using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
+using ReservationSystem.Microservices.Customer.Application.TransferPoints;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
 using ReservationSystem.Microservices.Customer.Application.GetPreferences;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
@@ -72,6 +73,7 @@ var host = new HostBuilder()
         services.AddScoped<ReinstatePointsHandler>();
         services.AddScoped<AddPointsHandler>();
         services.AddScoped<SearchCustomersHandler>();
+        services.AddScoped<TransferPointsHandler>();
         services.AddScoped<GetCustomerByIdentityHandler>();
         services.AddScoped<GetPreferencesHandler>();
         services.AddScoped<UpdatePreferencesHandler>();

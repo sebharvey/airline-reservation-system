@@ -29,3 +29,10 @@ public sealed class IdentityCreateAccountResponse
 {
     public Guid UserAccountId { get; init; }
 }
+
+public sealed class IdentityAccountSummaryDto
+{
+    public Guid UserAccountId { get; init; }
+    public string Email { get; init; } = string.Empty;
+    public bool IsEmailVerified { get; init; }
+}
