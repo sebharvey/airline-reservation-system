@@ -372,6 +372,39 @@ body {
 .health-indicator.healthy   { color: var(--positive); }
 .health-indicator.unhealthy { color: var(--negative); }
 
+.control-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.config-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.config-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.config-select {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    cursor: pointer;
+    min-width: 10rem;
+}
+.config-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
 .btn-run-all {
     font-family: var(--font-mono);
     font-size: 0.78rem;
@@ -391,6 +424,32 @@ body {
 .btn-run-all:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.btn-copy-logs {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-copy-logs:hover:not(:disabled) {
+    background: rgba(59, 91, 219, 0.18);
+}
+.btn-copy-logs:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.btn-copy-logs.copied {
+    border-color: var(--positive);
+    color: var(--positive);
+    background: var(--positive-bg);
 }
 
 /* Live result overlay */
@@ -568,8 +627,18 @@ body {
         font-size: 0.72rem;
         min-width: 0;
     }
-    .btn-run-all {
-        align-self: stretch;
+    .control-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .config-select-row {
+        width: 100%;
+    }
+    .config-select {
+        flex: 1;
+    }
+    .btn-run-all, .btn-copy-logs {
+        flex: 1;
         text-align: center;
         padding: 0.6rem 1rem;
     }
