@@ -48,7 +48,7 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10] }
+        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 25] }
       ]
     },
     {
@@ -95,7 +95,7 @@
         "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber matches the value issued in Step 1. A 200 with an empty array means the loyalty number did not match any customer."
       },
       "chainsTo": [
-        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3, 14] }
+        { "field": "[0].identityId", "as": "userAccountId", "usedInSteps": [3, 20] }
       ]
     },
     {
@@ -216,7 +216,7 @@
       "chainsTo": [
         { "field": "accessToken", "usedInSteps": [6, 7, 10] },
         { "field": "refreshToken", "usedInSteps": [6] },
-        { "field": "loyaltyNumber", "usedInSteps": [7, 8, 9, 10, 11] }
+        { "field": "loyaltyNumber", "usedInSteps": [7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 25] }
       ]
     },
     {
@@ -259,8 +259,8 @@
         "validationNotes": "New accessToken replaces the one from Step 5. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 5 is revoked and cannot be reused."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [7, 10, 11, 14] },
-        { "field": "refreshToken", "usedInSteps": [13] }
+        { "field": "accessToken", "usedInSteps": [7, 10, 11, 13, 14, 15, 16, 17, 20, 25] },
+        { "field": "refreshToken", "usedInSteps": [19] }
       ]
     },
     {
@@ -586,8 +586,310 @@
     },
     {
       "step": 13,
+      "name": "Get preferences",
+      "description": "Retrieve the customer's preference settings. For a newly registered account all flags default to false. Confirms the preferences sub-resource is accessible and returns the expected shape.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/preferences",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "marketingEnabled": false,
+          "analyticsEnabled": false,
+          "functionalEnabled": false,
+          "appNotificationsEnabled": false
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — preference flags returned. All four boolean flags default to false for a new account.",
+        "keyFields": ["marketingEnabled", "analyticsEnabled", "functionalEnabled", "appNotificationsEnabled"],
+        "validationNotes": "All flags must be false for a freshly registered account. A 404 means the loyalty number was not found."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 14,
+      "name": "Update preferences",
+      "description": "Replace the customer's preference settings, enabling marketing and app notifications while leaving analytics and functional disabled. Validates that the PUT replaces all flags atomically.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/preferences",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": {
+          "marketingEnabled": true,
+          "analyticsEnabled": false,
+          "functionalEnabled": false,
+          "appNotificationsEnabled": true
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — preferences replaced successfully. No response body. A subsequent GET /preferences confirms the new values.",
+        "keyFields": [],
+        "validationNotes": "PUT is a full replacement — all four flags must be provided. Omitting a flag does not leave it unchanged; it would default to false."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 15,
+      "name": "Verify preferences update",
+      "description": "Re-fetch preferences after the PUT in Step 14 to confirm the updated flags are persisted. marketingEnabled and appNotificationsEnabled should now be true.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/preferences",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "marketingEnabled": true,
+          "analyticsEnabled": false,
+          "functionalEnabled": false,
+          "appNotificationsEnabled": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — preferences reflect the values submitted in Step 14. Confirms the PUT was persisted.",
+        "keyFields": ["marketingEnabled", "analyticsEnabled", "functionalEnabled", "appNotificationsEnabled"],
+        "validationNotes": "marketingEnabled must be true. analyticsEnabled must be false. functionalEnabled must be false. appNotificationsEnabled must be true. All values must match Step 14 exactly."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 16,
+      "name": "Update profile — gender and address",
+      "description": "Patch the customer's profile to add gender and a full postal address. These fields were null after registration and the initial update in Step 11 did not set them. Validates that the PATCH accepts all address fields alongside gender.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/profile",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": {
+          "gender": "Male",
+          "addressLine1": "42 Aviation Way",
+          "addressLine2": "Suite 7",
+          "city": "London",
+          "stateOrRegion": "Greater London",
+          "postalCode": "EC1A 1BB",
+          "countryCode": "GB"
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ],
+        "diff": {
+          "gender": { "from": null, "to": "Male" },
+          "addressLine1": { "from": null, "to": "42 Aviation Way" },
+          "addressLine2": { "from": null, "to": "Suite 7" },
+          "city": { "from": null, "to": "London" },
+          "stateOrRegion": { "from": null, "to": "Greater London" },
+          "postalCode": { "from": null, "to": "EC1A 1BB" },
+          "countryCode": { "from": null, "to": "GB" }
+        }
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — profile updated with gender and address fields. No response body. A subsequent GET /profile confirms the changes.",
+        "keyFields": [],
+        "validationNotes": "Partial update — only the supplied fields are modified. Fields set in Step 11 (phoneNumber, preferredLanguage, nationality) remain unchanged. countryCode must be 2-letter ISO 3166-1 alpha-2."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 17,
+      "name": "Verify profile — gender and address",
+      "description": "Re-fetch the profile after the PATCH in Step 16 to confirm gender and all address fields are persisted. Also verifies that fields from the earlier PATCH in Step 11 remain intact.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/profile",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 6 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "loyaltyNumber": "AX1234567",
+          "givenName": "Generated",
+          "surname": "Name",
+          "email": "generated.name@testmail.example.com",
+          "phoneNumber": "+447700900456",
+          "preferredLanguage": "fr-FR",
+          "nationality": "GB",
+          "gender": "Male",
+          "dateOfBirth": "1990-06-15",
+          "addressLine1": "42 Aviation Way",
+          "addressLine2": "Suite 7",
+          "city": "London",
+          "stateOrRegion": "Greater London",
+          "postalCode": "EC1A 1BB",
+          "countryCode": "GB",
+          "tier": "Blue",
+          "pointsBalance": 750,
+          "memberSince": "2026-03-24T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — profile returned with gender and address from Step 16, plus phoneNumber, preferredLanguage, and nationality from Step 11. All fields are present and correct.",
+        "keyFields": ["gender", "addressLine1", "addressLine2", "city", "stateOrRegion", "postalCode", "countryCode"],
+        "validationNotes": "gender must be 'Male'. addressLine1 must be '42 Aviation Way'. city must be 'London'. postalCode must be 'EC1A 1BB'. countryCode must be 'GB'. phoneNumber must still be '+447700900456' from Step 11. pointsBalance must still be 750."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 18,
+      "name": "Re-login",
+      "description": "Authenticate again with the original credentials from Step 1. Validates that the account is still fully functional after all profile and preference changes. Issues a fresh token pair for subsequent steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "email", "source": "Step 1 → runtime-generated email" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi..._RELOGIN",
+          "refreshToken": "cmVsb2dpbiByZWZyZXNoIHRva2VuIGV4YW1wbGU...",
+          "expiresAt": "2026-03-27T14:45:00Z",
+          "tokenType": "Bearer",
+          "loyaltyNumber": "AX9876543"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — credentials validated on second login. Fresh access token and refresh token issued. loyaltyNumber matches Step 1. Confirms the account is unaffected by profile and preference changes.",
+        "keyFields": ["accessToken", "refreshToken", "expiresAt", "tokenType", "loyaltyNumber"],
+        "validationNotes": "accessToken is a new signed JWT (RS256). refreshToken is a new single-use token. loyaltyNumber must match the value from Step 1. expiresAt is ISO 8601 UTC, approximately 15 minutes from now."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [20, 25] },
+        { "field": "refreshToken", "usedInSteps": [19] }
+      ]
+    },
+    {
+      "step": 19,
       "name": "Logout",
-      "description": "Invalidate the session by revoking the refresh token. The access token remains valid until its TTL expires (~15 min).",
+      "description": "Invalidate the session by revoking the refresh token from the re-login in Step 18. The access token remains valid until its TTL expires (~15 min).",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -599,12 +901,12 @@
           "Content-Type": "application/json"
         },
         "body": {
-          "refreshToken": "bmV3IHJlZnJlc2ggdG9rZW4gYWZ0ZXIgcm90YXRpb24..."
+          "refreshToken": "cmVsb2dpbiByZWZyZXNoIHRva2VuIGV4YW1wbGU..."
         },
         "dataChain": [
           {
             "field": "refreshToken",
-            "source": "Step 6 → response.refreshToken"
+            "source": "Step 18 → response.refreshToken"
           }
         ]
       },
@@ -621,7 +923,7 @@
       "chainsTo": []
     },
     {
-      "step": 14,
+      "step": 20,
       "name": "Request email change",
       "description": "Submit an email change request for the authenticated account. The Identity MS generates an EmailResetToken GUID and (in production) emails the token to the new address. The token is not returned in the response — delivery is out of scope for this test; the step validates that the orchestration layer accepts the request and returns 202 Accepted.",
       "type": "positive",
@@ -637,14 +939,14 @@
       "request": {
         "headers": {
           "Content-Type": "application/json",
-          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._NEW"
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._RELOGIN"
         },
         "body": {
           "newEmail": "changed.email.test@testmail.example.com"
         },
         "dataChain": [
           { "field": "userAccountId (path)", "source": "Step 2 → response[0].identityId" },
-          { "field": "Authorization", "source": "Step 6 → response.accessToken" }
+          { "field": "Authorization", "source": "Step 18 → response.accessToken" }
         ]
       },
       "response": {
@@ -660,7 +962,7 @@
       "chainsTo": []
     },
     {
-      "step": 15,
+      "step": 21,
       "name": "Verify email change — invalid token",
       "description": "Attempt to verify an email change using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account email.",
       "type": "negative",
@@ -694,7 +996,7 @@
       "chainsTo": []
     },
     {
-      "step": 16,
+      "step": 22,
       "name": "Password reset request — known email",
       "description": "Submit a password reset request for the email address registered in Step 1. The Identity MS generates a PasswordResetToken GUID and (in production) emails a reset link. The step validates enumeration protection — 202 Accepted is always returned regardless of whether the email exists.",
       "type": "positive",
@@ -728,7 +1030,7 @@
       "chainsTo": []
     },
     {
-      "step": 17,
+      "step": 23,
       "name": "Password reset request — unknown email",
       "description": "Submit a password reset request for an email address that does not exist in the system. Validates that the enumeration protection policy returns 202 Accepted even when no matching account is found.",
       "type": "positive",
@@ -754,12 +1056,12 @@
         "statusCode": 202,
         "description": "202 Accepted — same response as for a known email. The Identity MS silently discards the request when no matching account is found. No response body.",
         "keyFields": [],
-        "validationNotes": "The response must be identical to Step 16. Any difference in status code or body between known and unknown emails constitutes an account enumeration vulnerability."
+        "validationNotes": "The response must be identical to Step 22. Any difference in status code or body between known and unknown emails constitutes an account enumeration vulnerability."
       },
       "chainsTo": []
     },
     {
-      "step": 18,
+      "step": 24,
       "name": "Password reset — invalid token",
       "description": "Attempt to reset the password using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account password.",
       "type": "negative",
@@ -789,6 +1091,47 @@
         "description": "400 Bad Request — the token does not match any pending password reset. Response body contains an error message. The account password is unchanged.",
         "keyFields": ["error"],
         "validationNotes": "The all-zeros GUID will never match a real PasswordResetToken. A 200 would indicate a security vulnerability allowing password reset without a valid token."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 25,
+      "name": "Delete account",
+      "description": "Delete the loyalty account created in Step 1. This is the final cleanup step — it removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}/account",
+        "baseUrlRef": "loyalty",
+        "pathParams": {
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...._RELOGIN"
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 18 → response.accessToken"
+          },
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 5 → response.loyaltyNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — loyalty account deleted. The Customer MS record is removed. No response body. A subsequent GET /profile for this loyalty number would return 404.",
+        "keyFields": [],
+        "validationNotes": "Idempotent — calling again returns 404 (already deleted). This is the final test step and serves as cleanup for the runtime-generated account."
       },
       "chainsTo": []
     }
