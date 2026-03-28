@@ -33,12 +33,43 @@
     const FIRST_NAMES = [
         'Amara', 'James', 'Priya', 'Liam', 'Fatima', 'Oliver', 'Sophie',
         'Mohammed', 'Emily', 'Carlos', 'Aisha', 'Daniel', 'Charlotte',
-        'Ravi', 'Emma', 'Noah', 'Mia', 'David', 'Yuki', 'Thomas'
+        'Ravi', 'Emma', 'Noah', 'Mia', 'David', 'Yuki', 'Thomas',
+        'Aaliya', 'Adrian', 'Akiko', 'Alejandro', 'Amira', 'Andrei',
+        'Annika', 'Antonio', 'Arjun', 'Astrid', 'Beatriz', 'Benjamin',
+        'Bianca', 'Bjorn', 'Camille', 'Chen', 'Chiara', 'Chloe',
+        'Cristina', 'Daisuke', 'Daria', 'Declan', 'Dmitri', 'Elena',
+        'Elias', 'Emeka', 'Erika', 'Ethan', 'Farah', 'Felix',
+        'Freya', 'Gabriel', 'Gabriella', 'Hamza', 'Hannah', 'Haruki',
+        'Hassan', 'Helena', 'Hugo', 'Ibrahim', 'Ingrid', 'Isla',
+        'Ivan', 'Jack', 'Jasmine', 'Javier', 'Julia', 'Jun',
+        'Kai', 'Kamila', 'Karim', 'Katarina', 'Kenji', 'Khadija',
+        'Kwame', 'Layla', 'Leo', 'Lina', 'Lucas', 'Luna',
+        'Malik', 'Mariam', 'Mateo', 'Maya', 'Mei', 'Miguel',
+        'Nadia', 'Nathan', 'Nia', 'Nikolai', 'Nina', 'Noor',
+        'Oscar', 'Petra', 'Rafael', 'Rana', 'Rosa', 'Rowan',
+        'Sahra', 'Samuel', 'Sara', 'Sebastian', 'Seo-Yeon', 'Sienna',
+        'Soren', 'Tariq', 'Valentina', 'Victor', 'William', 'Xin',
+        'Yasmin', 'Zahra', 'Zara', 'Zoe'
     ];
     const SURNAMES = [
         'Okafor', 'Smith', 'Patel', 'Johnson', 'Ahmed', 'Garcia', 'Williams',
         'Taylor', 'Kumar', 'Martinez', 'Anderson', 'Robinson', 'Harris',
-        'Lee', 'Wilson', 'Clark', 'Lewis', 'Walker', 'Hall', 'Brown'
+        'Lee', 'Wilson', 'Clark', 'Lewis', 'Walker', 'Hall', 'Brown',
+        'Andersson', 'Bauer', 'Beltrán', 'Berg', 'Bergström', 'Bianchi',
+        'Bogdanov', 'Cai', 'Castillo', 'Chandra', 'Chang', 'Cheung',
+        'Costa', 'Cruz', 'Da Silva', 'De Jong', 'Delgado', 'Deng',
+        'Diallo', 'Dubois', 'Eriksen', 'Fernandez', 'Fischer', 'Flores',
+        'Fontaine', 'Fujimoto', 'Gao', 'Gomez', 'Gonzalez', 'Gruber',
+        'Gupta', 'Hansen', 'Hasan', 'Hernandez', 'Ho', 'Hoffmann',
+        'Hussain', 'Ibrahim', 'Ishikawa', 'Ivanov', 'Jensen', 'Johansson',
+        'Kato', 'Khan', 'Kim', 'Kowalski', 'Larsen', 'Laurent',
+        'Li', 'Lindberg', 'Lopez', 'Lund', 'Mäkinen', 'Mancini',
+        'Mendoza', 'Meyer', 'Moreau', 'Moreno', 'Morita', 'Muller',
+        'Murphy', 'Nakamura', 'Ng', 'Nielsen', 'Novak', 'Oliveira',
+        'Omar', 'Park', 'Petrov', 'Ramirez', 'Reyes', 'Rossi',
+        'Santos', 'Sato', 'Schmidt', 'Schneider', 'Singh', 'Svensson',
+        'Takahashi', 'Tanaka', 'Torres', 'Tran', 'Virtanen', 'Wagner',
+        'Wang', 'Weber', 'Wong', 'Wu', 'Yamamoto', 'Zhang'
     ];
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
