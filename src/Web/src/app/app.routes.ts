@@ -59,6 +59,7 @@ export const routes: Routes = [
       { path: 'register', loadComponent: () => import('./pages/loyalty/register/register').then(m => m.LoyaltyRegisterComponent) },
       { path: 'account', loadComponent: () => import('./pages/loyalty/account/account').then(m => m.LoyaltyAccountComponent) },
       { path: 'password-reset', loadComponent: () => import('./pages/loyalty/password-reset/password-reset').then(m => m.PasswordResetComponent) },
+      { path: 'confirm-email', loadComponent: () => import('./pages/loyalty/confirm-email/confirm-email').then(m => m.ConfirmEmailComponent) },
     ]
   },
 

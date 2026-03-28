@@ -1,9 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
 
-export type ResetStep = 'request' | 'reset' | 'done';
+export type ResetStep = 'request' | 'check-email' | 'reset' | 'done';
 
 @Component({
   selector: 'app-password-reset',
@@ -12,18 +12,19 @@ export type ResetStep = 'request' | 'reset' | 'done';
   templateUrl: './password-reset.html',
   styleUrl: './password-reset.css'
 })
-export class PasswordResetComponent {
+export class PasswordResetComponent implements OnInit {
   private readonly loyaltyApi = inject(LoyaltyApiService);
+  private readonly route = inject(ActivatedRoute);
 
   step = signal<ResetStep>('request');
 
-  // Step 1
+  // Step 'request'
   email = signal('');
   requestLoading = signal(false);
   requestError = signal<string | null>(null);
 
-  // Step 2
-  token = signal('');
+  // Step 'reset' — token supplied via URL query param
+  resetToken = signal('');
   newPassword = signal('');
   confirmNewPassword = signal('');
   showNewPassword = signal(false);
@@ -31,8 +32,15 @@ export class PasswordResetComponent {
   resetLoading = signal(false);
   resetError = signal<string | null>(null);
 
+  ngOnInit(): void {
+    const token = this.route.snapshot.queryParamMap.get('token');
+    if (token) {
+      this.resetToken.set(token);
+      this.step.set('reset');
+    }
+  }
+
   setEmail(v: string): void { this.email.set(v); }
-  setToken(v: string): void { this.token.set(v.replace(/\D/g, '').substring(0, 6)); }
   setNewPassword(v: string): void { this.newPassword.set(v); }
   setConfirmNewPassword(v: string): void { this.confirmNewPassword.set(v); }
   toggleShowNewPassword(): void { this.showNewPassword.update(v => !v); }
@@ -48,24 +56,18 @@ export class PasswordResetComponent {
     this.loyaltyApi.requestPasswordReset(this.email()).subscribe({
       next: () => {
         this.requestLoading.set(false);
-        // Always move to step 2 (security: don't reveal if email exists)
-        this.step.set('reset');
+        // Always advance — security: don't reveal whether the email is registered
+        this.step.set('check-email');
       },
       error: () => {
         this.requestLoading.set(false);
-        // Still move forward — don't leak account existence
-        this.step.set('reset');
+        this.step.set('check-email');
       }
     });
   }
 
   submitReset(): void {
     this.resetError.set(null);
-
-    if (this.token().length !== 6) {
-      this.resetError.set('Please enter the 6-digit code from your email.');
-      return;
-    }
 
     if (!this.newPassword()) {
       this.resetError.set('Please enter a new password.');
@@ -83,14 +85,16 @@ export class PasswordResetComponent {
     }
 
     this.resetLoading.set(true);
-    this.loyaltyApi.resetPassword(this.token(), this.newPassword()).subscribe({
+    this.loyaltyApi.resetPassword(this.resetToken(), this.newPassword()).subscribe({
       next: () => {
         this.resetLoading.set(false);
         this.step.set('done');
       },
       error: (err: { message?: string }) => {
         this.resetLoading.set(false);
-        this.resetError.set(err?.message ?? 'Reset failed. Please try again.');
+        this.resetError.set(
+          err?.message ?? 'Reset failed. The link may have expired or already been used. Please request a new one.'
+        );
       }
     });
   }
