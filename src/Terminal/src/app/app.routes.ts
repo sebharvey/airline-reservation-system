@@ -41,6 +41,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/schedules/schedules').then(m => m.SchedulesComponent),
       },
       {
+        path: 'fare-rules',
+        loadComponent: () => import('./pages/fare-rules/fare-rules').then(m => m.FareRulesComponent),
+      },
+      {
         path: 'terminal',
         loadComponent: () => import('./pages/terminal/terminal').then(m => m.TerminalComponent),
       },

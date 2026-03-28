@@ -239,3 +239,88 @@ public sealed class StoredOffer
 
     public void Consume() { IsConsumed = true; UpdatedAt = DateTime.UtcNow; }
 }
+
+public sealed class FareRule
+{
+    public Guid FareRuleId { get; private set; }
+    public string? FlightNumber { get; private set; }
+    public string FareBasisCode { get; private set; } = string.Empty;
+    public string? FareFamily { get; private set; }
+    public string CabinCode { get; private set; } = string.Empty;
+    public string BookingClass { get; private set; } = string.Empty;
+    public string CurrencyCode { get; private set; } = string.Empty;
+    public decimal BaseFareAmount { get; private set; }
+    public decimal TaxAmount { get; private set; }
+    public decimal TotalAmount { get; private set; }
+    public bool IsRefundable { get; private set; }
+    public bool IsChangeable { get; private set; }
+    public decimal ChangeFeeAmount { get; private set; }
+    public decimal CancellationFeeAmount { get; private set; }
+    public int? PointsPrice { get; private set; }
+    public decimal? PointsTaxes { get; private set; }
+    public DateTime ValidFrom { get; private set; }
+    public DateTime ValidTo { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
+
+    private FareRule() { }
+
+    public static FareRule Create(
+        string? flightNumber, string fareBasisCode, string? fareFamily, string cabinCode,
+        string bookingClass, string currencyCode, decimal baseFareAmount, decimal taxAmount,
+        bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo)
+    {
+        return new FareRule
+        {
+            FareRuleId = Guid.NewGuid(),
+            FlightNumber = flightNumber, FareBasisCode = fareBasisCode, FareFamily = fareFamily,
+            CabinCode = cabinCode, BookingClass = bookingClass, CurrencyCode = currencyCode,
+            BaseFareAmount = baseFareAmount, TaxAmount = taxAmount,
+            TotalAmount = baseFareAmount + taxAmount,
+            IsRefundable = isRefundable, IsChangeable = isChangeable,
+            ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
+            PointsPrice = pointsPrice, PointsTaxes = pointsTaxes,
+            ValidFrom = validFrom, ValidTo = validTo,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    public static FareRule Reconstitute(
+        Guid fareRuleId, string? flightNumber, string fareBasisCode, string? fareFamily,
+        string cabinCode, string bookingClass, string currencyCode,
+        decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
+        bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo,
+        DateTime createdAt, DateTime updatedAt)
+    {
+        return new FareRule
+        {
+            FareRuleId = fareRuleId, FlightNumber = flightNumber, FareBasisCode = fareBasisCode,
+            FareFamily = fareFamily, CabinCode = cabinCode, BookingClass = bookingClass,
+            CurrencyCode = currencyCode, BaseFareAmount = baseFareAmount, TaxAmount = taxAmount,
+            TotalAmount = totalAmount, IsRefundable = isRefundable, IsChangeable = isChangeable,
+            ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
+            PointsPrice = pointsPrice, PointsTaxes = pointsTaxes,
+            ValidFrom = validFrom, ValidTo = validTo,
+            CreatedAt = createdAt, UpdatedAt = updatedAt
+        };
+    }
+
+    public void Update(
+        string? flightNumber, string fareBasisCode, string? fareFamily, string cabinCode,
+        string bookingClass, string currencyCode, decimal baseFareAmount, decimal taxAmount,
+        bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo)
+    {
+        FlightNumber = flightNumber; FareBasisCode = fareBasisCode; FareFamily = fareFamily;
+        CabinCode = cabinCode; BookingClass = bookingClass; CurrencyCode = currencyCode;
+        BaseFareAmount = baseFareAmount; TaxAmount = taxAmount;
+        TotalAmount = baseFareAmount + taxAmount;
+        IsRefundable = isRefundable; IsChangeable = isChangeable;
+        ChangeFeeAmount = changeFeeAmount; CancellationFeeAmount = cancellationFeeAmount;
+        PointsPrice = pointsPrice; PointsTaxes = pointsTaxes;
+        ValidFrom = validFrom; ValidTo = validTo;
+        UpdatedAt = DateTime.UtcNow;
+    }
+}
