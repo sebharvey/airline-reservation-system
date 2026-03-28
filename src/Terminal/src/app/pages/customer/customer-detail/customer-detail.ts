@@ -7,6 +7,7 @@ import {
   Transaction,
   UpdateCustomerRequest,
 } from '../../../services/customer.service';
+import { CustomerSearchStateService } from '../../../services/customer-search-state.service';
 
 export interface Country {
   code: string;
@@ -81,6 +82,7 @@ export class CustomerDetailComponent implements OnInit {
   #route = inject(ActivatedRoute);
   #router = inject(Router);
   #customerService = inject(CustomerService);
+  #searchState = inject(CustomerSearchStateService);
 
   loyaltyNumber = '';
   activeTab = signal<'details' | 'transactions' | 'orders'>('details');
@@ -306,6 +308,9 @@ export class CustomerDetailComponent implements OnInit {
     this.error.set('');
     try {
       await this.#customerService.deleteCustomer(this.loyaltyNumber);
+      this.#searchState.results.update(results =>
+        results.filter(c => c.loyaltyNumber !== this.loyaltyNumber)
+      );
       this.#router.navigate(['/customer']);
     } catch {
       this.error.set('Failed to delete account. Please try again.');
