@@ -4,7 +4,7 @@
     "description": "End-to-end journey covering flight schedule creation via the Operations API, which orchestrates the Schedule MS (schedule persistence and date enumeration) and the Offer MS (FlightInventory and Fare record generation). Tests successful single-cabin and multi-cabin schedule creation, inventory count validation, and request validation error handling.",
     "domain": "Operations",
     "baseUrls": [
-      { "id": "operations", "label": "Operations API", "url": "https://apexair-operations-api-e9edf5c4cfihicew.ukwest-01.azurewebsites.net" }
+      { "id": "operations", "label": "Operations API", "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net" }
     ]
   },
   "steps": [
