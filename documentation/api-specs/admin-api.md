@@ -5,9 +5,9 @@
 > **Transport:** HTTPS (TLS 1.2 minimum)
 > **Content type:** `application/json`
 
-The Admin API is the orchestration entry point for internal staff authentication across all back-office applications (Contact Centre App, Airport App, Accounting System App, Ops Admin App). It coordinates the User microservice (employee credentials, account state, JWT issuance) to provide a unified authentication interface for staff-facing channels. The Admin API owns no database tables — all persistence is delegated to the User microservice it orchestrates.
+The Admin API is the orchestration entry point for internal staff applications (Contact Centre App, Airport App, Accounting System App, Ops Admin App). It coordinates the User microservice (employee credentials, account state, JWT issuance) to provide a unified authentication interface and user management capabilities for staff-facing channels. The Admin API owns no database tables — all persistence is delegated to the User microservice it orchestrates.
 
-> **Important:** Staff-facing applications must never call the User microservice directly. All staff authentication routes through this API.
+> **Important:** Staff-facing applications must never call the User microservice directly. All staff authentication and user management routes through this API.
 
 ---
 
@@ -40,6 +40,13 @@ The Admin API is the orchestration entry point for internal staff authentication
 | Service | Endpoints called | Purpose |
 |---------|-----------------|---------|
 | **User MS** | `POST /v1/users/login` | Credential validation, account state checks, and JWT issuance for staff login |
+| **User MS** | `GET /v1/users` | List all employee user accounts |
+| **User MS** | `GET /v1/users/{userId}` | Get a single employee user account |
+| **User MS** | `POST /v1/users` | Create a new employee user account |
+| **User MS** | `PATCH /v1/users/{userId}` | Update user profile fields |
+| **User MS** | `PATCH /v1/users/{userId}/status` | Activate or deactivate a user account |
+| **User MS** | `POST /v1/users/{userId}/unlock` | Unlock a locked user account |
+| **User MS** | `POST /v1/users/{userId}/reset-password` | Reset a user's password |
 
 ---
 
@@ -109,6 +116,173 @@ Authenticate a staff member with their username and password. Delegates to the U
 
 ---
 
+### GET /v1/admin/users
+
+Retrieve all employee user accounts. Passwords are never included.
+
+**Route:** `GET /api/v1/admin/users`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Response body — 200 OK
+
+Array of user objects:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `userId` | `guid` | Unique identifier |
+| `username` | `string` | Employee login username |
+| `email` | `string` | Employee email address |
+| `firstName` | `string` | Employee first name |
+| `lastName` | `string` | Employee last name |
+| `isActive` | `boolean` | Whether the account is active |
+| `isLocked` | `boolean` | Whether the account is locked |
+| `lastLoginAt` | `datetime?` | UTC timestamp of last successful login; `null` if never logged in |
+| `createdAt` | `datetime` | UTC timestamp when account was created |
+
+---
+
+### GET /v1/admin/users/{userId}
+
+Retrieve a single employee user account by ID.
+
+**Route:** `GET /api/v1/admin/users/{userId:guid}`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Response body — 200 OK
+
+Same shape as a single element from the list endpoint above.
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `404 Not Found` | User does not exist |
+
+---
+
+### POST /v1/admin/users
+
+Create a new employee user account.
+
+**Route:** `POST /api/v1/admin/users`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `username` | `string` | Yes | Employee login username (max 100 chars) |
+| `email` | `string` | Yes | Employee email (max 254 chars, RFC 5321) |
+| `password` | `string` | Yes | Initial password |
+| `firstName` | `string` | Yes | First name (max 100 chars) |
+| `lastName` | `string` | Yes | Last name (max 100 chars) |
+
+#### Response body — 201 Created
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `userId` | `guid` | The new user's unique identifier |
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing or invalid fields |
+| `409 Conflict` | Username or email already exists |
+
+---
+
+### PATCH /v1/admin/users/{userId}
+
+Update an employee user account's profile fields. All fields are optional; only supplied fields are updated.
+
+**Route:** `PATCH /api/v1/admin/users/{userId:guid}`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `firstName` | `string` | No | Updated first name |
+| `lastName` | `string` | No | Updated last name |
+| `email` | `string` | No | Updated email |
+
+#### Response — 204 No Content
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | No fields supplied or validation error |
+| `404 Not Found` | User does not exist |
+| `409 Conflict` | Email already in use by another user |
+
+---
+
+### PATCH /v1/admin/users/{userId}/status
+
+Activate or deactivate an employee user account.
+
+**Route:** `PATCH /api/v1/admin/users/{userId:guid}/status`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `isActive` | `boolean` | Yes | `true` to activate, `false` to deactivate |
+
+#### Response — 204 No Content
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `404 Not Found` | User does not exist |
+
+---
+
+### POST /v1/admin/users/{userId}/unlock
+
+Unlock a locked employee user account and reset failed login attempts to zero.
+
+**Route:** `POST /api/v1/admin/users/{userId:guid}/unlock`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Response — 204 No Content
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `404 Not Found` | User does not exist |
+
+---
+
+### POST /v1/admin/users/{userId}/reset-password
+
+Reset an employee user's password. Also unlocks the account and clears failed login attempts.
+
+**Route:** `POST /api/v1/admin/users/{userId:guid}/reset-password`
+**Auth:** Bearer token required (staff JWT with `role: User`)
+
+#### Request body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `newPassword` | `string` | Yes | The new password |
+
+#### Response — 204 No Content
+
+#### Error responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Password field missing or invalid |
+| `404 Not Found` | User does not exist |
+
+---
+
 ## Login flow — orchestration detail
 
 ```
@@ -140,3 +314,6 @@ The Admin API reads the following settings at startup:
 |-----|-------------|
 | `UserMs:BaseUrl` | Base URL of the User microservice Azure Function |
 | `UserMs:HostKey` | Azure Function Host Key for service-to-service authentication; retrieved from Azure Key Vault via managed identity at runtime |
+| `UserMs:JwtSecret` | Base64-encoded HMAC-SHA256 key for staff JWT validation (used by TerminalAuthenticationMiddleware on admin endpoints) |
+| `UserMs:JwtIssuer` | Expected JWT issuer (default: `apex-air-user`) |
+| `UserMs:JwtAudience` | Expected JWT audience (default: `apex-air-reservation`) |

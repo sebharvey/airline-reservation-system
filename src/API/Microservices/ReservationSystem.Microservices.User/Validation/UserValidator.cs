@@ -56,4 +56,47 @@ public static class UserValidator
 
         return errors;
     }
+
+    /// <summary>
+    /// Validate fields for PATCH /v1/users/{userId} (update user).
+    /// At least one field must be supplied.
+    /// </summary>
+    public static List<string> ValidateUpdateUser(
+        string? firstName,
+        string? lastName,
+        string? email)
+    {
+        var errors = new List<string>();
+
+        if (firstName is null && lastName is null && email is null)
+        {
+            errors.Add("At least one field must be supplied.");
+            return errors;
+        }
+
+        if (firstName is not null && string.IsNullOrWhiteSpace(firstName))
+            errors.Add("The 'firstName' field must not be empty when supplied.");
+        else if (firstName is not null && firstName.Length > 100)
+            errors.Add("The 'firstName' field must not exceed 100 characters.");
+
+        if (lastName is not null && string.IsNullOrWhiteSpace(lastName))
+            errors.Add("The 'lastName' field must not be empty when supplied.");
+        else if (lastName is not null && lastName.Length > 100)
+            errors.Add("The 'lastName' field must not exceed 100 characters.");
+
+        if (email is not null)
+            CommonFieldValidator.ValidateEmail(email, errors);
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validate fields for POST /v1/users/{userId}/reset-password.
+    /// </summary>
+    public static List<string> ValidateResetPassword(string? newPassword)
+    {
+        var errors = new List<string>();
+        CommonFieldValidator.ValidatePassword(newPassword, errors);
+        return errors;
+    }
 }

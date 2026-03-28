@@ -78,8 +78,8 @@
 }
 
 .stat-active .stat-value  { color: #3fb950; }
-.stat-pending .stat-value { color: #d29922; }
-.stat-suspended .stat-value { color: #f85149; }
+.stat-inactive .stat-value { color: #d29922; }
+.stat-locked .stat-value { color: #f85149; }
 
 /* ── Add form ── */
 .add-form-card {
@@ -298,12 +298,9 @@
   letter-spacing: 0.3px;
 }
 
-.badge-agent    { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
-.badge-super    { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.badge-admin    { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
 .badge-active   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
-.badge-pending  { background: rgba(210, 153, 34, 0.15); color: #d29922; }
-.badge-suspended { background: rgba(248, 81, 73, 0.12); color: #f85149; }
+.badge-inactive { background: rgba(210, 153, 34, 0.15); color: #d29922; }
+.badge-locked   { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
 
 .muted { color: var(--text-muted); }
 .mono  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
@@ -448,6 +445,67 @@
     flex-direction: column;
     gap: 12px;
   }
+}
+
+/* ── Messages ── */
+.msg {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  animation: slideIn 0.2s ease;
+}
+
+.msg-error {
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.25);
+}
+
+.msg-success {
+  background: rgba(63, 185, 80, 0.1);
+  color: #3fb950;
+  border: 1px solid rgba(63, 185, 80, 0.25);
+}
+
+/* ── Loading ── */
+.loading-bar {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Header actions ── */
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Edit / Reset forms ── */
+.edit-form,
+.reset-form {
+  width: 100%;
+  animation: slideIn 0.2s ease;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reset-form .field {
+  margin-bottom: 12px;
+  max-width: 400px;
+}
+
+.detail-panel {
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @keyframes slideIn {
