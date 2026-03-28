@@ -16,5 +16,5 @@ public sealed record UpdateFareRuleCommand(
     decimal CancellationFeeAmount,
     int? PointsPrice,
     decimal? PointsTaxes,
-    string ValidFrom,
-    string ValidTo);
+    string? ValidFrom,
+    string? ValidTo);

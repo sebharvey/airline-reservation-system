@@ -20,8 +20,8 @@ export interface FareRule {
   cancellationFeeAmount: number;
   pointsPrice: number | null;
   pointsTaxes: number | null;
-  validFrom: string;
-  validTo: string;
+  validFrom: string | null;
+  validTo: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,8 +41,8 @@ export interface CreateFareRuleRequest {
   cancellationFeeAmount: number;
   pointsPrice?: number | null;
   pointsTaxes?: number | null;
-  validFrom: string;
-  validTo: string;
+  validFrom?: string | null;
+  validTo?: string | null;
 }
 
 export type UpdateFareRuleRequest = CreateFareRuleRequest;

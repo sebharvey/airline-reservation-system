@@ -828,8 +828,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
             pointsPrice: (int?)row.PointsPrice,
             pointsTaxes: (decimal?)row.PointsTaxes,
-            validFrom: (DateTime)row.ValidFrom,
-            validTo: (DateTime)row.ValidTo,
+            validFrom: (DateTime?)row.ValidFrom,
+            validTo: (DateTime?)row.ValidTo,
             createdAt: (DateTime)row.CreatedAt,
             updatedAt: (DateTime)row.UpdatedAt);
     }
