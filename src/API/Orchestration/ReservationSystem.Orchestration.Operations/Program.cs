@@ -27,12 +27,18 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("ScheduleMs", client =>
         {
-            client.BaseAddress = context.Configuration["ScheduleMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["ScheduleMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://reservation-system-db-microservice-offer-dnfdbebdezemaghp.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["OfferMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         // ── Health check ───────────────────────────────────────────────────────
