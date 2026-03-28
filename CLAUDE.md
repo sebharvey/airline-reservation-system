@@ -34,6 +34,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │   │   ├── identity.md
 │   │   ├── accounting.md
 │   │   └── user.md
+│   ├── service-urls.md                   ← live base URLs for all deployed services
 │   ├── api-reference.md                  ← all API endpoints, verbs, and descriptions
 │   ├── api.md                            ← how to build backend microservices and APIs
 │   ├── web.md                            ← how to build the Angular web front-end
@@ -70,6 +71,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 |------|-------------|
 | `documentation/system-overview.md` | Always — before any work. Contains domain model, architecture, airline context. |
 | `documentation/design/<domain>.md` | When working on a specific domain. Contains data schemas, sequence flows, business rules. |
+| `documentation/service-urls.md` | When configuring downstream service calls. Live base URLs for all deployed APIs and microservices. |
 | `documentation/api-reference.md` | When adding or modifying endpoints. Every endpoint with verb, path, description. |
 | `documentation/api.md` | When building backend APIs. Clean architecture pattern, naming, conventions. |
 | `documentation/web.md` | When building Angular pages. Routing, state management, API integration. |

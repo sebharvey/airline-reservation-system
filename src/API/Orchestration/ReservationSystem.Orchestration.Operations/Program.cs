@@ -29,9 +29,9 @@ var host = new HostBuilder()
             client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://localhost:7071/");
         });
 
-        services.AddHttpClient("IdentityMs", client =>
+        services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"] ?? "https://localhost:7073/");
+            client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://localhost:7072/");
         });
 
         // ── Health check ───────────────────────────────────────────────────────
@@ -39,6 +39,7 @@ var host = new HostBuilder()
 
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<ScheduleServiceClient>();
+        services.AddScoped<OfferServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSsimHandler>();
