@@ -56,7 +56,7 @@
       "id": "operations-api",
       "name": "Operations API",
       "description": "Internal orchestration layer for airline operations staff. Manages flight schedules, generating bulk flight inventory and fare records via Schedule MS and Offer MS.",
-      "baseUrl": "https://apexair-operations-api-e9edf5c4cfihicew.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
