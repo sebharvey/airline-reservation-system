@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { CustomerService, CustomerSummary } from '../../../services/customer.service';
 
@@ -7,7 +7,7 @@ import { CustomerService, CustomerSummary } from '../../../services/customer.ser
   templateUrl: './customer-list.html',
   styleUrl: './customer-list.css',
 })
-export class CustomerListComponent implements OnInit {
+export class CustomerListComponent {
   #customerService = inject(CustomerService);
   #router = inject(Router);
 
@@ -16,20 +16,6 @@ export class CustomerListComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
-
-  ngOnInit(): void {
-    this.loadCustomers();
-  }
-
-  filteredCustomers = computed(() => {
-    const q = this.search().toLowerCase();
-    if (!q) return this.customers();
-    return this.customers().filter(c =>
-      c.givenName.toLowerCase().includes(q) ||
-      c.surname.toLowerCase().includes(q) ||
-      c.loyaltyNumber.toLowerCase().includes(q)
-    );
-  });
 
   stats = computed(() => {
     const all = this.customers();
@@ -45,20 +31,6 @@ export class CustomerListComponent implements OnInit {
     };
   });
 
-  async loadCustomers(): Promise<void> {
-    this.loading.set(true);
-    this.error.set('');
-    try {
-      const result = await this.#customerService.searchCustomers();
-      this.customers.set(result);
-      this.loaded.set(true);
-    } catch {
-      this.error.set('Failed to load customers. Please try again.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
   async searchCustomers(): Promise<void> {
     this.loading.set(true);
     this.error.set('');
@@ -67,7 +39,7 @@ export class CustomerListComponent implements OnInit {
       this.customers.set(result);
       this.loaded.set(true);
     } catch {
-      this.error.set('Search failed. Please try again.');
+      this.error.set('Failed to load customers. Please try again.');
     } finally {
       this.loading.set(false);
     }

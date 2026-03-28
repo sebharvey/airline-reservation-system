@@ -6,14 +6,36 @@
       <h1 class="page-title">Loyalty Customers</h1>
       <p class="page-subtitle">Search and manage loyalty programme members</p>
     </div>
-    <button class="load-btn" (click)="loadCustomers()" [disabled]="loading()">
+  </div>
+
+  <!-- Search -->
+  <div class="search-row">
+    <div class="search-field">
+      <span class="search-icon">&#128269;</span>
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Search by name or loyalty number…"
+        [value]="search()"
+        (input)="setSearch($any($event.target).value)"
+        (keydown.enter)="searchCustomers()"
+      />
+    </div>
+    <button class="search-btn" (click)="searchCustomers()" [disabled]="loading()">
       @if (loading()) {
-        <span class="btn-spinner"></span> Loading…
+        <span class="btn-spinner"></span> Searching…
       } @else {
-        Refresh
+        Search
       }
     </button>
   </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
 
   <!-- Stats row -->
   @if (loaded()) {
@@ -37,30 +59,6 @@
     </div>
   }
 
-  <!-- Error -->
-  @if (error()) {
-    <div class="error-banner" role="alert">
-      <span>&#9888;</span> {{ error() }}
-    </div>
-  }
-
-  <!-- Search -->
-  @if (loaded()) {
-    <div class="search-row">
-      <div class="search-field">
-        <span class="search-icon">&#128269;</span>
-        <input
-          class="search-input"
-          type="search"
-          placeholder="Filter by name or loyalty number…"
-          [value]="search()"
-          (input)="setSearch($any($event.target).value)"
-        />
-      </div>
-      <button class="search-btn" (click)="searchCustomers()" [disabled]="loading()">Search API</button>
-    </div>
-  }
-
   <!-- Customer table -->
   @if (loaded()) {
     <div class="table-card">
@@ -76,7 +74,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (customer of filteredCustomers(); track customer.loyaltyNumber) {
+          @for (customer of customers(); track customer.loyaltyNumber) {
             <tr class="customer-row" (click)="openCustomer(customer.loyaltyNumber)">
               <td>
                 <div class="customer-cell">
@@ -101,7 +99,7 @@
             </tr>
           }
 
-          @if (filteredCustomers().length === 0 && loaded()) {
+          @if (customers().length === 0 && loaded()) {
             <tr>
               <td colspan="6" class="empty-row">No customers found.</td>
             </tr>
@@ -111,15 +109,22 @@
     </div>
 
     <p class="results-count">
-      Showing {{ filteredCustomers().length }} of {{ customers().length }} customers
+      Showing {{ customers().length }} customers
     </p>
+  }
+
+  <!-- Empty state before first search -->
+  @if (!loaded() && !loading()) {
+    <div class="empty-state">
+      <p>Enter a name or loyalty number and click Search to find customers.</p>
+    </div>
   }
 
   <!-- Loading state -->
   @if (!loaded() && loading()) {
     <div class="empty-state">
       <span class="btn-spinner"></span>
-      <p>Loading customers…</p>
+      <p>Searching customers…</p>
     </div>
   }
 </div>
