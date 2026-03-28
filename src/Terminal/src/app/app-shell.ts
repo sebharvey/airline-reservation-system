@@ -27,11 +27,11 @@ export class AppShell {
     { path: '/offer',    label: 'Offer',    icon: '✈',  description: 'Flight & ancillary offers' },
     { path: '/order',    label: 'Order',    icon: '📋', description: 'Manage orders & payments' },
     { path: '/customer', label: 'Customer', icon: '👤', description: 'Customer profiles & history' },
+    { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
     { path: '/terminal', label: 'Terminal', icon: '⌨',  description: 'Cryptic command terminal' },
   ];
 
   secondaryNavItems: NavItem[] = [
-    { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
     { path: '/users', label: 'Users', icon: '👥', description: 'User & agent management' },
   ];
 

@@ -6,13 +6,15 @@
       <h1 class="page-title">Flight Schedules</h1>
       <p class="page-subtitle">View all stored flight schedules from the season schedule</p>
     </div>
-    <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
-      @if (loading()) {
-        <span class="btn-spinner"></span> Loading…
-      } @else {
-        Load Schedules
-      }
-    </button>
+    @if (loaded()) {
+      <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
+        @if (loading()) {
+          <span class="btn-spinner"></span> Refreshing…
+        } @else {
+          Refresh
+        }
+      </button>
+    }
   </div>
 
   <!-- Error -->
@@ -128,13 +130,6 @@
     <p class="results-count">
       Showing {{ filtered().length }} of {{ schedules().length }} schedules
     </p>
-  }
-
-  <!-- Empty state before first load -->
-  @if (!loaded() && !loading()) {
-    <div class="empty-state">
-      <p>Click <strong>Load Schedules</strong> to retrieve all flight schedules from the schedule service.</p>
-    </div>
   }
 
   <!-- Loading state -->

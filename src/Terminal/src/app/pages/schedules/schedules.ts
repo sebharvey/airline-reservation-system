@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { ScheduleService, ScheduleSummary } from '../../services/schedule.service';
 
 @Component({
@@ -6,7 +6,7 @@ import { ScheduleService, ScheduleSummary } from '../../services/schedule.servic
   templateUrl: './schedules.html',
   styleUrl: './schedules.css',
 })
-export class SchedulesComponent {
+export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);
 
   schedules = signal<ScheduleSummary[]>([]);
@@ -14,6 +14,10 @@ export class SchedulesComponent {
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
+
+  ngOnInit(): void {
+    this.loadSchedules();
+  }
 
   filtered = computed(() => {
     const q = this.filter().toLowerCase().trim();
