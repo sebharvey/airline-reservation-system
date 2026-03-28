@@ -1109,10 +1109,10 @@
           "Content-Type": "application/json"
         },
         "body": {
-          "givenName": "__RAND_GIVEN_NAME__",
-          "surname": "__RAND_SURNAME__",
-          "email": "__RAND_EMAIL__",
-          "password": "__RAND_PASSWORD__",
+          "givenName": "__RAND_RECIPIENT_GIVEN_NAME__",
+          "surname": "__RAND_RECIPIENT_SURNAME__",
+          "email": "__RAND_RECIPIENT_EMAIL__",
+          "password": "__RAND_RECIPIENT_PASSWORD__",
           "dateOfBirth": "1985-03-22",
           "preferredLanguage": "en-GB"
         }
@@ -1235,7 +1235,7 @@
         },
         "body": {
           "recipientLoyaltyNumber": "AX1234567",
-          "recipientEmail": "__RAND_EMAIL__",
+          "recipientEmail": "__RAND_RECIPIENT_EMAIL__",
           "points": 500
         },
         "dataChain": [
@@ -1401,7 +1401,7 @@
         },
         "body": {
           "recipientLoyaltyNumber": "AX1234567",
-          "recipientEmail": "__RAND_EMAIL__",
+          "recipientEmail": "__RAND_RECIPIENT_EMAIL__",
           "points": 5000
         },
         "dataChain": [
