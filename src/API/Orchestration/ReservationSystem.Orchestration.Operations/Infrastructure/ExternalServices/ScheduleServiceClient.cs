@@ -1,9 +1,7 @@
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
-using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,51 +22,40 @@ public sealed class ScheduleServiceClient
         _httpClient = httpClientFactory.CreateClient("ScheduleMs");
     }
 
-    public async Task<CreateScheduleDto> CreateScheduleAsync(
-        object scheduleRequest,
+    /// <summary>
+    /// Posts a full season schedule payload to the Schedule MS POST /v1/schedules endpoint.
+    /// The existing schedule table is replaced atomically by the Schedule MS.
+    /// </summary>
+    public async Task<ImportSsimResponse> ImportSchedulesAsync(
+        object payload,
         CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/v1/schedules", scheduleRequest, JsonOptions, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/schedules", payload, JsonOptions, cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.BadRequest)
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
 
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<CreateScheduleDto>(JsonOptions, cancellationToken);
-        return result ?? throw new InvalidOperationException("Empty response from Schedule MS create schedule.");
-    }
+        var result = await response.Content.ReadFromJsonAsync<ImportSchedulesDto>(JsonOptions, cancellationToken);
+        if (result is null)
+            throw new InvalidOperationException("Empty response from Schedule MS import schedules.");
 
-    public async Task<UpdateScheduleDto> UpdateScheduleAsync(
-        Guid scheduleId,
-        int flightsCreated,
-        CancellationToken cancellationToken = default)
-    {
-        var body = new { flightsCreated };
-        var response = await _httpClient.PatchAsJsonAsync($"/api/v1/schedules/{scheduleId}", body, JsonOptions, cancellationToken);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            throw new KeyNotFoundException($"Schedule '{scheduleId}' not found.");
-
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<UpdateScheduleDto>(JsonOptions, cancellationToken);
-        return result ?? throw new InvalidOperationException("Empty response from Schedule MS update schedule.");
-    }
-
-    public async Task<ImportSsimResponse> ImportSsimAsync(
-        string ssimText,
-        string createdBy,
-        CancellationToken cancellationToken = default)
-    {
-        using var content = new StringContent(ssimText, Encoding.UTF8, "text/plain");
-        var response = await _httpClient.PostAsync(
-            $"/api/v1/schedules/ssim?createdBy={Uri.EscapeDataString(createdBy)}",
-            content,
-            cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<ImportSsimResponse>(JsonOptions, cancellationToken);
-        return result ?? throw new InvalidOperationException("Empty response from Schedule MS SSIM import.");
+        // Map DTO to response model.
+        return new ImportSsimResponse
+        {
+            Imported = result.Imported,
+            Deleted = result.Deleted,
+            Schedules = result.Schedules.Select(s => new ImportedScheduleItem
+            {
+                ScheduleId = s.ScheduleId,
+                FlightNumber = s.FlightNumber,
+                Origin = s.Origin,
+                Destination = s.Destination,
+                ValidFrom = s.ValidFrom,
+                ValidTo = s.ValidTo,
+                OperatingDateCount = s.OperatingDateCount
+            }).ToList().AsReadOnly()
+        };
     }
 }

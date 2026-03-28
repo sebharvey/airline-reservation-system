@@ -1,5 +1,4 @@
-using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
-using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
+using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
 
@@ -14,100 +13,47 @@ public static class ScheduleMapper
     // HTTP request → Application command
     // -------------------------------------------------------------------------
 
-    public static CreateScheduleCommand ToCommand(CreateScheduleRequest request)
+    public static ImportSchedulesCommand ToCommand(ImportSchedulesRequest request)
     {
-        var departureTime = TimeSpan.Parse(request.DepartureTime);
-        var arrivalTime = TimeSpan.Parse(request.ArrivalTime);
-        var validFrom = DateTime.Parse(request.ValidFrom);
-        var validTo = DateTime.Parse(request.ValidTo);
-
-        return new CreateScheduleCommand(
-            FlightNumber: request.FlightNumber,
-            Origin: request.Origin,
-            Destination: request.Destination,
-            DepartureTime: departureTime,
-            ArrivalTime: arrivalTime,
-            ArrivalDayOffset: request.ArrivalDayOffset,
-            DaysOfWeek: request.DaysOfWeek,
-            AircraftType: request.AircraftType,
-            ValidFrom: validFrom,
-            ValidTo: validTo,
-            CreatedBy: request.CreatedBy);
-    }
-
-    public static UpdateScheduleCommand ToCommand(Guid scheduleId, UpdateScheduleRequest request) =>
-        new(
-            ScheduleId: scheduleId,
-            FlightsCreated: request.FlightsCreated);
-
-    // -------------------------------------------------------------------------
-    // Domain entity → HTTP response
-    // -------------------------------------------------------------------------
-
-    public static ScheduleResponse ToResponse(Domain.Entities.FlightSchedule schedule)
-    {
-        var operatingDates = schedule.GetOperatingDates()
-            .Select(d => d.ToString("yyyy-MM-dd"))
+        var definitions = request.Carriers
+            .SelectMany(c => c.Schedules)
+            .Select(s => new ScheduleDefinition(
+                FlightNumber: s.FlightNumber,
+                Origin: s.Origin,
+                Destination: s.Destination,
+                DepartureTime: TimeSpan.Parse(s.DepartureTime),
+                ArrivalTime: TimeSpan.Parse(s.ArrivalTime),
+                ArrivalDayOffset: s.ArrivalDayOffset,
+                DaysOfWeek: s.DaysOfWeek,
+                AircraftType: s.AircraftType,
+                ValidFrom: DateTime.Parse(s.ValidFrom),
+                ValidTo: DateTime.Parse(s.ValidTo),
+                CreatedBy: s.CreatedBy))
             .ToList()
             .AsReadOnly();
 
-        return new ScheduleResponse
-        {
-            ScheduleId = schedule.ScheduleId,
-            FlightNumber = schedule.FlightNumber,
-            Origin = schedule.Origin,
-            Destination = schedule.Destination,
-            DepartureTime = schedule.DepartureTime.ToString(@"hh\:mm"),
-            ArrivalTime = schedule.ArrivalTime.ToString(@"hh\:mm"),
-            ArrivalDayOffset = schedule.ArrivalDayOffset,
-            DaysOfWeek = schedule.DaysOfWeek,
-            AircraftType = schedule.AircraftType,
-            ValidFrom = schedule.ValidFrom.ToString("yyyy-MM-dd"),
-            ValidTo = schedule.ValidTo.ToString("yyyy-MM-dd"),
-            FlightsCreated = schedule.FlightsCreated,
-            OperatingDates = operatingDates,
-            CreatedBy = schedule.CreatedBy,
-            CreatedAt = schedule.CreatedAt,
-            UpdatedAt = schedule.UpdatedAt
-        };
+        return new ImportSchedulesCommand(definitions);
     }
 
-    public static IReadOnlyList<ScheduleResponse> ToResponse(IEnumerable<Domain.Entities.FlightSchedule> schedules) =>
-        schedules.Select(ToResponse).ToList().AsReadOnly();
+    // -------------------------------------------------------------------------
+    // Domain entities → HTTP response
+    // -------------------------------------------------------------------------
 
-    public static CreateScheduleResponse ToCreateResponse(Domain.Entities.FlightSchedule schedule)
-    {
-        var operatingDates = schedule.GetOperatingDates()
-            .Select(d => d.ToString("yyyy-MM-dd"))
-            .ToList()
-            .AsReadOnly();
-
-        return new CreateScheduleResponse
-        {
-            ScheduleId = schedule.ScheduleId,
-            OperatingDates = operatingDates
-        };
-    }
-
-    public static UpdateScheduleResponse ToUpdateResponse(Domain.Entities.FlightSchedule schedule) =>
+    public static ImportSchedulesResponse ToImportResponse(
+        IReadOnlyList<Domain.Entities.FlightSchedule> schedules,
+        int deleted) =>
         new()
         {
-            ScheduleId = schedule.ScheduleId,
-            FlightsCreated = schedule.FlightsCreated
-        };
-
-    public static ImportSsimResponse ToImportResponse(IReadOnlyList<Domain.Entities.FlightSchedule> schedules) =>
-        new()
-        {
-            Count = schedules.Count,
-            Schedules = schedules.Select(s => new ImportedScheduleItem
+            Imported = schedules.Count,
+            Deleted = deleted,
+            Schedules = schedules.Select(s => new ImportedScheduleSummary
             {
-                ScheduleId       = s.ScheduleId,
-                FlightNumber     = s.FlightNumber,
-                Origin           = s.Origin,
-                Destination      = s.Destination,
-                ValidFrom        = s.ValidFrom.ToString("yyyy-MM-dd"),
-                ValidTo          = s.ValidTo.ToString("yyyy-MM-dd"),
+                ScheduleId = s.ScheduleId,
+                FlightNumber = s.FlightNumber,
+                Origin = s.Origin,
+                Destination = s.Destination,
+                ValidFrom = s.ValidFrom.ToString("yyyy-MM-dd"),
+                ValidTo = s.ValidTo.ToString("yyyy-MM-dd"),
                 OperatingDateCount = s.GetOperatingDates().Count
             }).ToList().AsReadOnly()
         };

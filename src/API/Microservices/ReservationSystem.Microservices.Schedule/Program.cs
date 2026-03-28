@@ -5,9 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Schedule.Swagger;
-using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
-using ReservationSystem.Microservices.Schedule.Application.Ssim;
-using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
+using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -49,9 +47,7 @@ var host = new HostBuilder()
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.CompletedTask);
 
         // ── Application use-case handlers ──────────────────────────────────────
-        services.AddScoped<CreateScheduleHandler>();
-        services.AddScoped<UpdateScheduleHandler>();
-        services.AddScoped<ImportSsimHandler>();
+        services.AddScoped<ImportSchedulesHandler>();
     })
     .Build();
 

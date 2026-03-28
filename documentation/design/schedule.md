@@ -1,10 +1,8 @@
 # Schedule domain
 
-The Schedule capability allows operations staff to define repeating flight schedules. A single `POST /v1/schedules` creates the schedule record and triggers bulk `FlightInventory` generation in the Offer domain for every operating date in the `ValidFrom`–`ValidTo` window that matches the days-of-week bitmask. Generated inventory is immediately live for search with no additional activation step.
+The Schedule domain stores the operational flight schedule for Apex Air. Schedules are imported in bulk from an IATA SSIM Chapter 7 file via the Operations API. The `POST /v1/schedules/ssim` endpoint on the Operations API parses the SSIM file, converts each Type 3 leg record into the season schedule JSON format, and forwards the complete payload to the Schedule MS `POST /v1/schedules`, which atomically replaces all existing schedule records with the new set.
 
-Fares are **not** defined at schedule creation time. Once inventory is live, pricing is applied through the Offer microservice using `POST /v1/flights/{inventoryId}/fares` — one call per fare per inventory record. This keeps pricing concerns cleanly inside the Offer domain.
-
-The schedule record persists in the Schedule domain as the operational source of truth; subsequent modifications or extensions require a new schedule definition.
+A pre-built JSON schedule payload for the 2026 season is available at `res/schedules/flight-schedule-2026-payloads.json` and can be posted directly to the Schedule MS.
 
 ## Data schema — `schedule.FlightSchedule`
 
@@ -21,50 +19,82 @@ The schedule record persists in the Schedule domain as the operational source of
 | AircraftType | VARCHAR(4) | No | | | IATA 4-char code, e.g. `A351`, `B789`, `A339` |
 | ValidFrom | DATE | No | | | First operating date (inclusive) |
 | ValidTo | DATE | No | | | Last operating date (inclusive) |
-| FlightsCreated | INT | No | 0 | | Count of `FlightInventory` rows generated at creation time |
+| FlightsCreated | INT | No | 0 | | Reserved — set to `0` at import time |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
-| CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the schedule |
+| CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the import |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
 
-## Create schedule sequence diagram
+## Season schedule JSON payload format
+
+The season schedule payload is the canonical JSON format accepted by the Schedule MS `POST /v1/schedules` endpoint and produced by the Operations API after parsing a SSIM file. A reference payload for the 2026 season is at `res/schedules/flight-schedule-2026-payloads.json`.
+
+```json
+{
+  "header": {
+    "standard": "IATA",
+    "airlineCode": "AX",
+    "seasonStart": "2026-01-01",
+    "seasonEnd": "2026-12-31",
+    "fileType": "SCHED",
+    "fileCreationDate": "2026-03-26"
+  },
+  "carriers": [
+    {
+      "airlineCode": "AX",
+      "seasonCode": "01W",
+      "validFrom": "2026-01-01",
+      "validTo": "2026-12-31",
+      "schedules": [
+        {
+          "flightNumber": "AX001",
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureTime": "08:00",
+          "arrivalTime": "11:10",
+          "arrivalDayOffset": 0,
+          "daysOfWeek": 127,
+          "aircraftType": "A351",
+          "validFrom": "2026-01-01",
+          "validTo": "2026-12-31",
+          "createdBy": "schedule-import"
+        }
+      ]
+    }
+  ],
+  "recordCount": 1
+}
+```
+
+## SSIM import sequence diagram
 
 ```mermaid
 sequenceDiagram
     actor OpsUser as Operations User
     participant OpsApp as Ops Admin App
-    participant ScheduleAPI as Operations API
+    participant OpsAPI as Operations API
     participant ScheduleMS as Schedule [MS]
-    participant OfferMS as Offer [MS]
 
-    OpsUser->>OpsApp: Define schedule (flightNumber, route, times, days, aircraft, window)
-    OpsApp->>ScheduleAPI: POST /v1/schedules
-
-    ScheduleAPI->>ScheduleMS: POST /v1/schedules (validated schedule definition)
-    ScheduleMS->>ScheduleMS: Persist FlightSchedule record
-    ScheduleMS->>ScheduleMS: Enumerate operating dates in ValidFrom–ValidTo matching DaysOfWeek bitmask
-    ScheduleMS-->>ScheduleAPI: 201 Created — scheduleId, operatingDates[]
-
-    loop For each operating date × cabin
-        ScheduleAPI->>OfferMS: POST /v1/flights (flightNumber, departureDate, departureTime, arrivalTime, arrivalDayOffset, origin, destination, aircraftType, cabinCode, totalSeats)
-        OfferMS->>OfferMS: Insert offer.FlightInventory (SeatsAvailable = TotalSeats, SeatsHeld = 0, SeatsSold = 0, Status = Active)
-        OfferMS-->>ScheduleAPI: 201 Created — inventoryId
+    OpsUser->>OpsApp: Upload SSIM file
+    OpsApp->>OpsAPI: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
+    OpsAPI->>OpsAPI: SsimParser.Parse — split lines, extract Type 2 carrier header, process Type 3 scheduled-passenger records
+    OpsAPI->>OpsAPI: Build season schedule JSON payload (header + carriers[].schedules[])
+    OpsAPI->>ScheduleMS: POST /v1/schedules (application/json — season schedule payload)
+    ScheduleMS->>ScheduleMS: Validate all schedule entries
+    ScheduleMS->>ScheduleMS: Delete all existing FlightSchedule records
+    loop For each schedule in payload
+        ScheduleMS->>ScheduleMS: FlightSchedule.Create — insert into [schedule].[FlightSchedule]
     end
-
-    ScheduleAPI->>ScheduleMS: PATCH /v1/schedules/{scheduleId} (flightsCreated=N)
-    ScheduleMS->>ScheduleMS: Update FlightsCreated count on FlightSchedule record
-    ScheduleMS-->>ScheduleAPI: 200 OK
-    ScheduleAPI-->>OpsApp: 201 Created — scheduleId, flightsCreated
-    OpsApp-->>OpsUser: Schedule created — N flights added to inventory
+    ScheduleMS-->>OpsAPI: 200 OK — { imported, deleted, schedules: [{ scheduleId, flightNumber, origin, destination, validFrom, validTo, operatingDateCount }] }
+    OpsAPI-->>OpsApp: 200 OK — import summary
+    OpsApp-->>OpsUser: N schedules imported, M previous records replaced
 ```
 
-*Ref: schedule creation — Operations API orchestrates: Schedule MS persists the schedule and returns operating dates, Operations API calls Offer MS to create FlightInventory records, then updates the FlightsCreated count via Schedule MS. Fares are applied separately via `POST /v1/flights/{inventoryId}/fares` in the Offer domain.*
+*Ref: SSIM import flow — the Operations API owns SSIM parsing and payload construction; the Schedule MS owns persistence and atomically replaces all existing records on each import.*
 
-## SSIM import
-
-The Operations API exposes `POST /v1/schedules/ssim` which accepts an IATA SSIM Chapter 7 plain-text file in the request body and bulk-creates `FlightSchedule` records. The Operations API forwards the raw file body to the Schedule MS `POST /v1/schedules/ssim` endpoint, which parses the file and persists each Type 3 leg record. A reference SSIM file for the 2026 season is available at `res/schedules/flight-schedule-2026.ssim`.
+## SSIM format reference
 
 ### What is SSIM?
 
@@ -81,7 +111,7 @@ The file format is fixed-width and positional — every character position in ev
 | Type 3 | `3` | Flight leg record — one per `FlightSchedule` row; carries the operating pattern |
 | Type 5 | `5` | Trailer — count of Type 3 records for validation |
 
-Type 3 is the substance of the file. Each record encodes a complete operating pattern for one flight leg across its season window. The parser (`SsimParser`) only processes Type 3 records with service type `Y` (scheduled passenger); all other record types are silently skipped.
+The Operations API `SsimParser` processes Type 2 records to extract carrier and season metadata, and Type 3 records with service type `Y` (scheduled passenger) to build schedule definitions. All other record types are silently skipped.
 
 ### Type 3 positional layout
 
@@ -118,7 +148,7 @@ All field positions are 0-indexed in `SsimParser`. A line must be at least 68 ch
 
 ### Days-of-week encoding
 
-The 7-character days-of-week field uses **absolute positions**, not sequential digits. Position 1 always represents Monday, position 7 always represents Sunday. An operating day shows its position digit; a non-operating day is a space character.
+The 7-character days-of-week field uses **absolute positions**, not sequential digits. Position 1 always represents Monday, position 7 always represents Sunday.
 
 | DaysOfWeek bitmask bit | SSIM position | Day |
 |---|---|---|
@@ -141,11 +171,11 @@ Examples:
 
 ### Flight number round-trip
 
-The SSIM numeric field is a 4-digit zero-padded integer (e.g. `0001`). The parser strips leading zeros and pads to a minimum of 3 digits to reconstruct the internal flight number: `AX` + `0001` → `AX001`; `AX` + `1001` → `AX1001`.
+The SSIM numeric field is a 4-digit zero-padded integer (e.g. `0001`). The parser strips leading zeros and pads to a minimum of 3 digits: `AX` + `0001` → `AX001`; `AX` + `1001` → `AX1001`.
 
 ### Aircraft type code mapping
 
-SSIM uses 3-character equipment codes; the system stores 4-character IATA codes. The parser maps known codes on import:
+SSIM uses 3-character equipment codes; the system stores 4-character IATA codes. The parser maps known codes:
 
 | SSIM code | Internal code |
 |---|---|
@@ -160,10 +190,6 @@ SSIM uses 3-character equipment codes; the system stores 4-character IATA codes.
 
 Unknown codes are passed through unchanged.
 
-### UTC offset handling
-
-Times in the SSIM file are local at the origin airport, with the UTC offset field set to `+00`. This matches the storage convention in `FlightSchedule.DepartureTime` and `.ArrivalTime`, which hold local schedule times. Downstream consumers (PSS, GDS) must apply the true UTC offset for each airport when converting to UTC for internal storage.
-
 ### Example SSIM file
 
 ```
@@ -174,28 +200,4 @@ Times in the SSIM file are local at the origin airport, with the UTC offset fiel
 5       2
 ```
 
-### Amendments and deletions
-
-The SSIM standard supports amendment records (prefixed `D` for deletion, `N` for new pattern) to represent in-season changes. The current implementation imports full base-pattern files only. Amendment records are not yet supported; a schedule change requires creating a new `FlightSchedule` record.
-
-### SSIM import sequence diagram
-
-```mermaid
-sequenceDiagram
-    actor OpsUser as Operations User
-    participant OpsApp as Ops Admin App
-    participant OpsAPI as Operations API
-    participant ScheduleMS as Schedule [MS]
-
-    OpsUser->>OpsApp: Upload SSIM file
-    OpsApp->>OpsAPI: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
-    OpsAPI->>ScheduleMS: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
-    ScheduleMS->>ScheduleMS: SsimParser.Parse — split lines, skip non-Type-3 and non-Y records
-    loop For each Type 3 record
-        ScheduleMS->>ScheduleMS: Extract carrier, flightNum, period, daysOfWeek, route, times, equipment
-        ScheduleMS->>ScheduleMS: FlightSchedule.Create — persist to [schedule].[FlightSchedule]
-    end
-    ScheduleMS-->>OpsAPI: 200 OK — { count, schedules: [{ scheduleId, flightNumber, origin, destination, validFrom, validTo, operatingDateCount }] }
-    OpsAPI-->>OpsApp: 200 OK — import summary
-    OpsApp-->>OpsUser: N schedules imported
-```
+A full 2026 season SSIM file is available at `res/schedules/flight-schedule-2026.ssim`.

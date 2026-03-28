@@ -20,54 +20,25 @@ public sealed class EfFlightScheduleRepository : IFlightScheduleRepository
         _logger = logger;
     }
 
-    public async Task<FlightSchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    public async Task<int> ReplaceAllAsync(
+        IReadOnlyList<FlightSchedule> schedules,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.FlightSchedules
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.ScheduleId == id, cancellationToken);
-    }
+        // Count existing records before deletion for the return value.
+        var deleted = await _context.FlightSchedules.CountAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<FlightSchedule>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var schedules = await _context.FlightSchedules
-            .AsNoTracking()
-            .OrderBy(s => s.FlightNumber)
-            .ThenBy(s => s.ValidFrom)
-            .ToListAsync(cancellationToken);
+        // Remove all existing records.
+        await _context.FlightSchedules.ExecuteDeleteAsync(cancellationToken);
 
-        return schedules.AsReadOnly();
-    }
-
-    public async Task CreateAsync(FlightSchedule schedule, CancellationToken cancellationToken = default)
-    {
-        _context.FlightSchedules.Add(schedule);
+        // Insert all incoming records.
+        _context.FlightSchedules.AddRange(schedules);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogDebug("Inserted FlightSchedule {ScheduleId} into [schedule].[FlightSchedule]", schedule.ScheduleId);
-    }
+        _logger.LogDebug(
+            "ReplaceAllAsync: deleted {Deleted} existing records, inserted {Inserted} new records",
+            deleted, schedules.Count);
 
-    public async Task UpdateAsync(FlightSchedule schedule, CancellationToken cancellationToken = default)
-    {
-        _context.FlightSchedules.Update(schedule);
-        var rowsAffected = await _context.SaveChangesAsync(cancellationToken);
-
-        if (rowsAffected == 0)
-            _logger.LogWarning("UpdateAsync found no row for FlightSchedule {ScheduleId}", schedule.ScheduleId);
-        else
-            _logger.LogDebug("Updated FlightSchedule {ScheduleId} in [schedule].[FlightSchedule]", schedule.ScheduleId);
-    }
-
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        var schedule = await _context.FlightSchedules
-            .FirstOrDefaultAsync(s => s.ScheduleId == id, cancellationToken);
-
-        if (schedule is null)
-            return;
-
-        _context.FlightSchedules.Remove(schedule);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogDebug("Deleted FlightSchedule {ScheduleId} from [schedule].[FlightSchedule]", id);
+        return deleted;
     }
 }
