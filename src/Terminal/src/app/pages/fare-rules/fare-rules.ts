@@ -133,8 +133,8 @@ export class FareRulesComponent implements OnInit {
       cancellationFeeAmount: rule.cancellationFeeAmount,
       pointsPrice: rule.pointsPrice,
       pointsTaxes: rule.pointsTaxes,
-      validFrom: rule.validFrom.substring(0, 10),
-      validTo: rule.validTo.substring(0, 10),
+      validFrom: rule.validFrom ? rule.validFrom.substring(0, 10) : '',
+      validTo: rule.validTo ? rule.validTo.substring(0, 10) : '',
     });
     this.showForm.set(true);
     this.error.set('');
@@ -162,8 +162,8 @@ export class FareRulesComponent implements OnInit {
       fareFamily: data.fareFamily || null,
       pointsPrice: data.pointsPrice ?? null,
       pointsTaxes: data.pointsTaxes ?? null,
-      validFrom: data.validFrom ? `${data.validFrom}T00:00:00Z` : '',
-      validTo: data.validTo ? `${data.validTo}T23:59:59Z` : '',
+      validFrom: data.validFrom ? `${data.validFrom}T00:00:00Z` : null,
+      validTo: data.validTo ? `${data.validTo}T23:59:59Z` : null,
     };
 
     try {

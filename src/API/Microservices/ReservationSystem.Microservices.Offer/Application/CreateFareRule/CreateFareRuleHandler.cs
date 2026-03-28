@@ -24,7 +24,8 @@ public sealed class CreateFareRuleHandler
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
             command.PointsPrice, command.PointsTaxes,
-            DateTime.Parse(command.ValidFrom), DateTime.Parse(command.ValidTo));
+            string.IsNullOrEmpty(command.ValidFrom) ? null : DateTime.Parse(command.ValidFrom),
+            string.IsNullOrEmpty(command.ValidTo) ? null : DateTime.Parse(command.ValidTo));
 
         await _repository.CreateFareRuleAsync(fareRule, ct);
 

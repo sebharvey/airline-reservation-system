@@ -111,8 +111,8 @@ public sealed class FareRuleFunction
             CancellationFeeAmount: body.GetProperty("cancellationFeeAmount").GetDecimal(),
             PointsPrice: body.TryGetProperty("pointsPrice", out var pp) && pp.ValueKind != JsonValueKind.Null ? pp.GetInt32() : null,
             PointsTaxes: body.TryGetProperty("pointsTaxes", out var pt) && pt.ValueKind != JsonValueKind.Null ? pt.GetDecimal() : null,
-            ValidFrom: body.GetProperty("validFrom").GetString()!,
-            ValidTo: body.GetProperty("validTo").GetString()!);
+            ValidFrom: body.TryGetProperty("validFrom", out var vf) && vf.ValueKind != JsonValueKind.Null ? vf.GetString() : null,
+            ValidTo: body.TryGetProperty("validTo", out var vt) && vt.ValueKind != JsonValueKind.Null ? vt.GetString() : null);
 
         try
         {
@@ -154,8 +154,8 @@ public sealed class FareRuleFunction
             CancellationFeeAmount: body.GetProperty("cancellationFeeAmount").GetDecimal(),
             PointsPrice: body.TryGetProperty("pointsPrice", out var pp) && pp.ValueKind != JsonValueKind.Null ? pp.GetInt32() : null,
             PointsTaxes: body.TryGetProperty("pointsTaxes", out var pt) && pt.ValueKind != JsonValueKind.Null ? pt.GetDecimal() : null,
-            ValidFrom: body.GetProperty("validFrom").GetString()!,
-            ValidTo: body.GetProperty("validTo").GetString()!);
+            ValidFrom: body.TryGetProperty("validFrom", out var vf) && vf.ValueKind != JsonValueKind.Null ? vf.GetString() : null,
+            ValidTo: body.TryGetProperty("validTo", out var vt) && vt.ValueKind != JsonValueKind.Null ? vt.GetString() : null);
 
         try
         {
@@ -204,8 +204,8 @@ public sealed class FareRuleFunction
             cancellationFeeAmount = r.CancellationFeeAmount,
             pointsPrice = r.PointsPrice,
             pointsTaxes = r.PointsTaxes,
-            validFrom = r.ValidFrom.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            validTo = r.ValidTo.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            validFrom = r.ValidFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            validTo = r.ValidTo?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             createdAt = r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             updatedAt = r.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };

@@ -16,6 +16,6 @@ public sealed class CreateFareRuleRequest
     public decimal CancellationFeeAmount { get; init; }
     public int? PointsPrice { get; init; }
     public decimal? PointsTaxes { get; init; }
-    public string ValidFrom { get; init; } = string.Empty;
-    public string ValidTo { get; init; } = string.Empty;
+    public string? ValidFrom { get; init; }
+    public string? ValidTo { get; init; }
 }

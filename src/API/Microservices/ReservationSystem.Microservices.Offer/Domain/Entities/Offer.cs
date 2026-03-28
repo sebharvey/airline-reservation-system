@@ -258,8 +258,8 @@ public sealed class FareRule
     public decimal CancellationFeeAmount { get; private set; }
     public int? PointsPrice { get; private set; }
     public decimal? PointsTaxes { get; private set; }
-    public DateTime ValidFrom { get; private set; }
-    public DateTime ValidTo { get; private set; }
+    public DateTime? ValidFrom { get; private set; }
+    public DateTime? ValidTo { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
@@ -269,7 +269,7 @@ public sealed class FareRule
         string? flightNumber, string fareBasisCode, string? fareFamily, string cabinCode,
         string bookingClass, string currencyCode, decimal baseFareAmount, decimal taxAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo)
+        int? pointsPrice, decimal? pointsTaxes, DateTime? validFrom, DateTime? validTo)
     {
         return new FareRule
         {
@@ -291,7 +291,7 @@ public sealed class FareRule
         string cabinCode, string bookingClass, string currencyCode,
         decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo,
+        int? pointsPrice, decimal? pointsTaxes, DateTime? validFrom, DateTime? validTo,
         DateTime createdAt, DateTime updatedAt)
     {
         return new FareRule
@@ -311,7 +311,7 @@ public sealed class FareRule
         string? flightNumber, string fareBasisCode, string? fareFamily, string cabinCode,
         string bookingClass, string currencyCode, decimal baseFareAmount, decimal taxAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo)
+        int? pointsPrice, decimal? pointsTaxes, DateTime? validFrom, DateTime? validTo)
     {
         FlightNumber = flightNumber; FareBasisCode = fareBasisCode; FareFamily = fareFamily;
         CabinCode = cabinCode; BookingClass = bookingClass; CurrencyCode = currencyCode;
