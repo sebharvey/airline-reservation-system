@@ -50,7 +50,10 @@
     <div class="modal">
         <div class="modal-header">
             <div id="modalTitle" class="modal-title"></div>
-            <button class="modal-close" id="modalClose">✕</button>
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
+                <button class="btn-copy-step-log" id="btnCopyStepLog" style="display:none">📋 Copy Step Log</button>
+                <button class="modal-close" id="modalClose">✕</button>
+            </div>
         </div>
         <div id="modalBody" class="modal-body"></div>
     </div>

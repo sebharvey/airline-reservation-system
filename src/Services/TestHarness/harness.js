@@ -131,6 +131,48 @@
         apiLog.push(entry);
     }
 
+    function formatStepLogForCopy(stepNumber) {
+        const entry = apiLog.find(e => e.step === stepNumber);
+        if (!entry) return 'No log entry for step ' + stepNumber + '.';
+
+        const lines = [];
+        lines.push('-'.repeat(80));
+        lines.push('Step ' + entry.step + ': ' + entry.name);
+        lines.push('-'.repeat(80));
+        lines.push('');
+        lines.push('REQUEST');
+        lines.push('  ' + entry.method + ' ' + entry.url);
+        lines.push('');
+        if (entry.requestHeaders && Object.keys(entry.requestHeaders).length) {
+            lines.push('  Headers:');
+            for (const [k, v] of Object.entries(entry.requestHeaders)) {
+                lines.push('    ' + k + ': ' + v);
+            }
+            lines.push('');
+        }
+        if (entry.requestBody !== null && entry.requestBody !== undefined) {
+            lines.push('  Body:');
+            lines.push(indent(formatBody(entry.requestBody), '    '));
+        } else {
+            lines.push('  Body: (none)');
+        }
+        lines.push('');
+        lines.push('RESPONSE');
+        if (entry.error) {
+            lines.push('  Error: ' + entry.error);
+        } else {
+            lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
+            lines.push('');
+            if (entry.responseBody !== null && entry.responseBody !== undefined) {
+                lines.push('  Body:');
+                lines.push(indent(formatBody(entry.responseBody), '    '));
+            } else {
+                lines.push('  Body: (none)');
+            }
+        }
+        return lines.join('\n');
+    }
+
     function formatLogForCopy() {
         if (apiLog.length === 0) return 'No API interactions recorded.';
 
@@ -402,6 +444,7 @@
     // =====================================================================
 
     const modalOverlay = document.getElementById('stepModal');
+    const btnCopyStepLog = document.getElementById('btnCopyStepLog');
     document.getElementById('modalClose').addEventListener('click', () => { modalOverlay.style.display = 'none'; });
     modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.style.display = 'none'; });
 
@@ -469,6 +512,33 @@
         }
 
         modalBody.innerHTML = html;
+
+        const hasLog = apiLog.some(e => e.step === step.step);
+        btnCopyStepLog.style.display = hasLog ? '' : 'none';
+        btnCopyStepLog.textContent = '\uD83D\uDCCB Copy Step Log';
+        btnCopyStepLog.classList.remove('copied');
+        btnCopyStepLog.onclick = async () => {
+            const text = formatStepLogForCopy(step.step);
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            btnCopyStepLog.textContent = '\u2713 Copied';
+            btnCopyStepLog.classList.add('copied');
+            setTimeout(() => {
+                btnCopyStepLog.textContent = '\uD83D\uDCCB Copy Step Log';
+                btnCopyStepLog.classList.remove('copied');
+            }, 2000);
+        };
+
         modalOverlay.style.display = 'flex';
     }
 
