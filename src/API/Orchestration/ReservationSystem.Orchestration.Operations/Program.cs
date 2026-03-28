@@ -26,12 +26,12 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("ScheduleMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://localhost:7071/");
+            client.BaseAddress = context.Configuration["ScheduleMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://localhost:7072/");
+            client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         // ── Health check ───────────────────────────────────────────────────────

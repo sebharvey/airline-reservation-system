@@ -26,7 +26,7 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("UserMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["UserMs:BaseUrl"] ?? "https://localhost:7071/");
+            client.BaseAddress = context.Configuration["UserMs:BaseUrl"] is { } url ? new Uri(url) : null;
             var hostKey = context.Configuration["UserMs:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);

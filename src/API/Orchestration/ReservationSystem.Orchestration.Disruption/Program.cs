@@ -27,27 +27,27 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://localhost:7071/");
+            client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         services.AddHttpClient("OrderMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://localhost:7072/");
+            client.BaseAddress = context.Configuration["OrderMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         services.AddHttpClient("DeliveryMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["DeliveryMs:BaseUrl"] ?? "https://localhost:7073/");
+            client.BaseAddress = context.Configuration["DeliveryMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         services.AddHttpClient("CustomerMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"] ?? "https://localhost:7074/");
+            client.BaseAddress = context.Configuration["CustomerMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         services.AddHttpClient("PaymentMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["PaymentMs:BaseUrl"] ?? "https://localhost:7075/");
+            client.BaseAddress = context.Configuration["PaymentMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         // ── Health check ───────────────────────────────────────────────────────
