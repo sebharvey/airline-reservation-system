@@ -612,6 +612,38 @@ select:focus {
   cursor: not-allowed;
 }
 
+.email-change-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-change-row .input-readonly {
+  flex: 1;
+}
+
+.email-change-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.email-change-box {
+  background: rgba(102, 126, 234, 0.05);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.email-change-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
 .error-banner {
   background: rgba(220,53,69,0.1);
   border: 1px solid rgba(220,53,69,0.3);

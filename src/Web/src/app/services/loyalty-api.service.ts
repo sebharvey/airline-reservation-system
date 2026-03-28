@@ -339,6 +339,29 @@ export class LoyaltyApiService {
   }
 
   /**
+   * POST /customers/{loyaltyNumber}/email/change-request
+   * Initiates an email address change. Sends a confirmation link to the new
+   * address containing an EmailResetToken. The account cannot log in until
+   * the token is confirmed or cancelled.
+   */
+  requestEmailChange(loyaltyNumber: string, newEmail: string): Observable<void> {
+    return this.http
+      .post<void>(`${BASE}/customers/${loyaltyNumber}/email/change-request`, { newEmail })
+      .pipe(catchError(handleError));
+  }
+
+  /**
+   * POST /auth/email/confirm
+   * Confirms an email address change using the token from the confirmation link.
+   * Clears EmailResetToken, updates the account email, and allows login again.
+   */
+  confirmEmailChange(token: string): Observable<void> {
+    return this.http
+      .post<void>(`${BASE}/auth/email/confirm`, { token })
+      .pipe(catchError(handleError));
+  }
+
+  /**
    * POST /customers/{loyaltyNumber}/points/transfer
    * Transfers points to another loyalty account after email verification.
    */

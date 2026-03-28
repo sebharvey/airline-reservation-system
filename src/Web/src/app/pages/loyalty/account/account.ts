@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
+import { switchMap } from 'rxjs';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
@@ -131,6 +132,12 @@ export class LoyaltyAccountComponent implements OnInit {
   transferError = signal<string | null>(null);
   transferResult = signal<TransferPointsResult | null>(null);
 
+  // Email change signals
+  showEmailChangeForm = signal(false);
+  emailChangeNew = signal('');
+  emailChangeLoading = signal(false);
+  emailChangeError = signal<string | null>(null);
+
   // Delete account signals
   deleteConfirm = signal(false);
   deleteLoading = signal(false);
@@ -224,6 +231,9 @@ export class LoyaltyAccountComponent implements OnInit {
     if (tab === 'profile') {
       this.profileError.set(null);
       this.profileSuccess.set(false);
+      this.showEmailChangeForm.set(false);
+      this.emailChangeNew.set('');
+      this.emailChangeError.set(null);
     }
     if (tab === 'transfer') {
       this.transferError.set(null);
@@ -424,6 +434,45 @@ export class LoyaltyAccountComponent implements OnInit {
       error: (err) => {
         this.deleteLoading.set(false);
         this.deleteError.set(err?.message ?? 'Failed to delete account. Please try again.');
+      }
+    });
+  }
+
+  toggleEmailChangeForm(): void {
+    this.showEmailChangeForm.update(v => !v);
+    this.emailChangeNew.set('');
+    this.emailChangeError.set(null);
+  }
+
+  submitEmailChange(): void {
+    const c = this.customer();
+    if (!c) return;
+
+    this.emailChangeError.set(null);
+    const newEmail = this.emailChangeNew().trim();
+
+    if (!newEmail) {
+      this.emailChangeError.set('Please enter a new email address.');
+      return;
+    }
+
+    if (newEmail.toLowerCase() === c.email.toLowerCase()) {
+      this.emailChangeError.set('The new email address must be different from your current one.');
+      return;
+    }
+
+    this.emailChangeLoading.set(true);
+    this.loyaltyApi.requestEmailChange(c.loyaltyNumber, newEmail).pipe(
+      switchMap(() => this.loyaltyApi.logout(this.loyaltyState.session()?.refreshToken))
+    ).subscribe({
+      next: () => {
+        this.loyaltyState.logout();
+        this.emailChangeLoading.set(false);
+        this.router.navigate(['/loyalty'], { queryParams: { notice: 'email-change-pending' } });
+      },
+      error: (err) => {
+        this.emailChangeLoading.set(false);
+        this.emailChangeError.set(err?.message ?? 'Failed to request email change. Please try again.');
       }
     });
   }

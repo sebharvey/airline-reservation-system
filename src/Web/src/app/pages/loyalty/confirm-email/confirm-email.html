@@ -1,0 +1,36 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <span class="page-icon">&#9993;</span>
+    <h2>Email Confirmation</h2>
+    <p>Confirming your new email address</p>
+  </div>
+
+  <div class="confirm-card">
+
+    @if (loading()) {
+      <div class="loading-state" role="status">
+        <span class="spinner-lg"></span>
+        <p>Confirming your email address&hellip;</p>
+      </div>
+    }
+
+    @if (success()) {
+      <div class="success-card fade-in">
+        <span class="success-icon">&#10003;</span>
+        <h3>Email Updated</h3>
+        <p>Your email address has been confirmed and updated. You can now sign in with your new email address.</p>
+        <a [routerLink]="['/loyalty']" class="btn-primary btn-link-btn">Sign In</a>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="error-state fade-in">
+        <span class="error-icon">&#9888;</span>
+        <h3>Confirmation Failed</h3>
+        <p>{{ error() }}</p>
+        <a [routerLink]="['/loyalty']" class="btn-primary btn-link-btn">Back to Sign In</a>
+      </div>
+    }
+
+  </div>
+</div>

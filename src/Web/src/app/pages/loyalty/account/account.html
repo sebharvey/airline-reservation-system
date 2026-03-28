@@ -449,10 +449,43 @@
             </select>
           </div>
 
-          <div class="field readonly-field">
+          <!-- Email address with change option -->
+          <div class="field">
             <label>Email Address</label>
-            <input type="email" [value]="customer()!.email" readonly class="input-readonly" />
+            <div class="email-change-row">
+              <input type="email" [value]="customer()!.email" readonly class="input-readonly" />
+              <button type="button" class="btn-link email-change-toggle" (click)="toggleEmailChangeForm()">
+                {{ showEmailChangeForm() ? 'Cancel' : 'Change' }}
+              </button>
+            </div>
           </div>
+
+          @if (showEmailChangeForm()) {
+            <div class="email-change-box fade-in">
+              <p class="email-change-desc">Enter your new email address. We'll send a confirmation link to it. You will be signed out until the change is confirmed.</p>
+              <div class="field">
+                <label for="pNewEmail">New Email Address</label>
+                <input
+                  id="pNewEmail"
+                  type="email"
+                  placeholder="new@example.com"
+                  [value]="emailChangeNew()"
+                  (input)="emailChangeNew.set($any($event.target).value)"
+                  autocomplete="email"
+                />
+              </div>
+              @if (emailChangeError()) {
+                <div class="error-banner" role="alert">{{ emailChangeError() }}</div>
+              }
+              <button type="button" class="btn-secondary" (click)="submitEmailChange()" [disabled]="emailChangeLoading()">
+                @if (emailChangeLoading()) {
+                  <span class="spinner-sm"></span> Sending link...
+                } @else {
+                  Send Confirmation Link
+                }
+              </button>
+            </div>
+          }
 
           @if (profileError()) {
             <div class="error-banner" role="alert">{{ profileError() }}</div>
