@@ -17,6 +17,8 @@
 - [Loyalty API](#loyalty-api--full-api-spec)
   - [Authentication](#authentication)
   - [Account & Profile](#account--profile)
+- [Admin API](#admin-api--full-api-spec)
+  - [Authentication](#authentication-3)
 - [Disruption API](#disruption-api--full-api-spec)
 - [Operations API](#operations-api--full-api-spec)
 - [Schedule Microservice](#schedule-microservice--full-api-spec)
@@ -126,6 +128,18 @@
 | `GET` | `/v1/accounts/{userAccountId}/verify-email` | Verify ownership of an email address; called when the user follows the link in their registration confirmation email; delegates to Identity MS |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
+
+---
+
+## Admin API — [Full API Spec](api-specs/admin-api.md)
+
+The Admin API is the orchestration entry point for internal staff authentication across all back-office applications (Contact Centre, Airport, Operations, Finance). It delegates credential validation and JWT issuance entirely to the User microservice. The Admin API owns no database tables.
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/auth/login` | Authenticate a staff member with username and password; returns a JWT access token (15-minute TTL), `userId`, `expiresAt`, and `tokenType`. Delegates to the User MS; returns `401` for invalid credentials and `403` for locked or inactive accounts |
 
 ---
 
