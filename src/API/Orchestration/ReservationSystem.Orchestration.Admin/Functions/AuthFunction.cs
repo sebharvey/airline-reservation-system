@@ -38,7 +38,7 @@ public sealed class AuthFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized – invalid credentials")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Forbidden, Description = "Forbidden – account locked or inactive")]
     public async Task<HttpResponseData> Login(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/auth/login")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/auth/login")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<LoginRequest>(_logger, cancellationToken);
