@@ -1,0 +1,195 @@
+{
+  "journey": {
+    "name": "Staff Authentication Flow",
+    "description": "End-to-end journey covering staff login via the Admin API, which orchestrates the User microservice for credential validation and JWT issuance. Tests successful login, token shape, wrong password rejection, and missing field validation.",
+    "domain": "Admin",
+    "baseUrls": [
+      { "id": "admin", "label": "Admin API", "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
+      { "id": "user", "label": "User MS", "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create employee account",
+      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username. This step sets up a known credential set for the Admin API login tests that follow.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created directly on the User MS. Response contains the new userId GUID. This account is used as the credential fixture for all subsequent Admin API login tests.",
+        "keyFields": ["userId"],
+        "validationNotes": "userId is a non-empty GUID. username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
+      },
+      "chainsTo": [
+        { "field": "userId", "usedInSteps": [2] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Login — valid credentials",
+      "description": "Authenticate the employee account created in Step 1 via the Admin API using the runtime-generated username and password. Validates that the Admin API correctly orchestrates the User MS, returns a signed JWT, and includes the correct response shape.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-03-28T12:15:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL), the userId matching Step 1, an ISO 8601 expiry timestamp, and tokenType 'Bearer'.",
+        "keyFields": ["accessToken", "userId", "expiresAt", "tokenType"],
+        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 1. expiresAt is ISO 8601 UTC approximately 15 minutes from now. tokenType is always 'Bearer' — this field is added by the Admin API orchestration layer, not the User MS."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [] },
+        { "field": "userId", "usedInSteps": [] }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Login — wrong password",
+      "description": "Attempt to authenticate via the Admin API using the correct username from Step 1 but an incorrect password. Validates that the Admin API surfaces the User MS 401 response correctly and does not leak credential details.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "WrongPassword99!"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" }
+        ]
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Invalid credentials."
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — password does not match the stored hash. The Admin API propagates the 401 from the User MS. The error message must not reveal whether the username exists.",
+        "keyFields": ["error"],
+        "validationNotes": "Generic 'Invalid credentials' message only — no indication of whether username or password was the failing field. FailedLoginAttempts is incremented on the account in the User MS."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Login — unknown username",
+      "description": "Attempt to authenticate via the Admin API with a username that does not exist. Validates that the response is identical to a wrong-password failure, preventing username enumeration.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "unknown.user.99999",
+          "password": "__RAND_PASSWORD__"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Invalid credentials."
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — username not found. Response is identical to a wrong-password failure to prevent account enumeration.",
+        "keyFields": ["error"],
+        "validationNotes": "Error message must be identical to Step 3 — no distinction between unknown username and wrong password."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "Login — missing password field",
+      "description": "Submit a login request to the Admin API with the password field omitted. Validates that the orchestration layer performs field presence validation before forwarding to the User MS.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "The fields 'username' and 'password' are required."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — password field is missing. The Admin API validates required fields at the orchestration boundary and short-circuits before calling the User MS.",
+        "keyFields": ["error"],
+        "validationNotes": "Validation happens in the Admin API, not the User MS. No downstream call is made. The same 400 is returned whether username, password, or both fields are absent."
+      },
+      "chainsTo": []
+    }
+  ]
+}
