@@ -8,6 +8,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.User.Application.AddUser;
 using ReservationSystem.Microservices.User.Application.GetAllUsers;
+using ReservationSystem.Microservices.User.Application.GetUser;
+using ReservationSystem.Microservices.User.Application.UpdateUser;
+using ReservationSystem.Microservices.User.Application.SetUserStatus;
+using ReservationSystem.Microservices.User.Application.UnlockUser;
+using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Application.Login;
 using ReservationSystem.Microservices.User.Domain.Repositories;
 using ReservationSystem.Microservices.User.Infrastructure.Configuration;
@@ -55,6 +60,11 @@ var host = new HostBuilder()
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<AddUserHandler>();
         services.AddScoped<GetAllUsersHandler>();
+        services.AddScoped<GetUserHandler>();
+        services.AddScoped<UpdateUserHandler>();
+        services.AddScoped<SetUserStatusHandler>();
+        services.AddScoped<UnlockUserHandler>();
+        services.AddScoped<ResetPasswordHandler>();
         services.AddScoped<LoginHandler>();
     })
     .Build();

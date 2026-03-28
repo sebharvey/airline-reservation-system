@@ -109,4 +109,49 @@ public sealed class User
         IsLocked = true;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateProfile(string? firstName, string? lastName, string? email)
+    {
+        if (firstName is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
+            FirstName = firstName;
+        }
+
+        if (lastName is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+            LastName = lastName;
+        }
+
+        if (email is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(email);
+            Email = email;
+        }
+
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Unlock()
+    {
+        IsLocked = false;
+        FailedLoginAttempts = 0;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ResetPassword(string newPasswordHash)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newPasswordHash);
+        PasswordHash = newPasswordHash;
+        IsLocked = false;
+        FailedLoginAttempts = 0;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

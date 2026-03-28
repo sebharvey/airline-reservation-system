@@ -5,6 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.User.Application.AddUser;
 using ReservationSystem.Microservices.User.Application.GetAllUsers;
+using ReservationSystem.Microservices.User.Application.GetUser;
+using ReservationSystem.Microservices.User.Application.UpdateUser;
+using ReservationSystem.Microservices.User.Application.SetUserStatus;
+using ReservationSystem.Microservices.User.Application.UnlockUser;
+using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Models.Mappers;
 using ReservationSystem.Microservices.User.Models.Requests;
 using ReservationSystem.Microservices.User.Models.Responses;
@@ -18,21 +23,36 @@ namespace ReservationSystem.Microservices.User.Functions;
 
 /// <summary>
 /// HTTP-triggered functions for employee user management.
-/// Handles user creation and listing.
+/// Handles user CRUD operations.
 /// </summary>
 public sealed class UserFunction
 {
     private readonly AddUserHandler _addUserHandler;
     private readonly GetAllUsersHandler _getAllUsersHandler;
+    private readonly GetUserHandler _getUserHandler;
+    private readonly UpdateUserHandler _updateUserHandler;
+    private readonly SetUserStatusHandler _setUserStatusHandler;
+    private readonly UnlockUserHandler _unlockUserHandler;
+    private readonly ResetPasswordHandler _resetPasswordHandler;
     private readonly ILogger<UserFunction> _logger;
 
     public UserFunction(
         AddUserHandler addUserHandler,
         GetAllUsersHandler getAllUsersHandler,
+        GetUserHandler getUserHandler,
+        UpdateUserHandler updateUserHandler,
+        SetUserStatusHandler setUserStatusHandler,
+        UnlockUserHandler unlockUserHandler,
+        ResetPasswordHandler resetPasswordHandler,
         ILogger<UserFunction> logger)
     {
         _addUserHandler = addUserHandler;
         _getAllUsersHandler = getAllUsersHandler;
+        _getUserHandler = getUserHandler;
+        _updateUserHandler = updateUserHandler;
+        _setUserStatusHandler = setUserStatusHandler;
+        _unlockUserHandler = unlockUserHandler;
+        _resetPasswordHandler = resetPasswordHandler;
         _logger = logger;
     }
 
@@ -89,5 +109,152 @@ public sealed class UserFunction
         var query = new GetAllUsersQuery();
         var result = await _getAllUsersHandler.HandleAsync(query, cancellationToken);
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/users/{userId}
+    // -------------------------------------------------------------------------
+
+    [Function("GetUser")]
+    [OpenApiOperation(operationId: "GetUser", tags: new[] { "Users" }, Summary = "Retrieve a single employee user account")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserResponse), Description = "OK – returns the user account (password excluded)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> GetUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetUserQuery(userId);
+        var result = await _getUserHandler.HandleAsync(query, cancellationToken);
+
+        if (result is null)
+            return await req.NotFoundAsync("User not found.");
+
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/users/{userId}
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateUser")]
+    [OpenApiOperation(operationId: "UpdateUser", tags: new[] { "Users" }, Summary = "Update an employee user account's profile")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateUserRequest), Required = true, Description = "Fields to update (all optional)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – update successful")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – validation error")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already in use")]
+    public async Task<HttpResponseData> UpdateUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateUserRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var validationErrors = UserValidator.ValidateUpdateUser(
+            request!.FirstName, request.LastName, request.Email);
+
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
+
+        try
+        {
+            var command = UserMapper.ToCommand(userId, request);
+            var found = await _updateUserHandler.HandleAsync(command, cancellationToken);
+
+            if (!found)
+                return await req.NotFoundAsync("User not found.");
+
+            return req.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.ConflictAsync(ex.Message);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/users/{userId}/status
+    // -------------------------------------------------------------------------
+
+    [Function("SetUserStatus")]
+    [OpenApiOperation(operationId: "SetUserStatus", tags: new[] { "Users" }, Summary = "Activate or deactivate an employee user account")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SetUserStatusRequest), Required = true, Description = "Account status")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – status updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> SetUserStatus(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/users/{userId:guid}/status")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<SetUserStatusRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var command = UserMapper.ToCommand(userId, request!);
+        var found = await _setUserStatusHandler.HandleAsync(command, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync("User not found.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/users/{userId}/unlock
+    // -------------------------------------------------------------------------
+
+    [Function("UnlockUser")]
+    [OpenApiOperation(operationId: "UnlockUser", tags: new[] { "Users" }, Summary = "Unlock a locked employee user account")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – account unlocked")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> UnlockUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/users/{userId:guid}/unlock")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var command = UserMapper.ToUnlockCommand(userId);
+        var found = await _unlockUserHandler.HandleAsync(command, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync("User not found.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/users/{userId}/reset-password
+    // -------------------------------------------------------------------------
+
+    [Function("ResetPassword")]
+    [OpenApiOperation(operationId: "ResetPassword", tags: new[] { "Users" }, Summary = "Reset an employee user's password")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ResetPasswordRequest), Required = true, Description = "New password")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – password reset")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – validation error")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> ResetPassword(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/users/{userId:guid}/reset-password")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<ResetPasswordRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var validationErrors = UserValidator.ValidateResetPassword(request!.NewPassword);
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
+
+        var command = UserMapper.ToCommand(userId, request);
+        var found = await _resetPasswordHandler.HandleAsync(command, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync("User not found.");
+
+        return req.NoContent();
     }
 }

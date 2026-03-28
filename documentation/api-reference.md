@@ -20,6 +20,7 @@
   - [Admin Customer Management](#admin-customer-management)
 - [Admin API](#admin-api--full-api-spec)
   - [Authentication](#authentication-3)
+  - [User Management](#user-management)
 - [Disruption API](#disruption-api--full-api-spec)
 - [Operations API](#operations-api--full-api-spec)
 - [Schedule Microservice](#schedule-microservice--full-api-spec)
@@ -148,13 +149,27 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 
 ## Admin API — [Full API Spec](api-specs/admin-api.md)
 
-The Admin API is the orchestration entry point for internal staff authentication across all back-office applications (Contact Centre, Airport, Operations, Finance). It delegates credential validation and JWT issuance entirely to the User microservice. The Admin API owns no database tables.
+The Admin API is the orchestration entry point for internal staff applications (Contact Centre, Airport, Operations, Finance). It delegates credential validation and JWT issuance to the User microservice and provides staff-facing user management endpoints. The Admin API owns no database tables.
 
 ### Authentication
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/auth/login` | Authenticate a staff member with username and password; returns a JWT access token (15-minute TTL), `userId`, `expiresAt`, and `tokenType`. Delegates to the User MS; returns `401` for invalid credentials and `403` for locked or inactive accounts |
+
+### User management
+
+Staff-facing endpoints for managing employee user accounts. All routes require a valid staff JWT with a `role` claim of `User`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/admin/users` | Retrieve all employee user accounts (passwords excluded) |
+| `GET` | `/v1/admin/users/{userId}` | Retrieve a single employee user account by ID |
+| `POST` | `/v1/admin/users` | Create a new employee user account; returns `userId`; `409` if username or email already exists |
+| `PATCH` | `/v1/admin/users/{userId}` | Update user profile fields (firstName, lastName, email); all optional; `409` if email already in use |
+| `PATCH` | `/v1/admin/users/{userId}/status` | Activate or deactivate a user account |
+| `POST` | `/v1/admin/users/{userId}/unlock` | Unlock a locked user account and reset failed login attempts |
+| `POST` | `/v1/admin/users/{userId}/reset-password` | Reset a user's password; unlocks the account and clears failed attempts |
 
 ---
 

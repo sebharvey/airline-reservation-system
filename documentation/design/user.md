@@ -69,3 +69,21 @@ The User domain owns the `user.*` schema.
 > **Account lockout:** After 5 consecutive failed login attempts, `IsLocked` is set to `1` and further login attempts are rejected. An administrator must unlock the account manually.
 > **Password hashing:** Passwords are hashed using SHA-256. The raw password must not be stored, logged, or transmitted after the initial hash operation.
 > **Trigger:** `TR_User_UpdatedAt` — maintains `UpdatedAt` automatically on every `UPDATE`.
+
+## User management
+
+Staff users with a valid JWT can manage employee accounts through the Admin API's user management endpoints. The Admin API delegates all operations to the User microservice.
+
+### Capabilities
+
+- **List users** — retrieve all employee accounts (passwords excluded).
+- **Get user** — retrieve a single user account by `UserId`.
+- **Create user** — provision a new employee account with username, email, password, first name, and last name. Username and email must be unique. Password is hashed (SHA-256) before storage.
+- **Update user** — modify profile fields (firstName, lastName, email). All fields are optional; only supplied fields change. Email uniqueness is enforced.
+- **Set status** — activate or deactivate a user account without deleting it.
+- **Unlock account** — clear the `IsLocked` flag and reset `FailedLoginAttempts` to zero.
+- **Reset password** — set a new password hash, unlock the account, and clear failed login attempts.
+
+### Access control
+
+All user management endpoints require a valid staff JWT (issued at login) with a `role` claim of `User`. The `TerminalAuthenticationMiddleware` validates the token signature (HMAC-SHA256), issuer, audience, lifetime, and role claim before the request reaches any handler. Functions are identified as admin routes by the `Admin` prefix in the Azure Function name.
