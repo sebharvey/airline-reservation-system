@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserService, UserAccount } from '../../services/user.service';
+import { AuthService } from '../../services/auth.service';
 
 type StatusFilter = 'all' | 'active' | 'inactive' | 'locked';
 
@@ -12,6 +13,7 @@ type StatusFilter = 'all' | 'active' | 'inactive' | 'locked';
 })
 export class UsersComponent implements OnInit {
   #userService = inject(UserService);
+  #authService = inject(AuthService);
 
   search = signal('');
   statusFilter = signal<StatusFilter>('all');
@@ -207,7 +209,17 @@ export class UsersComponent implements OnInit {
     }
   }
 
+  isSelf(u: UserAccount): boolean {
+    return u.userId === this.#authService.currentUser()?.userId;
+  }
+
   async deleteUser(u: UserAccount): Promise<void> {
+    if (this.isSelf(u)) {
+      this.error.set('You cannot delete your own account.');
+      this.clearMessages();
+      return;
+    }
+
     if (!confirm(`Are you sure you want to permanently delete user "${u.firstName} ${u.lastName}" (${u.username})? This action cannot be undone.`)) {
       return;
     }

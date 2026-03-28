@@ -333,6 +333,7 @@ public sealed class UserManagementFunction
     [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – user deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Forbidden, Description = "Forbidden – cannot delete your own account")]
     public async Task<HttpResponseData> DeleteUser(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/users/{userId:guid}")] HttpRequestData req,
         Guid userId,
@@ -340,6 +341,14 @@ public sealed class UserManagementFunction
     {
         try
         {
+            if (req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj) &&
+                staffIdObj is string staffId &&
+                Guid.TryParse(staffId, out var staffUserId) &&
+                staffUserId == userId)
+            {
+                return await req.ForbiddenAsync("You cannot delete your own account.");
+            }
+
             var found = await _userServiceClient.DeleteUserAsync(userId, cancellationToken);
 
             if (!found)
