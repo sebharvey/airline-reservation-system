@@ -160,11 +160,7 @@ public static class CustomerValidator
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            errors.Add("The 'query' field is required.");
-        }
-        else
+        if (!string.IsNullOrWhiteSpace(query))
         {
             if (query.Trim().Length < MinSearchQueryLength)
                 errors.Add($"The 'query' field must be at least {MinSearchQueryLength} characters.");
