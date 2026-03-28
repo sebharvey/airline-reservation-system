@@ -70,7 +70,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ProfileResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetProfile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -99,7 +99,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateProfile(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "api/v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/customers/{loyaltyNumber}/profile")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -158,7 +158,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TransactionsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetTransactions(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/customers/{loyaltyNumber}/transactions")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/transactions")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -182,7 +182,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PreferencesResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetPreferences(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -211,7 +211,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePreferences(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "api/v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -243,7 +243,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteAccount(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "api/v1/customers/{loyaltyNumber}/account")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/customers/{loyaltyNumber}/account")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -268,7 +268,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
     public async Task<HttpResponseData> EmailChangeRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{identityReference:guid}/email/change-request")] HttpRequestData req,
         Guid identityReference,
         CancellationToken cancellationToken)
     {
@@ -304,7 +304,7 @@ public sealed class ProfileFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
     public async Task<HttpResponseData> VerifyEmailChange(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/email/verify")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<VerifyEmailChangeRequest>(_logger, cancellationToken);

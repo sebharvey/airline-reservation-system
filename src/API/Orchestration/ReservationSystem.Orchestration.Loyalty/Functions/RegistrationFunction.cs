@@ -43,7 +43,7 @@ public sealed class RegistrationFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(RegisterMemberResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Register(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/register")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/register")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<RegisterRequest>(_logger, cancellationToken);
@@ -93,7 +93,7 @@ public sealed class RegistrationFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetVerifyEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "api/v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -118,7 +118,7 @@ public sealed class RegistrationFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> VerifyEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "api/v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
