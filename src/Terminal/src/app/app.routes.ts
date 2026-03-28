@@ -37,6 +37,10 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'schedules',
+        loadComponent: () => import('./pages/schedules/schedules').then(m => m.SchedulesComponent),
+      },
+      {
         path: 'terminal',
         loadComponent: () => import('./pages/terminal/terminal').then(m => m.TerminalComponent),
       },

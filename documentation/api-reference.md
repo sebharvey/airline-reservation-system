@@ -187,6 +187,7 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET`  | `/v1/schedules` | Retrieve all stored flight schedules from the Schedule MS; returns `count` and per-schedule summary including `scheduleId`, route, times, `daysOfWeek`, aircraft type, validity window, `flightsCreated`, and `operatingDateCount` |
 | `POST` | `/v1/schedules/ssim` | Import schedules from an IATA SSIM Chapter 7 plain-text file (`text/plain` body, optional `?createdBy=` query parameter); the Operations API parses all Type 3 scheduled-passenger leg records, converts them to the season schedule JSON payload format, and forwards to the Schedule MS `POST /v1/schedules`; returns `imported`, `deleted`, and per-schedule summary |
 | `POST` | `/v1/schedules/import-inventory` | Generate `FlightInventory` and `Fare` records in the Offer MS from all schedules currently stored in the Schedule MS; applies the caller-supplied cabin and fare definitions; skips operating dates where inventory already exists; returns `schedulesProcessed`, `inventoriesCreated`, `inventoriesSkipped`, and `faresCreated` |
 

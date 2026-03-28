@@ -1,0 +1,294 @@
+.schedules-page {
+  max-width: 1100px;
+  padding: 16px;
+}
+
+/* Page header */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.load-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--transition), transform var(--transition);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.load-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.load-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--grad-start);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value { font-size: 1.8rem; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-routes .stat-value { color: #58a6ff; }
+.stat-aircraft .stat-value { color: #d4a017; }
+.stat-daily .stat-value { color: #3fb950; }
+
+/* Error */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  border-radius: var(--radius-sm);
+  color: #f85149;
+  font-size: 0.85rem;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+/* Filter */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-field {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.search-input:focus { border-color: var(--grad-start); }
+
+/* Table */
+.table-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.schedule-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.schedule-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.schedule-row {
+  transition: background var(--transition);
+}
+
+.schedule-row:hover { background: var(--bg-light); }
+
+/* Flight number */
+.flight-number {
+  font-weight: 700;
+  color: var(--text);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+}
+
+/* Route */
+.route-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.airport-code {
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.route-arrow {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.route-mobile {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Day offset badge */
+.day-offset {
+  font-size: 0.7rem;
+  color: #d4a017;
+  font-weight: 600;
+  margin-left: 2px;
+  vertical-align: super;
+}
+
+/* Days of week */
+.days-display {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.badge-aircraft {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.muted { color: var(--text-muted); }
+.mono  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
+
+.empty-row {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px !important;
+}
+
+.results-count {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state p { font-size: 0.9rem; max-width: 400px; line-height: 1.6; }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .schedules-page { padding: 12px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .hide-mobile { display: none; }
+  .route-mobile { display: block; }
+  .page-title { font-size: 1.25rem; }
+}
+
+@media (max-width: 900px) {
+  .hide-tablet { display: none; }
+}
+
+@media (min-width: 901px) {
+  .schedules-page { padding: 0; }
+}
