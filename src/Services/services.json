@@ -62,7 +62,8 @@
       "authType": "host-key",
       "callers": ["Ops Admin App"],
       "operations": [
-        { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" }
+        { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" },
+        { "name": "Import SSIM", "method": "POST", "path": "/api/v1/schedules/ssim" }
       ]
     },
     {
