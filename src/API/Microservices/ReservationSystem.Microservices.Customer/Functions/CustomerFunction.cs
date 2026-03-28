@@ -135,7 +135,7 @@ public sealed class CustomerFunction
         if (searchErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", searchErrors));
 
-        var query = new SearchCustomersQuery(request.Query.Trim());
+        var query = new SearchCustomersQuery(request.Query?.Trim() ?? string.Empty);
         var customers = await _searchHandler.HandleAsync(query, cancellationToken);
         var results = customers.Select(CustomerMapper.ToResponse).ToList();
 

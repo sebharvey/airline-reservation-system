@@ -36,15 +36,17 @@ public sealed class EfCustomerRepository : ICustomerRepository
 
     public async Task<IReadOnlyList<Domain.Entities.Customer>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-            return [];
+        var query = _context.Customers.AsNoTracking();
 
-        return await _context.Customers
-            .AsNoTracking()
-            .Where(c => c.LoyaltyNumber == searchTerm
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(c => c.LoyaltyNumber == searchTerm
                      || c.GivenName.Contains(searchTerm)
                      || c.Surname.Contains(searchTerm)
-                     || (c.GivenName + " " + c.Surname).Contains(searchTerm))
+                     || (c.GivenName + " " + c.Surname).Contains(searchTerm));
+        }
+
+        return await query
             .OrderBy(c => c.Surname)
             .ThenBy(c => c.GivenName)
             .Take(50)
