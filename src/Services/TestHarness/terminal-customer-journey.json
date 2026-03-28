@@ -1,0 +1,246 @@
+{
+  "journey": {
+    "name": "Terminal Customer Flow",
+    "description": "End-to-end journey simulating a contact-centre agent scenario: register a loyalty customer via the Loyalty API, create a staff user via the User MS, authenticate via the Admin API to obtain a staff JWT, search for the customer via the Loyalty API admin search endpoint and validate the result, then delete the customer via the Customer MS.",
+    "domain": "Terminal Customer",
+    "baseUrls": [
+      { "id": "loyalty", "label": "Loyalty API", "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
+      { "id": "admin", "label": "Admin API", "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
+      { "id": "user", "label": "User MS", "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net" },
+      { "id": "customer", "label": "Customer MS", "url": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Register loyalty customer",
+      "description": "Register a new loyalty programme member via the Loyalty API. This orchestrates three downstream steps: Customer MS creates the loyalty record, Identity MS creates the login account, and Customer MS is patched to link the identity reference. The member is assigned to the Blue tier with zero points.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/register",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "givenName": "__RAND_GIVEN_NAME__",
+          "surname": "__RAND_SURNAME__",
+          "dateOfBirth": "1990-05-15",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "preferredLanguage": "en-GB"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "loyaltyNumber": "AX9876543",
+          "givenName": "Amara",
+          "tierCode": "Blue",
+          "message": "Registration successful. Please check your email to verify your account."
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — loyalty member registered. Response contains the issued loyalty number (AX prefix, 9 characters), the member's given name, initial tier (Blue), and a confirmation message.",
+        "keyFields": ["loyaltyNumber", "givenName", "tierCode", "message"],
+        "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. givenName matches the submitted value. Three downstream calls were made: Customer MS create, Identity MS create account, Customer MS patch identity reference."
+      },
+      "chainsTo": [
+        { "field": "loyaltyNumber", "usedInSteps": [4, 5, 6] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Create staff user",
+      "description": "Create a new employee user account directly on the User MS. This account will be used to authenticate via the Admin API in the next step, simulating a contact-centre agent logging in to search for customers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This account provides the credential fixture for the Admin API login in Step 3.",
+        "keyFields": ["userId"],
+        "validationNotes": "userId is a non-empty GUID. Username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
+      },
+      "chainsTo": [
+        { "field": "userId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Admin login",
+      "description": "Authenticate the staff user created in Step 2 via the Admin API. The Admin API delegates to the User MS for credential validation and JWT issuance. The returned access token is used to authorise the admin customer search in Step 4.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 2 → runtime-generated username" },
+          { "field": "password", "source": "Step 2 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-03-28T12:15:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL, HMAC-SHA256), the userId matching Step 2, an ISO 8601 expiry timestamp, and tokenType 'Bearer'.",
+        "keyFields": ["accessToken", "userId", "expiresAt", "tokenType"],
+        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 2. expiresAt is ISO 8601 UTC, approximately 15 minutes from now. tokenType is always 'Bearer'."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "usedInSteps": [4] }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Admin search customers",
+      "description": "Search for the loyalty customer registered in Step 1 using the staff JWT obtained in Step 3. Calls the Loyalty API admin search endpoint with the customer's surname as the query. Validates that the customer appears in the results with the correct loyalty number, name, tier, and active status.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/customers/search",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "body": {
+          "query": "__RAND_SURNAME__"
+        },
+        "dataChain": [
+          { "field": "Authorization", "source": "Step 3 → response.accessToken" },
+          { "field": "query", "source": "Step 1 → runtime-generated surname" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": [
+          {
+            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "loyaltyNumber": "AX9876543",
+            "givenName": "Amara",
+            "surname": "Okafor",
+            "tierCode": "Blue",
+            "pointsBalance": 0,
+            "isActive": true
+          }
+        ]
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — search returns an array of matching customers. The customer registered in Step 1 must appear in the results. Validates loyalty number, given name, surname, tier code (Blue), and active status.",
+        "keyFields": ["loyaltyNumber", "givenName", "surname", "tierCode", "isActive"],
+        "validationNotes": "Response is an array (max 50 results). The customer from Step 1 must be present with loyaltyNumber matching Step 1, givenName and surname matching the runtime-generated values, tierCode 'Blue', and isActive true. Search uses partial name matching and exact loyalty number matching."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "Delete loyalty customer",
+      "description": "Delete the loyalty customer created in Step 1 via the Customer MS. This is a direct microservice call using the host key, simulating a registration rollback cleanup. Removes the customer record from the database.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "loyaltyNumber": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "source": "Step 1 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — customer record deleted from the Customer MS. No response body is returned.",
+        "keyFields": [],
+        "validationNotes": "The customer record and all associated data (points, transactions) are permanently removed. This endpoint is designed for registration rollback scenarios."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Verify customer deleted",
+      "description": "Confirm the customer no longer exists by attempting to retrieve them from the Customer MS. Expects a 404 Not Found response, proving the deletion in Step 5 was successful.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/customers/{loyaltyNumber}",
+        "baseUrlRef": "customer",
+        "pathParams": {
+          "loyaltyNumber": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "loyaltyNumber (path)", "source": "Step 1 → response.loyaltyNumber" }
+        ]
+      },
+      "response": {
+        "statusCode": 404,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "404 Not Found — customer no longer exists after deletion in Step 5.",
+        "keyFields": [],
+        "validationNotes": "Confirms the DELETE in Step 5 fully removed the customer record. The loyalty number is no longer resolvable."
+      },
+      "chainsTo": []
+    }
+  ]
+}
