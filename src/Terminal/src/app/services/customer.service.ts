@@ -71,6 +71,11 @@ export interface TransactionsResponse {
   transactions: Transaction[];
 }
 
+export interface AddPointsRequest {
+  points: number;
+  description: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
   #http = inject(HttpClient);
@@ -100,6 +105,24 @@ export class CustomerService {
         `${this.#baseUrl}/${loyaltyNumber}/transactions`,
         { params: { page: page.toString(), pageSize: pageSize.toString() } }
       )
+    );
+  }
+
+  async addPoints(loyaltyNumber: string, request: AddPointsRequest): Promise<void> {
+    await firstValueFrom(
+      this.#http.post(`${this.#baseUrl}/${loyaltyNumber}/points`, request)
+    );
+  }
+
+  async deleteCustomer(loyaltyNumber: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.delete(`${this.#baseUrl}/${loyaltyNumber}`)
+    );
+  }
+
+  async setAccountStatus(loyaltyNumber: string, isActive: boolean): Promise<void> {
+    await firstValueFrom(
+      this.#http.patch(`${this.#baseUrl}/${loyaltyNumber}/status`, { isActive })
     );
   }
 }

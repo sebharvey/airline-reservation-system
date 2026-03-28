@@ -1,15 +1,17 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CustomerService, CustomerSummary } from '../../../services/customer.service';
+import { CustomerSearchStateService } from '../../../services/customer-search-state.service';
 
 @Component({
   selector: 'app-customer-list',
   templateUrl: './customer-list.html',
   styleUrl: './customer-list.css',
 })
-export class CustomerListComponent {
+export class CustomerListComponent implements OnInit {
   #customerService = inject(CustomerService);
   #router = inject(Router);
+  #searchState = inject(CustomerSearchStateService);
 
   customers = signal<CustomerSummary[]>([]);
   search = signal('');
@@ -31,6 +33,14 @@ export class CustomerListComponent {
     };
   });
 
+  ngOnInit(): void {
+    if (this.#searchState.loaded()) {
+      this.search.set(this.#searchState.query());
+      this.customers.set(this.#searchState.results());
+      this.loaded.set(true);
+    }
+  }
+
   async searchCustomers(): Promise<void> {
     this.loading.set(true);
     this.error.set('');
@@ -38,6 +48,9 @@ export class CustomerListComponent {
       const result = await this.#customerService.searchCustomers(this.search());
       this.customers.set(result);
       this.loaded.set(true);
+      this.#searchState.query.set(this.search());
+      this.#searchState.results.set(result);
+      this.#searchState.loaded.set(true);
     } catch {
       this.error.set('Failed to load customers. Please try again.');
     } finally {

@@ -62,6 +62,11 @@
         [class.tab-active]="activeTab() === 'transactions'"
         (click)="switchTab('transactions')"
       >Transactions</button>
+      <button
+        class="tab"
+        [class.tab-active]="activeTab() === 'orders'"
+        (click)="switchTab('orders')"
+      >Orders</button>
     </div>
   }
 
@@ -73,8 +78,33 @@
         @if (!editing()) {
           <!-- View mode -->
           <div class="detail-actions-bar">
+            <button class="btn-status-toggle" [class.btn-deactivate]="c.isActive" [class.btn-activate]="!c.isActive"
+              (click)="toggleAccountStatus()" [disabled]="togglingStatus()">
+              @if (togglingStatus()) {
+                <span class="btn-spinner"></span>
+              }
+              {{ c.isActive ? 'Deactivate Account' : 'Activate Account' }}
+            </button>
+            <button class="btn-danger-outline" (click)="confirmDelete()">Delete Account</button>
             <button class="edit-btn" (click)="startEdit()">Edit Customer</button>
           </div>
+
+          <!-- Delete confirmation -->
+          @if (showDeleteConfirm()) {
+            <div class="confirm-banner">
+              <span class="confirm-text">Are you sure you want to permanently delete this account and all its transactions? This action cannot be undone.</span>
+              <div class="confirm-actions">
+                <button class="btn-secondary" (click)="cancelDelete()" [disabled]="deleting()">Cancel</button>
+                <button class="btn-danger" (click)="deleteAccount()" [disabled]="deleting()">
+                  @if (deleting()) {
+                    <span class="btn-spinner"></span> Deleting…
+                  } @else {
+                    Delete Permanently
+                  }
+                </button>
+              </div>
+            </div>
+          }
 
           <div class="detail-grid">
             <div class="detail-section">
@@ -208,12 +238,16 @@
                 </select>
               </div>
               <div class="field">
-                <label class="field-label">Nationality (ISO 3)</label>
-                <input class="field-input" type="text" maxlength="3"
+                <label class="field-label">Nationality</label>
+                <select class="field-input"
                   [value]="editNationality()"
-                  (input)="setField(editNationality.set.bind(editNationality), $event)"
-                  [disabled]="saving()"
-                  placeholder="e.g. GBR" />
+                  (change)="setField(editNationality.set.bind(editNationality), $event)"
+                  [disabled]="saving()">
+                  <option value="">Select nationality</option>
+                  @for (country of countries; track country.code) {
+                    <option [value]="country.code">{{ country.name }}</option>
+                  }
+                </select>
               </div>
               <div class="field">
                 <label class="field-label">Phone</label>
@@ -225,11 +259,14 @@
               </div>
               <div class="field">
                 <label class="field-label">Preferred language</label>
-                <input class="field-input" type="text" maxlength="5"
+                <select class="field-input"
                   [value]="editPreferredLanguage()"
-                  (input)="setField(editPreferredLanguage.set.bind(editPreferredLanguage), $event)"
-                  [disabled]="saving()"
-                  placeholder="en-GB" />
+                  (change)="setField(editPreferredLanguage.set.bind(editPreferredLanguage), $event)"
+                  [disabled]="saving()">
+                  @for (lang of languages; track lang.code) {
+                    <option [value]="lang.code">{{ lang.name }}</option>
+                  }
+                </select>
               </div>
             </div>
 
@@ -271,12 +308,16 @@
                   [disabled]="saving()" />
               </div>
               <div class="field">
-                <label class="field-label">Country (ISO 3)</label>
-                <input class="field-input" type="text" maxlength="3"
+                <label class="field-label">Country</label>
+                <select class="field-input"
                   [value]="editCountryCode()"
-                  (input)="setField(editCountryCode.set.bind(editCountryCode), $event)"
-                  [disabled]="saving()"
-                  placeholder="e.g. GBR" />
+                  (change)="setField(editCountryCode.set.bind(editCountryCode), $event)"
+                  [disabled]="saving()">
+                  <option value="">Select country</option>
+                  @for (country of countries; track country.code) {
+                    <option [value]="country.code">{{ country.name }}</option>
+                  }
+                </select>
               </div>
             </div>
 
@@ -299,6 +340,46 @@
   <!-- Transactions tab -->
   @if (customer() && activeTab() === 'transactions') {
     <div class="tab-content fade-in">
+
+      <!-- Add points action bar -->
+      <div class="detail-actions-bar">
+        <button class="edit-btn" (click)="openAddPointsForm()">Assign Points</button>
+      </div>
+
+      <!-- Add points form -->
+      @if (showAddPointsForm()) {
+        <div class="add-points-form">
+          <h3 class="section-title">Assign points to account</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label class="field-label">Points</label>
+              <input class="field-input" type="number" min="1"
+                [value]="addPointsAmount()"
+                (input)="setPointsAmount($event)"
+                [disabled]="addPointsSaving()"
+                placeholder="e.g. 5000" />
+            </div>
+            <div class="field">
+              <label class="field-label">Description</label>
+              <input class="field-input" type="text"
+                [value]="addPointsDescription()"
+                (input)="setField(addPointsDescription.set.bind(addPointsDescription), $event)"
+                [disabled]="addPointsSaving()"
+                placeholder="e.g. Goodwill gesture — delayed flight" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-secondary" (click)="cancelAddPoints()" [disabled]="addPointsSaving()">Cancel</button>
+            <button class="btn-primary" (click)="submitAddPoints()" [disabled]="addPointsSaving()">
+              @if (addPointsSaving()) {
+                <span class="btn-spinner"></span> Assigning…
+              } @else {
+                Assign Points
+              }
+            </button>
+          </div>
+        </div>
+      }
 
       @if (transactionsLoading()) {
         <div class="loading-state">
@@ -356,6 +437,17 @@
           No transactions found for this customer.
         </div>
       }
+    </div>
+  }
+
+  <!-- Orders tab -->
+  @if (customer() && activeTab() === 'orders') {
+    <div class="tab-content fade-in">
+      <div class="empty-orders">
+        <div class="empty-orders-icon">&#128230;</div>
+        <h3 class="empty-orders-title">No orders yet</h3>
+        <p class="empty-orders-text">Orders created against this customer account will appear here.</p>
+      </div>
     </div>
   }
 </div>
