@@ -203,6 +203,7 @@ export class CustomerDetailComponent implements OnInit {
 
     try {
       await this.#customerService.updateCustomer(this.loyaltyNumber, data);
+      this.#searchState.dirty.set(true);
       this.success.set('Customer updated successfully.');
       this.editing.set(false);
       await this.loadCustomer();
@@ -281,6 +282,7 @@ export class CustomerDetailComponent implements OnInit {
 
     try {
       await this.#customerService.addPoints(this.loyaltyNumber, { points, description });
+      this.#searchState.dirty.set(true);
       this.success.set(`Successfully assigned ${points.toLocaleString()} points.`);
       this.showAddPointsForm.set(false);
       this.transactionsPage.set(1);
@@ -308,9 +310,7 @@ export class CustomerDetailComponent implements OnInit {
     this.error.set('');
     try {
       await this.#customerService.deleteCustomer(this.loyaltyNumber);
-      this.#searchState.results.update(results =>
-        results.filter(c => c.loyaltyNumber !== this.loyaltyNumber)
-      );
+      this.#searchState.dirty.set(true);
       this.#router.navigate(['/customer']);
     } catch {
       this.error.set('Failed to delete account. Please try again.');
@@ -331,6 +331,7 @@ export class CustomerDetailComponent implements OnInit {
 
     try {
       await this.#customerService.setAccountStatus(this.loyaltyNumber, !c.isActive);
+      this.#searchState.dirty.set(true);
       this.success.set(`Account ${c.isActive ? 'deactivated' : 'activated'} successfully.`);
       await this.loadCustomer();
     } catch {

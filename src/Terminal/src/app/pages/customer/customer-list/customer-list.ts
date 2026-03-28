@@ -33,11 +33,16 @@ export class CustomerListComponent implements OnInit {
     };
   });
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (this.#searchState.loaded()) {
       this.search.set(this.#searchState.query());
-      this.customers.set(this.#searchState.results());
-      this.loaded.set(true);
+      if (this.#searchState.dirty()) {
+        this.#searchState.dirty.set(false);
+        await this.searchCustomers();
+      } else {
+        this.customers.set(this.#searchState.results());
+        this.loaded.set(true);
+      }
     }
   }
 
