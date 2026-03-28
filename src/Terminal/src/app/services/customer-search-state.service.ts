@@ -6,4 +6,5 @@ export class CustomerSearchStateService {
   query = signal('');
   results = signal<CustomerSummary[]>([]);
   loaded = signal(false);
+  dirty = signal(false);
 }
