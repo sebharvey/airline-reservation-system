@@ -200,6 +200,30 @@ export class FareRulesComponent implements OnInit {
     }
   }
 
+  generateFareBasisCode(): void {
+    const f = this.form();
+    const bookingClass = (f.bookingClass || 'Y').toUpperCase();
+    let code = bookingClass;
+
+    // Fare family indicator
+    if (f.fareFamily === 'Flex') {
+      code += 'FLEX';
+    } else if (f.fareFamily === 'Non-Flex') {
+      code += 'NRF';
+    }
+
+    // Advance purchase / restriction indicators
+    if (!f.isRefundable && !f.isChangeable) {
+      code += 'X';
+    } else if (f.isRefundable) {
+      code += 'R';
+    }
+
+    // Trim to max 8 characters (IATA fare basis code limit)
+    code = code.substring(0, 8).toUpperCase();
+    this.updateField('fareBasisCode', code);
+  }
+
   formatDate(iso: string | null): string {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
