@@ -48,7 +48,7 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 28, 29, 30, 31, 32, 34] }
+        { "field": "loyaltyNumber", "usedInSteps": [2, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 28, 29, 30, 31, 32, 35] }
       ]
     },
     {
@@ -1133,7 +1133,7 @@
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue'. Store the returned loyaltyNumber and the email used in the request body for use in the transfer step."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "as": "recipientLoyaltyNumber", "usedInSteps": [26, 27, 28, 29, 30, 31, 33] },
+        { "field": "loyaltyNumber", "as": "recipientLoyaltyNumber", "usedInSteps": [26, 27, 28, 29, 30, 31, 34] },
         { "field": "request.body.email", "as": "recipientEmail", "usedInSteps": [28, 31] }
       ]
     },
@@ -1427,8 +1427,51 @@
     },
     {
       "step": 33,
+      "name": "Login as recipient",
+      "description": "Authenticate as the recipient account registered in Step 25. The returned access token is required to authorise the recipient account deletion in Step 34.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "__RAND_RECIPIENT_EMAIL__",
+          "password": "__RAND_RECIPIENT_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "email", "source": "Step 25 → runtime-generated recipient email" },
+          { "field": "password", "source": "Step 25 → runtime-generated recipient password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..._RECIPIENT",
+          "refreshToken": "cmVjaXBpZW50IHJlZnJlc2ggdG9rZW4...",
+          "expiresAt": "2026-03-27T21:00:00Z",
+          "tokenType": "Bearer",
+          "loyaltyNumber": "AX1234567"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — recipient credentials validated. Response contains a JWT access token used to authorise the account deletion in Step 34.",
+        "keyFields": ["accessToken"],
+        "validationNotes": "accessToken is a signed JWT. loyaltyNumber matches the recipient's loyalty number from Step 25."
+      },
+      "chainsTo": [
+        { "field": "accessToken", "as": "recipientAccessToken", "usedInSteps": [34] }
+      ]
+    },
+    {
+      "step": 34,
       "name": "Delete recipient account",
-      "description": "Delete the recipient loyalty account created in Step 25. Cleanup step to remove the test recipient's Customer MS record.",
+      "description": "Delete the recipient loyalty account created in Step 25. Cleanup step to remove the test recipient's Customer MS record. Uses the recipient's access token from Step 33.",
       "type": "positive",
       "apiCall": {
         "method": "DELETE",
@@ -1436,14 +1479,16 @@
         "baseUrlRef": "loyalty",
         "pathParams": {
           "recipientLoyaltyNumber": "AX1234567"
-        },
-        "note": "This step uses the same delete endpoint as the sender cleanup — no Bearer token is documented here as delete is internal-only in this test environment."
+        }
       },
       "request": {
-        "headers": {},
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..._RECIPIENT"
+        },
         "body": null,
         "dataChain": [
-          { "field": "recipientLoyaltyNumber (path)", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" }
+          { "field": "recipientLoyaltyNumber (path)", "from": "recipientLoyaltyNumber", "source": "Step 25 → response.loyaltyNumber" },
+          { "field": "Authorization", "source": "Step 33 → response.accessToken" }
         ]
       },
       "response": {
@@ -1459,7 +1504,7 @@
       "chainsTo": []
     },
     {
-      "step": 34,
+      "step": 35,
       "name": "Delete sender account",
       "description": "Delete the sender loyalty account created in Step 1. Final cleanup step — removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
       "type": "positive",
