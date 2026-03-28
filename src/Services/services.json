@@ -277,7 +277,7 @@
       "id": "schedule-ms",
       "name": "Schedule Microservice",
       "description": "Internal persistence layer for flight schedule definitions. Stores schedule records, enumerates operating dates, and tracks flights created count.",
-      "baseUrl": "https://apexair-schedule-ms-h8hin4l3loqrqlnf.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
