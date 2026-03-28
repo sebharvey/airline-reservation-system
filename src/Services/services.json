@@ -155,7 +155,7 @@
       "id": "payment-ms",
       "name": "Payment Microservice",
       "description": "Financial orchestration layer for all Apex Air transactions. Manages card payment authorisation, settlement, and refund operations.",
-      "baseUrl": "https://apexair-payment-ms-c3cdi9g8gjlmlgia.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
