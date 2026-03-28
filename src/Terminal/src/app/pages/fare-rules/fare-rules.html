@@ -50,12 +50,19 @@
           <input type="text" [ngModel]="form().flightNumber" (ngModelChange)="updateField('flightNumber', $event)" placeholder="e.g. AA100" maxlength="10" />
         </div>
         <div class="form-group">
-          <label>Fare Basis Code *</label>
-          <input type="text" [ngModel]="form().fareBasisCode" (ngModelChange)="updateField('fareBasisCode', $event)" placeholder="e.g. YOWGB" maxlength="20" required />
+          <label>
+            Fare Basis Code *
+            <a class="auto-gen-link" (click)="generateFareBasisCode()" title="Auto-generate fare basis code from form fields">Auto-gen</a>
+          </label>
+          <input type="text" [ngModel]="form().fareBasisCode" (ngModelChange)="updateField('fareBasisCode', $event.toUpperCase())" placeholder="e.g. YOWGB" maxlength="8" required class="uppercase-input" />
         </div>
         <div class="form-group">
           <label>Fare Family <span class="optional">(optional)</span></label>
-          <input type="text" [ngModel]="form().fareFamily" (ngModelChange)="updateField('fareFamily', $event)" placeholder="e.g. Standard" maxlength="50" />
+          <select [ngModel]="form().fareFamily" (ngModelChange)="updateField('fareFamily', $event || null)">
+            <option [ngValue]="null">-- None --</option>
+            <option value="Flex">Flex</option>
+            <option value="Non-Flex">Non-Flex</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Cabin Code *</label>
