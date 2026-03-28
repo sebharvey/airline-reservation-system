@@ -83,6 +83,7 @@ Staff users with a valid JWT can manage employee accounts through the Admin API'
 - **Set status** — activate or deactivate a user account without deleting it.
 - **Unlock account** — clear the `IsLocked` flag and reset `FailedLoginAttempts` to zero.
 - **Reset password** — set a new password hash, unlock the account, and clear failed login attempts.
+- **Delete user** — permanently remove a user account from the database. This is irreversible; use deactivation (set status) for soft removal.
 
 ### Access control
 

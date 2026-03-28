@@ -79,4 +79,10 @@ export class UserService {
       this.#http.post(`${this.#baseUrl}/${userId}/reset-password`, { newPassword })
     );
   }
+
+  async deleteUser(userId: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.delete(`${this.#baseUrl}/${userId}`)
+    );
+  }
 }

@@ -154,4 +154,17 @@ public sealed class UserServiceClient
         response.EnsureSuccessStatusCode();
         return true;
     }
+
+    public async Task<bool> DeleteUserAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"/api/v1/users/{userId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
 }

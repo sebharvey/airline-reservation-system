@@ -170,6 +170,7 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `PATCH` | `/v1/admin/users/{userId}/status` | Activate or deactivate a user account |
 | `POST` | `/v1/admin/users/{userId}/unlock` | Unlock a locked user account and reset failed login attempts |
 | `POST` | `/v1/admin/users/{userId}/reset-password` | Reset a user's password; unlocks the account and clears failed attempts |
+| `DELETE` | `/v1/admin/users/{userId}` | Permanently delete a user account; returns `404` if user does not exist |
 
 ---
 
@@ -424,6 +425,7 @@ The User microservice owns employee user accounts for the Apex Air reservation s
 |--------|----------|-------------|
 | `POST` | `/v1/users` | Create a new employee user account (`username`, `email`, `password`, `firstName`, `lastName`); returns `201 Created` with the new `userId`; rejects with `409 Conflict` if `username` or `email` is already registered |
 | `GET` | `/v1/users` | Retrieve all employee user accounts; `passwordHash` is never returned |
+| `DELETE` | `/v1/users/{userId}` | Permanently delete an employee user account; returns `204 No Content` on success; `404` if user does not exist |
 
 ---
 

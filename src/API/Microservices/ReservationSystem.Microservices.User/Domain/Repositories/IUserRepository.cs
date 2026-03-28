@@ -18,4 +18,6 @@ public interface IUserRepository
     Task CreateAsync(Entities.User user, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Entities.User user, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(Guid userId, CancellationToken cancellationToken = default);
 }

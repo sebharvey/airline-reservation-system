@@ -413,6 +413,23 @@
 .btn-activate { background: rgba(63, 185, 80, 0.12); color: #3fb950; }
 .btn-suspend:hover, .btn-activate:hover { opacity: 0.8; }
 
+.btn-delete {
+  padding: 9px 16px;
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.25);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition), background var(--transition);
+}
+
+.btn-delete:hover {
+  background: rgba(248, 81, 73, 0.2);
+  opacity: 0.9;
+}
+
 /* ── Empty / count ── */
 .empty-row {
   text-align: center;
