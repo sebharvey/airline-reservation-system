@@ -17,7 +17,7 @@ namespace ReservationSystem.Orchestration.Loyalty.Functions;
 /// <summary>
 /// HTTP-triggered functions for staff-facing loyalty customer management.
 /// All routes require a valid staff JWT token with the "User" role claim,
-/// enforced by <see cref="Middleware.StaffTokenMiddleware"/>.
+/// enforced by <see cref="Middleware.TerminalAuthenticationMiddleware"/>.
 /// Function names are prefixed with "Admin" to trigger staff middleware.
 /// </summary>
 public sealed class CustomerManagementFunction

@@ -18,14 +18,14 @@ namespace ReservationSystem.Orchestration.Loyalty.Middleware;
 /// This middleware only applies to functions whose name starts with "Admin". All
 /// other functions fall through to the existing <see cref="TokenVerificationMiddleware"/>.
 /// </summary>
-public sealed class StaffTokenMiddleware : IFunctionsWorkerMiddleware
+public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddleware
 {
     private const string RequiredRole = "User";
 
     private readonly TokenValidationParameters? _tokenValidation;
-    private readonly ILogger<StaffTokenMiddleware> _logger;
+    private readonly ILogger<TerminalAuthenticationMiddleware> _logger;
 
-    public StaffTokenMiddleware(IConfiguration configuration, ILogger<StaffTokenMiddleware> logger)
+    public TerminalAuthenticationMiddleware(IConfiguration configuration, ILogger<TerminalAuthenticationMiddleware> logger)
     {
         _logger = logger;
 

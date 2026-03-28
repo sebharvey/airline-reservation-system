@@ -43,7 +43,7 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        // Admin functions are handled by StaffTokenMiddleware — skip here.
+        // Admin functions are handled by TerminalAuthenticationMiddleware — skip here.
         if (functionName.StartsWith("Admin", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);

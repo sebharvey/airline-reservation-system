@@ -31,7 +31,7 @@ using ReservationSystem.Orchestration.Loyalty.Middleware;
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
     {
-        worker.UseMiddleware<StaffTokenMiddleware>();
+        worker.UseMiddleware<TerminalAuthenticationMiddleware>();
         worker.UseMiddleware<TokenVerificationMiddleware>();
         worker.UseNewtonsoftJson();
     })
