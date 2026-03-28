@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CustomerService, CustomerSummary } from '../../../services/customer.service';
 
@@ -7,7 +7,7 @@ import { CustomerService, CustomerSummary } from '../../../services/customer.ser
   templateUrl: './customer-list.html',
   styleUrl: './customer-list.css',
 })
-export class CustomerListComponent {
+export class CustomerListComponent implements OnInit {
   #customerService = inject(CustomerService);
   #router = inject(Router);
 
@@ -16,6 +16,10 @@ export class CustomerListComponent {
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
+
+  ngOnInit(): void {
+    this.loadCustomers();
+  }
 
   filteredCustomers = computed(() => {
     const q = this.search().toLowerCase();

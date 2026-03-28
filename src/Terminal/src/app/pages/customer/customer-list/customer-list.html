@@ -10,7 +10,7 @@
       @if (loading()) {
         <span class="btn-spinner"></span> Loading…
       } @else {
-        {{ loaded() ? 'Refresh' : 'Load Customers' }}
+        Refresh
       }
     </button>
   </div>
@@ -115,12 +115,11 @@
     </p>
   }
 
-  <!-- Empty state -->
-  @if (!loaded() && !loading()) {
+  <!-- Loading state -->
+  @if (!loaded() && loading()) {
     <div class="empty-state">
-      <span class="empty-icon">&#128100;</span>
-      <h2>Loyalty Customers</h2>
-      <p>Click "Load Customers" to fetch loyalty programme members from the system.</p>
+      <span class="btn-spinner"></span>
+      <p>Loading customers…</p>
     </div>
   }
 </div>
