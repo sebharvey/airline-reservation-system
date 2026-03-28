@@ -292,6 +292,55 @@ public class OperationsApiIntegrationTests : IAsyncLifetime
     }
 
     // -------------------------------------------------------------------------
+    // Happy path: SSIM import with default createdBy
+    // -------------------------------------------------------------------------
+
+    [SkippableFact, TestPriority(30)]
+    public async Task T30_ImportSsim_DefaultCreatedBy_ReturnsOkWithOneSchedule()
+    {
+        // Arrange — one Type 3 record, AX901 LHR→JFK, daily for a single day
+        using var content = new StringContent(DefaultSsim, System.Text.Encoding.UTF8, "text/plain");
+
+        // Act — no ?createdBy= query param; server defaults to "ssim-import"
+        var response = await _client.PostAsync("/api/v1/schedules/ssim", content);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ImportSsimResponseDto>(JsonOptions);
+        body.Should().NotBeNull();
+        body!.Count.Should().Be(1);
+        body.Schedules.Should().HaveCount(1);
+        body.Schedules[0].ScheduleId.Should().NotBeEmpty();
+        body.Schedules[0].FlightNumber.Should().Be("AX901");
+        body.Schedules[0].Origin.Should().Be("LHR");
+        body.Schedules[0].Destination.Should().Be("JFK");
+    }
+
+    // Default single-record SSIM file used by T30.
+    // Type 3 record: AX901, LHR→JFK, daily (1234567), 2026-09-07 only, A351 equipment.
+    // Field positions are 0-indexed per SsimParser:
+    //   0     record type '3'
+    //   2-3   carrier 'AX'
+    //   5-8   flight number '0901'  → AX901
+    //   10    service type 'Y'
+    //   12-19 period start '20260907'
+    //   21-28 period end   '20260907'
+    //   31-37 days-of-week '1234567' (daily)
+    //   39-41 origin 'LHR'
+    //   42-45 departure time '0800'
+    //   46-48 UTC offset '+00'
+    //   49-52 arrival time '1110'
+    //   53    arrival day offset '0' (same day)
+    //   55-57 destination 'JFK'
+    //   61-63 equipment '351' → A351
+    private const string DefaultSsim =
+        "1IATA  AX              20260907 20260907AX  SCHED  20260328\r\n" +
+        "2AX  01W20260907 20260907\r\n" +
+        "3 AX 0901 Y 20260907 20260907  1234567 LHR0800+0011100 JFK   351 AX                                                                                                                              \r\n" +
+        "5       1\r\n";
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -320,6 +369,23 @@ internal sealed class CreateScheduleResponseDto
 {
     public Guid ScheduleId { get; init; }
     public int FlightsCreated { get; init; }
+}
+
+internal sealed class ImportSsimResponseDto
+{
+    public int Count { get; init; }
+    public IReadOnlyList<ImportedScheduleItemDto> Schedules { get; init; } = [];
+}
+
+internal sealed class ImportedScheduleItemDto
+{
+    public Guid ScheduleId { get; init; }
+    public string FlightNumber { get; init; } = string.Empty;
+    public string Origin { get; init; } = string.Empty;
+    public string Destination { get; init; } = string.Empty;
+    public string ValidFrom { get; init; } = string.Empty;
+    public string ValidTo { get; init; } = string.Empty;
+    public int OperatingDateCount { get; init; }
 }
 
 #endregion
