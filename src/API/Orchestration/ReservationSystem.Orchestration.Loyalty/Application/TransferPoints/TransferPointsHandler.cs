@@ -31,20 +31,31 @@ public sealed class TransferPointsHandler
         TransferPointsCommand command,
         CancellationToken cancellationToken)
     {
-        // Resolve recipient customer to confirm the loyalty number exists
+        // Resolve recipient customer to obtain their identity ID
         var recipient = await _customerServiceClient.GetCustomerAsync(
             command.RecipientLoyaltyNumber, cancellationToken);
 
         if (recipient is null)
             return null;
 
-        // Verify the supplied email belongs to a registered Identity account
-        var emailAccount = await _identityServiceClient.GetAccountByEmailAsync(
-            command.RecipientEmail, cancellationToken);
+        // Verify the supplied email matches the recipient's registered email address
+        if (recipient.IdentityId.HasValue)
+        {
+            var identity = await _identityServiceClient.GetAccountByIdAsync(
+                recipient.IdentityId.Value, cancellationToken);
 
-        if (emailAccount is null)
+            var emailMatches = identity is not null &&
+                string.Equals(identity.Email, command.RecipientEmail, StringComparison.OrdinalIgnoreCase);
+
+            if (!emailMatches)
+                throw new ArgumentException(
+                    "The recipient loyalty number and email address do not match a registered account.");
+        }
+        else
+        {
             throw new ArgumentException(
                 "The recipient loyalty number and email address do not match a registered account.");
+        }
 
         // Execute the transfer in the Customer MS
         var result = await _customerServiceClient.TransferPointsAsync(

@@ -121,39 +121,6 @@ public sealed class AccountFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/accounts/by-email?email={email}
-    // -------------------------------------------------------------------------
-
-    [Function("GetAccountByEmail")]
-    [OpenApiOperation(operationId: "GetAccountByEmail", tags: new[] { "Accounts" }, Summary = "Get a user account summary by email address")]
-    [OpenApiParameter(name: "email", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Email address")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AccountSummaryResponse), Description = "OK")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
-    public async Task<HttpResponseData> GetAccountByEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/by-email")] HttpRequestData req,
-        CancellationToken cancellationToken)
-    {
-        var email = System.Web.HttpUtility.ParseQueryString(req.Url.Query)["email"];
-
-        if (string.IsNullOrWhiteSpace(email))
-            return await req.BadRequestAsync("The 'email' query parameter is required.");
-
-        var account = await _getAccountHandler.HandleByEmailAsync(email, cancellationToken);
-
-        if (account is null)
-            return await req.NotFoundAsync($"No user account found for email '{email}'.");
-
-        var response = new AccountSummaryResponse
-        {
-            UserAccountId = account.UserAccountId,
-            Email = account.Email,
-            IsEmailVerified = account.IsEmailVerified
-        };
-
-        return await req.OkJsonAsync(response);
-    }
-
-    // -------------------------------------------------------------------------
     // DELETE /v1/accounts/{userAccountId:guid}
     // -------------------------------------------------------------------------
 

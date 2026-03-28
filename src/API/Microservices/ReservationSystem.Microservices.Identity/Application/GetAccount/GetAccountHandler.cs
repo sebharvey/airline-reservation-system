@@ -18,7 +18,4 @@ public sealed class GetAccountHandler
 
     public Task<UserAccount?> HandleAsync(GetAccountQuery query, CancellationToken cancellationToken = default)
         => _repository.GetByIdAsync(query.UserAccountId, cancellationToken);
-
-    public Task<UserAccount?> HandleByEmailAsync(string email, CancellationToken cancellationToken = default)
-        => _repository.GetByEmailAsync(email, cancellationToken);
 }
