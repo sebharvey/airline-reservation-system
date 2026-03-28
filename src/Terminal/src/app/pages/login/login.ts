@@ -18,21 +18,28 @@ export class LoginComponent {
   loading = signal(false);
   error = signal('');
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (!this.username().trim()) {
       this.error.set('Please enter your agent ID or username.');
+      return;
+    }
+
+    if (!this.password().trim()) {
+      this.error.set('Please enter your password.');
       return;
     }
 
     this.loading.set(true);
     this.error.set('');
 
-    // Simulate brief network delay for realism
-    setTimeout(() => {
-      this.#auth.login(this.username(), this.password());
-      this.loading.set(false);
+    try {
+      await this.#auth.login(this.username(), this.password());
       this.#router.navigate(['/terminal']);
-    }, 600);
+    } catch (err: any) {
+      this.error.set(err?.message ?? 'Login failed. Please try again.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   setUsername(val: string): void { this.username.set(val); }

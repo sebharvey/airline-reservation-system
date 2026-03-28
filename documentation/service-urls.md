@@ -56,6 +56,9 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Admin API | `UserMs:HostKey` | User MS — Azure Function host key |
 | Loyalty API | `IdentityMs:BaseUrl` | Identity MS |
 | Loyalty API | `CustomerMs:BaseUrl` | Customer MS |
+| Loyalty API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
+| Loyalty API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
+| Loyalty API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
 | Retail API | `OfferMs:BaseUrl` | Offer MS |
 | Retail API | `OrderMs:BaseUrl` | Order MS |
 | Retail API | `PaymentMs:BaseUrl` | Payment MS |

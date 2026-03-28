@@ -17,6 +17,7 @@
 - [Loyalty API](#loyalty-api--full-api-spec)
   - [Authentication](#authentication)
   - [Account & Profile](#account--profile)
+  - [Admin Customer Management](#admin-customer-management)
 - [Admin API](#admin-api--full-api-spec)
   - [Authentication](#authentication-3)
 - [Disruption API](#disruption-api--full-api-spec)
@@ -128,6 +129,17 @@
 | `GET` | `/v1/accounts/{userAccountId}/verify-email` | Verify ownership of an email address; called when the user follows the link in their registration confirmation email; delegates to Identity MS |
 | `POST` | `/v1/customers/{loyaltyNumber}/email/change-request` | Initiate an email address change; sends verification link to the new address (step 1 of email change flow) |
 | `POST` | `/v1/email/verify` | Verify a new email address using a time-limited token (step 2 of email change flow); delegates to Identity MS |
+
+### Admin customer management
+
+Staff-facing endpoints for managing loyalty customers. All routes require a valid staff JWT (issued by the Admin API) with a `role` claim of `User`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/admin/customers/search` | Search loyalty customers by name or loyalty number; returns a summary list of matching members; accepts optional `query` in the request body |
+| `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, and activity timestamps |
+| `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address) |
+| `GET` | `/v1/admin/customers/{loyaltyNumber}/transactions` | Retrieve paginated loyalty transaction history for a customer |
 
 ---
 

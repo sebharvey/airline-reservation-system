@@ -23,6 +23,18 @@ export const routes: Routes = [
       {
         path: 'customer',
         loadComponent: () => import('./pages/customer/customer').then(m => m.CustomerComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/customer/customer-list/customer-list').then(m => m.CustomerListComponent),
+          },
+          {
+            path: ':loyaltyNumber',
+            loadComponent: () =>
+              import('./pages/customer/customer-detail/customer-detail').then(m => m.CustomerDetailComponent),
+          },
+        ],
       },
       {
         path: 'terminal',
