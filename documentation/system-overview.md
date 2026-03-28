@@ -79,6 +79,9 @@ A Modern Airline Retailing system built on offer and order capability.
 - **Operations** — flight schedule administration
   - Schedule Administration (submission, validation, inventory count tracking)
 
+- **Admin** — internal staff authentication and system access
+  - Staff Authentication (login, JWT issuance, account lockout enforcement via User MS)
+
 ## High-Level System Architecture
 
 ```mermaid
@@ -105,6 +108,7 @@ graph LR
         FINANCE_API[Finance API]
         DISRUPTION_API[Disruption API]
         OPERATIONS_API[Operations API]
+        ADMIN_API[Admin API]
     end
 
     subgraph Microservices
@@ -158,6 +162,11 @@ graph LR
             SCHEDULE_DB[(Schedule DB)]
         end
 
+        subgraph USER_SVC["User Service"]
+            USER[User]
+            USER_DB[(User DB)]
+        end
+
         subgraph Events["Event Bus"]
             EVT[Order Events]
         end
@@ -173,6 +182,7 @@ graph LR
     AIRPORT --> AIRPORT_API
     ACCT_CH --> FINANCE_API
     OPS_APP --> OPERATIONS_API
+    CC & AIRPORT & ACCT_CH & OPS_APP --> ADMIN_API
 
     %% Orchestration → Microservices
     RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT & BAG
@@ -181,6 +191,7 @@ graph LR
     FINANCE_API --> ACCOUNTING
     DISRUPTION_API --> OFFER & ORDER & DELIVERY
     OPERATIONS_API --> SCHEDULE & OFFER
+    ADMIN_API --> USER
 
     %% Microservice → DB
     IDENTITY --> IDENTITY_DB
@@ -193,6 +204,7 @@ graph LR
     SEAT --> SEAT_DB
     BAG --> BAG_DB
     SCHEDULE --> SCHEDULE_DB
+    USER --> USER_DB
 
     %% Eventing to Accounting and Customer
     ORDER --> EVT
@@ -225,6 +237,7 @@ graph LR
 - **Finance API** *(future)* — financial reporting and reconciliation; routes to Accounting microservice.
 - **Disruption API** — receives IROPS events from FOS and orchestrates rebooking across Offer, Order, and Delivery microservices.
 - **Operations API** — schedule submission and inventory generation via Schedule and Offer microservices.
+- **Admin API** — internal staff authentication entry point; delegates credential validation and JWT issuance to the User microservice. Serves all back-office applications (Contact Centre, Airport, Finance, Operations).
 
 ### Microservices
 
@@ -237,6 +250,7 @@ graph LR
 - **Seat** — seatmap definitions and fleet-wide seat pricing rules. Owns Seat DB.
 - **Bag** — baggage policy, pricing, and bag offer snapshots. Owns Bag DB.
 - **Schedule** — flight schedule definitions and bulk inventory generation. Owns Schedule DB.
+- **User** — employee user accounts, credentials, and account lockout for all internal staff. Owns User DB. Separate from the Identity microservice, which manages loyalty member credentials.
 
 ## Cabin Classes
 
