@@ -28,6 +28,7 @@ export class AppShell {
     { path: '/order',    label: 'Order',    icon: '📋', description: 'Manage orders & payments' },
     { path: '/customer', label: 'Customer', icon: '👤', description: 'Customer profiles & history' },
     { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
+    { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
     { path: '/terminal', label: 'Terminal', icon: '⌨',  description: 'Cryptic command terminal' },
   ];
 

@@ -496,6 +496,142 @@ public sealed class SqlOfferRepository : IOfferRepository
     }
 
     // -------------------------------------------------------------------------
+    // FareRule
+    // -------------------------------------------------------------------------
+
+    public async Task<FareRule?> GetFareRuleByIdAsync(Guid fareRuleId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            FROM   [offer].[FareRule]
+            WHERE  FareRuleId = @FareRuleId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var row = await connection.QuerySingleOrDefaultAsync<dynamic>(
+            new CommandDefinition(sql, new { FareRuleId = fareRuleId }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return row is null ? null : MapToFareRule(row);
+    }
+
+    public async Task<IReadOnlyList<FareRule>> GetAllFareRulesAsync(CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            FROM   [offer].[FareRule]
+            ORDER BY FareBasisCode, CabinCode;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToFareRule).ToList().AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<FareRule>> SearchFareRulesAsync(string? query, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            FROM   [offer].[FareRule]
+            WHERE  (@Query IS NULL OR @Query = ''
+                    OR FareBasisCode LIKE '%' + @Query + '%'
+                    OR FareFamily LIKE '%' + @Query + '%'
+                    OR FlightNumber LIKE '%' + @Query + '%'
+                    OR CabinCode = @Query)
+            ORDER BY FareBasisCode, CabinCode;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new { Query = query ?? string.Empty }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToFareRule).ToList().AsReadOnly();
+    }
+
+    public async Task CreateFareRuleAsync(FareRule fareRule, CancellationToken ct = default)
+    {
+        const string sql = """
+            INSERT INTO [offer].[FareRule]
+                   (FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                    CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                    PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+            VALUES (@FareRuleId, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
+                    @CurrencyCode, @BaseFareAmount, @TaxAmount, @TotalAmount,
+                    @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
+                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(sql, MapFareRuleToParameters(fareRule), commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug("Inserted FareRule {FareRuleId} into [offer].[FareRule]", fareRule.FareRuleId);
+    }
+
+    public async Task UpdateFareRuleAsync(FareRule fareRule, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE [offer].[FareRule]
+            SET    FlightNumber          = @FlightNumber,
+                   FareBasisCode         = @FareBasisCode,
+                   FareFamily            = @FareFamily,
+                   CabinCode             = @CabinCode,
+                   BookingClass          = @BookingClass,
+                   CurrencyCode          = @CurrencyCode,
+                   BaseFareAmount        = @BaseFareAmount,
+                   TaxAmount             = @TaxAmount,
+                   TotalAmount           = @TotalAmount,
+                   IsRefundable          = @IsRefundable,
+                   IsChangeable          = @IsChangeable,
+                   ChangeFeeAmount       = @ChangeFeeAmount,
+                   CancellationFeeAmount = @CancellationFeeAmount,
+                   PointsPrice           = @PointsPrice,
+                   PointsTaxes           = @PointsTaxes,
+                   ValidFrom             = @ValidFrom,
+                   ValidTo               = @ValidTo
+            WHERE  FareRuleId = @FareRuleId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, MapFareRuleToParameters(fareRule), commandTimeout: _options.CommandTimeoutSeconds));
+
+        if (rowsAffected == 0)
+            _logger.LogWarning("UpdateFareRuleAsync found no row for FareRule {FareRuleId}", fareRule.FareRuleId);
+    }
+
+    public async Task<bool> DeleteFareRuleAsync(Guid fareRuleId, CancellationToken ct = default)
+    {
+        const string sql = """
+            DELETE FROM [offer].[FareRule]
+            WHERE  FareRuleId = @FareRuleId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { FareRuleId = fareRuleId }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rowsAffected > 0;
+    }
+
+    // -------------------------------------------------------------------------
     // Private mapping helpers — DateOnly/TimeOnly conversion
     // -------------------------------------------------------------------------
 
@@ -670,6 +806,58 @@ public sealed class SqlOfferRepository : IOfferRepository
             offer.ExpiresAt,
             offer.IsConsumed,
             offer.UpdatedAt
+        };
+    }
+
+    private static FareRule MapToFareRule(dynamic row)
+    {
+        return FareRule.Reconstitute(
+            fareRuleId: (Guid)row.FareRuleId,
+            flightNumber: (string?)row.FlightNumber,
+            fareBasisCode: (string)row.FareBasisCode,
+            fareFamily: (string?)row.FareFamily,
+            cabinCode: (string)row.CabinCode,
+            bookingClass: (string)row.BookingClass,
+            currencyCode: (string)row.CurrencyCode,
+            baseFareAmount: (decimal)row.BaseFareAmount,
+            taxAmount: (decimal)row.TaxAmount,
+            totalAmount: (decimal)row.TotalAmount,
+            isRefundable: (bool)row.IsRefundable,
+            isChangeable: (bool)row.IsChangeable,
+            changeFeeAmount: (decimal)row.ChangeFeeAmount,
+            cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
+            pointsPrice: (int?)row.PointsPrice,
+            pointsTaxes: (decimal?)row.PointsTaxes,
+            validFrom: (DateTime)row.ValidFrom,
+            validTo: (DateTime)row.ValidTo,
+            createdAt: (DateTime)row.CreatedAt,
+            updatedAt: (DateTime)row.UpdatedAt);
+    }
+
+    private static object MapFareRuleToParameters(FareRule fareRule)
+    {
+        return new
+        {
+            fareRule.FareRuleId,
+            fareRule.FlightNumber,
+            fareRule.FareBasisCode,
+            fareRule.FareFamily,
+            fareRule.CabinCode,
+            fareRule.BookingClass,
+            fareRule.CurrencyCode,
+            fareRule.BaseFareAmount,
+            fareRule.TaxAmount,
+            fareRule.TotalAmount,
+            fareRule.IsRefundable,
+            fareRule.IsChangeable,
+            fareRule.ChangeFeeAmount,
+            fareRule.CancellationFeeAmount,
+            fareRule.PointsPrice,
+            fareRule.PointsTaxes,
+            fareRule.ValidFrom,
+            fareRule.ValidTo,
+            fareRule.CreatedAt,
+            fareRule.UpdatedAt
         };
     }
 }

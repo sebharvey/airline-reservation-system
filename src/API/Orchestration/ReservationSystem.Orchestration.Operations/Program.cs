@@ -11,9 +11,14 @@ using ReservationSystem.Orchestration.Operations.Swagger;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using ReservationSystem.Shared.Common.Middleware;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMiddleware<TerminalAuthenticationMiddleware>();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
@@ -47,6 +52,8 @@ var host = new HostBuilder()
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<ScheduleServiceClient>();
         services.AddScoped<OfferServiceClient>();
+
+        services.AddScoped<FareRuleServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSsimHandler>();

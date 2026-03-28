@@ -16,6 +16,11 @@ using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.SearchOffers;
 using ReservationSystem.Microservices.Offer.Application.SellInventory;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
+using ReservationSystem.Microservices.Offer.Application.CreateFareRule;
+using ReservationSystem.Microservices.Offer.Application.UpdateFareRule;
+using ReservationSystem.Microservices.Offer.Application.DeleteFareRule;
+using ReservationSystem.Microservices.Offer.Application.GetFareRule;
+using ReservationSystem.Microservices.Offer.Application.SearchFareRules;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -53,6 +58,12 @@ var host = new HostBuilder()
         services.AddScoped<GetSeatAvailabilityHandler>();
         services.AddScoped<ReserveSeatHandler>();
         services.AddScoped<UpdateSeatStatusHandler>();
+
+        services.AddScoped<CreateFareRuleHandler>();
+        services.AddScoped<UpdateFareRuleHandler>();
+        services.AddScoped<DeleteFareRuleHandler>();
+        services.AddScoped<GetFareRuleHandler>();
+        services.AddScoped<SearchFareRulesHandler>();
     })
     .Build();
 

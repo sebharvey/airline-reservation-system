@@ -1,0 +1,264 @@
+<div class="fare-rules-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Fare Rules</h1>
+      <p class="page-subtitle">Manage fare pricing rules for flights</p>
+    </div>
+    <div class="header-actions">
+      @if (loaded() && !showForm()) {
+        <button class="load-btn secondary-btn" (click)="loadRules()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+        <button class="load-btn" (click)="openCreateForm()">
+          + New Rule
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Success -->
+  @if (success()) {
+    <div class="success-banner" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">{{ editing() ? 'Edit Fare Rule' : 'Create Fare Rule' }}</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Flight Number <span class="optional">(optional)</span></label>
+          <input type="text" [ngModel]="form().flightNumber" (ngModelChange)="updateField('flightNumber', $event)" placeholder="e.g. AA100" maxlength="10" />
+        </div>
+        <div class="form-group">
+          <label>Fare Basis Code *</label>
+          <input type="text" [ngModel]="form().fareBasisCode" (ngModelChange)="updateField('fareBasisCode', $event)" placeholder="e.g. YOWGB" maxlength="20" required />
+        </div>
+        <div class="form-group">
+          <label>Fare Family <span class="optional">(optional)</span></label>
+          <input type="text" [ngModel]="form().fareFamily" (ngModelChange)="updateField('fareFamily', $event)" placeholder="e.g. Standard" maxlength="50" />
+        </div>
+        <div class="form-group">
+          <label>Cabin Code *</label>
+          <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
+            <option value="Y">Y - Economy</option>
+            <option value="W">W - Premium Economy</option>
+            <option value="J">J - Business</option>
+            <option value="F">F - First</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Booking Class *</label>
+          <input type="text" [ngModel]="form().bookingClass" (ngModelChange)="updateField('bookingClass', $event)" maxlength="1" required />
+        </div>
+        <div class="form-group">
+          <label>Currency *</label>
+          <input type="text" [ngModel]="form().currencyCode" (ngModelChange)="updateField('currencyCode', $event)" maxlength="3" required />
+        </div>
+        <div class="form-group">
+          <label>Base Fare *</label>
+          <input type="number" [ngModel]="form().baseFareAmount" (ngModelChange)="updateField('baseFareAmount', $event)" min="0" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Tax *</label>
+          <input type="number" [ngModel]="form().taxAmount" (ngModelChange)="updateField('taxAmount', $event)" min="0" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Change Fee</label>
+          <input type="number" [ngModel]="form().changeFeeAmount" (ngModelChange)="updateField('changeFeeAmount', $event)" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Cancellation Fee</label>
+          <input type="number" [ngModel]="form().cancellationFeeAmount" (ngModelChange)="updateField('cancellationFeeAmount', $event)" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Points Price <span class="optional">(optional)</span></label>
+          <input type="number" [ngModel]="form().pointsPrice" (ngModelChange)="updateField('pointsPrice', $event)" min="0" />
+        </div>
+        <div class="form-group">
+          <label>Points Taxes <span class="optional">(optional)</span></label>
+          <input type="number" [ngModel]="form().pointsTaxes" (ngModelChange)="updateField('pointsTaxes', $event)" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Valid From *</label>
+          <input type="date" [ngModel]="form().validFrom" (ngModelChange)="updateField('validFrom', $event)" required />
+        </div>
+        <div class="form-group">
+          <label>Valid To *</label>
+          <input type="date" [ngModel]="form().validTo" (ngModelChange)="updateField('validTo', $event)" required />
+        </div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [ngModel]="form().isRefundable" (ngModelChange)="updateField('isRefundable', $event)" />
+            Refundable
+          </label>
+        </div>
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [ngModel]="form().isChangeable" (ngModelChange)="updateField('isChangeable', $event)" />
+            Changeable
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button class="save-btn" (click)="saveRule()" [disabled]="saving() || !form().fareBasisCode || !form().validFrom || !form().validTo">
+          @if (saving()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editing() ? 'Update Rule' : 'Create Rule' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats row -->
+  @if (loaded() && !showForm()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Rules</span>
+      </div>
+      <div class="stat-card stat-cabins">
+        <span class="stat-value">{{ stats().cabins }}</span>
+        <span class="stat-label">Cabin Classes</span>
+      </div>
+      <div class="stat-card stat-currencies">
+        <span class="stat-value">{{ stats().currencies }}</span>
+        <span class="stat-label">Currencies</span>
+      </div>
+    </div>
+  }
+
+  <!-- Filter row -->
+  @if (loaded() && rules().length > 0 && !showForm()) {
+    <div class="filter-row">
+      <div class="search-field">
+        <span class="search-icon">&#128269;</span>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Filter by fare basis, cabin, flight number…"
+          [value]="filter()"
+          (input)="setFilter($any($event.target).value)"
+        />
+      </div>
+    </div>
+  }
+
+  <!-- Rules table -->
+  @if (loaded() && !showForm()) {
+    <div class="table-card">
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th>Fare Basis</th>
+            <th>Cabin</th>
+            <th class="hide-mobile">Flight</th>
+            <th class="hide-mobile">Family</th>
+            <th>Base Fare</th>
+            <th class="hide-mobile">Tax</th>
+            <th>Total</th>
+            <th class="hide-tablet">Refund</th>
+            <th class="hide-tablet">Change</th>
+            <th class="hide-tablet">Valid Period</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (rule of filtered(); track rule.fareRuleId) {
+            <tr class="rule-row">
+              <td>
+                <span class="fare-basis">{{ rule.fareBasisCode }}</span>
+                <span class="booking-class">{{ rule.bookingClass }}</span>
+              </td>
+              <td>
+                <span class="badge badge-cabin">{{ rule.cabinCode }}</span>
+              </td>
+              <td class="hide-mobile mono">{{ rule.flightNumber ?? 'All' }}</td>
+              <td class="hide-mobile">{{ rule.fareFamily ?? '-' }}</td>
+              <td class="mono">{{ formatAmount(rule.baseFareAmount, rule.currencyCode) }}</td>
+              <td class="hide-mobile mono">{{ formatAmount(rule.taxAmount, rule.currencyCode) }}</td>
+              <td class="mono total-amount">{{ formatAmount(rule.totalAmount, rule.currencyCode) }}</td>
+              <td class="hide-tablet">
+                <span class="badge" [class.badge-yes]="rule.isRefundable" [class.badge-no]="!rule.isRefundable">
+                  {{ rule.isRefundable ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="hide-tablet">
+                <span class="badge" [class.badge-yes]="rule.isChangeable" [class.badge-no]="!rule.isChangeable">
+                  {{ rule.isChangeable ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="hide-tablet muted">
+                {{ formatDate(rule.validFrom) }} &ndash; {{ formatDate(rule.validTo) }}
+              </td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(rule)" title="Edit">Edit</button>
+                  <button
+                    class="action-btn delete-btn"
+                    (click)="deleteRule(rule.fareRuleId)"
+                    [disabled]="deleting() === rule.fareRuleId"
+                    title="Delete"
+                  >
+                    @if (deleting() === rule.fareRuleId) {
+                      …
+                    } @else {
+                      Del
+                    }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (filtered().length === 0 && loaded()) {
+            <tr>
+              <td colspan="11" class="empty-row">
+                @if (filter()) {
+                  No fare rules match the filter "{{ filter() }}".
+                } @else {
+                  No fare rules found. Click "New Rule" to create one.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">
+      Showing {{ filtered().length }} of {{ rules().length }} rules
+    </p>
+  }
+
+  <!-- Loading state -->
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading fare rules…</p>
+    </div>
+  }
+</div>

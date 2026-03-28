@@ -1,0 +1,221 @@
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { FareRulesService, FareRule, CreateFareRuleRequest } from '../../services/fare-rules.service';
+
+@Component({
+  selector: 'app-fare-rules',
+  imports: [FormsModule],
+  templateUrl: './fare-rules.html',
+  styleUrl: './fare-rules.css',
+})
+export class FareRulesComponent implements OnInit {
+  #fareRulesService = inject(FareRulesService);
+
+  rules = signal<FareRule[]>([]);
+  filter = signal('');
+  loading = signal(false);
+  error = signal('');
+  success = signal('');
+  loaded = signal(false);
+
+  // Form state
+  showForm = signal(false);
+  editing = signal<FareRule | null>(null);
+  saving = signal(false);
+  deleting = signal<string | null>(null);
+
+  // Form fields
+  form = signal<CreateFareRuleRequest>({
+    flightNumber: null,
+    fareBasisCode: '',
+    fareFamily: null,
+    cabinCode: 'Y',
+    bookingClass: 'Y',
+    currencyCode: 'GBP',
+    baseFareAmount: 0,
+    taxAmount: 0,
+    isRefundable: false,
+    isChangeable: false,
+    changeFeeAmount: 0,
+    cancellationFeeAmount: 0,
+    pointsPrice: null,
+    pointsTaxes: null,
+    validFrom: '',
+    validTo: '',
+  });
+
+  filtered = computed(() => {
+    const q = this.filter().toLowerCase().trim();
+    const all = this.rules();
+    if (!q) return all;
+    return all.filter(
+      r =>
+        r.fareBasisCode.toLowerCase().includes(q) ||
+        (r.fareFamily ?? '').toLowerCase().includes(q) ||
+        (r.flightNumber ?? '').toLowerCase().includes(q) ||
+        r.cabinCode.toLowerCase().includes(q) ||
+        r.currencyCode.toLowerCase().includes(q)
+    );
+  });
+
+  stats = computed(() => {
+    const all = this.rules();
+    const cabins = new Set(all.map(r => r.cabinCode));
+    const currencies = new Set(all.map(r => r.currencyCode));
+    return {
+      total: all.length,
+      cabins: cabins.size,
+      currencies: currencies.size,
+    };
+  });
+
+  ngOnInit(): void {
+    this.loadRules();
+  }
+
+  async loadRules(): Promise<void> {
+    this.loading.set(true);
+    this.error.set('');
+    try {
+      const result = await this.#fareRulesService.searchFareRules();
+      this.rules.set(result);
+      this.loaded.set(true);
+    } catch {
+      this.error.set('Failed to load fare rules. Please try again.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  setFilter(val: string): void {
+    this.filter.set(val);
+  }
+
+  openCreateForm(): void {
+    this.editing.set(null);
+    this.form.set({
+      flightNumber: null,
+      fareBasisCode: '',
+      fareFamily: null,
+      cabinCode: 'Y',
+      bookingClass: 'Y',
+      currencyCode: 'GBP',
+      baseFareAmount: 0,
+      taxAmount: 0,
+      isRefundable: false,
+      isChangeable: false,
+      changeFeeAmount: 0,
+      cancellationFeeAmount: 0,
+      pointsPrice: null,
+      pointsTaxes: null,
+      validFrom: '',
+      validTo: '',
+    });
+    this.showForm.set(true);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  openEditForm(rule: FareRule): void {
+    this.editing.set(rule);
+    this.form.set({
+      flightNumber: rule.flightNumber,
+      fareBasisCode: rule.fareBasisCode,
+      fareFamily: rule.fareFamily,
+      cabinCode: rule.cabinCode,
+      bookingClass: rule.bookingClass,
+      currencyCode: rule.currencyCode,
+      baseFareAmount: rule.baseFareAmount,
+      taxAmount: rule.taxAmount,
+      isRefundable: rule.isRefundable,
+      isChangeable: rule.isChangeable,
+      changeFeeAmount: rule.changeFeeAmount,
+      cancellationFeeAmount: rule.cancellationFeeAmount,
+      pointsPrice: rule.pointsPrice,
+      pointsTaxes: rule.pointsTaxes,
+      validFrom: rule.validFrom.substring(0, 10),
+      validTo: rule.validTo.substring(0, 10),
+    });
+    this.showForm.set(true);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelForm(): void {
+    this.showForm.set(false);
+    this.editing.set(null);
+  }
+
+  updateField(field: string, value: unknown): void {
+    this.form.update(f => ({ ...f, [field]: value }));
+  }
+
+  async saveRule(): Promise<void> {
+    this.saving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    const data = this.form();
+    const request: CreateFareRuleRequest = {
+      ...data,
+      flightNumber: data.flightNumber || null,
+      fareFamily: data.fareFamily || null,
+      pointsPrice: data.pointsPrice ?? null,
+      pointsTaxes: data.pointsTaxes ?? null,
+      validFrom: data.validFrom ? `${data.validFrom}T00:00:00Z` : '',
+      validTo: data.validTo ? `${data.validTo}T23:59:59Z` : '',
+    };
+
+    try {
+      const editingRule = this.editing();
+      if (editingRule) {
+        await this.#fareRulesService.updateFareRule(editingRule.fareRuleId, request);
+        this.success.set('Fare rule updated successfully.');
+      } else {
+        await this.#fareRulesService.createFareRule(request);
+        this.success.set('Fare rule created successfully.');
+      }
+      this.showForm.set(false);
+      this.editing.set(null);
+      await this.loadRules();
+    } catch {
+      this.error.set('Failed to save fare rule. Please check the data and try again.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async deleteRule(fareRuleId: string): Promise<void> {
+    this.deleting.set(fareRuleId);
+    this.error.set('');
+    this.success.set('');
+    try {
+      await this.#fareRulesService.deleteFareRule(fareRuleId);
+      this.success.set('Fare rule deleted successfully.');
+      await this.loadRules();
+    } catch {
+      this.error.set('Failed to delete fare rule. Please try again.');
+    } finally {
+      this.deleting.set(null);
+    }
+  }
+
+  formatDate(iso: string): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  formatAmount(amount: number, currency: string): string {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+
+  cabinLabel(code: string): string {
+    switch (code) {
+      case 'F': return 'First';
+      case 'J': return 'Business';
+      case 'W': return 'Premium Economy';
+      case 'Y': return 'Economy';
+      default: return code;
+    }
+  }
+}

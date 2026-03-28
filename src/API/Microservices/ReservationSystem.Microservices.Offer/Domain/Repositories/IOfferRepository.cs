@@ -30,4 +30,12 @@ public interface IOfferRepository
     Task<IReadOnlyList<(string SeatNumber, string Status, Guid BasketId)>> GetSeatReservationsAsync(Guid inventoryId, CancellationToken ct = default);
     Task CreateSeatReservationsAsync(Guid inventoryId, Guid basketId, IEnumerable<string> seatNumbers, CancellationToken ct = default);
     Task UpdateSeatStatusAsync(Guid inventoryId, string seatNumber, string status, CancellationToken ct = default);
+
+    // FareRule
+    Task<Entities.FareRule?> GetFareRuleByIdAsync(Guid fareRuleId, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FareRule>> GetAllFareRulesAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FareRule>> SearchFareRulesAsync(string? query, CancellationToken ct = default);
+    Task CreateFareRuleAsync(Entities.FareRule fareRule, CancellationToken ct = default);
+    Task UpdateFareRuleAsync(Entities.FareRule fareRule, CancellationToken ct = default);
+    Task<bool> DeleteFareRuleAsync(Guid fareRuleId, CancellationToken ct = default);
 }
