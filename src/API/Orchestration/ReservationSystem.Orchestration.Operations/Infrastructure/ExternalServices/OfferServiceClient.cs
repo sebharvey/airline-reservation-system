@@ -1,13 +1,118 @@
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Shared.Common.Http;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 public sealed class OfferServiceClient
 {
     private readonly HttpClient _httpClient;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     public OfferServiceClient(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("OfferMs");
     }
 
-    // Methods will be implemented when business logic is built out
+    public async Task<CreateFlightDto> CreateFlightAsync(
+        string flightNumber,
+        string departureDate,
+        string departureTime,
+        string arrivalTime,
+        int arrivalDayOffset,
+        string origin,
+        string destination,
+        string aircraftType,
+        string cabinCode,
+        int totalSeats,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new
+        {
+            flightNumber,
+            departureDate,
+            departureTime,
+            arrivalTime,
+            arrivalDayOffset,
+            origin,
+            destination,
+            aircraftType,
+            cabinCode,
+            totalSeats
+        };
+
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/flights", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<CreateFlightDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Offer MS create flight.");
+    }
+
+    public async Task<CreateFareDto> CreateFareAsync(
+        Guid inventoryId,
+        string fareBasisCode,
+        string? fareFamily,
+        string? bookingClass,
+        string currencyCode,
+        decimal baseFareAmount,
+        decimal taxAmount,
+        bool isRefundable,
+        bool isChangeable,
+        decimal changeFeeAmount,
+        decimal cancellationFeeAmount,
+        int? pointsPrice,
+        decimal? pointsTaxes,
+        string validFrom,
+        string validTo,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new
+        {
+            fareBasisCode,
+            fareFamily,
+            bookingClass,
+            currencyCode,
+            baseFareAmount,
+            taxAmount,
+            isRefundable,
+            isChangeable,
+            changeFeeAmount,
+            cancellationFeeAmount,
+            pointsPrice,
+            pointsTaxes,
+            validFrom,
+            validTo
+        };
+
+        var response = await _httpClient.PostAsJsonAsync($"/api/v1/flights/{inventoryId}/fares", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Inventory '{inventoryId}' not found.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<CreateFareDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Offer MS create fare.");
+    }
 }
