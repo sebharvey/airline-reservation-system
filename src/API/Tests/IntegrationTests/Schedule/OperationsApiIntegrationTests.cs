@@ -317,6 +317,133 @@ public class OperationsApiIntegrationTests : IAsyncLifetime
         body.Schedules[0].Destination.Should().Be("JFK");
     }
 
+    // -------------------------------------------------------------------------
+    // Happy path: import-inventory from stored schedules
+    // -------------------------------------------------------------------------
+
+    [SkippableFact, TestPriority(40)]
+    public async Task T40_ImportSchedulesToInventory_NoCabins_ReturnsBadRequest()
+    {
+        var request = new
+        {
+            cabins = Array.Empty<object>()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact, TestPriority(41)]
+    public async Task T41_ImportSchedulesToInventory_MissingFares_ReturnsBadRequest()
+    {
+        var request = new
+        {
+            cabins = new[]
+            {
+                new { cabinCode = "Y", totalSeats = 220, fares = Array.Empty<object>() }
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact, TestPriority(50)]
+    public async Task T50_ImportSchedulesToInventory_ValidCabins_ReturnsOkWithCounts()
+    {
+        // Arrange — cabin and fare definitions to apply to all stored schedules.
+        // Assumes T30 has already imported at least one SSIM schedule (AX901 LHR→JFK).
+        var request = new
+        {
+            cabins = new[]
+            {
+                new
+                {
+                    cabinCode = "Y",
+                    totalSeats = 220,
+                    fares = new[]
+                    {
+                        new
+                        {
+                            fareBasisCode = "YFLEX",
+                            fareFamily = "Economy Flex",
+                            currencyCode = "GBP",
+                            baseFareAmount = 650.00m,
+                            taxAmount = 180.00m,
+                            isRefundable = true,
+                            isChangeable = true,
+                            changeFeeAmount = 0.00m,
+                            cancellationFeeAmount = 0.00m,
+                            pointsPrice = 25000,
+                            pointsTaxes = 180.00m
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ImportSchedulesToInventoryResponseDto>(JsonOptions);
+        body.Should().NotBeNull();
+        body!.SchedulesProcessed.Should().BeGreaterThanOrEqualTo(0);
+        body.InventoriesCreated.Should().BeGreaterThanOrEqualTo(0);
+        body.InventoriesSkipped.Should().BeGreaterThanOrEqualTo(0);
+        body.FaresCreated.Should().Be(body.InventoriesCreated,
+            "one fare should be created per newly created inventory record");
+    }
+
+    [SkippableFact, TestPriority(51)]
+    public async Task T51_ImportSchedulesToInventory_Idempotent_AllSkipped()
+    {
+        // Running the same import again should skip all existing inventory.
+        var request = new
+        {
+            cabins = new[]
+            {
+                new
+                {
+                    cabinCode = "Y",
+                    totalSeats = 220,
+                    fares = new[]
+                    {
+                        new
+                        {
+                            fareBasisCode = "YFLEX",
+                            fareFamily = "Economy Flex",
+                            currencyCode = "GBP",
+                            baseFareAmount = 650.00m,
+                            taxAmount = 180.00m,
+                            isRefundable = true,
+                            isChangeable = true,
+                            changeFeeAmount = 0.00m,
+                            cancellationFeeAmount = 0.00m,
+                            pointsPrice = 25000,
+                            pointsTaxes = 180.00m
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ImportSchedulesToInventoryResponseDto>(JsonOptions);
+        body.Should().NotBeNull();
+        body!.InventoriesCreated.Should().Be(0, "all inventory records already exist from T50");
+        body.FaresCreated.Should().Be(0, "no new inventories were created so no fares should be created");
+    }
+
     // Default single-record SSIM file used by T30.
     // Type 3 record: AX901, LHR→JFK, daily (1234567), 2026-09-07 only, A351 equipment.
     // Field positions are 0-indexed per SsimParser:
@@ -375,6 +502,14 @@ internal sealed class ImportSsimResponseDto
 {
     public int Count { get; init; }
     public IReadOnlyList<ImportedScheduleItemDto> Schedules { get; init; } = [];
+}
+
+internal sealed class ImportSchedulesToInventoryResponseDto
+{
+    public int SchedulesProcessed { get; init; }
+    public int InventoriesCreated { get; init; }
+    public int InventoriesSkipped { get; init; }
+    public int FaresCreated { get; init; }
 }
 
 internal sealed class ImportedScheduleItemDto

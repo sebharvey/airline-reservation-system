@@ -268,6 +268,93 @@ Create a new flight inventory record for a specific operating date and cabin. Ca
 
 ---
 
+### POST /v1/flights/batch
+
+Batch-create flight inventory records. For each item in the request, creates a new `FlightInventory` record if one does not already exist for the `flightNumber`/`departureDate`/`cabinCode` combination; otherwise the item is silently skipped. Returns counts of created and skipped records along with the details of newly created inventories.
+
+**When to use:** Called by the Operations API during the `POST /v1/schedules/import-inventory` flow to create inventory for all schedule operating dates in a single request. Designed for idempotent bulk import — safe to call multiple times.
+
+#### Request
+
+```json
+{
+  "flights": [
+    {
+      "flightNumber": "AX001",
+      "departureDate": "2026-04-01",
+      "departureTime": "08:00",
+      "arrivalTime": "11:10",
+      "arrivalDayOffset": 0,
+      "origin": "LHR",
+      "destination": "JFK",
+      "aircraftType": "A351",
+      "cabinCode": "J",
+      "totalSeats": 30
+    },
+    {
+      "flightNumber": "AX001",
+      "departureDate": "2026-04-01",
+      "departureTime": "08:00",
+      "arrivalTime": "11:10",
+      "arrivalDayOffset": 0,
+      "origin": "LHR",
+      "destination": "JFK",
+      "aircraftType": "A351",
+      "cabinCode": "Y",
+      "totalSeats": 220
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `flights` | array | Yes | Array of flight inventory items to create. Must contain at least one item |
+| `flights[].flightNumber` | string | Yes | Flight number, e.g. `"AX001"` |
+| `flights[].departureDate` | string (date) | Yes | Operating date, ISO 8601 |
+| `flights[].departureTime` | string (time) | Yes | Local departure time at origin, `HH:mm` |
+| `flights[].arrivalTime` | string (time) | Yes | Local arrival time at destination, `HH:mm` |
+| `flights[].arrivalDayOffset` | integer | No | `0` = same day (default), `1` = next day |
+| `flights[].origin` | string | Yes | IATA departure airport code |
+| `flights[].destination` | string | Yes | IATA arrival airport code |
+| `flights[].aircraftType` | string | Yes | IATA aircraft type code |
+| `flights[].cabinCode` | string | Yes | Cabin class code: `F`, `J`, `W`, or `Y` |
+| `flights[].totalSeats` | integer | Yes | Total seats for this cabin |
+
+#### Response — `200 OK`
+
+```json
+{
+  "created": 2,
+  "skipped": 0,
+  "inventories": [
+    {
+      "inventoryId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "flightNumber": "AX001",
+      "departureDate": "2026-04-01",
+      "cabinCode": "J",
+      "totalSeats": 30,
+      "seatsAvailable": 30,
+      "status": "Active"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `created` | integer | Number of new `FlightInventory` records inserted |
+| `skipped` | integer | Number of items skipped because inventory already existed |
+| `inventories` | array | Details of newly created inventory records (does not include skipped items) |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing or empty `flights` array |
+
+---
+
 ### POST /v1/flights/{inventoryId}/fares
 
 Add a fare definition to an existing flight inventory record. Called by the Operations API once per fare per cabin per operating date during schedule generation. Links the fare to the inventory record via `InventoryId`.

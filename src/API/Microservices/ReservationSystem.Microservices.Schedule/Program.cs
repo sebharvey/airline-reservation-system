@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Schedule.Swagger;
+using ReservationSystem.Microservices.Schedule.Application.GetSchedules;
 using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Infrastructure.Persistence;
@@ -48,6 +49,7 @@ var host = new HostBuilder()
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSchedulesHandler>();
+        services.AddScoped<GetSchedulesHandler>();
     })
     .Build();
 

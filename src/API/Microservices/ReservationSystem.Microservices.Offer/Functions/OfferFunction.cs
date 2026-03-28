@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
 using ReservationSystem.Microservices.Offer.Application.CreateFlight;
 using ReservationSystem.Microservices.Offer.Application.CreateFare;
 using ReservationSystem.Microservices.Offer.Application.SearchOffers;
@@ -28,6 +29,7 @@ public sealed class OfferFunction
 {
     private readonly CreateFlightHandler _createFlightHandler;
     private readonly CreateFareHandler _createFareHandler;
+    private readonly BatchCreateFlightsHandler _batchCreateFlightsHandler;
     private readonly SearchOffersHandler _searchHandler;
     private readonly GetStoredOfferHandler _getOfferHandler;
     private readonly HoldInventoryHandler _holdHandler;
@@ -42,6 +44,7 @@ public sealed class OfferFunction
     public OfferFunction(
         CreateFlightHandler createFlightHandler,
         CreateFareHandler createFareHandler,
+        BatchCreateFlightsHandler batchCreateFlightsHandler,
         SearchOffersHandler searchHandler,
         GetStoredOfferHandler getOfferHandler,
         HoldInventoryHandler holdHandler,
@@ -55,6 +58,7 @@ public sealed class OfferFunction
     {
         _createFlightHandler = createFlightHandler;
         _createFareHandler = createFareHandler;
+        _batchCreateFlightsHandler = batchCreateFlightsHandler;
         _searchHandler = searchHandler;
         _getOfferHandler = getOfferHandler;
         _holdHandler = holdHandler;
@@ -162,6 +166,62 @@ public sealed class OfferFunction
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
         catch (InvalidOperationException ex) { return await req.ConflictAsync(ex.Message); }
+    }
+
+    // POST /v1/flights/batch
+    [Function("BatchCreateFlights")]
+    [OpenApiOperation(operationId: "BatchCreateFlights", tags: new[] { "Flights" }, Summary = "Batch-create flight inventory records, skipping any that already exist")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(BatchCreateFlightsRequest), Required = true, Description = "Array of flight inventory definitions to create")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BatchCreateFlightsResponse), Description = "OK — returns counts of created and skipped records with created inventory details")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> BatchCreateFlights(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/batch")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("flights", out var flightsEl) || flightsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'flights' array is required.");
+
+        var items = new List<BatchFlightItem>();
+        foreach (var f in flightsEl.EnumerateArray())
+        {
+            items.Add(new BatchFlightItem(
+                FlightNumber: f.GetProperty("flightNumber").GetString()!,
+                DepartureDate: f.GetProperty("departureDate").GetString()!,
+                DepartureTime: f.GetProperty("departureTime").GetString()!,
+                ArrivalTime: f.GetProperty("arrivalTime").GetString()!,
+                ArrivalDayOffset: f.TryGetProperty("arrivalDayOffset", out var ado) ? ado.GetInt32() : 0,
+                Origin: f.GetProperty("origin").GetString()!,
+                Destination: f.GetProperty("destination").GetString()!,
+                AircraftType: f.GetProperty("aircraftType").GetString()!,
+                CabinCode: f.GetProperty("cabinCode").GetString()!,
+                TotalSeats: f.GetProperty("totalSeats").GetInt32()));
+        }
+
+        if (items.Count == 0)
+            return await req.BadRequestAsync("'flights' array must contain at least one item.");
+
+        var result = await _batchCreateFlightsHandler.HandleAsync(
+            new BatchCreateFlightsCommand(items.AsReadOnly()), ct);
+
+        return await req.OkJsonAsync(new
+        {
+            created = result.Created.Count,
+            skipped = result.SkippedCount,
+            inventories = result.Created.Select(inv => new
+            {
+                inventoryId = inv.InventoryId,
+                flightNumber = inv.FlightNumber,
+                departureDate = inv.DepartureDate.ToString("yyyy-MM-dd"),
+                cabinCode = inv.CabinCode,
+                totalSeats = inv.TotalSeats,
+                seatsAvailable = inv.SeatsAvailable,
+                status = inv.Status
+            })
+        });
     }
 
     // POST /v1/search

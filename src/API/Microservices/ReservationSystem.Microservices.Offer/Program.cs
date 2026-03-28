@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Offer.Swagger;
+using ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
 using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.CreateFare;
 using ReservationSystem.Microservices.Offer.Application.CreateFlight;
@@ -42,6 +43,7 @@ var host = new HostBuilder()
 
         services.AddScoped<CreateFlightHandler>();
         services.AddScoped<CreateFareHandler>();
+        services.AddScoped<BatchCreateFlightsHandler>();
         services.AddScoped<SearchOffersHandler>();
         services.AddScoped<GetStoredOfferHandler>();
         services.AddScoped<HoldInventoryHandler>();

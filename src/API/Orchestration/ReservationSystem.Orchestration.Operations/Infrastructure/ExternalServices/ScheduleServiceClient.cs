@@ -23,6 +23,18 @@ public sealed class ScheduleServiceClient
     }
 
     /// <summary>
+    /// Retrieves all flight schedules from the Schedule MS GET /v1/schedules endpoint.
+    /// </summary>
+    public async Task<GetSchedulesDto> GetSchedulesAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("/api/v1/schedules", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<GetSchedulesDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Schedule MS get schedules.");
+    }
+
+    /// <summary>
     /// Posts a full season schedule payload to the Schedule MS POST /v1/schedules endpoint.
     /// The existing schedule table is replaced atomically by the Schedule MS.
     /// </summary>

@@ -191,6 +191,67 @@ Replaces all existing flight schedule records with the supplied season schedule 
 
 ---
 
+### GET /v1/schedules
+
+Returns all persisted `FlightSchedule` records. Called by the Operations API during the inventory import flow (`POST /v1/schedules/import-inventory`) to retrieve the full set of stored schedules before generating `FlightInventory` records in the Offer MS.
+
+**When to use:** Called by the Operations API to enumerate all schedules stored in the Schedule domain. Typical caller sequence: (1) import schedules via `POST /v1/schedules`, (2) retrieve them via `GET /v1/schedules`, (3) generate inventory via the Offer MS.
+
+#### Request
+
+No request body. No query parameters.
+
+#### Response — `200 OK`
+
+```json
+{
+  "count": 2,
+  "schedules": [
+    {
+      "scheduleId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "flightNumber": "AX001",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departureTime": "08:00",
+      "arrivalTime": "11:10",
+      "arrivalDayOffset": 0,
+      "daysOfWeek": 127,
+      "aircraftType": "A351",
+      "validFrom": "2026-01-01",
+      "validTo": "2026-12-31",
+      "flightsCreated": 0,
+      "operatingDateCount": 365
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Total number of schedule records returned |
+| `schedules` | array | All persisted schedule records |
+| `schedules[].scheduleId` | string (UUID) | Unique identifier for the schedule |
+| `schedules[].flightNumber` | string | Flight number, e.g. `"AX001"` |
+| `schedules[].origin` | string | IATA departure airport code |
+| `schedules[].destination` | string | IATA arrival airport code |
+| `schedules[].departureTime` | string (time) | Local departure time at origin, `HH:mm` |
+| `schedules[].arrivalTime` | string (time) | Local arrival time at destination, `HH:mm` |
+| `schedules[].arrivalDayOffset` | integer | `0` = same day, `1` = next day |
+| `schedules[].daysOfWeek` | integer | Operating days bitmask (Mon=1 … Sun=64) |
+| `schedules[].aircraftType` | string | IATA aircraft type code |
+| `schedules[].validFrom` | string (date) | First operating date (inclusive), ISO 8601 |
+| `schedules[].validTo` | string (date) | Last operating date (inclusive), ISO 8601 |
+| `schedules[].flightsCreated` | integer | Number of `FlightInventory` records created from this schedule (0 if not yet imported to inventory) |
+| `schedules[].operatingDateCount` | integer | Number of dates within `validFrom`–`validTo` that match the `daysOfWeek` bitmask |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `500 Internal Server Error` | Database error |
+
+---
+
 ## Data Conventions
 
 | Convention | Format | Example |

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Orchestration.Operations.Swagger;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
+using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -43,6 +44,7 @@ var host = new HostBuilder()
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSsimHandler>();
+        services.AddScoped<ImportSchedulesToInventoryHandler>();
     })
     .Build();
 

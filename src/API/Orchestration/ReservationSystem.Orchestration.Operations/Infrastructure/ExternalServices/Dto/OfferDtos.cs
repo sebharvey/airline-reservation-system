@@ -18,3 +18,13 @@ public sealed class CreateFareDto
     public string FareBasisCode { get; init; } = string.Empty;
     public decimal TotalAmount { get; init; }
 }
+
+/// <summary>
+/// DTO for the Offer MS POST /v1/flights/batch response.
+/// </summary>
+public sealed class BatchCreateFlightsResultDto
+{
+    public int Created { get; init; }
+    public int Skipped { get; init; }
+    public IReadOnlyList<CreateFlightDto> Inventories { get; init; } = [];
+}
