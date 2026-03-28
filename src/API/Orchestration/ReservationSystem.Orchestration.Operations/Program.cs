@@ -26,12 +26,12 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("ScheduleMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://localhost:7071/");
+            client.BaseAddress = context.Configuration["ScheduleMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
-        services.AddHttpClient("IdentityMs", client =>
+        services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"] ?? "https://localhost:7073/");
+            client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
         });
 
         // ── Health check ───────────────────────────────────────────────────────
@@ -39,6 +39,7 @@ var host = new HostBuilder()
 
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<ScheduleServiceClient>();
+        services.AddScoped<OfferServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSsimHandler>();
