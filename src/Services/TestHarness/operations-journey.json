@@ -1,0 +1,336 @@
+{
+  "journey": {
+    "name": "Flight Schedule Creation Flow",
+    "description": "End-to-end journey covering flight schedule creation via the Operations API, which orchestrates the Schedule MS (schedule persistence and date enumeration) and the Offer MS (FlightInventory and Fare record generation). Tests successful single-cabin and multi-cabin schedule creation, inventory count validation, and request validation error handling.",
+    "domain": "Operations",
+    "baseUrls": [
+      { "id": "operations", "label": "Operations API", "url": "https://apexair-operations-api-e9edf5c4cfihicew.ukwest-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create schedule — missing flight number",
+      "description": "Submit a schedule creation request with the flightNumber field omitted. Validates that the Operations API rejects the request at the orchestration boundary before calling any downstream microservice.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureTime": "09:30",
+          "arrivalTime": "13:45",
+          "daysOfWeek": 127,
+          "aircraftType": "A351",
+          "validFrom": "2026-09-01",
+          "validTo": "2026-09-07",
+          "cabins": [
+            {
+              "cabinCode": "Y",
+              "totalSeats": 220,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 180.00,
+                  "taxAmount": 45.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": 8000,
+                  "pointsTaxes": 45.00
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "Flight number is required."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — flightNumber field is absent. The Operations API validates required fields before orchestrating downstream calls. No call is made to Schedule MS or Offer MS.",
+        "keyFields": ["error"],
+        "validationNotes": "Validation happens in the Operations API orchestration layer. No downstream microservice call is made. The same 400 is returned for any missing required top-level field."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 2,
+      "name": "Create schedule — empty cabins array",
+      "description": "Submit a schedule creation request with cabins set to an empty array. Validates that at least one cabin definition must be provided.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "flightNumber": "AX999",
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureTime": "09:30",
+          "arrivalTime": "13:45",
+          "daysOfWeek": 127,
+          "aircraftType": "A351",
+          "validFrom": "2026-09-01",
+          "validTo": "2026-09-07",
+          "cabins": []
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "At least one cabin must be defined."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — cabins array is empty. At least one cabin definition is required to generate FlightInventory records. The Operations API short-circuits before any downstream call.",
+        "keyFields": ["error"],
+        "validationNotes": "The cabins array must contain at least one entry. An empty array is rejected at the Operations API boundary."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 3,
+      "name": "Create schedule — invalid daysOfWeek (zero)",
+      "description": "Submit a schedule creation request with daysOfWeek set to 0, which represents no operating days. Validates that the bitmask must specify at least one day of the week.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "flightNumber": "AX999",
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureTime": "09:30",
+          "arrivalTime": "13:45",
+          "daysOfWeek": 0,
+          "aircraftType": "A351",
+          "validFrom": "2026-09-01",
+          "validTo": "2026-09-07",
+          "cabins": [
+            {
+              "cabinCode": "Y",
+              "totalSeats": 220,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 180.00,
+                  "taxAmount": 45.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": 8000,
+                  "pointsTaxes": 45.00
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "daysOfWeek must be between 1 and 127."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — daysOfWeek is 0, which represents no operating days. Valid range is 1–127 (bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64; 127=daily).",
+        "keyFields": ["error"],
+        "validationNotes": "daysOfWeek must be in range 1–127 inclusive. 0 means no days selected; values above 127 exceed the 7-day bitmask — both are rejected."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Create schedule — single cabin, weekdays only",
+      "description": "Create a weekday-only (Mon–Fri, daysOfWeek=31) Economy schedule for AX901 LHR→CDG over five operating days (2026-09-07 to 2026-09-11). Expects 5 FlightInventory records to be created — one per operating date — and returns the scheduleId and flightsCreated count.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "flightNumber": "AX901",
+          "origin": "LHR",
+          "destination": "CDG",
+          "departureTime": "07:15",
+          "arrivalTime": "09:30",
+          "arrivalDayOffset": 0,
+          "daysOfWeek": 31,
+          "aircraftType": "A339",
+          "validFrom": "2026-09-07",
+          "validTo": "2026-09-11",
+          "cabins": [
+            {
+              "cabinCode": "Y",
+              "totalSeats": 280,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 180.00,
+                  "taxAmount": 45.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": 8000,
+                  "pointsTaxes": 45.00
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "scheduleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "flightsCreated": 5
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — Operations API orchestrates: (1) Schedule MS persists the schedule and returns operating dates Mon 7 Sep to Fri 11 Sep (5 dates); (2) Offer MS creates 1 FlightInventory + 1 Fare per date = 5 inventory records total; (3) Schedule MS updates FlightsCreated count. Response contains scheduleId (UUID) and flightsCreated = 5.",
+        "keyFields": ["scheduleId", "flightsCreated"],
+        "validationNotes": "scheduleId is a non-empty UUID generated by the Schedule MS. flightsCreated must equal 5: Mon–Fri within 2026-09-07 to 2026-09-11 = 5 operating dates × 1 cabin = 5 inventory records. Location header should reference /v1/schedules/{scheduleId}."
+      },
+      "chainsTo": [
+        { "field": "scheduleId", "usedInSteps": [] }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Create schedule — two cabins, daily, three operating days",
+      "description": "Create a daily (daysOfWeek=127) Business + Economy schedule for AX902 LHR→JFK over three operating days (2026-09-14 to 2026-09-16). With 2 cabins each day, expects 6 FlightInventory records. Business cabin has two fare tiers (JFLEX and JSAVER); Economy has one (YFLEX).",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "flightNumber": "AX902",
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureTime": "09:30",
+          "arrivalTime": "13:45",
+          "arrivalDayOffset": 0,
+          "daysOfWeek": 127,
+          "aircraftType": "A351",
+          "validFrom": "2026-09-14",
+          "validTo": "2026-09-16",
+          "cabins": [
+            {
+              "cabinCode": "J",
+              "totalSeats": 30,
+              "fares": [
+                {
+                  "fareBasisCode": "JFLEX",
+                  "fareFamily": "Business Flex",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 2500.00,
+                  "taxAmount": 450.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": 75000,
+                  "pointsTaxes": 450.00
+                },
+                {
+                  "fareBasisCode": "JSAVER",
+                  "fareFamily": "Business Saver",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 1800.00,
+                  "taxAmount": 450.00,
+                  "isRefundable": false,
+                  "isChangeable": true,
+                  "changeFeeAmount": 150.00,
+                  "cancellationFeeAmount": 300.00,
+                  "pointsPrice": 55000,
+                  "pointsTaxes": 450.00
+                }
+              ]
+            },
+            {
+              "cabinCode": "Y",
+              "totalSeats": 220,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 650.00,
+                  "taxAmount": 180.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": 25000,
+                  "pointsTaxes": 180.00
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "scheduleId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "flightsCreated": 6
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — Operations API orchestrates 3 operating dates (Mon 14 Sep, Tue 15 Sep, Wed 16 Sep) × 2 cabins = 6 FlightInventory records. Business cabin has 2 Fare records per inventory; Economy has 1. scheduleId is a new UUID distinct from Step 4.",
+        "keyFields": ["scheduleId", "flightsCreated"],
+        "validationNotes": "flightsCreated must equal 6: 3 days × 2 cabins = 6 FlightInventory records. Each Business inventory has 2 Fare records (JFLEX, JSAVER); each Economy inventory has 1 (YFLEX). scheduleId must be a non-empty UUID and different from the scheduleId returned in Step 4."
+      },
+      "chainsTo": [
+        { "field": "scheduleId", "usedInSteps": [] }
+      ]
+    }
+  ]
+}

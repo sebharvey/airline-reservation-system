@@ -5,10 +5,11 @@
     // =====================================================================
 
     const CONFIGS = [
-        { value: 'payment',  label: 'Payment' },
-        { value: 'user',     label: 'User' },
-        { value: 'loyalty',  label: 'Loyalty' },
-        { value: 'admin',    label: 'Admin' }
+        { value: 'payment',    label: 'Payment' },
+        { value: 'user',       label: 'User' },
+        { value: 'loyalty',    label: 'Loyalty' },
+        { value: 'admin',      label: 'Admin' },
+        { value: 'operations', label: 'Operations' }
     ];
 
     // =====================================================================
