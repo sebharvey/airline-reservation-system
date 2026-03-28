@@ -323,4 +323,34 @@ public sealed class UserManagementFunction
             return await req.InternalServerErrorAsync();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/admin/users/{userId}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDeleteUser")]
+    [OpenApiOperation(operationId: "AdminDeleteUser", tags: new[] { "User Management" }, Summary = "Permanently delete an employee user account")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – user deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> DeleteUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/users/{userId:guid}")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var found = await _userServiceClient.DeleteUserAsync(userId, cancellationToken);
+
+            if (!found)
+                return await req.NotFoundAsync("User not found.");
+
+            return req.NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user {UserId}", userId);
+            return await req.InternalServerErrorAsync();
+        }
+    }
 }

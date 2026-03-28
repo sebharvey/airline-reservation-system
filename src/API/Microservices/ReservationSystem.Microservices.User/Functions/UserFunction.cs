@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.User.Application.GetUser;
 using ReservationSystem.Microservices.User.Application.UpdateUser;
 using ReservationSystem.Microservices.User.Application.SetUserStatus;
 using ReservationSystem.Microservices.User.Application.UnlockUser;
+using ReservationSystem.Microservices.User.Application.DeleteUser;
 using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Models.Mappers;
 using ReservationSystem.Microservices.User.Models.Requests;
@@ -34,6 +35,7 @@ public sealed class UserFunction
     private readonly SetUserStatusHandler _setUserStatusHandler;
     private readonly UnlockUserHandler _unlockUserHandler;
     private readonly ResetPasswordHandler _resetPasswordHandler;
+    private readonly DeleteUserHandler _deleteUserHandler;
     private readonly ILogger<UserFunction> _logger;
 
     public UserFunction(
@@ -44,6 +46,7 @@ public sealed class UserFunction
         SetUserStatusHandler setUserStatusHandler,
         UnlockUserHandler unlockUserHandler,
         ResetPasswordHandler resetPasswordHandler,
+        DeleteUserHandler deleteUserHandler,
         ILogger<UserFunction> logger)
     {
         _addUserHandler = addUserHandler;
@@ -53,6 +56,7 @@ public sealed class UserFunction
         _setUserStatusHandler = setUserStatusHandler;
         _unlockUserHandler = unlockUserHandler;
         _resetPasswordHandler = resetPasswordHandler;
+        _deleteUserHandler = deleteUserHandler;
         _logger = logger;
     }
 
@@ -251,6 +255,29 @@ public sealed class UserFunction
 
         var command = UserMapper.ToCommand(userId, request);
         var found = await _resetPasswordHandler.HandleAsync(command, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync("User not found.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/users/{userId}
+    // -------------------------------------------------------------------------
+
+    [Function("DeleteUser")]
+    [OpenApiOperation(operationId: "DeleteUser", tags: new[] { "Users" }, Summary = "Permanently delete an employee user account")]
+    [OpenApiParameter(name: "userId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The user's unique identifier")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – user deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    public async Task<HttpResponseData> DeleteUser(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var command = UserMapper.ToDeleteCommand(userId);
+        var found = await _deleteUserHandler.HandleAsync(command, cancellationToken);
 
         if (!found)
             return await req.NotFoundAsync("User not found.");

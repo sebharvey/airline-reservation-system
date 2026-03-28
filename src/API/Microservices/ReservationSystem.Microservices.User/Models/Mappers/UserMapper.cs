@@ -2,6 +2,7 @@ using ReservationSystem.Microservices.User.Application.AddUser;
 using ReservationSystem.Microservices.User.Application.Login;
 using ReservationSystem.Microservices.User.Application.UpdateUser;
 using ReservationSystem.Microservices.User.Application.SetUserStatus;
+using ReservationSystem.Microservices.User.Application.DeleteUser;
 using ReservationSystem.Microservices.User.Application.UnlockUser;
 using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Models.Requests;
@@ -44,6 +45,9 @@ public static class UserMapper
             IsActive: request.IsActive);
 
     public static UnlockUserCommand ToUnlockCommand(Guid userId) =>
+        new(UserId: userId);
+
+    public static DeleteUserCommand ToDeleteCommand(Guid userId) =>
         new(UserId: userId);
 
     public static ResetPasswordCommand ToCommand(Guid userId, ResetPasswordRequest request) =>

@@ -207,6 +207,24 @@ export class UsersComponent implements OnInit {
     }
   }
 
+  async deleteUser(u: UserAccount): Promise<void> {
+    if (!confirm(`Are you sure you want to permanently delete user "${u.firstName} ${u.lastName}" (${u.username})? This action cannot be undone.`)) {
+      return;
+    }
+
+    this.error.set('');
+    this.success.set('');
+    try {
+      await this.#userService.deleteUser(u.userId);
+      this.success.set('User deleted successfully.');
+      this.selectedUser.set(null);
+      await this.loadUsers();
+      this.clearMessages();
+    } catch {
+      this.error.set('Failed to delete user.');
+    }
+  }
+
   setNewUser(field: string, val: string): void {
     this.newUser.update(u => ({ ...u, [field]: val }));
   }

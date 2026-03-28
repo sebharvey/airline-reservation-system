@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.User.Application.GetAllUsers;
 using ReservationSystem.Microservices.User.Application.GetUser;
 using ReservationSystem.Microservices.User.Application.UpdateUser;
 using ReservationSystem.Microservices.User.Application.SetUserStatus;
+using ReservationSystem.Microservices.User.Application.DeleteUser;
 using ReservationSystem.Microservices.User.Application.UnlockUser;
 using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Application.Login;
@@ -65,6 +66,7 @@ var host = new HostBuilder()
         services.AddScoped<SetUserStatusHandler>();
         services.AddScoped<UnlockUserHandler>();
         services.AddScoped<ResetPasswordHandler>();
+        services.AddScoped<DeleteUserHandler>();
         services.AddScoped<LoginHandler>();
     })
     .Build();

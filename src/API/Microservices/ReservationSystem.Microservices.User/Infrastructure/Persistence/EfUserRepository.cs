@@ -70,4 +70,19 @@ public sealed class EfUserRepository : IUserRepository
         else
             _logger.LogDebug("Updated User {UserId} in [user].[User]", user.UserId);
     }
+
+    public async Task<bool> DeleteAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user is null)
+            return false;
+
+        _dbContext.Users.Remove(user);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted User {UserId} from [user].[User]", userId);
+        return true;
+    }
 }

@@ -202,6 +202,7 @@
                       >
                         {{ user.isActive ? 'Deactivate' : 'Activate' }}
                       </button>
+                      <button class="btn-delete" (click)="$event.stopPropagation(); deleteUser(user)">Delete</button>
                     </div>
                   }
 
