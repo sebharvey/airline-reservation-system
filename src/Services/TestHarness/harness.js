@@ -7,7 +7,8 @@
     const CONFIGS = [
         { value: 'payment',  label: 'Payment' },
         { value: 'user',     label: 'User' },
-        { value: 'loyalty',  label: 'Loyalty' }
+        { value: 'loyalty',  label: 'Loyalty' },
+        { value: 'admin',    label: 'Admin' }
     ];
 
     // =====================================================================
