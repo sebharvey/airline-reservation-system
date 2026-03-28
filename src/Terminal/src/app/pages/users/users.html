@@ -194,14 +194,16 @@
                       @if (user.isLocked) {
                         <button class="btn-activate" (click)="$event.stopPropagation(); unlockUser(user)">Unlock</button>
                       }
-                      <button
-                        class="btn-toggle-status"
-                        [class.btn-suspend]="user.isActive"
-                        [class.btn-activate]="!user.isActive"
-                        (click)="$event.stopPropagation(); toggleStatus(user)"
-                      >
-                        {{ user.isActive ? 'Deactivate' : 'Activate' }}
-                      </button>
+                      @if (!isSelf(user) || !user.isActive) {
+                        <button
+                          class="btn-toggle-status"
+                          [class.btn-suspend]="user.isActive"
+                          [class.btn-activate]="!user.isActive"
+                          (click)="$event.stopPropagation(); toggleStatus(user)"
+                        >
+                          {{ user.isActive ? 'Deactivate' : 'Activate' }}
+                        </button>
+                      }
                       @if (!isSelf(user)) {
                         <button class="btn-delete" (click)="$event.stopPropagation(); deleteUser(user)">Delete</button>
                       }

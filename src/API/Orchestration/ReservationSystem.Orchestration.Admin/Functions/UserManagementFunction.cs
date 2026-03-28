@@ -228,6 +228,7 @@ public sealed class UserManagementFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SetUserStatusRequest), Required = true, Description = "Account status")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – status updated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Forbidden, Description = "Forbidden – cannot deactivate your own account")]
     public async Task<HttpResponseData> SetUserStatus(
         [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/admin/users/{userId:guid}/status")] HttpRequestData req,
         Guid userId,
@@ -238,7 +239,16 @@ public sealed class UserManagementFunction
 
         try
         {
-            var found = await _userServiceClient.SetUserStatusAsync(userId, request!.IsActive, cancellationToken);
+            if (!request!.IsActive &&
+                req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj) &&
+                staffIdObj is string staffId &&
+                Guid.TryParse(staffId, out var staffUserId) &&
+                staffUserId == userId)
+            {
+                return await req.ForbiddenAsync("You cannot deactivate your own account.");
+            }
+
+            var found = await _userServiceClient.SetUserStatusAsync(userId, request.IsActive, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
