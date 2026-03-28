@@ -133,6 +133,256 @@
         "validationNotes": "deleted must equal 48. imported must equal 48. scheduleId values must differ from Step 3 (new UUIDs are generated on each import). This confirms the Schedule MS performs a full delete-and-reinsert rather than an upsert."
       },
       "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "Import Inventory — empty cabins array",
+      "description": "Submit an import-inventory request with an empty cabins array. Validates that the Operations API rejects the request before calling Schedule MS or Offer MS.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules/import-inventory",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabins": []
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "At least one cabin definition is required."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — cabins array is empty. The Operations API validates the request body before making any downstream calls.",
+        "keyFields": ["error"],
+        "validationNotes": "An empty cabins array is rejected immediately at the Operations API boundary. No calls are made to Schedule MS or Offer MS."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Import Inventory — cabin with no fares",
+      "description": "Submit an import-inventory request where a cabin definition has an empty fares array. Validates that the Operations API rejects the request.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules/import-inventory",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabins": [
+            {
+              "cabinCode": "Y",
+              "totalSeats": 180,
+              "fares": []
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 400,
+        "body": {
+          "error": "Each cabin must have at least one fare definition."
+        }
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — cabin Y has an empty fares array. Every cabin definition must include at least one fare.",
+        "keyFields": ["error"],
+        "validationNotes": "The Operations API validates that each cabin entry contains at least one fare definition before proceeding."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Import Inventory — 2026 season (first run)",
+      "description": "Import all stored schedule records into the Offer MS inventory. The Operations API retrieves 48 schedules from Schedule MS, expands each to its operating dates, batch-creates FlightInventory records in Offer MS (J and Y cabin per date), then adds fares for each created inventory. First run expects all inventories to be created.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules/import-inventory",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabins": [
+            {
+              "cabinCode": "J",
+              "totalSeats": 48,
+              "fares": [
+                {
+                  "fareBasisCode": "JFLEX",
+                  "fareFamily": "Business Flex",
+                  "bookingClass": "J",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 1850.00,
+                  "taxAmount": 220.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                }
+              ]
+            },
+            {
+              "cabinCode": "Y",
+              "totalSeats": 180,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "bookingClass": "Y",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 420.00,
+                  "taxAmount": 85.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 50.00,
+                  "cancellationFeeAmount": 75.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                },
+                {
+                  "fareBasisCode": "YSAVER",
+                  "fareFamily": "Economy Saver",
+                  "bookingClass": "S",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 299.00,
+                  "taxAmount": 85.00,
+                  "isRefundable": false,
+                  "isChangeable": false,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "schedulesProcessed": 48,
+          "inventoriesCreated": 0,
+          "inventoriesSkipped": 0,
+          "faresCreated": 0
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — Operations API retrieves 48 schedules, expands each to its operating dates across the 2026 season, and batch-creates FlightInventory records (one per flight/date/cabin combination) in Offer MS. Fares are created for each new inventory record. schedulesProcessed=48. inventoriesCreated > 0 (total flight/date/cabin combinations across all 48 schedules). inventoriesSkipped=0 on first run. faresCreated equals inventoriesCreated multiplied by the number of fares defined per cabin.",
+        "keyFields": ["schedulesProcessed", "inventoriesCreated", "inventoriesSkipped", "faresCreated"],
+        "validationNotes": "schedulesProcessed must equal 48. inventoriesSkipped must equal 0. faresCreated must be positive and consistent with the number of fares per cabin (J has 1 fare, Y has 2 fares). A daily flight over 365 days with 2 cabins yields 730 inventory records; with 3 fares total that yields 2190 fare records for that flight alone."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "Import Inventory — idempotency check (second run)",
+      "description": "Re-run the same import-inventory request immediately after Step 7. All FlightInventory records already exist in Offer MS so all should be skipped. Validates idempotency: no duplicate inventory or fares are created.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules/import-inventory",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabins": [
+            {
+              "cabinCode": "J",
+              "totalSeats": 48,
+              "fares": [
+                {
+                  "fareBasisCode": "JFLEX",
+                  "fareFamily": "Business Flex",
+                  "bookingClass": "J",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 1850.00,
+                  "taxAmount": 220.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                }
+              ]
+            },
+            {
+              "cabinCode": "Y",
+              "totalSeats": 180,
+              "fares": [
+                {
+                  "fareBasisCode": "YFLEX",
+                  "fareFamily": "Economy Flex",
+                  "bookingClass": "Y",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 420.00,
+                  "taxAmount": 85.00,
+                  "isRefundable": true,
+                  "isChangeable": true,
+                  "changeFeeAmount": 50.00,
+                  "cancellationFeeAmount": 75.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                },
+                {
+                  "fareBasisCode": "YSAVER",
+                  "fareFamily": "Economy Saver",
+                  "bookingClass": "S",
+                  "currencyCode": "GBP",
+                  "baseFareAmount": 299.00,
+                  "taxAmount": 85.00,
+                  "isRefundable": false,
+                  "isChangeable": false,
+                  "changeFeeAmount": 0.00,
+                  "cancellationFeeAmount": 0.00,
+                  "pointsPrice": null,
+                  "pointsTaxes": null
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "schedulesProcessed": 48,
+          "inventoriesCreated": 0,
+          "inventoriesSkipped": 0,
+          "faresCreated": 0
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — all FlightInventory records from Step 7 already exist. inventoriesCreated must equal 0. inventoriesSkipped must equal the same value as inventoriesCreated in Step 7. faresCreated must equal 0 (fares are only created for newly created inventories).",
+        "keyFields": ["schedulesProcessed", "inventoriesCreated", "inventoriesSkipped", "faresCreated"],
+        "validationNotes": "inventoriesCreated must equal 0. inventoriesSkipped must be positive and equal the inventoriesCreated count from Step 7. faresCreated must equal 0. This confirms the batch endpoint skips existing flight/date/cabin combinations rather than overwriting or duplicating them."
+      },
+      "chainsTo": []
     }
   ]
 }

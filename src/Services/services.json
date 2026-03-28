@@ -63,7 +63,8 @@
       "callers": ["Ops Admin App"],
       "operations": [
         { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" },
-        { "name": "Import SSIM", "method": "POST", "path": "/api/v1/schedules/ssim" }
+        { "name": "Import SSIM", "method": "POST", "path": "/api/v1/schedules/ssim" },
+        { "name": "Import Schedules to Inventory", "method": "POST", "path": "/api/v1/schedules/import-inventory", "defaultPayload": "{\n  \"cabins\": [\n    {\n      \"cabinCode\": \"J\",\n      \"totalSeats\": 48,\n      \"fares\": [\n        {\n          \"fareBasisCode\": \"JFLEX\",\n          \"fareFamily\": \"Business Flex\",\n          \"bookingClass\": \"J\",\n          \"currencyCode\": \"GBP\",\n          \"baseFareAmount\": 1850.00,\n          \"taxAmount\": 220.00,\n          \"isRefundable\": true,\n          \"isChangeable\": true,\n          \"changeFeeAmount\": 0.00,\n          \"cancellationFeeAmount\": 0.00,\n          \"pointsPrice\": null,\n          \"pointsTaxes\": null\n        }\n      ]\n    },\n    {\n      \"cabinCode\": \"Y\",\n      \"totalSeats\": 180,\n      \"fares\": [\n        {\n          \"fareBasisCode\": \"YFLEX\",\n          \"fareFamily\": \"Economy Flex\",\n          \"bookingClass\": \"Y\",\n          \"currencyCode\": \"GBP\",\n          \"baseFareAmount\": 420.00,\n          \"taxAmount\": 85.00,\n          \"isRefundable\": true,\n          \"isChangeable\": true,\n          \"changeFeeAmount\": 50.00,\n          \"cancellationFeeAmount\": 75.00,\n          \"pointsPrice\": null,\n          \"pointsTaxes\": null\n        },\n        {\n          \"fareBasisCode\": \"YSAVER\",\n          \"fareFamily\": \"Economy Saver\",\n          \"bookingClass\": \"S\",\n          \"currencyCode\": \"GBP\",\n          \"baseFareAmount\": 299.00,\n          \"taxAmount\": 85.00,\n          \"isRefundable\": false,\n          \"isChangeable\": false,\n          \"changeFeeAmount\": 0.00,\n          \"cancellationFeeAmount\": 0.00,\n          \"pointsPrice\": null,\n          \"pointsTaxes\": null\n        }\n      ]\n    }\n  ]\n}" }
       ]
     },
     {
@@ -106,6 +107,7 @@
       "callers": ["Retail API", "Operations API", "Disruption API"],
       "operations": [
         { "name": "Create Flight", "method": "POST", "path": "/api/v1/flights" },
+        { "name": "Batch Create Flights", "method": "POST", "path": "/api/v1/flights/batch", "defaultPayload": "{\n  \"flights\": [\n    {\n      \"flightNumber\": \"AX001\",\n      \"departureDate\": \"2026-06-01\",\n      \"departureTime\": \"08:00\",\n      \"arrivalTime\": \"11:10\",\n      \"arrivalDayOffset\": 0,\n      \"origin\": \"LHR\",\n      \"destination\": \"JFK\",\n      \"aircraftType\": \"A351\",\n      \"cabinCode\": \"Y\",\n      \"totalSeats\": 180\n    }\n  ]\n}" },
         { "name": "Create Fare", "method": "POST", "path": "/api/v1/flights/{inventoryId}/fares" },
         { "name": "Search Offers", "method": "POST", "path": "/api/v1/search" },
         { "name": "Get Stored Offer", "method": "GET", "path": "/api/v1/offers/{offerId}" },
@@ -284,6 +286,7 @@
       "callers": ["Operations API"],
       "operations": [
         { "name": "Create Schedule", "method": "POST", "path": "/api/v1/schedules" },
+        { "name": "Get Schedules", "method": "GET", "path": "/api/v1/schedules" },
         { "name": "Update Schedule", "method": "PATCH", "path": "/api/v1/schedules/{scheduleId}" }
       ]
     },
