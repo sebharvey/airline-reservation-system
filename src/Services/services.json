@@ -78,6 +78,19 @@
         { "name": "Handle Delay", "method": "POST", "path": "/api/v1/disruptions/delay" },
         { "name": "Handle Cancellation", "method": "POST", "path": "/api/v1/disruptions/cancellation" }
       ]
+    },
+    {
+      "id": "admin-api",
+      "name": "Admin API",
+      "description": "Internal orchestration entry point for staff authentication across all back-office applications. Delegates credential validation and JWT issuance to the User microservice.",
+      "baseUrl": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net",
+      "healthEndpoint": "/api/v1/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "bearer",
+      "callers": ["Contact Centre", "Airport", "Accounting System App", "Ops Admin App"],
+      "operations": [
+        { "name": "Login", "method": "POST", "path": "/api/v1/auth/login", "defaultPayload": "{\n  \"username\": \"john.smith\",\n  \"password\": \"Password1!\"\n}" }
+      ]
     }
   ],
   "microservices": [
@@ -294,6 +307,21 @@
         { "name": "Verify Email", "method": "GET", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
         { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request", "defaultPayload": "{\n  \"newEmail\": \"jane.newemail@example.com\"\n}" },
         { "name": "Verify Email Change", "method": "POST", "path": "/api/v1/email/verify", "defaultPayload": "{\n  \"token\": \"{verify-token}\"\n}" }
+      ]
+    },
+    {
+      "id": "user-ms",
+      "name": "User Microservice",
+      "description": "System of record for Apex Air employee accounts and credentials. Manages staff login, JWT issuance, and account lockout. Separate from the Identity microservice, which manages loyalty member credentials.",
+      "baseUrl": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net",
+      "healthEndpoint": "/api/v1/health",
+      "swaggerEndpoint": "/api/swagger.json",
+      "authType": "host-key",
+      "callers": ["Admin API"],
+      "operations": [
+        { "name": "Login", "method": "POST", "path": "/api/v1/users/login", "defaultPayload": "{\n  \"username\": \"john.smith\",\n  \"password\": \"Password1!\"\n}" },
+        { "name": "Create User", "method": "POST", "path": "/api/v1/users", "defaultPayload": "{\n  \"username\": \"john.smith\",\n  \"email\": \"john.smith@apexair.com\",\n  \"password\": \"Password1!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\"\n}" },
+        { "name": "Get All Users", "method": "GET", "path": "/api/v1/users" }
       ]
     }
   ],
