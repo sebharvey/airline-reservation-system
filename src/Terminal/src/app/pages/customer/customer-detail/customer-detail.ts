@@ -8,6 +8,69 @@ import {
   UpdateCustomerRequest,
 } from '../../../services/customer.service';
 
+export interface Country {
+  code: string;
+  name: string;
+}
+
+export const COUNTRIES: Country[] = [
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'US', name: 'United States' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'FR', name: 'France' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'BE', name: 'Belgium' },
+  { code: 'CH', name: 'Switzerland' },
+  { code: 'AT', name: 'Austria' },
+  { code: 'SE', name: 'Sweden' },
+  { code: 'NO', name: 'Norway' },
+  { code: 'DK', name: 'Denmark' },
+  { code: 'FI', name: 'Finland' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'GR', name: 'Greece' },
+  { code: 'CZ', name: 'Czech Republic' },
+  { code: 'RO', name: 'Romania' },
+  { code: 'HU', name: 'Hungary' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CN', name: 'China' },
+  { code: 'IN', name: 'India' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'TH', name: 'Thailand' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'CL', name: 'Chile' },
+  { code: 'TR', name: 'Turkey' },
+];
+
+export const LANGUAGES = [
+  { code: 'en-GB', name: 'English (UK)' },
+  { code: 'en-US', name: 'English (US)' },
+  { code: 'fr-FR', name: 'French' },
+  { code: 'de-DE', name: 'German' },
+  { code: 'es-ES', name: 'Spanish' },
+  { code: 'it-IT', name: 'Italian' },
+  { code: 'pt-PT', name: 'Portuguese' },
+  { code: 'ar-SA', name: 'Arabic' },
+  { code: 'zh-CN', name: 'Chinese' },
+  { code: 'ja-JP', name: 'Japanese' },
+  { code: 'hi-IN', name: 'Hindi' },
+];
+
 @Component({
   selector: 'app-customer-detail',
   imports: [FormsModule],
@@ -20,7 +83,7 @@ export class CustomerDetailComponent implements OnInit {
   #customerService = inject(CustomerService);
 
   loyaltyNumber = '';
-  activeTab = signal<'details' | 'transactions'>('details');
+  activeTab = signal<'details' | 'transactions' | 'orders'>('details');
   loading = signal(false);
   saving = signal(false);
   error = signal('');
@@ -28,6 +91,9 @@ export class CustomerDetailComponent implements OnInit {
 
   customer = signal<CustomerDetail | null>(null);
   editing = signal(false);
+
+  countries = COUNTRIES;
+  languages = LANGUAGES;
 
   // Edit form fields
   editGivenName = signal('');
@@ -50,6 +116,19 @@ export class CustomerDetailComponent implements OnInit {
   transactionsPage = signal(1);
   transactionsTotalCount = signal(0);
   transactionsPageSize = 20;
+
+  // Add points
+  showAddPointsForm = signal(false);
+  addPointsAmount = signal<number | null>(null);
+  addPointsDescription = signal('');
+  addPointsSaving = signal(false);
+
+  // Delete account
+  showDeleteConfirm = signal(false);
+  deleting = signal(false);
+
+  // Status toggle
+  togglingStatus = signal(false);
 
   ngOnInit(): void {
     this.loyaltyNumber = this.#route.snapshot.paramMap.get('loyaltyNumber') ?? '';
@@ -132,7 +211,7 @@ export class CustomerDetailComponent implements OnInit {
     }
   }
 
-  async switchTab(tab: 'details' | 'transactions'): Promise<void> {
+  async switchTab(tab: 'details' | 'transactions' | 'orders'): Promise<void> {
     this.activeTab.set(tab);
     if (tab === 'transactions' && this.transactions().length === 0) {
       await this.loadTransactions();
@@ -166,6 +245,94 @@ export class CustomerDetailComponent implements OnInit {
 
   get totalPages(): number {
     return Math.ceil(this.transactionsTotalCount() / this.transactionsPageSize) || 1;
+  }
+
+  // Add points
+  openAddPointsForm(): void {
+    this.showAddPointsForm.set(true);
+    this.addPointsAmount.set(null);
+    this.addPointsDescription.set('');
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelAddPoints(): void {
+    this.showAddPointsForm.set(false);
+  }
+
+  async submitAddPoints(): Promise<void> {
+    const points = this.addPointsAmount();
+    const description = this.addPointsDescription().trim();
+
+    if (!points || points <= 0) {
+      this.error.set('Please enter a valid number of points greater than zero.');
+      return;
+    }
+    if (!description) {
+      this.error.set('Please enter a description for this adjustment.');
+      return;
+    }
+
+    this.addPointsSaving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.#customerService.addPoints(this.loyaltyNumber, { points, description });
+      this.success.set(`Successfully assigned ${points.toLocaleString()} points.`);
+      this.showAddPointsForm.set(false);
+      this.transactionsPage.set(1);
+      await Promise.all([this.loadCustomer(), this.loadTransactions()]);
+    } catch {
+      this.error.set('Failed to assign points. Please try again.');
+    } finally {
+      this.addPointsSaving.set(false);
+    }
+  }
+
+  // Delete account
+  confirmDelete(): void {
+    this.showDeleteConfirm.set(true);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirm.set(false);
+  }
+
+  async deleteAccount(): Promise<void> {
+    this.deleting.set(true);
+    this.error.set('');
+    try {
+      await this.#customerService.deleteCustomer(this.loyaltyNumber);
+      this.#router.navigate(['/customer']);
+    } catch {
+      this.error.set('Failed to delete account. Please try again.');
+      this.showDeleteConfirm.set(false);
+    } finally {
+      this.deleting.set(false);
+    }
+  }
+
+  // Toggle account status
+  async toggleAccountStatus(): Promise<void> {
+    const c = this.customer();
+    if (!c) return;
+
+    this.togglingStatus.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.#customerService.setAccountStatus(this.loyaltyNumber, !c.isActive);
+      this.success.set(`Account ${c.isActive ? 'deactivated' : 'activated'} successfully.`);
+      await this.loadCustomer();
+    } catch {
+      this.error.set('Failed to update account status. Please try again.');
+    } finally {
+      this.togglingStatus.set(false);
+    }
   }
 
   goBack(): void {
@@ -203,5 +370,10 @@ export class CustomerDetailComponent implements OnInit {
 
   setField(setter: (val: string) => void, event: Event): void {
     setter((event.target as HTMLInputElement).value);
+  }
+
+  setPointsAmount(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.addPointsAmount.set(val ? parseInt(val, 10) : null);
   }
 }

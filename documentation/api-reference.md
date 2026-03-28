@@ -140,6 +140,9 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 | `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, and activity timestamps |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address) |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}/transactions` | Retrieve paginated loyalty transaction history for a customer |
+| `POST` | `/v1/admin/customers/{loyaltyNumber}/points` | Assign adjustment points to a customer account; requires points and description |
+| `DELETE` | `/v1/admin/customers/{loyaltyNumber}` | Delete a customer account and all its transactions permanently |
+| `PATCH` | `/v1/admin/customers/{loyaltyNumber}/status` | Activate or deactivate a customer account; accepts `isActive` boolean |
 
 ---
 

@@ -166,6 +166,97 @@ public sealed class CustomerManagementFunction
 
         return await req.OkJsonAsync(result);
     }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/admin/customers/{loyaltyNumber}/points
+    // -------------------------------------------------------------------------
+
+    [Function("AdminAddPoints")]
+    [OpenApiOperation(operationId: "AdminAddPoints", tags: new[] { "Admin Customers" }, Summary = "Assign points to a customer account (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminAddPointsRequest), Required = true)]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Points assigned")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddPoints(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/customers/{loyaltyNumber}/points")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminAddPointsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request!.Points <= 0)
+            return await req.BadRequestAsync("Points must be greater than zero.");
+
+        if (string.IsNullOrWhiteSpace(request.Description))
+            return await req.BadRequestAsync("Description is required.");
+
+        try
+        {
+            await _customerServiceClient.AddPointsAsync(
+                loyaltyNumber, request.Points, "Adjustment", request.Description, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/admin/customers/{loyaltyNumber}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDeleteCustomer")]
+    [OpenApiOperation(operationId: "AdminDeleteCustomer", tags: new[] { "Admin Customers" }, Summary = "Delete customer account and transactions (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DeleteCustomer(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/customers/{loyaltyNumber}")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var found = await _customerServiceClient.DeleteCustomerAsync(loyaltyNumber, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/admin/customers/{loyaltyNumber}/status
+    // -------------------------------------------------------------------------
+
+    [Function("AdminSetAccountStatus")]
+    [OpenApiOperation(operationId: "AdminSetAccountStatus", tags: new[] { "Admin Customers" }, Summary = "Activate or deactivate a customer account (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminSetAccountStatusRequest), Required = true)]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Status updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> SetAccountStatus(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/admin/customers/{loyaltyNumber}/status")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminSetAccountStatusRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var found = await _customerServiceClient.UpdateCustomerAsync(
+            loyaltyNumber, new { isActive = request!.IsActive }, cancellationToken);
+
+        if (!found)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
 }
 
 /// <summary>Search request body for the admin customer search endpoint.</summary>
