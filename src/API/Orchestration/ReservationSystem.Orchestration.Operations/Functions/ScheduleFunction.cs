@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
+using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
+using ReservationSystem.Orchestration.Operations.Models.Requests;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
 
@@ -18,13 +20,16 @@ namespace ReservationSystem.Orchestration.Operations.Functions;
 public sealed class ScheduleFunction
 {
     private readonly ImportSsimHandler _importSsimHandler;
+    private readonly ImportSchedulesToInventoryHandler _importSchedulesToInventoryHandler;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
         ImportSsimHandler importSsimHandler,
+        ImportSchedulesToInventoryHandler importSchedulesToInventoryHandler,
         ILogger<ScheduleFunction> logger)
     {
         _importSsimHandler = importSsimHandler;
+        _importSchedulesToInventoryHandler = importSchedulesToInventoryHandler;
         _logger = logger;
     }
 
@@ -70,6 +75,86 @@ public sealed class ScheduleFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to import SSIM file");
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/schedules/import-inventory
+    // -------------------------------------------------------------------------
+
+    [Function("ImportSchedulesToInventory")]
+    [OpenApiOperation(operationId: "ImportSchedulesToInventory", tags: new[] { "Schedules" }, Summary = "Import schedules from the Schedule MS into offer inventory, skipping flights that already exist")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryRequest), Required = true, Description = "Cabin and fare definitions to apply when generating inventory for all stored schedules")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryResponse), Description = "OK — returns counts of schedules processed, inventories created/skipped, and fares created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — missing or invalid cabin/fare definitions")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> ImportSchedulesToInventory(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/import-inventory")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesToInventoryRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request.Cabins is null || request.Cabins.Count == 0)
+            return await req.BadRequestAsync("'cabins' array must contain at least one cabin definition.");
+
+        for (var i = 0; i < request.Cabins.Count; i++)
+        {
+            var cabin = request.Cabins[i];
+
+            if (string.IsNullOrWhiteSpace(cabin.CabinCode) || cabin.CabinCode.Length != 1)
+                return await req.BadRequestAsync($"Cabin at index {i}: 'cabinCode' must be a single character (F, J, W, or Y).");
+
+            if (cabin.TotalSeats <= 0)
+                return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}': 'totalSeats' must be greater than zero.");
+
+            if (cabin.Fares is null || cabin.Fares.Count == 0)
+                return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}': 'fares' must contain at least one fare definition.");
+
+            for (var j = 0; j < cabin.Fares.Count; j++)
+            {
+                var fare = cabin.Fares[j];
+                if (string.IsNullOrWhiteSpace(fare.FareBasisCode))
+                    return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}', fare at index {j}: 'fareBasisCode' is required.");
+                if (string.IsNullOrWhiteSpace(fare.CurrencyCode))
+                    return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}', fare '{fare.FareBasisCode}': 'currencyCode' is required.");
+            }
+        }
+
+        try
+        {
+            var command = new ImportSchedulesToInventoryCommand(
+                request.Cabins.Select(c => new CabinDefinition(
+                    c.CabinCode,
+                    c.TotalSeats,
+                    c.Fares.Select(f => new FareDefinition(
+                        f.FareBasisCode,
+                        f.FareFamily,
+                        f.BookingClass,
+                        f.CurrencyCode,
+                        f.BaseFareAmount,
+                        f.TaxAmount,
+                        f.IsRefundable,
+                        f.IsChangeable,
+                        f.ChangeFeeAmount,
+                        f.CancellationFeeAmount,
+                        f.PointsPrice,
+                        f.PointsTaxes)).ToList().AsReadOnly()
+                )).ToList().AsReadOnly());
+
+            var response = await _importSchedulesToInventoryHandler.HandleAsync(command, cancellationToken);
+
+            return await req.OkJsonAsync(response);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error in ImportSchedulesToInventory");
+            return await req.BadRequestAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to import schedules to inventory");
             return await req.InternalServerErrorAsync();
         }
     }

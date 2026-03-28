@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Schedule.Application.GetSchedules;
 using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
@@ -12,19 +13,22 @@ using System.Net;
 namespace ReservationSystem.Microservices.Schedule.Functions;
 
 /// <summary>
-/// HTTP-triggered function for bulk flight schedule import.
+/// HTTP-triggered function for bulk flight schedule import and retrieval.
 /// Presentation layer — translates HTTP concerns into application-layer calls.
 /// </summary>
 public sealed class ScheduleFunction
 {
     private readonly ImportSchedulesHandler _importHandler;
+    private readonly GetSchedulesHandler _getSchedulesHandler;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
         ImportSchedulesHandler importHandler,
+        GetSchedulesHandler getSchedulesHandler,
         ILogger<ScheduleFunction> logger)
     {
         _importHandler = importHandler;
+        _getSchedulesHandler = getSchedulesHandler;
         _logger = logger;
     }
 
@@ -115,6 +119,52 @@ public sealed class ScheduleFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to import schedules");
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/schedules
+    // -------------------------------------------------------------------------
+
+    [Function("GetSchedules")]
+    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all persisted flight schedules")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedule records with operating date counts")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> GetSchedules(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var schedules = await _getSchedulesHandler.HandleAsync(new GetSchedulesQuery(), cancellationToken);
+
+            var response = new GetSchedulesResponse
+            {
+                Count = schedules.Count,
+                Schedules = schedules.Select(s => new ScheduleItemResponse
+                {
+                    ScheduleId = s.ScheduleId,
+                    FlightNumber = s.FlightNumber,
+                    Origin = s.Origin,
+                    Destination = s.Destination,
+                    DepartureTime = s.DepartureTime.ToString(@"hh\:mm"),
+                    ArrivalTime = s.ArrivalTime.ToString(@"hh\:mm"),
+                    ArrivalDayOffset = s.ArrivalDayOffset,
+                    DaysOfWeek = s.DaysOfWeek,
+                    AircraftType = s.AircraftType,
+                    ValidFrom = s.ValidFrom.ToString("yyyy-MM-dd"),
+                    ValidTo = s.ValidTo.ToString("yyyy-MM-dd"),
+                    FlightsCreated = s.FlightsCreated,
+                    OperatingDateCount = s.GetOperatingDates().Count
+                }).ToList().AsReadOnly()
+            };
+
+            return await req.OkJsonAsync(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve schedules");
             return await req.InternalServerErrorAsync();
         }
     }

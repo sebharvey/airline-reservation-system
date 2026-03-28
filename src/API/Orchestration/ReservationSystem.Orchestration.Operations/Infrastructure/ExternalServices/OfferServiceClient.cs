@@ -63,6 +63,21 @@ public sealed class OfferServiceClient
         return result ?? throw new InvalidOperationException("Empty response from Offer MS create flight.");
     }
 
+    public async Task<BatchCreateFlightsResultDto> BatchCreateFlightsAsync(
+        object body,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/flights/batch", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<BatchCreateFlightsResultDto>(JsonOptions, cancellationToken);
+        return result ?? throw new InvalidOperationException("Empty response from Offer MS batch create flights.");
+    }
+
     public async Task<CreateFareDto> CreateFareAsync(
         Guid inventoryId,
         string fareBasisCode,

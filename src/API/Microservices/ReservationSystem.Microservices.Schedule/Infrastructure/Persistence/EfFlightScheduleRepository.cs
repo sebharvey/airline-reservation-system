@@ -21,6 +21,15 @@ public sealed class EfFlightScheduleRepository : IFlightScheduleRepository
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<FlightSchedule>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.FlightSchedules
+            .OrderBy(s => s.FlightNumber)
+            .ThenBy(s => s.ValidFrom)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public async Task<int> ReplaceAllAsync(
         IReadOnlyList<FlightSchedule> schedules,
         CancellationToken cancellationToken = default)

@@ -157,6 +157,7 @@ The Admin API is the orchestration entry point for internal staff authentication
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/schedules/ssim` | Import schedules from an IATA SSIM Chapter 7 plain-text file (`text/plain` body, optional `?createdBy=` query parameter); the Operations API parses all Type 3 scheduled-passenger leg records, converts them to the season schedule JSON payload format, and forwards to the Schedule MS `POST /v1/schedules`; returns `imported`, `deleted`, and per-schedule summary |
+| `POST` | `/v1/schedules/import-inventory` | Generate `FlightInventory` and `Fare` records in the Offer MS from all schedules currently stored in the Schedule MS; applies the caller-supplied cabin and fare definitions; skips operating dates where inventory already exists; returns `schedulesProcessed`, `inventoriesCreated`, `inventoriesSkipped`, and `faresCreated` |
 
 ---
 
@@ -167,6 +168,7 @@ The Schedule microservice is the internal persistence layer for flight schedule 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/schedules` | Replace all existing `FlightSchedule` records with the supplied season schedule payload; all previous records are deleted and the new set is inserted atomically; accepts the IATA-structured JSON format (`header`, `carriers[]`, `schedules[]`); returns `imported`, `deleted`, and per-schedule summary (`scheduleId`, route, validity window, `operatingDateCount`) |
+| `GET` | `/v1/schedules` | Return all persisted flight schedule records; called by the Operations API during inventory import; returns `count` and per-schedule summary including `scheduleId`, route, times, `daysOfWeek`, validity window, `flightsCreated`, and `operatingDateCount` |
 
 ---
 
@@ -179,6 +181,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/flights` | Create a new flight inventory record for a specific operating date and cabin; called by the Operations API during schedule generation; initialises `SeatsAvailable = TotalSeats`, `SeatsHeld = 0`, `SeatsSold = 0`; returns `inventoryId` |
+| `POST` | `/v1/flights/batch` | Batch-create flight inventory records; for each item in the request, creates a new `FlightInventory` record if one does not already exist for that `flightNumber`/`departureDate`/`cabinCode` combination, otherwise skips it; returns `created`, `skipped`, and the list of newly created inventory records |
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Operations API to attribute pricing to inventory after creation; returns `fareId` |
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer snapshot by ID (used by Retail API at basket creation; validates `IsConsumed = 0` and `ExpiresAt > now` before returning) |

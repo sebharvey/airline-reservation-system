@@ -14,4 +14,10 @@ public interface IFlightScheduleRepository
     Task<int> ReplaceAllAsync(
         IReadOnlyList<Entities.FlightSchedule> schedules,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all FlightSchedule records ordered by FlightNumber then ValidFrom.
+    /// </summary>
+    Task<IReadOnlyList<Entities.FlightSchedule>> GetAllAsync(
+        CancellationToken cancellationToken = default);
 }

@@ -35,7 +35,39 @@ The Operations API is an internal service called only by the Ops Admin App. Ther
 
 ---
 
-## Orchestration Flow
+## Orchestration flows
+
+The Operations API coordinates two distinct orchestration flows.
+
+### SSIM import flow (`POST /v1/schedules/ssim`)
+
+Parses an IATA SSIM Chapter 7 file and persists the schedule definitions to the Schedule MS. Does not generate inventory. To generate inventory after a SSIM import, call `POST /v1/schedules/import-inventory`.
+
+### Schedule-to-inventory import flow (`POST /v1/schedules/import-inventory`)
+
+Takes all schedules currently stored in the Schedule MS and generates `FlightInventory` and `Fare` records in the Offer MS. This is the second step after a SSIM import. The full sequence is:
+
+1. **Fetch schedules** — call Schedule MS `GET /v1/schedules` to retrieve all persisted schedule records.
+2. **Generate inventory** — enumerate operating dates for each schedule (using `daysOfWeek`, `validFrom`, `validTo`). For each operating date × cabin in the request, call Offer MS `POST /v1/flights/batch`. Records that already exist are skipped.
+3. **Create fares** — for each newly created inventory record, call Offer MS `POST /v1/flights/{inventoryId}/fares` for each fare definition in the matching cabin.
+4. **Return** a summary of schedules processed, inventories created/skipped, and fares created.
+
+### Legacy schedule creation flow (`POST /v1/schedules`)
+
+> **Note:** The `POST /v1/schedules` endpoint described in earlier documentation (accepting cabin/fare definitions directly) is superseded by the two-step SSIM + import-inventory flow above. The direct schedule-creation flow may be added in a future release.
+
+---
+
+## Downstream service dependencies
+
+| Service | Endpoints Called | Purpose |
+|---------|-----------------|---------|
+| **Schedule MS** | `POST /v1/schedules`, `GET /v1/schedules` | Persist schedule definitions (SSIM import), retrieve all schedules (inventory import) |
+| **Offer MS** | `POST /v1/flights/batch`, `POST /v1/flights/{inventoryId}/fares` | Batch-create `FlightInventory` records, create `Fare` records per inventory |
+
+---
+
+## Pre-existing orchestration flow documentation
 
 The Operations API coordinates a multi-step schedule creation flow across the Schedule MS and Offer MS. The full sequence is:
 
@@ -204,6 +236,126 @@ Create a flight schedule. Orchestrates schedule persistence, bulk flight invento
 |--------|--------|
 | `400 Bad Request` | Missing required fields, invalid field format (e.g. malformed IATA code, invalid bitmask value, `validFrom` after `validTo`, invalid cabin code), or invalid cabin/fare structure |
 | `500 Internal Server Error` | Downstream microservice call failed during orchestration (Schedule MS or Offer MS returned an error) |
+
+---
+
+---
+
+### POST /v1/schedules/import-inventory
+
+Import all schedules currently stored in the Schedule MS into the Offer MS inventory tables. For each schedule, operating dates are computed from the `ValidFrom`/`ValidTo` range and `DaysOfWeek` bitmask. For each operating date and each cabin in the request body, a `FlightInventory` record is created. If a record already exists for that combination, it is skipped. Fares are then created for each newly created inventory record.
+
+**When to use:** Called after a SSIM import (via `POST /v1/schedules/ssim`) to activate the stored schedules for booking. Can be re-run at any time — existing inventory is never duplicated or overwritten.
+
+#### Request
+
+```json
+{
+  "cabins": [
+    {
+      "cabinCode": "J",
+      "totalSeats": 30,
+      "fares": [
+        {
+          "fareBasisCode": "JFLEX",
+          "fareFamily": "Business Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 2500.00,
+          "taxAmount": 450.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 75000,
+          "pointsTaxes": 450.00
+        }
+      ]
+    },
+    {
+      "cabinCode": "Y",
+      "totalSeats": 220,
+      "fares": [
+        {
+          "fareBasisCode": "YFLEX",
+          "fareFamily": "Economy Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 650.00,
+          "taxAmount": 180.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 25000,
+          "pointsTaxes": 180.00
+        },
+        {
+          "fareBasisCode": "YSAVER",
+          "fareFamily": "Economy Saver",
+          "currencyCode": "GBP",
+          "baseFareAmount": 350.00,
+          "taxAmount": 180.00,
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "pointsPrice": 15000,
+          "pointsTaxes": 180.00
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `cabins` | array | Yes | Cabin definitions to apply to all stored schedules. Must contain at least one entry |
+| `cabins[].cabinCode` | string | Yes | Cabin class code: `F`, `J`, `W`, or `Y` |
+| `cabins[].totalSeats` | integer | Yes | Total seats for this cabin. Must be greater than zero |
+| `cabins[].fares` | array | Yes | Fare definitions for this cabin. Must contain at least one entry |
+| `cabins[].fares[].fareBasisCode` | string | Yes | Fare basis code, e.g. `"JFLEX"` |
+| `cabins[].fares[].fareFamily` | string | No | Human-readable fare family name |
+| `cabins[].fares[].bookingClass` | string | No | Booking class code |
+| `cabins[].fares[].currencyCode` | string | Yes | ISO 4217 currency code |
+| `cabins[].fares[].baseFareAmount` | number | Yes | Base fare amount before tax. Decimal, 2 places |
+| `cabins[].fares[].taxAmount` | number | Yes | Tax amount. Decimal, 2 places |
+| `cabins[].fares[].isRefundable` | boolean | Yes | Whether the fare is refundable |
+| `cabins[].fares[].isChangeable` | boolean | Yes | Whether the fare allows date/time changes |
+| `cabins[].fares[].changeFeeAmount` | number | Yes | Fee charged for changes (`0.00` if free or not permitted) |
+| `cabins[].fares[].cancellationFeeAmount` | number | Yes | Fee charged for cancellation (`0.00` if free or not permitted) |
+| `cabins[].fares[].pointsPrice` | integer | No | Points price for award bookings |
+| `cabins[].fares[].pointsTaxes` | number | No | Tax amount payable on award bookings (cash component) |
+
+> **Fare validity:** Fares are created with `validFrom`/`validTo` taken from the corresponding schedule record's `ValidFrom`/`ValidTo` window.
+
+#### Response — `200 OK`
+
+```json
+{
+  "schedulesProcessed": 12,
+  "inventoriesCreated": 245,
+  "inventoriesSkipped": 0,
+  "faresCreated": 490
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schedulesProcessed` | integer | Number of schedule records retrieved from the Schedule MS |
+| `inventoriesCreated` | integer | Number of new `FlightInventory` records created in the Offer MS |
+| `inventoriesSkipped` | integer | Number of operating date/cabin combinations skipped because inventory already existed |
+| `faresCreated` | integer | Number of `Fare` records created in the Offer MS |
+
+> **Idempotency:** Calling this endpoint multiple times is safe. Existing inventory records are never overwritten or duplicated — only new records are created.
+
+> **Inventory is immediately live:** Created `FlightInventory` and `Fare` records are immediately available for offer search via the Offer MS.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing or empty `cabins` array, invalid cabin code, zero `totalSeats`, missing `fareBasisCode` or `currencyCode` |
+| `500 Internal Server Error` | Downstream microservice call failed (Schedule MS or Offer MS returned an error) |
 
 ---
 
