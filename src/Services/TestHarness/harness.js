@@ -53,13 +53,28 @@
         const email     = givenName.toLowerCase() + '.' +
                           surname.toLowerCase() + '.' +
                           randDigits(6) + '@testmail.example.com';
-        runtimeVars = { givenName, surname, password, email };
+
+        const recipientGivenName = pick(FIRST_NAMES);
+        const recipientSurname   = pick(SURNAMES);
+        const recipientPassword  = 'Apex@ir2026!';
+        const recipientEmail     = recipientGivenName.toLowerCase() + '.' +
+                                   recipientSurname.toLowerCase() + '.' +
+                                   randDigits(6) + '@testmail.example.com';
+
+        runtimeVars = {
+            givenName, surname, password, email,
+            recipientGivenName, recipientSurname, recipientPassword, recipientEmail
+        };
     }
 
     function applyRuntimeVars(obj) {
         if (obj === null || obj === undefined) return obj;
         if (typeof obj === 'string') {
             return obj
+                .replace(/__RAND_RECIPIENT_GIVEN_NAME__/g, runtimeVars.recipientGivenName)
+                .replace(/__RAND_RECIPIENT_SURNAME__/g,    runtimeVars.recipientSurname)
+                .replace(/__RAND_RECIPIENT_EMAIL__/g,      runtimeVars.recipientEmail)
+                .replace(/__RAND_RECIPIENT_PASSWORD__/g,   runtimeVars.recipientPassword)
                 .replace(/__RAND_GIVEN_NAME__/g, runtimeVars.givenName)
                 .replace(/__RAND_SURNAME__/g,    runtimeVars.surname)
                 .replace(/__RAND_EMAIL__/g,      runtimeVars.email)
