@@ -452,6 +452,28 @@ body {
     background: var(--positive-bg);
 }
 
+.btn-copy-step-log {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-copy-step-log:hover {
+    background: rgba(59, 91, 219, 0.18);
+}
+.btn-copy-step-log.copied {
+    border-color: var(--positive);
+    color: var(--positive);
+    background: var(--positive-bg);
+}
+
 /* Live result overlay */
 .live-result {
     margin-top: 0.6rem;
