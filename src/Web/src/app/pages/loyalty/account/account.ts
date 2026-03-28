@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
-import { switchMap } from 'rxjs';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
@@ -137,6 +136,7 @@ export class LoyaltyAccountComponent implements OnInit {
   emailChangeNew = signal('');
   emailChangeLoading = signal(false);
   emailChangeError = signal<string | null>(null);
+  emailChangePendingModal = signal(false);
 
   // Delete account signals
   deleteConfirm = signal(false);
@@ -462,17 +462,30 @@ export class LoyaltyAccountComponent implements OnInit {
     }
 
     this.emailChangeLoading.set(true);
-    this.loyaltyApi.requestEmailChange(c.loyaltyNumber, newEmail).pipe(
-      switchMap(() => this.loyaltyApi.logout(this.loyaltyState.session()?.refreshToken))
-    ).subscribe({
+    this.loyaltyApi.requestEmailChange(c.loyaltyNumber, newEmail).subscribe({
       next: () => {
-        this.loyaltyState.logout();
         this.emailChangeLoading.set(false);
-        this.router.navigate(['/loyalty'], { queryParams: { notice: 'email-change-pending' } });
+        this.showEmailChangeForm.set(false);
+        this.emailChangePendingModal.set(true);
       },
       error: (err) => {
         this.emailChangeLoading.set(false);
         this.emailChangeError.set(err?.message ?? 'Failed to request email change. Please try again.');
+      }
+    });
+  }
+
+  dismissEmailChangeModal(): void {
+    this.emailChangePendingModal.set(false);
+    const refreshToken = this.loyaltyState.session()?.refreshToken;
+    this.loyaltyApi.logout(refreshToken).subscribe({
+      next: () => {
+        this.loyaltyState.logout();
+        this.router.navigate(['/loyalty']);
+      },
+      error: () => {
+        this.loyaltyState.logout();
+        this.router.navigate(['/loyalty']);
       }
     });
   }

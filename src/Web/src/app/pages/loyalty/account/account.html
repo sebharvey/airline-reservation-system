@@ -611,5 +611,18 @@
     </div>
   }
 
+  <!-- Email change pending modal -->
+  @if (emailChangePendingModal()) {
+    <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="email-modal-title">
+      <div class="modal-card fade-in">
+        <span class="modal-icon">&#9993;</span>
+        <h3 id="email-modal-title">Check Your New Email</h3>
+        <p>A confirmation link has been sent to your new email address. Click the link in that email to complete the change.</p>
+        <p class="modal-note">You will be signed out now and can sign back in once the change is confirmed.</p>
+        <button class="btn-primary" (click)="dismissEmailChangeModal()">Got it — Sign Out</button>
+      </div>
+    </div>
+  }
+
 </div>
 }

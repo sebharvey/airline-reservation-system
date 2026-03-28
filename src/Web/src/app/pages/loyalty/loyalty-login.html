@@ -5,10 +5,6 @@
     <p>Sign in to your loyalty account</p>
   </div>
 
-  @if (noticeMessage()) {
-    <div class="notice-banner" role="status">{{ noticeMessage() }}</div>
-  }
-
   <form class="form" (submit)="$event.preventDefault(); onSubmit()">
     <div class="field">
       <label for="email">Email Address</label>

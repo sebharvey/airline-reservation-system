@@ -644,6 +644,55 @@ select:focus {
   line-height: 1.5;
 }
 
+/* ── Email change pending modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-card {
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  padding: 32px 28px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+}
+
+.modal-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.modal-card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.modal-note {
+  font-size: 0.82rem !important;
+  font-style: italic;
+}
+
 .error-banner {
   background: rgba(220,53,69,0.1);
   border: 1px solid rgba(220,53,69,0.3);
