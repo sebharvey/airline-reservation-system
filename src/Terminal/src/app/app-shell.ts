@@ -31,6 +31,7 @@ export class AppShell {
   ];
 
   secondaryNavItems: NavItem[] = [
+    { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
     { path: '/users', label: 'Users', icon: '👥', description: 'User & agent management' },
   ];
 

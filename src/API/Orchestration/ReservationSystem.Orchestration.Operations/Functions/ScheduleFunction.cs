@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Operations.Models.Requests;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
@@ -21,16 +22,65 @@ public sealed class ScheduleFunction
 {
     private readonly ImportSsimHandler _importSsimHandler;
     private readonly ImportSchedulesToInventoryHandler _importSchedulesToInventoryHandler;
+    private readonly ScheduleServiceClient _scheduleServiceClient;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
         ImportSsimHandler importSsimHandler,
         ImportSchedulesToInventoryHandler importSchedulesToInventoryHandler,
+        ScheduleServiceClient scheduleServiceClient,
         ILogger<ScheduleFunction> logger)
     {
         _importSsimHandler = importSsimHandler;
         _importSchedulesToInventoryHandler = importSchedulesToInventoryHandler;
+        _scheduleServiceClient = scheduleServiceClient;
         _logger = logger;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/schedules
+    // -------------------------------------------------------------------------
+
+    [Function("GetSchedules")]
+    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all stored flight schedules")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedules")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> GetSchedules(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _scheduleServiceClient.GetSchedulesAsync(cancellationToken);
+
+            var response = new GetSchedulesResponse
+            {
+                Count = result.Count,
+                Schedules = result.Schedules.Select(s => new ScheduleSummary
+                {
+                    ScheduleId = s.ScheduleId,
+                    FlightNumber = s.FlightNumber,
+                    Origin = s.Origin,
+                    Destination = s.Destination,
+                    DepartureTime = s.DepartureTime,
+                    ArrivalTime = s.ArrivalTime,
+                    ArrivalDayOffset = s.ArrivalDayOffset,
+                    DaysOfWeek = s.DaysOfWeek,
+                    AircraftType = s.AircraftType,
+                    ValidFrom = s.ValidFrom,
+                    ValidTo = s.ValidTo,
+                    FlightsCreated = s.FlightsCreated,
+                    OperatingDateCount = s.OperatingDateCount
+                }).ToList().AsReadOnly()
+            };
+
+            return await req.OkJsonAsync(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve schedules");
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -91,6 +91,67 @@ The Operations API coordinates a multi-step schedule creation flow across the Sc
 
 ## Endpoints
 
+### GET /v1/schedules
+
+Retrieve all stored flight schedules from the Schedule MS. Returns a read-only summary of every schedule record currently persisted, including route, times, operating days, aircraft type, validity window, and the number of operating dates.
+
+**When to use:** Called by the Ops Admin App (or Terminal Contact Centre app) to display all current flight schedules. This is a read-only query — no data is modified.
+
+#### Request
+
+No request body. No query parameters.
+
+#### Response — `200 OK`
+
+```json
+{
+  "count": 12,
+  "schedules": [
+    {
+      "scheduleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "flightNumber": "AX001",
+      "origin": "LHR",
+      "destination": "JFK",
+      "departureTime": "08:00",
+      "arrivalTime": "11:10",
+      "arrivalDayOffset": 0,
+      "daysOfWeek": 127,
+      "aircraftType": "A351",
+      "validFrom": "2026-01-01",
+      "validTo": "2026-12-31",
+      "flightsCreated": 365,
+      "operatingDateCount": 365
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Total number of schedule records returned |
+| `schedules` | array | Array of schedule summary objects |
+| `schedules[].scheduleId` | string (UUID) | Unique schedule identifier |
+| `schedules[].flightNumber` | string | Flight number, e.g. `"AX001"` |
+| `schedules[].origin` | string | IATA 3-letter departure airport code |
+| `schedules[].destination` | string | IATA 3-letter arrival airport code |
+| `schedules[].departureTime` | string (time) | Local departure time at origin, e.g. `"08:00"` |
+| `schedules[].arrivalTime` | string (time) | Local arrival time at destination, e.g. `"11:10"` |
+| `schedules[].arrivalDayOffset` | integer | `0` = same-day arrival, `1` = next-day arrival |
+| `schedules[].daysOfWeek` | integer | Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64; `127` = daily |
+| `schedules[].aircraftType` | string | Aircraft type code, e.g. `"A351"` |
+| `schedules[].validFrom` | string (date) | First operating date (inclusive), ISO 8601 |
+| `schedules[].validTo` | string (date) | Last operating date (inclusive), ISO 8601 |
+| `schedules[].flightsCreated` | integer | Number of `FlightInventory` records generated from this schedule |
+| `schedules[].operatingDateCount` | integer | Total number of operating dates within the validity window matching the `daysOfWeek` bitmask |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `500 Internal Server Error` | Downstream Schedule MS call failed |
+
+---
+
 ### POST /v1/schedules
 
 Create a flight schedule. Orchestrates schedule persistence, bulk flight inventory and fare generation, and schedule record update in a single synchronous request.

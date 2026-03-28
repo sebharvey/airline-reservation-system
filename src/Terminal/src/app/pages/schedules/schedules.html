@@ -1,0 +1,147 @@
+<div class="schedules-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Flight Schedules</h1>
+      <p class="page-subtitle">View all stored flight schedules from the season schedule</p>
+    </div>
+    <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
+      @if (loading()) {
+        <span class="btn-spinner"></span> Loading…
+      } @else {
+        Load Schedules
+      }
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Stats row -->
+  @if (loaded()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Schedules</span>
+      </div>
+      <div class="stat-card stat-routes">
+        <span class="stat-value">{{ stats().routes }}</span>
+        <span class="stat-label">Routes</span>
+      </div>
+      <div class="stat-card stat-aircraft">
+        <span class="stat-value">{{ stats().aircraftTypes }}</span>
+        <span class="stat-label">Aircraft Types</span>
+      </div>
+      <div class="stat-card stat-daily">
+        <span class="stat-value">{{ stats().dailyFlights }}</span>
+        <span class="stat-label">Daily (7-day)</span>
+      </div>
+    </div>
+  }
+
+  <!-- Filter row -->
+  @if (loaded() && schedules().length > 0) {
+    <div class="filter-row">
+      <div class="search-field">
+        <span class="search-icon">&#128269;</span>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Filter by flight number, route, or aircraft…"
+          [value]="filter()"
+          (input)="setFilter($any($event.target).value)"
+        />
+      </div>
+    </div>
+  }
+
+  <!-- Schedule table -->
+  @if (loaded()) {
+    <div class="table-card">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>Route</th>
+            <th class="hide-mobile">Departure</th>
+            <th class="hide-mobile">Arrival</th>
+            <th class="hide-mobile">Days</th>
+            <th class="hide-mobile">Aircraft</th>
+            <th class="hide-mobile">Valid Period</th>
+            <th class="hide-tablet">Operating Dates</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (schedule of filtered(); track schedule.scheduleId) {
+            <tr class="schedule-row">
+              <td>
+                <span class="flight-number">{{ schedule.flightNumber }}</span>
+              </td>
+              <td>
+                <div class="route-cell">
+                  <span class="airport-code">{{ schedule.origin }}</span>
+                  <span class="route-arrow">&rarr;</span>
+                  <span class="airport-code">{{ schedule.destination }}</span>
+                </div>
+                <span class="route-mobile">{{ formatTime(schedule.departureTime) }} &ndash; {{ formatTime(schedule.arrivalTime) }}{{ schedule.arrivalDayOffset > 0 ? '+1' : '' }}</span>
+              </td>
+              <td class="hide-mobile mono">{{ formatTime(schedule.departureTime) }}</td>
+              <td class="hide-mobile mono">
+                {{ formatTime(schedule.arrivalTime) }}
+                @if (schedule.arrivalDayOffset > 0) {
+                  <span class="day-offset">+{{ schedule.arrivalDayOffset }}</span>
+                }
+              </td>
+              <td class="hide-mobile">
+                <span class="days-display">{{ formatDaysOfWeek(schedule.daysOfWeek) }}</span>
+              </td>
+              <td class="hide-mobile">
+                <span class="badge badge-aircraft">{{ schedule.aircraftType }}</span>
+              </td>
+              <td class="hide-mobile muted">
+                {{ formatDate(schedule.validFrom) }} &ndash; {{ formatDate(schedule.validTo) }}
+              </td>
+              <td class="hide-tablet mono">{{ schedule.operatingDateCount }}</td>
+            </tr>
+          }
+
+          @if (filtered().length === 0 && loaded()) {
+            <tr>
+              <td colspan="8" class="empty-row">
+                @if (filter()) {
+                  No schedules match the filter "{{ filter() }}".
+                } @else {
+                  No schedules found. Import an SSIM file to populate schedules.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">
+      Showing {{ filtered().length }} of {{ schedules().length }} schedules
+    </p>
+  }
+
+  <!-- Empty state before first load -->
+  @if (!loaded() && !loading()) {
+    <div class="empty-state">
+      <p>Click <strong>Load Schedules</strong> to retrieve all flight schedules from the schedule service.</p>
+    </div>
+  }
+
+  <!-- Loading state -->
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading schedules…</p>
+    </div>
+  }
+</div>
