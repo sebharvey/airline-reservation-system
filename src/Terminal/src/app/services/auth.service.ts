@@ -7,6 +7,8 @@ export interface AgentUser {
   displayName: string;
   role: string;
   userId: string;
+  agentId: string;
+  station: string;
   accessToken: string;
   expiresAt: string;
 }
@@ -90,11 +92,15 @@ export class AuthService {
       throw new Error('Access denied. Your account does not have the required permissions.');
     }
 
+    const resolvedUsername = claims.unique_name ?? username.toUpperCase();
+
     const user: AgentUser = {
-      username: claims.unique_name ?? username.toUpperCase(),
-      displayName: this.#formatDisplayName(claims.unique_name ?? username),
+      username: resolvedUsername,
+      displayName: this.#formatDisplayName(resolvedUsername),
       role,
       userId: data.userId,
+      agentId: resolvedUsername.toUpperCase(),
+      station: 'LHR',
       accessToken: data.accessToken,
       expiresAt: data.expiresAt,
     };
