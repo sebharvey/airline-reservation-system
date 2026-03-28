@@ -7,13 +7,11 @@ namespace ReservationSystem.Microservices.Schedule.Domain.Repositories;
 /// </summary>
 public interface IFlightScheduleRepository
 {
-    Task<Entities.FlightSchedule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<Entities.FlightSchedule>> GetAllAsync(CancellationToken cancellationToken = default);
-
-    Task CreateAsync(Entities.FlightSchedule schedule, CancellationToken cancellationToken = default);
-
-    Task UpdateAsync(Entities.FlightSchedule schedule, CancellationToken cancellationToken = default);
-
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Deletes all existing FlightSchedule records and inserts the supplied set as a full replacement.
+    /// Returns the count of records that were deleted.
+    /// </summary>
+    Task<int> ReplaceAllAsync(
+        IReadOnlyList<Entities.FlightSchedule> schedules,
+        CancellationToken cancellationToken = default);
 }

@@ -1,12 +1,12 @@
 using System.Text.Json.Serialization;
 
-namespace ReservationSystem.Orchestration.Operations.Models.Responses;
+namespace ReservationSystem.Microservices.Schedule.Models.Responses;
 
 /// <summary>
-/// HTTP response body for POST /v1/schedules/ssim (200 OK).
-/// Mirrors the Schedule MS import response.
+/// HTTP response body for POST /v1/schedules (200 OK).
+/// Returns the count of schedules imported, deleted, and a per-schedule summary.
 /// </summary>
-public sealed class ImportSsimResponse
+public sealed class ImportSchedulesResponse
 {
     [JsonPropertyName("imported")]
     public int Imported { get; init; }
@@ -15,10 +15,10 @@ public sealed class ImportSsimResponse
     public int Deleted { get; init; }
 
     [JsonPropertyName("schedules")]
-    public IReadOnlyList<ImportedScheduleItem> Schedules { get; init; } = [];
+    public IReadOnlyList<ImportedScheduleSummary> Schedules { get; init; } = [];
 }
 
-public sealed class ImportedScheduleItem
+public sealed class ImportedScheduleSummary
 {
     [JsonPropertyName("scheduleId")]
     public Guid ScheduleId { get; init; }

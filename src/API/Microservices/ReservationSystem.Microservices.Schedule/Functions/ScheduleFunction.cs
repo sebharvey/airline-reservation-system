@@ -2,10 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
-using ReservationSystem.Microservices.Schedule.Application.CreateSchedule;
-using ReservationSystem.Microservices.Schedule.Application.Ssim;
-using ReservationSystem.Microservices.Schedule.Application.UpdateSchedule;
+using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Models.Mappers;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
@@ -15,25 +12,19 @@ using System.Net;
 namespace ReservationSystem.Microservices.Schedule.Functions;
 
 /// <summary>
-/// HTTP-triggered functions for the Schedule resource.
+/// HTTP-triggered function for bulk flight schedule import.
 /// Presentation layer — translates HTTP concerns into application-layer calls.
 /// </summary>
 public sealed class ScheduleFunction
 {
-    private readonly CreateScheduleHandler _createHandler;
-    private readonly UpdateScheduleHandler _updateHandler;
-    private readonly ImportSsimHandler _importSsimHandler;
+    private readonly ImportSchedulesHandler _importHandler;
     private readonly ILogger<ScheduleFunction> _logger;
 
     public ScheduleFunction(
-        CreateScheduleHandler createHandler,
-        UpdateScheduleHandler updateHandler,
-        ImportSsimHandler importSsimHandler,
+        ImportSchedulesHandler importHandler,
         ILogger<ScheduleFunction> logger)
     {
-        _createHandler = createHandler;
-        _updateHandler = updateHandler;
-        _importSsimHandler = importSsimHandler;
+        _importHandler = importHandler;
         _logger = logger;
     }
 
@@ -41,133 +32,89 @@ public sealed class ScheduleFunction
     // POST /v1/schedules
     // -------------------------------------------------------------------------
 
-    [Function("CreateSchedule")]
-    [OpenApiOperation(operationId: "CreateSchedule", tags: new[] { "Schedules" }, Summary = "Create a flight schedule")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateScheduleRequest), Required = true, Description = "Schedule details: flightNumber, origin, destination, departureTime, arrivalTime, aircraftType, daysOfWeek, createdBy")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateScheduleResponse), Description = "Created")]
+    [Function("ImportSchedules")]
+    [OpenApiOperation(operationId: "ImportSchedules", tags: new[] { "Schedules" }, Summary = "Bulk-import flight schedules from a season schedule payload")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesRequest), Required = true, Description = "Full season schedule payload containing header, carriers, and schedule definitions")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesResponse), Description = "OK — returns count of imported and deleted records with per-schedule summary")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
-    public async Task<HttpResponseData> Create(
+    public async Task<HttpResponseData> ImportSchedules(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        var (request, error) = await req.TryDeserializeBodyAsync<CreateScheduleRequest>(_logger, cancellationToken);
+        var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request.FlightNumber))
-            return await req.BadRequestAsync("The 'flightNumber' field is required.");
+        // Validate carriers array is present and non-empty.
+        if (request.Carriers is null || request.Carriers.Count == 0)
+            return await req.BadRequestAsync("The 'carriers' array must contain at least one carrier.");
 
-        if (string.IsNullOrWhiteSpace(request.Origin) || string.IsNullOrWhiteSpace(request.Destination))
-            return await req.BadRequestAsync("The 'origin' and 'destination' fields are required.");
+        // Flatten and validate individual schedules.
+        var allSchedules = request.Carriers.SelectMany(c => c.Schedules).ToList();
 
-        if (string.IsNullOrWhiteSpace(request.DepartureTime) || string.IsNullOrWhiteSpace(request.ArrivalTime))
-            return await req.BadRequestAsync("The 'departureTime' and 'arrivalTime' fields are required.");
+        if (allSchedules.Count == 0)
+            return await req.BadRequestAsync("At least one schedule definition must be provided across all carriers.");
 
-        if (string.IsNullOrWhiteSpace(request.AircraftType))
-            return await req.BadRequestAsync("The 'aircraftType' field is required.");
+        // Validate each schedule entry.
+        for (var i = 0; i < allSchedules.Count; i++)
+        {
+            var s = allSchedules[i];
 
-        if (request.DaysOfWeek == 0)
-            return await req.BadRequestAsync("The 'daysOfWeek' bitmask must be non-zero.");
+            if (string.IsNullOrWhiteSpace(s.FlightNumber))
+                return await req.BadRequestAsync($"Schedule at index {i}: 'flightNumber' is required.");
 
-        if (string.IsNullOrWhiteSpace(request.CreatedBy))
-            return await req.BadRequestAsync("The 'createdBy' field is required.");
+            if (string.IsNullOrWhiteSpace(s.Origin) || s.Origin.Length != 3)
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'origin' must be a 3-character IATA airport code.");
+
+            if (string.IsNullOrWhiteSpace(s.Destination) || s.Destination.Length != 3)
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'destination' must be a 3-character IATA airport code.");
+
+            if (string.IsNullOrWhiteSpace(s.DepartureTime))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'departureTime' is required.");
+
+            if (string.IsNullOrWhiteSpace(s.ArrivalTime))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'arrivalTime' is required.");
+
+            if (string.IsNullOrWhiteSpace(s.AircraftType) || s.AircraftType.Length > 4)
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'aircraftType' is required and must be at most 4 characters.");
+
+            if (s.DaysOfWeek is < 1 or > 127)
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'daysOfWeek' must be between 1 and 127.");
+
+            if (string.IsNullOrWhiteSpace(s.ValidFrom) || string.IsNullOrWhiteSpace(s.ValidTo))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'validFrom' and 'validTo' are required.");
+
+            if (!DateTime.TryParse(s.ValidFrom, out var validFrom) || !DateTime.TryParse(s.ValidTo, out var validTo))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'validFrom' and 'validTo' must be valid ISO 8601 dates (yyyy-MM-dd).");
+
+            if (validFrom > validTo)
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'validFrom' must not be after 'validTo'.");
+
+            if (!TimeSpan.TryParse(s.DepartureTime, out _))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'departureTime' must be in HH:mm format.");
+
+            if (!TimeSpan.TryParse(s.ArrivalTime, out _))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'arrivalTime' must be in HH:mm format.");
+
+            if (string.IsNullOrWhiteSpace(s.CreatedBy))
+                return await req.BadRequestAsync($"Schedule '{s.FlightNumber}': 'createdBy' is required.");
+        }
 
         try
         {
             var command = ScheduleMapper.ToCommand(request);
-            var schedule = await _createHandler.HandleAsync(command, cancellationToken);
-            var response = ScheduleMapper.ToCreateResponse(schedule);
-
-            return await req.CreatedAsync($"/v1/schedules/{schedule.ScheduleId}", response);
+            var (schedules, deleted) = await _importHandler.HandleAsync(command, cancellationToken);
+            var response = ScheduleMapper.ToImportResponse(schedules, deleted);
+            return await req.OkJsonAsync(response);
         }
         catch (FormatException ex)
         {
-            _logger.LogWarning(ex, "Invalid format in CreateSchedule request");
+            _logger.LogWarning(ex, "Invalid format in ImportSchedules request");
             return await req.BadRequestAsync("Invalid time or date format. Use HH:mm for times and yyyy-MM-dd for dates.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create schedule");
-            return await req.InternalServerErrorAsync();
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // PATCH /v1/schedules/{scheduleId:guid}
-    // -------------------------------------------------------------------------
-
-    [Function("UpdateSchedule")]
-    [OpenApiOperation(operationId: "UpdateSchedule", tags: new[] { "Schedules" }, Summary = "Update a flight schedule")]
-    [OpenApiParameter(name: "scheduleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Schedule ID")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateScheduleRequest), Required = true, Description = "Schedule update details")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateScheduleResponse), Description = "OK")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
-    public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/schedules/{scheduleId:guid}")] HttpRequestData req,
-        Guid scheduleId,
-        CancellationToken cancellationToken)
-    {
-        var (request, error) = await req.TryDeserializeBodyAsync<UpdateScheduleRequest>(_logger, cancellationToken);
-        if (error is not null) return error;
-
-        var command = ScheduleMapper.ToCommand(scheduleId, request);
-
-        try
-        {
-            var schedule = await _updateHandler.HandleAsync(command, cancellationToken);
-
-            if (schedule is null)
-                return await req.NotFoundAsync($"Schedule '{scheduleId}' not found.");
-
-            var response = ScheduleMapper.ToUpdateResponse(schedule);
-            return await req.OkJsonAsync(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update schedule {ScheduleId}", scheduleId);
-            return await req.InternalServerErrorAsync();
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/schedules/ssim
-    // -------------------------------------------------------------------------
-
-    [Function("ImportSsim")]
-    [OpenApiOperation(operationId: "ImportSsim", tags: new[] { "Schedules" }, Summary = "Import schedules from an IATA SSIM Chapter 7 file")]
-    [OpenApiParameter(name: "createdBy", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Identity of the user performing the import (defaults to 'ssim-import')")]
-    [OpenApiRequestBody(contentType: "text/plain", bodyType: typeof(string), Required = true, Description = "SSIM Chapter 7 plain-text file content")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSsimResponse), Description = "OK — returns count and summary of imported schedules")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
-    public async Task<HttpResponseData> ImportSsim(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/ssim")] HttpRequestData req,
-        CancellationToken cancellationToken)
-    {
-        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-        var createdBy = qs["createdBy"] ?? "ssim-import";
-
-        string ssimText;
-        using (var reader = new System.IO.StreamReader(req.Body))
-        {
-            ssimText = await reader.ReadToEndAsync(cancellationToken);
-        }
-
-        if (string.IsNullOrWhiteSpace(ssimText))
-            return await req.BadRequestAsync("Request body must contain SSIM file content.");
-
-        try
-        {
-            var schedules = await _importSsimHandler.HandleAsync(
-                new ImportSsimCommand(ssimText, createdBy), cancellationToken);
-
-            var response = ScheduleMapper.ToImportResponse(schedules);
-            return await req.OkJsonAsync(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to import SSIM file");
+            _logger.LogError(ex, "Failed to import schedules");
             return await req.InternalServerErrorAsync();
         }
     }
