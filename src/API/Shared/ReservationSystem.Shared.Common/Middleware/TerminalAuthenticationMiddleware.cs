@@ -8,7 +8,7 @@ using ReservationSystem.Shared.Common.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace ReservationSystem.Orchestration.Loyalty.Middleware;
+namespace ReservationSystem.Shared.Common.Middleware;
 
 /// <summary>
 /// Azure Functions middleware that validates staff JWT tokens (issued by the User
@@ -16,7 +16,7 @@ namespace ReservationSystem.Orchestration.Loyalty.Middleware;
 /// "User" and are signed with HMAC-SHA256 using a shared secret.
 ///
 /// This middleware only applies to functions whose name starts with "Admin". All
-/// other functions fall through to the existing <see cref="TokenVerificationMiddleware"/>.
+/// other functions fall through to the existing token verification middleware.
 /// </summary>
 public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddleware
 {
