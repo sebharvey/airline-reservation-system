@@ -51,7 +51,9 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | API | Config key | Target service |
 |-----|-----------|----------------|
 | Operations API | `ScheduleMs:BaseUrl` | Schedule MS |
+| Operations API | `ScheduleMs:HostKey` | Schedule MS — Azure Function host key |
 | Operations API | `OfferMs:BaseUrl` | Offer MS |
+| Operations API | `OfferMs:HostKey` | Offer MS — Azure Function host key |
 | Admin API | `UserMs:BaseUrl` | User MS |
 | Admin API | `UserMs:HostKey` | User MS — Azure Function host key |
 | Loyalty API | `IdentityMs:BaseUrl` | Identity MS |
