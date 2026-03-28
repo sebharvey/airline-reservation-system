@@ -43,6 +43,13 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
+        // Admin functions are handled by TerminalAuthenticationMiddleware — skip here.
+        if (functionName.StartsWith("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+
         var requestData = await context.GetHttpRequestDataAsync();
 
         if (requestData is null)

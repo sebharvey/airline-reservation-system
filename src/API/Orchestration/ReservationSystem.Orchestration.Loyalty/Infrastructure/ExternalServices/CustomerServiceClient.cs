@@ -183,6 +183,18 @@ public sealed class CustomerServiceClient
         return await response.Content.ReadFromJsonAsync<TransactionsDto>(JsonOptions, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CustomerDto>> SearchCustomersAsync(
+        string? query = null,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { query = query ?? string.Empty };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/customers/search", body, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<IReadOnlyList<CustomerDto>>(JsonOptions, cancellationToken);
+        return result ?? [];
+    }
+
     public async Task<TransferPointsResultDto?> TransferPointsAsync(
         string senderLoyaltyNumber,
         string recipientLoyaltyNumber,

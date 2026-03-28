@@ -1,0 +1,361 @@
+<div class="customer-detail-page fade-in">
+
+  <!-- Back button & header -->
+  <div class="detail-header">
+    <button class="back-btn" (click)="goBack()">
+      <span class="back-arrow">&larr;</span>
+      <span class="back-label">Customers</span>
+    </button>
+
+    @if (customer(); as c) {
+      <div class="customer-header-info">
+        <div class="header-avatar">{{ c.givenName[0] }}</div>
+        <div class="header-text">
+          <h1 class="header-name">{{ c.givenName }} {{ c.surname }}</h1>
+          <div class="header-meta">
+            <span class="mono">{{ c.loyaltyNumber }}</span>
+            <span class="badge" [class]="tierBadgeClass(c.tierCode)">{{ c.tierCode }}</span>
+            <span class="badge" [class]="c.isActive ? 'badge-active' : 'badge-inactive'">
+              {{ c.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-points">
+        <span class="points-value">{{ formatPoints(c.pointsBalance) }}</span>
+        <span class="points-label">Points</span>
+      </div>
+    }
+  </div>
+
+  <!-- Alerts -->
+  @if (error()) {
+    <div class="alert alert-error" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+  @if (success()) {
+    <div class="alert alert-success" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  <!-- Loading spinner -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner"></span>
+      <span>Loading customer…</span>
+    </div>
+  }
+
+  <!-- Tabs -->
+  @if (customer()) {
+    <div class="tabs">
+      <button
+        class="tab"
+        [class.tab-active]="activeTab() === 'details'"
+        (click)="switchTab('details')"
+      >Customer Details</button>
+      <button
+        class="tab"
+        [class.tab-active]="activeTab() === 'transactions'"
+        (click)="switchTab('transactions')"
+      >Transactions</button>
+    </div>
+  }
+
+  <!-- Details tab -->
+  @if (customer(); as c) {
+    @if (activeTab() === 'details') {
+      <div class="tab-content fade-in">
+
+        @if (!editing()) {
+          <!-- View mode -->
+          <div class="detail-actions-bar">
+            <button class="edit-btn" (click)="startEdit()">Edit Customer</button>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-section">
+              <h3 class="section-title">Personal information</h3>
+              <div class="field-grid">
+                <div class="field-display">
+                  <span class="field-label">Given name</span>
+                  <span class="field-value">{{ c.givenName }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Surname</span>
+                  <span class="field-value">{{ c.surname }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Date of birth</span>
+                  <span class="field-value">{{ c.dateOfBirth ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Gender</span>
+                  <span class="field-value">{{ c.gender ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Nationality</span>
+                  <span class="field-value">{{ c.nationality ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Phone</span>
+                  <span class="field-value">{{ c.phoneNumber ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Language</span>
+                  <span class="field-value">{{ c.preferredLanguage }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h3 class="section-title">Address</h3>
+              <div class="field-grid">
+                <div class="field-display">
+                  <span class="field-label">Address line 1</span>
+                  <span class="field-value">{{ c.addressLine1 ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Address line 2</span>
+                  <span class="field-value">{{ c.addressLine2 ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">City</span>
+                  <span class="field-value">{{ c.city ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">State / Region</span>
+                  <span class="field-value">{{ c.stateOrRegion ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Postal code</span>
+                  <span class="field-value">{{ c.postalCode ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Country</span>
+                  <span class="field-value">{{ c.countryCode ?? '—' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h3 class="section-title">Loyalty</h3>
+              <div class="field-grid">
+                <div class="field-display">
+                  <span class="field-label">Tier</span>
+                  <span class="field-value"><span class="badge" [class]="tierBadgeClass(c.tierCode)">{{ c.tierCode }}</span></span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Points balance</span>
+                  <span class="field-value">{{ formatPoints(c.pointsBalance) }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Tier progress points</span>
+                  <span class="field-value">{{ formatPoints(c.tierProgressPoints) }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Member since</span>
+                  <span class="field-value">{{ formatDate(c.createdAt) }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Last updated</span>
+                  <span class="field-value">{{ formatDateTime(c.updatedAt) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <!-- Edit mode -->
+          <div class="edit-form">
+            <h3 class="section-title">Edit customer details</h3>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label">Given name</label>
+                <input class="field-input" type="text"
+                  [value]="editGivenName()"
+                  (input)="setField(editGivenName.set.bind(editGivenName), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Surname</label>
+                <input class="field-input" type="text"
+                  [value]="editSurname()"
+                  (input)="setField(editSurname.set.bind(editSurname), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Date of birth</label>
+                <input class="field-input" type="date"
+                  [value]="editDateOfBirth()"
+                  (input)="setField(editDateOfBirth.set.bind(editDateOfBirth), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Gender</label>
+                <select class="field-input"
+                  [value]="editGender()"
+                  (change)="setField(editGender.set.bind(editGender), $event)"
+                  [disabled]="saving()">
+                  <option value="">—</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Undisclosed">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Nationality (ISO 3)</label>
+                <input class="field-input" type="text" maxlength="3"
+                  [value]="editNationality()"
+                  (input)="setField(editNationality.set.bind(editNationality), $event)"
+                  [disabled]="saving()"
+                  placeholder="e.g. GBR" />
+              </div>
+              <div class="field">
+                <label class="field-label">Phone</label>
+                <input class="field-input" type="tel"
+                  [value]="editPhoneNumber()"
+                  (input)="setField(editPhoneNumber.set.bind(editPhoneNumber), $event)"
+                  [disabled]="saving()"
+                  placeholder="+44 7700 900000" />
+              </div>
+              <div class="field">
+                <label class="field-label">Preferred language</label>
+                <input class="field-input" type="text" maxlength="5"
+                  [value]="editPreferredLanguage()"
+                  (input)="setField(editPreferredLanguage.set.bind(editPreferredLanguage), $event)"
+                  [disabled]="saving()"
+                  placeholder="en-GB" />
+              </div>
+            </div>
+
+            <h3 class="section-title section-title-spaced">Address</h3>
+            <div class="form-grid">
+              <div class="field field-full">
+                <label class="field-label">Address line 1</label>
+                <input class="field-input" type="text"
+                  [value]="editAddressLine1()"
+                  (input)="setField(editAddressLine1.set.bind(editAddressLine1), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field field-full">
+                <label class="field-label">Address line 2</label>
+                <input class="field-input" type="text"
+                  [value]="editAddressLine2()"
+                  (input)="setField(editAddressLine2.set.bind(editAddressLine2), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">City</label>
+                <input class="field-input" type="text"
+                  [value]="editCity()"
+                  (input)="setField(editCity.set.bind(editCity), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">State / Region</label>
+                <input class="field-input" type="text"
+                  [value]="editStateOrRegion()"
+                  (input)="setField(editStateOrRegion.set.bind(editStateOrRegion), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Postal code</label>
+                <input class="field-input" type="text"
+                  [value]="editPostalCode()"
+                  (input)="setField(editPostalCode.set.bind(editPostalCode), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Country (ISO 3)</label>
+                <input class="field-input" type="text" maxlength="3"
+                  [value]="editCountryCode()"
+                  (input)="setField(editCountryCode.set.bind(editCountryCode), $event)"
+                  [disabled]="saving()"
+                  placeholder="e.g. GBR" />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-secondary" (click)="cancelEdit()" [disabled]="saving()">Cancel</button>
+              <button class="btn-primary" (click)="saveEdit()" [disabled]="saving()">
+                @if (saving()) {
+                  <span class="btn-spinner"></span> Saving…
+                } @else {
+                  Save Changes
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Transactions tab -->
+  @if (customer() && activeTab() === 'transactions') {
+    <div class="tab-content fade-in">
+
+      @if (transactionsLoading()) {
+        <div class="loading-state">
+          <span class="spinner"></span>
+          <span>Loading transactions…</span>
+        </div>
+      }
+
+      @if (!transactionsLoading() && transactions().length > 0) {
+        <div class="table-card">
+          <table class="txn-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th class="hide-mobile">Ref</th>
+                <th class="text-right">Points</th>
+                <th class="text-right hide-mobile">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (txn of transactions(); track txn.transactionId) {
+                <tr>
+                  <td class="muted nowrap">{{ formatDate(txn.transactionDate) }}</td>
+                  <td>
+                    <span class="badge" [class]="typeBadgeClass(txn.transactionType)">{{ txn.transactionType }}</span>
+                  </td>
+                  <td class="txn-desc">{{ txn.description }}</td>
+                  <td class="hide-mobile mono">{{ txn.bookingReference ?? '—' }}</td>
+                  <td class="text-right" [class.txn-positive]="txn.pointsDelta > 0" [class.txn-negative]="txn.pointsDelta < 0">
+                    {{ txn.pointsDelta > 0 ? '+' : '' }}{{ formatPoints(txn.pointsDelta) }}
+                  </td>
+                  <td class="text-right hide-mobile muted">{{ formatPoints(txn.balanceAfter) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <button class="page-btn" (click)="prevPage()" [disabled]="transactionsPage() <= 1">
+            &larr; Previous
+          </button>
+          <span class="page-info">Page {{ transactionsPage() }} of {{ totalPages }}</span>
+          <button class="page-btn" (click)="nextPage()" [disabled]="transactionsPage() >= totalPages">
+            Next &rarr;
+          </button>
+        </div>
+      }
+
+      @if (!transactionsLoading() && transactions().length === 0) {
+        <div class="empty-txn">
+          No transactions found for this customer.
+        </div>
+      }
+    </div>
+  }
+</div>
