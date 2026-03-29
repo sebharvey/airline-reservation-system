@@ -133,8 +133,6 @@
             <th class="hide-mobile">Aircraft</th>
             <th class="hide-mobile">Duration</th>
             <th class="hide-mobile">Valid Period</th>
-            <th class="hide-tablet">Operating Dates</th>
-            <th class="hide-tablet">Inventory</th>
           </tr>
         </thead>
         <tbody>
@@ -170,21 +168,12 @@
               <td class="hide-mobile muted">
                 {{ formatDate(schedule.validFrom) }} &ndash; {{ formatDate(schedule.validTo) }}
               </td>
-              <td class="hide-tablet mono">{{ schedule.operatingDateCount }}</td>
-              <td class="hide-tablet">
-                <div class="inventory-cell">
-                  <div class="inventory-bar">
-                    <div class="inventory-fill" [style.width.%]="inventoryPercent(schedule)"></div>
-                  </div>
-                  <span class="inventory-label">{{ schedule.flightsCreated }}/{{ schedule.operatingDateCount }}</span>
-                </div>
-              </td>
             </tr>
           }
 
           @if (filtered().length === 0 && loaded()) {
             <tr>
-              <td colspan="10" class="empty-row">
+              <td colspan="8" class="empty-row">
                 @if (filter()) {
                   No schedules match the filter "{{ filter() }}".
                 } @else {

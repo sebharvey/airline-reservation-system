@@ -385,37 +385,6 @@
 
 .empty-state p { font-size: 0.9rem; max-width: 400px; line-height: 1.6; }
 
-/* Inventory progress */
-.inventory-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 100px;
-}
-
-.inventory-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-  min-width: 40px;
-}
-
-.inventory-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #a371f7, #8957e5);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.inventory-label {
-  font-size: 0.7rem;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
 /* Mobile */
 @media (max-width: 600px) {
   .schedules-page { padding: 12px; }
