@@ -29,6 +29,9 @@
     @if (!isBoardingPass()) {
       <footer class="footer">
         <p>© 2026 Apex Air. All rights reserved.</p>
+        <!-- DEBUG — basket debug button; remove with basket debug feature -->
+        <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
+        <!-- END DEBUG -->
         <button
           class="theme-toggle"
           (click)="theme.toggle()"
@@ -42,6 +45,28 @@
         </button>
       </footer>
     }
+
+    <!-- DEBUG — basket debug modal; remove with basket debug feature -->
+    @if (basketDebugOpen()) {
+      <div class="debug-modal-backdrop" (click)="closeBasketDebug()" role="dialog" aria-modal="true" aria-label="Basket debug">
+        <div class="debug-modal-card fade-in" (click)="$event.stopPropagation()">
+          <div class="debug-modal-header">
+            <span class="debug-modal-title">🧺 Basket Debug</span>
+            <button class="debug-modal-close" (click)="closeBasketDebug()" aria-label="Close">✕</button>
+          </div>
+          <div class="debug-modal-body">
+            @if (basketDebugLoading()) {
+              <p class="debug-status">Loading basket…</p>
+            } @else if (basketDebugError()) {
+              <p class="debug-status debug-error">{{ basketDebugError() }}</p>
+            } @else if (basketDebugData()) {
+              <pre class="debug-json">{{ basketDebugData() }}</pre>
+            }
+          </div>
+        </div>
+      </div>
+    }
+    <!-- END DEBUG -->
 
   </div>
 </div>

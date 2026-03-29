@@ -8,7 +8,7 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 
 | Service | Base URL | Region |
 |---------|----------|--------|
-| Retail API | TBC | TBC |
+| Retail API | `https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net` | UK South |
 | Loyalty API | `https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net` | UK South |
 | Operations API | `https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net` | UK South |
 | Disruption API | TBC | TBC |

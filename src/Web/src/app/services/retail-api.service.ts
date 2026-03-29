@@ -10,9 +10,11 @@
  * The Observable<T> contract remains identical — no consumer changes required.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
+import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
 import { Order, BoardingPass } from '../models/order.model';
 import { getMockFlightOffers, MOCK_FLIGHT_STATUS } from '../data/mock/flight-offers.mock';
@@ -38,6 +40,18 @@ const API_DELAY_MS = 600;
 
 @Injectable({ providedIn: 'root' })
 export class RetailApiService {
+  // DEBUG — HttpClient injected for basket debug modal; remove with basket debug feature
+  readonly #http = inject(HttpClient);
+
+  /**
+   * DEBUG — GET /v1/basket/{basketId}
+   * Fetch the current basket from the Retail API for debugging the bookflow.
+   * Remove this method along with the basket debug modal feature.
+   */
+  getBasket(basketId: string): Observable<unknown> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.get<unknown>(`${base}/api/v1/basket/${basketId}`);
+  }
 
   /**
    * POST /v1/search/slice
