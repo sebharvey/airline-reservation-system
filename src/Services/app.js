@@ -833,6 +833,42 @@ function updateDetailStatus(id) {
   }
 }
 
+// ── Auto health check control ──
+let healthCheckIntervalId = null;
+
+function startAutoCheck() {
+  if (healthCheckIntervalId) return;
+  healthCheckIntervalId = setInterval(runHealthChecks, 60000);
+  updateAutoCheckBtn();
+}
+
+function stopAutoCheck() {
+  if (healthCheckIntervalId) {
+    clearInterval(healthCheckIntervalId);
+    healthCheckIntervalId = null;
+  }
+  updateAutoCheckBtn();
+}
+
+function toggleAutoCheck() {
+  if (healthCheckIntervalId) {
+    stopAutoCheck();
+  } else {
+    startAutoCheck();
+  }
+}
+
+function updateAutoCheckBtn() {
+  const btn = document.getElementById('autoCheckBtn');
+  if (!btn) return;
+  const running = !!healthCheckIntervalId;
+  const pauseIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+  const playIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+  btn.innerHTML = running ? `${pauseIcon} Auto` : `${playIcon} Auto`;
+  btn.title = running ? 'Pause auto health checks (every 60s)' : 'Resume auto health checks (every 60s)';
+  btn.classList.toggle('paused', !running);
+}
+
 // ── Init ──
 loadServices();
-setInterval(runHealthChecks, 60000);
+startAutoCheck();

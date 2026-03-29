@@ -335,6 +335,11 @@ html.dark body {
   animation: spin 0.8s linear infinite;
 }
 
+.refresh-btn.paused {
+  background: rgba(255,255,255,0.08);
+  opacity: 0.6;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
