@@ -21,19 +21,19 @@ public sealed class UpdateFareRuleHandler
             ?? throw new KeyNotFoundException($"FareRule {command.FareRuleId} not found.");
 
         fareRule.Update(
-            command.FlightNumber, command.FareBasisCode, command.FareFamily,
+            command.RuleType, command.FlightNumber, command.FareBasisCode, command.FareFamily,
             command.CabinCode, command.BookingClass, command.CurrencyCode,
-            command.BaseFareAmount, command.TaxAmount,
+            command.MinAmount, command.MaxAmount, command.TaxAmount,
+            command.MinPoints, command.MaxPoints, command.PointsTaxes,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
-            command.PointsPrice, command.PointsTaxes,
             string.IsNullOrEmpty(command.ValidFrom) ? null : DateTime.Parse(command.ValidFrom),
             string.IsNullOrEmpty(command.ValidTo) ? null : DateTime.Parse(command.ValidTo));
 
         await _repository.UpdateFareRuleAsync(fareRule, ct);
 
-        _logger.LogInformation("Updated FareRule {FareRuleId} ({FareBasisCode})",
-            fareRule.FareRuleId, command.FareBasisCode);
+        _logger.LogInformation("Updated FareRule {FareRuleId} ({FareBasisCode}, {RuleType})",
+            fareRule.FareRuleId, command.FareBasisCode, command.RuleType);
 
         return fareRule;
     }
