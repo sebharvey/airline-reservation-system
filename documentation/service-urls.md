@@ -25,7 +25,7 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 | Payment MS | `https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net` | UK South |
 | Delivery MS | TBC | TBC |
 | Customer MS | `https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net` | UK South |
-| Seat MS | TBC | TBC |
+| Seat MS | `https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net` | UK South |
 | Bag MS | TBC | TBC |
 | Schedule MS | `https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net` | UK South |
 | Identity MS | `https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net` | UK South |

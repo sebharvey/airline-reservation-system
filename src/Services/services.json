@@ -225,7 +225,7 @@
       "id": "seat-ms",
       "name": "Seat Microservice",
       "description": "System of record for aircraft seatmap definitions, fleet-wide seat pricing rules, and seat offer generation.",
-      "baseUrl": "https://apexair-seat-ms-f6fgl2j1jmopojld.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
