@@ -20,8 +20,11 @@ public sealed class DeleteAircraftTypeHandler
         _logger = logger;
     }
 
-    public Task<bool> HandleAsync(DeleteAircraftTypeCommand command, CancellationToken cancellationToken = default)
+    public async Task<bool> HandleAsync(DeleteAircraftTypeCommand command, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var deleted = await _repository.DeleteAsync(command.AircraftTypeCode, cancellationToken);
+        if (deleted)
+            _logger.LogInformation("Deleted AircraftType {AircraftTypeCode}", command.AircraftTypeCode);
+        return deleted;
     }
 }
