@@ -32,24 +32,7 @@ public sealed class CreateBasketHandler
             offerDetails.Add(offer);
         }
 
-        // 2. Hold inventory for each validated offer; release all on partial failure
-        var heldOfferIds = new List<Guid>();
-        try
-        {
-            foreach (var offer in offerDetails)
-            {
-                await _offerServiceClient.HoldInventoryAsync(offer.OfferId, cancellationToken);
-                heldOfferIds.Add(offer.OfferId);
-            }
-        }
-        catch
-        {
-            foreach (var heldId in heldOfferIds)
-                await _offerServiceClient.ReleaseInventoryAsync(heldId, CancellationToken.None);
-            throw;
-        }
-
-        // 3. Create basket record in Order MS
+        // 2. Create basket record in Order MS
         var bookingType = !string.IsNullOrWhiteSpace(command.BookingType)
             ? command.BookingType
             : command.LoyaltyNumber is not null ? "Reward" : "Revenue";
@@ -62,29 +45,22 @@ public sealed class CreateBasketHandler
             totalPointsAmount: null,
             cancellationToken);
 
-        // 4. Add each validated offer snapshot to the basket
+        // 3. Store offerId and sessionId in the basket for each offer
         var flights = new List<BasketFlight>();
         foreach (var offer in offerDetails)
         {
+            // Use the lowest-priced offer item for basket summary display.
+            var cheapest = offer.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
+            var totalAmount = cheapest?.TotalAmount ?? 0m;
+
             var offerJson = JsonSerializer.Serialize(new
             {
-                inventoryId      = offer.InventoryId,
-                flightNumber     = offer.FlightNumber,
-                departureDate    = offer.DepartureDate,
-                departureTime    = offer.DepartureTime,
-                arrivalTime      = offer.ArrivalTime,
-                arrivalDayOffset = offer.ArrivalDayOffset,
-                origin           = offer.Origin,
-                destination      = offer.Destination,
-                aircraftType     = offer.AircraftType,
-                offerExpiresAt   = offer.ExpiresAt,
-                offers           = offer.Offers
+                offerId     = offer.OfferId,
+                sessionId   = command.SessionId,
+                totalAmount
             });
 
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
-
-            // Use the lowest-priced offer item for basket summary display.
-            var cheapest = offer.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
             flights.Add(new BasketFlight
             {
                 OfferId           = cheapest?.OfferId ?? Guid.Empty,
@@ -95,7 +71,7 @@ public sealed class CreateBasketHandler
                 ArrivalDateTime   = ParseArrivalDateTime(offer.DepartureDate, offer.ArrivalTime, offer.ArrivalDayOffset),
                 CabinCode         = cheapest?.CabinCode ?? string.Empty,
                 FareFamily        = cheapest?.FareFamily,
-                TotalAmount       = cheapest?.TotalAmount ?? 0m
+                TotalAmount       = totalAmount
             });
         }
 
