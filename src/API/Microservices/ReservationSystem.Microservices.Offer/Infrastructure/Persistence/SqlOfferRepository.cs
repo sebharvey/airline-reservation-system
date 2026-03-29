@@ -418,13 +418,13 @@ public sealed class SqlOfferRepository : IOfferRepository
                     FareBasisCode, FareFamily, CurrencyCode,
                     BaseFareAmount, TaxAmount, TotalAmount,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    PointsPrice, PointsTaxes, BookingType, CreatedAt, ExpiresAt, IsConsumed, UpdatedAt)
+                    PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed)
             VALUES (@OfferId, @InventoryId, @FareRuleId, @FlightNumber, @DepartureDate,
                     @Origin, @Destination, @CabinCode,
                     @FareBasisCode, @FareFamily, @CurrencyCode,
                     @BaseFareAmount, @TaxAmount, @TotalAmount,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @PointsPrice, @PointsTaxes, @BookingType, @CreatedAt, @ExpiresAt, @IsConsumed, @UpdatedAt);
+                    @PointsPrice, @PointsTaxes, @BookingType, @ExpiresAt, @IsConsumed);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -439,8 +439,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[StoredOffer]
-            SET    IsConsumed = @IsConsumed,
-                   UpdatedAt  = @UpdatedAt
+            SET    IsConsumed = @IsConsumed
             WHERE  OfferId = @OfferId;
             """;
 
@@ -450,8 +449,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             new CommandDefinition(sql, new
             {
                 offer.OfferId,
-                offer.IsConsumed,
-                offer.UpdatedAt
+                offer.IsConsumed
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         if (rowsAffected == 0)
@@ -978,10 +976,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             offer.PointsPrice,
             offer.PointsTaxes,
             offer.BookingType,
-            offer.CreatedAt,
             offer.ExpiresAt,
-            offer.IsConsumed,
-            offer.UpdatedAt
+            offer.IsConsumed
         };
     }
 
