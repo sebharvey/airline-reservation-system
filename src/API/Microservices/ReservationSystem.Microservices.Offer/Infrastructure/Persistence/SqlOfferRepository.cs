@@ -116,6 +116,37 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(MapToInventory).ToList().AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<FlightInventory>> SearchAvailableInventoryAsync(
+        string origin, string destination, DateOnly departureDate, int paxCount,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
+                   fi.ArrivalDayOffset, fi.Origin, fi.Destination, fi.AircraftType,
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+            FROM   [offer].[FlightInventory] fi
+            WHERE  fi.Origin        = @Origin
+              AND  fi.Destination   = @Destination
+              AND  fi.DepartureDate = @DepartureDate
+              AND  fi.Status        = 'Active'
+              AND  fi.SeatsAvailable >= @PaxCount
+            ORDER BY fi.DepartureTime;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new
+            {
+                Origin = origin,
+                Destination = destination,
+                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue),
+                PaxCount = paxCount
+            }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToInventory).ToList().AsReadOnly();
+    }
+
     public async Task<IReadOnlyList<FlightInventory>> GetInventoriesByFlightAsync(
         string flightNumber, DateOnly departureDate, CancellationToken ct = default)
     {
@@ -618,6 +649,49 @@ public sealed class SqlOfferRepository : IOfferRepository
 
         var rows = await connection.QueryAsync<dynamic>(
             new CommandDefinition(sql, new { Query = query ?? string.Empty }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToFareRule).ToList().AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<FareRule>> GetApplicableFareRulesAsync(
+        string flightNumber, string cabinCode, DateOnly departureDate, CancellationToken ct = default)
+    {
+        // Returns all fare rules that apply to the given flight/cabin/date, ordered from least to
+        // most specific so the caller can apply a last-wins cascade:
+        //   Tier 0 — global default   (FlightNumber IS NULL,  no date bounds)
+        //   Tier 1 — flight default   (FlightNumber matches,  no date bounds)
+        //   Tier 2 — flight + window  (FlightNumber matches,  date within ValidFrom..ValidTo)
+        const string sql = """
+            SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes,
+                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            FROM   [offer].[FareRule]
+            WHERE  CabinCode = @CabinCode
+              AND (
+                  (FlightNumber IS NULL      AND ValidFrom IS NULL AND ValidTo IS NULL)
+               OR (FlightNumber = @FlightNumber AND ValidFrom IS NULL AND ValidTo IS NULL)
+               OR (FlightNumber = @FlightNumber AND ValidFrom <= @DepartureDate AND ValidTo > @DepartureDate)
+              )
+            ORDER BY
+              CASE
+                WHEN FlightNumber IS NULL      AND ValidFrom IS NULL THEN 0
+                WHEN FlightNumber IS NOT NULL  AND ValidFrom IS NULL THEN 1
+                ELSE 2
+              END ASC,
+              FareBasisCode ASC;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new
+            {
+                CabinCode = cabinCode,
+                FlightNumber = flightNumber,
+                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
+            }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(MapToFareRule).ToList().AsReadOnly();
     }

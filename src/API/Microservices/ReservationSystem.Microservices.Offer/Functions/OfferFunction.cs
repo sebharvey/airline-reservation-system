@@ -262,7 +262,7 @@ public sealed class OfferFunction
             Origin: body.GetProperty("origin").GetString()!,
             Destination: body.GetProperty("destination").GetString()!,
             DepartureDate: body.GetProperty("departureDate").GetString()!,
-            CabinCode: body.GetProperty("cabinCode").GetString()!,
+            CabinCode: body.TryGetProperty("cabinCode", out var cc) && cc.ValueKind != JsonValueKind.Null ? cc.GetString() : null,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
 
