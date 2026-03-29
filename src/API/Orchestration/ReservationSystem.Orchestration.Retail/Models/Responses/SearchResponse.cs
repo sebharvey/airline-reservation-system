@@ -12,23 +12,34 @@ public sealed class FlightSearchResult
     public string Destination { get; init; } = string.Empty;
     public DateTime DepartureTime { get; init; }
     public DateTime ArrivalTime { get; init; }
+    public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
+}
+
+public sealed class CabinSearchResult
+{
+    public string CabinCode { get; init; } = string.Empty;
+    public int AvailableSeats { get; init; }
     public IReadOnlyList<FareFamilyOffer> FareFamilies { get; init; } = [];
 }
 
 /// <summary>
-/// Represents one fare family option on a flight.
-/// Contains the OfferId for basket creation and enough price/availability info
-/// for the customer to make a selection.
+/// A single fare family option within a cabin, containing one offer.
+/// The OfferId is passed to basket creation when the customer selects this fare.
 /// </summary>
 public sealed class FareFamilyOffer
 {
     public string FareFamily { get; init; } = string.Empty;
-    public string CabinCode { get; init; } = string.Empty;
+    public FareOffer Offer { get; init; } = new();
+}
+
+public sealed class FareOffer
+{
     public Guid OfferId { get; init; }
     public string FareBasisCode { get; init; } = string.Empty;
-    public decimal Price { get; init; }
+    public decimal BasePrice { get; init; }
+    public decimal Tax { get; init; }
+    public decimal TotalPrice { get; init; }
     public string Currency { get; init; } = string.Empty;
-    public int AvailableSeats { get; init; }
     public bool IsRefundable { get; init; }
     public bool IsChangeable { get; init; }
 }

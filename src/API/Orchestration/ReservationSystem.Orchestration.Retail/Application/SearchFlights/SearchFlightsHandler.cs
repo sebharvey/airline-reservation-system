@@ -33,18 +33,35 @@ public sealed class SearchFlightsHandler
                 $"{arrivalDate:yyyy-MM-dd}T{f.ArrivalTime}:00", null,
                 System.Globalization.DateTimeStyles.RoundtripKind);
 
-            var fareFamilies = f.Offers.Select(o => new FareFamilyOffer
-            {
-                FareFamily     = o.FareFamily ?? o.CabinCode,
-                CabinCode      = o.CabinCode,
-                OfferId        = o.OfferId,
-                FareBasisCode  = o.FareBasisCode,
-                Price          = o.TotalAmount,
-                Currency       = o.CurrencyCode,
-                AvailableSeats = o.SeatsAvailable,
-                IsRefundable   = o.IsRefundable,
-                IsChangeable   = o.IsChangeable
-            }).ToList();
+            // Group offers by cabin, then by fare family within each cabin.
+            var cabins = f.Offers
+                .GroupBy(o => o.CabinCode)
+                .Select(cabinGroup => new CabinSearchResult
+                {
+                    CabinCode      = cabinGroup.Key,
+                    AvailableSeats = cabinGroup.Max(o => o.SeatsAvailable),
+                    FareFamilies   = cabinGroup
+                        .GroupBy(o => o.FareFamily ?? o.FareBasisCode)
+                        .Select(ffGroup =>
+                        {
+                            var o = ffGroup.First();
+                            return new FareFamilyOffer
+                            {
+                                FareFamily = ffGroup.Key,
+                                Offer      = new FareOffer
+                                {
+                                    OfferId       = o.OfferId,
+                                    FareBasisCode = o.FareBasisCode,
+                                    BasePrice     = o.BaseFareAmount,
+                                    Tax           = o.TaxAmount,
+                                    TotalPrice    = o.TotalAmount,
+                                    Currency      = o.CurrencyCode,
+                                    IsRefundable  = o.IsRefundable,
+                                    IsChangeable  = o.IsChangeable
+                                }
+                            };
+                        }).ToList()
+                }).ToList();
 
             return new FlightSearchResult
             {
@@ -53,7 +70,7 @@ public sealed class SearchFlightsHandler
                 Destination   = f.Destination,
                 DepartureTime = departureDateTime,
                 ArrivalTime   = arrivalDateTime,
-                FareFamilies  = fareFamilies
+                Cabins        = cabins
             };
         }).ToList();
 
