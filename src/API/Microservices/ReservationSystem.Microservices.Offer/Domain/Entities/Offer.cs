@@ -43,9 +43,7 @@ public sealed class FlightInventory
             SeatsAvailable = totalSeats,
             SeatsSold = 0,
             SeatsHeld = 0,
-            Status = InventoryStatus.Active,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Status = InventoryStatus.Active
         };
     }
 

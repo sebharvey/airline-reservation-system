@@ -189,18 +189,54 @@ public sealed class SqlOfferRepository : IOfferRepository
             INSERT INTO [offer].[FlightInventory]
                    (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
                     ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                    TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status, CreatedAt, UpdatedAt)
+                    TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status)
             VALUES (@InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
                     @ArrivalDayOffset, @Origin, @Destination, @AircraftType, @CabinCode,
-                    @TotalSeats, @SeatsAvailable, @SeatsSold, @SeatsHeld, @Status, @CreatedAt, @UpdatedAt);
+                    @TotalSeats, @SeatsAvailable, @SeatsSold, @SeatsHeld, @Status);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         await connection.ExecuteAsync(
-            new CommandDefinition(sql, MapInventoryToParameters(inventory), commandTimeout: _options.CommandTimeoutSeconds));
+            new CommandDefinition(sql, MapInventoryToInsertParameters(inventory), commandTimeout: _options.CommandTimeoutSeconds));
 
         _logger.LogDebug("Inserted FlightInventory {InventoryId} into [offer].[FlightInventory]", inventory.InventoryId);
+    }
+
+    public async Task<IReadOnlyList<FlightInventory>> BatchCreateInventoryAsync(
+        IReadOnlyList<FlightInventory> inventories, CancellationToken ct = default)
+    {
+        const string sql = """
+            INSERT INTO [offer].[FlightInventory]
+                   (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
+                    ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
+                    TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status)
+            SELECT @InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
+                   @ArrivalDayOffset, @Origin, @Destination, @AircraftType, @CabinCode,
+                   @TotalSeats, @SeatsAvailable, @SeatsSold, @SeatsHeld, @Status
+            WHERE NOT EXISTS (
+                SELECT 1 FROM [offer].[FlightInventory]
+                WHERE  FlightNumber   = @FlightNumber
+                  AND  DepartureDate  = @DepartureDate
+                  AND  CabinCode      = @CabinCode
+            );
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var created = new List<FlightInventory>(inventories.Count);
+        foreach (var inventory in inventories)
+        {
+            var rows = await connection.ExecuteAsync(
+                new CommandDefinition(sql, MapInventoryToInsertParameters(inventory), commandTimeout: _options.CommandTimeoutSeconds));
+            if (rows > 0)
+                created.Add(inventory);
+        }
+
+        _logger.LogDebug("BatchCreateInventoryAsync: created {Created}, skipped {Skipped}",
+            created.Count, inventories.Count - created.Count);
+
+        return created.AsReadOnly();
     }
 
     public async Task UpdateInventoryAsync(FlightInventory inventory, CancellationToken ct = default)
@@ -808,6 +844,28 @@ public sealed class SqlOfferRepository : IOfferRepository
             expiresAt: (DateTime)row.ExpiresAt,
             isConsumed: (bool)row.IsConsumed,
             updatedAt: (DateTime)row.UpdatedAt);
+    }
+
+    private static object MapInventoryToInsertParameters(FlightInventory inv)
+    {
+        return new
+        {
+            inv.InventoryId,
+            inv.FlightNumber,
+            DepartureDate = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
+            DepartureTime = inv.DepartureTime.ToTimeSpan(),
+            ArrivalTime = inv.ArrivalTime.ToTimeSpan(),
+            inv.ArrivalDayOffset,
+            inv.Origin,
+            inv.Destination,
+            inv.AircraftType,
+            inv.CabinCode,
+            inv.TotalSeats,
+            inv.SeatsAvailable,
+            inv.SeatsSold,
+            inv.SeatsHeld,
+            inv.Status
+        };
     }
 
     private static object MapInventoryToParameters(FlightInventory inv)

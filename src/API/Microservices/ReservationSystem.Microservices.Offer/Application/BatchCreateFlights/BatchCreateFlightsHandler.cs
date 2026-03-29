@@ -22,39 +22,26 @@ public sealed class BatchCreateFlightsHandler
     public async Task<BatchCreateFlightsResult> HandleAsync(
         BatchCreateFlightsCommand command, CancellationToken ct = default)
     {
-        var created = new List<FlightInventory>();
-        var skippedCount = 0;
+        var inventories = command.Items
+            .Select(item => FlightInventory.Create(
+                item.FlightNumber,
+                DateOnly.Parse(item.DepartureDate),
+                TimeOnly.Parse(item.DepartureTime),
+                TimeOnly.Parse(item.ArrivalTime),
+                item.ArrivalDayOffset,
+                item.Origin, item.Destination,
+                item.AircraftType, item.CabinCode, item.TotalSeats))
+            .ToList()
+            .AsReadOnly();
 
-        foreach (var item in command.Items)
-        {
-            var departureDate = DateOnly.Parse(item.DepartureDate);
-
-            var existing = await _repository.GetInventoryAsync(
-                item.FlightNumber, departureDate, item.CabinCode, ct);
-
-            if (existing is not null)
-            {
-                skippedCount++;
-                continue;
-            }
-
-            var departureTime = TimeOnly.Parse(item.DepartureTime);
-            var arrivalTime = TimeOnly.Parse(item.ArrivalTime);
-
-            var inventory = FlightInventory.Create(
-                item.FlightNumber, departureDate, departureTime, arrivalTime,
-                item.ArrivalDayOffset, item.Origin, item.Destination,
-                item.AircraftType, item.CabinCode, item.TotalSeats);
-
-            await _repository.CreateInventoryAsync(inventory, ct);
-            created.Add(inventory);
-        }
+        var created = await _repository.BatchCreateInventoryAsync(inventories, ct);
+        var skippedCount = command.Items.Count - created.Count;
 
         _logger.LogInformation(
             "BatchCreateFlights: created {Created}, skipped {Skipped} existing records",
             created.Count, skippedCount);
 
-        return new BatchCreateFlightsResult(created.AsReadOnly(), skippedCount);
+        return new BatchCreateFlightsResult(created, skippedCount);
     }
 }
 
