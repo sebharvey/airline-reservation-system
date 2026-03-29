@@ -52,4 +52,22 @@ public sealed class EfBasketRepository : IBasketRepository
             await _context.SaveChangesAsync(cancellationToken);
         }
     }
+
+    public async Task<int> DeleteExpiredAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var expired = await _context.Baskets
+            .Where(b => b.ExpiresAt < now)
+            .ToListAsync(cancellationToken);
+
+        if (expired.Count == 0)
+            return 0;
+
+        _context.Baskets.RemoveRange(expired);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted {Count} expired basket(s) from [order].[Basket]", expired.Count);
+
+        return expired.Count;
+    }
 }
