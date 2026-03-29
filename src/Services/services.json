@@ -307,6 +307,8 @@
         { "name": "Password Reset Request", "method": "POST", "path": "/api/v1/auth/password/reset-request", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\"\n}" },
         { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"{reset-token}\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
         { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\"\n}" },
+        { "name": "Get Account", "method": "GET", "path": "/api/v1/accounts/{userAccountId}" },
+        { "name": "Update Account", "method": "PATCH", "path": "/api/v1/accounts/{userAccountId}", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"isLocked\": false\n}" },
         { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
         { "name": "Verify Email", "method": "GET", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
         { "name": "Email Change Request", "method": "POST", "path": "/api/v1/accounts/{identityReference}/email/change-request", "defaultPayload": "{\n  \"newEmail\": \"jane.newemail@example.com\"\n}" },
