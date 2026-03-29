@@ -68,7 +68,7 @@ public sealed class SearchOffersHandler
                     var fare = BuildFareFromRule(inventory.InventoryId, rule);
                     await _repository.CreateFareAsync(fare, ct);
 
-                    var storedOffer = StoredOffer.Create(inventory, fare, bookingType);
+                    var storedOffer = StoredOffer.Create(inventory, fare, rule.FareRuleId, bookingType);
                     await _repository.CreateStoredOfferAsync(storedOffer, ct);
                     offers.Add(storedOffer);
                 }
