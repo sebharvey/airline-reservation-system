@@ -19,6 +19,7 @@ SET NOCOUNT ON;
 -- Drop triggers ---------------------------------------------------------------
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]',  'TR') IS NOT NULL DROP TRIGGER [offer].[TR_FlightInventory_UpdatedAt];
 IF OBJECT_ID('[offer].[TR_Fare_UpdatedAt]',              'TR') IS NOT NULL DROP TRIGGER [offer].[TR_Fare_UpdatedAt];
+IF OBJECT_ID('[offer].[TR_FareRule_UpdatedAt]',          'TR') IS NOT NULL DROP TRIGGER [offer].[TR_FareRule_UpdatedAt];
 IF OBJECT_ID('[offer].[TR_StoredOffer_UpdatedAt]',       'TR') IS NOT NULL DROP TRIGGER [offer].[TR_StoredOffer_UpdatedAt];
 IF OBJECT_ID('[order].[TR_Basket_UpdatedAt]',            'TR') IS NOT NULL DROP TRIGGER [order].[TR_Basket_UpdatedAt];
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]',             'TR') IS NOT NULL DROP TRIGGER [order].[TR_Order_UpdatedAt];
