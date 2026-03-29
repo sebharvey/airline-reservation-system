@@ -61,12 +61,9 @@ sequenceDiagram
     loop For each flight OfferId
         RetailAPI->>OfferMS: GET /v1/offers/{offerId}
         OfferMS-->>RetailAPI: 200 OK — stored offer snapshot (flight, fare, pricing, inventoryId)
-        RetailAPI->>OfferMS: POST /v1/inventory/hold (inventoryId, cabinCode, seats=paxCount)
-        OfferMS-->>RetailAPI: 200 OK — seats held (SeatsHeld incremented, SeatsAvailable decremented)
-        RetailAPI->>OrderMS: POST /v1/basket/{basketId}/offers (offerSnapshot, inventoryId)
-        OrderMS-->>RetailAPI: 200 OK — offer added to basket
+        RetailAPI->>OrderMS: POST /v1/basket/{basketId}/offers (offerId, sessionId, totalAmount)
+        OrderMS-->>RetailAPI: 200 OK — offer reference stored in basket
     end
-    Note over RetailAPI: If any hold fails, release all previously held inventory and return error
 
     RetailAPI-->>Web: 201 Created — basket summary (basketId, itinerary, total fare price)
 
@@ -139,7 +136,7 @@ sequenceDiagram
 
     RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
     DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
-    RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds — convert SeatsHeld to SeatsSold)
+    RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds, offerId, sessionId — mark seats as sold)
     OfferMS-->>RetailAPI: 200 OK — inventory updated (SeatsSold incremented, SeatsHeld decremented)
 
     opt Reward booking — settle points redemption

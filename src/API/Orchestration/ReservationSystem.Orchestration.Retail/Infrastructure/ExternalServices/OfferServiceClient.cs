@@ -29,28 +29,6 @@ public sealed class OfferServiceClient
         return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
     }
 
-    public async Task HoldInventoryAsync(Guid offerId, CancellationToken cancellationToken = default)
-    {
-        var body = new { offerId };
-        using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", body, JsonOptions, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.ReadErrorMessageAsync(cancellationToken);
-            throw new InvalidOperationException($"Failed to hold inventory for offer {offerId}: {error}");
-        }
-    }
-
-    public async Task ReleaseInventoryAsync(Guid offerId, CancellationToken cancellationToken = default)
-    {
-        var body = new { offerId };
-        // Best-effort — do not throw; releasing is compensating action and must not mask the original error
-        try
-        {
-            using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/release", body, JsonOptions, cancellationToken);
-        }
-        catch { }
-    }
-
     public async Task<OfferSearchResultDto> SearchAsync(
         string origin,
         string destination,
