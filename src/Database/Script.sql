@@ -291,12 +291,10 @@ IF OBJECT_ID('[offer].[StoredOffer]', 'U') IS NULL
 CREATE TABLE [offer].[StoredOffer] (
     OfferId               UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id        DEFAULT NEWID(),
     InventoryId           UNIQUEIDENTIFIER NOT NULL,
-    FareRuleId            UNIQUEIDENTIFIER NOT NULL,
     FlightNumber          VARCHAR(10)      NOT NULL,
     DepartureDate         DATE             NOT NULL,
     Origin                CHAR(3)          NOT NULL,
     Destination           CHAR(3)          NOT NULL,
-    CabinCode             CHAR(1)          NOT NULL,
     FareBasisCode         VARCHAR(20)      NOT NULL,
     FareFamily            VARCHAR(50)          NULL,
     CurrencyCode          CHAR(3)          NOT NULL CONSTRAINT DF_StoredOffer_Currency  DEFAULT 'GBP',
@@ -314,6 +312,8 @@ CREATE TABLE [offer].[StoredOffer] (
     ExpiresAt             DATETIME2        NOT NULL,
     IsConsumed            BIT              NOT NULL CONSTRAINT DF_StoredOffer_Consumed  DEFAULT 0,
     UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated   DEFAULT SYSUTCDATETIME(),
+    FareRuleId            UNIQUEIDENTIFIER NOT NULL,
+    CabinCode             CHAR(1)          NOT NULL,
     CONSTRAINT PK_StoredOffer              PRIMARY KEY (OfferId),
     CONSTRAINT FK_StoredOffer_Inventory    FOREIGN KEY (InventoryId)  REFERENCES [offer].[FlightInventory](InventoryId),
     CONSTRAINT FK_StoredOffer_FareRule     FOREIGN KEY (FareRuleId)   REFERENCES [offer].[FareRule](FareRuleId),
@@ -1513,18 +1513,23 @@ BEGIN TRY
     -- Tier 2 (flight default):  FlightNumber set,     ValidFrom IS NULL, ValidTo IS NULL
     -- Tier 3 (date window):     FlightNumber set,     ValidFrom/ValidTo set
     -- Last tier evaluated per (FareBasisCode, RuleType) wins at search time.
+    DECLARE @FareRuleId_JFLEXGB       UNIQUEIDENTIFIER = NEWID();
+    DECLARE @FareRuleId_YFLEXGB       UNIQUEIDENTIFIER = NEWID();
+    DECLARE @FareRuleId_YLOWUK        UNIQUEIDENTIFIER = NEWID();
+    DECLARE @FareRuleId_AX411_YLOWUK  UNIQUEIDENTIFIER = NEWID();
+
     INSERT INTO [offer].[FareRule]
-        (FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+        (FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
          CurrencyCode, MinAmount, TaxAmount,
          IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
          MinPoints, PointsTaxes, ValidFrom, ValidTo)
     VALUES
     -- Tier 1: global defaults (no flight, no dates)
-    (NULL,   'JFLEXGB','Business Flex','J','J','GBP',1250.00,182.50,1,1,  0.00,  0.00,125000,182.50,NULL,NULL),
-    (NULL,   'YFLEXGB','Economy Flex', 'Y','Y','GBP', 350.00, 97.25,1,1,  0.00,  0.00, 35000, 97.25,NULL,NULL),
-    (NULL,   'YLOWUK', 'Economy Light','Y','Y','GBP', 149.00, 97.25,0,0,  0.00,149.00,  NULL,  NULL,NULL,NULL),
+    (@FareRuleId_JFLEXGB,      NULL,   'JFLEXGB','Business Flex','J','J','GBP',1250.00,182.50,1,1,  0.00,  0.00,125000,182.50,NULL,NULL),
+    (@FareRuleId_YFLEXGB,      NULL,   'YFLEXGB','Economy Flex', 'Y','Y','GBP', 350.00, 97.25,1,1,  0.00,  0.00, 35000, 97.25,NULL,NULL),
+    (@FareRuleId_YLOWUK,       NULL,   'YLOWUK', 'Economy Light','Y','Y','GBP', 149.00, 97.25,0,0,  0.00,149.00,  NULL,  NULL,NULL,NULL),
     -- Tier 2: AX411 pays higher taxes on this long-haul route (overrides global YLOWUK)
-    ('AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,110.50,0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
+    (@FareRuleId_AX411_YLOWUK, 'AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,110.50,0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
 
     -- offer.StoredOffer -------------------------------------------------------
     DECLARE @OfferId_Out UNIQUEIDENTIFIER = NEWID();
@@ -1532,14 +1537,15 @@ BEGIN TRY
     DECLARE @OfferId_DEL UNIQUEIDENTIFIER = NEWID();
 
     INSERT INTO [offer].[StoredOffer]
-        (OfferId, InventoryId, FareId, FlightNumber, DepartureDate, Origin, Destination,
+        (OfferId, InventoryId, FlightNumber, DepartureDate, Origin, Destination,
          FareBasisCode, FareFamily, BaseFareAmount, TaxAmount, TotalAmount,
          IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-         PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed)
+         PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed,
+         FareRuleId, CabinCode)
     VALUES
-    (@OfferId_Out,@InvId_AX001,@FareId_AX001_J_Flex, 'AX001','2026-08-15','LHR','JFK','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
-    (@OfferId_In, @InvId_AX002,@FareId_AX001_J_Flex, 'AX002','2026-08-25','JFK','LHR','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
-    (@OfferId_DEL,@InvId_AX411,@FareId_AX411_Y_Light,'AX411','2026-09-10','LHR','DEL','YLOWUK', 'Economy Light', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1);
+    (@OfferId_Out,@InvId_AX001,'AX001','2026-08-15','LHR','JFK','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_JFLEXGB,     'J'),
+    (@OfferId_In, @InvId_AX002,'AX002','2026-08-25','JFK','LHR','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_JFLEXGB,     'J'),
+    (@OfferId_DEL,@InvId_AX411,'AX411','2026-09-10','LHR','DEL','YLOWUK', 'Economy Light', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_AX411_YLOWUK,'Y');
 
     -- payment.Payment ---------------------------------------------------------
     DECLARE @PayId1 UNIQUEIDENTIFIER = NEWID();
