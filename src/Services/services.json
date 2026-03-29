@@ -4,7 +4,7 @@
       "id": "retail-api",
       "name": "Retail API",
       "description": "Primary channel-facing orchestration layer for the Apex Air reservation system. Coordinates the complete passenger journey from flight search through booking, payment, check-in, and boarding.",
-      "baseUrl": "https://apexair-retail-api-c7cbf3a2adfhfacu.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "bearer",
