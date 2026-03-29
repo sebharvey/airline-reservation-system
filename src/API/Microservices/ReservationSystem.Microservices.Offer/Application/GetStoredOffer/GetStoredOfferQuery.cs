@@ -1,3 +1,3 @@
 namespace ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
 
-public sealed record GetStoredOfferQuery(Guid OfferId);
+public sealed record GetStoredOfferQuery(Guid OfferId, Guid? SessionId = null);

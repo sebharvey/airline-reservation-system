@@ -23,8 +23,8 @@ sequenceDiagram
 
     Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=outbound)
     RetailAPI->>OfferMS: POST /v1/search (outbound slice params)
-    OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
-    OfferMS-->>RetailAPI: 200 OK — outbound offer options (each with OfferId, flight details, fare, price)
+    OfferMS->>OfferMS: Persist one StoredOffer per flight (all cabins in FaresInfo JSON), generate SessionId for the search
+    OfferMS-->>RetailAPI: 200 OK — outbound offer options (sessionId, flights grouped with cabins → fareFamilies → offer)
     RetailAPI-->>Web: 200 OK — display outbound options
 
     Traveller->>Web: Select preferred outbound offer
@@ -33,15 +33,15 @@ sequenceDiagram
         Traveller->>Web: Search for inbound flight (origin, destination, date, pax)
         Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=inbound)
         RetailAPI->>OfferMS: POST /v1/search (inbound slice params)
-        OfferMS->>OfferMS: Persist each result to StoredOffer table with unique OfferId
-        OfferMS-->>RetailAPI: 200 OK — inbound offer options (each with OfferId, flight details, fare, price)
+        OfferMS->>OfferMS: Persist one StoredOffer per flight (all cabins), generate new SessionId
+        OfferMS-->>RetailAPI: 200 OK — inbound offer options (sessionId, flights grouped with cabins → fareFamilies → offer)
         RetailAPI-->>Web: 200 OK — display inbound options
         Traveller->>Web: Select preferred inbound offer
     end
 
-    Note over Web, RetailAPI: Basket contains one or more OfferIds (outbound mandatory, inbound optional)
+    Note over Web, RetailAPI: Basket contains sessionId + one or more OfferIds (outbound mandatory, inbound optional)
 
-    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Out, OfferId-In?], pax details)
+    Web->>RetailAPI: POST /v1/basket (sessionId, offerIds: [OfferId-Out, OfferId-In?], pax details)
     RetailAPI->>OrderMS: POST /v1/basket (offerIds, pax)
     OrderMS-->>RetailAPI: 201 Created — basket ID + basket summary
     RetailAPI-->>Web: 201 Created — basket confirmed (basketId, itinerary, total price)
@@ -64,7 +64,7 @@ A direct flight is a single-segment journey served by a single Apex Air flight n
 | DEL → LHR | AX412 | 03:30 | 08:00 | B789 |
 | LHR → SIN | AX301 | 21:30 | 17:45+1 | A351 |
 
-For a direct flight, the Offer MS creates one `StoredOffer` per available cabin class linked to a single `FlightInventory` row.
+For a direct flight, the Offer MS creates one `StoredOffer` per flight, containing all available cabin fares in the `FaresInfo` JSON array. A `SessionId` is generated once per search and shared across all `StoredOffer` rows produced by that search.
 
 ### Connecting flights (hub-and-spoke)
 
@@ -167,34 +167,18 @@ Not in scope for initial release. The data model should accommodate future addit
 
 ### `offer.StoredOffer`
 
+One row per **flight** per search session. All fare offers across every cabin for that flight are stored together in the `FaresInfo` JSON column. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time.
+
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
-| OfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | Returned to channel at search time |
-| InventoryId | UNIQUEIDENTIFIER | No | | FK → `offer.FlightInventory(InventoryId)` | |
-| FareId | UNIQUEIDENTIFIER | No | | FK → `offer.Fare(FareId)` | |
-| FlightNumber | VARCHAR(10) | No | | | Denormalised snapshot |
-| DepartureDate | DATE | No | | | Denormalised snapshot |
-| Origin | CHAR(3) | No | | | Denormalised snapshot |
-| Destination | CHAR(3) | No | | | Denormalised snapshot |
-| FareBasisCode | VARCHAR(20) | No | | | Denormalised snapshot |
-| FareFamily | VARCHAR(50) | Yes | | | Denormalised snapshot |
-| CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 |
-| BaseFareAmount | DECIMAL(10,2) | No | | | Price at time offer was created |
-| TaxAmount | DECIMAL(10,2) | No | | | Taxes at time offer was created |
-| TotalAmount | DECIMAL(10,2) | No | | | Total at time offer was created |
-| IsRefundable | BIT | No | 0 | | Fare conditions at offer creation |
-| IsChangeable | BIT | No | 0 | | Fare conditions at offer creation |
-| ChangeFeeAmount | DECIMAL(10,2) | No | `0.00` | | Snapshotted change fee |
-| CancellationFeeAmount | DECIMAL(10,2) | No | `0.00` | | Snapshotted cancellation fee |
-| PointsPrice | INT | Yes | | | Points required; `NULL` for revenue-only |
-| PointsTaxes | DECIMAL(10,2) | Yes | | | Cash taxes for points redemption |
-| BookingType | VARCHAR(10) | No | `'Revenue'` | | `Revenue` · `Reward` |
+| StoredOfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| SessionId | UNIQUEIDENTIFIER | No | | Indexed | Identifies the search session; shared across all `StoredOffer` rows for a single search |
+| FaresInfo | NVARCHAR(MAX) | No | | | JSON — `inventoryId` + `offers[]` array; one offer item per cabin/fare combination |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | ExpiresAt | DATETIME2 | No | | | `CreatedAt + 60 minutes` |
-| IsConsumed | BIT | No | 0 | | Set to `1` once locked by Order MS |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-> **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0`.
-> **Design note:** Fields deliberately denormalised so the offer snapshot is fully self-contained regardless of later fare changes.
-> **Points snapshot:** `PointsPrice` and `PointsTaxes` snapshotted from `offer.Fare` at creation, locking the points price for the 60-minute window.
+> **Indexes:** `IX_StoredOffer_SessionId` on `(SessionId)` — efficient session-scoped lookups; `IX_StoredOffer_Expiry` on `(ExpiresAt)`.
+> **One row per flight:** A single row stores all cabin fares for a flight, keeping the row count proportional to flights rather than individual fares.
+> **FaresInfo structure:** `{ "inventoryId": "<guid>", "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] }`
 > **Expiry alignment:** `ExpiresAt = CreatedAt + 60 minutes`, matching the basket expiry window.

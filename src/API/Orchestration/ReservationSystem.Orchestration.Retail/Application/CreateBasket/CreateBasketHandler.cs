@@ -20,15 +20,13 @@ public sealed class CreateBasketHandler
 
     public async Task<BasketResponse> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
     {
-        // 1. Validate all offers: must exist, be unconsumed, and not expired
+        // 1. Validate all offers: must exist and not expired
         var offerDetails = new List<OfferDetailDto>();
         foreach (var offerId in command.OfferIds)
         {
-            var offer = await _offerServiceClient.GetOfferAsync(offerId, cancellationToken);
+            var offer = await _offerServiceClient.GetOfferAsync(offerId, command.SessionId, cancellationToken);
             if (offer is null)
                 throw new KeyNotFoundException($"Offer {offerId} not found.");
-            if (offer.IsConsumed)
-                throw new InvalidOperationException($"Offer {offerId} has already been consumed.");
             if (DateTime.TryParse(offer.ExpiresAt, out var offerExpiry) && offerExpiry <= DateTime.UtcNow)
                 throw new InvalidOperationException($"Offer {offerId} has expired.");
             offerDetails.Add(offer);
@@ -70,45 +68,40 @@ public sealed class CreateBasketHandler
         {
             var offerJson = JsonSerializer.Serialize(new
             {
-                offerId = offer.OfferId,
-                inventoryId = offer.InventoryId,
-                flightNumber = offer.FlightNumber,
-                departureDate = offer.DepartureDate,
-                departureTime = offer.DepartureTime,
-                arrivalTime = offer.ArrivalTime,
+                inventoryId      = offer.InventoryId,
+                flightNumber     = offer.FlightNumber,
+                departureDate    = offer.DepartureDate,
+                departureTime    = offer.DepartureTime,
+                arrivalTime      = offer.ArrivalTime,
                 arrivalDayOffset = offer.ArrivalDayOffset,
-                origin = offer.Origin,
-                destination = offer.Destination,
-                aircraftType = offer.AircraftType,
-                cabinCode = offer.CabinCode,
-                fareBasisCode = offer.FareBasisCode,
-                fareFamily = offer.FareFamily,
-                currencyCode = offer.CurrencyCode,
-                baseFareAmount = offer.BaseFareAmount,
-                taxAmount = offer.TaxAmount,
-                totalAmount = offer.TotalAmount,
-                isRefundable = offer.IsRefundable,
-                isChangeable = offer.IsChangeable,
-                offerExpiresAt = offer.ExpiresAt
+                origin           = offer.Origin,
+                destination      = offer.Destination,
+                aircraftType     = offer.AircraftType,
+                offerExpiresAt   = offer.ExpiresAt,
+                offers           = offer.Offers
             });
 
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
 
+            // Use the lowest-priced offer item for basket summary display.
+            var cheapest = offer.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
             flights.Add(new BasketFlight
             {
-                OfferId = offer.OfferId,
-                FlightNumber = offer.FlightNumber,
-                Origin = offer.Origin,
-                Destination = offer.Destination,
+                OfferId           = cheapest?.OfferId ?? Guid.Empty,
+                FlightNumber      = offer.FlightNumber,
+                Origin            = offer.Origin,
+                Destination       = offer.Destination,
                 DepartureDateTime = ParseOfferDateTime(offer.DepartureDate, offer.DepartureTime),
-                ArrivalDateTime = ParseArrivalDateTime(offer.DepartureDate, offer.ArrivalTime, offer.ArrivalDayOffset),
-                CabinCode = offer.CabinCode,
-                FareFamily = offer.FareFamily,
-                TotalAmount = offer.TotalAmount
+                ArrivalDateTime   = ParseArrivalDateTime(offer.DepartureDate, offer.ArrivalTime, offer.ArrivalDayOffset),
+                CabinCode         = cheapest?.CabinCode ?? string.Empty,
+                FareFamily        = cheapest?.FareFamily,
+                TotalAmount       = cheapest?.TotalAmount ?? 0m
             });
         }
 
-        var totalFareAmount = offerDetails.Sum(o => o.TotalAmount);
+        var totalFareAmount = offerDetails
+            .Select(o => o.Offers.OrderBy(x => x.TotalAmount).FirstOrDefault()?.TotalAmount ?? 0m)
+            .Sum();
 
         return new BasketResponse
         {

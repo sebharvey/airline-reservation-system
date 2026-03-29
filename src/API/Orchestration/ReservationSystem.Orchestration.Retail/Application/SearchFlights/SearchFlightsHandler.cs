@@ -18,32 +18,77 @@ public sealed class SearchFlightsHandler
             command.Origin,
             command.Destination,
             command.DepartureDate,
-            command.CabinCode,
             command.PaxCount,
             command.BookingType,
             cancellationToken);
 
-        var offers = result.Offers.Select(o =>
+        var flights = result.Flights.Select(f =>
         {
-            var departureDateTime = DateTime.Parse($"{o.DepartureDate}T{o.DepartureTime}:00", null, System.Globalization.DateTimeStyles.RoundtripKind);
-            var arrivalDate = DateOnly.Parse(o.DepartureDate).AddDays(o.ArrivalDayOffset);
-            var arrivalDateTime = DateTime.Parse($"{arrivalDate:yyyy-MM-dd}T{o.ArrivalTime}:00", null, System.Globalization.DateTimeStyles.RoundtripKind);
+            var departureDateTime = DateTime.Parse(
+                $"{f.DepartureDate}T{f.DepartureTime}:00", null,
+                System.Globalization.DateTimeStyles.RoundtripKind);
 
-            return new FlightOffer
+            var arrivalDate = DateOnly.Parse(f.DepartureDate).AddDays(f.ArrivalDayOffset);
+            var arrivalDateTime = DateTime.Parse(
+                $"{arrivalDate:yyyy-MM-dd}T{f.ArrivalTime}:00", null,
+                System.Globalization.DateTimeStyles.RoundtripKind);
+
+            // Group offers by cabin, then by fare family within each cabin.
+            var cabins = f.Offers
+                .GroupBy(o => o.CabinCode)
+                .Select(cabinGroup =>
+                {
+                    var cabinCheapest = cabinGroup.MinBy(o => o.TotalAmount)!;
+                    var cabinLowestPoints = cabinGroup
+                        .Where(o => o.PointsPrice.HasValue)
+                        .MinBy(o => o.PointsPrice)?.PointsPrice;
+
+                    var fareFamilies = cabinGroup
+                        .GroupBy(o => o.FareFamily ?? o.FareBasisCode)
+                        .Select(ffGroup =>
+                        {
+                            // cheapest within the fare family — used as the single representative offer.
+                            var cheapest = ffGroup.MinBy(o => o.TotalAmount)!;
+
+                            return new FareFamilyOffer
+                            {
+                                FareFamily = ffGroup.Key,
+                                Offer      = new FareOffer
+                                {
+                                    OfferId       = cheapest.OfferId,
+                                    FareBasisCode = cheapest.FareBasisCode,
+                                    BasePrice     = cheapest.BaseFareAmount,
+                                    Tax           = cheapest.TaxAmount,
+                                    TotalPrice    = cheapest.TotalAmount,
+                                    Currency      = cheapest.CurrencyCode,
+                                    IsRefundable  = cheapest.IsRefundable,
+                                    IsChangeable  = cheapest.IsChangeable
+                                }
+                            };
+                        }).ToList();
+
+                    return new CabinSearchResult
+                    {
+                        CabinCode      = cabinGroup.Key,
+                        AvailableSeats = cabinGroup.Max(o => o.SeatsAvailable),
+                        FromPrice      = cabinCheapest.TotalAmount,
+                        Currency       = cabinCheapest.CurrencyCode,
+                        FromPoints     = cabinLowestPoints,
+                        FareFamilies   = fareFamilies
+                    };
+                }).ToList();
+
+            return new FlightSearchResult
             {
-                OfferId = o.OfferId,
-                FlightNumber = o.FlightNumber,
-                Origin = o.Origin,
-                Destination = o.Destination,
+                FlightNumber  = f.FlightNumber,
+                Origin        = f.Origin,
+                Destination   = f.Destination,
                 DepartureTime = departureDateTime,
-                ArrivalTime = arrivalDateTime,
-                CabinClass = o.CabinCode,
-                Price = o.TotalAmount,
-                Currency = o.CurrencyCode,
-                AvailableSeats = o.SeatsAvailable
+                ArrivalTime   = arrivalDateTime,
+                Cabins        = cabins
             };
         }).ToList();
 
-        return new SearchResponse { Offers = offers };
+        return new SearchResponse { Flights = flights };
     }
 }

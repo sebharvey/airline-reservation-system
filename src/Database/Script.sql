@@ -289,43 +289,24 @@ GO
 -- offer.StoredOffer -----------------------------------------------------------
 IF OBJECT_ID('[offer].[StoredOffer]', 'U') IS NULL
 CREATE TABLE [offer].[StoredOffer] (
-    OfferId               UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id        DEFAULT NEWID(),
-    InventoryId           UNIQUEIDENTIFIER NOT NULL,
-    FlightNumber          VARCHAR(10)      NOT NULL,
-    DepartureDate         DATE             NOT NULL,
-    Origin                CHAR(3)          NOT NULL,
-    Destination           CHAR(3)          NOT NULL,
-    FareBasisCode         VARCHAR(20)      NOT NULL,
-    FareFamily            VARCHAR(50)          NULL,
-    CurrencyCode          CHAR(3)          NOT NULL CONSTRAINT DF_StoredOffer_Currency  DEFAULT 'GBP',
-    BaseFareAmount        DECIMAL(10,2)    NOT NULL,
-    TaxAmount             DECIMAL(10,2)    NOT NULL,
-    TotalAmount           DECIMAL(10,2)    NOT NULL,
-    IsRefundable          BIT              NOT NULL CONSTRAINT DF_StoredOffer_Refund    DEFAULT 0,
-    IsChangeable          BIT              NOT NULL CONSTRAINT DF_StoredOffer_Change    DEFAULT 0,
-    ChangeFeeAmount       DECIMAL(10,2)    NOT NULL CONSTRAINT DF_StoredOffer_ChangeFee DEFAULT 0.00,
-    CancellationFeeAmount DECIMAL(10,2)    NOT NULL CONSTRAINT DF_StoredOffer_CancelFee DEFAULT 0.00,
-    PointsPrice           INT                  NULL,
-    PointsTaxes           DECIMAL(10,2)        NULL,
-    BookingType           VARCHAR(10)      NOT NULL CONSTRAINT DF_StoredOffer_BkType    DEFAULT 'Revenue',
-    CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Created   DEFAULT SYSUTCDATETIME(),
-    ExpiresAt             DATETIME2        NOT NULL,
-    IsConsumed            BIT              NOT NULL CONSTRAINT DF_StoredOffer_Consumed  DEFAULT 0,
-    UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated   DEFAULT SYSUTCDATETIME(),
-    FareRuleId            UNIQUEIDENTIFIER NOT NULL,
-    CabinCode             CHAR(1)          NOT NULL,
-    CONSTRAINT PK_StoredOffer              PRIMARY KEY (OfferId),
-    CONSTRAINT FK_StoredOffer_Inventory    FOREIGN KEY (InventoryId)  REFERENCES [offer].[FlightInventory](InventoryId),
-    CONSTRAINT FK_StoredOffer_FareRule     FOREIGN KEY (FareRuleId)   REFERENCES [offer].[FareRule](FareRuleId),
-    CONSTRAINT CHK_StoredOffer_BkType      CHECK (BookingType IN ('Revenue','Reward')),
-    CONSTRAINT CHK_StoredOffer_Cabin       CHECK (CabinCode IN ('F','J','W','Y'))
+    StoredOfferId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id      DEFAULT NEWID(),
+    SessionId     UNIQUEIDENTIFIER NOT NULL,
+    FaresInfo     NVARCHAR(MAX)    NOT NULL,
+    CreatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Created DEFAULT SYSUTCDATETIME(),
+    ExpiresAt     DATETIME2        NOT NULL,
+    UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_StoredOffer PRIMARY KEY (StoredOfferId)
 );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StoredOffer_SessionId' AND object_id = OBJECT_ID('[offer].[StoredOffer]'))
+    CREATE INDEX IX_StoredOffer_SessionId
+        ON [offer].[StoredOffer] (SessionId);
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StoredOffer_Expiry' AND object_id = OBJECT_ID('[offer].[StoredOffer]'))
     CREATE INDEX IX_StoredOffer_Expiry
-        ON [offer].[StoredOffer] (ExpiresAt)
-        WHERE IsConsumed = 0;
+        ON [offer].[StoredOffer] (ExpiresAt);
 GO
 
 IF OBJECT_ID('[offer].[TR_StoredOffer_UpdatedAt]', 'TR') IS NULL

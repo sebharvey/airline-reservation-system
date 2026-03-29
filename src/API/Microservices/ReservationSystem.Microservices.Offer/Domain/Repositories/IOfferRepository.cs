@@ -21,9 +21,9 @@ public interface IOfferRepository
     Task CreateFareAsync(Entities.Fare fare, CancellationToken ct = default);
 
     // StoredOffer
-    Task<Entities.StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default);
+    Task<Entities.StoredOffer?> GetStoredOfferByOfferIdAsync(Guid offerId, CancellationToken ct = default);
+    Task<Entities.StoredOffer?> GetStoredOfferBySessionAndOfferIdAsync(Guid sessionId, Guid offerId, CancellationToken ct = default);
     Task CreateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
-    Task UpdateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
 
     // InventoryHold (idempotency)
     Task<bool> HoldExistsAsync(Guid inventoryId, Guid basketId, CancellationToken ct = default);

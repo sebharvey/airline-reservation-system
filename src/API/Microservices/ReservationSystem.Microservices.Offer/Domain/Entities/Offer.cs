@@ -192,85 +192,120 @@ public sealed class Fare
     }
 }
 
+/// <summary>
+/// A single cabin fare entry within a stored offer's FaresInfo JSON payload.
+/// Each item has its own OfferId so the basket flow can reference a specific fare.
+/// </summary>
+public sealed class StoredOfferItem
+{
+    public Guid OfferId { get; init; }
+    public Guid FareRuleId { get; init; }
+    public string CabinCode { get; init; } = string.Empty;
+    public string FareBasisCode { get; init; } = string.Empty;
+    public string? FareFamily { get; init; }
+    public string CurrencyCode { get; init; } = string.Empty;
+    public decimal BaseFareAmount { get; init; }
+    public decimal TaxAmount { get; init; }
+    public decimal TotalAmount { get; init; }
+    public bool IsRefundable { get; init; }
+    public bool IsChangeable { get; init; }
+    public decimal ChangeFeeAmount { get; init; }
+    public decimal CancellationFeeAmount { get; init; }
+    public int? PointsPrice { get; init; }
+    public decimal? PointsTaxes { get; init; }
+    public int SeatsAvailable { get; init; }
+    public string BookingType { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Fare data stored as JSON in the StoredOffer.FaresInfo column.
+/// Flight details (origin, destination, times, aircraft) are intentionally omitted —
+/// they are authoritative in FlightInventory and derived from InventoryId at read time.
+/// </summary>
+public sealed class StoredOfferFaresInfo
+{
+    public Guid InventoryId { get; init; }
+    public IReadOnlyList<StoredOfferItem> Offers { get; init; } = [];
+}
+
 public sealed class StoredOffer
 {
-    public Guid OfferId { get; private set; }
-    public Guid InventoryId { get; private set; }
-    public Guid FareRuleId { get; private set; }
-    public string FlightNumber { get; private set; } = string.Empty;
-    public DateOnly DepartureDate { get; private set; }
-    public string Origin { get; private set; } = string.Empty;
-    public string Destination { get; private set; } = string.Empty;
-    public string CabinCode { get; private set; } = string.Empty;
-    public string FareBasisCode { get; private set; } = string.Empty;
-    public string? FareFamily { get; private set; }
-    public string CurrencyCode { get; private set; } = string.Empty;
-    public decimal BaseFareAmount { get; private set; }
-    public decimal TaxAmount { get; private set; }
-    public decimal TotalAmount { get; private set; }
-    public bool IsRefundable { get; private set; }
-    public bool IsChangeable { get; private set; }
-    public decimal ChangeFeeAmount { get; private set; }
-    public decimal CancellationFeeAmount { get; private set; }
-    public int? PointsPrice { get; private set; }
-    public decimal? PointsTaxes { get; private set; }
-    public int SeatsAvailable { get; private set; }
-    public string BookingType { get; private set; } = string.Empty;
+    public Guid StoredOfferId { get; private set; }
+    public Guid SessionId { get; private set; }
+    public string FaresInfo { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime ExpiresAt { get; private set; }
-    public bool IsConsumed { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts =
+        new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
 
     private StoredOffer() { }
 
-    public static StoredOffer Create(FlightInventory inventory, Fare fare, Guid fareRuleId, string bookingType)
+    public static StoredOffer Create(
+        FlightInventory inventory,
+        IReadOnlyList<(Fare Fare, Guid FareRuleId)> fares,
+        string bookingType,
+        Guid sessionId)
     {
-        var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == fare.CabinCode);
+        var items = fares.Select(f =>
+        {
+            var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == f.Fare.CabinCode);
+            return new StoredOfferItem
+            {
+                OfferId               = Guid.NewGuid(),
+                FareRuleId            = f.FareRuleId,
+                CabinCode             = f.Fare.CabinCode,
+                FareBasisCode         = f.Fare.FareBasisCode,
+                FareFamily            = f.Fare.FareFamily,
+                CurrencyCode          = f.Fare.CurrencyCode,
+                BaseFareAmount        = f.Fare.BaseFareAmount,
+                TaxAmount             = f.Fare.TaxAmount,
+                TotalAmount           = f.Fare.TotalAmount,
+                IsRefundable          = f.Fare.IsRefundable,
+                IsChangeable          = f.Fare.IsChangeable,
+                ChangeFeeAmount       = f.Fare.ChangeFeeAmount,
+                CancellationFeeAmount = f.Fare.CancellationFeeAmount,
+                PointsPrice           = f.Fare.PointsPrice,
+                PointsTaxes           = f.Fare.PointsTaxes,
+                SeatsAvailable        = cabin?.SeatsAvailable ?? 0,
+                BookingType           = bookingType
+            };
+        }).ToList();
+
+        var faresInfo = new StoredOfferFaresInfo
+        {
+            InventoryId = inventory.InventoryId,
+            Offers      = items
+        };
+
         return new StoredOffer
         {
-            OfferId = Guid.NewGuid(),
-            InventoryId = inventory.InventoryId, FareRuleId = fareRuleId,
-            FlightNumber = inventory.FlightNumber, DepartureDate = inventory.DepartureDate,
-            Origin = inventory.Origin, Destination = inventory.Destination,
-            CabinCode = fare.CabinCode,
-            FareBasisCode = fare.FareBasisCode, FareFamily = fare.FareFamily,
-            CurrencyCode = fare.CurrencyCode,
-            BaseFareAmount = fare.BaseFareAmount, TaxAmount = fare.TaxAmount,
-            TotalAmount = fare.TotalAmount, IsRefundable = fare.IsRefundable,
-            IsChangeable = fare.IsChangeable, ChangeFeeAmount = fare.ChangeFeeAmount,
-            CancellationFeeAmount = fare.CancellationFeeAmount,
-            PointsPrice = fare.PointsPrice, PointsTaxes = fare.PointsTaxes,
-            SeatsAvailable = cabin?.SeatsAvailable ?? 0,
-            BookingType = bookingType,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(60), IsConsumed = false
+            StoredOfferId = Guid.NewGuid(),
+            SessionId     = sessionId,
+            FaresInfo     = System.Text.Json.JsonSerializer.Serialize(faresInfo, JsonOpts),
+            ExpiresAt     = DateTime.UtcNow.AddMinutes(60)
         };
     }
 
     public static StoredOffer Reconstitute(
-        Guid offerId, Guid inventoryId, Guid fareRuleId, string flightNumber,
-        DateOnly departureDate, string origin, string destination, string cabinCode,
-        string fareBasisCode, string? fareFamily, string currencyCode,
-        decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
-        bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, int seatsAvailable, string bookingType,
-        DateTime createdAt, DateTime expiresAt, bool isConsumed, DateTime updatedAt)
+        Guid storedOfferId, Guid sessionId, string faresInfo,
+        DateTime createdAt, DateTime expiresAt, DateTime updatedAt)
     {
         return new StoredOffer
         {
-            OfferId = offerId, InventoryId = inventoryId, FareRuleId = fareRuleId,
-            FlightNumber = flightNumber, DepartureDate = departureDate,
-            Origin = origin, Destination = destination, CabinCode = cabinCode,
-            FareBasisCode = fareBasisCode, FareFamily = fareFamily, CurrencyCode = currencyCode,
-            BaseFareAmount = baseFareAmount, TaxAmount = taxAmount, TotalAmount = totalAmount,
-            IsRefundable = isRefundable, IsChangeable = isChangeable,
-            ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
-            PointsPrice = pointsPrice, PointsTaxes = pointsTaxes,
-            SeatsAvailable = seatsAvailable, BookingType = bookingType,
-            CreatedAt = createdAt, ExpiresAt = expiresAt, IsConsumed = isConsumed, UpdatedAt = updatedAt
+            StoredOfferId = storedOfferId,
+            SessionId     = sessionId,
+            FaresInfo     = faresInfo,
+            CreatedAt     = createdAt,
+            ExpiresAt     = expiresAt,
+            UpdatedAt     = updatedAt
         };
     }
 
-    public void Consume() { IsConsumed = true; UpdatedAt = DateTime.UtcNow; }
+    public StoredOfferFaresInfo GetFaresInfo() =>
+        System.Text.Json.JsonSerializer.Deserialize<StoredOfferFaresInfo>(FaresInfo,
+            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })!;
 }
 
 public sealed class FareRule

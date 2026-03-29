@@ -4,6 +4,13 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.SearchOffers;
 
+/// <summary>
+/// Pairs a stored offer with the in-memory inventory used to create it, so the
+/// calling function endpoint can build the flight-level response directly from
+/// the inventory without an additional DB round-trip.
+/// </summary>
+public sealed record SearchOfferResult(StoredOffer Offer, FlightInventory Inventory);
+
 public sealed class SearchOffersHandler
 {
     private readonly IOfferRepository _repository;
@@ -15,28 +22,27 @@ public sealed class SearchOffersHandler
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<StoredOffer>> HandleAsync(SearchOffersCommand command, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SearchOfferResult>> HandleAsync(SearchOffersCommand command, CancellationToken ct = default)
     {
         var departureDate = DateOnly.Parse(command.DepartureDate);
         var bookingType = string.IsNullOrEmpty(command.BookingType) ? "Revenue" : command.BookingType;
 
         // 1. Find all active flights on the route where total seats available >= pax count.
-        //    Sold-out flights (SeatsAvailable < paxCount) are excluded by the query.
         var inventories = await _repository.SearchAvailableInventoryAsync(
             command.Origin, command.Destination, departureDate, command.PaxCount, ct);
 
-        var offers = new List<StoredOffer>();
+        // One SessionId shared across all flights returned for this search.
+        var sessionId = Guid.NewGuid();
+        var results = new List<SearchOfferResult>();
 
         foreach (var inventory in inventories)
         {
-            // 2. Iterate every cabin on the flight; skip cabins that cannot accommodate the party.
+            // 2. Collect eligible fares across all cabins for this flight.
+            var flightFares = new List<(Fare Fare, Guid FareRuleId)>();
+
             foreach (var cabin in inventory.Cabins)
             {
                 if (cabin.SeatsAvailable < command.PaxCount)
-                    continue;
-
-                // Optional cabin filter — if the caller specified a cabin code, skip others.
-                if (command.CabinCode is not null && cabin.CabinCode != command.CabinCode)
                     continue;
 
                 // 3. Retrieve all applicable fare rules for this cabin in tier order
@@ -54,7 +60,7 @@ public sealed class SearchOffersHandler
                 foreach (var rule in rules)
                     effective[$"{rule.FareBasisCode}:{rule.RuleType}"] = rule;
 
-                // 5. For each effective rule, derive a fare and create a stored offer snapshot.
+                // 5. For each effective rule, derive a fare snapshot.
                 foreach (var rule in effective.Values)
                 {
                     // Revenue search: skip pure-points rules that carry no base fare.
@@ -67,20 +73,25 @@ public sealed class SearchOffersHandler
 
                     var fare = BuildFareFromRule(inventory.InventoryId, rule);
                     await _repository.CreateFareAsync(fare, ct);
-
-                    var storedOffer = StoredOffer.Create(inventory, fare, rule.FareRuleId, bookingType);
-                    await _repository.CreateStoredOfferAsync(storedOffer, ct);
-                    offers.Add(storedOffer);
+                    flightFares.Add((fare, rule.FareRuleId));
                 }
             }
+
+            if (flightFares.Count == 0)
+                continue;
+
+            // 6. Create ONE stored offer per flight. FaresInfo holds fare items only;
+            //    flight details remain authoritative in FlightInventory.
+            var storedOffer = StoredOffer.Create(inventory, flightFares, bookingType, sessionId);
+            await _repository.CreateStoredOfferAsync(storedOffer, ct);
+            results.Add(new SearchOfferResult(storedOffer, inventory));
         }
 
         _logger.LogInformation(
-            "Search {Origin}-{Destination} on {Date} cabin {Cabin}: {Count} offers created",
-            command.Origin, command.Destination, command.DepartureDate,
-            command.CabinCode ?? "ALL", offers.Count);
+            "Search {Origin}-{Destination} on {Date} session {SessionId}: {Count} flight offers created",
+            command.Origin, command.Destination, command.DepartureDate, sessionId, results.Count);
 
-        return offers.AsReadOnly();
+        return results.AsReadOnly();
     }
 
     /// <summary>
