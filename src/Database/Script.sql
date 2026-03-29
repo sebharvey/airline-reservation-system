@@ -1318,10 +1318,10 @@ BEGIN TRY
 
 
     -- seat.AircraftType -------------------------------------------------------
-    INSERT INTO [seat].[AircraftType] (AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats) VALUES
-    ('A351','Airbus','Airbus A350-1000',331),
-    ('B789','Boeing','Boeing 787-9',    296),
-    ('A339','Airbus','Airbus A330-900', 287);
+    INSERT INTO [seat].[AircraftType] (AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts) VALUES
+    ('A351','Airbus','Airbus A350-1000',355,N'[{"cabin":"J","count":40},{"cabin":"W","count":63},{"cabin":"Y","count":252}]'),
+    ('B789','Boeing','Boeing 787-9',    293,N'[{"cabin":"J","count":30},{"cabin":"W","count":56},{"cabin":"Y","count":207}]'),
+    ('A339','Airbus','Airbus A330-900', 326,N'[{"cabin":"J","count":40},{"cabin":"W","count":56},{"cabin":"Y","count":230}]');
 
     -- seat.SeatPricing (W & Y only — J/F seat selection included in fare) -----
     INSERT INTO [seat].[SeatPricing] (CabinCode, SeatPosition, CurrencyCode, Price, ValidFrom) VALUES
