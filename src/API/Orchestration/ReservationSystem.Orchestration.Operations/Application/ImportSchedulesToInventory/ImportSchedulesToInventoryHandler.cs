@@ -36,8 +36,8 @@ public sealed class ImportSchedulesToInventoryHandler
         ImportSchedulesToInventoryCommand command,
         CancellationToken cancellationToken = default)
     {
-        // 1. Retrieve all persisted schedules from Schedule MS.
-        var schedulesResult = await _scheduleClient.GetSchedulesAsync(cancellationToken);
+        // 1. Retrieve persisted schedules from Schedule MS, optionally scoped by group.
+        var schedulesResult = await _scheduleClient.GetSchedulesAsync(command.ScheduleGroupId, cancellationToken);
 
         _logger.LogInformation(
             "ImportSchedulesToInventory: found {Count} schedules to process",

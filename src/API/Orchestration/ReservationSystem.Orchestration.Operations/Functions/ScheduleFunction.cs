@@ -42,7 +42,8 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("GetSchedules")]
-    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all stored flight schedules")]
+    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all stored flight schedules, optionally filtered by schedule group")]
+    [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Filter schedules by schedule group")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedules")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetSchedules(
@@ -51,7 +52,10 @@ public sealed class ScheduleFunction
     {
         try
         {
-            var result = await _scheduleServiceClient.GetSchedulesAsync(cancellationToken);
+            var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            Guid? scheduleGroupId = Guid.TryParse(qs["scheduleGroupId"], out var gid) ? gid : null;
+
+            var result = await _scheduleServiceClient.GetSchedulesAsync(scheduleGroupId, cancellationToken);
 
             var response = new GetSchedulesResponse
             {
@@ -59,6 +63,7 @@ public sealed class ScheduleFunction
                 Schedules = result.Schedules.Select(s => new ScheduleSummary
                 {
                     ScheduleId = s.ScheduleId,
+                    ScheduleGroupId = s.ScheduleGroupId,
                     FlightNumber = s.FlightNumber,
                     Origin = s.Origin,
                     Destination = s.Destination,
@@ -88,7 +93,8 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("ImportSsim")]
-    [OpenApiOperation(operationId: "ImportSsim", tags: new[] { "Schedules" }, Summary = "Import schedules from an IATA SSIM Chapter 7 file")]
+    [OpenApiOperation(operationId: "ImportSsim", tags: new[] { "Schedules" }, Summary = "Import schedules from an IATA SSIM Chapter 7 file into a schedule group")]
+    [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = true, Type = typeof(Guid), Description = "Target schedule group for the import")]
     [OpenApiParameter(name: "createdBy", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Identity of the user performing the import (defaults to 'ssim-import')")]
     [OpenApiRequestBody(contentType: "text/plain", bodyType: typeof(string), Required = true, Description = "SSIM Chapter 7 plain-text file content")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSsimResponse), Description = "OK — returns count of imported and deleted records with per-schedule summary")]
@@ -100,6 +106,9 @@ public sealed class ScheduleFunction
     {
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         var createdBy = qs["createdBy"] ?? "ssim-import";
+
+        if (!Guid.TryParse(qs["scheduleGroupId"], out var scheduleGroupId))
+            return await req.BadRequestAsync("'scheduleGroupId' query parameter is required.");
 
         string ssimText;
         using (var reader = new System.IO.StreamReader(req.Body))
@@ -113,7 +122,7 @@ public sealed class ScheduleFunction
         try
         {
             var response = await _importSsimHandler.HandleAsync(
-                new ImportSsimCommand(ssimText, createdBy), cancellationToken);
+                new ImportSsimCommand(ssimText, createdBy, scheduleGroupId), cancellationToken);
 
             return await req.OkJsonAsync(response);
         }
@@ -134,7 +143,8 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("ImportSchedulesToInventory")]
-    [OpenApiOperation(operationId: "ImportSchedulesToInventory", tags: new[] { "Schedules" }, Summary = "Import schedules from the Schedule MS into offer inventory, skipping flights that already exist")]
+    [OpenApiOperation(operationId: "ImportSchedulesToInventory", tags: new[] { "Schedules" }, Summary = "Import schedules from the Schedule MS into offer inventory, optionally scoped to a schedule group")]
+    [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Limit inventory import to a specific schedule group")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryRequest), Required = true, Description = "Cabin and fare definitions to apply when generating inventory for all stored schedules")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryResponse), Description = "OK — returns counts of schedules processed, inventories created/skipped, and fares created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — missing or invalid cabin/fare definitions")]
@@ -145,6 +155,9 @@ public sealed class ScheduleFunction
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesToInventoryRequest>(_logger, cancellationToken);
         if (error is not null) return error;
+
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        Guid? scheduleGroupId = Guid.TryParse(qs["scheduleGroupId"], out var gid) ? gid : null;
 
         if (request.Cabins is null || request.Cabins.Count == 0)
             return await req.BadRequestAsync("'cabins' array must contain at least one cabin definition.");
@@ -191,7 +204,8 @@ public sealed class ScheduleFunction
                         f.CancellationFeeAmount,
                         f.PointsPrice,
                         f.PointsTaxes)).ToList().AsReadOnly()
-                )).ToList().AsReadOnly());
+                )).ToList().AsReadOnly(),
+                scheduleGroupId);
 
             var response = await _importSchedulesToInventoryHandler.HandleAsync(command, cancellationToken);
 

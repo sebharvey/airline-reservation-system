@@ -43,6 +43,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
 
         services.AddScoped<IFlightScheduleRepository, EfFlightScheduleRepository>();
+        services.AddScoped<IScheduleGroupRepository, EfScheduleGroupRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.CompletedTask);

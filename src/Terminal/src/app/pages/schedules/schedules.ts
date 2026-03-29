@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ScheduleService, ScheduleSummary, CabinDefinition } from '../../services/schedule.service';
+import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, CabinDefinition } from '../../services/schedule.service';
 
 @Component({
   selector: 'app-schedules',
@@ -11,6 +11,19 @@ import { ScheduleService, ScheduleSummary, CabinDefinition } from '../../service
 export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);
 
+  // Schedule groups
+  groups = signal<ScheduleGroupSummary[]>([]);
+  selectedGroupId = signal<string>('');
+  loadingGroups = signal(false);
+
+  // Create/edit group modal
+  showGroupModal = signal(false);
+  editingGroup = signal<ScheduleGroupSummary | null>(null);
+  groupForm = signal({ name: '', seasonStart: '', seasonEnd: '', isActive: false });
+  savingGroup = signal(false);
+  groupError = signal('');
+
+  // Schedules
   schedules = signal<ScheduleSummary[]>([]);
   filter = signal('');
   loading = signal(false);
@@ -25,8 +38,13 @@ export class SchedulesComponent implements OnInit {
   cabins = signal<CabinDefinition[]>([]);
 
   ngOnInit(): void {
-    this.loadSchedules();
+    this.loadGroups();
   }
+
+  selectedGroup = computed(() => {
+    const id = this.selectedGroupId();
+    return this.groups().find(g => g.scheduleGroupId === id) ?? null;
+  });
 
   filtered = computed(() => {
     const q = this.filter().toLowerCase().trim();
@@ -57,11 +75,42 @@ export class SchedulesComponent implements OnInit {
     };
   });
 
+  async loadGroups(): Promise<void> {
+    this.loadingGroups.set(true);
+    this.error.set('');
+    try {
+      const result = await this.#scheduleService.getScheduleGroups();
+      this.groups.set(result.groups);
+      // Auto-select the active group, or the first group
+      const active = result.groups.find(g => g.isActive);
+      const toSelect = active ?? result.groups[0];
+      if (toSelect) {
+        this.selectedGroupId.set(toSelect.scheduleGroupId);
+        await this.loadSchedules();
+      } else {
+        this.loaded.set(true);
+      }
+    } catch {
+      this.error.set('Failed to load schedule groups.');
+    } finally {
+      this.loadingGroups.set(false);
+    }
+  }
+
+  async onGroupChange(scheduleGroupId: string): Promise<void> {
+    this.selectedGroupId.set(scheduleGroupId);
+    this.filter.set('');
+    this.importSuccess.set('');
+    await this.loadSchedules();
+  }
+
   async loadSchedules(): Promise<void> {
+    const groupId = this.selectedGroupId();
+    if (!groupId) return;
     this.loading.set(true);
     this.error.set('');
     try {
-      const result = await this.#scheduleService.getSchedules();
+      const result = await this.#scheduleService.getSchedules(groupId);
       this.schedules.set(result.schedules);
       this.loaded.set(true);
     } catch {
@@ -103,6 +152,8 @@ export class SchedulesComponent implements OnInit {
     return Math.round((schedule.flightsCreated / schedule.operatingDateCount) * 100);
   }
 
+  // ── Import to Inventory ─────────────────────────────────────────────────────
+
   openImportModal(): void {
     this.importError.set('');
     this.importSuccess.set('');
@@ -142,7 +193,10 @@ export class SchedulesComponent implements OnInit {
     this.importError.set('');
     this.importSuccess.set('');
     try {
-      const result = await this.#scheduleService.importSchedulesToInventory({ cabins: this.cabins() });
+      const result = await this.#scheduleService.importSchedulesToInventory(
+        { cabins: this.cabins() },
+        this.selectedGroupId() || undefined
+      );
       this.importSuccess.set(
         `Import complete: ${result.schedulesProcessed} schedules processed, ${result.inventoriesCreated} inventories created, ${result.inventoriesSkipped} skipped.`
       );
@@ -152,6 +206,87 @@ export class SchedulesComponent implements OnInit {
       this.importError.set('Failed to import schedules to inventory. Please try again.');
     } finally {
       this.importing.set(false);
+    }
+  }
+
+  // ── Schedule Group CRUD ─────────────────────────────────────────────────────
+
+  openCreateGroupModal(): void {
+    this.editingGroup.set(null);
+    this.groupForm.set({ name: '', seasonStart: '', seasonEnd: '', isActive: false });
+    this.groupError.set('');
+    this.showGroupModal.set(true);
+  }
+
+  openEditGroupModal(): void {
+    const group = this.selectedGroup();
+    if (!group) return;
+    this.editingGroup.set(group);
+    this.groupForm.set({
+      name: group.name,
+      seasonStart: group.seasonStart,
+      seasonEnd: group.seasonEnd,
+      isActive: group.isActive,
+    });
+    this.groupError.set('');
+    this.showGroupModal.set(true);
+  }
+
+  closeGroupModal(): void {
+    this.showGroupModal.set(false);
+  }
+
+  updateGroupForm(field: string, value: string | boolean): void {
+    this.groupForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  async saveGroup(): Promise<void> {
+    const form = this.groupForm();
+    if (!form.name.trim() || !form.seasonStart || !form.seasonEnd) {
+      this.groupError.set('Name, season start, and season end are required.');
+      return;
+    }
+    this.savingGroup.set(true);
+    this.groupError.set('');
+    try {
+      const editing = this.editingGroup();
+      if (editing) {
+        await this.#scheduleService.updateScheduleGroup(editing.scheduleGroupId, {
+          name: form.name,
+          seasonStart: form.seasonStart,
+          seasonEnd: form.seasonEnd,
+          isActive: form.isActive,
+        });
+      } else {
+        const created = await this.#scheduleService.createScheduleGroup({
+          name: form.name,
+          seasonStart: form.seasonStart,
+          seasonEnd: form.seasonEnd,
+          isActive: form.isActive,
+          createdBy: 'ops-admin',
+        });
+        this.selectedGroupId.set(created.scheduleGroupId);
+      }
+      this.showGroupModal.set(false);
+      await this.loadGroups();
+    } catch {
+      this.groupError.set('Failed to save schedule group.');
+    } finally {
+      this.savingGroup.set(false);
+    }
+  }
+
+  async deleteGroup(): Promise<void> {
+    const group = this.selectedGroup();
+    if (!group) return;
+    if (!confirm(`Delete "${group.name}" and all its schedules?`)) return;
+    try {
+      await this.#scheduleService.deleteScheduleGroup(group.scheduleGroupId);
+      this.selectedGroupId.set('');
+      this.schedules.set([]);
+      await this.loadGroups();
+    } catch {
+      this.error.set('Failed to delete schedule group.');
     }
   }
 }

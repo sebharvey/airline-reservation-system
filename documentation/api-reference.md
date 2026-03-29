@@ -187,20 +187,28 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET`  | `/v1/schedules` | Retrieve all stored flight schedules from the Schedule MS; returns `count` and per-schedule summary including `scheduleId`, route, times, `daysOfWeek`, aircraft type, validity window, `flightsCreated`, and `operatingDateCount` |
-| `POST` | `/v1/schedules/ssim` | Import schedules from an IATA SSIM Chapter 7 plain-text file (`text/plain` body, optional `?createdBy=` query parameter); the Operations API parses all Type 3 scheduled-passenger leg records, converts them to the season schedule JSON payload format, and forwards to the Schedule MS `POST /v1/schedules`; returns `imported`, `deleted`, and per-schedule summary |
-| `POST` | `/v1/schedules/import-inventory` | Generate `FlightInventory` and `Fare` records in the Offer MS from all schedules currently stored in the Schedule MS; applies the caller-supplied cabin and fare definitions; skips operating dates where inventory already exists; returns `schedulesProcessed`, `inventoriesCreated`, `inventoriesSkipped`, and `faresCreated` |
+| `GET`  | `/v1/schedule-groups` | Retrieve all schedule groups; returns `count` and per-group summary including `scheduleGroupId`, `name`, `seasonStart`, `seasonEnd`, `isActive`, `scheduleCount` |
+| `POST` | `/v1/schedule-groups` | Create a new schedule group with `name`, `seasonStart`, `seasonEnd`, `isActive`, `createdBy`; returns the created group |
+| `PUT`  | `/v1/schedule-groups/{scheduleGroupId}` | Update a schedule group's `name`, `seasonStart`, `seasonEnd`, `isActive` |
+| `DELETE` | `/v1/schedule-groups/{scheduleGroupId}` | Delete a schedule group and all its flight schedules |
+| `GET`  | `/v1/schedules` | Retrieve stored flight schedules; optional `?scheduleGroupId=` query parameter to filter by group; returns `count` and per-schedule summary including `scheduleId`, `scheduleGroupId`, route, times, `daysOfWeek`, aircraft type, validity window, `flightsCreated`, and `operatingDateCount` |
+| `POST` | `/v1/schedules/ssim` | Import schedules from an IATA SSIM Chapter 7 plain-text file (`text/plain` body, required `?scheduleGroupId=` and optional `?createdBy=` query parameters); the Operations API parses all Type 3 scheduled-passenger leg records, converts them to the season schedule JSON payload format, and forwards to the Schedule MS `POST /v1/schedules`; returns `imported`, `deleted`, and per-schedule summary |
+| `POST` | `/v1/schedules/import-inventory` | Generate `FlightInventory` and `Fare` records in the Offer MS from schedules stored in the Schedule MS; optional `?scheduleGroupId=` to limit to a specific group; applies the caller-supplied cabin and fare definitions; skips operating dates where inventory already exists; returns `schedulesProcessed`, `inventoriesCreated`, `inventoriesSkipped`, and `faresCreated` |
 
 ---
 
 ## Schedule Microservice — [Full API Spec](api-specs/schedule-microservice.md)
 
-The Schedule microservice is the internal persistence layer for flight schedule definitions. It accepts a full season schedule payload, atomically replaces all existing schedule records, and returns a per-schedule import summary. Called by the Operations API after parsing a SSIM file or loading a pre-built JSON schedule payload.
+The Schedule microservice is the internal persistence layer for flight schedule definitions and schedule groups. It accepts a full season schedule payload with a target `scheduleGroupId`, atomically replaces schedule records within that group, and returns a per-schedule import summary. Called by the Operations API after parsing a SSIM file or loading a pre-built JSON schedule payload.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/schedules` | Replace all existing `FlightSchedule` records with the supplied season schedule payload; all previous records are deleted and the new set is inserted atomically; accepts the IATA-structured JSON format (`header`, `carriers[]`, `schedules[]`); returns `imported`, `deleted`, and per-schedule summary (`scheduleId`, route, validity window, `operatingDateCount`) |
-| `GET` | `/v1/schedules` | Return all persisted flight schedule records; called by the Operations API during inventory import; returns `count` and per-schedule summary including `scheduleId`, route, times, `daysOfWeek`, validity window, `flightsCreated`, and `operatingDateCount` |
+| `GET`  | `/v1/schedule-groups` | Return all schedule groups ordered by active status and season start; returns `count` and per-group summary |
+| `POST` | `/v1/schedule-groups` | Create a new schedule group; returns the created group |
+| `PUT`  | `/v1/schedule-groups/{scheduleGroupId}` | Update a schedule group |
+| `DELETE` | `/v1/schedule-groups/{scheduleGroupId}` | Delete a schedule group and all its flight schedules |
+| `POST` | `/v1/schedules` | Replace all `FlightSchedule` records within the specified `scheduleGroupId` with the supplied season schedule payload; previous records for that group are deleted and the new set is inserted atomically; accepts the IATA-structured JSON format (`scheduleGroupId`, `header`, `carriers[]`, `schedules[]`); returns `imported`, `deleted`, and per-schedule summary (`scheduleId`, route, validity window, `operatingDateCount`) |
+| `GET` | `/v1/schedules` | Return persisted flight schedule records; optional `?scheduleGroupId=` query parameter to filter by group; returns `count` and per-schedule summary including `scheduleId`, `scheduleGroupId`, route, times, `daysOfWeek`, validity window, `flightsCreated`, and `operatingDateCount` |
 
 ---
 

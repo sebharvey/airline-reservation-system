@@ -8,6 +8,9 @@ namespace ReservationSystem.Microservices.Schedule.Models.Requests;
 /// </summary>
 public sealed class ImportSchedulesRequest
 {
+    [JsonPropertyName("scheduleGroupId")]
+    public Guid ScheduleGroupId { get; init; }
+
     [JsonPropertyName("header")]
     public ScheduleHeaderRequest? Header { get; init; }
 

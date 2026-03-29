@@ -5,7 +5,9 @@
 > **Transport:** HTTPS (TLS 1.2 minimum)
 > **Content type:** `application/json`
 
-The Operations API is the orchestration layer used by airline operations staff to manage flight schedules. It receives schedule definitions from the Ops Admin App, coordinates persistence via the Schedule MS, generates bulk `FlightInventory` and `Fare` records in the Offer domain via the Offer MS, and updates the schedule record with the count of flights created. The Operations API does not own any database tables itself — it orchestrates the Schedule MS and Offer MS exclusively.
+The Operations API is the orchestration layer used by airline operations staff to manage flight schedules and schedule groups. It receives schedule definitions from the Ops Admin App, coordinates persistence via the Schedule MS, generates bulk `FlightInventory` and `Fare` records in the Offer domain via the Offer MS, and updates the schedule record with the count of flights created. The Operations API does not own any database tables itself — it orchestrates the Schedule MS and Offer MS exclusively.
+
+Schedules are organised into **schedule groups** — named collections (e.g. "Summer 2026", "Annual 2026") that allow multiple schedule versions to coexist. The Ops Admin App provides a group dropdown to select which group to view and import into.
 
 > **Important:** The Operations API is not channel-facing. It is called exclusively by the Ops Admin App used by airline operations staff. It uses `x-functions-key` authentication for inbound calls from the Ops Admin App. It does not validate JWTs. See the [Security](#security) section for details on how calls are authenticated.
 
@@ -39,15 +41,15 @@ The Operations API is an internal service called only by the Ops Admin App. Ther
 
 The Operations API coordinates two distinct orchestration flows.
 
-### SSIM import flow (`POST /v1/schedules/ssim`)
+### SSIM import flow (`POST /v1/schedules/ssim?scheduleGroupId=`)
 
-Parses an IATA SSIM Chapter 7 file and persists the schedule definitions to the Schedule MS. Does not generate inventory. To generate inventory after a SSIM import, call `POST /v1/schedules/import-inventory`.
+Parses an IATA SSIM Chapter 7 file and persists the schedule definitions to a specific schedule group in the Schedule MS. Requires a `scheduleGroupId` query parameter. Does not generate inventory. To generate inventory after a SSIM import, call `POST /v1/schedules/import-inventory`.
 
 ### Schedule-to-inventory import flow (`POST /v1/schedules/import-inventory`)
 
-Takes all schedules currently stored in the Schedule MS and generates `FlightInventory` and `Fare` records in the Offer MS. This is the second step after a SSIM import. The full sequence is:
+Takes schedules stored in the Schedule MS (optionally filtered by `scheduleGroupId`) and generates `FlightInventory` and `Fare` records in the Offer MS. This is the second step after a SSIM import. The full sequence is:
 
-1. **Fetch schedules** — call Schedule MS `GET /v1/schedules` to retrieve all persisted schedule records.
+1. **Fetch schedules** — call Schedule MS `GET /v1/schedules?scheduleGroupId=` to retrieve persisted schedule records (for a specific group, or all groups if omitted).
 2. **Generate inventory** — enumerate operating dates for each schedule (using `daysOfWeek`, `validFrom`, `validTo`). For each operating date × cabin in the request, call Offer MS `POST /v1/flights/batch`. Records that already exist are skipped.
 3. **Create fares** — for each newly created inventory record, call Offer MS `POST /v1/flights/{inventoryId}/fares` for each fare definition in the matching cabin.
 4. **Return** a summary of schedules processed, inventories created/skipped, and fares created.
@@ -62,7 +64,7 @@ Takes all schedules currently stored in the Schedule MS and generates `FlightInv
 
 | Service | Endpoints Called | Purpose |
 |---------|-----------------|---------|
-| **Schedule MS** | `POST /v1/schedules`, `GET /v1/schedules` | Persist schedule definitions (SSIM import), retrieve all schedules (inventory import) |
+| **Schedule MS** | `POST /v1/schedules`, `GET /v1/schedules`, `GET /v1/schedule-groups`, `POST /v1/schedule-groups`, `PUT /v1/schedule-groups/{id}`, `DELETE /v1/schedule-groups/{id}` | Persist schedule definitions (SSIM import), retrieve schedules (inventory import), manage schedule groups |
 | **Offer MS** | `POST /v1/flights/batch`, `POST /v1/flights/{inventoryId}/fares` | Batch-create `FlightInventory` records, create `Fare` records per inventory |
 
 ---
@@ -91,11 +93,11 @@ The Operations API coordinates a multi-step schedule creation flow across the Sc
 
 ## Endpoints
 
-### GET /v1/schedules
+### GET /v1/schedule-groups
 
-Retrieve all stored flight schedules from the Schedule MS. Returns a read-only summary of every schedule record currently persisted, including route, times, operating days, aircraft type, validity window, and the number of operating dates.
+Retrieve all schedule groups from the Schedule MS. Returns a summary of each group including name, season dates, active status, and the count of schedules in the group.
 
-**When to use:** Called by the Ops Admin App (or Terminal Contact Centre app) to display all current flight schedules. This is a read-only query — no data is modified.
+**When to use:** Called by the Ops Admin App to populate the schedule group dropdown selector.
 
 #### Request
 
@@ -105,10 +107,65 @@ No request body. No query parameters.
 
 ```json
 {
+  "count": 2,
+  "groups": [
+    {
+      "scheduleGroupId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Annual 2026",
+      "seasonStart": "2026-01-01",
+      "seasonEnd": "2026-12-31",
+      "isActive": true,
+      "scheduleCount": 48,
+      "createdBy": "ops-admin@apexair.com",
+      "createdAt": "2026-03-26T10:00:00.0000000Z"
+    }
+  ]
+}
+```
+
+---
+
+### POST /v1/schedule-groups
+
+Create a new schedule group.
+
+---
+
+### PUT /v1/schedule-groups/{scheduleGroupId}
+
+Update an existing schedule group's name, season dates, and active status.
+
+---
+
+### DELETE /v1/schedule-groups/{scheduleGroupId}
+
+Delete a schedule group and all its associated flight schedules.
+
+---
+
+### GET /v1/schedules
+
+Retrieve stored flight schedules from the Schedule MS, optionally filtered by schedule group.
+
+**When to use:** Called by the Ops Admin App (or Terminal Contact Centre app) to display flight schedules for a selected group. This is a read-only query — no data is modified.
+
+#### Request
+
+No request body.
+
+| Query Parameter | Type | Required | Description |
+|-----------------|------|----------|-------------|
+| `scheduleGroupId` | string (UUID) | No | Filter to a specific schedule group. Omit to return all schedules |
+
+#### Response — `200 OK`
+
+```json
+{
   "count": 12,
   "schedules": [
     {
       "scheduleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "scheduleGroupId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "flightNumber": "AX001",
       "origin": "LHR",
       "destination": "JFK",
@@ -131,6 +188,7 @@ No request body. No query parameters.
 | `count` | integer | Total number of schedule records returned |
 | `schedules` | array | Array of schedule summary objects |
 | `schedules[].scheduleId` | string (UUID) | Unique schedule identifier |
+| `schedules[].scheduleGroupId` | string (UUID) | Schedule group this schedule belongs to |
 | `schedules[].flightNumber` | string | Flight number, e.g. `"AX001"` |
 | `schedules[].origin` | string | IATA 3-letter departure airport code |
 | `schedules[].destination` | string | IATA 3-letter arrival airport code |
@@ -304,9 +362,13 @@ Create a flight schedule. Orchestrates schedule persistence, bulk flight invento
 
 ### POST /v1/schedules/import-inventory
 
-Import all schedules currently stored in the Schedule MS into the Offer MS inventory tables. For each schedule, operating dates are computed from the `ValidFrom`/`ValidTo` range and `DaysOfWeek` bitmask. For each operating date and each cabin in the request body, a `FlightInventory` record is created. If a record already exists for that combination, it is skipped. Fares are then created for each newly created inventory record.
+Import schedules stored in the Schedule MS into the Offer MS inventory tables. Optionally scoped to a specific schedule group via the `?scheduleGroupId=` query parameter. For each schedule, operating dates are computed from the `ValidFrom`/`ValidTo` range and `DaysOfWeek` bitmask. For each operating date and each cabin in the request body, a `FlightInventory` record is created. If a record already exists for that combination, it is skipped. Fares are then created for each newly created inventory record.
 
 **When to use:** Called after a SSIM import (via `POST /v1/schedules/ssim`) to activate the stored schedules for booking. Can be re-run at any time — existing inventory is never duplicated or overwritten.
+
+| Query Parameter | Type | Required | Description |
+|-----------------|------|----------|-------------|
+| `scheduleGroupId` | string (UUID) | No | Limit inventory import to schedules in a specific group. Omit to process all schedules |
 
 #### Request
 

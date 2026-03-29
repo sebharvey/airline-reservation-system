@@ -33,6 +33,7 @@ public sealed class GetSchedulesDto
 public sealed class ScheduleItemDto
 {
     public Guid ScheduleId { get; init; }
+    public Guid ScheduleGroupId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
@@ -45,4 +46,25 @@ public sealed class ScheduleItemDto
     public string ValidTo { get; init; } = string.Empty;
     public int FlightsCreated { get; init; }
     public int OperatingDateCount { get; init; }
+}
+
+/// <summary>
+/// DTO for the Schedule MS GET /v1/schedule-groups response.
+/// </summary>
+public sealed class GetScheduleGroupsDto
+{
+    public int Count { get; init; }
+    public IReadOnlyList<ScheduleGroupItemDto> Groups { get; init; } = [];
+}
+
+public sealed class ScheduleGroupItemDto
+{
+    public Guid ScheduleGroupId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string SeasonStart { get; init; } = string.Empty;
+    public string SeasonEnd { get; init; } = string.Empty;
+    public bool IsActive { get; init; }
+    public int ScheduleCount { get; init; }
+    public string CreatedBy { get; init; } = string.Empty;
+    public string CreatedAt { get; init; } = string.Empty;
 }

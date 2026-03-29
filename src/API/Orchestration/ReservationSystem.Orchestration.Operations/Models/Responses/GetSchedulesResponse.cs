@@ -20,6 +20,9 @@ public sealed class ScheduleSummary
     [JsonPropertyName("scheduleId")]
     public Guid ScheduleId { get; init; }
 
+    [JsonPropertyName("scheduleGroupId")]
+    public Guid ScheduleGroupId { get; init; }
+
     [JsonPropertyName("flightNumber")]
     public string FlightNumber { get; init; } = string.Empty;
 

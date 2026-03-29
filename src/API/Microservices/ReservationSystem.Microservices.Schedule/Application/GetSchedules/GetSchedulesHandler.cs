@@ -5,7 +5,7 @@ using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 namespace ReservationSystem.Microservices.Schedule.Application.GetSchedules;
 
 /// <summary>
-/// Returns all persisted flight schedules from the Schedule domain.
+/// Returns persisted flight schedules, optionally filtered by schedule group.
 /// </summary>
 public sealed class GetSchedulesHandler
 {
@@ -22,7 +22,9 @@ public sealed class GetSchedulesHandler
         GetSchedulesQuery query,
         CancellationToken cancellationToken = default)
     {
-        var schedules = await _repository.GetAllAsync(cancellationToken);
+        var schedules = query.ScheduleGroupId.HasValue
+            ? await _repository.GetByGroupAsync(query.ScheduleGroupId.Value, cancellationToken)
+            : await _repository.GetAllAsync(cancellationToken);
 
         _logger.LogInformation("GetSchedules returned {Count} schedule records", schedules.Count);
 

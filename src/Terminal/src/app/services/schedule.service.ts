@@ -3,8 +3,44 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environment';
 
+// ── Schedule Group types ──────────────────────────────────────────────────────
+
+export interface ScheduleGroupSummary {
+  scheduleGroupId: string;
+  name: string;
+  seasonStart: string;
+  seasonEnd: string;
+  isActive: boolean;
+  scheduleCount: number;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface GetScheduleGroupsResponse {
+  count: number;
+  groups: ScheduleGroupSummary[];
+}
+
+export interface CreateScheduleGroupRequest {
+  name: string;
+  seasonStart: string;
+  seasonEnd: string;
+  isActive: boolean;
+  createdBy: string;
+}
+
+export interface UpdateScheduleGroupRequest {
+  name: string;
+  seasonStart: string;
+  seasonEnd: string;
+  isActive: boolean;
+}
+
+// ── Schedule types ────────────────────────────────────────────────────────────
+
 export interface ScheduleSummary {
   scheduleId: string;
+  scheduleGroupId: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -43,17 +79,49 @@ export interface ImportSchedulesToInventoryResponse {
 @Injectable({ providedIn: 'root' })
 export class ScheduleService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.operationsApiUrl}/api/v1/schedules`;
+  #baseUrl = `${environment.operationsApiUrl}/api/v1`;
 
-  async getSchedules(): Promise<GetSchedulesResponse> {
+  // ── Schedule Groups ─────────────────────────────────────────────────────────
+
+  async getScheduleGroups(): Promise<GetScheduleGroupsResponse> {
     return firstValueFrom(
-      this.#http.get<GetSchedulesResponse>(this.#baseUrl)
+      this.#http.get<GetScheduleGroupsResponse>(`${this.#baseUrl}/schedule-groups`)
     );
   }
 
-  async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest): Promise<ImportSchedulesToInventoryResponse> {
+  async createScheduleGroup(request: CreateScheduleGroupRequest): Promise<ScheduleGroupSummary> {
     return firstValueFrom(
-      this.#http.post<ImportSchedulesToInventoryResponse>(`${this.#baseUrl}/import-inventory`, request)
+      this.#http.post<ScheduleGroupSummary>(`${this.#baseUrl}/schedule-groups`, request)
+    );
+  }
+
+  async updateScheduleGroup(scheduleGroupId: string, request: UpdateScheduleGroupRequest): Promise<ScheduleGroupSummary> {
+    return firstValueFrom(
+      this.#http.put<ScheduleGroupSummary>(`${this.#baseUrl}/schedule-groups/${scheduleGroupId}`, request)
+    );
+  }
+
+  async deleteScheduleGroup(scheduleGroupId: string): Promise<void> {
+    return firstValueFrom(
+      this.#http.delete<void>(`${this.#baseUrl}/schedule-groups/${scheduleGroupId}`)
+    );
+  }
+
+  // ── Schedules ───────────────────────────────────────────────────────────────
+
+  async getSchedules(scheduleGroupId?: string): Promise<GetSchedulesResponse> {
+    let url = `${this.#baseUrl}/schedules`;
+    if (scheduleGroupId) url += `?scheduleGroupId=${scheduleGroupId}`;
+    return firstValueFrom(
+      this.#http.get<GetSchedulesResponse>(url)
+    );
+  }
+
+  async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest, scheduleGroupId?: string): Promise<ImportSchedulesToInventoryResponse> {
+    let url = `${this.#baseUrl}/schedules/import-inventory`;
+    if (scheduleGroupId) url += `?scheduleGroupId=${scheduleGroupId}`;
+    return firstValueFrom(
+      this.#http.post<ImportSchedulesToInventoryResponse>(url, request)
     );
   }
 }

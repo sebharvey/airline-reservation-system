@@ -7,6 +7,7 @@ namespace ReservationSystem.Microservices.Schedule.Domain.Entities;
 public sealed class FlightSchedule
 {
     public Guid ScheduleId { get; private set; }
+    public Guid ScheduleGroupId { get; private set; }
     public string FlightNumber { get; private set; } = string.Empty;
     public string Origin { get; private set; } = string.Empty;
     public string Destination { get; private set; } = string.Empty;
@@ -28,6 +29,7 @@ public sealed class FlightSchedule
     /// Factory method for creating a brand-new flight schedule.
     /// </summary>
     public static FlightSchedule Create(
+        Guid scheduleGroupId,
         string flightNumber,
         string origin,
         string destination,
@@ -46,10 +48,14 @@ public sealed class FlightSchedule
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftType);
         ArgumentException.ThrowIfNullOrWhiteSpace(createdBy);
 
+        if (scheduleGroupId == Guid.Empty)
+            throw new ArgumentException("scheduleGroupId is required.", nameof(scheduleGroupId));
+
         var now = DateTime.UtcNow;
         return new FlightSchedule
         {
             ScheduleId = Guid.NewGuid(),
+            ScheduleGroupId = scheduleGroupId,
             FlightNumber = flightNumber,
             Origin = origin,
             Destination = destination,
@@ -72,6 +78,7 @@ public sealed class FlightSchedule
     /// </summary>
     public static FlightSchedule Reconstitute(
         Guid scheduleId,
+        Guid scheduleGroupId,
         string flightNumber,
         string origin,
         string destination,
@@ -90,6 +97,7 @@ public sealed class FlightSchedule
         return new FlightSchedule
         {
             ScheduleId = scheduleId,
+            ScheduleGroupId = scheduleGroupId,
             FlightNumber = flightNumber,
             Origin = origin,
             Destination = destination,

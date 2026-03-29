@@ -4,7 +4,7 @@
   <div class="page-header">
     <div class="page-title-group">
       <h1 class="page-title">Flight Schedules</h1>
-      <p class="page-subtitle">View all stored flight schedules from the season schedule</p>
+      <p class="page-subtitle">Manage schedule groups and view flight schedules</p>
     </div>
     @if (loaded()) {
       <div class="header-actions">
@@ -18,6 +18,47 @@
             Refresh
           }
         </button>
+      </div>
+    }
+  </div>
+
+  <!-- Schedule Group selector -->
+  <div class="group-selector">
+    <div class="group-dropdown-row">
+      <div class="group-dropdown-field">
+        <label class="group-label">Schedule Group</label>
+        <select
+          class="group-select"
+          [ngModel]="selectedGroupId()"
+          (ngModelChange)="onGroupChange($event)"
+          [disabled]="loadingGroups()"
+        >
+          @if (groups().length === 0) {
+            <option value="">No schedule groups</option>
+          }
+          @for (group of groups(); track group.scheduleGroupId) {
+            <option [value]="group.scheduleGroupId">
+              {{ group.name }}
+              @if (group.isActive) { (Active) }
+              — {{ group.scheduleCount }} schedules
+            </option>
+          }
+        </select>
+      </div>
+      <div class="group-actions">
+        <button class="btn-group-action" (click)="openCreateGroupModal()" title="New group">+ New</button>
+        @if (selectedGroup()) {
+          <button class="btn-group-action btn-group-edit" (click)="openEditGroupModal()" title="Edit group">Edit</button>
+          <button class="btn-group-action btn-group-delete" (click)="deleteGroup()" title="Delete group">Delete</button>
+        }
+      </div>
+    </div>
+    @if (selectedGroup(); as group) {
+      <div class="group-info">
+        <span class="group-info-item">{{ formatDate(group.seasonStart) }} — {{ formatDate(group.seasonEnd) }}</span>
+        @if (group.isActive) {
+          <span class="group-badge group-badge-active">Active</span>
+        }
       </div>
     }
   </div>
@@ -37,7 +78,7 @@
   }
 
   <!-- Stats row -->
-  @if (loaded()) {
+  @if (loaded() && selectedGroupId()) {
     <div class="stats-row">
       <div class="stat-card">
         <span class="stat-value">{{ stats().total }}</span>
@@ -79,7 +120,7 @@
   }
 
   <!-- Schedule table -->
-  @if (loaded()) {
+  @if (loaded() && selectedGroupId()) {
     <div class="table-card">
       <table class="schedule-table">
         <thead>
@@ -147,7 +188,7 @@
                 @if (filter()) {
                   No schedules match the filter "{{ filter() }}".
                 } @else {
-                  No schedules found. Import an SSIM file to populate schedules.
+                  No schedules found in this group. Import an SSIM file to populate schedules.
                 }
               </td>
             </tr>
@@ -161,11 +202,72 @@
     </p>
   }
 
+  <!-- Empty state: no groups -->
+  @if (loaded() && groups().length === 0) {
+    <div class="empty-state">
+      <p>No schedule groups yet. Create one to get started.</p>
+      <button class="load-btn" (click)="openCreateGroupModal()">Create Schedule Group</button>
+    </div>
+  }
+
   <!-- Loading state -->
-  @if (!loaded() && loading()) {
+  @if (!loaded() && (loading() || loadingGroups())) {
     <div class="empty-state">
       <span class="btn-spinner loading-spinner"></span>
       <p>Loading schedules…</p>
+    </div>
+  }
+
+  <!-- Create/Edit Schedule Group modal -->
+  @if (showGroupModal()) {
+    <div class="modal-backdrop" (click)="closeGroupModal()"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ editingGroup() ? 'Edit' : 'New' }} Schedule Group</h2>
+        <button class="modal-close" (click)="closeGroupModal()" [disabled]="savingGroup()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        @if (groupError()) {
+          <div class="error-banner" role="alert">
+            <span>&#9888;</span> {{ groupError() }}
+          </div>
+        }
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label">Name</label>
+          <input class="form-input" type="text" placeholder="e.g. Summer 2026" [ngModel]="groupForm().name" (ngModelChange)="updateGroupForm('name', $event)" [disabled]="savingGroup()" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Season start</label>
+            <input class="form-input" type="date" [ngModel]="groupForm().seasonStart" (ngModelChange)="updateGroupForm('seasonStart', $event)" [disabled]="savingGroup()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Season end</label>
+            <input class="form-input" type="date" [ngModel]="groupForm().seasonEnd" (ngModelChange)="updateGroupForm('seasonEnd', $event)" [disabled]="savingGroup()" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+          <label class="checkbox-label">
+            <input type="checkbox" [ngModel]="groupForm().isActive" (ngModelChange)="updateGroupForm('isActive', $event)" [disabled]="savingGroup()" />
+            Active schedule group
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeGroupModal()" [disabled]="savingGroup()">Cancel</button>
+        <button class="btn-primary" (click)="saveGroup()" [disabled]="savingGroup()">
+          @if (savingGroup()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editingGroup() ? 'Save Changes' : 'Create Group' }}
+          }
+        </button>
+      </div>
     </div>
   }
 
@@ -180,7 +282,7 @@
 
       <div class="modal-body">
         <p class="modal-description">
-          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> stored schedules.
+          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> schedules in <strong>{{ selectedGroup()?.name }}</strong>.
           Define the cabin layout to apply to each flight.
         </p>
 
