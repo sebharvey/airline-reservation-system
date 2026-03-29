@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ScheduleService, ScheduleSummary, CabinDefinition, FareDefinition } from '../../services/schedule.service';
+import { ScheduleService, ScheduleSummary, CabinDefinition } from '../../services/schedule.service';
 
 @Component({
   selector: 'app-schedules',
@@ -100,24 +100,6 @@ export class SchedulesComponent implements OnInit {
     return {
       cabinCode: 'Y',
       totalSeats: 180,
-      fares: [this.createDefaultFare('Y')],
-    };
-  }
-
-  createDefaultFare(bookingClass: string): FareDefinition {
-    return {
-      fareBasisCode: '',
-      fareFamily: '',
-      bookingClass,
-      currencyCode: 'GBP',
-      baseFareAmount: 0,
-      taxAmount: 0,
-      isRefundable: false,
-      isChangeable: false,
-      changeFeeAmount: 0,
-      cancellationFeeAmount: 0,
-      pointsPrice: null,
-      pointsTaxes: null,
     };
   }
 
@@ -129,38 +111,10 @@ export class SchedulesComponent implements OnInit {
     this.cabins.update(c => c.filter((_, i) => i !== index));
   }
 
-  addFare(cabinIndex: number): void {
-    this.cabins.update(cabins => {
-      const updated = [...cabins];
-      const cabin = { ...updated[cabinIndex], fares: [...updated[cabinIndex].fares, this.createDefaultFare(updated[cabinIndex].cabinCode)] };
-      updated[cabinIndex] = cabin;
-      return updated;
-    });
-  }
-
-  removeFare(cabinIndex: number, fareIndex: number): void {
-    this.cabins.update(cabins => {
-      const updated = [...cabins];
-      const cabin = { ...updated[cabinIndex], fares: updated[cabinIndex].fares.filter((_, i) => i !== fareIndex) };
-      updated[cabinIndex] = cabin;
-      return updated;
-    });
-  }
-
   updateCabin(cabinIndex: number, field: keyof CabinDefinition, value: string | number): void {
     this.cabins.update(cabins => {
       const updated = [...cabins];
       updated[cabinIndex] = { ...updated[cabinIndex], [field]: value };
-      return updated;
-    });
-  }
-
-  updateFare(cabinIndex: number, fareIndex: number, field: keyof FareDefinition, value: string | number | boolean): void {
-    this.cabins.update(cabins => {
-      const updated = [...cabins];
-      const fares = [...updated[cabinIndex].fares];
-      fares[fareIndex] = { ...fares[fareIndex], [field]: value };
-      updated[cabinIndex] = { ...updated[cabinIndex], fares };
       return updated;
     });
   }
@@ -172,7 +126,7 @@ export class SchedulesComponent implements OnInit {
     try {
       const result = await this.#scheduleService.importSchedulesToInventory({ cabins: this.cabins() });
       this.importSuccess.set(
-        `Import complete: ${result.schedulesProcessed} schedules processed, ${result.inventoriesCreated} inventories created, ${result.inventoriesSkipped} skipped, ${result.faresCreated} fares created.`
+        `Import complete: ${result.schedulesProcessed} schedules processed, ${result.inventoriesCreated} inventories created, ${result.inventoriesSkipped} skipped.`
       );
       this.showImportModal.set(false);
       await this.loadSchedules();

@@ -431,9 +431,6 @@
   margin-bottom: 12px;
 }
 
-.form-row-3 { grid-template-columns: repeat(3, 1fr); }
-.form-row-4 { grid-template-columns: repeat(4, 1fr); }
-
 .form-group {
   display: flex;
   flex-direction: column;
@@ -465,19 +462,6 @@
 .form-input:disabled,
 .form-select:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.form-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.form-checkbox input[type="checkbox"] {
-  accent-color: var(--grad-start);
-}
-
 /* Cabin card */
 .cabin-card {
   background: var(--bg-light);
@@ -498,47 +482,6 @@
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--text);
-}
-
-/* Fares section */
-.fares-section {
-  margin-top: 12px;
-}
-
-.fares-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.fares-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.fare-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-.fare-row-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.fare-index {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
 }
 
 /* Buttons */
@@ -590,32 +533,6 @@
 
 .btn-remove:hover:not(:disabled) { background: rgba(248, 81, 73, 0.08); }
 
-.btn-remove-sm {
-  background: none;
-  border: none;
-  color: #f85149;
-  font-size: 1.1rem;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-}
-
-.btn-remove-sm:hover { opacity: 0.7; }
-
-.btn-add-sm {
-  padding: 4px 12px;
-  background: none;
-  color: var(--grad-start);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition);
-}
-
-.btn-add-sm:hover:not(:disabled) { background: rgba(102, 126, 234, 0.08); }
-
 .btn-add-cabin {
   display: block;
   width: 100%;
@@ -637,6 +554,6 @@
 @media (max-width: 600px) {
   .modal { width: 95%; max-height: 90vh; }
   .modal-body { padding: 16px; }
-  .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
   .header-actions { flex-direction: column; gap: 8px; align-items: stretch; }
 }

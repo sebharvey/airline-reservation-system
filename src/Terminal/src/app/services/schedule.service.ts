@@ -24,25 +24,9 @@ export interface GetSchedulesResponse {
   schedules: ScheduleSummary[];
 }
 
-export interface FareDefinition {
-  fareBasisCode: string;
-  fareFamily: string;
-  bookingClass: string;
-  currencyCode: string;
-  baseFareAmount: number;
-  taxAmount: number;
-  isRefundable: boolean;
-  isChangeable: boolean;
-  changeFeeAmount: number;
-  cancellationFeeAmount: number;
-  pointsPrice: number | null;
-  pointsTaxes: number | null;
-}
-
 export interface CabinDefinition {
   cabinCode: string;
   totalSeats: number;
-  fares: FareDefinition[];
 }
 
 export interface ImportSchedulesToInventoryRequest {

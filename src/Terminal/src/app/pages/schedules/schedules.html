@@ -164,7 +164,7 @@
       <div class="modal-body">
         <p class="modal-description">
           Generate flight inventory records from all <strong>{{ schedules().length }}</strong> stored schedules.
-          Define the cabin layout and fare structure to apply to each flight.
+          Define the cabin layout to apply to each flight.
         </p>
 
         @if (importError()) {
@@ -196,73 +196,6 @@
                 <label class="form-label">Total seats</label>
                 <input class="form-input" type="number" min="1" [ngModel]="cabin.totalSeats" (ngModelChange)="updateCabin(ci, 'totalSeats', +$event)" [disabled]="importing()" />
               </div>
-            </div>
-
-            <div class="fares-section">
-              <div class="fares-header">
-                <span class="fares-label">Fares</span>
-                <button class="btn-add-sm" (click)="addFare(ci)" [disabled]="importing()">+ Add Fare</button>
-              </div>
-
-              @for (fare of cabin.fares; track $index; let fi = $index) {
-                <div class="fare-card">
-                  <div class="fare-row-header">
-                    <span class="fare-index">Fare {{ fi + 1 }}</span>
-                    @if (cabin.fares.length > 1) {
-                      <button class="btn-remove-sm" (click)="removeFare(ci, fi)" [disabled]="importing()">&times;</button>
-                    }
-                  </div>
-
-                  <div class="form-row form-row-3">
-                    <div class="form-group">
-                      <label class="form-label">Fare basis code</label>
-                      <input class="form-input" type="text" placeholder="e.g. YNBXXX" [ngModel]="fare.fareBasisCode" (ngModelChange)="updateFare(ci, fi, 'fareBasisCode', $event)" [disabled]="importing()" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Fare family</label>
-                      <input class="form-input" type="text" placeholder="e.g. Economy Basic" [ngModel]="fare.fareFamily" (ngModelChange)="updateFare(ci, fi, 'fareFamily', $event)" [disabled]="importing()" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Booking class</label>
-                      <input class="form-input" type="text" maxlength="2" placeholder="e.g. Y" [ngModel]="fare.bookingClass" (ngModelChange)="updateFare(ci, fi, 'bookingClass', $event)" [disabled]="importing()" />
-                    </div>
-                  </div>
-
-                  <div class="form-row form-row-3">
-                    <div class="form-group">
-                      <label class="form-label">Currency</label>
-                      <input class="form-input" type="text" maxlength="3" placeholder="GBP" [ngModel]="fare.currencyCode" (ngModelChange)="updateFare(ci, fi, 'currencyCode', $event)" [disabled]="importing()" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Base fare</label>
-                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.baseFareAmount" (ngModelChange)="updateFare(ci, fi, 'baseFareAmount', +$event)" [disabled]="importing()" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Tax</label>
-                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.taxAmount" (ngModelChange)="updateFare(ci, fi, 'taxAmount', +$event)" [disabled]="importing()" />
-                    </div>
-                  </div>
-
-                  <div class="form-row form-row-4">
-                    <label class="form-checkbox">
-                      <input type="checkbox" [ngModel]="fare.isRefundable" (ngModelChange)="updateFare(ci, fi, 'isRefundable', $event)" [disabled]="importing()" />
-                      Refundable
-                    </label>
-                    <label class="form-checkbox">
-                      <input type="checkbox" [ngModel]="fare.isChangeable" (ngModelChange)="updateFare(ci, fi, 'isChangeable', $event)" [disabled]="importing()" />
-                      Changeable
-                    </label>
-                    <div class="form-group">
-                      <label class="form-label">Change fee</label>
-                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.changeFeeAmount" (ngModelChange)="updateFare(ci, fi, 'changeFeeAmount', +$event)" [disabled]="importing()" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Cancel fee</label>
-                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.cancellationFeeAmount" (ngModelChange)="updateFare(ci, fi, 'cancellationFeeAmount', +$event)" [disabled]="importing()" />
-                    </div>
-                  </div>
-                </div>
-              }
             </div>
           </div>
         }
