@@ -322,6 +322,7 @@ public sealed class OfferFunction
     [Function("GetStoredOffer")]
     [OpenApiOperation(operationId: "GetStoredOffer", tags: new[] { "Offers" }, Summary = "Retrieve a stored offer by ID")]
     [OpenApiParameter(name: "offerId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Offer ID")]
+    [OpenApiParameter(name: "sessionId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Session ID from search — scopes the lookup to this session for an efficient indexed query")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(StoredOfferResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "Gone – offer has expired")]
@@ -329,10 +330,13 @@ public sealed class OfferFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
         Guid offerId, CancellationToken ct)
     {
+        var sessionIdRaw = req.Query["sessionId"];
+        Guid? sessionId = Guid.TryParse(sessionIdRaw, out var sid) ? sid : null;
+
         GetStoredOfferResult? result;
         try
         {
-            result = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
+            result = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId, sessionId), ct);
         }
         catch (OfferGoneException ex)
         {

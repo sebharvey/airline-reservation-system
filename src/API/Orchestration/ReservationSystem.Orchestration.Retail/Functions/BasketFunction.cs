@@ -67,7 +67,8 @@ public sealed class BasketFunction
             request.CurrencyCode,
             request.BookingType,
             request.LoyaltyNumber,
-            request.CustomerId);
+            request.CustomerId,
+            request.SessionId);
 
         try
         {

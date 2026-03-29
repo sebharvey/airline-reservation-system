@@ -408,6 +408,27 @@ public sealed class SqlOfferRepository : IOfferRepository
         return row is null ? null : MapToStoredOffer(row);
     }
 
+    public async Task<StoredOffer?> GetStoredOfferBySessionAndOfferIdAsync(Guid sessionId, Guid offerId, CancellationToken ct = default)
+    {
+        // Filter by the indexed SessionId first, then find the matching OfferId within the JSON array.
+        const string sql = """
+            SELECT so.StoredOfferId, so.SessionId, so.FaresInfo, so.CreatedAt, so.ExpiresAt, so.UpdatedAt
+            FROM   [offer].[StoredOffer] so
+            CROSS APPLY OPENJSON(so.FaresInfo, '$.offers') WITH (
+                offerId UNIQUEIDENTIFIER '$.offerId'
+            ) AS o
+            WHERE  so.SessionId = @SessionId
+              AND  o.offerId    = @OfferId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var row = await connection.QuerySingleOrDefaultAsync<dynamic>(
+            new CommandDefinition(sql, new { SessionId = sessionId, OfferId = offerId }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return row is null ? null : MapToStoredOffer(row);
+    }
+
     public async Task CreateStoredOfferAsync(StoredOffer offer, CancellationToken ct = default)
     {
         const string sql = """

@@ -24,7 +24,9 @@ public sealed class GetStoredOfferHandler
 
     public async Task<GetStoredOfferResult?> HandleAsync(GetStoredOfferQuery query, CancellationToken ct = default)
     {
-        var offer = await _repository.GetStoredOfferByOfferIdAsync(query.OfferId, ct);
+        var offer = query.SessionId.HasValue
+            ? await _repository.GetStoredOfferBySessionAndOfferIdAsync(query.SessionId.Value, query.OfferId, ct)
+            : await _repository.GetStoredOfferByOfferIdAsync(query.OfferId, ct);
 
         if (offer is null)
         {

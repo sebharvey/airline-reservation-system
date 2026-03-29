@@ -17,9 +17,13 @@ public sealed class OfferServiceClient
         _httpClient = httpClientFactory.CreateClient("OfferMs");
     }
 
-    public async Task<OfferDetailDto?> GetOfferAsync(Guid offerId, CancellationToken cancellationToken = default)
+    public async Task<OfferDetailDto?> GetOfferAsync(Guid offerId, Guid? sessionId = null, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync($"/api/v1/offers/{offerId}", cancellationToken);
+        var url = sessionId.HasValue
+            ? $"/api/v1/offers/{offerId}?sessionId={sessionId.Value}"
+            : $"/api/v1/offers/{offerId}";
+
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
