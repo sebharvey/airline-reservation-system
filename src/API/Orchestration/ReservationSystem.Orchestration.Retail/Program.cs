@@ -32,7 +32,7 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("OfferMs", client =>
         {
-            client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://reservation-system-db-microservice-offer-dnfdbebdezemaghp.uksouth-01.azurewebsites.net/");
             var hostKey = context.Configuration["OfferMs:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
@@ -45,7 +45,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("SeatMs", client =>
         {
-            client.BaseAddress = context.Configuration["SeatMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"] ?? "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net/");
         });
 
         services.AddHttpClient("BagMs", client =>
@@ -55,7 +55,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("PaymentMs", client =>
         {
-            client.BaseAddress = context.Configuration["PaymentMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["PaymentMs:BaseUrl"] ?? "https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net/");
         });
 
         services.AddHttpClient("DeliveryMs", client =>
@@ -65,7 +65,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("CustomerMs", client =>
         {
-            client.BaseAddress = context.Configuration["CustomerMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"] ?? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net/");
         });
 
         // ── Health check ───────────────────────────────────────────────────────
