@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
@@ -20,15 +21,18 @@ public sealed class BasketFunction
 {
     private readonly CreateBasketHandler _createBasketHandler;
     private readonly ConfirmBasketHandler _confirmBasketHandler;
+    private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<BasketFunction> _logger;
 
     public BasketFunction(
         CreateBasketHandler createBasketHandler,
         ConfirmBasketHandler confirmBasketHandler,
+        OrderServiceClient orderServiceClient,
         ILogger<BasketFunction> logger)
     {
         _createBasketHandler = createBasketHandler;
         _confirmBasketHandler = confirmBasketHandler;
+        _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
 
@@ -64,12 +68,15 @@ public sealed class BasketFunction
     [OpenApiOperation(operationId: "GetBasket", tags: new[] { "Basket" }, Summary = "Get basket by ID")]
     [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
-    public Task<HttpResponseData> GetById(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/basket/{basketId:guid}")] HttpRequestData req,
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
     }
 
     // -------------------------------------------------------------------------
@@ -79,13 +86,27 @@ public sealed class BasketFunction
     [Function("UpdateBasketFlights")]
     [OpenApiOperation(operationId: "UpdateBasketFlights", tags: new[] { "Basket" }, Summary = "Update flight selections in basket")]
     [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Flight offer to add")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
-    public Task<HttpResponseData> UpdateFlights(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateFlights(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/flights")] HttpRequestData req,
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdateFlights");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.AddOfferAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
     }
 
     // -------------------------------------------------------------------------
@@ -95,13 +116,27 @@ public sealed class BasketFunction
     [Function("UpdateBasketPassengers")]
     [OpenApiOperation(operationId: "UpdateBasketPassengers", tags: new[] { "Basket" }, Summary = "Update passengers in basket")]
     [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Passenger details")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
-    public Task<HttpResponseData> UpdatePassengers(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdatePassengers(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/passengers")] HttpRequestData req,
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdatePassengers");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.UpdatePassengersAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
     }
 
     // -------------------------------------------------------------------------
@@ -111,13 +146,27 @@ public sealed class BasketFunction
     [Function("UpdateBasketSeats")]
     [OpenApiOperation(operationId: "UpdateBasketSeats", tags: new[] { "Basket" }, Summary = "Update seat selections in basket")]
     [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Seat selections")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
-    public Task<HttpResponseData> UpdateSeats(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateSeats(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/seats")] HttpRequestData req,
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdateSeats");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.UpdateSeatsAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
     }
 
     // -------------------------------------------------------------------------
@@ -127,13 +176,27 @@ public sealed class BasketFunction
     [Function("UpdateBasketBags")]
     [OpenApiOperation(operationId: "UpdateBasketBags", tags: new[] { "Basket" }, Summary = "Update bag selections in basket")]
     [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Bag selections")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
-    public Task<HttpResponseData> UpdateBags(
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateBags(
         [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/bags")] HttpRequestData req,
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdateBags");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.UpdateBagsAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
     }
 
     // -------------------------------------------------------------------------
@@ -166,4 +229,19 @@ public sealed class BasketFunction
         var result = await _confirmBasketHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);
     }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    private static BasketResponse MapToBasketResponse(OrderMsBasketResult basket) =>
+        new()
+        {
+            BasketId = basket.BasketId,
+            Status = basket.BasketStatus,
+            TotalPrice = basket.TotalAmount ?? 0m,
+            Currency = basket.CurrencyCode,
+            CreatedAt = basket.CreatedAt,
+            ExpiresAt = basket.ExpiresAt
+        };
 }
