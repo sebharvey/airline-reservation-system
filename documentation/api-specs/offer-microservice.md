@@ -44,18 +44,18 @@ Calls from orchestration APIs to the Offer microservice are authenticated using 
 
 The core principle of the Offer MS is that **prices are locked at search time, not at payment time**.
 
-- When a customer searches for flights, the Offer MS persists one `StoredOffer` snapshot per available cabin per flight result. Each snapshot captures the exact fare, taxes, conditions, and points pricing at the moment of presentation.
-- The channel presents the `OfferId` to the customer. The customer selects an offer and passes its `OfferId` to the basket.
-- The Retail API calls `GET /v1/offers/{offerId}` to retrieve the stored snapshot. It validates `IsConsumed = 0` and `ExpiresAt > now` before proceeding. If either check fails, the offer is rejected and the customer must re-search.
+- When a customer searches for flights, the Offer MS persists one `StoredOffer` per flight result. All cabin fares for that flight are stored together in the `FaresInfo` JSON column. A `SessionId` (Guid) is generated once per search and shared across all `StoredOffer` rows produced by that search.
+- Each individual fare within `FaresInfo` has its own `OfferId`. The Retail API presents these `OfferIds` to the customer via the cabins → fareFamilies → offer hierarchy.
+- The customer selects a fare family offer and passes its `OfferId` (and the `SessionId`) to the basket.
+- The Retail API calls `GET /v1/offers/{offerId}?sessionId={sessionId}` to retrieve the stored snapshot. It validates `ExpiresAt > now` before proceeding; if the offer is expired, the customer must re-search.
 - At basket creation, the Retail API calls `POST /v1/inventory/hold` to hold seats against the basket.
 - On order confirmation, `POST /v1/inventory/sell` converts held seats to sold. The fare charged is exactly the fare snapshotted at search time — no re-pricing occurs.
-- `IsConsumed` is set to `1` atomically when the Order MS retrieves and locks the offer. This prevents the same offer being used on multiple concurrent orders.
 
 ### Offer Expiry
 
 - `ExpiresAt` is set to `CreatedAt + 60 minutes`, matching the basket expiry window. This ensures a basket cannot reference an offer that has already expired.
-- A background job periodically purges expired unconsumed offers from `offer.StoredOffer` to keep the table lean. Expired consumed offers are retained for audit.
-- The Order MS validates offer expiry before consuming it. Expired offers must be rejected.
+- A background job periodically purges expired offers from `offer.StoredOffer` to keep the table lean.
+- The Offer MS validates `ExpiresAt > now` on retrieval. Expired offers are rejected and the customer must re-search.
 
 ### Inventory Integrity
 
@@ -153,39 +153,61 @@ One row per fare basis per inventory record. Multiple fares can exist per `Inven
 
 ### `offer.StoredOffer`
 
-One row per offer presented to a customer at search time. Fully denormalised snapshot — self-contained even if the underlying `Fare` is later updated or withdrawn.
+One row per **flight** per search session. All cabin fares for that flight are stored in the `FaresInfo` JSON column. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time using the `inventoryId` inside `FaresInfo`.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |--------|------|----------|---------|-----|-------|
-| `OfferId` | UNIQUEIDENTIFIER | No | NEWID() | PK | Returned to channel at search time; passed to basket and Order MS to lock pricing |
-| `InventoryId` | UNIQUEIDENTIFIER | No | | FK → `offer.FlightInventory(InventoryId)` | |
-| `FareId` | UNIQUEIDENTIFIER | No | | FK → `offer.Fare(FareId)` | |
-| `FlightNumber` | VARCHAR(10) | No | | | Denormalised snapshot |
-| `DepartureDate` | DATE | No | | | Denormalised snapshot |
-| `Origin` | CHAR(3) | No | | | Denormalised snapshot, IATA code |
-| `Destination` | CHAR(3) | No | | | Denormalised snapshot, IATA code |
-| `FareBasisCode` | VARCHAR(20) | No | | | Denormalised snapshot |
-| `FareFamily` | VARCHAR(50) | Yes | | | Denormalised snapshot |
-| `CurrencyCode` | CHAR(3) | No | `'GBP'` | | ISO 4217 |
-| `BaseFareAmount` | DECIMAL(10,2) | No | | | Price at time offer was created |
-| `TaxAmount` | DECIMAL(10,2) | No | | | Taxes at time offer was created |
-| `TotalAmount` | DECIMAL(10,2) | No | | | Total at time offer was created |
-| `IsRefundable` | BIT | No | `0` | | Fare conditions at time of offer creation |
-| `IsChangeable` | BIT | No | `0` | | Fare conditions at time of offer creation |
-| `ChangeFeeAmount` | DECIMAL(10,2) | No | `0.00` | | Snapshotted change fee at time of offer creation |
-| `CancellationFeeAmount` | DECIMAL(10,2) | No | `0.00` | | Snapshotted cancellation fee at time of offer creation |
-| `PointsPrice` | INT | Yes | | | Points required for this offer. `NULL` for revenue-only offers |
-| `PointsTaxes` | DECIMAL(10,2) | Yes | | | Cash taxes payable on award booking. `NULL` if `PointsPrice` is `NULL` |
-| `BookingType` | VARCHAR(10) | No | `'Revenue'` | | `Revenue` · `Reward`. Set at offer creation based on search mode |
+| `StoredOfferId` | UNIQUEIDENTIFIER | No | NEWID() | PK | Internal row identifier |
+| `SessionId` | UNIQUEIDENTIFIER | No | | Indexed | Identifies the search session; shared across all `StoredOffer` rows produced by a single search call |
+| `FaresInfo` | NVARCHAR(MAX) | No | | | JSON snapshot — `inventoryId` + `offers[]` array; one offer item per cabin/fare combination (see structure below) |
 | `CreatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on insert** |
-| `ExpiresAt` | DATETIME2 | No | | | Set to `CreatedAt + 60 minutes`. Offer rejected by Order MS if `now > ExpiresAt` |
-| `IsConsumed` | BIT | No | `0` | | Set to `1` atomically when retrieved and locked by Order MS. Prevents duplicate use |
+| `ExpiresAt` | DATETIME2 | No | | | Set to `CreatedAt + 60 minutes`. Offer rejected if `now > ExpiresAt` |
 | `UpdatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on every update** |
 
-> **Indexes:** `IX_StoredOffer_Expiry` on `(ExpiresAt)` WHERE `IsConsumed = 0` — used by background cleanup job to purge expired unconsumed offers.
-> **Denormalisation:** Flight and fare fields are deliberately denormalised so the snapshot is fully self-contained. If `offer.Fare` is later updated or withdrawn, the stored offer retains the exact price and conditions presented to the customer.
-> **`ExpiresAt` alignment:** Set to `CreatedAt + 60 minutes`, matching the basket expiry window. A basket cannot reference an offer that has already expired.
-> **`IsConsumed`:** Set atomically to `1` when the Order MS retrieves and locks the offer. This is a single-use guarantee — a concurrent second basket attempting to use the same `OfferId` will receive a rejection.
+> **Indexes:** `IX_StoredOffer_SessionId` on `(SessionId)` — used for efficient session-scoped lookups when `?sessionId=` is supplied; `IX_StoredOffer_Expiry` on `(ExpiresAt)` — used by background cleanup job.
+> **One row per flight:** A single row holds all cabin fares, keeping the row count proportional to flights rather than individual fare/cabin combinations.
+> **Flight data at read time:** Origin, destination, times, and aircraft type are not stored in `FaresInfo`; they are resolved from `offer.FlightInventory` via `inventoryId` to avoid data drift.
+> **`ExpiresAt` alignment:** Set to `CreatedAt + 60 minutes`, matching the basket expiry window.
+
+**`FaresInfo` JSON structure:**
+
+```json
+{
+  "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "offers": [
+    {
+      "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "cabinCode": "J",
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "currencyCode": "GBP",
+      "baseFareAmount": 1850.00,
+      "taxAmount": 220.00,
+      "totalAmount": 2070.00,
+      "isRefundable": true,
+      "isChangeable": true,
+      "bookingType": "Revenue",
+      "seatsAvailable": 8,
+      "pointsPrice": null
+    },
+    {
+      "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "cabinCode": "Y",
+      "fareBasisCode": "YFLEX",
+      "fareFamily": "Economy Flex",
+      "currencyCode": "GBP",
+      "baseFareAmount": 420.00,
+      "taxAmount": 85.00,
+      "totalAmount": 505.00,
+      "isRefundable": true,
+      "isChangeable": true,
+      "bookingType": "Revenue",
+      "seatsAvailable": 42,
+      "pointsPrice": 18000
+    }
+  ]
+}
+```
 
 ---
 
@@ -437,19 +459,20 @@ Add a fare definition to an existing flight inventory record. Called by the Oper
 
 ### POST /v1/search
 
-Search flight inventory for a single segment (origin, destination, date, cabin, pax count) and return priced, stored-offer-snapshotted offers. Called once per leg by the Retail API for both direct (`POST /v1/search/slice`) and connecting (`POST /v1/search/connecting`) searches.
+Search flight inventory for a single segment (origin, destination, date, pax count) across **all cabin classes** and return priced, stored-offer-snapshotted offers. Called once per leg by the Retail API for both direct (`POST /v1/search/slice`) and connecting (`POST /v1/search/connecting`) searches.
 
-**When to use:** Called by the Retail API to find available flights and create stored offer snapshots. For each matching `FlightInventory` record, the Offer MS finds all active, non-expired fares, creates a `StoredOffer` row per fare (locking the price at search time), and returns the offer details with `OfferId`. `OfferId` values are single-use with a 60-minute TTL.
+**When to use:** Called by the Retail API to find available flights and create stored offer snapshots. For each matching `FlightInventory` record (one per cabin), the Offer MS collects all active non-expired fares across all cabins, creates one `StoredOffer` row per flight with all fares in the `FaresInfo` JSON, and returns the offer details grouped by flight. A `sessionId` is generated once for the search and returned in the response.
 
 **Offer creation logic:**
-1. Query `offer.FlightInventory` for records matching `origin`, `destination`, `departureDate`, `cabinCode` WHERE `Status = 'Active'` AND `SeatsAvailable >= paxCount`.
-2. For each matching inventory record, query `offer.Fare` WHERE `InventoryId = {inventoryId}` AND `ValidFrom <= now` AND `ValidTo >= now`.
-3. For each fare, insert a `StoredOffer` row with `ExpiresAt = now + 60 minutes`, `IsConsumed = 0`, and all fare fields denormalised.
-4. Return one offer object per `StoredOffer` created.
+1. Generate a new `sessionId` (Guid) for this search.
+2. Query `offer.FlightInventory` for records matching `origin`, `destination`, `departureDate` WHERE `Status = 'Active'` AND `SeatsAvailable >= paxCount` — all cabin classes.
+3. Group the matching inventory records by flight (flight number + departure date).
+4. For each flight group, query `offer.Fare` for all cabins WHERE `ValidFrom <= now` AND `ValidTo >= now`, and create one `StoredOffer` row per flight with all fares stored in `FaresInfo` JSON (`ExpiresAt = now + 60 minutes`).
+5. Return all flights grouped in the response, each with its `offers[]` array. Return `sessionId` at the response root.
 
-**For points-mode searches:** Only return fares where `PointsPrice IS NOT NULL`. Return `pointsPrice` and `pointsTaxes` as the primary pricing fields.
+**For points-mode searches:** Only include fares where `PointsPrice IS NOT NULL`. Return `pointsPrice` as part of each offer item.
 
-> **Connecting itinerary note:** The Offer MS has no concept of connecting itineraries. The Retail API calls this endpoint twice for a connecting search (once per leg), applying the 60-minute MCT filter itself. Each leg produces independent stored offers.
+> **Connecting itinerary note:** The Offer MS has no concept of connecting itineraries. The Retail API calls this endpoint twice for a connecting search (once per leg), applying the 60-minute MCT filter itself. Each leg produces independent stored offers with its own `sessionId`.
 
 #### Request
 
@@ -458,7 +481,6 @@ Search flight inventory for a single segment (origin, destination, date, cabin, 
   "origin": "LHR",
   "destination": "JFK",
   "departureDate": "2026-08-15",
-  "cabinCode": "J",
   "paxCount": 2,
   "bookingType": "Revenue"
 }
@@ -469,7 +491,6 @@ Search flight inventory for a single segment (origin, destination, date, cabin, 
 | `origin` | string | Yes | IATA 3-letter airport code for departure |
 | `destination` | string | Yes | IATA 3-letter airport code for arrival |
 | `departureDate` | string (date) | Yes | ISO 8601 departure date |
-| `cabinCode` | string | Yes | `F`, `J`, `W`, or `Y` |
 | `paxCount` | integer | Yes | Number of passengers. Must be ≥ 1. Only inventory with `SeatsAvailable >= paxCount` is returned |
 | `bookingType` | string | No | `Revenue` (default) or `Reward`. If `Reward`, only fares with `PointsPrice IS NOT NULL` are returned |
 
@@ -477,38 +498,54 @@ Search flight inventory for a single segment (origin, destination, date, cabin, 
 
 ```json
 {
+  "sessionId": "f1e2d3c4-b5a6-7890-fedc-ba9876543210",
   "origin": "LHR",
   "destination": "JFK",
   "departureDate": "2026-08-15",
-  "offers": [
+  "flights": [
     {
-      "offerId": "9ab12345-6789-0abc-def0-123456789abc",
       "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "flightNumber": "AX001",
-      "departureDate": "2026-08-15",
-      "departureTime": "09:30",
-      "arrivalTime": "13:45",
-      "arrivalDayOffset": 0,
       "origin": "LHR",
       "destination": "JFK",
+      "departureDate": "2026-08-15",
+      "departureTime": "08:00",
+      "arrivalTime": "11:10",
+      "arrivalDayOffset": 0,
       "aircraftType": "A351",
-      "cabinCode": "J",
-      "fareBasisCode": "JFLEXGB",
-      "fareFamily": "Business Flex",
-      "bookingClass": "J",
-      "currencyCode": "GBP",
-      "baseFareAmount": 2500.00,
-      "taxAmount": 450.00,
-      "totalAmount": 2950.00,
-      "isRefundable": true,
-      "isChangeable": true,
-      "changeFeeAmount": 0.00,
-      "cancellationFeeAmount": 0.00,
-      "pointsPrice": 75000,
-      "pointsTaxes": 450.00,
-      "bookingType": "Revenue",
-      "seatsAvailable": 28,
-      "expiresAt": "2026-03-21T15:30:00Z"
+      "expiresAt": "2026-08-15T09:00:00Z",
+      "offers": [
+        {
+          "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "cabinCode": "J",
+          "fareBasisCode": "JFLEXGB",
+          "fareFamily": "Business Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 1850.00,
+          "taxAmount": 220.00,
+          "totalAmount": 2070.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "bookingType": "Revenue",
+          "seatsAvailable": 8,
+          "pointsPrice": null
+        },
+        {
+          "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "cabinCode": "Y",
+          "fareBasisCode": "YFLEX",
+          "fareFamily": "Economy Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 420.00,
+          "taxAmount": 85.00,
+          "totalAmount": 505.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "bookingType": "Revenue",
+          "seatsAvailable": 42,
+          "pointsPrice": 18000
+        }
+      ]
     }
   ]
 }
@@ -516,105 +553,135 @@ Search flight inventory for a single segment (origin, destination, date, cabin, 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `offers` | array | One entry per stored offer created. May be empty if no matching inventory or fares found |
-| `offers[].offerId` | string (UUID) | The `OfferId` to pass to the basket. Single-use, expires in 60 minutes |
-| `offers[].inventoryId` | string (UUID) | Parent inventory record identifier |
-| `offers[].flightNumber` | string | Flight number |
-| `offers[].departureDate` | string (date) | ISO 8601 departure date |
-| `offers[].departureTime` | string (time) | Local departure time at origin |
-| `offers[].arrivalTime` | string (time) | Local arrival time at destination |
-| `offers[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
-| `offers[].origin` | string | IATA origin code |
-| `offers[].destination` | string | IATA destination code |
-| `offers[].aircraftType` | string | Aircraft type code |
-| `offers[].cabinCode` | string | Cabin class |
-| `offers[].fareBasisCode` | string | Fare basis code |
-| `offers[].fareFamily` | string | Commercial fare family name |
-| `offers[].bookingClass` | string | Booking class character |
-| `offers[].currencyCode` | string | ISO 4217 currency code |
-| `offers[].baseFareAmount` | number | Base fare at search time |
-| `offers[].taxAmount` | number | Taxes at search time |
-| `offers[].totalAmount` | number | Total price at search time |
-| `offers[].isRefundable` | boolean | Refundability condition at search time |
-| `offers[].isChangeable` | boolean | Changeability condition at search time |
-| `offers[].changeFeeAmount` | number | Change fee at search time |
-| `offers[].cancellationFeeAmount` | number | Cancellation fee at search time |
-| `offers[].pointsPrice` | integer | Points price. `null` for revenue-only fares |
-| `offers[].pointsTaxes` | number | Cash taxes on award booking. `null` if `pointsPrice` is `null` |
-| `offers[].bookingType` | string | `Revenue` or `Reward` |
-| `offers[].seatsAvailable` | integer | Seats available at search time (informational — actual hold is done separately via `POST /v1/inventory/hold`) |
-| `offers[].expiresAt` | string (datetime) | ISO 8601 UTC expiry of this offer. `now + 60 minutes` |
+| `sessionId` | string (UUID) | Identifies this search session; shared across all flights returned; pass to `POST /v1/basket` and `GET /v1/offers/{offerId}?sessionId=` for efficient scoped lookups |
+| `origin` | string | Echoed back |
+| `destination` | string | Echoed back |
+| `departureDate` | string (date) | Echoed back |
+| `flights` | array | One entry per matching flight. May be empty if no inventory with sufficient availability found |
+| `flights[].inventoryId` | string (UUID) | `FlightInventory` row identifier |
+| `flights[].flightNumber` | string | Flight number |
+| `flights[].origin` | string | IATA origin code |
+| `flights[].destination` | string | IATA destination code |
+| `flights[].departureDate` | string (date) | ISO 8601 departure date |
+| `flights[].departureTime` | string (time) | Local departure time at origin |
+| `flights[].arrivalTime` | string (time) | Local arrival time at destination |
+| `flights[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
+| `flights[].aircraftType` | string | Aircraft type code |
+| `flights[].expiresAt` | string (datetime) | ISO 8601 UTC expiry of all offers for this flight (`CreatedAt + 60 minutes`) |
+| `flights[].offers` | array | One entry per cabin/fare combination stored for this flight |
+| `flights[].offers[].offerId` | string (UUID) | Per-fare offer identifier; pass to `POST /v1/basket` as part of `offerIds[]` |
+| `flights[].offers[].cabinCode` | string | Cabin class (`F`, `J`, `W`, `Y`) |
+| `flights[].offers[].fareBasisCode` | string | Fare basis code |
+| `flights[].offers[].fareFamily` | string | Commercial fare family name |
+| `flights[].offers[].currencyCode` | string | ISO 4217 currency code |
+| `flights[].offers[].baseFareAmount` | number | Base fare at search time |
+| `flights[].offers[].taxAmount` | number | Taxes at search time |
+| `flights[].offers[].totalAmount` | number | Total price at search time |
+| `flights[].offers[].isRefundable` | boolean | Refundability condition at search time |
+| `flights[].offers[].isChangeable` | boolean | Changeability condition at search time |
+| `flights[].offers[].bookingType` | string | `Revenue` or `Reward` |
+| `flights[].offers[].seatsAvailable` | integer | Seats available at search time (informational) |
+| `flights[].offers[].pointsPrice` | integer | Points price. `null` for revenue-only fares |
 
 #### Error Responses
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields, invalid IATA codes, invalid cabin code, or `paxCount` < 1 |
+| `400 Bad Request` | Missing required fields, invalid IATA codes, or `paxCount` < 1 |
 
-> An empty `offers` array is a valid `200 OK` response — it indicates no matching inventory or fares were found for the search criteria.
+> An empty `flights` array is a valid `200 OK` response — it indicates no matching inventory or fares were found for the search criteria.
 
 ---
 
 ### GET /v1/offers/{offerId}
 
-Retrieve a stored offer snapshot by ID. Validates `IsConsumed = 0` and `ExpiresAt > now` before returning. Used by the Retail API at basket creation to confirm the offer is still valid and to lock pricing.
+Retrieve a stored offer by its per-fare `offerId` (found inside `FaresInfo`). Validates `ExpiresAt > now` before returning. Flight details are resolved from `offer.FlightInventory` at read time. Used by the Retail API at basket creation to confirm the offer is still valid.
 
-**When to use:** Called by the Retail API when a customer adds an offer to a basket, immediately before calling `POST /v1/inventory/hold`. If the offer is expired or already consumed, the customer must be redirected to re-search.
-
-> **Consumption:** This endpoint does **not** set `IsConsumed = 1`. Consumption happens atomically when the Order MS creates the confirmed order. This endpoint is read-only validation — retrieving the offer multiple times (e.g. basket updates) does not consume it.
+**When to use:** Called by the Retail API when a customer adds an offer to a basket, immediately before calling `POST /v1/inventory/hold`. If the offer is expired, the customer must be redirected to re-search. Pass the `sessionId` from the search response as a query parameter to scope the DB lookup to the indexed session (recommended for performance).
 
 #### Path Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `offerId` | string (UUID) | The stored offer identifier returned from `POST /v1/search` |
+| `offerId` | string (UUID) | The per-fare offer identifier from `flights[].offers[].offerId` in the `POST /v1/search` response |
+
+#### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sessionId` | string (UUID) | No | The `sessionId` from the search response. When provided, scopes the lookup to the indexed `SessionId` column before scanning `FaresInfo` JSON — significantly more efficient at scale |
 
 #### Response — `200 OK`
 
-Returns the full stored offer snapshot in the same schema as individual items in the `POST /v1/search` response, plus:
-
 ```json
 {
-  "offerId": "9ab12345-6789-0abc-def0-123456789abc",
+  "storedOfferId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "sessionId": "f1e2d3c4-b5a6-7890-fedc-ba9876543210",
+  "expiresAt": "2026-08-15T09:00:00Z",
   "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "flightNumber": "AX001",
   "departureDate": "2026-08-15",
-  "departureTime": "09:30",
-  "arrivalTime": "13:45",
+  "departureTime": "08:00",
+  "arrivalTime": "11:10",
   "arrivalDayOffset": 0,
   "origin": "LHR",
   "destination": "JFK",
   "aircraftType": "A351",
-  "cabinCode": "J",
-  "fareBasisCode": "JFLEXGB",
-  "fareFamily": "Business Flex",
-  "bookingClass": "J",
-  "currencyCode": "GBP",
-  "baseFareAmount": 2500.00,
-  "taxAmount": 450.00,
-  "totalAmount": 2950.00,
-  "isRefundable": true,
-  "isChangeable": true,
-  "changeFeeAmount": 0.00,
-  "cancellationFeeAmount": 0.00,
-  "pointsPrice": 75000,
-  "pointsTaxes": 450.00,
-  "bookingType": "Revenue",
-  "isConsumed": false,
-  "expiresAt": "2026-03-21T15:30:00Z"
+  "offers": [
+    {
+      "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "cabinCode": "J",
+      "fareBasisCode": "JFLEXGB",
+      "fareFamily": "Business Flex",
+      "currencyCode": "GBP",
+      "baseFareAmount": 1850.00,
+      "taxAmount": 220.00,
+      "totalAmount": 2070.00,
+      "isRefundable": true,
+      "isChangeable": true,
+      "bookingType": "Revenue",
+      "seatsAvailable": 8,
+      "pointsPrice": null
+    }
+  ]
 }
 ```
 
-| Additional Field | Type | Description |
+| Field | Type | Description |
 |-------|------|-------------|
-| `isConsumed` | boolean | Always `false` on a successful response (consumed offers return `410 Gone`) |
+| `storedOfferId` | string (UUID) | Internal `StoredOffer` row identifier |
+| `sessionId` | string (UUID) | Search session identifier |
+| `expiresAt` | string (datetime) | ISO 8601 UTC expiry; always in the future on a successful response |
+| `inventoryId` | string (UUID) | `FlightInventory` row identifier |
+| `flightNumber` | string | Resolved from `FlightInventory` |
+| `departureDate` | string (date) | Resolved from `FlightInventory` |
+| `departureTime` | string (time) | Resolved from `FlightInventory` |
+| `arrivalTime` | string (time) | Resolved from `FlightInventory` |
+| `arrivalDayOffset` | integer | Resolved from `FlightInventory` |
+| `origin` | string | Resolved from `FlightInventory` |
+| `destination` | string | Resolved from `FlightInventory` |
+| `aircraftType` | string | Resolved from `FlightInventory` |
+| `offers` | array | All fare items from `FaresInfo` for this flight |
+| `offers[].offerId` | string (UUID) | Per-fare offer identifier |
+| `offers[].cabinCode` | string | Cabin class |
+| `offers[].fareBasisCode` | string | Fare basis code |
+| `offers[].fareFamily` | string | Fare family name |
+| `offers[].currencyCode` | string | ISO 4217 currency code |
+| `offers[].baseFareAmount` | number | Base fare at search time |
+| `offers[].taxAmount` | number | Taxes at search time |
+| `offers[].totalAmount` | number | Total price at search time |
+| `offers[].isRefundable` | boolean | Refundability at search time |
+| `offers[].isChangeable` | boolean | Changeability at search time |
+| `offers[].bookingType` | string | `Revenue` or `Reward` |
+| `offers[].seatsAvailable` | integer | Seats available at search time |
+| `offers[].pointsPrice` | integer | Points price; `null` for revenue-only fares |
 
 #### Error Responses
 
 | Status | Reason |
 |--------|--------|
-| `404 Not Found` | No offer found for the given `offerId` |
-| `410 Gone` | Offer exists but is expired (`ExpiresAt <= now`) or already consumed (`IsConsumed = 1`). Customer must re-search |
+| `404 Not Found` | No offer found for the given `offerId` (optionally within the specified `sessionId`) |
+| `410 Gone` | Offer exists but has expired (`ExpiresAt <= now`). Customer must re-search |
 
 ---
 
@@ -994,7 +1061,7 @@ Close a cancelled flight's inventory. Sets `SeatsAvailable = 0` and `Status = Ca
 **Direct flight search:**
 1. **Retail API → Offer MS:** `POST /v1/search` — returns stored offers with `OfferId` values.
 2. Channel presents offers; customer selects.
-3. **Retail API → Offer MS:** `GET /v1/offers/{offerId}` — validates offer is unconsumed and unexpired.
+3. **Retail API → Offer MS:** `GET /v1/offers/{offerId}?sessionId={sessionId}` — validates offer is unexpired.
 4. **Retail API → Offer MS:** `POST /v1/inventory/hold` — holds seats against the basket.
 
 **Connecting flight search:** Retail API calls `POST /v1/search` twice (once per leg), pairs results with 60-minute MCT filter, then calls `GET /v1/offers/{offerId}` and `POST /v1/inventory/hold` once per leg.
@@ -1120,7 +1187,6 @@ curl -X POST https://{offer-ms-host}/v1/search \
     "origin": "LHR",
     "destination": "JFK",
     "departureDate": "2026-08-15",
-    "cabinCode": "J",
     "paxCount": 2,
     "bookingType": "Revenue"
   }'
@@ -1129,7 +1195,13 @@ curl -X POST https://{offer-ms-host}/v1/search \
 ### Retrieve and validate a stored offer (Retail API → Offer MS)
 
 ```bash
-curl -X GET https://{offer-ms-host}/v1/offers/9ab12345-6789-0abc-def0-123456789abc \
+# Without sessionId (scans all rows):
+curl -X GET https://{offer-ms-host}/v1/offers/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
+
+# With sessionId (recommended — uses indexed lookup):
+curl -X GET "https://{offer-ms-host}/v1/offers/a1b2c3d4-e5f6-7890-abcd-ef1234567890?sessionId=f1e2d3c4-b5a6-7890-fedc-ba9876543210" \
   -H "x-functions-key: {host-key}" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
 ```
