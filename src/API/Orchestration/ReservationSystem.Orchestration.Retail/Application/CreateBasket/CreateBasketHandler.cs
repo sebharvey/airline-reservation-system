@@ -1,38 +1,21 @@
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
-using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
-using ReservationSystem.Orchestration.Retail.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 
+public sealed record CreateBasketResult(Guid BasketId);
+
 public sealed class CreateBasketHandler
 {
-    private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
 
-    public CreateBasketHandler(
-        OfferServiceClient offerServiceClient,
-        OrderServiceClient orderServiceClient)
+    public CreateBasketHandler(OrderServiceClient orderServiceClient)
     {
-        _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
     }
 
-    public async Task<BasketResponse> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
+    public async Task<CreateBasketResult> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
     {
-        // 1. Validate all offers: must exist and not expired
-        var offerDetails = new List<OfferDetailDto>();
-        foreach (var offerId in command.OfferIds)
-        {
-            var offer = await _offerServiceClient.GetOfferAsync(offerId, command.SessionId, cancellationToken);
-            if (offer is null)
-                throw new KeyNotFoundException($"Offer {offerId} not found.");
-            if (DateTime.TryParse(offer.ExpiresAt, out var offerExpiry) && offerExpiry <= DateTime.UtcNow)
-                throw new InvalidOperationException($"Offer {offerId} has expired.");
-            offerDetails.Add(offer);
-        }
-
-        // 2. Create basket record in Order MS
         var bookingType = !string.IsNullOrWhiteSpace(command.BookingType)
             ? command.BookingType
             : command.LoyaltyNumber is not null ? "Reward" : "Revenue";
@@ -45,72 +28,16 @@ public sealed class CreateBasketHandler
             totalPointsAmount: null,
             cancellationToken);
 
-        // 3. Store offerId and sessionId in the basket for each offer
-        var flights = new List<BasketFlight>();
-        foreach (var offer in offerDetails)
+        foreach (var segment in command.Segments)
         {
-            // Use the lowest-priced offer item for basket summary display.
-            var cheapest = offer.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
-            var totalAmount = cheapest?.TotalAmount ?? 0m;
-
             var offerJson = JsonSerializer.Serialize(new
             {
-                offerId          = cheapest?.OfferId ?? Guid.Empty,
-                sessionId        = command.SessionId,
-                flightNumber     = offer.FlightNumber,
-                origin           = offer.Origin,
-                destination      = offer.Destination,
-                departureDate    = offer.DepartureDate,
-                departureTime    = offer.DepartureTime,
-                arrivalTime      = offer.ArrivalTime,
-                arrivalDayOffset = offer.ArrivalDayOffset,
-                cabinCode        = cheapest?.CabinCode ?? string.Empty,
-                fareFamily       = cheapest?.FareFamily,
-                totalAmount
+                offerId   = segment.OfferId,
+                sessionId = segment.SessionId
             });
-
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
-            flights.Add(new BasketFlight
-            {
-                OfferId           = cheapest?.OfferId ?? Guid.Empty,
-                FlightNumber      = offer.FlightNumber,
-                Origin            = offer.Origin,
-                Destination       = offer.Destination,
-                DepartureDateTime = ParseOfferDateTime(offer.DepartureDate, offer.DepartureTime),
-                ArrivalDateTime   = ParseArrivalDateTime(offer.DepartureDate, offer.ArrivalTime, offer.ArrivalDayOffset),
-                CabinCode         = cheapest?.CabinCode ?? string.Empty,
-                FareFamily        = cheapest?.FareFamily,
-                TotalAmount       = totalAmount
-            });
         }
 
-        var totalFareAmount = offerDetails
-            .Select(o => o.Offers.OrderBy(x => x.TotalAmount).FirstOrDefault()?.TotalAmount ?? 0m)
-            .Sum();
-
-        return new BasketResponse
-        {
-            BasketId = basket.BasketId,
-            Status = basket.BasketStatus,
-            BookingType = bookingType,
-            CustomerId = command.CustomerId,
-            Flights = flights,
-            TotalFareAmount = totalFareAmount,
-            TotalSeatAmount = 0m,
-            TotalBagAmount = 0m,
-            TotalPrice = totalFareAmount,
-            Currency = basket.CurrencyCode,
-            ExpiresAt = basket.ExpiresAt,
-            CreatedAt = DateTime.UtcNow
-        };
-    }
-
-    private static DateTime ParseOfferDateTime(string date, string time) =>
-        DateTime.TryParse($"{date}T{time}", out var dt) ? dt : default;
-
-    private static DateTime ParseArrivalDateTime(string departureDate, string arrivalTime, int dayOffset)
-    {
-        if (!DateTime.TryParse($"{departureDate}T{arrivalTime}", out var dt)) return default;
-        return dt.AddDays(dayOffset);
+        return new CreateBasketResult(basket.BasketId);
     }
 }

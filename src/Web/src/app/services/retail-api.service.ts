@@ -28,25 +28,20 @@ export interface SearchSliceParams {
   bookingType?: BookingType;
 }
 
+export interface BasketSegment {
+  offerId: string;
+  sessionId: string;
+}
+
 export interface CreateBasketParams {
-  outboundOfferId: string;
-  inboundOfferId?: string;
+  segments: BasketSegment[];
   bookingType: BookingType;
   currencyCode?: string;
   loyaltyNumber?: string;
-  sessionId?: string;
 }
 
 export interface CreateBasketResponse {
   basketId: string;
-  bookingType: string;
-  totalFareAmount: number;
-  totalSeatAmount: number;
-  totalBagAmount: number;
-  totalAmount: number;
-  totalPointsAmount: number | null;
-  currencyCode: string;
-  expiresAt: string;
 }
 
 export interface ConfirmBasketResponse {
@@ -194,16 +189,12 @@ export class RetailApiService {
    */
   createBasket(params: CreateBasketParams): Observable<CreateBasketResponse> {
     const base = environment.retailApiBaseUrl;
-    const offerIds = params.inboundOfferId
-      ? [params.outboundOfferId, params.inboundOfferId]
-      : [params.outboundOfferId];
     const body = {
-      offerIds,
+      segments: params.segments,
       channelCode: 'WEB',
       currencyCode: params.currencyCode ?? 'GBP',
       bookingType: params.bookingType,
-      loyaltyNumber: params.loyaltyNumber ?? null,
-      sessionId: params.sessionId ?? null
+      loyaltyNumber: params.loyaltyNumber ?? null
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
   }

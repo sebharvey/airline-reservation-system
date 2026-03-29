@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RetailApiService, SearchSliceResult } from '../../services/retail-api.service';
+import { RetailApiService, SearchSliceResult, BasketSegment } from '../../services/retail-api.service';
 import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { BookingType } from '../../models/order.model';
@@ -244,12 +244,17 @@ export class SearchResultsComponent implements OnInit {
 
     const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
 
+    const segments: BasketSegment[] = [
+      { offerId: outbound.offerId, sessionId: this.outboundSessionId }
+    ];
+    if (inbound) {
+      segments.push({ offerId: inbound.offerId, sessionId: this.inboundSessionId });
+    }
+
     this.retailApi.createBasket({
-      outboundOfferId: outbound.offerId,
-      inboundOfferId: inbound?.offerId,
+      segments,
       bookingType: this.bookingType(),
-      loyaltyNumber,
-      sessionId: this.outboundSessionId || undefined
+      loyaltyNumber
     }).subscribe({
       next: (basket) => {
         this.bookingState.startBasket(outbound, inbound, basket.basketId);
