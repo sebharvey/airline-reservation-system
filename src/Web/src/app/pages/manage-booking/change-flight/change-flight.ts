@@ -116,10 +116,10 @@ export class ChangeFlightComponent implements OnInit {
       adults: o.passengers.filter(p => p.type === 'ADT').length,
       children: o.passengers.filter(p => p.type === 'CHD').length
     }).subscribe({
-      next: (offers) => {
-        this.flightOffers.set(offers);
+      next: (result) => {
+        this.flightOffers.set(result.offers);
         this.searching.set(false);
-        if (offers.length === 0) {
+        if (result.offers.length === 0) {
           this.errorMessage.set('No flights found for the selected date. Try a different date.');
         }
       },
