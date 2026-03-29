@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
-import { Order, BoardingPass, BookingType } from '../models/order.model';
+import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
 import { getMockSeatmap } from '../data/mock/seatmap.mock';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
@@ -47,6 +47,14 @@ export interface CreateBasketResponse {
   totalPointsAmount: number | null;
   currencyCode: string;
   expiresAt: string;
+}
+
+export interface ConfirmBasketResponse {
+  bookingReference: string;
+  status: string;
+  totalPrice: number;
+  currency: string;
+  bookedAt: string;
 }
 
 export interface RetrieveOrderParams {
@@ -198,6 +206,43 @@ export class RetailApiService {
       sessionId: params.sessionId ?? null
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/passengers
+   * Store passenger details in the basket.
+   */
+  updateBasketPassengers(basketId: string, passengers: Passenger[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/passengers`, passengers);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/seats
+   * Store seat selections in the basket.
+   */
+  updateBasketSeats(basketId: string, seatSelections: BasketSeatSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/seats`, seatSelections);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/bags
+   * Store bag selections in the basket.
+   */
+  updateBasketBags(basketId: string, bagSelections: BasketBagSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/bags`, bagSelections);
+  }
+
+  /**
+   * POST /v1/basket/{basketId}/confirm
+   * Confirm the basket — processes payment, creates order, issues e-tickets.
+   */
+  confirmBasket(basketId: string, paymentMethod: string, paymentToken?: string, loyaltyPointsToRedeem?: number): Observable<ConfirmBasketResponse> {
+    const base = environment.retailApiBaseUrl;
+    const body = { paymentMethod, paymentToken: paymentToken ?? null, loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null };
+    return this.#http.post<ConfirmBasketResponse>(`${base}/api/v1/basket/${basketId}/confirm`, body);
   }
 
   /**

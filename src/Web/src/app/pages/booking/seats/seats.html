@@ -103,11 +103,14 @@
     </div>
   </ng-container>
 
+  <!-- Save error -->
+  <div class="save-error" *ngIf="saveError()">{{ saveError() }}</div>
+
   <!-- Actions -->
   <div class="actions">
-    <button class="btn-secondary" (click)="onSkip()">Skip Seat Selection</button>
-    <button class="btn-primary" (click)="onContinue()">
-      Continue to Baggage &#8250;
+    <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip Seat Selection</button>
+    <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
+      {{ saving() ? 'Saving…' : 'Continue to Baggage ›' }}
     </button>
   </div>
 

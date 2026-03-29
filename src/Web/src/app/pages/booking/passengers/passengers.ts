@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
+import { RetailApiService } from '../../../services/retail-api.service';
 import { Passenger } from '../../../models/order.model';
 
 interface PassengerForm {
@@ -30,6 +31,7 @@ export class PassengersComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly bookingState = inject(BookingStateService);
   private readonly loyaltyState = inject(LoyaltyStateService);
+  private readonly retailApi = inject(RetailApiService);
 
   readonly basket = this.bookingState.basket;
   readonly isRewardBooking = this.bookingState.isRewardBooking;
@@ -39,6 +41,8 @@ export class PassengersComponent implements OnInit {
   forms = signal<PassengerForm[]>([]);
   submitted = signal(false);
   countdown = signal('');
+  saving = signal(false);
+  saveError = signal('');
 
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -196,8 +200,23 @@ export class PassengersComponent implements OnInit {
       travelDocument: null
     }));
 
-    this.bookingState.setPassengers(passengers);
-    this.router.navigate(['/booking/seats']);
+    const basketId = this.basket()?.basketId;
+    if (!basketId) return;
+
+    this.saving.set(true);
+    this.saveError.set('');
+
+    this.retailApi.updateBasketPassengers(basketId, passengers).subscribe({
+      next: () => {
+        this.bookingState.setPassengers(passengers);
+        this.saving.set(false);
+        this.router.navigate(['/booking/seats']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save passenger details. Please try again.');
+      }
+    });
   }
 
   formatDateTime(dt: string): string {

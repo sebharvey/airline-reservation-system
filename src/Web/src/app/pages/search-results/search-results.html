@@ -89,7 +89,9 @@
                     <span class="fare-per">+ {{ offers[0].currency }}&nbsp;{{ getLowestPointsTaxes(offers) | number:'1.2-2' }} taxes</span>
                   </ng-container>
                   <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
-                  <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
+                  <span class="fare-seats-tag" [class.fare-seats-warn]="offers[0].seatsAvailable <= 5">
+                    {{ offers[0].seatsAvailable <= 5 ? 'Only ' + offers[0].seatsAvailable + ' left' : offers[0].seatsAvailable + ' seats' }}
+                  </span>
                 </button>
               </ng-container>
               <span class="fare-empty" *ngIf="!getCabinOffers(row, cabin)">&#8212;</span>
@@ -185,7 +187,9 @@
                     <span class="fare-per">+ {{ offers[0].currency }}&nbsp;{{ getLowestPointsTaxes(offers) | number:'1.2-2' }} taxes</span>
                   </ng-container>
                   <span class="fare-flex-tag" *ngIf="hasFlex(offers)">+ Flex option</span>
-                  <span class="fare-seats-tag" *ngIf="offers[0].seatsAvailable <= 5">Only {{ offers[0].seatsAvailable }} left</span>
+                  <span class="fare-seats-tag" [class.fare-seats-warn]="offers[0].seatsAvailable <= 5">
+                    {{ offers[0].seatsAvailable <= 5 ? 'Only ' + offers[0].seatsAvailable + ' left' : offers[0].seatsAvailable + ' seats' }}
+                  </span>
                 </button>
               </ng-container>
               <span class="fare-empty" *ngIf="!getCabinOffers(row, cabin)">&#8212;</span>
@@ -248,14 +252,6 @@
               <div class="feature-row" [class.feature-yes]="offer.isChangeable" [class.feature-no]="!offer.isChangeable">
                 <span class="feature-icon">{{ offer.isChangeable ? '✓' : '✗' }}</span>
                 <span>Changeable</span>
-              </div>
-              <div class="feature-row feature-yes" *ngIf="offer.seatsAvailable > 5">
-                <span class="feature-icon">✓</span>
-                <span>{{ offer.seatsAvailable }} seats available</span>
-              </div>
-              <div class="feature-row feature-warn" *ngIf="offer.seatsAvailable <= 5">
-                <span class="feature-icon">!</span>
-                <span>Only {{ offer.seatsAvailable }} seats left</span>
               </div>
             </div>
             <button class="btn-select-fare" (click)="selectFromPopup(offer)">
