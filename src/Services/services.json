@@ -106,18 +106,18 @@
       "authType": "host-key",
       "callers": ["Retail API", "Operations API", "Disruption API"],
       "operations": [
-        { "name": "Create Flight", "method": "POST", "path": "/api/v1/flights" },
+        { "name": "Create Flight", "method": "POST", "path": "/api/v1/flights", "defaultPayload": "{\n  \"flightNumber\": \"AX001\",\n  \"departureDate\": \"2026-06-01\",\n  \"departureTime\": \"08:00\",\n  \"arrivalTime\": \"11:10\",\n  \"arrivalDayOffset\": 0,\n  \"origin\": \"LHR\",\n  \"destination\": \"JFK\",\n  \"aircraftType\": \"A351\",\n  \"cabinCode\": \"Y\",\n  \"totalSeats\": 180\n}" },
         { "name": "Batch Create Flights", "method": "POST", "path": "/api/v1/flights/batch", "defaultPayload": "{\n  \"flights\": [\n    {\n      \"flightNumber\": \"AX001\",\n      \"departureDate\": \"2026-06-01\",\n      \"departureTime\": \"08:00\",\n      \"arrivalTime\": \"11:10\",\n      \"arrivalDayOffset\": 0,\n      \"origin\": \"LHR\",\n      \"destination\": \"JFK\",\n      \"aircraftType\": \"A351\",\n      \"cabinCode\": \"Y\",\n      \"totalSeats\": 180\n    }\n  ]\n}" },
-        { "name": "Create Fare", "method": "POST", "path": "/api/v1/flights/{inventoryId}/fares" },
-        { "name": "Search Offers", "method": "POST", "path": "/api/v1/search" },
+        { "name": "Create Fare", "method": "POST", "path": "/api/v1/flights/{inventoryId}/fares", "defaultPayload": "{\n  \"fareBasisCode\": \"YFLEX\",\n  \"fareFamily\": \"Economy Flex\",\n  \"bookingClass\": \"Y\",\n  \"currencyCode\": \"GBP\",\n  \"baseFareAmount\": 420.00,\n  \"taxAmount\": 85.00,\n  \"isRefundable\": true,\n  \"isChangeable\": true,\n  \"changeFeeAmount\": 50.00,\n  \"cancellationFeeAmount\": 75.00,\n  \"pointsPrice\": null,\n  \"pointsTaxes\": null,\n  \"validFrom\": \"2026-01-01\",\n  \"validTo\": \"2026-12-31\"\n}" },
+        { "name": "Search Offers", "method": "POST", "path": "/api/v1/search", "defaultPayload": "{\n  \"origin\": \"LHR\",\n  \"destination\": \"JFK\",\n  \"departureDate\": \"2026-06-01\",\n  \"cabinCode\": \"Y\",\n  \"paxCount\": 1,\n  \"bookingType\": \"Revenue\"\n}" },
         { "name": "Get Stored Offer", "method": "GET", "path": "/api/v1/offers/{offerId}" },
-        { "name": "Hold Inventory", "method": "POST", "path": "/api/v1/inventory/hold" },
-        { "name": "Sell Inventory", "method": "POST", "path": "/api/v1/inventory/sell" },
-        { "name": "Release Inventory", "method": "POST", "path": "/api/v1/inventory/release" },
-        { "name": "Cancel Inventory", "method": "PATCH", "path": "/api/v1/inventory/cancel" },
+        { "name": "Hold Inventory", "method": "POST", "path": "/api/v1/inventory/hold", "defaultPayload": "{\n  \"inventoryId\": \"00000000-0000-0000-0000-000000000000\",\n  \"cabinCode\": \"Y\",\n  \"paxCount\": 1,\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Sell Inventory", "method": "POST", "path": "/api/v1/inventory/sell", "defaultPayload": "{\n  \"inventoryIds\": [\"00000000-0000-0000-0000-000000000000\"],\n  \"paxCount\": 1,\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Release Inventory", "method": "POST", "path": "/api/v1/inventory/release", "defaultPayload": "{\n  \"inventoryId\": \"00000000-0000-0000-0000-000000000000\",\n  \"paxCount\": 1,\n  \"releaseType\": \"Held\",\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Cancel Inventory", "method": "PATCH", "path": "/api/v1/inventory/cancel", "defaultPayload": "{\n  \"flightNumber\": \"AX001\",\n  \"departureDate\": \"2026-06-01\"\n}" },
         { "name": "Get Seat Availability", "method": "GET", "path": "/api/v1/flights/{flightId}/seat-availability" },
-        { "name": "Reserve Seat", "method": "POST", "path": "/api/v1/flights/{flightId}/seat-reservations" },
-        { "name": "Update Seat Status", "method": "PATCH", "path": "/api/v1/flights/{flightId}/seat-availability" }
+        { "name": "Reserve Seat", "method": "POST", "path": "/api/v1/flights/{flightId}/seat-reservations", "defaultPayload": "{\n  \"seatNumbers\": [\"12A\"],\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
+        { "name": "Update Seat Status", "method": "PATCH", "path": "/api/v1/flights/{flightId}/seat-availability", "defaultPayload": "{\n  \"updates\": [\n    {\n      \"seatNumber\": \"12A\",\n      \"status\": \"Occupied\"\n    }\n  ]\n}" }
       ]
     },
     {
