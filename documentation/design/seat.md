@@ -157,6 +157,7 @@ The Seat domain uses three tables: `AircraftType` (root reference record), `Seat
 | Manufacturer | VARCHAR(50) | No | | | e.g. `Airbus`, `Boeing` |
 | FriendlyName | VARCHAR(100) | Yes | | | e.g. `Airbus A350-1000`, `Boeing 787-900` |
 | TotalSeats | SMALLINT | No | | | Total seat count across all cabins |
+| CabinCounts | NVARCHAR(MAX) | Yes | | | JSON array of cabin seat counts, e.g. `[{"cabin": "J", "count": 32}, {"cabin": "W", "count": 56}, {"cabin": "Y", "count": 281}]` |
 | IsActive | BIT | No | `1` | | |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |

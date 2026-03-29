@@ -24,7 +24,7 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
     public async Task<AircraftType?> GetByCodeAsync(string aircraftTypeCode, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, IsActive, CreatedAt, UpdatedAt
+            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts, IsActive, CreatedAt, UpdatedAt
             FROM   [seat].[AircraftType]
             WHERE  AircraftTypeCode = @AircraftTypeCode;
             """;
@@ -37,7 +37,7 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
     public async Task<IReadOnlyList<AircraftType>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, IsActive, CreatedAt, UpdatedAt
+            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts, IsActive, CreatedAt, UpdatedAt
             FROM   [seat].[AircraftType]
             ORDER  BY AircraftTypeCode;
             """;
@@ -50,16 +50,16 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
     public async Task<AircraftType> CreateAsync(AircraftType at, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            INSERT INTO [seat].[AircraftType] (AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, IsActive)
-            VALUES (@AircraftTypeCode, @Manufacturer, @FriendlyName, @TotalSeats, @IsActive);
+            INSERT INTO [seat].[AircraftType] (AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts, IsActive)
+            VALUES (@AircraftTypeCode, @Manufacturer, @FriendlyName, @TotalSeats, @CabinCounts, @IsActive);
 
-            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, IsActive, CreatedAt, UpdatedAt
+            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts, IsActive, CreatedAt, UpdatedAt
             FROM   [seat].[AircraftType]
             WHERE  AircraftTypeCode = @AircraftTypeCode;
             """;
         using var conn = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         var r = await conn.QuerySingleAsync<AircraftTypeRecord>(
-            new CommandDefinition(sql, new { at.AircraftTypeCode, at.Manufacturer, at.FriendlyName, at.TotalSeats, at.IsActive },
+            new CommandDefinition(sql, new { at.AircraftTypeCode, at.Manufacturer, at.FriendlyName, at.TotalSeats, at.CabinCounts, at.IsActive },
                 commandTimeout: _options.CommandTimeoutSeconds));
         _logger.LogInformation("Created AircraftType {Code}", at.AircraftTypeCode);
         return Map(r);
@@ -70,16 +70,16 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
         const string sql = """
             UPDATE [seat].[AircraftType]
             SET    Manufacturer = @Manufacturer, FriendlyName = @FriendlyName,
-                   TotalSeats = @TotalSeats, IsActive = @IsActive
+                   TotalSeats = @TotalSeats, CabinCounts = @CabinCounts, IsActive = @IsActive
             WHERE  AircraftTypeCode = @AircraftTypeCode;
 
-            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, IsActive, CreatedAt, UpdatedAt
+            SELECT AircraftTypeCode, Manufacturer, FriendlyName, TotalSeats, CabinCounts, IsActive, CreatedAt, UpdatedAt
             FROM   [seat].[AircraftType]
             WHERE  AircraftTypeCode = @AircraftTypeCode;
             """;
         using var conn = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         var r = await conn.QuerySingleOrDefaultAsync<AircraftTypeRecord>(
-            new CommandDefinition(sql, new { at.AircraftTypeCode, at.Manufacturer, at.FriendlyName, at.TotalSeats, at.IsActive },
+            new CommandDefinition(sql, new { at.AircraftTypeCode, at.Manufacturer, at.FriendlyName, at.TotalSeats, at.CabinCounts, at.IsActive },
                 commandTimeout: _options.CommandTimeoutSeconds));
         return r is null ? null : Map(r);
     }
@@ -94,9 +94,9 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
     }
 
     private static AircraftType Map(AircraftTypeRecord r) =>
-        AircraftType.Reconstitute(r.AircraftTypeCode, r.Manufacturer, r.FriendlyName, r.TotalSeats, r.IsActive, r.CreatedAt, r.UpdatedAt);
+        AircraftType.Reconstitute(r.AircraftTypeCode, r.Manufacturer, r.FriendlyName, r.TotalSeats, r.CabinCounts, r.IsActive, r.CreatedAt, r.UpdatedAt);
 
     private sealed record AircraftTypeRecord(
-        string AircraftTypeCode, string Manufacturer, string? FriendlyName, int TotalSeats,
+        string AircraftTypeCode, string Manufacturer, string? FriendlyName, int TotalSeats, string? CabinCounts,
         bool IsActive, DateTime CreatedAt, DateTime UpdatedAt);
 }

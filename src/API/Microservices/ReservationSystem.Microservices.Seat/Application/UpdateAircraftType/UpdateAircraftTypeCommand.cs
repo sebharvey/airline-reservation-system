@@ -8,4 +8,5 @@ public sealed record UpdateAircraftTypeCommand(
     string? Manufacturer,
     int? TotalSeats,
     string? FriendlyName,
+    string? CabinCounts,
     bool? IsActive);

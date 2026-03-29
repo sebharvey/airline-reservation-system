@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ReservationSystem.Microservices.Seat.Application.CreateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.UpdateAircraftType;
 using ReservationSystem.Microservices.Seat.Application.CreateSeatmap;
@@ -27,7 +28,8 @@ public static class SeatMapper
             AircraftTypeCode: request.AircraftTypeCode,
             Manufacturer: request.Manufacturer,
             TotalSeats: request.TotalSeats,
-            FriendlyName: request.FriendlyName);
+            FriendlyName: request.FriendlyName,
+            CabinCounts: SerializeCabinCounts(request.CabinCounts));
 
     public static UpdateAircraftTypeCommand ToCommand(string aircraftTypeCode, UpdateAircraftTypeRequest request) =>
         new(
@@ -35,6 +37,7 @@ public static class SeatMapper
             Manufacturer: request.Manufacturer,
             TotalSeats: request.TotalSeats,
             FriendlyName: request.FriendlyName,
+            CabinCounts: SerializeCabinCounts(request.CabinCounts),
             IsActive: request.IsActive);
 
     public static CreateSeatmapCommand ToCommand(CreateSeatmapRequest request) =>
@@ -79,6 +82,7 @@ public static class SeatMapper
             Manufacturer = aircraftType.Manufacturer,
             FriendlyName = aircraftType.FriendlyName,
             TotalSeats = aircraftType.TotalSeats,
+            CabinCounts = DeserializeCabinCounts(aircraftType.CabinCounts),
             IsActive = aircraftType.IsActive,
             CreatedAt = aircraftType.CreatedAt,
             UpdatedAt = aircraftType.UpdatedAt
@@ -132,4 +136,10 @@ public static class SeatMapper
 
     public static IReadOnlyList<SeatPricingResponse> ToResponse(IEnumerable<Domain.Entities.SeatPricing> seatPricings) =>
         seatPricings.Select(ToResponse).ToList().AsReadOnly();
+
+    private static string? SerializeCabinCounts(List<CabinCount>? cabinCounts) =>
+        cabinCounts is null ? null : JsonSerializer.Serialize(cabinCounts);
+
+    private static List<CabinCount>? DeserializeCabinCounts(string? json) =>
+        string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<List<CabinCount>>(json);
 }

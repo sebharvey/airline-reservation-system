@@ -10,6 +10,7 @@ public sealed class AircraftType
     public string Manufacturer { get; private set; } = string.Empty;
     public string? FriendlyName { get; private set; }
     public int TotalSeats { get; private set; }
+    public string? CabinCounts { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -23,7 +24,8 @@ public sealed class AircraftType
         string aircraftTypeCode,
         string manufacturer,
         int totalSeats,
-        string? friendlyName = null)
+        string? friendlyName = null,
+        string? cabinCounts = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftTypeCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(manufacturer);
@@ -34,6 +36,7 @@ public sealed class AircraftType
             Manufacturer = manufacturer,
             FriendlyName = friendlyName,
             TotalSeats = totalSeats,
+            CabinCounts = cabinCounts,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -48,6 +51,7 @@ public sealed class AircraftType
         string manufacturer,
         string? friendlyName,
         int totalSeats,
+        string? cabinCounts,
         bool isActive,
         DateTime createdAt,
         DateTime updatedAt)
@@ -58,6 +62,7 @@ public sealed class AircraftType
             Manufacturer = manufacturer,
             FriendlyName = friendlyName,
             TotalSeats = totalSeats,
+            CabinCounts = cabinCounts,
             IsActive = isActive,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
