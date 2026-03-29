@@ -983,4 +983,44 @@ public sealed class SqlOfferRepository : IOfferRepository
             fareRule.UpdatedAt
         };
     }
+
+    // -------------------------------------------------------------------------
+    // Cleanup
+    // -------------------------------------------------------------------------
+
+    public async Task<int> DeleteExpiredFlightInventoryAsync(CancellationToken ct = default)
+    {
+        // Delete child Fare rows first to satisfy the FK_Fare_Inventory constraint,
+        // then delete the parent FlightInventory rows. Both run in a single transaction.
+        // A flight is considered expired when its departure datetime (DepartureDate + DepartureTime)
+        // is more than 48 hours in the past.
+        const string deleteFares = """
+            DELETE f
+            FROM   [offer].[Fare] f
+            INNER JOIN [offer].[FlightInventory] i ON i.InventoryId = f.InventoryId
+            WHERE  DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', i.DepartureTime), CAST(i.DepartureDate AS DATETIME2))
+                   < DATEADD(HOUR, -48, SYSUTCDATETIME());
+            """;
+
+        const string deleteInventory = """
+            DELETE FROM [offer].[FlightInventory]
+            WHERE  DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', DepartureTime), CAST(DepartureDate AS DATETIME2))
+                   < DATEADD(HOUR, -48, SYSUTCDATETIME());
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+        using var tx = connection.BeginTransaction();
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(deleteFares, transaction: tx, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
+
+        var deletedCount = await connection.ExecuteAsync(
+            new CommandDefinition(deleteInventory, transaction: tx, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
+
+        tx.Commit();
+
+        _logger.LogDebug("Deleted {Count} expired FlightInventory row(s) from [offer].[FlightInventory]", deletedCount);
+
+        return deletedCount;
+    }
 }

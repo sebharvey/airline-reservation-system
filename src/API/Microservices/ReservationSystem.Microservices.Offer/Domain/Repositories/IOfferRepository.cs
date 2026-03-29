@@ -3,6 +3,7 @@ namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 public interface IOfferRepository
 {
     // FlightInventory
+    Task<int> DeleteExpiredFlightInventoryAsync(CancellationToken ct = default);
     Task<Entities.FlightInventory?> GetInventoryByIdAsync(Guid inventoryId, CancellationToken ct = default);
     Task<Entities.FlightInventory?> GetInventoryAsync(string flightNumber, DateOnly departureDate, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventory>> SearchInventoryAsync(string origin, string destination, DateOnly departureDate, string cabinCode, int paxCount, CancellationToken ct = default);

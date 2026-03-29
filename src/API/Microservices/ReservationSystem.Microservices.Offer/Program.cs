@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Offer.Swagger;
 using ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
+using ReservationSystem.Microservices.Offer.Application.DeleteExpiredFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.CreateFare;
 using ReservationSystem.Microservices.Offer.Application.CreateFlight;
@@ -47,6 +48,7 @@ var host = new HostBuilder()
 
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
+        services.AddScoped<DeleteExpiredFlightInventoryHandler>();
         services.AddScoped<CreateFlightHandler>();
         services.AddScoped<CreateFareHandler>();
         services.AddScoped<BatchCreateFlightsHandler>();

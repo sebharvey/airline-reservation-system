@@ -172,6 +172,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Flight
         WHERE Status = 'Active';
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Departure' AND object_id = OBJECT_ID('[offer].[FlightInventory]'))
+    CREATE INDEX IX_FlightInventory_Departure
+        ON [offer].[FlightInventory] (DepartureDate, DepartureTime);
+GO
+
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('
