@@ -391,9 +391,9 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT OfferId, InventoryId, FareId, FlightNumber, DepartureDate, DepartureTime,
-                   ArrivalTime, ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                   FareBasisCode, FareFamily, BookingClass, CurrencyCode,
+            SELECT OfferId, InventoryId, FareRuleId, FlightNumber, DepartureDate,
+                   Origin, Destination, CabinCode,
+                   FareBasisCode, FareFamily, CurrencyCode,
                    BaseFareAmount, TaxAmount, TotalAmount,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    PointsPrice, PointsTaxes, BookingType, CreatedAt, ExpiresAt, IsConsumed, UpdatedAt
@@ -413,15 +413,15 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[StoredOffer]
-                   (OfferId, InventoryId, FareId, FlightNumber, DepartureDate, DepartureTime,
-                    ArrivalTime, ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                    FareBasisCode, FareFamily, BookingClass, CurrencyCode,
+                   (OfferId, InventoryId, FareRuleId, FlightNumber, DepartureDate,
+                    Origin, Destination, CabinCode,
+                    FareBasisCode, FareFamily, CurrencyCode,
                     BaseFareAmount, TaxAmount, TotalAmount,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                     PointsPrice, PointsTaxes, BookingType, CreatedAt, ExpiresAt, IsConsumed, UpdatedAt)
-            VALUES (@OfferId, @InventoryId, @FareId, @FlightNumber, @DepartureDate, @DepartureTime,
-                    @ArrivalTime, @ArrivalDayOffset, @Origin, @Destination, @AircraftType, @CabinCode,
-                    @FareBasisCode, @FareFamily, @BookingClass, @CurrencyCode,
+            VALUES (@OfferId, @InventoryId, @FareRuleId, @FlightNumber, @DepartureDate,
+                    @Origin, @Destination, @CabinCode,
+                    @FareBasisCode, @FareFamily, @CurrencyCode,
                     @BaseFareAmount, @TaxAmount, @TotalAmount,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
                     @PointsPrice, @PointsTaxes, @BookingType, @CreatedAt, @ExpiresAt, @IsConsumed, @UpdatedAt);
@@ -880,19 +880,14 @@ public sealed class SqlOfferRepository : IOfferRepository
         return StoredOffer.Reconstitute(
             offerId: (Guid)row.OfferId,
             inventoryId: (Guid)row.InventoryId,
-            fareId: (Guid)row.FareId,
+            fareRuleId: (Guid)row.FareRuleId,
             flightNumber: (string)row.FlightNumber,
             departureDate: ToDateOnly((DateTime)row.DepartureDate),
-            departureTime: ToTimeOnly((TimeSpan)row.DepartureTime),
-            arrivalTime: ToTimeOnly((TimeSpan)row.ArrivalTime),
-            arrivalDayOffset: (int)row.ArrivalDayOffset,
             origin: (string)row.Origin,
             destination: (string)row.Destination,
-            aircraftType: (string)row.AircraftType,
             cabinCode: (string)row.CabinCode,
             fareBasisCode: (string)row.FareBasisCode,
             fareFamily: (string?)row.FareFamily,
-            bookingClass: (string)row.BookingClass,
             currencyCode: (string)row.CurrencyCode,
             baseFareAmount: (decimal)row.BaseFareAmount,
             taxAmount: (decimal)row.TaxAmount,
@@ -964,19 +959,14 @@ public sealed class SqlOfferRepository : IOfferRepository
         {
             offer.OfferId,
             offer.InventoryId,
-            offer.FareId,
+            offer.FareRuleId,
             offer.FlightNumber,
             DepartureDate = offer.DepartureDate.ToDateTime(TimeOnly.MinValue),
-            DepartureTime = offer.DepartureTime.ToTimeSpan(),
-            ArrivalTime = offer.ArrivalTime.ToTimeSpan(),
-            offer.ArrivalDayOffset,
             offer.Origin,
             offer.Destination,
-            offer.AircraftType,
             offer.CabinCode,
             offer.FareBasisCode,
             offer.FareFamily,
-            offer.BookingClass,
             offer.CurrencyCode,
             offer.BaseFareAmount,
             offer.TaxAmount,

@@ -291,17 +291,12 @@ IF OBJECT_ID('[offer].[StoredOffer]', 'U') IS NULL
 CREATE TABLE [offer].[StoredOffer] (
     OfferId               UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id        DEFAULT NEWID(),
     InventoryId           UNIQUEIDENTIFIER NOT NULL,
-    FareId                UNIQUEIDENTIFIER NOT NULL,
+    FareRuleId            UNIQUEIDENTIFIER NOT NULL,
     FlightNumber          VARCHAR(10)      NOT NULL,
     DepartureDate         DATE             NOT NULL,
-    DepartureTime         TIME             NOT NULL,
-    ArrivalTime           TIME             NOT NULL,
-    ArrivalDayOffset      TINYINT          NOT NULL CONSTRAINT DF_StoredOffer_Offset   DEFAULT 0,
     Origin                CHAR(3)          NOT NULL,
     Destination           CHAR(3)          NOT NULL,
-    AircraftType          VARCHAR(4)       NOT NULL,
     CabinCode             CHAR(1)          NOT NULL,
-    BookingClass          CHAR(1)          NOT NULL,
     FareBasisCode         VARCHAR(20)      NOT NULL,
     FareFamily            VARCHAR(50)          NULL,
     CurrencyCode          CHAR(3)          NOT NULL CONSTRAINT DF_StoredOffer_Currency  DEFAULT 'GBP',
@@ -319,10 +314,11 @@ CREATE TABLE [offer].[StoredOffer] (
     ExpiresAt             DATETIME2        NOT NULL,
     IsConsumed            BIT              NOT NULL CONSTRAINT DF_StoredOffer_Consumed  DEFAULT 0,
     UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated   DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_StoredOffer           PRIMARY KEY (OfferId),
-    CONSTRAINT FK_StoredOffer_Inventory FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
-    CONSTRAINT FK_StoredOffer_Fare      FOREIGN KEY (FareId)      REFERENCES [offer].[Fare](FareId),
-    CONSTRAINT CHK_StoredOffer_BkType   CHECK (BookingType IN ('Revenue','Reward'))
+    CONSTRAINT PK_StoredOffer              PRIMARY KEY (OfferId),
+    CONSTRAINT FK_StoredOffer_Inventory    FOREIGN KEY (InventoryId)  REFERENCES [offer].[FlightInventory](InventoryId),
+    CONSTRAINT FK_StoredOffer_FareRule     FOREIGN KEY (FareRuleId)   REFERENCES [offer].[FareRule](FareRuleId),
+    CONSTRAINT CHK_StoredOffer_BkType      CHECK (BookingType IN ('Revenue','Reward')),
+    CONSTRAINT CHK_StoredOffer_Cabin       CHECK (CabinCode IN ('F','J','W','Y'))
 );
 GO
 

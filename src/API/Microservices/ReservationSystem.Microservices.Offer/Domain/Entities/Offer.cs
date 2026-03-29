@@ -196,19 +196,14 @@ public sealed class StoredOffer
 {
     public Guid OfferId { get; private set; }
     public Guid InventoryId { get; private set; }
-    public Guid FareId { get; private set; }
+    public Guid FareRuleId { get; private set; }
     public string FlightNumber { get; private set; } = string.Empty;
     public DateOnly DepartureDate { get; private set; }
-    public TimeOnly DepartureTime { get; private set; }
-    public TimeOnly ArrivalTime { get; private set; }
-    public int ArrivalDayOffset { get; private set; }
     public string Origin { get; private set; } = string.Empty;
     public string Destination { get; private set; } = string.Empty;
-    public string AircraftType { get; private set; } = string.Empty;
     public string CabinCode { get; private set; } = string.Empty;
     public string FareBasisCode { get; private set; } = string.Empty;
     public string? FareFamily { get; private set; }
-    public string BookingClass { get; private set; } = string.Empty;
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal BaseFareAmount { get; private set; }
     public decimal TaxAmount { get; private set; }
@@ -228,21 +223,19 @@ public sealed class StoredOffer
 
     private StoredOffer() { }
 
-    public static StoredOffer Create(FlightInventory inventory, Fare fare, string bookingType)
+    public static StoredOffer Create(FlightInventory inventory, Fare fare, Guid fareRuleId, string bookingType)
     {
         var now = DateTime.UtcNow;
         var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == fare.CabinCode);
         return new StoredOffer
         {
             OfferId = Guid.NewGuid(),
-            InventoryId = inventory.InventoryId, FareId = fare.FareId,
+            InventoryId = inventory.InventoryId, FareRuleId = fareRuleId,
             FlightNumber = inventory.FlightNumber, DepartureDate = inventory.DepartureDate,
-            DepartureTime = inventory.DepartureTime, ArrivalTime = inventory.ArrivalTime,
-            ArrivalDayOffset = inventory.ArrivalDayOffset,
             Origin = inventory.Origin, Destination = inventory.Destination,
-            AircraftType = inventory.AircraftType, CabinCode = fare.CabinCode,
+            CabinCode = fare.CabinCode,
             FareBasisCode = fare.FareBasisCode, FareFamily = fare.FareFamily,
-            BookingClass = fare.BookingClass, CurrencyCode = fare.CurrencyCode,
+            CurrencyCode = fare.CurrencyCode,
             BaseFareAmount = fare.BaseFareAmount, TaxAmount = fare.TaxAmount,
             TotalAmount = fare.TotalAmount, IsRefundable = fare.IsRefundable,
             IsChangeable = fare.IsChangeable, ChangeFeeAmount = fare.ChangeFeeAmount,
@@ -256,10 +249,9 @@ public sealed class StoredOffer
     }
 
     public static StoredOffer Reconstitute(
-        Guid offerId, Guid inventoryId, Guid fareId, string flightNumber,
-        DateOnly departureDate, TimeOnly departureTime, TimeOnly arrivalTime, int arrivalDayOffset,
-        string origin, string destination, string aircraftType, string cabinCode,
-        string fareBasisCode, string? fareFamily, string bookingClass, string currencyCode,
+        Guid offerId, Guid inventoryId, Guid fareRuleId, string flightNumber,
+        DateOnly departureDate, string origin, string destination, string cabinCode,
+        string fareBasisCode, string? fareFamily, string currencyCode,
         decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         int? pointsPrice, decimal? pointsTaxes, int seatsAvailable, string bookingType,
@@ -267,13 +259,10 @@ public sealed class StoredOffer
     {
         return new StoredOffer
         {
-            OfferId = offerId, InventoryId = inventoryId, FareId = fareId,
+            OfferId = offerId, InventoryId = inventoryId, FareRuleId = fareRuleId,
             FlightNumber = flightNumber, DepartureDate = departureDate,
-            DepartureTime = departureTime, ArrivalTime = arrivalTime,
-            ArrivalDayOffset = arrivalDayOffset, Origin = origin, Destination = destination,
-            AircraftType = aircraftType, CabinCode = cabinCode,
-            FareBasisCode = fareBasisCode, FareFamily = fareFamily,
-            BookingClass = bookingClass, CurrencyCode = currencyCode,
+            Origin = origin, Destination = destination, CabinCode = cabinCode,
+            FareBasisCode = fareBasisCode, FareFamily = fareFamily, CurrencyCode = currencyCode,
             BaseFareAmount = baseFareAmount, TaxAmount = taxAmount, TotalAmount = totalAmount,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
