@@ -1467,28 +1467,30 @@ BEGIN TRY
     (@SeedGroupId,'AX001','LHR','JFK','08:00','11:10',0,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com'),
     (@SeedGroupId,'AX002','JFK','LHR','13:00','01:15',1,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com');
 
-    -- offer.FlightInventory ---------------------------------------------------
-    DECLARE @InvId_AX001_J UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX001_Y UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX002_J UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX002_Y UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX411_J UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX411_Y UNIQUEIDENTIFIER = NEWID();
-    DECLARE @InvId_AX301_J UNIQUEIDENTIFIER = NEWID();
+    -- offer.FlightInventory — one row per flight/date; cabins stored as JSON array ----------
+    DECLARE @InvId_AX001 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @InvId_AX002 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @InvId_AX411 UNIQUEIDENTIFIER = NEWID();
+    DECLARE @InvId_AX301 UNIQUEIDENTIFIER = NEWID();
 
     INSERT INTO [offer].[FlightInventory]
         (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime, ArrivalDayOffset,
-         Origin, Destination, AircraftType, CabinCode, TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld)
+         Origin, Destination, AircraftType, Cabins, TotalSeats, SeatsAvailable, Status)
     VALUES
-    (@InvId_AX001_J,'AX001','2026-08-15','08:00','11:10',0,'LHR','JFK','A351','J', 48, 44, 4,0),
-    (@InvId_AX001_Y,'AX001','2026-08-15','08:00','11:10',0,'LHR','JFK','A351','Y',227,189,32,6),
-    (@InvId_AX002_J,'AX002','2026-08-25','13:00','01:15',1,'JFK','LHR','A351','J', 48, 45, 3,0),
-    (@InvId_AX002_Y,'AX002','2026-08-25','13:00','01:15',1,'JFK','LHR','A351','Y',227,200,22,5),
-    (@InvId_AX411_J,'AX411','2026-09-10','20:30','09:00',1,'LHR','DEL','B789','J', 42, 38, 4,0),
-    (@InvId_AX411_Y,'AX411','2026-09-10','20:30','09:00',1,'LHR','DEL','B789','Y',194,150,40,4),
-    (@InvId_AX301_J,'AX301','2026-10-01','21:30','17:45',1,'LHR','SIN','A351','J', 48, 42, 6,0);
+    (@InvId_AX001,'AX001','2026-08-15','08:00','11:10',0,'LHR','JFK','A351',
+     N'[{"cabinCode":"J","totalSeats":48,"seatsSold":4,"seatsHeld":0},{"cabinCode":"Y","totalSeats":227,"seatsSold":32,"seatsHeld":6}]',
+     275, 233, 'Active'),
+    (@InvId_AX002,'AX002','2026-08-25','13:00','01:15',1,'JFK','LHR','A351',
+     N'[{"cabinCode":"J","totalSeats":48,"seatsSold":3,"seatsHeld":0},{"cabinCode":"Y","totalSeats":227,"seatsSold":22,"seatsHeld":5}]',
+     275, 245, 'Active'),
+    (@InvId_AX411,'AX411','2026-09-10','20:30','09:00',1,'LHR','DEL','B789',
+     N'[{"cabinCode":"J","totalSeats":42,"seatsSold":4,"seatsHeld":0},{"cabinCode":"Y","totalSeats":194,"seatsSold":40,"seatsHeld":4}]',
+     236, 188, 'Active'),
+    (@InvId_AX301,'AX301','2026-10-01','21:30','17:45',1,'LHR','SIN','A351',
+     N'[{"cabinCode":"J","totalSeats":48,"seatsSold":6,"seatsHeld":0}]',
+     48, 42, 'Active');
 
-    -- offer.Fare --------------------------------------------------------------
+    -- offer.Fare — historical snapshots used by seeded orders/tickets --------
     DECLARE @FareId_AX001_J_Flex  UNIQUEIDENTIFIER = NEWID();
     DECLARE @FareId_AX001_Y_Flex  UNIQUEIDENTIFIER = NEWID();
     DECLARE @FareId_AX001_Y_Light UNIQUEIDENTIFIER = NEWID();
@@ -1499,22 +1501,28 @@ BEGIN TRY
          BaseFareAmount, TaxAmount, TotalAmount, IsRefundable, IsChangeable,
          ChangeFeeAmount, CancellationFeeAmount, PointsPrice, PointsTaxes, ValidFrom, ValidTo)
     VALUES
-    (@FareId_AX001_J_Flex, @InvId_AX001_J,'JFLEXGB','Business Flex','J','J',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'2025-01-01','2026-12-31'),
-    (@FareId_AX001_Y_Flex, @InvId_AX001_Y,'YFLEXGB','Economy Flex', 'Y','Y', 350.00, 97.25, 447.25,1,1,0.00,  0.00, 35000, 97.25,'2025-01-01','2026-12-31'),
-    (@FareId_AX001_Y_Light,@InvId_AX001_Y,'YLOWUK', 'Economy Light','Y','Y', 149.00, 97.25, 246.25,0,0,0.00,149.00,  NULL,  NULL,'2025-01-01','2026-12-31'),
-    (@FareId_AX411_Y_Light,@InvId_AX411_Y,'YLOWUK', 'Economy Light','Y','Y', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'2025-01-01','2026-12-31');
+    (@FareId_AX001_J_Flex, @InvId_AX001,'JFLEXGB','Business Flex','J','J',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'2025-01-01','2099-12-31'),
+    (@FareId_AX001_Y_Flex, @InvId_AX001,'YFLEXGB','Economy Flex', 'Y','Y', 350.00, 97.25, 447.25,1,1,0.00,  0.00, 35000, 97.25,'2025-01-01','2099-12-31'),
+    (@FareId_AX001_Y_Light,@InvId_AX001,'YLOWUK', 'Economy Light','Y','Y', 149.00, 97.25, 246.25,0,0,0.00,149.00,  NULL,  NULL,'2025-01-01','2099-12-31'),
+    (@FareId_AX411_Y_Light,@InvId_AX411,'YLOWUK', 'Economy Light','Y','Y', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'2025-01-01','2099-12-31');
 
-    -- offer.FareRule ----------------------------------------------------------
+    -- offer.FareRule — three-tier cascade drives search pricing --------------
+    -- Tier 1 (global default):  FlightNumber IS NULL, ValidFrom IS NULL, ValidTo IS NULL
+    -- Tier 2 (flight default):  FlightNumber set,     ValidFrom IS NULL, ValidTo IS NULL
+    -- Tier 3 (date window):     FlightNumber set,     ValidFrom/ValidTo set
+    -- Last tier evaluated per (FareBasisCode, RuleType) wins at search time.
     INSERT INTO [offer].[FareRule]
         (FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-         CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+         CurrencyCode, MinAmount, TaxAmount,
          IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-         PointsPrice, PointsTaxes, ValidFrom, ValidTo)
+         MinPoints, PointsTaxes, ValidFrom, ValidTo)
     VALUES
-    (NULL,   'JFLEXGB','Business Flex', 'J','J','GBP',1250.00,182.50,1432.50,1,1,  0.00,  0.00,125000,182.50,'2025-01-01','2026-12-31'),
-    (NULL,   'YFLEXGB','Economy Flex',  'Y','Y','GBP', 350.00, 97.25, 447.25,1,1,  0.00,  0.00, 35000, 97.25,'2025-01-01','2026-12-31'),
-    (NULL,   'YLOWUK', 'Economy Light', 'Y','Y','GBP', 149.00, 97.25, 246.25,0,0,  0.00,149.00,  NULL,  NULL,'2025-01-01','2026-12-31'),
-    ('AX411','YLOWUK', 'Economy Light', 'Y','Y','GBP', 199.00,110.50, 309.50,0,0,  0.00,199.00,  NULL,  NULL,'2025-01-01','2026-12-31');
+    -- Tier 1: global defaults (no flight, no dates)
+    (NULL,   'JFLEXGB','Business Flex','J','J','GBP',1250.00,182.50,1,1,  0.00,  0.00,125000,182.50,NULL,NULL),
+    (NULL,   'YFLEXGB','Economy Flex', 'Y','Y','GBP', 350.00, 97.25,1,1,  0.00,  0.00, 35000, 97.25,NULL,NULL),
+    (NULL,   'YLOWUK', 'Economy Light','Y','Y','GBP', 149.00, 97.25,0,0,  0.00,149.00,  NULL,  NULL,NULL,NULL),
+    -- Tier 2: AX411 pays higher taxes on this long-haul route (overrides global YLOWUK)
+    ('AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,110.50,0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
 
     -- offer.StoredOffer -------------------------------------------------------
     DECLARE @OfferId_Out UNIQUEIDENTIFIER = NEWID();
@@ -1527,9 +1535,9 @@ BEGIN TRY
          IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
          PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed)
     VALUES
-    (@OfferId_Out,@InvId_AX001_J,@FareId_AX001_J_Flex, 'AX001','2026-08-15','LHR','JFK','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
-    (@OfferId_In, @InvId_AX002_J,@FareId_AX001_J_Flex, 'AX002','2026-08-25','JFK','LHR','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
-    (@OfferId_DEL,@InvId_AX411_Y,@FareId_AX411_Y_Light,'AX411','2026-09-10','LHR','DEL','YLOWUK', 'Economy Light', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1);
+    (@OfferId_Out,@InvId_AX001,@FareId_AX001_J_Flex, 'AX001','2026-08-15','LHR','JFK','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
+    (@OfferId_In, @InvId_AX002,@FareId_AX001_J_Flex, 'AX002','2026-08-25','JFK','LHR','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1),
+    (@OfferId_DEL,@InvId_AX411,@FareId_AX411_Y_Light,'AX411','2026-09-10','LHR','DEL','YLOWUK', 'Economy Light', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1);
 
     -- payment.Payment ---------------------------------------------------------
     DECLARE @PayId1 UNIQUEIDENTIFIER = NEWID();
@@ -1582,15 +1590,15 @@ BEGIN TRY
         (TicketId, ETicketNumber, InventoryId, FlightNumber, DepartureDate,
          BookingReference, PassengerId, GivenName, Surname, CabinCode, FareBasisCode, TicketData)
     VALUES
-    (@TktId1,'932-1000000001',@InvId_AX001_J,'AX001','2026-08-15','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
+    (@TktId1,'932-1000000001',@InvId_AX001,'AX001','2026-08-15','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
      N'{"seatAssignment":{"seatNumber":"1A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId2,'932-1000000002',@InvId_AX001_J,'AX001','2026-08-15','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
+    (@TktId2,'932-1000000002',@InvId_AX001,'AX001','2026-08-15','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
      N'{"seatAssignment":{"seatNumber":"1K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId3,'932-1000000003',@InvId_AX002_J,'AX002','2026-08-25','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
+    (@TktId3,'932-1000000003',@InvId_AX002,'AX002','2026-08-25','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
      N'{"seatAssignment":{"seatNumber":"2A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId4,'932-1000000004',@InvId_AX002_J,'AX002','2026-08-25','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
+    (@TktId4,'932-1000000004',@InvId_AX002,'AX002','2026-08-25','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
      N'{"seatAssignment":{"seatNumber":"2K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId5,'932-1000000005',@InvId_AX411_Y,'AX411','2026-09-10','JC0005','PAX-1','James', 'Chen',  'Y','YLOWUK',
+    (@TktId5,'932-1000000005',@InvId_AX411,'AX411','2026-09-10','JC0005','PAX-1','James', 'Chen',  'Y','YLOWUK',
      N'{"seatAssignment":{"seatNumber":"22A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}');
 
     -- delivery.Manifest -------------------------------------------------------
@@ -1599,11 +1607,11 @@ BEGIN TRY
          SeatNumber, CabinCode, BookingReference, ETicketNumber,
          PassengerId, GivenName, Surname, DepartureTime, ArrivalTime)
     VALUES
-    (@TktId1,@InvId_AX001_J,'AX001','2026-08-15','A351','1A', 'J','AB1234','932-1000000001','PAX-1','Amara', 'Okafor','08:00','11:10'),
-    (@TktId2,@InvId_AX001_J,'AX001','2026-08-15','A351','1K', 'J','AB1234','932-1000000002','PAX-2','Jordan','Taylor','08:00','11:10'),
-    (@TktId3,@InvId_AX002_J,'AX002','2026-08-25','A351','2A', 'J','AB1234','932-1000000003','PAX-1','Amara', 'Okafor','13:00','01:15'),
-    (@TktId4,@InvId_AX002_J,'AX002','2026-08-25','A351','2K', 'J','AB1234','932-1000000004','PAX-2','Jordan','Taylor','13:00','01:15'),
-    (@TktId5,@InvId_AX411_Y,'AX411','2026-09-10','B789','22A','Y','JC0005','932-1000000005','PAX-1','James', 'Chen',  '20:30','09:00');
+    (@TktId1,@InvId_AX001,'AX001','2026-08-15','A351','1A', 'J','AB1234','932-1000000001','PAX-1','Amara', 'Okafor','08:00','11:10'),
+    (@TktId2,@InvId_AX001,'AX001','2026-08-15','A351','1K', 'J','AB1234','932-1000000002','PAX-2','Jordan','Taylor','08:00','11:10'),
+    (@TktId3,@InvId_AX002,'AX002','2026-08-25','A351','2A', 'J','AB1234','932-1000000003','PAX-1','Amara', 'Okafor','13:00','01:15'),
+    (@TktId4,@InvId_AX002,'AX002','2026-08-25','A351','2K', 'J','AB1234','932-1000000004','PAX-2','Jordan','Taylor','13:00','01:15'),
+    (@TktId5,@InvId_AX411,'AX411','2026-09-10','B789','22A','Y','JC0005','932-1000000005','PAX-1','James', 'Chen',  '20:30','09:00');
 
     -- delivery.Document — bag ancillary EMD for AB1234 ------------------------
     INSERT INTO [delivery].[Document]
