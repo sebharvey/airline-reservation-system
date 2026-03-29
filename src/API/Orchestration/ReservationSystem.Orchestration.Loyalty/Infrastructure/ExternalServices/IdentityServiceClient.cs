@@ -154,6 +154,21 @@ public sealed class IdentityServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<IdentityAccountSummaryDto?> GetAccountByEmailAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync(
+            $"/api/v1/accounts/by-email/{Uri.EscapeDataString(email)}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<IdentityAccountSummaryDto>(JsonOptions, cancellationToken);
+    }
+
     public async Task<IdentityAccountSummaryDto?> GetAccountByIdAsync(
         Guid userAccountId,
         CancellationToken cancellationToken = default)

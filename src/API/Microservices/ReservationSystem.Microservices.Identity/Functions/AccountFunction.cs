@@ -7,6 +7,7 @@ using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
 using ReservationSystem.Microservices.Identity.Application.GetAccount;
+using ReservationSystem.Microservices.Identity.Application.GetAccountByEmail;
 using ReservationSystem.Microservices.Identity.Application.UpdateAccount;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
@@ -31,6 +32,7 @@ public sealed class AccountFunction
     private readonly CreateAccountHandler _createAccountHandler;
     private readonly DeleteAccountHandler _deleteAccountHandler;
     private readonly GetAccountHandler _getAccountHandler;
+    private readonly GetAccountByEmailHandler _getAccountByEmailHandler;
     private readonly UpdateAccountHandler _updateAccountHandler;
     private readonly VerifyEmailHandler _verifyEmailHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
@@ -41,6 +43,7 @@ public sealed class AccountFunction
         CreateAccountHandler createAccountHandler,
         DeleteAccountHandler deleteAccountHandler,
         GetAccountHandler getAccountHandler,
+        GetAccountByEmailHandler getAccountByEmailHandler,
         UpdateAccountHandler updateAccountHandler,
         VerifyEmailHandler verifyEmailHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
@@ -50,6 +53,7 @@ public sealed class AccountFunction
         _createAccountHandler = createAccountHandler;
         _deleteAccountHandler = deleteAccountHandler;
         _getAccountHandler = getAccountHandler;
+        _getAccountByEmailHandler = getAccountByEmailHandler;
         _updateAccountHandler = updateAccountHandler;
         _verifyEmailHandler = verifyEmailHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
@@ -113,6 +117,41 @@ public sealed class AccountFunction
 
         if (account is null)
             return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+
+        var response = new AccountSummaryResponse
+        {
+            UserAccountId = account.UserAccountId,
+            Email = account.Email,
+            IsEmailVerified = account.IsEmailVerified,
+            IsLocked = account.IsLocked,
+            FailedLoginAttempts = account.FailedLoginAttempts,
+            LastLoginAt = account.LastLoginAt,
+            PasswordChangedAt = account.PasswordChangedAt,
+            CreatedAt = account.CreatedAt,
+            UpdatedAt = account.UpdatedAt
+        };
+
+        return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/accounts/by-email/{email}
+    // -------------------------------------------------------------------------
+
+    [Function("GetAccountByEmail")]
+    [OpenApiOperation(operationId: "GetAccountByEmail", tags: new[] { "Accounts" }, Summary = "Get a user account summary by email address")]
+    [OpenApiParameter(name: "email", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Email address")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AccountSummaryResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetAccountByEmail(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/by-email/{email}")] HttpRequestData req,
+        string email,
+        CancellationToken cancellationToken)
+    {
+        var account = await _getAccountByEmailHandler.HandleAsync(new GetAccountByEmailQuery(email), cancellationToken);
+
+        if (account is null)
+            return await req.NotFoundAsync($"No user account found for email '{email}'.");
 
         var response = new AccountSummaryResponse
         {
