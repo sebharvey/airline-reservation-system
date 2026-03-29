@@ -10,25 +10,31 @@ namespace ReservationSystem.Orchestration.Operations.Application.ImportSchedules
 ///
 /// Flow:
 ///   1. Fetch all schedules from Schedule MS GET /v1/schedules.
-///   2. For each schedule, enumerate operating dates from ValidFrom/ValidTo and DaysOfWeek bitmask.
-///   3. For each operating date × cabin, build a batch inventory creation request.
-///   4. Call Offer MS POST /v1/flights/batch — existing records are skipped automatically.
-///   5. For each newly created inventory, call Offer MS POST /v1/flights/{id}/fares to attach fares.
-///   6. Return a summary of schedules processed, inventories created/skipped, and fares created.
+///   2. Build a lookup of aircraftTypeCode → cabin seat counts from the command.
+///   3. Fetch all fare rules from the Offer MS once, grouped by cabin code.
+///   4. For each schedule, resolve its cabin config by AircraftType; skip if not found.
+///   5. Enumerate operating dates from ValidFrom/ValidTo and DaysOfWeek bitmask.
+///   6. For each operating date × cabin, build a batch inventory creation request.
+///   7. Call Offer MS POST /v1/flights/batch — existing records are skipped automatically.
+///   8. For each newly created inventory, apply matching fare rules from storage.
+///   9. Return a summary of schedules processed, inventories created/skipped, and fares created.
 /// </summary>
 public sealed class ImportSchedulesToInventoryHandler
 {
     private readonly ScheduleServiceClient _scheduleClient;
     private readonly OfferServiceClient _offerClient;
+    private readonly FareRuleServiceClient _fareRuleClient;
     private readonly ILogger<ImportSchedulesToInventoryHandler> _logger;
 
     public ImportSchedulesToInventoryHandler(
         ScheduleServiceClient scheduleClient,
         OfferServiceClient offerClient,
+        FareRuleServiceClient fareRuleClient,
         ILogger<ImportSchedulesToInventoryHandler> logger)
     {
         _scheduleClient = scheduleClient;
         _offerClient = offerClient;
+        _fareRuleClient = fareRuleClient;
         _logger = logger;
     }
 
@@ -54,18 +60,52 @@ public sealed class ImportSchedulesToInventoryHandler
             };
         }
 
-        // 2. Build a batch payload: one entry per schedule × operating date × cabin.
+        // 2. Build a lookup of aircraftTypeCode → cabin seat counts from the command.
+        var cabinsByAircraftType = command.AircraftConfigs
+            .ToDictionary(
+                c => c.AircraftTypeCode,
+                c => c.Cabins,
+                StringComparer.OrdinalIgnoreCase);
+
+        // 3. Fetch all fare rules from the Offer MS once; group by cabin code.
+        IReadOnlyList<FareRuleDto> fareRules = [];
+        try
+        {
+            fareRules = await _fareRuleClient.SearchFareRulesAsync(cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "ImportSchedulesToInventory: could not fetch fare rules — inventory will be created without fares");
+        }
+
+        var fareRulesByCabin = fareRules
+            .GroupBy(r => r.CabinCode, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<FareRuleDto>)g.ToList().AsReadOnly(), StringComparer.OrdinalIgnoreCase);
+
+        // 4. Build a batch payload: one entry per schedule × operating date × cabin.
+        //    Schedules whose aircraft type has no registered config are skipped.
         var flightItems = new List<object>();
+        var schedulesWithConfig = new List<ScheduleItemDto>();
 
         foreach (var schedule in schedulesResult.Schedules)
         {
+            if (!cabinsByAircraftType.TryGetValue(schedule.AircraftType, out var cabins))
+            {
+                _logger.LogWarning(
+                    "ImportSchedulesToInventory: no cabin config for aircraft type '{AircraftType}' — skipping schedule {FlightNumber}",
+                    schedule.AircraftType, schedule.FlightNumber);
+                continue;
+            }
+
+            schedulesWithConfig.Add(schedule);
+
             var validFrom = DateTime.Parse(schedule.ValidFrom);
             var validTo = DateTime.Parse(schedule.ValidTo);
             var operatingDates = GetOperatingDates(validFrom, validTo, schedule.DaysOfWeek);
 
             foreach (var date in operatingDates)
             {
-                foreach (var cabin in command.Cabins)
+                foreach (var cabin in cabins)
                 {
                     flightItems.Add(new
                     {
@@ -88,14 +128,14 @@ public sealed class ImportSchedulesToInventoryHandler
         {
             return new ImportSchedulesToInventoryResponse
             {
-                SchedulesProcessed = schedulesResult.Count,
+                SchedulesProcessed = schedulesWithConfig.Count,
                 InventoriesCreated = 0,
                 InventoriesSkipped = 0,
                 FaresCreated = 0
             };
         }
 
-        // 3. Batch-create inventory in Offer MS; existing records are skipped.
+        // 5. Batch-create inventory in Offer MS; existing records are skipped.
         var batchResult = await _offerClient.BatchCreateFlightsAsync(
             new { flights = flightItems }, cancellationToken);
 
@@ -103,42 +143,54 @@ public sealed class ImportSchedulesToInventoryHandler
             "ImportSchedulesToInventory: inventories created={Created}, skipped={Skipped}",
             batchResult.Created, batchResult.Skipped);
 
-        // 4. Create fares for each newly created inventory.
-        // Build a lookup from flightNumber → schedule for fare validity dates.
-        var scheduleByFlight = schedulesResult.Schedules
+        // 6. Apply stored fare rules to each newly created inventory.
+        var scheduleByFlight = schedulesWithConfig
             .ToDictionary(s => s.FlightNumber, StringComparer.OrdinalIgnoreCase);
 
         var faresCreated = 0;
 
         foreach (var inventory in batchResult.Inventories)
         {
-            var cabin = command.Cabins.FirstOrDefault(c =>
-                string.Equals(c.CabinCode, inventory.CabinCode, StringComparison.OrdinalIgnoreCase));
+            if (!fareRulesByCabin.TryGetValue(inventory.CabinCode, out var rules))
+                continue;
 
-            if (cabin is null) continue;
+            if (!scheduleByFlight.TryGetValue(inventory.FlightNumber, out var schedule))
+                continue;
 
-            if (!scheduleByFlight.TryGetValue(inventory.FlightNumber, out var schedule)) continue;
-
-            foreach (var fare in cabin.Fares)
+            foreach (var rule in rules)
             {
+                // Skip rules scoped to a different flight number.
+                if (!string.IsNullOrEmpty(rule.FlightNumber) &&
+                    !string.Equals(rule.FlightNumber, inventory.FlightNumber, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 try
                 {
+                    var currencyCode = rule.CurrencyCode ?? "GBP";
+                    var baseFareAmount = rule.MinAmount ?? 0m;
+                    var taxAmount = rule.TaxAmount ?? 0m;
+                    var pointsPrice = rule.RuleType == "Points" ? rule.MinPoints : null;
+                    var pointsTaxes = rule.RuleType == "Points" ? rule.PointsTaxes : null;
+
+                    var validFrom = rule.ValidFrom ?? schedule.ValidFrom;
+                    var validTo = rule.ValidTo ?? schedule.ValidTo;
+
                     await _offerClient.CreateFareAsync(
                         inventoryId: inventory.InventoryId,
-                        fareBasisCode: fare.FareBasisCode,
-                        fareFamily: fare.FareFamily,
-                        bookingClass: fare.BookingClass,
-                        currencyCode: fare.CurrencyCode,
-                        baseFareAmount: fare.BaseFareAmount,
-                        taxAmount: fare.TaxAmount,
-                        isRefundable: fare.IsRefundable,
-                        isChangeable: fare.IsChangeable,
-                        changeFeeAmount: fare.ChangeFeeAmount,
-                        cancellationFeeAmount: fare.CancellationFeeAmount,
-                        pointsPrice: fare.PointsPrice,
-                        pointsTaxes: fare.PointsTaxes,
-                        validFrom: schedule.ValidFrom,
-                        validTo: schedule.ValidTo,
+                        fareBasisCode: rule.FareBasisCode,
+                        fareFamily: rule.FareFamily,
+                        bookingClass: rule.BookingClass,
+                        currencyCode: currencyCode,
+                        baseFareAmount: baseFareAmount,
+                        taxAmount: taxAmount,
+                        isRefundable: rule.IsRefundable,
+                        isChangeable: rule.IsChangeable,
+                        changeFeeAmount: rule.ChangeFeeAmount,
+                        cancellationFeeAmount: rule.CancellationFeeAmount,
+                        pointsPrice: pointsPrice,
+                        pointsTaxes: pointsTaxes,
+                        validFrom: validFrom,
+                        validTo: validTo,
                         cancellationToken: cancellationToken);
 
                     faresCreated++;
@@ -147,7 +199,7 @@ public sealed class ImportSchedulesToInventoryHandler
                 {
                     _logger.LogWarning(ex,
                         "Failed to create fare {FareBasisCode} for inventory {InventoryId} — skipping",
-                        fare.FareBasisCode, inventory.InventoryId);
+                        rule.FareBasisCode, inventory.InventoryId);
                 }
             }
         }
@@ -155,11 +207,11 @@ public sealed class ImportSchedulesToInventoryHandler
         _logger.LogInformation(
             "ImportSchedulesToInventory complete: schedulesProcessed={Schedules}, " +
             "inventoriesCreated={Created}, inventoriesSkipped={Skipped}, faresCreated={Fares}",
-            schedulesResult.Count, batchResult.Created, batchResult.Skipped, faresCreated);
+            schedulesWithConfig.Count, batchResult.Created, batchResult.Skipped, faresCreated);
 
         return new ImportSchedulesToInventoryResponse
         {
-            SchedulesProcessed = schedulesResult.Count,
+            SchedulesProcessed = schedulesWithConfig.Count,
             InventoriesCreated = batchResult.Created,
             InventoriesSkipped = batchResult.Skipped,
             FaresCreated = faresCreated

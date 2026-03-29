@@ -145,9 +145,9 @@ public sealed class ScheduleFunction
     [Function("ImportSchedulesToInventory")]
     [OpenApiOperation(operationId: "ImportSchedulesToInventory", tags: new[] { "Schedules" }, Summary = "Import schedules from the Schedule MS into offer inventory, optionally scoped to a schedule group")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Limit inventory import to a specific schedule group")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryRequest), Required = true, Description = "Cabin and fare definitions to apply when generating inventory for all stored schedules")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryRequest), Required = true, Description = "Cabin seat counts keyed by aircraft type code; the handler matches each schedule row to the correct aircraft config using the AircraftType field on the schedule")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryResponse), Description = "OK — returns counts of schedules processed, inventories created/skipped, and fares created")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — missing or invalid cabin/fare definitions")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — missing or invalid aircraft config definitions")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ImportSchedulesToInventory(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/import-inventory")] HttpRequestData req,
@@ -159,51 +159,36 @@ public sealed class ScheduleFunction
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         Guid? scheduleGroupId = Guid.TryParse(qs["scheduleGroupId"], out var gid) ? gid : null;
 
-        if (request.Cabins is null || request.Cabins.Count == 0)
-            return await req.BadRequestAsync("'cabins' array must contain at least one cabin definition.");
+        if (request.AircraftConfigs is null || request.AircraftConfigs.Count == 0)
+            return await req.BadRequestAsync("'aircraftConfigs' array must contain at least one aircraft configuration.");
 
-        for (var i = 0; i < request.Cabins.Count; i++)
+        for (var i = 0; i < request.AircraftConfigs.Count; i++)
         {
-            var cabin = request.Cabins[i];
+            var config = request.AircraftConfigs[i];
 
-            if (string.IsNullOrWhiteSpace(cabin.CabinCode) || cabin.CabinCode.Length != 1)
-                return await req.BadRequestAsync($"Cabin at index {i}: 'cabinCode' must be a single character (F, J, W, or Y).");
+            if (string.IsNullOrWhiteSpace(config.AircraftTypeCode))
+                return await req.BadRequestAsync($"Aircraft config at index {i}: 'aircraftTypeCode' is required.");
 
-            if (cabin.TotalSeats <= 0)
-                return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}': 'totalSeats' must be greater than zero.");
+            if (config.Cabins is null || config.Cabins.Count == 0)
+                return await req.BadRequestAsync($"Aircraft config '{config.AircraftTypeCode}': 'cabins' must contain at least one cabin definition.");
 
-            if (cabin.Fares is null || cabin.Fares.Count == 0)
-                return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}': 'fares' must contain at least one fare definition.");
-
-            for (var j = 0; j < cabin.Fares.Count; j++)
+            for (var j = 0; j < config.Cabins.Count; j++)
             {
-                var fare = cabin.Fares[j];
-                if (string.IsNullOrWhiteSpace(fare.FareBasisCode))
-                    return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}', fare at index {j}: 'fareBasisCode' is required.");
-                if (string.IsNullOrWhiteSpace(fare.CurrencyCode))
-                    return await req.BadRequestAsync($"Cabin '{cabin.CabinCode}', fare '{fare.FareBasisCode}': 'currencyCode' is required.");
+                var cabin = config.Cabins[j];
+                if (string.IsNullOrWhiteSpace(cabin.CabinCode) || cabin.CabinCode.Length != 1)
+                    return await req.BadRequestAsync($"Aircraft config '{config.AircraftTypeCode}', cabin at index {j}: 'cabinCode' must be a single character (F, J, W, or Y).");
+                if (cabin.TotalSeats <= 0)
+                    return await req.BadRequestAsync($"Aircraft config '{config.AircraftTypeCode}', cabin '{cabin.CabinCode}': 'totalSeats' must be greater than zero.");
             }
         }
 
         try
         {
             var command = new ImportSchedulesToInventoryCommand(
-                request.Cabins.Select(c => new CabinDefinition(
-                    c.CabinCode,
-                    c.TotalSeats,
-                    c.Fares.Select(f => new FareDefinition(
-                        f.FareBasisCode,
-                        f.FareFamily,
-                        f.BookingClass,
-                        f.CurrencyCode,
-                        f.BaseFareAmount,
-                        f.TaxAmount,
-                        f.IsRefundable,
-                        f.IsChangeable,
-                        f.ChangeFeeAmount,
-                        f.CancellationFeeAmount,
-                        f.PointsPrice,
-                        f.PointsTaxes)).ToList().AsReadOnly()
+                request.AircraftConfigs.Select(c => new AircraftConfig(
+                    c.AircraftTypeCode,
+                    c.Cabins.Select(cab => new CabinSeatCount(cab.CabinCode, cab.TotalSeats))
+                            .ToList().AsReadOnly()
                 )).ToList().AsReadOnly(),
                 scheduleGroupId);
 

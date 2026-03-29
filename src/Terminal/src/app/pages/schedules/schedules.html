@@ -271,8 +271,9 @@
 
       <div class="modal-body">
         <p class="modal-description">
-          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> schedules in <strong>{{ selectedGroup()?.name }}</strong>.
-          Cabin configuration is loaded from the aircraft type registered in the Seat service.
+          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> schedules in
+          <strong>{{ selectedGroup()?.name }}</strong>. Cabin seat counts are taken from each aircraft type's
+          configuration registered in the Seat service. Fares are applied from stored fare rules.
         </p>
 
         @if (importError()) {
@@ -290,59 +291,12 @@
           <div class="error-banner" role="alert">
             <span>&#9888;</span> {{ aircraftConfigError() }}
           </div>
-        } @else {
-
-          @if (scheduleAircraftTypeCodes().length > 1) {
-            <div class="form-group" style="margin-bottom: 16px;">
-              <label class="form-label">Aircraft type</label>
-              <select
-                class="form-select"
-                [ngModel]="selectedAircraftTypeCode()"
-                (ngModelChange)="selectAircraftType($event)"
-                [disabled]="importing()"
-              >
-                @for (code of scheduleAircraftTypeCodes(); track code) {
-                  <option [value]="code">{{ code }}</option>
-                }
-              </select>
-              <p class="form-hint">This schedule group contains multiple aircraft types. Select which configuration to apply.</p>
-            </div>
-          }
-
-          @if (selectedAircraftType(); as aircraftType) {
-            <div class="aircraft-type-header">
-              <span class="badge badge-aircraft">{{ aircraftType.aircraftTypeCode }}</span>
-              @if (aircraftType.friendlyName) {
-                <span class="aircraft-friendly-name">{{ aircraftType.friendlyName }}</span>
-              }
-              <span class="aircraft-total-seats">{{ aircraftType.totalSeats }} seats total</span>
-            </div>
-
-            @if (cabins().length > 0) {
-              @for (cabin of cabins(); track cabin.cabinCode) {
-                <div class="cabin-card">
-                  <div class="cabin-header">
-                    <h3 class="cabin-label">{{ cabin.cabinCode }} &ndash; {{ cabinName(cabin.cabinCode) }}</h3>
-                    <span class="cabin-seat-count">{{ cabin.totalSeats }} seats</span>
-                  </div>
-                </div>
-              }
-            } @else {
-              <div class="error-banner" role="alert">
-                <span>&#9888;</span> No cabin configuration found for {{ selectedAircraftTypeCode() }} in the Seat service.
-              </div>
-            }
-          } @else if (selectedAircraftTypeCode()) {
-            <div class="error-banner" role="alert">
-              <span>&#9888;</span> Aircraft type <strong>{{ selectedAircraftTypeCode() }}</strong> is not registered in the Seat service.
-            </div>
-          }
         }
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeImportModal()" [disabled]="importing()">Cancel</button>
-        <button class="btn-primary" (click)="importToInventory()" [disabled]="importing() || cabins().length === 0 || loadingAircraftConfig()">
+        <button class="btn-primary" (click)="importToInventory()" [disabled]="importing() || loadingAircraftConfig() || !!aircraftConfigError()">
           @if (importing()) {
             <span class="btn-spinner"></span> Importing…
           } @else {
