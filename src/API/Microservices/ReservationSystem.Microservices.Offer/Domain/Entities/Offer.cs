@@ -225,7 +225,6 @@ public sealed class StoredOffer
 
     public static StoredOffer Create(FlightInventory inventory, Fare fare, Guid fareRuleId, string bookingType)
     {
-        var now = DateTime.UtcNow;
         var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == fare.CabinCode);
         return new StoredOffer
         {
@@ -243,8 +242,7 @@ public sealed class StoredOffer
             PointsPrice = fare.PointsPrice, PointsTaxes = fare.PointsTaxes,
             SeatsAvailable = cabin?.SeatsAvailable ?? 0,
             BookingType = bookingType,
-            CreatedAt = now, ExpiresAt = now.AddMinutes(60), IsConsumed = false,
-            UpdatedAt = now
+            ExpiresAt = DateTime.UtcNow.AddMinutes(60), IsConsumed = false
         };
     }
 
