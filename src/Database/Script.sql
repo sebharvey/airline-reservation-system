@@ -318,7 +318,7 @@ BEGIN
             UPDATE [offer].[StoredOffer]
             SET    UpdatedAt = SYSUTCDATETIME()
             FROM   [offer].[StoredOffer] t
-            INNER JOIN inserted i ON t.OfferId = i.OfferId;
+            INNER JOIN inserted i ON t.StoredOfferId = i.StoredOfferId;
     ');
 END
 GO
