@@ -218,14 +218,22 @@ public sealed class StoredOfferItem
 }
 
 /// <summary>
-/// Fare data stored as JSON in the StoredOffer.FaresInfo column.
-/// Flight details (origin, destination, times, aircraft) are intentionally omitted —
-/// they are authoritative in FlightInventory and derived from InventoryId at read time.
+/// One flight's fare entries within a stored offer's FaresInfo JSON payload.
 /// </summary>
-public sealed class StoredOfferFaresInfo
+public sealed class StoredOfferInventoryEntry
 {
     public Guid InventoryId { get; init; }
     public IReadOnlyList<StoredOfferItem> Offers { get; init; } = [];
+}
+
+/// <summary>
+/// Fare data stored as JSON in the StoredOffer.FaresInfo column.
+/// Contains one entry per matching flight; flight details are authoritative in
+/// FlightInventory and derived from InventoryId at read time.
+/// </summary>
+public sealed class StoredOfferFaresInfo
+{
+    public IReadOnlyList<StoredOfferInventoryEntry> Inventories { get; init; } = [];
 }
 
 public sealed class StoredOffer
@@ -243,41 +251,45 @@ public sealed class StoredOffer
     private StoredOffer() { }
 
     public static StoredOffer Create(
-        FlightInventory inventory,
-        IReadOnlyList<(Fare Fare, Guid FareRuleId)> fares,
+        IReadOnlyList<(FlightInventory Inventory, IReadOnlyList<(Fare Fare, Guid FareRuleId)> Fares)> inventoryFares,
         string bookingType,
         Guid sessionId)
     {
-        var items = fares.Select(f =>
+        var entries = inventoryFares.Select(ivf =>
         {
-            var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == f.Fare.CabinCode);
-            return new StoredOfferItem
+            var items = ivf.Fares.Select(f =>
             {
-                OfferId               = Guid.NewGuid(),
-                FareRuleId            = f.FareRuleId,
-                CabinCode             = f.Fare.CabinCode,
-                FareBasisCode         = f.Fare.FareBasisCode,
-                FareFamily            = f.Fare.FareFamily,
-                CurrencyCode          = f.Fare.CurrencyCode,
-                BaseFareAmount        = f.Fare.BaseFareAmount,
-                TaxAmount             = f.Fare.TaxAmount,
-                TotalAmount           = f.Fare.TotalAmount,
-                IsRefundable          = f.Fare.IsRefundable,
-                IsChangeable          = f.Fare.IsChangeable,
-                ChangeFeeAmount       = f.Fare.ChangeFeeAmount,
-                CancellationFeeAmount = f.Fare.CancellationFeeAmount,
-                PointsPrice           = f.Fare.PointsPrice,
-                PointsTaxes           = f.Fare.PointsTaxes,
-                SeatsAvailable        = cabin?.SeatsAvailable ?? 0,
-                BookingType           = bookingType
+                var cabin = ivf.Inventory.Cabins.FirstOrDefault(c => c.CabinCode == f.Fare.CabinCode);
+                return new StoredOfferItem
+                {
+                    OfferId               = Guid.NewGuid(),
+                    FareRuleId            = f.FareRuleId,
+                    CabinCode             = f.Fare.CabinCode,
+                    FareBasisCode         = f.Fare.FareBasisCode,
+                    FareFamily            = f.Fare.FareFamily,
+                    CurrencyCode          = f.Fare.CurrencyCode,
+                    BaseFareAmount        = f.Fare.BaseFareAmount,
+                    TaxAmount             = f.Fare.TaxAmount,
+                    TotalAmount           = f.Fare.TotalAmount,
+                    IsRefundable          = f.Fare.IsRefundable,
+                    IsChangeable          = f.Fare.IsChangeable,
+                    ChangeFeeAmount       = f.Fare.ChangeFeeAmount,
+                    CancellationFeeAmount = f.Fare.CancellationFeeAmount,
+                    PointsPrice           = f.Fare.PointsPrice,
+                    PointsTaxes           = f.Fare.PointsTaxes,
+                    SeatsAvailable        = cabin?.SeatsAvailable ?? 0,
+                    BookingType           = bookingType
+                };
+            }).ToList();
+
+            return new StoredOfferInventoryEntry
+            {
+                InventoryId = ivf.Inventory.InventoryId,
+                Offers      = items
             };
         }).ToList();
 
-        var faresInfo = new StoredOfferFaresInfo
-        {
-            InventoryId = inventory.InventoryId,
-            Offers      = items
-        };
+        var faresInfo = new StoredOfferFaresInfo { Inventories = entries };
 
         return new StoredOffer
         {
