@@ -100,7 +100,31 @@ public sealed class BasketFunction
         var basket = await _getBasketHandler.HandleAsync(new GetBasketQuery(basketId), ct);
         if (basket is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
-        return await req.OkJsonAsync(OrderMapper.ToResponse(basket));
+
+        JsonElement? basketDataJson = null;
+        if (!string.IsNullOrEmpty(basket.BasketData))
+        {
+            try { basketDataJson = JsonSerializer.Deserialize<JsonElement>(basket.BasketData); }
+            catch { /* leave null if unparseable */ }
+        }
+
+        return await req.OkJsonAsync(new
+        {
+            basketId = basket.BasketId,
+            channelCode = basket.ChannelCode,
+            currencyCode = basket.CurrencyCode,
+            basketStatus = basket.BasketStatus,
+            totalFareAmount = basket.TotalFareAmount,
+            totalSeatAmount = basket.TotalSeatAmount,
+            totalBagAmount = basket.TotalBagAmount,
+            totalAmount = basket.TotalAmount,
+            expiresAt = basket.ExpiresAt,
+            confirmedOrderId = basket.ConfirmedOrderId,
+            version = basket.Version,
+            createdAt = basket.CreatedAt,
+            updatedAt = basket.UpdatedAt,
+            basketData = (object?)basketDataJson
+        });
     }
 
     // POST /v1/basket/{basketId}/offers

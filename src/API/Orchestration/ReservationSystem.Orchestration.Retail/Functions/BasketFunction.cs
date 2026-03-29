@@ -87,9 +87,13 @@ public sealed class BasketFunction
         Guid basketId,
         CancellationToken cancellationToken)
     {
-        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
-        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
-        return await req.OkJsonAsync(MapToBasketResponse(basket));
+        var raw = await _orderServiceClient.GetBasketRawAsync(basketId, cancellationToken);
+        if (raw is null) return req.CreateResponse(HttpStatusCode.NotFound);
+
+        var httpResponse = req.CreateResponse(HttpStatusCode.OK);
+        httpResponse.Headers.Add("Content-Type", "application/json");
+        await httpResponse.WriteStringAsync(raw, cancellationToken);
+        return httpResponse;
     }
 
     // -------------------------------------------------------------------------
