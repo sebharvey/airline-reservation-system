@@ -46,12 +46,21 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
+        services.AddHttpClient("SeatMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"] ?? "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["SeatMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<ScheduleServiceClient>();
         services.AddScoped<OfferServiceClient>();
+        services.AddScoped<SeatServiceClient>();
 
         services.AddScoped<FareRuleServiceClient>();
 

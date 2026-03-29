@@ -322,70 +322,31 @@ public class OperationsApiIntegrationTests : IAsyncLifetime
     // -------------------------------------------------------------------------
 
     [SkippableFact, TestPriority(40)]
-    public async Task T40_ImportSchedulesToInventory_NoCabins_ReturnsBadRequest()
+    public async Task T40_ImportSchedulesToInventory_EmptyBody_ReturnsOk()
     {
-        var request = new
-        {
-            cabins = Array.Empty<object>()
-        };
+        // No body required — aircraft configs are resolved from Seat MS.
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", new { }, JsonOptions);
 
-        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [SkippableFact, TestPriority(41)]
-    public async Task T41_ImportSchedulesToInventory_MissingFares_ReturnsBadRequest()
+    public async Task T41_ImportSchedulesToInventory_WithScheduleGroupId_ReturnsOk()
     {
-        var request = new
-        {
-            cabins = new[]
-            {
-                new { cabinCode = "Y", totalSeats = 220, fares = Array.Empty<object>() }
-            }
-        };
+        // scheduleGroupId is optional — passing it scopes the import to a specific group.
+        var request = new { scheduleGroupId = (Guid?)null };
 
         var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [SkippableFact, TestPriority(50)]
-    public async Task T50_ImportSchedulesToInventory_ValidCabins_ReturnsOkWithCounts()
+    public async Task T50_ImportSchedulesToInventory_ReturnsOkWithCounts()
     {
-        // Arrange — cabin and fare definitions to apply to all stored schedules.
         // Assumes T30 has already imported at least one SSIM schedule (AX901 LHR→JFK).
-        var request = new
-        {
-            cabins = new[]
-            {
-                new
-                {
-                    cabinCode = "Y",
-                    totalSeats = 220,
-                    fares = new[]
-                    {
-                        new
-                        {
-                            fareBasisCode = "YFLEX",
-                            fareFamily = "Economy Flex",
-                            currencyCode = "GBP",
-                            baseFareAmount = 650.00m,
-                            taxAmount = 180.00m,
-                            isRefundable = true,
-                            isChangeable = true,
-                            changeFeeAmount = 0.00m,
-                            cancellationFeeAmount = 0.00m,
-                            pointsPrice = 25000,
-                            pointsTaxes = 180.00m
-                        }
-                    }
-                }
-            }
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+        // Aircraft configs are resolved from the Seat MS — no cabin definitions in the request.
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", new { }, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -403,37 +364,7 @@ public class OperationsApiIntegrationTests : IAsyncLifetime
     public async Task T51_ImportSchedulesToInventory_Idempotent_AllSkipped()
     {
         // Running the same import again should skip all existing inventory.
-        var request = new
-        {
-            cabins = new[]
-            {
-                new
-                {
-                    cabinCode = "Y",
-                    totalSeats = 220,
-                    fares = new[]
-                    {
-                        new
-                        {
-                            fareBasisCode = "YFLEX",
-                            fareFamily = "Economy Flex",
-                            currencyCode = "GBP",
-                            baseFareAmount = 650.00m,
-                            taxAmount = 180.00m,
-                            isRefundable = true,
-                            isChangeable = true,
-                            changeFeeAmount = 0.00m,
-                            cancellationFeeAmount = 0.00m,
-                            pointsPrice = 25000,
-                            pointsTaxes = 180.00m
-                        }
-                    }
-                }
-            }
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", request, JsonOptions);
+        var response = await _client.PostAsJsonAsync("/api/v1/schedules/import-inventory", new { }, JsonOptions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
