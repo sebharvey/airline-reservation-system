@@ -20,17 +20,20 @@ public sealed class ReleaseInventoryHandler
         var inventory = await _repository.GetInventoryByIdAsync(command.InventoryId, ct)
             ?? throw new KeyNotFoundException($"Inventory {command.InventoryId} not found.");
 
+        var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == command.CabinCode)
+            ?? throw new ArgumentException($"Cabin {command.CabinCode} not found on inventory {command.InventoryId}.");
+
         if (command.ReleaseType == "Held")
         {
-            if (inventory.SeatsHeld < command.PaxCount)
-                throw new InvalidOperationException($"Insufficient held seats: {inventory.SeatsHeld} held, {command.PaxCount} requested.");
-            inventory.ReleaseHeld(command.PaxCount);
+            if (cabin.SeatsHeld < command.PaxCount)
+                throw new InvalidOperationException($"Insufficient held seats in cabin {command.CabinCode}: {cabin.SeatsHeld} held, {command.PaxCount} requested.");
+            inventory.ReleaseHeld(command.CabinCode, command.PaxCount);
         }
         else if (command.ReleaseType == "Sold")
         {
-            if (inventory.SeatsSold < command.PaxCount)
-                throw new InvalidOperationException($"Insufficient sold seats: {inventory.SeatsSold} sold, {command.PaxCount} requested.");
-            inventory.ReleaseSold(command.PaxCount);
+            if (cabin.SeatsSold < command.PaxCount)
+                throw new InvalidOperationException($"Insufficient sold seats in cabin {command.CabinCode}: {cabin.SeatsSold} sold, {command.PaxCount} requested.");
+            inventory.ReleaseSold(command.CabinCode, command.PaxCount);
         }
         else
         {
@@ -39,8 +42,8 @@ public sealed class ReleaseInventoryHandler
 
         await _repository.UpdateInventoryAsync(inventory, ct);
 
-        _logger.LogInformation("Released {PaxCount} {ReleaseType} seats on inventory {InventoryId}",
-            command.PaxCount, command.ReleaseType, command.InventoryId);
+        _logger.LogInformation("Released {PaxCount} {ReleaseType} seats in cabin {CabinCode} on inventory {InventoryId}",
+            command.PaxCount, command.ReleaseType, command.CabinCode, command.InventoryId);
 
         return inventory;
     }

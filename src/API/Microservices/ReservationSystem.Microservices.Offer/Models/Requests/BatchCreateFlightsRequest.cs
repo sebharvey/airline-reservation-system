@@ -34,6 +34,12 @@ public sealed class BatchFlightItemRequest
     [JsonPropertyName("aircraftType")]
     public string AircraftType { get; init; } = string.Empty;
 
+    [JsonPropertyName("cabins")]
+    public IReadOnlyList<CabinItemRequest> Cabins { get; init; } = [];
+}
+
+public sealed class CabinItemRequest
+{
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 

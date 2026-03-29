@@ -31,8 +31,7 @@ public sealed class OfferServiceClient
         string origin,
         string destination,
         string aircraftType,
-        string cabinCode,
-        int totalSeats,
+        IReadOnlyList<(string CabinCode, int TotalSeats)> cabins,
         CancellationToken cancellationToken = default)
     {
         var body = new
@@ -45,8 +44,7 @@ public sealed class OfferServiceClient
             origin,
             destination,
             aircraftType,
-            cabinCode,
-            totalSeats
+            cabins = cabins.Select(c => new { cabinCode = c.CabinCode, totalSeats = c.TotalSeats }).ToArray()
         };
 
         var response = await _httpClient.PostAsJsonAsync("/api/v1/flights", body, JsonOptions, cancellationToken);

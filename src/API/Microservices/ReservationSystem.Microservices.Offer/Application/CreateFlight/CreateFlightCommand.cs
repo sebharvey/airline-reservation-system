@@ -9,5 +9,6 @@ public sealed record CreateFlightCommand(
     string Origin,
     string Destination,
     string AircraftType,
-    string CabinCode,
-    int TotalSeats);
+    IReadOnlyList<CabinItem> Cabins);
+
+public sealed record CabinItem(string CabinCode, int TotalSeats);

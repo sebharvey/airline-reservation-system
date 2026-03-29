@@ -1,7 +1,34 @@
 namespace ReservationSystem.Microservices.Offer.Domain.Entities;
 
+/// <summary>
+/// Seat inventory for a single cabin on a flight. Stored as JSON within FlightInventory.
+/// </summary>
+public sealed class CabinInventory
+{
+    public string CabinCode { get; private set; } = string.Empty;
+    public int TotalSeats { get; private set; }
+    public int SeatsSold { get; private set; }
+    public int SeatsHeld { get; private set; }
+    public int SeatsAvailable => TotalSeats - SeatsSold - SeatsHeld;
+
+    private CabinInventory() { }
+
+    internal static CabinInventory Create(string cabinCode, int totalSeats) =>
+        new() { CabinCode = cabinCode, TotalSeats = totalSeats };
+
+    internal static CabinInventory Reconstitute(string cabinCode, int totalSeats, int seatsSold, int seatsHeld) =>
+        new() { CabinCode = cabinCode, TotalSeats = totalSeats, SeatsSold = seatsSold, SeatsHeld = seatsHeld };
+
+    internal void Hold(int count) { SeatsHeld += count; }
+    internal void Sell(int count) { SeatsHeld -= count; SeatsSold += count; }
+    internal void ReleaseHeld(int count) { SeatsHeld -= count; }
+    internal void ReleaseSold(int count) { SeatsSold -= count; }
+}
+
 public sealed class FlightInventory
 {
+    private readonly List<CabinInventory> _cabins = [];
+
     public Guid InventoryId { get; private set; }
     public string FlightNumber { get; private set; } = string.Empty;
     public DateOnly DepartureDate { get; private set; }
@@ -11,11 +38,9 @@ public sealed class FlightInventory
     public string Origin { get; private set; } = string.Empty;
     public string Destination { get; private set; } = string.Empty;
     public string AircraftType { get; private set; } = string.Empty;
-    public string CabinCode { get; private set; } = string.Empty;
+    public IReadOnlyList<CabinInventory> Cabins => _cabins.AsReadOnly();
     public int TotalSeats { get; private set; }
     public int SeatsAvailable { get; private set; }
-    public int SeatsSold { get; private set; }
-    public int SeatsHeld { get; private set; }
     public string Status { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -25,9 +50,11 @@ public sealed class FlightInventory
     public static FlightInventory Create(
         string flightNumber, DateOnly departureDate, TimeOnly departureTime, TimeOnly arrivalTime,
         int arrivalDayOffset, string origin, string destination, string aircraftType,
-        string cabinCode, int totalSeats)
+        IReadOnlyList<(string CabinCode, int TotalSeats)> cabins)
     {
-        return new FlightInventory
+        var cabinList = cabins.Select(c => CabinInventory.Create(c.CabinCode, c.TotalSeats)).ToList();
+        var totalSeats = cabinList.Sum(c => c.TotalSeats);
+        var inv = new FlightInventory
         {
             InventoryId = Guid.NewGuid(),
             FlightNumber = flightNumber,
@@ -38,36 +65,56 @@ public sealed class FlightInventory
             Origin = origin,
             Destination = destination,
             AircraftType = aircraftType,
-            CabinCode = cabinCode,
             TotalSeats = totalSeats,
             SeatsAvailable = totalSeats,
-            SeatsSold = 0,
-            SeatsHeld = 0,
             Status = InventoryStatus.Active
         };
+        inv._cabins.AddRange(cabinList);
+        return inv;
     }
 
     public static FlightInventory Reconstitute(
         Guid inventoryId, string flightNumber, DateOnly departureDate, TimeOnly departureTime,
         TimeOnly arrivalTime, int arrivalDayOffset, string origin, string destination,
-        string aircraftType, string cabinCode, int totalSeats, int seatsAvailable,
-        int seatsSold, int seatsHeld, string status, DateTime createdAt, DateTime updatedAt)
+        string aircraftType, IReadOnlyList<CabinInventory> cabins,
+        int totalSeats, int seatsAvailable, string status, DateTime createdAt, DateTime updatedAt)
     {
-        return new FlightInventory
+        var inv = new FlightInventory
         {
             InventoryId = inventoryId, FlightNumber = flightNumber, DepartureDate = departureDate,
             DepartureTime = departureTime, ArrivalTime = arrivalTime, ArrivalDayOffset = arrivalDayOffset,
             Origin = origin, Destination = destination, AircraftType = aircraftType,
-            CabinCode = cabinCode, TotalSeats = totalSeats, SeatsAvailable = seatsAvailable,
-            SeatsSold = seatsSold, SeatsHeld = seatsHeld, Status = status,
+            TotalSeats = totalSeats, SeatsAvailable = seatsAvailable, Status = status,
             CreatedAt = createdAt, UpdatedAt = updatedAt
         };
+        inv._cabins.AddRange(cabins);
+        return inv;
     }
 
-    public void HoldSeats(int count) { SeatsAvailable -= count; SeatsHeld += count; }
-    public void SellSeats(int count) { SeatsHeld -= count; SeatsSold += count; }
-    public void ReleaseHeld(int count) { SeatsHeld -= count; SeatsAvailable += count; }
-    public void ReleaseSold(int count) { SeatsSold -= count; SeatsAvailable += count; }
+    private CabinInventory GetCabin(string cabinCode) =>
+        _cabins.FirstOrDefault(c => c.CabinCode == cabinCode)
+        ?? throw new ArgumentException($"Cabin {cabinCode} not found on inventory {InventoryId}.");
+
+    public void HoldSeats(string cabinCode, int count)
+    {
+        GetCabin(cabinCode).Hold(count);
+        SeatsAvailable -= count;
+    }
+
+    public void SellSeats(string cabinCode, int count) => GetCabin(cabinCode).Sell(count);
+
+    public void ReleaseHeld(string cabinCode, int count)
+    {
+        GetCabin(cabinCode).ReleaseHeld(count);
+        SeatsAvailable += count;
+    }
+
+    public void ReleaseSold(string cabinCode, int count)
+    {
+        GetCabin(cabinCode).ReleaseSold(count);
+        SeatsAvailable += count;
+    }
+
     public void Cancel() { Status = InventoryStatus.Cancelled; SeatsAvailable = 0; }
 }
 
@@ -184,6 +231,7 @@ public sealed class StoredOffer
     public static StoredOffer Create(FlightInventory inventory, Fare fare, string bookingType)
     {
         var now = DateTime.UtcNow;
+        var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == fare.CabinCode);
         return new StoredOffer
         {
             OfferId = Guid.NewGuid(),
@@ -192,7 +240,7 @@ public sealed class StoredOffer
             DepartureTime = inventory.DepartureTime, ArrivalTime = inventory.ArrivalTime,
             ArrivalDayOffset = inventory.ArrivalDayOffset,
             Origin = inventory.Origin, Destination = inventory.Destination,
-            AircraftType = inventory.AircraftType, CabinCode = inventory.CabinCode,
+            AircraftType = inventory.AircraftType, CabinCode = fare.CabinCode,
             FareBasisCode = fare.FareBasisCode, FareFamily = fare.FareFamily,
             BookingClass = fare.BookingClass, CurrencyCode = fare.CurrencyCode,
             BaseFareAmount = fare.BaseFareAmount, TaxAmount = fare.TaxAmount,
@@ -200,7 +248,7 @@ public sealed class StoredOffer
             IsChangeable = fare.IsChangeable, ChangeFeeAmount = fare.ChangeFeeAmount,
             CancellationFeeAmount = fare.CancellationFeeAmount,
             PointsPrice = fare.PointsPrice, PointsTaxes = fare.PointsTaxes,
-            SeatsAvailable = inventory.SeatsAvailable,
+            SeatsAvailable = cabin?.SeatsAvailable ?? 0,
             BookingType = bookingType,
             CreatedAt = now, ExpiresAt = now.AddMinutes(60), IsConsumed = false,
             UpdatedAt = now
