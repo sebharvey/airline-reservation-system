@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RetailApiService } from '../../services/retail-api.service';
+import { RetailApiService, SearchSliceResult } from '../../services/retail-api.service';
 import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { BookingType } from '../../models/order.model';
@@ -61,6 +61,9 @@ export class SearchResultsComponent implements OnInit {
 
   basketLoading = signal(false);
   basketError = signal('');
+
+  private outboundSessionId = '';
+  private inboundSessionId = '';
 
   readonly airports = AIRPORTS;
 
@@ -133,8 +136,9 @@ export class SearchResultsComponent implements OnInit {
       children: this.children(),
       bookingType: this.bookingType()
     }).subscribe({
-      next: (offers) => {
-        this.outboundOffers.set(offers);
+      next: (result: SearchSliceResult) => {
+        this.outboundSessionId = result.sessionId;
+        this.outboundOffers.set(result.offers);
         this.outboundLoading.set(false);
       },
       error: () => {
@@ -155,8 +159,9 @@ export class SearchResultsComponent implements OnInit {
       children: this.children(),
       bookingType: this.bookingType()
     }).subscribe({
-      next: (offers) => {
-        this.returnOffers.set(offers);
+      next: (result: SearchSliceResult) => {
+        this.inboundSessionId = result.sessionId;
+        this.returnOffers.set(result.offers);
         this.returnLoading.set(false);
       },
       error: () => {
@@ -197,7 +202,8 @@ export class SearchResultsComponent implements OnInit {
       outboundOfferId: outbound.offerId,
       inboundOfferId: inbound?.offerId,
       bookingType: this.bookingType(),
-      loyaltyNumber
+      loyaltyNumber,
+      sessionId: this.outboundSessionId || undefined
     }).subscribe({
       next: (basket) => {
         this.bookingState.startBasket(outbound, inbound, basket.basketId);

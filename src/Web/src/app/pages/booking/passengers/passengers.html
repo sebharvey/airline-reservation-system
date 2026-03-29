@@ -118,10 +118,11 @@
   </div>
 
   <!-- Action Buttons -->
+  <div class="save-error" *ngIf="saveError()">{{ saveError() }}</div>
   <div class="actions">
     <a routerLink="/" class="btn-secondary">Cancel</a>
-    <button class="btn-primary" (click)="onContinue()">
-      Continue to Seat Selection &#8250;
+    <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
+      {{ saving() ? 'Saving…' : 'Continue to Seat Selection ›' }}
     </button>
   </div>
 

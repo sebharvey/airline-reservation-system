@@ -89,6 +89,6 @@ public sealed class SearchFlightsHandler
             };
         }).ToList();
 
-        return new SearchResponse { Flights = flights };
+        return new SearchResponse { SessionId = result.SessionId, Flights = flights };
     }
 }

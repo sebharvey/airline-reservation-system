@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
+import { RetailApiService } from '../../../services/retail-api.service';
 import { Basket, Order, OrderItem, FlightSegment, Payment, Passenger, PointsRedemption } from '../../../models/order.model';
 
 function randomAlpha(len: number): string {
@@ -27,9 +28,8 @@ function generateOrderId(): string {
   return 'ORD-' + randomNum(8);
 }
 
-function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, loyaltyNumber?: string): Order {
+function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string): Order {
   const now = new Date().toISOString();
-  const bookingRef = generateBookingRef();
   const orderId = generateOrderId();
   const payRef = 'PAY-' + randomNum(8);
 
@@ -186,6 +186,7 @@ export class PaymentComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly bookingState = inject(BookingStateService);
   private readonly loyaltyState = inject(LoyaltyStateService);
+  private readonly retailApi = inject(RetailApiService);
 
   readonly basket = this.bookingState.basket;
   readonly isRewardBooking = this.bookingState.isRewardBooking;
@@ -273,14 +274,28 @@ export class PaymentComponent implements OnInit {
 
     this.paying.set(true);
 
-    // Simulate payment processing delay
-    setTimeout(() => {
-      const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
-      const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), loyaltyNumber);
-      this.bookingState.confirmOrder(order);
-      this.paying.set(false);
-      this.router.navigate(['/booking/confirmation']);
-    }, 1500);
+    const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
+    const isReward = basket.bookingType === 'Reward';
+    const loyaltyPointsToRedeem = isReward ? basket.totalPointsAmount : undefined;
+
+    this.retailApi.confirmBasket(
+      basket.basketId,
+      'CreditCard',
+      this.cardNumber().replace(/\D/g, ''),
+      loyaltyPointsToRedeem
+    ).subscribe({
+      next: (result) => {
+        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber);
+        this.bookingState.confirmOrder(order);
+        this.paying.set(false);
+        this.router.navigate(['/booking/confirmation']);
+      },
+      error: (err) => {
+        this.paying.set(false);
+        const msg = err?.error?.message ?? err?.message ?? 'Payment failed. Please check your details and try again.';
+        this.paymentError.set(msg);
+      }
+    });
   }
 
   formatPrice(amount: number): string {

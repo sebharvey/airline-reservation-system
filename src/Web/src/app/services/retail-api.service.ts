@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
-import { Order, BoardingPass, BookingType } from '../models/order.model';
+import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
 import { getMockSeatmap } from '../data/mock/seatmap.mock';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
@@ -34,6 +34,7 @@ export interface CreateBasketParams {
   bookingType: BookingType;
   currencyCode?: string;
   loyaltyNumber?: string;
+  sessionId?: string;
 }
 
 export interface CreateBasketResponse {
@@ -46,6 +47,14 @@ export interface CreateBasketResponse {
   totalPointsAmount: number | null;
   currencyCode: string;
   expiresAt: string;
+}
+
+export interface ConfirmBasketResponse {
+  bookingReference: string;
+  status: string;
+  totalPrice: number;
+  currency: string;
+  bookedAt: string;
 }
 
 export interface RetrieveOrderParams {
@@ -91,6 +100,7 @@ interface SearchSliceApiFlight {
 }
 
 interface SearchSliceApiResponse {
+  sessionId: string;
   flights: SearchSliceApiFlight[];
 }
 
@@ -105,7 +115,12 @@ const CABIN_NAMES: Record<string, string> = {
 
 const API_DELAY_MS = 600;
 
-function mapApiResponseToOffers(response: SearchSliceApiResponse): FlightOffer[] {
+export interface SearchSliceResult {
+  sessionId: string;
+  offers: FlightOffer[];
+}
+
+function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceResult {
   const offers: FlightOffer[] = [];
   for (const flight of response.flights) {
     for (const cabin of flight.cabins) {
@@ -138,7 +153,7 @@ function mapApiResponseToOffers(response: SearchSliceApiResponse): FlightOffer[]
       }
     }
   }
-  return offers;
+  return { sessionId: response.sessionId, offers };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -159,7 +174,7 @@ export class RetailApiService {
    * POST /v1/search/slice
    * Search for available flights for a single directional slice.
    */
-  searchSlice(params: SearchSliceParams): Observable<FlightOffer[]> {
+  searchSlice(params: SearchSliceParams): Observable<SearchSliceResult> {
     const base = environment.retailApiBaseUrl;
     const body = {
       origin: params.origin,
@@ -170,7 +185,7 @@ export class RetailApiService {
     };
     return this.#http
       .post<SearchSliceApiResponse>(`${base}/api/v1/search/slice`, body)
-      .pipe(map(mapApiResponseToOffers));
+      .pipe(map(mapApiResponseToResult));
   }
 
   /**
@@ -187,9 +202,47 @@ export class RetailApiService {
       channelCode: 'WEB',
       currencyCode: params.currencyCode ?? 'GBP',
       bookingType: params.bookingType,
-      loyaltyNumber: params.loyaltyNumber ?? null
+      loyaltyNumber: params.loyaltyNumber ?? null,
+      sessionId: params.sessionId ?? null
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/passengers
+   * Store passenger details in the basket.
+   */
+  updateBasketPassengers(basketId: string, passengers: Passenger[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/passengers`, passengers);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/seats
+   * Store seat selections in the basket.
+   */
+  updateBasketSeats(basketId: string, seatSelections: BasketSeatSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/seats`, seatSelections);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/bags
+   * Store bag selections in the basket.
+   */
+  updateBasketBags(basketId: string, bagSelections: BasketBagSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/bags`, bagSelections);
+  }
+
+  /**
+   * POST /v1/basket/{basketId}/confirm
+   * Confirm the basket — processes payment, creates order, issues e-tickets.
+   */
+  confirmBasket(basketId: string, paymentMethod: string, paymentToken?: string, loyaltyPointsToRedeem?: number): Observable<ConfirmBasketResponse> {
+    const base = environment.retailApiBaseUrl;
+    const body = { paymentMethod, paymentToken: paymentToken ?? null, loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null };
+    return this.#http.post<ConfirmBasketResponse>(`${base}/api/v1/basket/${basketId}/confirm`, body);
   }
 
   /**

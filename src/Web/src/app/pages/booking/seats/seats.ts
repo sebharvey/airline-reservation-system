@@ -38,6 +38,8 @@ export class SeatsComponent implements OnInit {
   seatmapEntries = signal<SeatmapEntry[]>([]);
   activePassengerIndex = signal(0);
   activeFlightIndex = signal(0);
+  saving = signal(false);
+  saveError = signal('');
 
   // Map of `${passengerId}__${basketItemId}` -> SelectedSeat
   selections = signal<Map<string, SelectedSeat>>(new Map());
@@ -185,8 +187,21 @@ export class SeatsComponent implements OnInit {
   }
 
   onSkip(): void {
-    this.bookingState.setSeatSelections([]);
-    this.router.navigate(['/booking/bags']);
+    const basketId = this.basket()?.basketId;
+    if (!basketId) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    this.retailApi.updateBasketSeats(basketId, []).subscribe({
+      next: () => {
+        this.bookingState.setSeatSelections([]);
+        this.saving.set(false);
+        this.router.navigate(['/booking/bags']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to update seat selections. Please try again.');
+      }
+    });
   }
 
   onContinue(): void {
@@ -207,8 +222,19 @@ export class SeatsComponent implements OnInit {
       });
     }
 
-    this.bookingState.setSeatSelections(selectionsList);
-    this.router.navigate(['/booking/bags']);
+    this.saving.set(true);
+    this.saveError.set('');
+    this.retailApi.updateBasketSeats(basket.basketId, selectionsList).subscribe({
+      next: () => {
+        this.bookingState.setSeatSelections(selectionsList);
+        this.saving.set(false);
+        this.router.navigate(['/booking/bags']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save seat selections. Please try again.');
+      }
+    });
   }
 
   hasAisle(layout: string, colIndex: number): boolean {

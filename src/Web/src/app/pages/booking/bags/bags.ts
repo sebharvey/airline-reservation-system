@@ -36,6 +36,8 @@ export class BagsComponent implements OnInit {
   readonly basket = this.bookingState.basket;
 
   flightBagData = signal<FlightBagData[]>([]);
+  saving = signal(false);
+  saveError = signal('');
 
   // Map of `${passengerId}__${basketItemId}` -> PassengerBagSelection
   selections = signal<Map<string, PassengerBagSelection>>(new Map());
@@ -162,11 +164,27 @@ export class BagsComponent implements OnInit {
   }
 
   onSkip(): void {
-    this.bookingState.setBagSelections([]);
-    this.router.navigate(['/booking/payment']);
+    const basketId = this.basket()?.basketId;
+    if (!basketId) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    this.retailApi.updateBasketBags(basketId, []).subscribe({
+      next: () => {
+        this.bookingState.setBagSelections([]);
+        this.saving.set(false);
+        this.router.navigate(['/booking/payment']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to update bag selections. Please try again.');
+      }
+    });
   }
 
   onContinue(): void {
+    const basketId = this.basket()?.basketId;
+    if (!basketId) return;
+
     const selectionsList: BasketBagSelection[] = [];
 
     for (const sel of this.selections().values()) {
@@ -183,7 +201,18 @@ export class BagsComponent implements OnInit {
       }
     }
 
-    this.bookingState.setBagSelections(selectionsList);
-    this.router.navigate(['/booking/payment']);
+    this.saving.set(true);
+    this.saveError.set('');
+    this.retailApi.updateBasketBags(basketId, selectionsList).subscribe({
+      next: () => {
+        this.bookingState.setBagSelections(selectionsList);
+        this.saving.set(false);
+        this.router.navigate(['/booking/payment']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save bag selections. Please try again.');
+      }
+    });
   }
 }
