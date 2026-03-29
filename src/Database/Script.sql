@@ -708,10 +708,12 @@ CREATE TABLE [seat].[AircraftType] (
     Manufacturer     VARCHAR(50)  NOT NULL,
     FriendlyName     VARCHAR(100)     NULL,
     TotalSeats       SMALLINT     NOT NULL,
+    CabinCounts      NVARCHAR(MAX)    NULL,
     IsActive         BIT          NOT NULL CONSTRAINT DF_AircraftType_Active  DEFAULT 1,
     CreatedAt        DATETIME2    NOT NULL CONSTRAINT DF_AircraftType_Created DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2    NOT NULL CONSTRAINT DF_AircraftType_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_AircraftType PRIMARY KEY (AircraftTypeCode)
+    CONSTRAINT PK_AircraftType PRIMARY KEY (AircraftTypeCode),
+    CONSTRAINT CHK_CabinCounts CHECK (CabinCounts IS NULL OR ISJSON(CabinCounts) = 1)
 );
 GO
 

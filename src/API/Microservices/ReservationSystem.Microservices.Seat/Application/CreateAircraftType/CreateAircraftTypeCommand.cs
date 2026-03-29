@@ -7,4 +7,5 @@ public sealed record CreateAircraftTypeCommand(
     string AircraftTypeCode,
     string Manufacturer,
     int TotalSeats,
-    string? FriendlyName);
+    string? FriendlyName,
+    string? CabinCounts);

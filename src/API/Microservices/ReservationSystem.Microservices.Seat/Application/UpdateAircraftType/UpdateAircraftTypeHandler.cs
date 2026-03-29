@@ -31,6 +31,7 @@ public sealed class UpdateAircraftTypeHandler
             command.Manufacturer ?? existing.Manufacturer,
             command.FriendlyName ?? existing.FriendlyName,
             command.TotalSeats ?? existing.TotalSeats,
+            command.CabinCounts ?? existing.CabinCounts,
             command.IsActive ?? existing.IsActive,
             existing.CreatedAt,
             DateTime.UtcNow);
