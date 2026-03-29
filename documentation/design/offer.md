@@ -182,3 +182,18 @@ One row per **search session**. All matching flights and their cabin fares are s
 > **One row per search session:** A single row stores all matching flights and all their cabin fares, keeping the row count equal to the number of searches.
 > **FaresInfo structure:** `{ "inventories": [ { "inventoryId": "<guid>", "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] } ] }`
 > **Expiry alignment:** `ExpiresAt = CreatedAt + 60 minutes`, matching the basket expiry window.
+
+---
+
+## Timer triggers
+
+### `DeleteExpiredFlightInventory`
+
+- **Function name:** `DeleteExpiredFlightInventory`
+- **Schedule:** `0 0 0 * * *` — daily at midnight UTC
+- **Microservice:** `ReservationSystem.Microservices.Offer`
+- **Handler:** `DeleteExpiredFlightInventoryHandler`
+
+Deletes all `offer.FlightInventory` rows — and their child `offer.Fare` rows — whose departure datetime is more than 48 hours in the past. The 48-hour grace window ensures that late-arriving data or post-flight reporting queries are not disrupted before the cleanup runs.
+
+The function logs a start message and a completion message containing the count of deleted inventory rows. It is invoked by the Azure Functions runtime on its cron schedule and receives a `CancellationToken` for graceful shutdown.

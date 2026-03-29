@@ -730,4 +730,17 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
 }
 ```
 
------
+---
+
+## Timer triggers
+
+### `DeleteExpiredBaskets`
+
+- **Function name:** `DeleteExpiredBaskets`
+- **Schedule:** `0 0 * * * *` — at the top of every hour
+- **Microservice:** `ReservationSystem.Microservices.Order`
+- **Handler:** `DeleteExpiredBasketsHandler`
+
+Deletes all `order.Basket` rows whose `ExpiresAt` timestamp is in the past. Baskets expire 60 minutes after creation, matching the `StoredOffer` expiry window. This ensures that abandoned bookings do not accumulate in the database and that any inventory held against expired baskets is not blocked indefinitely.
+
+The function logs a start message and a completion message containing the count of deleted basket rows. It is invoked by the Azure Functions runtime on its cron schedule and receives a `CancellationToken` for graceful shutdown.
