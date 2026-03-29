@@ -16,4 +16,6 @@ public interface IBasketRepository
     Task UpdateAsync(Basket basket, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(Guid basketId, CancellationToken cancellationToken = default);
+
+    Task<int> DeleteExpiredAsync(CancellationToken cancellationToken = default);
 }

@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Order.Swagger;
 using ReservationSystem.Microservices.Order.Application.CancelOrder;
 using ReservationSystem.Microservices.Order.Application.ChangeOrder;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
+using ReservationSystem.Microservices.Order.Application.DeleteExpiredBaskets;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Application.ExpireBasket;
 using ReservationSystem.Microservices.Order.Application.GetBasket;
@@ -63,6 +64,7 @@ var host = new HostBuilder()
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Application use-case handlers ──────────────────────────────────────
+        services.AddScoped<DeleteExpiredBasketsHandler>();
         services.AddScoped<CreateBasketHandler>();
         services.AddScoped<GetBasketHandler>();
         services.AddScoped<UpdateBasketFlightsHandler>();
