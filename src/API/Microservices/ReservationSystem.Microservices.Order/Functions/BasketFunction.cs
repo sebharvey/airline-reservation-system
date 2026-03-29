@@ -18,6 +18,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Microservices.Order.Functions;
 
