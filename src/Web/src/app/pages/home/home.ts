@@ -14,7 +14,19 @@ import { BookingType } from '../../models/order.model';
   styleUrl: './home.css'
 })
 export class HomeComponent {
-  tripType: 'one-way' | 'return' = 'one-way';
+  private _tripType: 'one-way' | 'return' = 'one-way';
+
+  get tripType(): 'one-way' | 'return' {
+    return this._tripType;
+  }
+
+  set tripType(value: 'one-way' | 'return') {
+    this._tripType = value;
+    if (value === 'return') {
+      this.setDefaultReturnDate();
+    }
+  }
+
   origin = 'LHR';
   destination = '';
   departDate = '';
@@ -33,7 +45,25 @@ export class HomeComponent {
   showOriginDropdown = false;
   showDestinationDropdown = false;
 
-  constructor(private router: Router, private bookingState: BookingStateService) {}
+  constructor(private router: Router, private bookingState: BookingStateService) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    this.departDate = tomorrow.toISOString().split('T')[0];
+  }
+
+  onDepartDateChange(): void {
+    if (this.isReturn) {
+      this.setDefaultReturnDate();
+    }
+  }
+
+  private setDefaultReturnDate(): void {
+    if (!this.returnDate || this.returnDate <= this.departDate) {
+      const depart = new Date(this.departDate);
+      depart.setDate(depart.getDate() + 14);
+      this.returnDate = depart.toISOString().split('T')[0];
+    }
+  }
 
   get isReturn(): boolean {
     return this.tripType === 'return';
