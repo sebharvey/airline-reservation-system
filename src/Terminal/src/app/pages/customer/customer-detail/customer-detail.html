@@ -263,7 +263,7 @@
                       <label class="field-label">Account locked</label>
                       <select class="field-input"
                         [value]="editIdentityIsLocked() ? 'true' : 'false'"
-                        (change)="editIdentityIsLocked.set(($event.target as HTMLSelectElement).value === 'true')"
+                        (change)="editIdentityIsLocked.set($any($event.target).value === 'true')"
                         [disabled]="savingIdentity()">
                         <option value="false">Unlocked</option>
                         <option value="true">Locked</option>
