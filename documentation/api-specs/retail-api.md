@@ -164,7 +164,6 @@ Search for available direct flights for a single directional slice (outbound or 
   "origin": "LHR",
   "destination": "JFK",
   "departureDate": "2026-08-15",
-  "cabinCode": "J",
   "paxCount": 2,
   "bookingType": "Revenue"
 }
@@ -175,7 +174,6 @@ Search for available direct flights for a single directional slice (outbound or 
 | `origin` | string | Yes | IATA 3-letter airport code |
 | `destination` | string | Yes | IATA 3-letter airport code |
 | `departureDate` | string (date) | Yes | ISO 8601 departure date |
-| `cabinCode` | string | Yes | `F`, `J`, `W`, or `Y` |
 | `paxCount` | integer | Yes | Number of passengers. Must be ≥ 1 |
 | `bookingType` | string | No | `Revenue` (default) or `Reward`. If `Reward`, only fares with a `pointsPrice` are returned |
 
@@ -242,7 +240,7 @@ Search for available direct flights for a single directional slice (outbound or 
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields, invalid IATA codes, invalid cabin code, or `paxCount` < 1 |
+| `400 Bad Request` | Missing required fields, invalid IATA codes, or `paxCount` < 1 |
 
 ---
 
@@ -259,7 +257,6 @@ Search for connecting itinerary options via the LHR hub. Assembles pairs of per-
   "origin": "DEL",
   "destination": "JFK",
   "departureDate": "2026-08-15",
-  "cabinCode": "Y",
   "paxCount": 1,
   "bookingType": "Revenue"
 }
@@ -270,7 +267,6 @@ Search for connecting itinerary options via the LHR hub. Assembles pairs of per-
 | `origin` | string | Yes | IATA 3-letter departure airport code. Must not be `LHR` |
 | `destination` | string | Yes | IATA 3-letter destination airport code. Must not be `LHR` |
 | `departureDate` | string (date) | Yes | ISO 8601 departure date for the first leg |
-| `cabinCode` | string | Yes | `F`, `J`, `W`, or `Y` — applied to both legs |
 | `paxCount` | integer | Yes | Number of passengers. Must be ≥ 1 |
 | `bookingType` | string | No | `Revenue` (default) or `Reward` |
 
@@ -1629,7 +1625,7 @@ The only database table owned by the Retail API. Read directly for `GET /v1/ssr/
 curl -X POST https://{retail-api-host}/v1/search/slice \
   -H "Content-Type: application/json" \
   -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000" \
-  -d '{ "origin": "LHR", "destination": "JFK", "departureDate": "2026-08-15", "cabinCode": "J", "paxCount": 2 }'
+  -d '{ "origin": "LHR", "destination": "JFK", "departureDate": "2026-08-15", "paxCount": 2 }'
 ```
 
 ### Create a basket (channel → Retail API)

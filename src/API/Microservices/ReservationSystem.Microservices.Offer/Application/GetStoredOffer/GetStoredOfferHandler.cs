@@ -40,12 +40,20 @@ public sealed class GetStoredOfferHandler
             throw new OfferGoneException($"Offer {query.OfferId} has expired. Customer must re-search.");
         }
 
-        var inventoryId = offer.GetFaresInfo().InventoryId;
-        var inventory   = await _repository.GetInventoryByIdAsync(inventoryId, ct);
+        var entry = offer.GetFaresInfo().Inventories
+            .FirstOrDefault(e => e.Offers.Any(o => o.OfferId == query.OfferId));
+
+        if (entry is null)
+        {
+            _logger.LogWarning("OfferId {OfferId} not found in FaresInfo of stored offer {StoredOfferId}", query.OfferId, offer.StoredOfferId);
+            return null;
+        }
+
+        var inventory = await _repository.GetInventoryByIdAsync(entry.InventoryId, ct);
 
         if (inventory is null)
         {
-            _logger.LogWarning("FlightInventory {InventoryId} for offer {OfferId} not found", inventoryId, query.OfferId);
+            _logger.LogWarning("FlightInventory {InventoryId} for offer {OfferId} not found", entry.InventoryId, query.OfferId);
             return null;
         }
 

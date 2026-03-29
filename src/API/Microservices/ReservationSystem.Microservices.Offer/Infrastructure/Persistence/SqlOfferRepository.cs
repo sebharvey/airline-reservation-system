@@ -390,11 +390,13 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     public async Task<StoredOffer?> GetStoredOfferByOfferIdAsync(Guid offerId, CancellationToken ct = default)
     {
-        // Locate the StoredOffer row whose FaresInfo JSON array contains the given per-cabin OfferId.
+        // Locate the StoredOffer row whose FaresInfo JSON contains the given per-cabin OfferId
+        // nested within $.inventories[*].offers[*].
         const string sql = """
             SELECT so.StoredOfferId, so.SessionId, so.FaresInfo, so.CreatedAt, so.ExpiresAt, so.UpdatedAt
             FROM   [offer].[StoredOffer] so
-            CROSS APPLY OPENJSON(so.FaresInfo, '$.offers') WITH (
+            CROSS APPLY OPENJSON(so.FaresInfo, '$.inventories') AS inv
+            CROSS APPLY OPENJSON(inv.[value], '$.offers') WITH (
                 offerId UNIQUEIDENTIFIER '$.offerId'
             ) AS o
             WHERE  o.offerId = @OfferId;
@@ -410,11 +412,13 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     public async Task<StoredOffer?> GetStoredOfferBySessionAndOfferIdAsync(Guid sessionId, Guid offerId, CancellationToken ct = default)
     {
-        // Filter by the indexed SessionId first, then find the matching OfferId within the JSON array.
+        // Filter by the indexed SessionId first, then find the matching OfferId nested
+        // within $.inventories[*].offers[*].
         const string sql = """
             SELECT so.StoredOfferId, so.SessionId, so.FaresInfo, so.CreatedAt, so.ExpiresAt, so.UpdatedAt
             FROM   [offer].[StoredOffer] so
-            CROSS APPLY OPENJSON(so.FaresInfo, '$.offers') WITH (
+            CROSS APPLY OPENJSON(so.FaresInfo, '$.inventories') AS inv
+            CROSS APPLY OPENJSON(inv.[value], '$.offers') WITH (
                 offerId UNIQUEIDENTIFIER '$.offerId'
             ) AS o
             WHERE  so.SessionId = @SessionId

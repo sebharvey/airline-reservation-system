@@ -265,15 +265,15 @@ public sealed class OfferFunction
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
 
-        var results = await _searchHandler.HandleAsync(command, ct);
+        var result = await _searchHandler.HandleAsync(command, ct);
 
-        var sessionId = results.Count > 0 ? results[0].Offer.SessionId : Guid.NewGuid();
+        var sessionId = result?.Offer.SessionId ?? Guid.NewGuid();
 
         // Flight details come from the in-memory FlightInventory; fare items from FaresInfo.
-        var flights = results.Select(r =>
+        var flights = result is null ? [] : result.Inventories.Select(inv =>
         {
-            var inv = r.Inventory;
-            var fi  = r.Offer.GetFaresInfo();
+            var fi    = result.Offer.GetFaresInfo();
+            var entry = fi.Inventories.FirstOrDefault(e => e.InventoryId == inv.InventoryId);
             return new
             {
                 inventoryId      = inv.InventoryId,
@@ -285,8 +285,8 @@ public sealed class OfferFunction
                 arrivalTime      = inv.ArrivalTime.ToString("HH:mm"),
                 arrivalDayOffset = inv.ArrivalDayOffset,
                 aircraftType     = inv.AircraftType,
-                expiresAt        = r.Offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                offers = fi.Offers.Select(item => new
+                expiresAt        = result.Offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                offers = (entry?.Offers ?? []).Select(item => new
                 {
                     offerId               = item.OfferId,
                     cabinCode             = item.CabinCode,
@@ -348,7 +348,7 @@ public sealed class OfferFunction
 
         var offer = result.Offer;
         var inv   = result.Inventory;
-        var fi    = offer.GetFaresInfo();
+        var entry = offer.GetFaresInfo().Inventories.FirstOrDefault(e => e.InventoryId == inv.InventoryId);
 
         return await req.OkJsonAsync(new
         {
@@ -364,7 +364,7 @@ public sealed class OfferFunction
             arrivalTime      = inv.ArrivalTime.ToString("HH:mm"),
             arrivalDayOffset = inv.ArrivalDayOffset,
             aircraftType     = inv.AircraftType,
-            offers           = fi.Offers.Select(item => new
+            offers           = (entry?.Offers ?? []).Select(item => new
             {
                 offerId               = item.OfferId,
                 cabinCode             = item.CabinCode,
