@@ -265,26 +265,30 @@ public sealed class OfferFunction
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
 
-        var offers = await _searchHandler.HandleAsync(command, ct);
+        var results = await _searchHandler.HandleAsync(command, ct);
 
-        var flights = offers.Select(o =>
+        var sessionId = results.Count > 0 ? results[0].Offer.SessionId : Guid.NewGuid();
+
+        // Flight details come from the in-memory FlightInventory; fare items from FaresInfo.
+        var flights = results.Select(r =>
         {
-            var fi = o.GetFaresInfo();
+            var inv = r.Inventory;
+            var fi  = r.Offer.GetFaresInfo();
             return new
             {
-                offerId    = o.OfferId,
-                inventoryId = fi.InventoryId,
-                flightNumber = fi.FlightNumber,
-                origin      = fi.Origin,
-                destination = fi.Destination,
-                departureDate = fi.DepartureDate,
-                departureTime = fi.DepartureTime,
-                arrivalTime   = fi.ArrivalTime,
-                arrivalDayOffset = fi.ArrivalDayOffset,
-                aircraftType  = fi.AircraftType,
-                expiresAt     = o.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                inventoryId      = inv.InventoryId,
+                flightNumber     = inv.FlightNumber,
+                origin           = inv.Origin,
+                destination      = inv.Destination,
+                departureDate    = inv.DepartureDate.ToString("yyyy-MM-dd"),
+                departureTime    = inv.DepartureTime.ToString("HH:mm"),
+                arrivalTime      = inv.ArrivalTime.ToString("HH:mm"),
+                arrivalDayOffset = inv.ArrivalDayOffset,
+                aircraftType     = inv.AircraftType,
+                expiresAt        = r.Offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 offers = fi.Offers.Select(item => new
                 {
+                    offerId               = item.OfferId,
                     cabinCode             = item.CabinCode,
                     fareBasisCode         = item.FareBasisCode,
                     fareFamily            = item.FareFamily,
@@ -306,8 +310,9 @@ public sealed class OfferFunction
 
         return await req.OkJsonAsync(new
         {
-            origin       = command.Origin,
-            destination  = command.Destination,
+            sessionId,
+            origin        = command.Origin,
+            destination   = command.Destination,
             departureDate = command.DepartureDate,
             flights
         });
@@ -324,54 +329,56 @@ public sealed class OfferFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
         Guid offerId, CancellationToken ct)
     {
-        StoredOffer? offer;
+        GetStoredOfferResult? result;
         try
         {
-            offer = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
+            result = await _getOfferHandler.HandleAsync(new GetStoredOfferQuery(offerId), ct);
         }
         catch (OfferGoneException ex)
         {
             return await req.GoneAsync(ex.Message);
         }
 
-        if (offer is null)
+        if (result is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
-        var fi = offer.GetFaresInfo();
+        var offer = result.Offer;
+        var inv   = result.Inventory;
+        var fi    = offer.GetFaresInfo();
+
         return await req.OkJsonAsync(new
         {
-            offerId   = offer.OfferId,
-            expiresAt = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            faresInfo = new
+            storedOfferId    = offer.StoredOfferId,
+            sessionId        = offer.SessionId,
+            expiresAt        = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            inventoryId      = inv.InventoryId,
+            flightNumber     = inv.FlightNumber,
+            origin           = inv.Origin,
+            destination      = inv.Destination,
+            departureDate    = inv.DepartureDate.ToString("yyyy-MM-dd"),
+            departureTime    = inv.DepartureTime.ToString("HH:mm"),
+            arrivalTime      = inv.ArrivalTime.ToString("HH:mm"),
+            arrivalDayOffset = inv.ArrivalDayOffset,
+            aircraftType     = inv.AircraftType,
+            offers           = fi.Offers.Select(item => new
             {
-                inventoryId      = fi.InventoryId,
-                flightNumber     = fi.FlightNumber,
-                origin           = fi.Origin,
-                destination      = fi.Destination,
-                departureDate    = fi.DepartureDate,
-                departureTime    = fi.DepartureTime,
-                arrivalTime      = fi.ArrivalTime,
-                arrivalDayOffset = fi.ArrivalDayOffset,
-                aircraftType     = fi.AircraftType,
-                offers           = fi.Offers.Select(item => new
-                {
-                    cabinCode             = item.CabinCode,
-                    fareBasisCode         = item.FareBasisCode,
-                    fareFamily            = item.FareFamily,
-                    currencyCode          = item.CurrencyCode,
-                    baseFareAmount        = item.BaseFareAmount,
-                    taxAmount             = item.TaxAmount,
-                    totalAmount           = item.TotalAmount,
-                    isRefundable          = item.IsRefundable,
-                    isChangeable          = item.IsChangeable,
-                    changeFeeAmount       = item.ChangeFeeAmount,
-                    cancellationFeeAmount = item.CancellationFeeAmount,
-                    pointsPrice           = item.PointsPrice,
-                    pointsTaxes           = item.PointsTaxes,
-                    seatsAvailable        = item.SeatsAvailable,
-                    bookingType           = item.BookingType
-                })
-            }
+                offerId               = item.OfferId,
+                cabinCode             = item.CabinCode,
+                fareBasisCode         = item.FareBasisCode,
+                fareFamily            = item.FareFamily,
+                currencyCode          = item.CurrencyCode,
+                baseFareAmount        = item.BaseFareAmount,
+                taxAmount             = item.TaxAmount,
+                totalAmount           = item.TotalAmount,
+                isRefundable          = item.IsRefundable,
+                isChangeable          = item.IsChangeable,
+                changeFeeAmount       = item.ChangeFeeAmount,
+                cancellationFeeAmount = item.CancellationFeeAmount,
+                pointsPrice           = item.PointsPrice,
+                pointsTaxes           = item.PointsTaxes,
+                seatsAvailable        = item.SeatsAvailable,
+                bookingType           = item.BookingType
+            })
         });
     }
 

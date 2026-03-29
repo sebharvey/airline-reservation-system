@@ -1,10 +1,11 @@
 namespace ReservationSystem.Microservices.Offer.Models.Responses;
 
 /// <summary>
-/// A single cabin offer within a flight search result.
+/// A single cabin fare offer within a flight search result, identified by its own OfferId.
 /// </summary>
 public sealed class CabinOfferItem
 {
+    public Guid OfferId { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public string FareBasisCode { get; init; } = string.Empty;
     public string? FareFamily { get; init; }
@@ -23,11 +24,11 @@ public sealed class CabinOfferItem
 }
 
 /// <summary>
-/// A flight in the search response, containing all available cabin offers.
+/// A flight in the search response. Flight details come from FlightInventory;
+/// fare offers come from FaresInfo.
 /// </summary>
 public sealed class FlightOfferItem
 {
-    public Guid OfferId { get; init; }
     public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
@@ -43,6 +44,7 @@ public sealed class FlightOfferItem
 
 public sealed class SearchOffersResponse
 {
+    public Guid SessionId { get; init; }
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
@@ -51,7 +53,8 @@ public sealed class SearchOffersResponse
 
 public sealed class StoredOfferResponse
 {
-    public Guid OfferId { get; init; }
+    public Guid StoredOfferId { get; init; }
+    public Guid SessionId { get; init; }
     public string ExpiresAt { get; init; } = string.Empty;
     public StoredOfferFaresInfoResponse FaresInfo { get; init; } = new();
 }
@@ -59,13 +62,5 @@ public sealed class StoredOfferResponse
 public sealed class StoredOfferFaresInfoResponse
 {
     public Guid InventoryId { get; init; }
-    public string FlightNumber { get; init; } = string.Empty;
-    public string Origin { get; init; } = string.Empty;
-    public string Destination { get; init; } = string.Empty;
-    public string DepartureDate { get; init; } = string.Empty;
-    public string DepartureTime { get; init; } = string.Empty;
-    public string ArrivalTime { get; init; } = string.Empty;
-    public int ArrivalDayOffset { get; init; }
-    public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<CabinOfferItem> Offers { get; init; } = [];
 }

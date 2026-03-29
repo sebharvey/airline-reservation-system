@@ -66,44 +66,41 @@ public sealed class CreateBasketHandler
         var flights = new List<BasketFlight>();
         foreach (var offer in offerDetails)
         {
-            var fi = offer.FaresInfo;
-
             var offerJson = JsonSerializer.Serialize(new
             {
-                offerId        = offer.OfferId,
-                inventoryId    = fi.InventoryId,
-                flightNumber   = fi.FlightNumber,
-                departureDate  = fi.DepartureDate,
-                departureTime  = fi.DepartureTime,
-                arrivalTime    = fi.ArrivalTime,
-                arrivalDayOffset = fi.ArrivalDayOffset,
-                origin         = fi.Origin,
-                destination    = fi.Destination,
-                aircraftType   = fi.AircraftType,
-                offerExpiresAt = offer.ExpiresAt,
-                offers         = fi.Offers
+                inventoryId      = offer.InventoryId,
+                flightNumber     = offer.FlightNumber,
+                departureDate    = offer.DepartureDate,
+                departureTime    = offer.DepartureTime,
+                arrivalTime      = offer.ArrivalTime,
+                arrivalDayOffset = offer.ArrivalDayOffset,
+                origin           = offer.Origin,
+                destination      = offer.Destination,
+                aircraftType     = offer.AircraftType,
+                offerExpiresAt   = offer.ExpiresAt,
+                offers           = offer.Offers
             });
 
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
 
             // Use the lowest-priced offer item for basket summary display.
-            var cheapest = fi.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
+            var cheapest = offer.Offers.OrderBy(o => o.TotalAmount).FirstOrDefault();
             flights.Add(new BasketFlight
             {
-                OfferId = offer.OfferId,
-                FlightNumber = fi.FlightNumber,
-                Origin = fi.Origin,
-                Destination = fi.Destination,
-                DepartureDateTime = ParseOfferDateTime(fi.DepartureDate, fi.DepartureTime),
-                ArrivalDateTime = ParseArrivalDateTime(fi.DepartureDate, fi.ArrivalTime, fi.ArrivalDayOffset),
-                CabinCode = cheapest?.CabinCode ?? string.Empty,
-                FareFamily = cheapest?.FareFamily,
-                TotalAmount = cheapest?.TotalAmount ?? 0m
+                OfferId           = cheapest?.OfferId ?? Guid.Empty,
+                FlightNumber      = offer.FlightNumber,
+                Origin            = offer.Origin,
+                Destination       = offer.Destination,
+                DepartureDateTime = ParseOfferDateTime(offer.DepartureDate, offer.DepartureTime),
+                ArrivalDateTime   = ParseArrivalDateTime(offer.DepartureDate, offer.ArrivalTime, offer.ArrivalDayOffset),
+                CabinCode         = cheapest?.CabinCode ?? string.Empty,
+                FareFamily        = cheapest?.FareFamily,
+                TotalAmount       = cheapest?.TotalAmount ?? 0m
             });
         }
 
         var totalFareAmount = offerDetails
-            .Select(o => o.FaresInfo.Offers.OrderBy(x => x.TotalAmount).FirstOrDefault()?.TotalAmount ?? 0m)
+            .Select(o => o.Offers.OrderBy(x => x.TotalAmount).FirstOrDefault()?.TotalAmount ?? 0m)
             .Sum();
 
         return new BasketResponse

@@ -24,27 +24,36 @@ public sealed class SearchFlightsHandler
 
         var flights = result.Flights.Select(f =>
         {
-            var departureDateTime = DateTime.Parse($"{f.DepartureDate}T{f.DepartureTime}:00", null, System.Globalization.DateTimeStyles.RoundtripKind);
+            var departureDateTime = DateTime.Parse(
+                $"{f.DepartureDate}T{f.DepartureTime}:00", null,
+                System.Globalization.DateTimeStyles.RoundtripKind);
+
             var arrivalDate = DateOnly.Parse(f.DepartureDate).AddDays(f.ArrivalDayOffset);
-            var arrivalDateTime = DateTime.Parse($"{arrivalDate:yyyy-MM-dd}T{f.ArrivalTime}:00", null, System.Globalization.DateTimeStyles.RoundtripKind);
+            var arrivalDateTime = DateTime.Parse(
+                $"{arrivalDate:yyyy-MM-dd}T{f.ArrivalTime}:00", null,
+                System.Globalization.DateTimeStyles.RoundtripKind);
+
+            var fareFamilies = f.Offers.Select(o => new FareFamilyOffer
+            {
+                FareFamily     = o.FareFamily ?? o.CabinCode,
+                CabinCode      = o.CabinCode,
+                OfferId        = o.OfferId,
+                FareBasisCode  = o.FareBasisCode,
+                Price          = o.TotalAmount,
+                Currency       = o.CurrencyCode,
+                AvailableSeats = o.SeatsAvailable,
+                IsRefundable   = o.IsRefundable,
+                IsChangeable   = o.IsChangeable
+            }).ToList();
 
             return new FlightSearchResult
             {
-                OfferId      = f.OfferId,
-                FlightNumber = f.FlightNumber,
-                Origin       = f.Origin,
-                Destination  = f.Destination,
+                FlightNumber  = f.FlightNumber,
+                Origin        = f.Origin,
+                Destination   = f.Destination,
                 DepartureTime = departureDateTime,
                 ArrivalTime   = arrivalDateTime,
-                Offers = f.Offers.Select(o => new CabinOffer
-                {
-                    CabinCode      = o.CabinCode,
-                    Price          = o.TotalAmount,
-                    Currency       = o.CurrencyCode,
-                    AvailableSeats = o.SeatsAvailable,
-                    IsRefundable   = o.IsRefundable,
-                    FareFamily     = o.FareFamily
-                }).ToList()
+                FareFamilies  = fareFamilies
             };
         }).ToList();
 

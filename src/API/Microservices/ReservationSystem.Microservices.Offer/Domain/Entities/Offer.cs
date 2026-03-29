@@ -194,9 +194,11 @@ public sealed class Fare
 
 /// <summary>
 /// A single cabin fare entry within a stored offer's FaresInfo JSON payload.
+/// Each item has its own OfferId so the basket flow can reference a specific fare.
 /// </summary>
 public sealed class StoredOfferItem
 {
+    public Guid OfferId { get; init; }
     public Guid FareRuleId { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public string FareBasisCode { get; init; } = string.Empty;
@@ -216,43 +218,42 @@ public sealed class StoredOfferItem
 }
 
 /// <summary>
-/// Flight and fare data stored as JSON in the StoredOffer.FaresInfo column.
-/// Contains flight-level fields and an array of cabin offers.
+/// Fare data stored as JSON in the StoredOffer.FaresInfo column.
+/// Flight details (origin, destination, times, aircraft) are intentionally omitted —
+/// they are authoritative in FlightInventory and derived from InventoryId at read time.
 /// </summary>
 public sealed class StoredOfferFaresInfo
 {
     public Guid InventoryId { get; init; }
-    public string FlightNumber { get; init; } = string.Empty;
-    public string Origin { get; init; } = string.Empty;
-    public string Destination { get; init; } = string.Empty;
-    public string DepartureDate { get; init; } = string.Empty;
-    public string DepartureTime { get; init; } = string.Empty;
-    public string ArrivalTime { get; init; } = string.Empty;
-    public int ArrivalDayOffset { get; init; }
-    public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<StoredOfferItem> Offers { get; init; } = [];
 }
 
 public sealed class StoredOffer
 {
-    public Guid OfferId { get; private set; }
+    public Guid StoredOfferId { get; private set; }
+    public Guid SessionId { get; private set; }
     public string FaresInfo { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public DateTime ExpiresAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts =
+        new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
 
     private StoredOffer() { }
 
     public static StoredOffer Create(
         FlightInventory inventory,
         IReadOnlyList<(Fare Fare, Guid FareRuleId)> fares,
-        string bookingType)
+        string bookingType,
+        Guid sessionId)
     {
         var items = fares.Select(f =>
         {
             var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == f.Fare.CabinCode);
             return new StoredOfferItem
             {
+                OfferId               = Guid.NewGuid(),
                 FareRuleId            = f.FareRuleId,
                 CabinCode             = f.Fare.CabinCode,
                 FareBasisCode         = f.Fare.FareBasisCode,
@@ -274,37 +275,31 @@ public sealed class StoredOffer
 
         var faresInfo = new StoredOfferFaresInfo
         {
-            InventoryId    = inventory.InventoryId,
-            FlightNumber   = inventory.FlightNumber,
-            Origin         = inventory.Origin,
-            Destination    = inventory.Destination,
-            DepartureDate  = inventory.DepartureDate.ToString("yyyy-MM-dd"),
-            DepartureTime  = inventory.DepartureTime.ToString("HH:mm"),
-            ArrivalTime    = inventory.ArrivalTime.ToString("HH:mm"),
-            ArrivalDayOffset = inventory.ArrivalDayOffset,
-            AircraftType   = inventory.AircraftType,
-            Offers         = items
+            InventoryId = inventory.InventoryId,
+            Offers      = items
         };
 
         return new StoredOffer
         {
-            OfferId   = Guid.NewGuid(),
-            FaresInfo = System.Text.Json.JsonSerializer.Serialize(faresInfo,
-                new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }),
-            ExpiresAt = DateTime.UtcNow.AddMinutes(60)
+            StoredOfferId = Guid.NewGuid(),
+            SessionId     = sessionId,
+            FaresInfo     = System.Text.Json.JsonSerializer.Serialize(faresInfo, JsonOpts),
+            ExpiresAt     = DateTime.UtcNow.AddMinutes(60)
         };
     }
 
     public static StoredOffer Reconstitute(
-        Guid offerId, string faresInfo, DateTime createdAt, DateTime expiresAt, DateTime updatedAt)
+        Guid storedOfferId, Guid sessionId, string faresInfo,
+        DateTime createdAt, DateTime expiresAt, DateTime updatedAt)
     {
         return new StoredOffer
         {
-            OfferId   = offerId,
-            FaresInfo = faresInfo,
-            CreatedAt = createdAt,
-            ExpiresAt = expiresAt,
-            UpdatedAt = updatedAt
+            StoredOfferId = storedOfferId,
+            SessionId     = sessionId,
+            FaresInfo     = faresInfo,
+            CreatedAt     = createdAt,
+            ExpiresAt     = expiresAt,
+            UpdatedAt     = updatedAt
         };
     }
 

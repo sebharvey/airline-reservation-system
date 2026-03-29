@@ -388,12 +388,16 @@ public sealed class SqlOfferRepository : IOfferRepository
     // StoredOffer
     // -------------------------------------------------------------------------
 
-    public async Task<StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default)
+    public async Task<StoredOffer?> GetStoredOfferByOfferIdAsync(Guid offerId, CancellationToken ct = default)
     {
+        // Locate the StoredOffer row whose FaresInfo JSON array contains the given per-cabin OfferId.
         const string sql = """
-            SELECT OfferId, FaresInfo, CreatedAt, ExpiresAt, UpdatedAt
-            FROM   [offer].[StoredOffer]
-            WHERE  OfferId = @OfferId;
+            SELECT so.StoredOfferId, so.SessionId, so.FaresInfo, so.CreatedAt, so.ExpiresAt, so.UpdatedAt
+            FROM   [offer].[StoredOffer] so
+            CROSS APPLY OPENJSON(so.FaresInfo, '$.offers') WITH (
+                offerId UNIQUEIDENTIFIER '$.offerId'
+            ) AS o
+            WHERE  o.offerId = @OfferId;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -408,17 +412,19 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[StoredOffer]
-                   (OfferId, FaresInfo, ExpiresAt)
-            VALUES (@OfferId, @FaresInfo, @ExpiresAt);
+                   (StoredOfferId, SessionId, FaresInfo, ExpiresAt)
+            VALUES (@StoredOfferId, @SessionId, @FaresInfo, @ExpiresAt);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         await connection.ExecuteAsync(
-            new CommandDefinition(sql, new { offer.OfferId, offer.FaresInfo, offer.ExpiresAt },
+            new CommandDefinition(sql,
+                new { offer.StoredOfferId, offer.SessionId, offer.FaresInfo, offer.ExpiresAt },
                 commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Inserted StoredOffer {OfferId} into [offer].[StoredOffer]", offer.OfferId);
+        _logger.LogDebug("Inserted StoredOffer {StoredOfferId} (session {SessionId}) into [offer].[StoredOffer]",
+            offer.StoredOfferId, offer.SessionId);
     }
 
     // -------------------------------------------------------------------------
@@ -841,11 +847,12 @@ public sealed class SqlOfferRepository : IOfferRepository
     private static StoredOffer MapToStoredOffer(dynamic row)
     {
         return StoredOffer.Reconstitute(
-            offerId:   (Guid)row.OfferId,
-            faresInfo: (string)row.FaresInfo,
-            createdAt: (DateTime)row.CreatedAt,
-            expiresAt: (DateTime)row.ExpiresAt,
-            updatedAt: (DateTime)row.UpdatedAt);
+            storedOfferId: (Guid)row.StoredOfferId,
+            sessionId:     (Guid)row.SessionId,
+            faresInfo:     (string)row.FaresInfo,
+            createdAt:     (DateTime)row.CreatedAt,
+            expiresAt:     (DateTime)row.ExpiresAt,
+            updatedAt:     (DateTime)row.UpdatedAt);
     }
 
     private static object MapInventoryToInsertParameters(FlightInventory inv)

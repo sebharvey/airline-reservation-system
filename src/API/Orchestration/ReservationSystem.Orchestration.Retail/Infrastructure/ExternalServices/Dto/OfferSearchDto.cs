@@ -1,10 +1,12 @@
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 
 /// <summary>
-/// A single cabin fare item within a flight offer returned by the Offer MS search.
+/// A single cabin fare item within a flight offer. OfferId identifies this
+/// specific fare so the basket flow can reference it directly.
 /// </summary>
 public sealed class OfferItemDto
 {
+    public Guid OfferId { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public string FareBasisCode { get; init; } = string.Empty;
     public string? FareFamily { get; init; }
@@ -20,10 +22,10 @@ public sealed class OfferItemDto
 
 /// <summary>
 /// A single flight in the grouped search response from the Offer MS.
+/// Flight details come from FlightInventory; fare offers come from FaresInfo.
 /// </summary>
 public sealed class FlightItemDto
 {
-    public Guid OfferId { get; init; }
     public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
@@ -42,6 +44,7 @@ public sealed class FlightItemDto
 /// </summary>
 public sealed class OfferSearchResultDto
 {
+    public Guid SessionId { get; init; }
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
@@ -49,17 +52,14 @@ public sealed class OfferSearchResultDto
 }
 
 /// <summary>
-/// Full stored offer detail returned by GET /v1/offers/{offerId} on the Offer MS.
+/// Full offer detail returned by GET /v1/offers/{offerId} on the Offer MS.
+/// Flight fields are resolved from FlightInventory at read time; fare items come from FaresInfo.
 /// </summary>
 public sealed class OfferDetailDto
 {
-    public Guid OfferId { get; init; }
+    public Guid StoredOfferId { get; init; }
+    public Guid SessionId { get; init; }
     public string ExpiresAt { get; init; } = string.Empty;
-    public OfferDetailFaresInfoDto FaresInfo { get; init; } = new();
-}
-
-public sealed class OfferDetailFaresInfoDto
-{
     public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;

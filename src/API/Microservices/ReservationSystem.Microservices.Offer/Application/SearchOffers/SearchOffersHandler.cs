@@ -4,6 +4,13 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.SearchOffers;
 
+/// <summary>
+/// Pairs a stored offer with the in-memory inventory used to create it, so the
+/// calling function endpoint can build the flight-level response directly from
+/// the inventory without an additional DB round-trip.
+/// </summary>
+public sealed record SearchOfferResult(StoredOffer Offer, FlightInventory Inventory);
+
 public sealed class SearchOffersHandler
 {
     private readonly IOfferRepository _repository;
@@ -15,7 +22,7 @@ public sealed class SearchOffersHandler
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<StoredOffer>> HandleAsync(SearchOffersCommand command, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SearchOfferResult>> HandleAsync(SearchOffersCommand command, CancellationToken ct = default)
     {
         var departureDate = DateOnly.Parse(command.DepartureDate);
         var bookingType = string.IsNullOrEmpty(command.BookingType) ? "Revenue" : command.BookingType;
@@ -24,7 +31,9 @@ public sealed class SearchOffersHandler
         var inventories = await _repository.SearchAvailableInventoryAsync(
             command.Origin, command.Destination, departureDate, command.PaxCount, ct);
 
-        var offers = new List<StoredOffer>();
+        // One SessionId shared across all flights returned for this search.
+        var sessionId = Guid.NewGuid();
+        var results = new List<SearchOfferResult>();
 
         foreach (var inventory in inventories)
         {
@@ -71,17 +80,18 @@ public sealed class SearchOffersHandler
             if (flightFares.Count == 0)
                 continue;
 
-            // 6. Create ONE stored offer per flight, containing all cabin fares in FaresInfo JSON.
-            var storedOffer = StoredOffer.Create(inventory, flightFares, bookingType);
+            // 6. Create ONE stored offer per flight. FaresInfo holds fare items only;
+            //    flight details remain authoritative in FlightInventory.
+            var storedOffer = StoredOffer.Create(inventory, flightFares, bookingType, sessionId);
             await _repository.CreateStoredOfferAsync(storedOffer, ct);
-            offers.Add(storedOffer);
+            results.Add(new SearchOfferResult(storedOffer, inventory));
         }
 
         _logger.LogInformation(
-            "Search {Origin}-{Destination} on {Date}: {Count} flight offers created",
-            command.Origin, command.Destination, command.DepartureDate, offers.Count);
+            "Search {Origin}-{Destination} on {Date} session {SessionId}: {Count} flight offers created",
+            command.Origin, command.Destination, command.DepartureDate, sessionId, results.Count);
 
-        return offers.AsReadOnly();
+        return results.AsReadOnly();
     }
 
     /// <summary>

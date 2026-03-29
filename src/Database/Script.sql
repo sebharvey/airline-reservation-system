@@ -289,13 +289,19 @@ GO
 -- offer.StoredOffer -----------------------------------------------------------
 IF OBJECT_ID('[offer].[StoredOffer]', 'U') IS NULL
 CREATE TABLE [offer].[StoredOffer] (
-    OfferId   UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id      DEFAULT NEWID(),
-    FaresInfo NVARCHAR(MAX)    NOT NULL,
-    CreatedAt DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Created DEFAULT SYSUTCDATETIME(),
-    ExpiresAt DATETIME2        NOT NULL,
-    UpdatedAt DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_StoredOffer PRIMARY KEY (OfferId)
+    StoredOfferId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id      DEFAULT NEWID(),
+    SessionId     UNIQUEIDENTIFIER NOT NULL,
+    FaresInfo     NVARCHAR(MAX)    NOT NULL,
+    CreatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Created DEFAULT SYSUTCDATETIME(),
+    ExpiresAt     DATETIME2        NOT NULL,
+    UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_StoredOffer PRIMARY KEY (StoredOfferId)
 );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StoredOffer_SessionId' AND object_id = OBJECT_ID('[offer].[StoredOffer]'))
+    CREATE INDEX IX_StoredOffer_SessionId
+        ON [offer].[StoredOffer] (SessionId);
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_StoredOffer_Expiry' AND object_id = OBJECT_ID('[offer].[StoredOffer]'))
