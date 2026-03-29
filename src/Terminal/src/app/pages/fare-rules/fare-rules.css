@@ -166,6 +166,32 @@
 
 .search-input:focus { border-color: var(--grad-start); }
 
+/* Form sections */
+.form-sections {
+  margin-bottom: 20px;
+}
+
+.form-section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.section-heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
 /* Form card */
 .form-card {
   background: var(--white);
@@ -202,10 +228,12 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 20px;
 }
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
 
 .form-group {
   display: flex;
@@ -264,7 +292,8 @@
 .form-group select:focus { border-color: var(--grad-start); }
 
 .checkbox-group {
-  justify-content: center;
+  justify-content: flex-end;
+  padding-bottom: 2px;
 }
 
 .checkbox-group label {
@@ -474,14 +503,14 @@
 /* Tablet */
 @media (max-width: 900px) {
   .hide-tablet { display: none; }
-  .form-grid { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Mobile */
+/* Mobile — stacked single-column inputs */
 @media (max-width: 600px) {
   .fare-rules-page { padding: 12px; }
   .stats-row { grid-template-columns: 1fr 1fr 1fr; }
-  .form-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; gap: 12px; }
   .hide-mobile { display: none; }
   .page-title { font-size: 1.25rem; }
   .form-card { padding: 16px; }
@@ -496,7 +525,7 @@
   .header-actions .load-btn { flex: 1; justify-content: center; }
   .form-actions { flex-direction: column; }
   .form-actions button { width: 100%; justify-content: center; }
-  .checkbox-group { align-items: flex-start; justify-content: flex-start; }
+  .checkbox-group { align-items: flex-start; justify-content: flex-start; padding-bottom: 0; }
   .checkbox-group label { padding: 8px 0; }
   .action-btns { flex-direction: column; gap: 2px; }
 }
@@ -504,7 +533,6 @@
 /* Small mobile */
 @media (max-width: 400px) {
   .fare-rules-page { padding: 8px; }
-  .form-grid { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: 1fr; }
   .page-header { flex-direction: column; }
 }
