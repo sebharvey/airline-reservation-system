@@ -1531,22 +1531,6 @@ BEGIN TRY
     -- Tier 2: AX411 pays higher taxes on this long-haul route (overrides global YLOWUK)
     (@FareRuleId_AX411_YLOWUK, 'AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,110.50,0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
 
-    -- offer.StoredOffer -------------------------------------------------------
-    DECLARE @OfferId_Out UNIQUEIDENTIFIER = NEWID();
-    DECLARE @OfferId_In  UNIQUEIDENTIFIER = NEWID();
-    DECLARE @OfferId_DEL UNIQUEIDENTIFIER = NEWID();
-
-    INSERT INTO [offer].[StoredOffer]
-        (OfferId, InventoryId, FlightNumber, DepartureDate, Origin, Destination,
-         FareBasisCode, FareFamily, BaseFareAmount, TaxAmount, TotalAmount,
-         IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-         PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed,
-         FareRuleId, CabinCode)
-    VALUES
-    (@OfferId_Out,@InvId_AX001,'AX001','2026-08-15','LHR','JFK','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_JFLEXGB,     'J'),
-    (@OfferId_In, @InvId_AX002,'AX002','2026-08-25','JFK','LHR','JFLEXGB','Business Flex',1250.00,182.50,1432.50,1,1,0.00,  0.00,125000,182.50,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_JFLEXGB,     'J'),
-    (@OfferId_DEL,@InvId_AX411,'AX411','2026-09-10','LHR','DEL','YLOWUK', 'Economy Light', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'Revenue',DATEADD(MINUTE,60,SYSUTCDATETIME()),1,@FareRuleId_AX411_YLOWUK,'Y');
-
     -- payment.Payment ---------------------------------------------------------
     DECLARE @PayId1 UNIQUEIDENTIFIER = NEWID();
     DECLARE @PayId2 UNIQUEIDENTIFIER = NEWID();
