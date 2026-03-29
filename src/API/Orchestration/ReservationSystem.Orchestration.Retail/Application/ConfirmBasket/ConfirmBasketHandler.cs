@@ -80,11 +80,11 @@ public sealed class ConfirmBasketHandler
         }
 
         // 4. Issue e-tickets via Delivery MS using the confirmed booking reference
-        if (!string.IsNullOrEmpty(basket.BasketData) && !string.IsNullOrEmpty(order.BookingReference))
+        if (basket.BasketData.HasValue && !string.IsNullOrEmpty(order.BookingReference))
         {
             try
             {
-                var (passengers, segments) = ParseBasketDataForTickets(basket.BasketData);
+                var (passengers, segments) = ParseBasketDataForTickets(basket.BasketData.Value.GetRawText());
                 if (passengers.Count > 0 && segments.Count > 0)
                 {
                     var tickets = await _deliveryServiceClient.IssueTicketsAsync(
