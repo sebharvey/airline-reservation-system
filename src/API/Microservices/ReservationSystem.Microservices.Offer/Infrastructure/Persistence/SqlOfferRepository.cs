@@ -135,6 +135,54 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(MapToInventory).ToList().AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<FlightInventoryGroup>> GetInventoryGroupedByDateAsync(
+        DateOnly departureDate, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT
+                FlightNumber,
+                DepartureDate,
+                DepartureTime,
+                ArrivalTime,
+                ArrivalDayOffset,
+                Origin,
+                Destination,
+                AircraftType,
+                MAX(CASE WHEN Status = 'Active'  THEN 'Active'    ELSE 'Cancelled' END) AS Status,
+                NULLIF(MAX(CASE WHEN CabinCode = 'F' THEN TotalSeats     ELSE 0 END), 0) AS F_TotalSeats,
+                MAX(CASE WHEN CabinCode = 'F' THEN SeatsAvailable ELSE NULL END)         AS F_SeatsAvailable,
+                MAX(CASE WHEN CabinCode = 'F' THEN SeatsSold      ELSE NULL END)         AS F_SeatsSold,
+                MAX(CASE WHEN CabinCode = 'F' THEN SeatsHeld      ELSE NULL END)         AS F_SeatsHeld,
+                NULLIF(MAX(CASE WHEN CabinCode = 'J' THEN TotalSeats     ELSE 0 END), 0) AS J_TotalSeats,
+                MAX(CASE WHEN CabinCode = 'J' THEN SeatsAvailable ELSE NULL END)         AS J_SeatsAvailable,
+                MAX(CASE WHEN CabinCode = 'J' THEN SeatsSold      ELSE NULL END)         AS J_SeatsSold,
+                MAX(CASE WHEN CabinCode = 'J' THEN SeatsHeld      ELSE NULL END)         AS J_SeatsHeld,
+                NULLIF(MAX(CASE WHEN CabinCode = 'W' THEN TotalSeats     ELSE 0 END), 0) AS W_TotalSeats,
+                MAX(CASE WHEN CabinCode = 'W' THEN SeatsAvailable ELSE NULL END)         AS W_SeatsAvailable,
+                MAX(CASE WHEN CabinCode = 'W' THEN SeatsSold      ELSE NULL END)         AS W_SeatsSold,
+                MAX(CASE WHEN CabinCode = 'W' THEN SeatsHeld      ELSE NULL END)         AS W_SeatsHeld,
+                NULLIF(MAX(CASE WHEN CabinCode = 'Y' THEN TotalSeats     ELSE 0 END), 0) AS Y_TotalSeats,
+                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsAvailable ELSE NULL END)         AS Y_SeatsAvailable,
+                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsSold      ELSE NULL END)         AS Y_SeatsSold,
+                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsHeld      ELSE NULL END)         AS Y_SeatsHeld,
+                SUM(TotalSeats)     AS TotalSeats,
+                SUM(SeatsAvailable) AS TotalSeatsAvailable
+            FROM  [offer].[FlightInventory]
+            WHERE DepartureDate = @DepartureDate
+            GROUP BY FlightNumber, DepartureDate, DepartureTime, ArrivalTime, ArrivalDayOffset,
+                     Origin, Destination, AircraftType
+            ORDER BY DepartureTime, FlightNumber;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new { DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue) },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToInventoryGroup).ToList().AsReadOnly();
+    }
+
     public async Task CreateInventoryAsync(FlightInventory inventory, CancellationToken ct = default)
     {
         const string sql = """
@@ -644,6 +692,40 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     private static DateOnly ToDateOnly(DateTime dt) => DateOnly.FromDateTime(dt);
     private static TimeOnly ToTimeOnly(TimeSpan ts) => TimeOnly.FromTimeSpan(ts);
+
+    private static FlightInventoryGroup MapToInventoryGroup(dynamic row)
+    {
+        static FlightInventoryGroup.CabinData? MapCabin(object? totalSeats, object? available, object? sold, object? held)
+        {
+            if (totalSeats is null) return null;
+            return new FlightInventoryGroup.CabinData
+            {
+                TotalSeats     = (int)totalSeats,
+                SeatsAvailable = available is null ? 0 : (int)available,
+                SeatsSold      = sold is null ? 0 : (int)sold,
+                SeatsHeld      = held is null ? 0 : (int)held,
+            };
+        }
+
+        return new FlightInventoryGroup
+        {
+            FlightNumber     = (string)row.FlightNumber,
+            DepartureDate    = ToDateOnly((DateTime)row.DepartureDate),
+            DepartureTime    = ToTimeOnly((TimeSpan)row.DepartureTime),
+            ArrivalTime      = ToTimeOnly((TimeSpan)row.ArrivalTime),
+            ArrivalDayOffset = (int)row.ArrivalDayOffset,
+            Origin           = (string)row.Origin,
+            Destination      = (string)row.Destination,
+            AircraftType     = (string)row.AircraftType,
+            Status           = (string)row.Status,
+            TotalSeats       = (int)row.TotalSeats,
+            TotalSeatsAvailable = (int)row.TotalSeatsAvailable,
+            F = MapCabin(row.F_TotalSeats, row.F_SeatsAvailable, row.F_SeatsSold, row.F_SeatsHeld),
+            J = MapCabin(row.J_TotalSeats, row.J_SeatsAvailable, row.J_SeatsSold, row.J_SeatsHeld),
+            W = MapCabin(row.W_TotalSeats, row.W_SeatsAvailable, row.W_SeatsSold, row.W_SeatsHeld),
+            Y = MapCabin(row.Y_TotalSeats, row.Y_SeatsAvailable, row.Y_SeatsSold, row.Y_SeatsHeld),
+        };
+    }
 
     private static FlightInventory MapToInventory(dynamic row)
     {

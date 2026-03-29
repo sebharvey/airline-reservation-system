@@ -1,0 +1,3 @@
+namespace ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
+
+public sealed record GetFlightInventoryByDateQuery(DateOnly DepartureDate);

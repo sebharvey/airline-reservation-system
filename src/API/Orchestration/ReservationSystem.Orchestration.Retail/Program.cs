@@ -4,15 +4,21 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
+using ReservationSystem.Shared.Common.Middleware;
 using ReservationSystem.Orchestration.Retail.Swagger;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
+using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMiddleware<TerminalAuthenticationMiddleware>();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
@@ -27,6 +33,9 @@ var host = new HostBuilder()
         services.AddHttpClient("OfferMs", client =>
         {
             client.BaseAddress = context.Configuration["OfferMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            var hostKey = context.Configuration["OfferMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("OrderMs", client =>
@@ -75,6 +84,7 @@ var host = new HostBuilder()
         services.AddScoped<CreateBasketHandler>();
         services.AddScoped<ConfirmBasketHandler>();
         services.AddScoped<GetOrderHandler>();
+        services.AddScoped<GetFlightInventoryHandler>();
     })
     .Build();
 
