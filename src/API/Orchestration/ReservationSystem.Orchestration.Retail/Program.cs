@@ -40,7 +40,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("OrderMs", client =>
         {
-            client.BaseAddress = context.Configuration["OrderMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net/");
         });
 
         services.AddHttpClient("SeatMs", client =>
