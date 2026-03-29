@@ -23,7 +23,6 @@ public interface IOfferRepository
     // StoredOffer
     Task<Entities.StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default);
     Task CreateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
-    Task UpdateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
 
     // InventoryHold (idempotency)
     Task<bool> HoldExistsAsync(Guid inventoryId, Guid basketId, CancellationToken ct = default);

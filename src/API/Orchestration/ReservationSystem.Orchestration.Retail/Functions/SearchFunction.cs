@@ -47,17 +47,15 @@ public sealed class SearchFunction
         if (string.IsNullOrWhiteSpace(request!.Origin)
             || string.IsNullOrWhiteSpace(request.Destination)
             || string.IsNullOrWhiteSpace(request.DepartureDate)
-            || string.IsNullOrWhiteSpace(request.CabinCode)
             || request.PaxCount < 1)
         {
-            return await req.BadRequestAsync("The fields 'origin', 'destination', 'departureDate', 'cabinCode', and 'paxCount' are required.");
+            return await req.BadRequestAsync("The fields 'origin', 'destination', 'departureDate', and 'paxCount' are required.");
         }
 
         var command = new SearchFlightsCommand(
             request.Origin,
             request.Destination,
             request.DepartureDate,
-            request.CabinCode,
             request.PaxCount,
             request.BookingType);
 
@@ -92,7 +90,6 @@ public sealed class SearchFunction
             request.Origin,
             request.Destination,
             request.DepartureDate.ToString("yyyy-MM-dd"),
-            request.CabinClass ?? "Y",
             request.PassengerCount,
             "Revenue");
 

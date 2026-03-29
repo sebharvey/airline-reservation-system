@@ -7,5 +7,4 @@ public sealed class SearchRequest
     public DateOnly DepartureDate { get; init; }
     public DateOnly? ReturnDate { get; init; }
     public int PassengerCount { get; init; } = 1;
-    public string? CabinClass { get; init; }
 }

@@ -25,10 +25,10 @@ public sealed class GetStoredOfferHandler
             return null;
         }
 
-        if (offer.IsConsumed || offer.ExpiresAt <= DateTime.UtcNow)
+        if (offer.ExpiresAt <= DateTime.UtcNow)
         {
-            _logger.LogWarning("StoredOffer {OfferId} is expired or consumed", query.OfferId);
-            throw new OfferGoneException($"Offer {query.OfferId} is expired or consumed. Customer must re-search.");
+            _logger.LogWarning("StoredOffer {OfferId} is expired", query.OfferId);
+            throw new OfferGoneException($"Offer {query.OfferId} has expired. Customer must re-search.");
         }
 
         return offer;

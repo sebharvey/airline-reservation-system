@@ -247,7 +247,7 @@ public sealed class OfferFunction
     // POST /v1/search
     [Function("SearchOffers")]
     [OpenApiOperation(operationId: "SearchOffers", tags: new[] { "Offers" }, Summary = "Search for available flight offers")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchOffersRequest), Required = true, Description = "Search criteria: origin, destination, departureDate, cabinCode, paxCount")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchOffersRequest), Required = true, Description = "Search criteria: origin, destination, departureDate, paxCount")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchOffersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Search(
@@ -262,47 +262,54 @@ public sealed class OfferFunction
             Origin: body.GetProperty("origin").GetString()!,
             Destination: body.GetProperty("destination").GetString()!,
             DepartureDate: body.GetProperty("departureDate").GetString()!,
-            CabinCode: body.TryGetProperty("cabinCode", out var cc) && cc.ValueKind != JsonValueKind.Null ? cc.GetString() : null,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
 
         var offers = await _searchHandler.HandleAsync(command, ct);
 
-        var responseOffers = offers.Select(o => new
+        var flights = offers.Select(o =>
         {
-            offerId = o.OfferId,
-            inventoryId = o.InventoryId,
-            fareRuleId = o.FareRuleId,
-            flightNumber = o.FlightNumber,
-            departureDate = o.DepartureDate.ToString("yyyy-MM-dd"),
-            origin = o.Origin,
-            destination = o.Destination,
-            cabinCode = o.CabinCode,
-            fareBasisCode = o.FareBasisCode,
-            fareFamily = o.FareFamily,
-            currencyCode = o.CurrencyCode,
-            baseFareAmount = o.BaseFareAmount,
-            taxAmount = o.TaxAmount,
-            totalAmount = o.TotalAmount,
-            isRefundable = o.IsRefundable,
-            isChangeable = o.IsChangeable,
-            changeFeeAmount = o.ChangeFeeAmount,
-            cancellationFeeAmount = o.CancellationFeeAmount,
-            pointsPrice = o.PointsPrice,
-            pointsTaxes = o.PointsTaxes,
-            bookingType = o.BookingType,
-            seatsAvailable = o.SeatsAvailable,
-            operatingCarrier = (string?)null,
-            operatingFlightNumber = (string?)null,
-            expiresAt = o.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            var fi = o.GetFaresInfo();
+            return new
+            {
+                offerId    = o.OfferId,
+                inventoryId = fi.InventoryId,
+                flightNumber = fi.FlightNumber,
+                origin      = fi.Origin,
+                destination = fi.Destination,
+                departureDate = fi.DepartureDate,
+                departureTime = fi.DepartureTime,
+                arrivalTime   = fi.ArrivalTime,
+                arrivalDayOffset = fi.ArrivalDayOffset,
+                aircraftType  = fi.AircraftType,
+                expiresAt     = o.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                offers = fi.Offers.Select(item => new
+                {
+                    cabinCode             = item.CabinCode,
+                    fareBasisCode         = item.FareBasisCode,
+                    fareFamily            = item.FareFamily,
+                    currencyCode          = item.CurrencyCode,
+                    baseFareAmount        = item.BaseFareAmount,
+                    taxAmount             = item.TaxAmount,
+                    totalAmount           = item.TotalAmount,
+                    isRefundable          = item.IsRefundable,
+                    isChangeable          = item.IsChangeable,
+                    changeFeeAmount       = item.ChangeFeeAmount,
+                    cancellationFeeAmount = item.CancellationFeeAmount,
+                    pointsPrice           = item.PointsPrice,
+                    pointsTaxes           = item.PointsTaxes,
+                    seatsAvailable        = item.SeatsAvailable,
+                    bookingType           = item.BookingType
+                })
+            };
         }).ToList();
 
         return await req.OkJsonAsync(new
         {
-            origin = command.Origin,
-            destination = command.Destination,
+            origin       = command.Origin,
+            destination  = command.Destination,
             departureDate = command.DepartureDate,
-            offers = responseOffers
+            flights
         });
     }
 
@@ -330,34 +337,41 @@ public sealed class OfferFunction
         if (offer is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
+        var fi = offer.GetFaresInfo();
         return await req.OkJsonAsync(new
         {
-            offerId = offer.OfferId,
-            inventoryId = offer.InventoryId,
-            fareRuleId = offer.FareRuleId,
-            flightNumber = offer.FlightNumber,
-            departureDate = offer.DepartureDate.ToString("yyyy-MM-dd"),
-            origin = offer.Origin,
-            destination = offer.Destination,
-            cabinCode = offer.CabinCode,
-            fareBasisCode = offer.FareBasisCode,
-            fareFamily = offer.FareFamily,
-            currencyCode = offer.CurrencyCode,
-            baseFareAmount = offer.BaseFareAmount,
-            taxAmount = offer.TaxAmount,
-            totalAmount = offer.TotalAmount,
-            isRefundable = offer.IsRefundable,
-            isChangeable = offer.IsChangeable,
-            changeFeeAmount = offer.ChangeFeeAmount,
-            cancellationFeeAmount = offer.CancellationFeeAmount,
-            pointsPrice = offer.PointsPrice,
-            pointsTaxes = offer.PointsTaxes,
-            bookingType = offer.BookingType,
-            seatsAvailable = offer.SeatsAvailable,
-            operatingCarrier = (string?)null,
-            operatingFlightNumber = (string?)null,
-            isConsumed = offer.IsConsumed,
-            expiresAt = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            offerId   = offer.OfferId,
+            expiresAt = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            faresInfo = new
+            {
+                inventoryId      = fi.InventoryId,
+                flightNumber     = fi.FlightNumber,
+                origin           = fi.Origin,
+                destination      = fi.Destination,
+                departureDate    = fi.DepartureDate,
+                departureTime    = fi.DepartureTime,
+                arrivalTime      = fi.ArrivalTime,
+                arrivalDayOffset = fi.ArrivalDayOffset,
+                aircraftType     = fi.AircraftType,
+                offers           = fi.Offers.Select(item => new
+                {
+                    cabinCode             = item.CabinCode,
+                    fareBasisCode         = item.FareBasisCode,
+                    fareFamily            = item.FareFamily,
+                    currencyCode          = item.CurrencyCode,
+                    baseFareAmount        = item.BaseFareAmount,
+                    taxAmount             = item.TaxAmount,
+                    totalAmount           = item.TotalAmount,
+                    isRefundable          = item.IsRefundable,
+                    isChangeable          = item.IsChangeable,
+                    changeFeeAmount       = item.ChangeFeeAmount,
+                    cancellationFeeAmount = item.CancellationFeeAmount,
+                    pointsPrice           = item.PointsPrice,
+                    pointsTaxes           = item.PointsTaxes,
+                    seatsAvailable        = item.SeatsAvailable,
+                    bookingType           = item.BookingType
+                })
+            }
         });
     }
 

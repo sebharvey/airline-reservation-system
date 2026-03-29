@@ -2,10 +2,10 @@ namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 
 public sealed class SearchResponse
 {
-    public IReadOnlyList<FlightOffer> Offers { get; init; } = [];
+    public IReadOnlyList<FlightSearchResult> Flights { get; init; } = [];
 }
 
-public sealed class FlightOffer
+public sealed class FlightSearchResult
 {
     public Guid OfferId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
@@ -13,8 +13,15 @@ public sealed class FlightOffer
     public string Destination { get; init; } = string.Empty;
     public DateTime DepartureTime { get; init; }
     public DateTime ArrivalTime { get; init; }
-    public string CabinClass { get; init; } = string.Empty;
+    public IReadOnlyList<CabinOffer> Offers { get; init; } = [];
+}
+
+public sealed class CabinOffer
+{
+    public string CabinCode { get; init; } = string.Empty;
     public decimal Price { get; init; }
     public string Currency { get; init; } = string.Empty;
     public int AvailableSeats { get; init; }
+    public bool IsRefundable { get; init; }
+    public string? FareFamily { get; init; }
 }

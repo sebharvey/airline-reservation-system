@@ -391,12 +391,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<StoredOffer?> GetStoredOfferAsync(Guid offerId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT OfferId, InventoryId, FareRuleId, FlightNumber, DepartureDate,
-                   Origin, Destination, CabinCode,
-                   FareBasisCode, FareFamily, CurrencyCode,
-                   BaseFareAmount, TaxAmount, TotalAmount,
-                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   PointsPrice, PointsTaxes, BookingType, CreatedAt, ExpiresAt, IsConsumed, UpdatedAt
+            SELECT OfferId, FaresInfo, CreatedAt, ExpiresAt, UpdatedAt
             FROM   [offer].[StoredOffer]
             WHERE  OfferId = @OfferId;
             """;
@@ -413,47 +408,17 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[StoredOffer]
-                   (OfferId, InventoryId, FareRuleId, FlightNumber, DepartureDate,
-                    Origin, Destination, CabinCode,
-                    FareBasisCode, FareFamily, CurrencyCode,
-                    BaseFareAmount, TaxAmount, TotalAmount,
-                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    PointsPrice, PointsTaxes, BookingType, ExpiresAt, IsConsumed)
-            VALUES (@OfferId, @InventoryId, @FareRuleId, @FlightNumber, @DepartureDate,
-                    @Origin, @Destination, @CabinCode,
-                    @FareBasisCode, @FareFamily, @CurrencyCode,
-                    @BaseFareAmount, @TaxAmount, @TotalAmount,
-                    @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @PointsPrice, @PointsTaxes, @BookingType, @ExpiresAt, @IsConsumed);
+                   (OfferId, FaresInfo, ExpiresAt)
+            VALUES (@OfferId, @FaresInfo, @ExpiresAt);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         await connection.ExecuteAsync(
-            new CommandDefinition(sql, MapStoredOfferToParameters(offer), commandTimeout: _options.CommandTimeoutSeconds));
+            new CommandDefinition(sql, new { offer.OfferId, offer.FaresInfo, offer.ExpiresAt },
+                commandTimeout: _options.CommandTimeoutSeconds));
 
         _logger.LogDebug("Inserted StoredOffer {OfferId} into [offer].[StoredOffer]", offer.OfferId);
-    }
-
-    public async Task UpdateStoredOfferAsync(StoredOffer offer, CancellationToken ct = default)
-    {
-        const string sql = """
-            UPDATE [offer].[StoredOffer]
-            SET    IsConsumed = @IsConsumed
-            WHERE  OfferId = @OfferId;
-            """;
-
-        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
-
-        var rowsAffected = await connection.ExecuteAsync(
-            new CommandDefinition(sql, new
-            {
-                offer.OfferId,
-                offer.IsConsumed
-            }, commandTimeout: _options.CommandTimeoutSeconds));
-
-        if (rowsAffected == 0)
-            _logger.LogWarning("UpdateStoredOfferAsync found no row for StoredOffer {OfferId}", offer.OfferId);
     }
 
     // -------------------------------------------------------------------------
@@ -876,31 +841,10 @@ public sealed class SqlOfferRepository : IOfferRepository
     private static StoredOffer MapToStoredOffer(dynamic row)
     {
         return StoredOffer.Reconstitute(
-            offerId: (Guid)row.OfferId,
-            inventoryId: (Guid)row.InventoryId,
-            fareRuleId: (Guid)row.FareRuleId,
-            flightNumber: (string)row.FlightNumber,
-            departureDate: ToDateOnly((DateTime)row.DepartureDate),
-            origin: (string)row.Origin,
-            destination: (string)row.Destination,
-            cabinCode: (string)row.CabinCode,
-            fareBasisCode: (string)row.FareBasisCode,
-            fareFamily: (string?)row.FareFamily,
-            currencyCode: (string)row.CurrencyCode,
-            baseFareAmount: (decimal)row.BaseFareAmount,
-            taxAmount: (decimal)row.TaxAmount,
-            totalAmount: (decimal)row.TotalAmount,
-            isRefundable: (bool)row.IsRefundable,
-            isChangeable: (bool)row.IsChangeable,
-            changeFeeAmount: (decimal)row.ChangeFeeAmount,
-            cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
-            pointsPrice: (int?)row.PointsPrice,
-            pointsTaxes: (decimal?)row.PointsTaxes,
-            seatsAvailable: (int)row.SeatsAvailable,
-            bookingType: (string)row.BookingType,
+            offerId:   (Guid)row.OfferId,
+            faresInfo: (string)row.FaresInfo,
             createdAt: (DateTime)row.CreatedAt,
             expiresAt: (DateTime)row.ExpiresAt,
-            isConsumed: (bool)row.IsConsumed,
             updatedAt: (DateTime)row.UpdatedAt);
     }
 
@@ -951,35 +895,6 @@ public sealed class SqlOfferRepository : IOfferRepository
         };
     }
 
-    private static object MapStoredOfferToParameters(StoredOffer offer)
-    {
-        return new
-        {
-            offer.OfferId,
-            offer.InventoryId,
-            offer.FareRuleId,
-            offer.FlightNumber,
-            DepartureDate = offer.DepartureDate.ToDateTime(TimeOnly.MinValue),
-            offer.Origin,
-            offer.Destination,
-            offer.CabinCode,
-            offer.FareBasisCode,
-            offer.FareFamily,
-            offer.CurrencyCode,
-            offer.BaseFareAmount,
-            offer.TaxAmount,
-            offer.TotalAmount,
-            offer.IsRefundable,
-            offer.IsChangeable,
-            offer.ChangeFeeAmount,
-            offer.CancellationFeeAmount,
-            offer.PointsPrice,
-            offer.PointsTaxes,
-            offer.BookingType,
-            offer.ExpiresAt,
-            offer.IsConsumed
-        };
-    }
 
     private static FareRule MapToFareRule(dynamic row)
     {
