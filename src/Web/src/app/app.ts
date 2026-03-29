@@ -51,7 +51,7 @@ export class App {
 
   // DEBUG — basket debug modal methods; remove with basket debug feature
   openBasketDebug(): void {
-    const basketId = sessionStorage.getItem('apex_debug_basket_id');
+    const basketId = localStorage.getItem('apex_basket_id');
     this.basketDebugData.set(null);
     this.basketDebugError.set(null);
     this.basketDebugOpen.set(true);
