@@ -4,27 +4,30 @@
 IF OBJECT_ID('[offer].[FareRule]', 'U') IS NULL
 CREATE TABLE [offer].[FareRule] (
     FareRuleId            UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_FareRule_Id          DEFAULT NEWID(),
+    RuleType              VARCHAR(10)      NOT NULL CONSTRAINT DF_FareRule_RuleType    DEFAULT 'Money',
     FlightNumber          VARCHAR(10)          NULL,
     FareBasisCode         VARCHAR(20)      NOT NULL,
     FareFamily            VARCHAR(50)          NULL,
     CabinCode             CHAR(1)          NOT NULL,
     BookingClass          CHAR(1)          NOT NULL,
-    CurrencyCode          CHAR(3)          NOT NULL CONSTRAINT DF_FareRule_Currency    DEFAULT 'GBP',
-    BaseFareAmount        DECIMAL(10,2)    NOT NULL,
-    TaxAmount             DECIMAL(10,2)    NOT NULL,
-    TotalAmount           DECIMAL(10,2)    NOT NULL,
+    CurrencyCode          CHAR(3)              NULL CONSTRAINT DF_FareRule_Currency    DEFAULT 'GBP',
+    MinAmount             DECIMAL(10,2)        NULL,
+    MaxAmount             DECIMAL(10,2)        NULL,
+    TaxAmount             DECIMAL(10,2)        NULL,
+    MinPoints             INT                  NULL,
+    MaxPoints             INT                  NULL,
+    PointsTaxes           DECIMAL(10,2)        NULL,
     IsRefundable          BIT              NOT NULL CONSTRAINT DF_FareRule_Refundable  DEFAULT 0,
     IsChangeable          BIT              NOT NULL CONSTRAINT DF_FareRule_Changeable  DEFAULT 0,
     ChangeFeeAmount       DECIMAL(10,2)    NOT NULL CONSTRAINT DF_FareRule_ChangeFee   DEFAULT 0.00,
     CancellationFeeAmount DECIMAL(10,2)    NOT NULL CONSTRAINT DF_FareRule_CancelFee   DEFAULT 0.00,
-    PointsPrice           INT                  NULL,
-    PointsTaxes           DECIMAL(10,2)        NULL,
     ValidFrom             DATETIME2            NULL,
     ValidTo               DATETIME2            NULL,
     CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Created     DEFAULT SYSUTCDATETIME(),
     UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Updated     DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_FareRule        PRIMARY KEY (FareRuleId),
-    CONSTRAINT CHK_FareRule_Cabin CHECK (CabinCode IN ('F','J','W','Y'))
+    CONSTRAINT PK_FareRule          PRIMARY KEY (FareRuleId),
+    CONSTRAINT CHK_FareRule_Cabin   CHECK (CabinCode IN ('F','J','W','Y')),
+    CONSTRAINT CHK_FareRule_RuleType CHECK (RuleType IN ('Money','Points'))
 );
 GO
 

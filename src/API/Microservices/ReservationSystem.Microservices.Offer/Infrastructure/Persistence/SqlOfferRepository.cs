@@ -502,10 +502,11 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<FareRule?> GetFareRuleByIdAsync(Guid fareRuleId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+            SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  FareRuleId = @FareRuleId;
             """;
@@ -521,10 +522,11 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<FareRule>> GetAllFareRulesAsync(CancellationToken ct = default)
     {
         const string sql = """
-            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+            SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             ORDER BY FareBasisCode, CabinCode;
             """;
@@ -540,10 +542,11 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<FareRule>> SearchFareRulesAsync(string? query, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+            SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  (@Query IS NULL OR @Query = ''
                     OR FareBasisCode LIKE '%' + @Query + '%'
@@ -565,14 +568,16 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[FareRule]
-                   (FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                    CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                   (FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                    CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                    MinPoints, MaxPoints, PointsTaxes,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt)
-            VALUES (@FareRuleId, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
-                    @CurrencyCode, @BaseFareAmount, @TaxAmount, @TotalAmount,
+                    ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+            VALUES (@FareRuleId, @RuleType, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
+                    @CurrencyCode, @MinAmount, @MaxAmount, @TaxAmount,
+                    @MinPoints, @MaxPoints, @PointsTaxes,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+                    @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -587,21 +592,23 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[FareRule]
-            SET    FlightNumber          = @FlightNumber,
+            SET    RuleType              = @RuleType,
+                   FlightNumber          = @FlightNumber,
                    FareBasisCode         = @FareBasisCode,
                    FareFamily            = @FareFamily,
                    CabinCode             = @CabinCode,
                    BookingClass          = @BookingClass,
                    CurrencyCode          = @CurrencyCode,
-                   BaseFareAmount        = @BaseFareAmount,
+                   MinAmount             = @MinAmount,
+                   MaxAmount             = @MaxAmount,
                    TaxAmount             = @TaxAmount,
-                   TotalAmount           = @TotalAmount,
+                   MinPoints             = @MinPoints,
+                   MaxPoints             = @MaxPoints,
+                   PointsTaxes           = @PointsTaxes,
                    IsRefundable          = @IsRefundable,
                    IsChangeable          = @IsChangeable,
                    ChangeFeeAmount       = @ChangeFeeAmount,
                    CancellationFeeAmount = @CancellationFeeAmount,
-                   PointsPrice           = @PointsPrice,
-                   PointsTaxes           = @PointsTaxes,
                    ValidFrom             = @ValidFrom,
                    ValidTo               = @ValidTo
             WHERE  FareRuleId = @FareRuleId;
@@ -813,21 +820,23 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         return FareRule.Reconstitute(
             fareRuleId: (Guid)row.FareRuleId,
+            ruleType: (string)row.RuleType,
             flightNumber: (string?)row.FlightNumber,
             fareBasisCode: (string)row.FareBasisCode,
             fareFamily: (string?)row.FareFamily,
             cabinCode: (string)row.CabinCode,
             bookingClass: (string)row.BookingClass,
-            currencyCode: (string)row.CurrencyCode,
-            baseFareAmount: (decimal)row.BaseFareAmount,
-            taxAmount: (decimal)row.TaxAmount,
-            totalAmount: (decimal)row.TotalAmount,
+            currencyCode: (string?)row.CurrencyCode,
+            minAmount: (decimal?)row.MinAmount,
+            maxAmount: (decimal?)row.MaxAmount,
+            taxAmount: (decimal?)row.TaxAmount,
+            minPoints: (int?)row.MinPoints,
+            maxPoints: (int?)row.MaxPoints,
+            pointsTaxes: (decimal?)row.PointsTaxes,
             isRefundable: (bool)row.IsRefundable,
             isChangeable: (bool)row.IsChangeable,
             changeFeeAmount: (decimal)row.ChangeFeeAmount,
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
-            pointsPrice: (int?)row.PointsPrice,
-            pointsTaxes: (decimal?)row.PointsTaxes,
             validFrom: (DateTime?)row.ValidFrom,
             validTo: (DateTime?)row.ValidTo,
             createdAt: (DateTime)row.CreatedAt,
@@ -839,21 +848,23 @@ public sealed class SqlOfferRepository : IOfferRepository
         return new
         {
             fareRule.FareRuleId,
+            fareRule.RuleType,
             fareRule.FlightNumber,
             fareRule.FareBasisCode,
             fareRule.FareFamily,
             fareRule.CabinCode,
             fareRule.BookingClass,
             fareRule.CurrencyCode,
-            fareRule.BaseFareAmount,
+            fareRule.MinAmount,
+            fareRule.MaxAmount,
             fareRule.TaxAmount,
-            fareRule.TotalAmount,
+            fareRule.MinPoints,
+            fareRule.MaxPoints,
+            fareRule.PointsTaxes,
             fareRule.IsRefundable,
             fareRule.IsChangeable,
             fareRule.ChangeFeeAmount,
             fareRule.CancellationFeeAmount,
-            fareRule.PointsPrice,
-            fareRule.PointsTaxes,
             fareRule.ValidFrom,
             fareRule.ValidTo,
             fareRule.CreatedAt,

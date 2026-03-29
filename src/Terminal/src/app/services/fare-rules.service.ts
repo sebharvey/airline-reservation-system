@@ -3,23 +3,27 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environment';
 
+export type RuleType = 'Money' | 'Points';
+
 export interface FareRule {
   fareRuleId: string;
+  ruleType: RuleType;
   flightNumber: string | null;
   fareBasisCode: string;
   fareFamily: string | null;
   cabinCode: string;
   bookingClass: string;
-  currencyCode: string;
-  baseFareAmount: number;
-  taxAmount: number;
-  totalAmount: number;
+  currencyCode: string | null;
+  minAmount: number | null;
+  maxAmount: number | null;
+  taxAmount: number | null;
+  minPoints: number | null;
+  maxPoints: number | null;
+  pointsTaxes: number | null;
   isRefundable: boolean;
   isChangeable: boolean;
   changeFeeAmount: number;
   cancellationFeeAmount: number;
-  pointsPrice: number | null;
-  pointsTaxes: number | null;
   validFrom: string | null;
   validTo: string | null;
   createdAt: string;
@@ -27,20 +31,23 @@ export interface FareRule {
 }
 
 export interface CreateFareRuleRequest {
+  ruleType: RuleType;
   flightNumber?: string | null;
   fareBasisCode: string;
   fareFamily?: string | null;
   cabinCode: string;
   bookingClass: string;
-  currencyCode: string;
-  baseFareAmount: number;
-  taxAmount: number;
+  currencyCode?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  taxAmount?: number | null;
+  minPoints?: number | null;
+  maxPoints?: number | null;
+  pointsTaxes?: number | null;
   isRefundable: boolean;
   isChangeable: boolean;
   changeFeeAmount: number;
   cancellationFeeAmount: number;
-  pointsPrice?: number | null;
-  pointsTaxes?: number | null;
   validFrom?: string | null;
   validTo?: string | null;
 }

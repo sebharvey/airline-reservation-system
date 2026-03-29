@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FareRulesService, FareRule, CreateFareRuleRequest } from '../../services/fare-rules.service';
+import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType } from '../../services/fare-rules.service';
 
 @Component({
   selector: 'app-fare-rules',
@@ -26,20 +26,23 @@ export class FareRulesComponent implements OnInit {
 
   // Form fields
   form = signal<CreateFareRuleRequest>({
+    ruleType: 'Money',
     flightNumber: null,
     fareBasisCode: '',
     fareFamily: null,
     cabinCode: 'Y',
     bookingClass: 'Y',
     currencyCode: 'GBP',
-    baseFareAmount: 0,
+    minAmount: 0,
+    maxAmount: 0,
     taxAmount: 0,
+    minPoints: null,
+    maxPoints: null,
+    pointsTaxes: null,
     isRefundable: false,
     isChangeable: false,
     changeFeeAmount: 0,
     cancellationFeeAmount: 0,
-    pointsPrice: null,
-    pointsTaxes: null,
     validFrom: '',
     validTo: '',
   });
@@ -54,18 +57,21 @@ export class FareRulesComponent implements OnInit {
         (r.fareFamily ?? '').toLowerCase().includes(q) ||
         (r.flightNumber ?? '').toLowerCase().includes(q) ||
         r.cabinCode.toLowerCase().includes(q) ||
-        r.currencyCode.toLowerCase().includes(q)
+        r.ruleType.toLowerCase().includes(q) ||
+        (r.currencyCode ?? '').toLowerCase().includes(q)
     );
   });
 
   stats = computed(() => {
     const all = this.rules();
     const cabins = new Set(all.map(r => r.cabinCode));
-    const currencies = new Set(all.map(r => r.currencyCode));
+    const moneyRules = all.filter(r => r.ruleType === 'Money').length;
+    const pointsRules = all.filter(r => r.ruleType === 'Points').length;
     return {
       total: all.length,
       cabins: cabins.size,
-      currencies: currencies.size,
+      moneyRules,
+      pointsRules,
     };
   });
 
@@ -94,20 +100,23 @@ export class FareRulesComponent implements OnInit {
   openCreateForm(): void {
     this.editing.set(null);
     this.form.set({
+      ruleType: 'Money',
       flightNumber: null,
       fareBasisCode: '',
       fareFamily: null,
       cabinCode: 'Y',
       bookingClass: 'Y',
       currencyCode: 'GBP',
-      baseFareAmount: 0,
+      minAmount: 0,
+      maxAmount: 0,
       taxAmount: 0,
+      minPoints: null,
+      maxPoints: null,
+      pointsTaxes: null,
       isRefundable: false,
       isChangeable: false,
       changeFeeAmount: 0,
       cancellationFeeAmount: 0,
-      pointsPrice: null,
-      pointsTaxes: null,
       validFrom: '',
       validTo: '',
     });
@@ -119,20 +128,23 @@ export class FareRulesComponent implements OnInit {
   openEditForm(rule: FareRule): void {
     this.editing.set(rule);
     this.form.set({
+      ruleType: rule.ruleType,
       flightNumber: rule.flightNumber,
       fareBasisCode: rule.fareBasisCode,
       fareFamily: rule.fareFamily,
       cabinCode: rule.cabinCode,
       bookingClass: rule.bookingClass,
       currencyCode: rule.currencyCode,
-      baseFareAmount: rule.baseFareAmount,
+      minAmount: rule.minAmount,
+      maxAmount: rule.maxAmount,
       taxAmount: rule.taxAmount,
+      minPoints: rule.minPoints,
+      maxPoints: rule.maxPoints,
+      pointsTaxes: rule.pointsTaxes,
       isRefundable: rule.isRefundable,
       isChangeable: rule.isChangeable,
       changeFeeAmount: rule.changeFeeAmount,
       cancellationFeeAmount: rule.cancellationFeeAmount,
-      pointsPrice: rule.pointsPrice,
-      pointsTaxes: rule.pointsTaxes,
       validFrom: rule.validFrom ? rule.validFrom.substring(0, 10) : '',
       validTo: rule.validTo ? rule.validTo.substring(0, 10) : '',
     });
@@ -150,6 +162,20 @@ export class FareRulesComponent implements OnInit {
     this.form.update(f => ({ ...f, [field]: value }));
   }
 
+  onRuleTypeChange(ruleType: RuleType): void {
+    this.form.update(f => ({
+      ...f,
+      ruleType,
+      currencyCode: ruleType === 'Money' ? (f.currencyCode || 'GBP') : null,
+      minAmount: ruleType === 'Money' ? (f.minAmount ?? 0) : null,
+      maxAmount: ruleType === 'Money' ? (f.maxAmount ?? 0) : null,
+      taxAmount: ruleType === 'Money' ? (f.taxAmount ?? 0) : null,
+      minPoints: ruleType === 'Points' ? (f.minPoints ?? 0) : null,
+      maxPoints: ruleType === 'Points' ? (f.maxPoints ?? 0) : null,
+      pointsTaxes: ruleType === 'Points' ? (f.pointsTaxes ?? 0) : null,
+    }));
+  }
+
   async saveRule(): Promise<void> {
     this.saving.set(true);
     this.error.set('');
@@ -160,8 +186,13 @@ export class FareRulesComponent implements OnInit {
       ...data,
       flightNumber: data.flightNumber || null,
       fareFamily: data.fareFamily || null,
-      pointsPrice: data.pointsPrice ?? null,
-      pointsTaxes: data.pointsTaxes ?? null,
+      currencyCode: data.ruleType === 'Money' ? (data.currencyCode || 'GBP') : null,
+      minAmount: data.ruleType === 'Money' ? data.minAmount : null,
+      maxAmount: data.ruleType === 'Money' ? data.maxAmount : null,
+      taxAmount: data.ruleType === 'Money' ? data.taxAmount : null,
+      minPoints: data.ruleType === 'Points' ? data.minPoints : null,
+      maxPoints: data.ruleType === 'Points' ? data.maxPoints : null,
+      pointsTaxes: data.ruleType === 'Points' ? data.pointsTaxes : null,
       validFrom: data.validFrom ? `${data.validFrom}T00:00:00Z` : null,
       validTo: data.validTo ? `${data.validTo}T23:59:59Z` : null,
     };
@@ -229,8 +260,14 @@ export class FareRulesComponent implements OnInit {
     return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  formatAmount(amount: number, currency: string): string {
-    return `${currency} ${amount.toFixed(2)}`;
+  formatAmount(amount: number | null, currency: string | null): string {
+    if (amount == null) return '-';
+    return `${currency ?? ''} ${amount.toFixed(2)}`.trim();
+  }
+
+  formatPoints(points: number | null): string {
+    if (points == null) return '-';
+    return points.toLocaleString();
   }
 
   cabinLabel(code: string): string {

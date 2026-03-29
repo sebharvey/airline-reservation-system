@@ -18,19 +18,19 @@ public sealed class CreateFareRuleHandler
     public async Task<FareRule> HandleAsync(CreateFareRuleCommand command, CancellationToken ct = default)
     {
         var fareRule = FareRule.Create(
-            command.FlightNumber, command.FareBasisCode, command.FareFamily,
+            command.RuleType, command.FlightNumber, command.FareBasisCode, command.FareFamily,
             command.CabinCode, command.BookingClass, command.CurrencyCode,
-            command.BaseFareAmount, command.TaxAmount,
+            command.MinAmount, command.MaxAmount, command.TaxAmount,
+            command.MinPoints, command.MaxPoints, command.PointsTaxes,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
-            command.PointsPrice, command.PointsTaxes,
             string.IsNullOrEmpty(command.ValidFrom) ? null : DateTime.Parse(command.ValidFrom),
             string.IsNullOrEmpty(command.ValidTo) ? null : DateTime.Parse(command.ValidTo));
 
         await _repository.CreateFareRuleAsync(fareRule, ct);
 
-        _logger.LogInformation("Created FareRule {FareRuleId} ({FareBasisCode})",
-            fareRule.FareRuleId, command.FareBasisCode);
+        _logger.LogInformation("Created FareRule {FareRuleId} ({FareBasisCode}, {RuleType})",
+            fareRule.FareRuleId, command.FareBasisCode, command.RuleType);
 
         return fareRule;
     }

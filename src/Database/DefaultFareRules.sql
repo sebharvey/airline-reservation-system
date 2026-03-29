@@ -1,69 +1,117 @@
 -- ============================================================================
 -- Default Fare Rules — Apex Air (GBP)
 -- Blanket rules: no FlightNumber, no ValidFrom/ValidTo
--- Covers all 4 cabins (F, J, W, Y) × 2 fare families (Flex, Non-Flex)
--- Points pricing: 100 points per £1 of base fare (Flex only)
+-- Two rule sets: Money and Points for each cabin × fare family
+-- Min/Max range allows dynamic pricing based on seat availability
 -- ============================================================================
 
+-- Clean existing fare rules
+DELETE FROM [offer].[FareRule];
+
+-- ── MONEY RULES ─────────────────────────────────────────────────────────────
+
 INSERT INTO [offer].[FareRule]
-    (FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-     CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+    (RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+     CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+     MinPoints, MaxPoints, PointsTaxes,
      IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-     PointsPrice, PointsTaxes, ValidFrom, ValidTo)
+     ValidFrom, ValidTo)
 VALUES
 
--- ── First (F) ───────────────────────────────────────────────────────────────
+-- First Flex — fully flexible, refundable, changeable
+('Money', NULL, 'FFLEXGB', 'Flex',  'F', 'F', 'GBP',
+ 2450.00, 3250.00, 195.00,
+ NULL, NULL, NULL,
+ 1, 1, 0.00, 0.00, NULL, NULL),
 
--- First Flex — fully flexible, refundable, changeable, points-redeemable
-(NULL, 'FFLEXGB', 'First Flex',  'F', 'F', 'GBP',
- 2850.00, 195.00, 3045.00,
- 1, 1, 0.00, 0.00,
- 285000, 195.00, NULL, NULL),
+-- First Saver — non-refundable, changeable with fee
+('Money', NULL, 'FSAVGB', 'Non-Flex', 'F', 'A', 'GBP',
+ 1650.00, 2250.00, 195.00,
+ NULL, NULL, NULL,
+ 0, 1, 150.00, 1950.00, NULL, NULL),
 
--- First Saver — non-refundable, changeable with fee, no points redemption
-(NULL, 'FSAVGB', 'First Saver', 'F', 'A', 'GBP',
- 1950.00, 195.00, 2145.00,
- 0, 1, 150.00, 1950.00,
- NULL, NULL, NULL, NULL),
+-- Business Flex — fully flexible, refundable, changeable
+('Money', NULL, 'JFLEXGB', 'Flex',  'J', 'J', 'GBP',
+ 999.00, 1499.00, 182.50,
+ NULL, NULL, NULL,
+ 1, 1, 0.00, 0.00, NULL, NULL),
 
--- ── Business (J) ────────────────────────────────────────────────────────────
+-- Business Saver — non-refundable, changeable with fee
+('Money', NULL, 'JSAVGB', 'Non-Flex', 'J', 'C', 'GBP',
+ 599.00, 999.00, 182.50,
+ NULL, NULL, NULL,
+ 0, 1, 125.00, 799.00, NULL, NULL),
 
--- Business Flex — fully flexible, refundable, changeable, points-redeemable
-(NULL, 'JFLEXGB', 'Business Flex',  'J', 'J', 'GBP',
- 1250.00, 182.50, 1432.50,
- 1, 1, 0.00, 0.00,
- 125000, 182.50, NULL, NULL),
+-- Premium Flex — fully flexible, refundable, changeable
+('Money', NULL, 'WFLEXGB', 'Flex',  'W', 'W', 'GBP',
+ 499.00, 799.00, 135.00,
+ NULL, NULL, NULL,
+ 1, 1, 0.00, 0.00, NULL, NULL),
 
--- Business Saver — non-refundable, changeable with fee, no points redemption
-(NULL, 'JSAVGB', 'Business Saver', 'J', 'C', 'GBP',
- 799.00, 182.50, 981.50,
- 0, 1, 125.00, 799.00,
- NULL, NULL, NULL, NULL),
+-- Premium Saver — non-refundable, changeable with fee
+('Money', NULL, 'WSAVGB', 'Non-Flex', 'W', 'S', 'GBP',
+ 299.00, 549.00, 135.00,
+ NULL, NULL, NULL,
+ 0, 1, 100.00, 425.00, NULL, NULL),
 
--- ── Premium Economy (W) ─────────────────────────────────────────────────────
+-- Economy Flex — fully flexible, refundable, changeable
+('Money', NULL, 'YFLEXGB', 'Flex',  'Y', 'Y', 'GBP',
+ 249.00, 449.00, 97.25,
+ NULL, NULL, NULL,
+ 1, 1, 0.00, 0.00, NULL, NULL),
 
--- Premium Flex — fully flexible, refundable, changeable, points-redeemable
-(NULL, 'WFLEXGB', 'Premium Flex',  'W', 'W', 'GBP',
- 650.00, 135.00, 785.00,
- 1, 1, 0.00, 0.00,
- 65000, 135.00, NULL, NULL),
+-- Economy Light — non-refundable, non-changeable
+('Money', NULL, 'YLOWGB', 'Non-Flex', 'Y', 'L', 'GBP',
+ 89.00, 249.00, 97.25,
+ NULL, NULL, NULL,
+ 0, 0, 0.00, 149.00, NULL, NULL),
 
--- Premium Saver — non-refundable, changeable with fee, no points redemption
-(NULL, 'WSAVGB', 'Premium Saver', 'W', 'S', 'GBP',
- 425.00, 135.00, 560.00,
- 0, 1, 100.00, 425.00,
- NULL, NULL, NULL, NULL),
+-- ── POINTS RULES ────────────────────────────────────────────────────────────
 
--- ── Economy (Y) ─────────────────────────────────────────────────────────────
+-- First Flex — points redemption
+('Points', NULL, 'FFLEXGB', 'Flex',  'F', 'F', NULL,
+ NULL, NULL, NULL,
+ 200000, 325000, 195.00,
+ 1, 1, 0.00, 0.00, NULL, NULL),
 
--- Economy Flex — fully flexible, refundable, changeable, points-redeemable
-(NULL, 'YFLEXGB', 'Economy Flex',  'Y', 'Y', 'GBP',
- 350.00, 97.25, 447.25,
- 1, 1, 0.00, 0.00,
- 35000, 97.25, NULL, NULL),
+-- First Saver — points redemption
+('Points', NULL, 'FSAVGB', 'Non-Flex', 'F', 'A', NULL,
+ NULL, NULL, NULL,
+ 140000, 225000, 195.00,
+ 0, 1, 150.00, 1950.00, NULL, NULL),
 
--- Economy Light — non-refundable, non-changeable, cancellation fee = full fare, no points
-(NULL, 'YLOWGB', 'Economy Light', 'Y', 'L', 'GBP',
- 149.00, 97.25, 246.25,
- 0, 0, 0.00, 149.00,
- NULL, NULL, NULL, NULL);
+-- Business Flex — points redemption
+('Points', NULL, 'JFLEXGB', 'Flex',  'J', 'J', NULL,
+ NULL, NULL, NULL,
+ 80000, 150000, 182.50,
+ 1, 1, 0.00, 0.00, NULL, NULL),
+
+-- Business Saver — points redemption
+('Points', NULL, 'JSAVGB', 'Non-Flex', 'J', 'C', NULL,
+ NULL, NULL, NULL,
+ 50000, 100000, 182.50,
+ 0, 1, 125.00, 799.00, NULL, NULL),
+
+-- Premium Flex — points redemption
+('Points', NULL, 'WFLEXGB', 'Flex',  'W', 'W', NULL,
+ NULL, NULL, NULL,
+ 40000, 80000, 135.00,
+ 1, 1, 0.00, 0.00, NULL, NULL),
+
+-- Premium Saver — points redemption
+('Points', NULL, 'WSAVGB', 'Non-Flex', 'W', 'S', NULL,
+ NULL, NULL, NULL,
+ 25000, 55000, 135.00,
+ 0, 1, 100.00, 425.00, NULL, NULL),
+
+-- Economy Flex — points redemption
+('Points', NULL, 'YFLEXGB', 'Flex',  'Y', 'Y', NULL,
+ NULL, NULL, NULL,
+ 20000, 45000, 97.25,
+ 1, 1, 0.00, 0.00, NULL, NULL),
+
+-- Economy Light — points redemption
+('Points', NULL, 'YLOWGB', 'Non-Flex', 'Y', 'L', NULL,
+ NULL, NULL, NULL,
+ 7500, 25000, 97.25,
+ 0, 0, 0.00, 149.00, NULL, NULL);
