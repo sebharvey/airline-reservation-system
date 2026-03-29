@@ -1,3 +1,5 @@
+using ReservationSystem.Microservices.Seat.Models;
+
 namespace ReservationSystem.Microservices.Seat.Models.Responses;
 
 /// <summary>
@@ -9,7 +11,7 @@ public sealed class AircraftTypeResponse
     public string Manufacturer { get; init; } = string.Empty;
     public string? FriendlyName { get; init; }
     public int TotalSeats { get; init; }
-    public Dictionary<string, int>? CabinCounts { get; init; }
+    public List<CabinCount>? CabinCounts { get; init; }
     public bool IsActive { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }

@@ -1,3 +1,5 @@
+using ReservationSystem.Microservices.Seat.Models;
+
 namespace ReservationSystem.Microservices.Seat.Models.Requests;
 
 /// <summary>
@@ -9,5 +11,5 @@ public sealed class CreateAircraftTypeRequest
     public string Manufacturer { get; init; } = string.Empty;
     public int TotalSeats { get; init; }
     public string? FriendlyName { get; init; }
-    public Dictionary<string, int>? CabinCounts { get; init; }
+    public List<CabinCount>? CabinCounts { get; init; }
 }

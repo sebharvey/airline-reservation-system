@@ -137,9 +137,9 @@ public static class SeatMapper
     public static IReadOnlyList<SeatPricingResponse> ToResponse(IEnumerable<Domain.Entities.SeatPricing> seatPricings) =>
         seatPricings.Select(ToResponse).ToList().AsReadOnly();
 
-    private static string? SerializeCabinCounts(Dictionary<string, int>? cabinCounts) =>
+    private static string? SerializeCabinCounts(List<CabinCount>? cabinCounts) =>
         cabinCounts is null ? null : JsonSerializer.Serialize(cabinCounts);
 
-    private static Dictionary<string, int>? DeserializeCabinCounts(string? json) =>
-        string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+    private static List<CabinCount>? DeserializeCabinCounts(string? json) =>
+        string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<List<CabinCount>>(json);
 }
