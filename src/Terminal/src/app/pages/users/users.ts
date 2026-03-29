@@ -138,6 +138,12 @@ export class UsersComponent implements OnInit {
   }
 
   async toggleStatus(u: UserAccount): Promise<void> {
+    if (u.isActive && this.isSelf(u)) {
+      this.error.set('You cannot deactivate your own account.');
+      this.clearMessages();
+      return;
+    }
+
     this.error.set('');
     this.success.set('');
     try {
