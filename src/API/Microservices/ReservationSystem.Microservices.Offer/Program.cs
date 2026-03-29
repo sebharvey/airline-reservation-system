@@ -21,6 +21,7 @@ using ReservationSystem.Microservices.Offer.Application.UpdateFareRule;
 using ReservationSystem.Microservices.Offer.Application.DeleteFareRule;
 using ReservationSystem.Microservices.Offer.Application.GetFareRule;
 using ReservationSystem.Microservices.Offer.Application.SearchFareRules;
+using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -64,6 +65,7 @@ var host = new HostBuilder()
         services.AddScoped<DeleteFareRuleHandler>();
         services.AddScoped<GetFareRuleHandler>();
         services.AddScoped<SearchFareRulesHandler>();
+        services.AddScoped<GetFlightInventoryByDateHandler>();
     })
     .Build();
 

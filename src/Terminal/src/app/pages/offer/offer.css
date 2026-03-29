@@ -1,0 +1,265 @@
+.offer-page {
+  max-width: 1300px;
+  padding: 16px;
+}
+
+/* Page header */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Date filter */
+.date-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  cursor: pointer;
+}
+
+.date-input:focus { border-color: var(--grad-start); }
+
+/* Error */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  border-radius: var(--radius-sm);
+  color: #f85149;
+  font-size: 0.85rem;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+/* Stats */
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-avail .stat-value { color: #3fb950; }
+.stat-high .stat-value { color: #f0883e; }
+.stat-cancelled .stat-value { color: #f85149; }
+
+/* Table */
+.table-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.inventory-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.inventory-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.inventory-table tr:last-child td { border-bottom: none; }
+
+.row-cancelled td { opacity: 0.55; }
+
+/* Flight number */
+.flight-num {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Route */
+.route {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.route-arrow { color: var(--text-muted); font-weight: 400; }
+
+/* Times */
+.time-cell { white-space: nowrap; }
+.time-sep { color: var(--text-muted); margin: 0 2px; }
+.day-offset { font-size: 0.65rem; color: #f0883e; margin-left: 1px; }
+
+/* Cabin columns */
+.cabin-col { text-align: center; }
+
+.cabin-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.cabin-ok       { background: rgba(63, 185, 80, 0.12);  color: #3fb950; }
+.cabin-low      { background: rgba(240, 136, 62, 0.12); color: #f0883e; }
+.cabin-critical { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
+.cabin-empty    { color: var(--text-muted); font-size: 0.75rem; }
+
+/* Numeric cells */
+.num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Load factor bar */
+.load-col { min-width: 110px; }
+
+.load-bar-wrap {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.load-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.bar-low      { background: #3fb950; }
+.bar-medium   { background: #58a6ff; }
+.bar-high     { background: #f0883e; }
+.bar-critical { background: #f85149; }
+
+.load-pct {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-active   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
+.badge-inactive { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
+
+.muted { color: var(--text-muted); }
+.mono  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
+
+.empty-row {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 16px !important;
+}
+
+.results-count {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Loading / empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--grad-start);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .offer-page { padding: 12px; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .page-title { font-size: 1.25rem; }
+}
+
+@media (min-width: 901px) {
+  .offer-page { padding: 0; }
+}

@@ -1,0 +1,144 @@
+<div class="offer-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Flight Inventory</h1>
+      <p class="page-subtitle">Cabin seat availability by departure date</p>
+    </div>
+
+    <!-- Date filter -->
+    <div class="date-filter">
+      <label class="date-label" for="dep-date">Departure date</label>
+      <input
+        id="dep-date"
+        class="date-input"
+        type="date"
+        [value]="selectedDate()"
+        (change)="onDateChange($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Stats row -->
+  @if (loaded()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().totalFlights }}</span>
+        <span class="stat-label">Flights</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().totalSeats }}</span>
+        <span class="stat-label">Total Seats</span>
+      </div>
+      <div class="stat-card stat-avail">
+        <span class="stat-value">{{ stats().totalAvailable }}</span>
+        <span class="stat-label">Available</span>
+      </div>
+      <div class="stat-card" [class.stat-high]="stats().avgLoad >= 70">
+        <span class="stat-value">{{ stats().avgLoad }}%</span>
+        <span class="stat-label">Avg Load</span>
+      </div>
+      @if (stats().cancelled > 0) {
+        <div class="stat-card stat-cancelled">
+          <span class="stat-value">{{ stats().cancelled }}</span>
+          <span class="stat-label">Cancelled</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Inventory table -->
+  @if (loaded()) {
+    <div class="table-card">
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>Route</th>
+            <th>Dep / Arr</th>
+            <th class="cabin-col">F</th>
+            <th class="cabin-col">J</th>
+            <th class="cabin-col">W</th>
+            <th class="cabin-col">Y</th>
+            <th>Total Seats</th>
+            <th>Available</th>
+            <th>Aircraft</th>
+            <th>Status</th>
+            <th class="load-col">Load</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (flight of flights(); track flight.flightNumber + flight.departureDate) {
+            <tr [class.row-cancelled]="flight.status === 'Cancelled'">
+              <td class="mono flight-num">{{ flight.flightNumber }}</td>
+              <td>
+                <span class="route">
+                  {{ flight.origin }}
+                  <span class="route-arrow">→</span>
+                  {{ flight.destination }}
+                </span>
+              </td>
+              <td class="mono time-cell">
+                {{ flight.departureTime }}
+                <span class="time-sep">–</span>
+                {{ flight.arrivalTime }}
+                @if (flight.arrivalDayOffset > 0) {
+                  <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+                }
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
+              </td>
+              <td class="num-cell">{{ flight.totalSeats }}</td>
+              <td class="num-cell">{{ flight.totalSeatsAvailable }}</td>
+              <td class="mono muted">{{ flight.aircraftType }}</td>
+              <td>
+                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+              </td>
+              <td class="load-col">
+                <div class="load-bar-wrap">
+                  <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+                </div>
+                <span class="load-pct muted">{{ flight.loadFactor }}%</span>
+              </td>
+            </tr>
+          }
+
+          @if (flights().length === 0) {
+            <tr>
+              <td colspan="12" class="empty-row">No flights found for this date.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · Cabin columns show available / total seats</p>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner"></span>
+      <p>Loading inventory…</p>
+    </div>
+  }
+
+</div>

@@ -14,6 +14,7 @@
   - [SSR](#ssr)
   - [Flights & Seatmaps](#flights--seatmaps)
   - [Check-in](#check-in)
+  - [Admin Inventory Management](#admin-inventory-management)
 - [Loyalty API](#loyalty-api--full-api-spec)
   - [Authentication](#authentication)
   - [Account & Profile](#account--profile)
@@ -98,6 +99,14 @@
 | `POST` | `/v1/checkin/retrieve` | Retrieve booking details to begin the online check-in flow |
 | `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
 | `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
+
+### Admin inventory management
+
+Staff-only endpoints protected by a valid staff JWT token (`Authorization: Bearer <token>`). Requires `UserMs:JwtSecret` to be configured.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, grouped by flight (one row per flight with cabin F/J/W/Y aggregated as columns). Query param `departureDate=yyyy-MM-dd`; defaults to today. Each row includes total seats, seats available per cabin, overall load factor (percent of seats filled), and flight status. |
 
 ---
 
@@ -229,6 +238,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight — returns one entry per selectable seat with `SeatOfferId` (deterministic) and availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory`; does **not** return pricing (pricing is owned by the Seat MS via `GET /v1/seat-offers?flightId=`); Retail API merges this availability data with the Seat MS offer response and the seatmap layout before returning to the channel |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
+| `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, aggregated by flight — one row per flight with F/J/W/Y cabin counts as pivot columns; query param `departureDate=yyyy-MM-dd`; called by the Retail API admin endpoint |
 | `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld; decrements SeatsAvailable) |
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
 | `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel, flight change rollback, and basket expiry) |

@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
+using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -22,6 +23,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Offer.Models.Requests;
 using ReservationSystem.Microservices.Offer.Models.Responses;
+using static ReservationSystem.Microservices.Offer.Models.Responses.FlightInventoryGroupResponse;
 
 namespace ReservationSystem.Microservices.Offer.Functions;
 
@@ -39,6 +41,7 @@ public sealed class OfferFunction
     private readonly GetSeatAvailabilityHandler _seatAvailabilityHandler;
     private readonly ReserveSeatHandler _reserveSeatHandler;
     private readonly UpdateSeatStatusHandler _updateSeatStatusHandler;
+    private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -54,6 +57,7 @@ public sealed class OfferFunction
         GetSeatAvailabilityHandler seatAvailabilityHandler,
         ReserveSeatHandler reserveSeatHandler,
         UpdateSeatStatusHandler updateSeatStatusHandler,
+        GetFlightInventoryByDateHandler getFlightInventoryHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -68,6 +72,7 @@ public sealed class OfferFunction
         _seatAvailabilityHandler = seatAvailabilityHandler;
         _reserveSeatHandler = reserveSeatHandler;
         _updateSeatStatusHandler = updateSeatStatusHandler;
+        _getFlightInventoryHandler = getFlightInventoryHandler;
         _logger = logger;
     }
 
@@ -591,5 +596,55 @@ public sealed class OfferFunction
             return await req.OkJsonAsync(new { updated = count });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+    }
+
+    // GET /v1/admin/inventory?departureDate=yyyy-MM-dd
+    [Function("GetFlightInventoryByDate")]
+    [OpenApiOperation(operationId: "GetFlightInventoryByDate", tags: new[] { "Admin Inventory" }, Summary = "Get flight inventory grouped by cabin for a given departure date")]
+    [OpenApiParameter(name: "departureDate", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Departure date (yyyy-MM-dd). Defaults to today.")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FlightInventoryGroupResponse>), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> GetFlightInventoryByDate(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        var dateParam = System.Web.HttpUtility.ParseQueryString(req.Url.Query)["departureDate"];
+
+        DateOnly departureDate;
+        if (string.IsNullOrWhiteSpace(dateParam))
+        {
+            departureDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+        else if (!DateOnly.TryParseExact(dateParam, "yyyy-MM-dd", out departureDate))
+        {
+            return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
+        }
+
+        var groups = await _getFlightInventoryHandler.HandleAsync(
+            new GetFlightInventoryByDateQuery(departureDate), ct);
+
+        var response = groups.Select(g => new FlightInventoryGroupResponse
+        {
+            FlightNumber        = g.FlightNumber,
+            DepartureDate       = g.DepartureDate.ToString("yyyy-MM-dd"),
+            DepartureTime       = g.DepartureTime.ToString("HH:mm"),
+            ArrivalTime         = g.ArrivalTime.ToString("HH:mm"),
+            ArrivalDayOffset    = g.ArrivalDayOffset,
+            Origin              = g.Origin,
+            Destination         = g.Destination,
+            AircraftType        = g.AircraftType,
+            Status              = g.Status,
+            TotalSeats          = g.TotalSeats,
+            TotalSeatsAvailable = g.TotalSeatsAvailable,
+            LoadFactor          = g.TotalSeats > 0
+                ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
+                : 0,
+            F = g.F is null ? null : new CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
+            J = g.J is null ? null : new CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
+            W = g.W is null ? null : new CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
+            Y = g.Y is null ? null : new CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
+        }).ToList();
+
+        return await req.OkJsonAsync(response);
     }
 }
