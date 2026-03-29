@@ -55,8 +55,17 @@ public sealed class CreateBasketHandler
 
             var offerJson = JsonSerializer.Serialize(new
             {
-                offerId     = offer.OfferId,
-                sessionId   = command.SessionId,
+                offerId          = cheapest?.OfferId ?? Guid.Empty,
+                sessionId        = command.SessionId,
+                flightNumber     = offer.FlightNumber,
+                origin           = offer.Origin,
+                destination      = offer.Destination,
+                departureDate    = offer.DepartureDate,
+                departureTime    = offer.DepartureTime,
+                arrivalTime      = offer.ArrivalTime,
+                arrivalDayOffset = offer.ArrivalDayOffset,
+                cabinCode        = cheapest?.CabinCode ?? string.Empty,
+                fareFamily       = cheapest?.FareFamily,
                 totalAmount
             });
 

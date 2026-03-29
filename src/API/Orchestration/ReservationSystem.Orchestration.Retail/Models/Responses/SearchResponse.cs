@@ -2,6 +2,7 @@ namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 
 public sealed class SearchResponse
 {
+    public Guid SessionId { get; init; }
     public IReadOnlyList<FlightSearchResult> Flights { get; init; } = [];
 }
 

@@ -34,6 +34,7 @@ export interface CreateBasketParams {
   bookingType: BookingType;
   currencyCode?: string;
   loyaltyNumber?: string;
+  sessionId?: string;
 }
 
 export interface CreateBasketResponse {
@@ -91,6 +92,7 @@ interface SearchSliceApiFlight {
 }
 
 interface SearchSliceApiResponse {
+  sessionId: string;
   flights: SearchSliceApiFlight[];
 }
 
@@ -105,7 +107,12 @@ const CABIN_NAMES: Record<string, string> = {
 
 const API_DELAY_MS = 600;
 
-function mapApiResponseToOffers(response: SearchSliceApiResponse): FlightOffer[] {
+export interface SearchSliceResult {
+  sessionId: string;
+  offers: FlightOffer[];
+}
+
+function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceResult {
   const offers: FlightOffer[] = [];
   for (const flight of response.flights) {
     for (const cabin of flight.cabins) {
@@ -138,7 +145,7 @@ function mapApiResponseToOffers(response: SearchSliceApiResponse): FlightOffer[]
       }
     }
   }
-  return offers;
+  return { sessionId: response.sessionId, offers };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -159,7 +166,7 @@ export class RetailApiService {
    * POST /v1/search/slice
    * Search for available flights for a single directional slice.
    */
-  searchSlice(params: SearchSliceParams): Observable<FlightOffer[]> {
+  searchSlice(params: SearchSliceParams): Observable<SearchSliceResult> {
     const base = environment.retailApiBaseUrl;
     const body = {
       origin: params.origin,
@@ -170,7 +177,7 @@ export class RetailApiService {
     };
     return this.#http
       .post<SearchSliceApiResponse>(`${base}/api/v1/search/slice`, body)
-      .pipe(map(mapApiResponseToOffers));
+      .pipe(map(mapApiResponseToResult));
   }
 
   /**
@@ -187,7 +194,8 @@ export class RetailApiService {
       channelCode: 'WEB',
       currencyCode: params.currencyCode ?? 'GBP',
       bookingType: params.bookingType,
-      loyaltyNumber: params.loyaltyNumber ?? null
+      loyaltyNumber: params.loyaltyNumber ?? null,
+      sessionId: params.sessionId ?? null
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
   }
