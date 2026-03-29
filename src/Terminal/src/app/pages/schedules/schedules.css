@@ -1,5 +1,5 @@
 .schedules-page {
-  max-width: 1100px;
+  max-width: 1300px;
   padding: 16px;
 }
 
@@ -67,7 +67,7 @@
 /* Stats */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -88,6 +88,7 @@
 .stat-routes .stat-value { color: #58a6ff; }
 .stat-aircraft .stat-value { color: #d4a017; }
 .stat-daily .stat-value { color: #3fb950; }
+.stat-inventory .stat-value { color: #a371f7; }
 
 /* Error */
 .error-banner {
@@ -276,10 +277,41 @@
 
 .empty-state p { font-size: 0.9rem; max-width: 400px; line-height: 1.6; }
 
+/* Inventory progress */
+.inventory-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+}
+
+.inventory-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.inventory-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a371f7, #8957e5);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.inventory-label {
+  font-size: 0.7rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Mobile */
 @media (max-width: 600px) {
   .schedules-page { padding: 12px; }
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .hide-mobile { display: none; }
   .route-mobile { display: block; }
   .page-title { font-size: 1.25rem; }
