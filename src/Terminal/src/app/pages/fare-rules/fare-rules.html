@@ -44,111 +44,137 @@
         <button class="close-btn" (click)="cancelForm()">&times;</button>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Rule Type *</label>
-          <select [ngModel]="form().ruleType" (ngModelChange)="onRuleTypeChange($event)">
-            <option value="Money">Money</option>
-            <option value="Points">Points</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Flight Number <span class="optional">(optional)</span></label>
-          <input type="text" [ngModel]="form().flightNumber" (ngModelChange)="updateField('flightNumber', $event)" placeholder="e.g. AA100" maxlength="10" />
-        </div>
-        <div class="form-group">
-          <label>
-            Fare Basis Code *
-            <a class="auto-gen-link" (click)="generateFareBasisCode()" title="Auto-generate fare basis code from form fields">Auto-gen</a>
-          </label>
-          <input type="text" [ngModel]="form().fareBasisCode" (ngModelChange)="updateField('fareBasisCode', $event.toUpperCase())" placeholder="e.g. YOWGB" maxlength="8" required class="uppercase-input" />
-        </div>
-        <div class="form-group">
-          <label>Fare Family <span class="optional">(optional)</span></label>
-          <select [ngModel]="form().fareFamily" (ngModelChange)="updateField('fareFamily', $event || null)">
-            <option [ngValue]="null">-- None --</option>
-            <option value="Flex">Flex</option>
-            <option value="Non-Flex">Non-Flex</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Cabin Code *</label>
-          <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
-            <option value="Y">Y - Economy</option>
-            <option value="W">W - Premium Economy</option>
-            <option value="J">J - Business</option>
-            <option value="F">F - First</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Booking Class *</label>
-          <input type="text" [ngModel]="form().bookingClass" (ngModelChange)="updateField('bookingClass', $event)" maxlength="1" required />
+      <div class="form-sections">
+
+        <!-- Rule Identity -->
+        <div class="form-section">
+          <h3 class="section-heading">Rule Identity</h3>
+          <div class="form-grid grid-3">
+            <div class="form-group">
+              <label>Rule Type *</label>
+              <select [ngModel]="form().ruleType" (ngModelChange)="onRuleTypeChange($event)">
+                <option value="Money">Money</option>
+                <option value="Points">Points</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Flight Number <span class="optional">(optional)</span></label>
+              <input type="text" [ngModel]="form().flightNumber" (ngModelChange)="updateField('flightNumber', $event)" placeholder="e.g. AA100" maxlength="10" />
+            </div>
+            <div class="form-group">
+              <label>
+                Fare Basis Code *
+                <a class="auto-gen-link" (click)="generateFareBasisCode()" title="Auto-generate fare basis code from form fields">Auto-gen</a>
+              </label>
+              <input type="text" [ngModel]="form().fareBasisCode" (ngModelChange)="updateField('fareBasisCode', $event.toUpperCase())" placeholder="e.g. YOWGB" maxlength="8" required class="uppercase-input" />
+            </div>
+            <div class="form-group">
+              <label>Fare Family <span class="optional">(optional)</span></label>
+              <select [ngModel]="form().fareFamily" (ngModelChange)="updateField('fareFamily', $event || null)">
+                <option [ngValue]="null">-- None --</option>
+                <option value="Flex">Flex</option>
+                <option value="Non-Flex">Non-Flex</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cabin Code *</label>
+              <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
+                <option value="Y">Y - Economy</option>
+                <option value="W">W - Premium Economy</option>
+                <option value="J">J - Business</option>
+                <option value="F">F - First</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Booking Class *</label>
+              <input type="text" [ngModel]="form().bookingClass" (ngModelChange)="updateField('bookingClass', $event)" maxlength="1" required />
+            </div>
+          </div>
         </div>
 
-        <!-- Money fields -->
-        @if (form().ruleType === 'Money') {
-          <div class="form-group">
-            <label>Currency *</label>
-            <input type="text" [ngModel]="form().currencyCode" (ngModelChange)="updateField('currencyCode', $event)" maxlength="3" required />
-          </div>
-          <div class="form-group">
-            <label>Min Amount *</label>
-            <input type="number" [ngModel]="form().minAmount" (ngModelChange)="updateField('minAmount', $event)" min="0" step="0.01" required />
-          </div>
-          <div class="form-group">
-            <label>Max Amount *</label>
-            <input type="number" [ngModel]="form().maxAmount" (ngModelChange)="updateField('maxAmount', $event)" min="0" step="0.01" required />
-          </div>
-          <div class="form-group">
-            <label>Tax *</label>
-            <input type="number" [ngModel]="form().taxAmount" (ngModelChange)="updateField('taxAmount', $event)" min="0" step="0.01" required />
-          </div>
-        }
+        <!-- Pricing -->
+        <div class="form-section">
+          <h3 class="section-heading">Pricing</h3>
+          @if (form().ruleType === 'Money') {
+            <div class="form-grid grid-4">
+              <div class="form-group">
+                <label>Currency *</label>
+                <input type="text" [ngModel]="form().currencyCode" (ngModelChange)="updateField('currencyCode', $event)" maxlength="3" required />
+              </div>
+              <div class="form-group">
+                <label>Min Amount *</label>
+                <input type="number" [ngModel]="form().minAmount" (ngModelChange)="updateField('minAmount', $event)" min="0" step="0.01" required />
+              </div>
+              <div class="form-group">
+                <label>Max Amount *</label>
+                <input type="number" [ngModel]="form().maxAmount" (ngModelChange)="updateField('maxAmount', $event)" min="0" step="0.01" required />
+              </div>
+              <div class="form-group">
+                <label>Tax *</label>
+                <input type="number" [ngModel]="form().taxAmount" (ngModelChange)="updateField('taxAmount', $event)" min="0" step="0.01" required />
+              </div>
+            </div>
+          }
+          @if (form().ruleType === 'Points') {
+            <div class="form-grid grid-3">
+              <div class="form-group">
+                <label>Min Points *</label>
+                <input type="number" [ngModel]="form().minPoints" (ngModelChange)="updateField('minPoints', $event)" min="0" step="1" required />
+              </div>
+              <div class="form-group">
+                <label>Max Points *</label>
+                <input type="number" [ngModel]="form().maxPoints" (ngModelChange)="updateField('maxPoints', $event)" min="0" step="1" required />
+              </div>
+              <div class="form-group">
+                <label>Points Taxes (GBP)</label>
+                <input type="number" [ngModel]="form().pointsTaxes" (ngModelChange)="updateField('pointsTaxes', $event)" min="0" step="0.01" />
+              </div>
+            </div>
+          }
+        </div>
 
-        <!-- Points fields -->
-        @if (form().ruleType === 'Points') {
-          <div class="form-group">
-            <label>Min Points *</label>
-            <input type="number" [ngModel]="form().minPoints" (ngModelChange)="updateField('minPoints', $event)" min="0" step="1" required />
+        <!-- Conditions & Fees -->
+        <div class="form-section">
+          <h3 class="section-heading">Conditions &amp; Fees</h3>
+          <div class="form-grid grid-4">
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" [ngModel]="form().isRefundable" (ngModelChange)="updateField('isRefundable', $event)" />
+                Refundable
+              </label>
+            </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" [ngModel]="form().isChangeable" (ngModelChange)="updateField('isChangeable', $event)" />
+                Changeable
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Change Fee</label>
+              <input type="number" [ngModel]="form().changeFeeAmount" (ngModelChange)="updateField('changeFeeAmount', $event)" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Cancellation Fee</label>
+              <input type="number" [ngModel]="form().cancellationFeeAmount" (ngModelChange)="updateField('cancellationFeeAmount', $event)" min="0" step="0.01" />
+            </div>
           </div>
-          <div class="form-group">
-            <label>Max Points *</label>
-            <input type="number" [ngModel]="form().maxPoints" (ngModelChange)="updateField('maxPoints', $event)" min="0" step="1" required />
-          </div>
-          <div class="form-group">
-            <label>Points Taxes (GBP)</label>
-            <input type="number" [ngModel]="form().pointsTaxes" (ngModelChange)="updateField('pointsTaxes', $event)" min="0" step="0.01" />
-          </div>
-        }
+        </div>
 
-        <div class="form-group">
-          <label>Change Fee</label>
-          <input type="number" [ngModel]="form().changeFeeAmount" (ngModelChange)="updateField('changeFeeAmount', $event)" min="0" step="0.01" />
+        <!-- Validity -->
+        <div class="form-section">
+          <h3 class="section-heading">Validity</h3>
+          <div class="form-grid grid-2">
+            <div class="form-group">
+              <label>Valid From <span class="optional">(optional)</span></label>
+              <input type="date" [ngModel]="form().validFrom" (ngModelChange)="updateField('validFrom', $event)" />
+            </div>
+            <div class="form-group">
+              <label>Valid To <span class="optional">(optional)</span></label>
+              <input type="date" [ngModel]="form().validTo" (ngModelChange)="updateField('validTo', $event)" />
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Cancellation Fee</label>
-          <input type="number" [ngModel]="form().cancellationFeeAmount" (ngModelChange)="updateField('cancellationFeeAmount', $event)" min="0" step="0.01" />
-        </div>
-        <div class="form-group">
-          <label>Valid From <span class="optional">(optional)</span></label>
-          <input type="date" [ngModel]="form().validFrom" (ngModelChange)="updateField('validFrom', $event)" />
-        </div>
-        <div class="form-group">
-          <label>Valid To <span class="optional">(optional)</span></label>
-          <input type="date" [ngModel]="form().validTo" (ngModelChange)="updateField('validTo', $event)" />
-        </div>
-        <div class="form-group checkbox-group">
-          <label>
-            <input type="checkbox" [ngModel]="form().isRefundable" (ngModelChange)="updateField('isRefundable', $event)" />
-            Refundable
-          </label>
-        </div>
-        <div class="form-group checkbox-group">
-          <label>
-            <input type="checkbox" [ngModel]="form().isChangeable" (ngModelChange)="updateField('isChangeable', $event)" />
-            Changeable
-          </label>
-        </div>
+
       </div>
 
       <div class="form-actions">
