@@ -49,7 +49,15 @@
         { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise" },
         { "name": "Settle Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/settle" },
         { "name": "Reverse Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reverse" },
-        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" }
+        { "name": "Reinstate Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/reinstate" },
+        { "name": "Admin Search Customers", "method": "POST", "path": "/api/v1/admin/customers/search", "defaultPayload": "{\n  \"query\": \"smith@example.com\"\n}" },
+        { "name": "Admin Get Customer", "method": "GET", "path": "/api/v1/admin/customers/{loyaltyNumber}" },
+        { "name": "Admin Update Customer", "method": "PATCH", "path": "/api/v1/admin/customers/{loyaltyNumber}", "defaultPayload": "{\n  \"givenName\": \"Jane\",\n  \"surname\": \"Smith\"\n}" },
+        { "name": "Admin Get Transactions", "method": "GET", "path": "/api/v1/admin/customers/{loyaltyNumber}/transactions" },
+        { "name": "Admin Add Points", "method": "POST", "path": "/api/v1/admin/customers/{loyaltyNumber}/points", "defaultPayload": "{\n  \"points\": 1000,\n  \"description\": \"Goodwill gesture\"\n}" },
+        { "name": "Admin Delete Customer", "method": "DELETE", "path": "/api/v1/admin/customers/{loyaltyNumber}" },
+        { "name": "Admin Set Account Status", "method": "PATCH", "path": "/api/v1/admin/customers/{loyaltyNumber}/status", "defaultPayload": "{\n  \"isActive\": true\n}" },
+        { "name": "Admin Update Identity", "method": "PATCH", "path": "/api/v1/admin/customers/{loyaltyNumber}/identity", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"isLocked\": false\n}" }
       ]
     },
     {
@@ -209,8 +217,9 @@
       "callers": ["Loyalty API", "Disruption API"],
       "operations": [
         { "name": "Create Customer", "method": "POST", "path": "/api/v1/customers", "defaultPayload": "{\n  \"givenName\": \"Jane\",\n  \"surname\": \"Smith\",\n  \"dateOfBirth\": \"1990-06-15\",\n  \"preferredLanguage\": \"en-GB\"\n}" },
-        { "name": "Search Customers", "method": "POST", "path": "/api/v1/customers/search", "defaultPayload": "{\n  \"query\": \"Smith\"\n}" },
+        { "name": "Search Customers", "method": "POST", "path": "/api/v1/customers/search", "defaultPayload": "{\n  \"query\": \"smith@example.com\"\n}" },
         { "name": "Get Customer", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}" },
+        { "name": "Get Customer by Identity", "method": "GET", "path": "/api/v1/customers/by-identity/{identityId}" },
         { "name": "Update Customer", "method": "PATCH", "path": "/api/v1/customers/{loyaltyNumber}" },
         { "name": "Get Customer Transactions", "method": "GET", "path": "/api/v1/customers/{loyaltyNumber}/transactions" },
         { "name": "Authorise Points", "method": "POST", "path": "/api/v1/customers/{loyaltyNumber}/points/authorise", "defaultPayload": "{\n  \"points\": 500,\n  \"basketId\": \"00000000-0000-0000-0000-000000000001\"\n}" },
@@ -308,6 +317,7 @@
         { "name": "Password Reset", "method": "POST", "path": "/api/v1/auth/password/reset", "defaultPayload": "{\n  \"token\": \"{reset-token}\",\n  \"newPassword\": \"NewPassword1!\"\n}" },
         { "name": "Create Account", "method": "POST", "path": "/api/v1/accounts", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"Password1!\"\n}" },
         { "name": "Get Account", "method": "GET", "path": "/api/v1/accounts/{userAccountId}" },
+        { "name": "Get Account by Email", "method": "GET", "path": "/api/v1/accounts/by-email/{email}" },
         { "name": "Update Account", "method": "PATCH", "path": "/api/v1/accounts/{userAccountId}", "defaultPayload": "{\n  \"email\": \"jane.smith@example.com\",\n  \"isLocked\": false\n}" },
         { "name": "Delete Account", "method": "DELETE", "path": "/api/v1/accounts/{userAccountId}" },
         { "name": "Verify Email", "method": "GET", "path": "/api/v1/accounts/{userAccountId}/verify-email" },
