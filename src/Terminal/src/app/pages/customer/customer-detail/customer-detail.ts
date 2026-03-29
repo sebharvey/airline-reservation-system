@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
@@ -431,8 +432,12 @@ export class CustomerDetailComponent implements OnInit {
       this.success.set('Identity account updated successfully.');
       this.editingIdentity.set(false);
       await this.loadCustomer();
-    } catch {
-      this.error.set('Failed to update identity account. Please try again.');
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 409) {
+        this.error.set('This email address is already in use.');
+      } else {
+        this.error.set('Failed to update identity account. Please try again.');
+      }
     } finally {
       this.savingIdentity.set(false);
     }
