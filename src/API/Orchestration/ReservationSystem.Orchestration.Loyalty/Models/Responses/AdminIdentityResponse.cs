@@ -1,10 +1,10 @@
-namespace ReservationSystem.Microservices.Identity.Models.Responses;
+namespace ReservationSystem.Orchestration.Loyalty.Models.Responses;
 
 /// <summary>
-/// HTTP response body for a user account summary — exposes only non-sensitive fields.
+/// Identity account details returned as part of the admin customer response.
 /// PasswordHash is never included.
 /// </summary>
-public sealed class AccountSummaryResponse
+public sealed class AdminIdentityResponse
 {
     public Guid UserAccountId { get; init; }
     public string Email { get; init; } = string.Empty;

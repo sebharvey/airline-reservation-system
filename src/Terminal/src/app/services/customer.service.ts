@@ -13,6 +13,18 @@ export interface CustomerSummary {
   createdAt: string;
 }
 
+export interface IdentityDetails {
+  userAccountId: string;
+  email: string;
+  isEmailVerified: boolean;
+  isLocked: boolean;
+  failedLoginAttempts: number;
+  lastLoginAt: string | null;
+  passwordChangedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CustomerDetail {
   loyaltyNumber: string;
   givenName: string;
@@ -34,6 +46,12 @@ export interface CustomerDetail {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  identity: IdentityDetails | null;
+}
+
+export interface UpdateIdentityRequest {
+  email?: string | null;
+  isLocked?: boolean;
 }
 
 export interface UpdateCustomerRequest {
@@ -123,6 +141,12 @@ export class CustomerService {
   async setAccountStatus(loyaltyNumber: string, isActive: boolean): Promise<void> {
     await firstValueFrom(
       this.#http.patch(`${this.#baseUrl}/${loyaltyNumber}/status`, { isActive })
+    );
+  }
+
+  async updateIdentity(loyaltyNumber: string, request: UpdateIdentityRequest): Promise<void> {
+    await firstValueFrom(
+      this.#http.patch(`${this.#baseUrl}/${loyaltyNumber}/identity`, request)
     );
   }
 }

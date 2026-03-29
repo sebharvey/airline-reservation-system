@@ -196,6 +196,93 @@
                 </div>
               </div>
             </div>
+
+            @if (c.identity; as id) {
+              <div class="detail-section detail-section-full">
+                <div class="section-title-row">
+                  <h3 class="section-title">Identity account</h3>
+                  @if (!editingIdentity()) {
+                    <button class="edit-btn edit-btn-sm" (click)="startEditIdentity()">Edit</button>
+                  }
+                </div>
+
+                @if (!editingIdentity()) {
+                  <div class="field-grid">
+                    <div class="field-display">
+                      <span class="field-label">Email</span>
+                      <span class="field-value">{{ id.email }}</span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Email verified</span>
+                      <span class="field-value">
+                        <span class="badge" [class]="id.isEmailVerified ? 'badge-active' : 'badge-inactive'">
+                          {{ id.isEmailVerified ? 'Verified' : 'Unverified' }}
+                        </span>
+                      </span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Account locked</span>
+                      <span class="field-value">
+                        <span class="badge" [class]="id.isLocked ? 'badge-inactive' : 'badge-active'">
+                          {{ id.isLocked ? 'Locked' : 'Unlocked' }}
+                        </span>
+                      </span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Failed login attempts</span>
+                      <span class="field-value">{{ id.failedLoginAttempts }}</span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Last login</span>
+                      <span class="field-value">{{ id.lastLoginAt ? formatDateTime(id.lastLoginAt) : '—' }}</span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Password changed</span>
+                      <span class="field-value">{{ formatDateTime(id.passwordChangedAt) }}</span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Account created</span>
+                      <span class="field-value">{{ formatDateTime(id.createdAt) }}</span>
+                    </div>
+                    <div class="field-display">
+                      <span class="field-label">Last updated</span>
+                      <span class="field-value">{{ formatDateTime(id.updatedAt) }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="form-grid">
+                    <div class="field field-full">
+                      <label class="field-label">Email</label>
+                      <input class="field-input" type="email"
+                        [value]="editIdentityEmail()"
+                        (input)="setField(editIdentityEmail.set.bind(editIdentityEmail), $event)"
+                        [disabled]="savingIdentity()"
+                        placeholder="customer@example.com" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Account locked</label>
+                      <select class="field-input"
+                        [value]="editIdentityIsLocked() ? 'true' : 'false'"
+                        (change)="editIdentityIsLocked.set(($event.target as HTMLSelectElement).value === 'true')"
+                        [disabled]="savingIdentity()">
+                        <option value="false">Unlocked</option>
+                        <option value="true">Locked</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-actions">
+                    <button class="btn-secondary" (click)="cancelEditIdentity()" [disabled]="savingIdentity()">Cancel</button>
+                    <button class="btn-primary" (click)="saveIdentity()" [disabled]="savingIdentity()">
+                      @if (savingIdentity()) {
+                        <span class="btn-spinner"></span> Saving…
+                      } @else {
+                        Save Changes
+                      }
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         } @else {
           <!-- Edit mode -->
