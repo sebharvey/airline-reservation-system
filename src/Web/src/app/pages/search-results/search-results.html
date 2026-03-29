@@ -197,6 +197,20 @@
   </div>
 
   <!-- Fare selection popup -->
+  <!-- Basket creation loading overlay -->
+  <div class="fare-overlay" *ngIf="basketLoading()">
+    <div class="basket-loading-card">
+      <div class="spinner"></div>
+      <p>Reserving your selection&hellip;</p>
+    </div>
+  </div>
+
+  <!-- Basket creation error -->
+  <div class="error-banner" *ngIf="basketError()">
+    <span>{{ basketError() }}</span>
+    <button class="error-dismiss" (click)="basketError.set('')">&#10005;</button>
+  </div>
+
   <div class="fare-overlay" *ngIf="farePopup()" (click)="closeFarePopup()">
     <div class="fare-popup" (click)="$event.stopPropagation()">
 

@@ -112,7 +112,7 @@ export class ChangeFlightComponent implements OnInit {
     this.retailApi.searchSlice({
       origin: seg.origin,
       destination: seg.destination,
-      departDate: date,
+      departureDate: date,
       adults: o.passengers.filter(p => p.type === 'ADT').length,
       children: o.passengers.filter(p => p.type === 'CHD').length
     }).subscribe({

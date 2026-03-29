@@ -636,3 +636,42 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Basket loading card ── */
+.basket-loading-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 32px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* ── Basket error banner ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  border-radius: var(--radius-md);
+  color: #b91c1c;
+  font-size: 0.88rem;
+  margin: 0 0 16px;
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b91c1c;
+  font-size: 1rem;
+  padding: 0 4px;
+  line-height: 1;
+}
