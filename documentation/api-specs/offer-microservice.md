@@ -44,7 +44,7 @@ Calls from orchestration APIs to the Offer microservice are authenticated using 
 
 The core principle of the Offer MS is that **prices are locked at search time, not at payment time**.
 
-- When a customer searches for flights, the Offer MS persists one `StoredOffer` per flight result. All cabin fares for that flight are stored together in the `FaresInfo` JSON column. A `SessionId` (Guid) is generated once per search and shared across all `StoredOffer` rows produced by that search.
+- When a customer searches for flights, the Offer MS persists **one `StoredOffer` per search**. All matching flights and their cabin fares are stored in the `FaresInfo` JSON column as an `inventories[]` array. A `SessionId` (Guid) is generated once per search and uniquely identifies that single row.
 - Each individual fare within `FaresInfo` has its own `OfferId`. The Retail API presents these `OfferIds` to the customer via the cabins → fareFamilies → offer hierarchy.
 - The customer selects a fare family offer and passes its `OfferId` (and the `SessionId`) to the basket.
 - The Retail API calls `GET /v1/offers/{offerId}?sessionId={sessionId}` to retrieve the stored snapshot. It validates `ExpiresAt > now` before proceeding; if the offer is expired, the customer must re-search.
@@ -153,19 +153,19 @@ One row per fare basis per inventory record. Multiple fares can exist per `Inven
 
 ### `offer.StoredOffer`
 
-One row per **flight** per search session. All cabin fares for that flight are stored in the `FaresInfo` JSON column. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time using the `inventoryId` inside `FaresInfo`.
+One row per **search session**. All matching flights and their cabin fares are stored in the `FaresInfo` JSON column as an `inventories[]` array. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |--------|------|----------|---------|-----|-------|
 | `StoredOfferId` | UNIQUEIDENTIFIER | No | NEWID() | PK | Internal row identifier |
-| `SessionId` | UNIQUEIDENTIFIER | No | | Indexed | Identifies the search session; shared across all `StoredOffer` rows produced by a single search call |
-| `FaresInfo` | NVARCHAR(MAX) | No | | | JSON snapshot — `inventoryId` + `offers[]` array; one offer item per cabin/fare combination (see structure below) |
+| `SessionId` | UNIQUEIDENTIFIER | No | | Indexed | Uniquely identifies this search session; exactly one `StoredOffer` row exists per session |
+| `FaresInfo` | NVARCHAR(MAX) | No | | | JSON snapshot — `inventories[]` array; each entry contains an `inventoryId` and `offers[]` of fare items for that flight (see structure below) |
 | `CreatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on insert** |
 | `ExpiresAt` | DATETIME2 | No | | | Set to `CreatedAt + 60 minutes`. Offer rejected if `now > ExpiresAt` |
 | `UpdatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on every update** |
 
 > **Indexes:** `IX_StoredOffer_SessionId` on `(SessionId)` — used for efficient session-scoped lookups when `?sessionId=` is supplied; `IX_StoredOffer_Expiry` on `(ExpiresAt)` — used by background cleanup job.
-> **One row per flight:** A single row holds all cabin fares, keeping the row count proportional to flights rather than individual fare/cabin combinations.
+> **One row per search session:** A single row holds all matching flights and all their cabin fares, keeping the row count equal to the number of searches rather than the number of flights.
 > **Flight data at read time:** Origin, destination, times, and aircraft type are not stored in `FaresInfo`; they are resolved from `offer.FlightInventory` via `inventoryId` to avoid data drift.
 > **`ExpiresAt` alignment:** Set to `CreatedAt + 60 minutes`, matching the basket expiry window.
 
@@ -173,37 +173,41 @@ One row per **flight** per search session. All cabin fares for that flight are s
 
 ```json
 {
-  "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "offers": [
+  "inventories": [
     {
-      "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-      "cabinCode": "J",
-      "fareBasisCode": "JFLEXGB",
-      "fareFamily": "Business Flex",
-      "currencyCode": "GBP",
-      "baseFareAmount": 1850.00,
-      "taxAmount": 220.00,
-      "totalAmount": 2070.00,
-      "isRefundable": true,
-      "isChangeable": true,
-      "bookingType": "Revenue",
-      "seatsAvailable": 8,
-      "pointsPrice": null
-    },
-    {
-      "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      "cabinCode": "Y",
-      "fareBasisCode": "YFLEX",
-      "fareFamily": "Economy Flex",
-      "currencyCode": "GBP",
-      "baseFareAmount": 420.00,
-      "taxAmount": 85.00,
-      "totalAmount": 505.00,
-      "isRefundable": true,
-      "isChangeable": true,
-      "bookingType": "Revenue",
-      "seatsAvailable": 42,
-      "pointsPrice": 18000
+      "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "offers": [
+        {
+          "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "cabinCode": "J",
+          "fareBasisCode": "JFLEXGB",
+          "fareFamily": "Business Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 1850.00,
+          "taxAmount": 220.00,
+          "totalAmount": 2070.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "bookingType": "Revenue",
+          "seatsAvailable": 8,
+          "pointsPrice": null
+        },
+        {
+          "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "cabinCode": "Y",
+          "fareBasisCode": "YFLEX",
+          "fareFamily": "Economy Flex",
+          "currencyCode": "GBP",
+          "baseFareAmount": 420.00,
+          "taxAmount": 85.00,
+          "totalAmount": 505.00,
+          "isRefundable": true,
+          "isChangeable": true,
+          "bookingType": "Revenue",
+          "seatsAvailable": 42,
+          "pointsPrice": 18000
+        }
+      ]
     }
   ]
 }
@@ -461,14 +465,15 @@ Add a fare definition to an existing flight inventory record. Called by the Oper
 
 Search flight inventory for a single segment (origin, destination, date, pax count) across **all cabin classes** and return priced, stored-offer-snapshotted offers. Called once per leg by the Retail API for both direct (`POST /v1/search/slice`) and connecting (`POST /v1/search/connecting`) searches.
 
-**When to use:** Called by the Retail API to find available flights and create stored offer snapshots. For each matching `FlightInventory` record (one per cabin), the Offer MS collects all active non-expired fares across all cabins, creates one `StoredOffer` row per flight with all fares in the `FaresInfo` JSON, and returns the offer details grouped by flight. A `sessionId` is generated once for the search and returned in the response.
+**When to use:** Called by the Retail API to find available flights and create a stored offer snapshot. The Offer MS collects all active non-expired fares across all matching flights and all cabin classes, creates **one `StoredOffer` row for the entire search** with all flights and fares stored in the `FaresInfo` JSON as an `inventories[]` array, and returns the offer details grouped by flight. A `sessionId` is generated once for the search and returned in the response.
 
 **Offer creation logic:**
 1. Generate a new `sessionId` (Guid) for this search.
 2. Query `offer.FlightInventory` for records matching `origin`, `destination`, `departureDate` WHERE `Status = 'Active'` AND `SeatsAvailable >= paxCount` — all cabin classes.
 3. Group the matching inventory records by flight (flight number + departure date).
-4. For each flight group, query `offer.Fare` for all cabins WHERE `ValidFrom <= now` AND `ValidTo >= now`, and create one `StoredOffer` row per flight with all fares stored in `FaresInfo` JSON (`ExpiresAt = now + 60 minutes`).
-5. Return all flights grouped in the response, each with its `offers[]` array. Return `sessionId` at the response root.
+4. For each flight group, query `offer.Fare` for all cabins WHERE `ValidFrom <= now` AND `ValidTo >= now`, collect the fare items per flight.
+5. Once all flight groups are processed, create a **single `StoredOffer` row** with all flights' fares stored in `FaresInfo` as an `inventories[]` array (`ExpiresAt = now + 60 minutes`).
+6. Return all flights grouped in the response, each with its `offers[]` array. Return `sessionId` at the response root.
 
 **For points-mode searches:** Only include fares where `PointsPrice IS NOT NULL`. Return `pointsPrice` as part of each offer item.
 

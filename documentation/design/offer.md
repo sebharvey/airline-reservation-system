@@ -23,7 +23,7 @@ sequenceDiagram
 
     Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=outbound)
     RetailAPI->>OfferMS: POST /v1/search (outbound slice params)
-    OfferMS->>OfferMS: Persist one StoredOffer per flight (all cabins in FaresInfo JSON), generate SessionId for the search
+    OfferMS->>OfferMS: Persist one StoredOffer per search (all flights + cabins in FaresInfo inventories array), generate SessionId
     OfferMS-->>RetailAPI: 200 OK — outbound offer options (sessionId, flights grouped with cabins → fareFamilies → offer)
     RetailAPI-->>Web: 200 OK — display outbound options
 
@@ -33,7 +33,7 @@ sequenceDiagram
         Traveller->>Web: Search for inbound flight (origin, destination, date, pax)
         Web->>RetailAPI: POST /v1/search/slice (origin, destination, date, pax, direction=inbound)
         RetailAPI->>OfferMS: POST /v1/search (inbound slice params)
-        OfferMS->>OfferMS: Persist one StoredOffer per flight (all cabins), generate new SessionId
+        OfferMS->>OfferMS: Persist one StoredOffer per search (all flights + cabins in FaresInfo inventories array), generate new SessionId
         OfferMS-->>RetailAPI: 200 OK — inbound offer options (sessionId, flights grouped with cabins → fareFamilies → offer)
         RetailAPI-->>Web: 200 OK — display inbound options
         Traveller->>Web: Select preferred inbound offer
@@ -64,7 +64,7 @@ A direct flight is a single-segment journey served by a single Apex Air flight n
 | DEL → LHR | AX412 | 03:30 | 08:00 | B789 |
 | LHR → SIN | AX301 | 21:30 | 17:45+1 | A351 |
 
-For a direct flight, the Offer MS creates one `StoredOffer` per flight, containing all available cabin fares in the `FaresInfo` JSON array. A `SessionId` is generated once per search and shared across all `StoredOffer` rows produced by that search.
+For a direct flight, the Offer MS creates **one `StoredOffer` per search**, with all matching flights and their cabin fares stored in the `FaresInfo` JSON as an `inventories[]` array. A `SessionId` is generated once per search and uniquely identifies that single row.
 
 ### Connecting flights (hub-and-spoke)
 
@@ -167,18 +167,18 @@ Not in scope for initial release. The data model should accommodate future addit
 
 ### `offer.StoredOffer`
 
-One row per **flight** per search session. All fare offers across every cabin for that flight are stored together in the `FaresInfo` JSON column. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time.
+One row per **search session**. All matching flights and their cabin fares are stored together in the `FaresInfo` JSON column as an `inventories[]` array. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | StoredOfferId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| SessionId | UNIQUEIDENTIFIER | No | | Indexed | Identifies the search session; shared across all `StoredOffer` rows for a single search |
-| FaresInfo | NVARCHAR(MAX) | No | | | JSON — `inventoryId` + `offers[]` array; one offer item per cabin/fare combination |
+| SessionId | UNIQUEIDENTIFIER | No | | Indexed | Uniquely identifies this search session; exactly one `StoredOffer` row per session |
+| FaresInfo | NVARCHAR(MAX) | No | | | JSON — `inventories[]` array; each entry has `inventoryId` + `offers[]` of fare items for that flight |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | ExpiresAt | DATETIME2 | No | | | `CreatedAt + 60 minutes` |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
 > **Indexes:** `IX_StoredOffer_SessionId` on `(SessionId)` — efficient session-scoped lookups; `IX_StoredOffer_Expiry` on `(ExpiresAt)`.
-> **One row per flight:** A single row stores all cabin fares for a flight, keeping the row count proportional to flights rather than individual fares.
-> **FaresInfo structure:** `{ "inventoryId": "<guid>", "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] }`
+> **One row per search session:** A single row stores all matching flights and all their cabin fares, keeping the row count equal to the number of searches.
+> **FaresInfo structure:** `{ "inventories": [ { "inventoryId": "<guid>", "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] } ] }`
 > **Expiry alignment:** `ExpiresAt = CreatedAt + 60 minutes`, matching the basket expiry window.
