@@ -1,9 +1,10 @@
 namespace ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 
 /// <summary>
-/// Application command carrying all schedule definitions to be imported in a single operation.
+/// Application command carrying all schedule definitions to be imported into a specific schedule group.
 /// </summary>
 public sealed record ImportSchedulesCommand(
+    Guid ScheduleGroupId,
     IReadOnlyList<ScheduleDefinition> Schedules);
 
 /// <summary>

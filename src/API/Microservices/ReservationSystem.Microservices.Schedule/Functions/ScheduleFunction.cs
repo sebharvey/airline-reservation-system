@@ -37,8 +37,8 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("ImportSchedules")]
-    [OpenApiOperation(operationId: "ImportSchedules", tags: new[] { "Schedules" }, Summary = "Bulk-import flight schedules from a season schedule payload")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesRequest), Required = true, Description = "Full season schedule payload containing header, carriers, and schedule definitions")]
+    [OpenApiOperation(operationId: "ImportSchedules", tags: new[] { "Schedules" }, Summary = "Bulk-import flight schedules into a schedule group from a season schedule payload")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesRequest), Required = true, Description = "Full season schedule payload containing scheduleGroupId, header, carriers, and schedule definitions")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesResponse), Description = "OK — returns count of imported and deleted records with per-schedule summary")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
@@ -48,6 +48,10 @@ public sealed class ScheduleFunction
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesRequest>(_logger, cancellationToken);
         if (error is not null) return error;
+
+        // Validate scheduleGroupId.
+        if (request.ScheduleGroupId == Guid.Empty)
+            return await req.BadRequestAsync("'scheduleGroupId' is required.");
 
         // Validate carriers array is present and non-empty.
         if (request.Carriers is null || request.Carriers.Count == 0)
@@ -111,6 +115,11 @@ public sealed class ScheduleFunction
             var response = ScheduleMapper.ToImportResponse(schedules, deleted);
             return await req.OkJsonAsync(response);
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error in ImportSchedules");
+            return await req.BadRequestAsync(ex.Message);
+        }
         catch (FormatException ex)
         {
             _logger.LogWarning(ex, "Invalid format in ImportSchedules request");
@@ -128,8 +137,8 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("GetSchedules")]
-    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all persisted flight schedules")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedule records with operating date counts")]
+    [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve persisted flight schedules, optionally filtered by schedule group")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns flight schedule records with operating date counts")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetSchedules(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules")] HttpRequestData req,
@@ -137,7 +146,11 @@ public sealed class ScheduleFunction
     {
         try
         {
-            var schedules = await _getSchedulesHandler.HandleAsync(new GetSchedulesQuery(), cancellationToken);
+            var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            Guid? scheduleGroupId = Guid.TryParse(qs["scheduleGroupId"], out var gid) ? gid : null;
+
+            var schedules = await _getSchedulesHandler.HandleAsync(
+                new GetSchedulesQuery(scheduleGroupId), cancellationToken);
 
             var response = new GetSchedulesResponse
             {
@@ -145,6 +158,7 @@ public sealed class ScheduleFunction
                 Schedules = schedules.Select(s => new ScheduleItemResponse
                 {
                     ScheduleId = s.ScheduleId,
+                    ScheduleGroupId = s.ScheduleGroupId,
                     FlightNumber = s.FlightNumber,
                     Origin = s.Origin,
                     Destination = s.Destination,

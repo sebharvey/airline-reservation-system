@@ -32,7 +32,7 @@ public static class ScheduleMapper
             .ToList()
             .AsReadOnly();
 
-        return new ImportSchedulesCommand(definitions);
+        return new ImportSchedulesCommand(request.ScheduleGroupId, definitions);
     }
 
     // -------------------------------------------------------------------------

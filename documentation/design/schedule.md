@@ -1,14 +1,32 @@
 # Schedule domain
 
-The Schedule domain stores the operational flight schedule for Apex Air. Schedules are imported in bulk from an IATA SSIM Chapter 7 file via the Operations API. The `POST /v1/schedules/ssim` endpoint on the Operations API parses the SSIM file, converts each Type 3 leg record into the season schedule JSON format, and forwards the complete payload to the Schedule MS `POST /v1/schedules`, which atomically replaces all existing schedule records with the new set.
+The Schedule domain stores the operational flight schedule for Apex Air. Schedules are organised into **schedule groups** — named collections such as "Summer 2026" or "Annual 2026" — so multiple schedule versions can coexist and be independently viewed and imported.
 
-A pre-built JSON schedule payload for the 2026 season is available at `res/schedules/flight-schedule-2026-payloads.json` and can be posted directly to the Schedule MS.
+Schedules are imported in bulk from an IATA SSIM Chapter 7 file via the Operations API. The `POST /v1/schedules/ssim?scheduleGroupId=` endpoint on the Operations API parses the SSIM file, converts each Type 3 leg record into the season schedule JSON format, and forwards the complete payload to the Schedule MS `POST /v1/schedules`, which atomically replaces all schedule records within the target group with the new set.
+
+A pre-built JSON schedule payload for the 2026 season is available at `res/schedules/flight-schedule-2026-payloads.json` and can be posted directly to the Schedule MS (with a valid `scheduleGroupId`).
+
+## Data schema — `schedule.ScheduleGroup`
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| ScheduleGroupId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| Name | VARCHAR(100) | No | | | Unique human-readable name, e.g. `Summer 2026` |
+| SeasonStart | DATE | No | | | First date of the season (inclusive) |
+| SeasonEnd | DATE | No | | | Last date of the season (inclusive) |
+| IsActive | BIT | No | 0 | | Whether this group is the currently active schedule |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Constraints:** `UQ_ScheduleGroup_Name` unique on `(Name)`.
 
 ## Data schema — `schedule.FlightSchedule`
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | ScheduleId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| ScheduleGroupId | UNIQUEIDENTIFIER | No | | FK | References `ScheduleGroup.ScheduleGroupId` |
 | FlightNumber | VARCHAR(10) | No | | | e.g. `AX001` |
 | Origin | CHAR(3) | No | | | IATA airport code |
 | Destination | CHAR(3) | No | | | IATA airport code |
@@ -24,15 +42,16 @@ A pre-built JSON schedule payload for the 2026 season is available at `res/sched
 | CreatedBy | VARCHAR(100) | No | | | Identity reference of the operations user who submitted the import |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 
-> **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`.
+> **Indexes:** `IX_FlightSchedule_FlightNumber` on `(FlightNumber, ValidFrom, ValidTo)`; `IX_FlightSchedule_ScheduleGroupId` on `(ScheduleGroupId)`.
 > **DaysOfWeek bitmask:** Operating days are encoded as a bitfield (ISO week order: Mon–Sun). A daily flight uses value `127` (all seven bits set); Mon/Wed/Fri uses `21` (bits 1+4+16). This encoding enables efficient date enumeration without a supporting day-of-week lookup table.
 
 ## Season schedule JSON payload format
 
-The season schedule payload is the canonical JSON format accepted by the Schedule MS `POST /v1/schedules` endpoint and produced by the Operations API after parsing a SSIM file. A reference payload for the 2026 season is at `res/schedules/flight-schedule-2026-payloads.json`.
+The season schedule payload is the canonical JSON format accepted by the Schedule MS `POST /v1/schedules` endpoint and produced by the Operations API after parsing a SSIM file. The payload must include a `scheduleGroupId` identifying the target group. A reference payload for the 2026 season is at `res/schedules/flight-schedule-2026-payloads.json`.
 
 ```json
 {
+  "scheduleGroupId": "00000000-0000-0000-0000-000000000000",
   "header": {
     "standard": "IATA",
     "airlineCode": "AX",
@@ -77,22 +96,22 @@ sequenceDiagram
     participant OpsAPI as Operations API
     participant ScheduleMS as Schedule [MS]
 
-    OpsUser->>OpsApp: Upload SSIM file
-    OpsApp->>OpsAPI: POST /v1/schedules/ssim (text/plain body, ?createdBy=)
+    OpsUser->>OpsApp: Select schedule group, upload SSIM file
+    OpsApp->>OpsAPI: POST /v1/schedules/ssim?scheduleGroupId=&createdBy= (text/plain body)
     OpsAPI->>OpsAPI: SsimParser.Parse — split lines, extract Type 2 carrier header, process Type 3 scheduled-passenger records
-    OpsAPI->>OpsAPI: Build season schedule JSON payload (header + carriers[].schedules[])
-    OpsAPI->>ScheduleMS: POST /v1/schedules (application/json — season schedule payload)
-    ScheduleMS->>ScheduleMS: Validate all schedule entries
-    ScheduleMS->>ScheduleMS: Delete all existing FlightSchedule records
+    OpsAPI->>OpsAPI: Build season schedule JSON payload (scheduleGroupId + header + carriers[].schedules[])
+    OpsAPI->>ScheduleMS: POST /v1/schedules (application/json — season schedule payload with scheduleGroupId)
+    ScheduleMS->>ScheduleMS: Validate schedule group exists and all schedule entries
+    ScheduleMS->>ScheduleMS: Delete existing FlightSchedule records for the target group
     loop For each schedule in payload
-        ScheduleMS->>ScheduleMS: FlightSchedule.Create — insert into [schedule].[FlightSchedule]
+        ScheduleMS->>ScheduleMS: FlightSchedule.Create — insert into [schedule].[FlightSchedule] with ScheduleGroupId
     end
     ScheduleMS-->>OpsAPI: 200 OK — { imported, deleted, schedules: [{ scheduleId, flightNumber, origin, destination, validFrom, validTo, operatingDateCount }] }
     OpsAPI-->>OpsApp: 200 OK — import summary
     OpsApp-->>OpsUser: N schedules imported, M previous records replaced
 ```
 
-*Ref: SSIM import flow — the Operations API owns SSIM parsing and payload construction; the Schedule MS owns persistence and atomically replaces all existing records on each import.*
+*Ref: SSIM import flow — the Operations API owns SSIM parsing and payload construction; the Schedule MS owns persistence and atomically replaces records within the target schedule group on each import.*
 
 ## SSIM format reference
 

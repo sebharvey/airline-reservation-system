@@ -1,7 +1,8 @@
 namespace ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 
 public sealed record ImportSchedulesToInventoryCommand(
-    IReadOnlyList<CabinDefinition> Cabins);
+    IReadOnlyList<CabinDefinition> Cabins,
+    Guid? ScheduleGroupId = null);
 
 public sealed record CabinDefinition(
     string CabinCode,

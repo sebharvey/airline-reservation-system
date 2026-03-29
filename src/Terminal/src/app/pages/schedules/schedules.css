@@ -64,6 +64,114 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Schedule Group selector */
+.group-selector {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.group-dropdown-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.group-dropdown-field {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.group-select {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  cursor: pointer;
+}
+
+.group-select:focus { border-color: var(--grad-start); }
+.group-select:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.group-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-group-action {
+  padding: 9px 14px;
+  background: var(--white);
+  color: var(--grad-start);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.btn-group-action:hover { background: var(--bg-light); border-color: var(--grad-start); }
+.btn-group-edit { color: #58a6ff; }
+.btn-group-delete { color: #f85149; }
+.btn-group-delete:hover { background: rgba(248, 81, 73, 0.08); border-color: #f85149; }
+
+.group-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.group-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.group-badge-active {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+
+/* Checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* Stats */
 .stats-row {
   display: grid;

@@ -30,23 +30,33 @@ public sealed class EfFlightScheduleRepository : IFlightScheduleRepository
     }
 
     /// <inheritdoc/>
-    public async Task<int> ReplaceAllAsync(
+    public async Task<IReadOnlyList<FlightSchedule>> GetByGroupAsync(
+        Guid scheduleGroupId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.FlightSchedules
+            .Where(s => s.ScheduleGroupId == scheduleGroupId)
+            .OrderBy(s => s.FlightNumber)
+            .ThenBy(s => s.ValidFrom)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> ReplaceByGroupAsync(
+        Guid scheduleGroupId,
         IReadOnlyList<FlightSchedule> schedules,
         CancellationToken cancellationToken = default)
     {
-        // Count existing records before deletion for the return value.
-        var deleted = await _context.FlightSchedules.CountAsync(cancellationToken);
+        var deleted = await _context.FlightSchedules
+            .Where(s => s.ScheduleGroupId == scheduleGroupId)
+            .ExecuteDeleteAsync(cancellationToken);
 
-        // Remove all existing records.
-        await _context.FlightSchedules.ExecuteDeleteAsync(cancellationToken);
-
-        // Insert all incoming records.
         _context.FlightSchedules.AddRange(schedules);
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogDebug(
-            "ReplaceAllAsync: deleted {Deleted} existing records, inserted {Inserted} new records",
-            deleted, schedules.Count);
+            "ReplaceByGroupAsync: group={GroupId}, deleted {Deleted} existing records, inserted {Inserted} new records",
+            scheduleGroupId, deleted, schedules.Count);
 
         return deleted;
     }

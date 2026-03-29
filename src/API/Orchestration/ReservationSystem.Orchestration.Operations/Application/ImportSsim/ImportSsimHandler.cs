@@ -38,12 +38,12 @@ public sealed class ImportSsimHandler
             parsed.CarrierCode, parsed.SeasonCode, parsed.Records.Count);
 
         // Build the season schedule JSON payload to send to Schedule MS.
-        var payload = BuildSchedulePayload(parsed);
+        var payload = BuildSchedulePayload(parsed, command.ScheduleGroupId);
 
         return await _scheduleServiceClient.ImportSchedulesAsync(payload, cancellationToken);
     }
 
-    private static object BuildSchedulePayload(SsimParseResult parsed)
+    private static object BuildSchedulePayload(SsimParseResult parsed, Guid scheduleGroupId)
     {
         var schedules = parsed.Records.Select(r => new
         {
@@ -62,6 +62,7 @@ public sealed class ImportSsimHandler
 
         return new
         {
+            scheduleGroupId,
             header = new
             {
                 standard = "IATA",

@@ -10,12 +10,67 @@ public sealed class ScheduleDbContext : DbContext
 {
     public ScheduleDbContext(DbContextOptions<ScheduleDbContext> options) : base(options) { }
 
+    public DbSet<Domain.Entities.ScheduleGroup> ScheduleGroups => Set<Domain.Entities.ScheduleGroup>();
     public DbSet<Domain.Entities.FlightSchedule> FlightSchedules => Set<Domain.Entities.FlightSchedule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("schedule");
 
+        // ── ScheduleGroup ─────────────────────────────────────────────────────
+        modelBuilder.Entity<Domain.Entities.ScheduleGroup>(entity =>
+        {
+            entity.ToTable("ScheduleGroup", "schedule", t =>
+            {
+                t.HasTrigger("TR_ScheduleGroup_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+            entity.HasKey(e => e.ScheduleGroupId);
+
+            entity.Property(e => e.ScheduleGroupId)
+                  .HasColumnName("ScheduleGroupId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedNever();
+
+            entity.Property(e => e.Name)
+                  .HasColumnName("Name")
+                  .HasColumnType("varchar(100)")
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(e => e.SeasonStart)
+                  .HasColumnName("SeasonStart")
+                  .HasColumnType("date")
+                  .IsRequired();
+
+            entity.Property(e => e.SeasonEnd)
+                  .HasColumnName("SeasonEnd")
+                  .HasColumnType("date")
+                  .IsRequired();
+
+            entity.Property(e => e.IsActive)
+                  .HasColumnName("IsActive")
+                  .HasColumnType("bit")
+                  .IsRequired();
+
+            entity.Property(e => e.CreatedBy)
+                  .HasColumnName("CreatedBy")
+                  .HasColumnType("varchar(100)")
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+
+            entity.Property(e => e.UpdatedAt)
+                  .HasColumnName("UpdatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+        });
+
+        // ── FlightSchedule ────────────────────────────────────────────────────
         modelBuilder.Entity<Domain.Entities.FlightSchedule>(entity =>
         {
             entity.ToTable("FlightSchedule", "schedule", t =>
@@ -29,6 +84,11 @@ public sealed class ScheduleDbContext : DbContext
                   .HasColumnName("ScheduleId")
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
+
+            entity.Property(e => e.ScheduleGroupId)
+                  .HasColumnName("ScheduleGroupId")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired();
 
             entity.Property(e => e.FlightNumber)
                   .HasColumnName("FlightNumber")

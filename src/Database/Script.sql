@@ -34,6 +34,7 @@ IF OBJECT_ID('[seat].[TR_Seatmap_UpdatedAt]',            'TR') IS NOT NULL DROP 
 IF OBJECT_ID('[seat].[TR_SeatPricing_UpdatedAt]',        'TR') IS NOT NULL DROP TRIGGER [seat].[TR_SeatPricing_UpdatedAt];
 IF OBJECT_ID('[bag].[TR_BagPolicy_UpdatedAt]',           'TR') IS NOT NULL DROP TRIGGER [bag].[TR_BagPolicy_UpdatedAt];
 IF OBJECT_ID('[bag].[TR_BagPricing_UpdatedAt]',          'TR') IS NOT NULL DROP TRIGGER [bag].[TR_BagPricing_UpdatedAt];
+IF OBJECT_ID('[schedule].[TR_ScheduleGroup_UpdatedAt]',  'TR') IS NOT NULL DROP TRIGGER [schedule].[TR_ScheduleGroup_UpdatedAt];
 IF OBJECT_ID('[schedule].[TR_FlightSchedule_UpdatedAt]', 'TR') IS NOT NULL DROP TRIGGER [schedule].[TR_FlightSchedule_UpdatedAt];
 IF OBJECT_ID('[customer].[TR_TierConfig_UpdatedAt]',     'TR') IS NOT NULL DROP TRIGGER [customer].[TR_TierConfig_UpdatedAt];
 IF OBJECT_ID('[customer].[TR_Customer_UpdatedAt]',       'TR') IS NOT NULL DROP TRIGGER [customer].[TR_Customer_UpdatedAt];
@@ -78,6 +79,7 @@ IF OBJECT_ID('[bag].[BagPolicy]',  'U') IS NOT NULL DROP TABLE [bag].[BagPolicy]
 
 -- schedule
 IF OBJECT_ID('[schedule].[FlightSchedule]', 'U') IS NOT NULL DROP TABLE [schedule].[FlightSchedule];
+IF OBJECT_ID('[schedule].[ScheduleGroup]',  'U') IS NOT NULL DROP TABLE [schedule].[ScheduleGroup];
 
 -- customer
 IF OBJECT_ID('[customer].[LoyaltyTransaction]', 'U') IS NOT NULL DROP TABLE [customer].[LoyaltyTransaction];
@@ -874,10 +876,41 @@ GO
 -- SCHEDULE DOMAIN
 -- =============================================================================
 
+-- schedule.ScheduleGroup ------------------------------------------------------
+IF OBJECT_ID('[schedule].[ScheduleGroup]', 'U') IS NULL
+CREATE TABLE [schedule].[ScheduleGroup] (
+    ScheduleGroupId  UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ScheduleGroup_Id      DEFAULT NEWID(),
+    Name             VARCHAR(100)     NOT NULL,
+    SeasonStart      DATE             NOT NULL,
+    SeasonEnd        DATE             NOT NULL,
+    IsActive         BIT              NOT NULL CONSTRAINT DF_ScheduleGroup_Active   DEFAULT 0,
+    CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_ScheduleGroup_Created  DEFAULT SYSUTCDATETIME(),
+    CreatedBy        VARCHAR(100)     NOT NULL,
+    UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_ScheduleGroup_Updated  DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_ScheduleGroup PRIMARY KEY (ScheduleGroupId),
+    CONSTRAINT UQ_ScheduleGroup_Name UNIQUE (Name)
+);
+GO
+
+IF OBJECT_ID('[schedule].[TR_ScheduleGroup_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [schedule].[TR_ScheduleGroup_UpdatedAt]
+        ON [schedule].[ScheduleGroup]
+        AFTER UPDATE AS
+            UPDATE [schedule].[ScheduleGroup]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [schedule].[ScheduleGroup] t
+            INNER JOIN inserted i ON t.ScheduleGroupId = i.ScheduleGroupId;
+    ');
+END
+GO
+
 -- schedule.FlightSchedule -----------------------------------------------------
 IF OBJECT_ID('[schedule].[FlightSchedule]', 'U') IS NULL
 CREATE TABLE [schedule].[FlightSchedule] (
     ScheduleId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_FlightSchedule_Id      DEFAULT NEWID(),
+    ScheduleGroupId  UNIQUEIDENTIFIER NOT NULL,
     FlightNumber     VARCHAR(10)      NOT NULL,
     Origin           CHAR(3)          NOT NULL,
     Destination      CHAR(3)          NOT NULL,
@@ -892,13 +925,19 @@ CREATE TABLE [schedule].[FlightSchedule] (
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_FlightSchedule_Created DEFAULT SYSUTCDATETIME(),
     CreatedBy        VARCHAR(100)     NOT NULL,
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_FlightSchedule_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_FlightSchedule PRIMARY KEY (ScheduleId)
+    CONSTRAINT PK_FlightSchedule PRIMARY KEY (ScheduleId),
+    CONSTRAINT FK_FlightSchedule_ScheduleGroup FOREIGN KEY (ScheduleGroupId) REFERENCES [schedule].[ScheduleGroup] (ScheduleGroupId)
 );
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightSchedule_FlightNumber' AND object_id = OBJECT_ID('[schedule].[FlightSchedule]'))
     CREATE INDEX IX_FlightSchedule_FlightNumber
         ON [schedule].[FlightSchedule] (FlightNumber, ValidFrom, ValidTo);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightSchedule_ScheduleGroupId' AND object_id = OBJECT_ID('[schedule].[FlightSchedule]'))
+    CREATE INDEX IX_FlightSchedule_ScheduleGroupId
+        ON [schedule].[FlightSchedule] (ScheduleGroupId);
 GO
 
 IF OBJECT_ID('[schedule].[TR_FlightSchedule_UpdatedAt]', 'TR') IS NULL
@@ -1308,7 +1347,8 @@ BEGIN TRY
     TRUNCATE TABLE [seat].[AircraftType];
     TRUNCATE TABLE [bag].[BagPricing];
     TRUNCATE TABLE [bag].[BagPolicy];
-    TRUNCATE TABLE [schedule].[FlightSchedule];
+    DELETE FROM [schedule].[FlightSchedule];
+    DELETE FROM [schedule].[ScheduleGroup];
     TRUNCATE TABLE [customer].[LoyaltyTransaction];
     TRUNCATE TABLE [customer].[Customer];
     TRUNCATE TABLE [customer].[TierConfig];
@@ -1410,13 +1450,21 @@ BEGIN TRY
     (@CustId2,'Earn',       20754,103770,'JC0004','AX001','Points earned — AX001 LHR-JFK, Business Flex',          '2025-09-28T09:00:00Z'),
     (@CustId2,'Earn',        9030,112800,'JC0005','AX411','Points earned — AX411 LHR-DEL, Business Flex',          '2025-11-15T20:30:00Z');
 
+    -- schedule.ScheduleGroup --------------------------------------------------
+    DECLARE @SeedGroupId UNIQUEIDENTIFIER = NEWID();
+
+    INSERT INTO [schedule].[ScheduleGroup]
+        (ScheduleGroupId, Name, SeasonStart, SeasonEnd, IsActive, CreatedBy)
+    VALUES
+    (@SeedGroupId, 'Annual 2026', '2026-01-01', '2026-12-31', 1, 'ops-admin@apexair.com');
+
     -- schedule.FlightSchedule -------------------------------------------------
     INSERT INTO [schedule].[FlightSchedule]
-        (FlightNumber, Origin, Destination, DepartureTime, ArrivalTime, ArrivalDayOffset,
+        (ScheduleGroupId, FlightNumber, Origin, Destination, DepartureTime, ArrivalTime, ArrivalDayOffset,
          DaysOfWeek, AircraftType, ValidFrom, ValidTo, FlightsCreated, CreatedBy)
     VALUES
-    ('AX001','LHR','JFK','08:00','11:10',0,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com'),
-    ('AX002','JFK','LHR','13:00','01:15',1,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com');
+    (@SeedGroupId,'AX001','LHR','JFK','08:00','11:10',0,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com'),
+    (@SeedGroupId,'AX002','JFK','LHR','13:00','01:15',1,127,'A351','2026-01-01','2026-12-31',365,'ops-admin@apexair.com');
 
     -- offer.FlightInventory ---------------------------------------------------
     DECLARE @InvId_AX001_J UNIQUEIDENTIFIER = NEWID();

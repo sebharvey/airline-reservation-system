@@ -8,10 +8,11 @@ namespace ReservationSystem.Microservices.Schedule.Domain.Repositories;
 public interface IFlightScheduleRepository
 {
     /// <summary>
-    /// Deletes all existing FlightSchedule records and inserts the supplied set as a full replacement.
+    /// Deletes all FlightSchedule records within the given schedule group and inserts the supplied set.
     /// Returns the count of records that were deleted.
     /// </summary>
-    Task<int> ReplaceAllAsync(
+    Task<int> ReplaceByGroupAsync(
+        Guid scheduleGroupId,
         IReadOnlyList<Entities.FlightSchedule> schedules,
         CancellationToken cancellationToken = default);
 
@@ -19,5 +20,12 @@ public interface IFlightScheduleRepository
     /// Returns all FlightSchedule records ordered by FlightNumber then ValidFrom.
     /// </summary>
     Task<IReadOnlyList<Entities.FlightSchedule>> GetAllAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns FlightSchedule records for a specific schedule group.
+    /// </summary>
+    Task<IReadOnlyList<Entities.FlightSchedule>> GetByGroupAsync(
+        Guid scheduleGroupId,
         CancellationToken cancellationToken = default);
 }
