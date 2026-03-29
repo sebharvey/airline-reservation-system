@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environment';
 
+// Per-cabin data as returned by the admin grouped inventory view.
 export interface CabinInventory {
   totalSeats: number;
   seatsAvailable: number;
@@ -10,6 +11,7 @@ export interface CabinInventory {
   seatsHeld: number;
 }
 
+// Admin inventory view: one entry per flight with fixed F/J/W/Y cabin breakdown.
 export interface FlightInventoryGroup {
   flightNumber: string;
   departureDate: string;
@@ -27,6 +29,26 @@ export interface FlightInventoryGroup {
   totalSeats: number;
   totalSeatsAvailable: number;
   loadFactor: number;
+}
+
+// Per-cabin entry within a single-flight inventory response.
+export interface CabinInventoryDetail {
+  cabinCode: string;
+  totalSeats: number;
+  seatsAvailable: number;
+  seatsSold: number;
+  seatsHeld: number;
+}
+
+// Single-flight inventory response (create / hold / sell / release endpoints).
+export interface FlightInventoryResponse {
+  inventoryId: string;
+  flightNumber: string;
+  departureDate: string;
+  totalSeats: number;
+  seatsAvailable: number;
+  status: string;
+  cabins: CabinInventoryDetail[];
 }
 
 @Injectable({ providedIn: 'root' })

@@ -90,10 +90,12 @@ public sealed class ImportSchedulesToInventoryHandler
             .GroupBy(r => r.CabinCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<FareRuleDto>)g.ToList().AsReadOnly(), StringComparer.OrdinalIgnoreCase);
 
-        // 5. Build a batch payload: one entry per schedule × operating date × cabin.
+        // 5. Build a batch payload: one entry per schedule × operating date (all cabins combined).
+        //    Dates before today are skipped regardless of the schedule's ValidFrom.
         //    Schedules whose aircraft type has no registered config in the Seat MS are skipped.
         var flightItems = new List<object>();
         var schedulesWithConfig = new List<ScheduleItemDto>();
+        var today = DateTime.UtcNow.Date;
 
         foreach (var schedule in schedulesResult.Schedules)
         {
@@ -109,26 +111,30 @@ public sealed class ImportSchedulesToInventoryHandler
 
             var validFrom = DateTime.Parse(schedule.ValidFrom);
             var validTo = DateTime.Parse(schedule.ValidTo);
-            var operatingDates = GetOperatingDates(validFrom, validTo, schedule.DaysOfWeek);
+
+            // Never import dates in the past — floor the start to today.
+            var effectiveFrom = validFrom.Date < today ? today : validFrom.Date;
+
+            var operatingDates = GetOperatingDates(effectiveFrom, validTo, schedule.DaysOfWeek);
+
+            var cabinsPayload = cabins
+                .Select(c => new { cabinCode = c.Cabin, totalSeats = c.Count })
+                .ToArray();
 
             foreach (var date in operatingDates)
             {
-                foreach (var cabin in cabins)
+                flightItems.Add(new
                 {
-                    flightItems.Add(new
-                    {
-                        flightNumber = schedule.FlightNumber,
-                        departureDate = date.ToString("yyyy-MM-dd"),
-                        departureTime = schedule.DepartureTime,
-                        arrivalTime = schedule.ArrivalTime,
-                        arrivalDayOffset = schedule.ArrivalDayOffset,
-                        origin = schedule.Origin,
-                        destination = schedule.Destination,
-                        aircraftType = schedule.AircraftType,
-                        cabinCode = cabin.Cabin,
-                        totalSeats = cabin.Count
-                    });
-                }
+                    flightNumber = schedule.FlightNumber,
+                    departureDate = date.ToString("yyyy-MM-dd"),
+                    departureTime = schedule.DepartureTime,
+                    arrivalTime = schedule.ArrivalTime,
+                    arrivalDayOffset = schedule.ArrivalDayOffset,
+                    origin = schedule.Origin,
+                    destination = schedule.Destination,
+                    aircraftType = schedule.AircraftType,
+                    cabins = cabinsPayload
+                });
             }
         }
 
@@ -159,55 +165,59 @@ public sealed class ImportSchedulesToInventoryHandler
 
         foreach (var inventory in batchResult.Inventories)
         {
-            if (!fareRulesByCabin.TryGetValue(inventory.CabinCode, out var rules))
-                continue;
-
             if (!scheduleByFlight.TryGetValue(inventory.FlightNumber, out var schedule))
                 continue;
 
-            foreach (var rule in rules)
+            // Apply fare rules for each cabin in this inventory.
+            foreach (var cabin in inventory.Cabins)
             {
-                // Skip rules scoped to a different flight number.
-                if (!string.IsNullOrEmpty(rule.FlightNumber) &&
-                    !string.Equals(rule.FlightNumber, inventory.FlightNumber, StringComparison.OrdinalIgnoreCase))
+                if (!fareRulesByCabin.TryGetValue(cabin.CabinCode, out var rules))
                     continue;
 
-                try
+                foreach (var rule in rules)
                 {
-                    var currencyCode = rule.CurrencyCode ?? "GBP";
-                    var baseFareAmount = rule.MinAmount ?? 0m;
-                    var taxAmount = rule.TaxAmount ?? 0m;
-                    var pointsPrice = rule.RuleType == "Points" ? rule.MinPoints : null;
-                    var pointsTaxes = rule.RuleType == "Points" ? rule.PointsTaxes : null;
+                    // Skip rules scoped to a different flight number.
+                    if (!string.IsNullOrEmpty(rule.FlightNumber) &&
+                        !string.Equals(rule.FlightNumber, inventory.FlightNumber, StringComparison.OrdinalIgnoreCase))
+                        continue;
 
-                    var validFrom = rule.ValidFrom ?? schedule.ValidFrom;
-                    var validTo = rule.ValidTo ?? schedule.ValidTo;
+                    try
+                    {
+                        var currencyCode = rule.CurrencyCode ?? "GBP";
+                        var baseFareAmount = rule.MinAmount ?? 0m;
+                        var taxAmount = rule.TaxAmount ?? 0m;
+                        var pointsPrice = rule.RuleType == "Points" ? rule.MinPoints : null;
+                        var pointsTaxes = rule.RuleType == "Points" ? rule.PointsTaxes : null;
 
-                    await _offerClient.CreateFareAsync(
-                        inventoryId: inventory.InventoryId,
-                        fareBasisCode: rule.FareBasisCode,
-                        fareFamily: rule.FareFamily,
-                        bookingClass: rule.BookingClass,
-                        currencyCode: currencyCode,
-                        baseFareAmount: baseFareAmount,
-                        taxAmount: taxAmount,
-                        isRefundable: rule.IsRefundable,
-                        isChangeable: rule.IsChangeable,
-                        changeFeeAmount: rule.ChangeFeeAmount,
-                        cancellationFeeAmount: rule.CancellationFeeAmount,
-                        pointsPrice: pointsPrice,
-                        pointsTaxes: pointsTaxes,
-                        validFrom: validFrom,
-                        validTo: validTo,
-                        cancellationToken: cancellationToken);
+                        var validFrom = rule.ValidFrom ?? schedule.ValidFrom;
+                        var validTo = rule.ValidTo ?? schedule.ValidTo;
 
-                    faresCreated++;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex,
-                        "Failed to create fare {FareBasisCode} for inventory {InventoryId} — skipping",
-                        rule.FareBasisCode, inventory.InventoryId);
+                        await _offerClient.CreateFareAsync(
+                            inventoryId: inventory.InventoryId,
+                            fareBasisCode: rule.FareBasisCode,
+                            fareFamily: rule.FareFamily,
+                            bookingClass: rule.BookingClass,
+                            currencyCode: currencyCode,
+                            baseFareAmount: baseFareAmount,
+                            taxAmount: taxAmount,
+                            isRefundable: rule.IsRefundable,
+                            isChangeable: rule.IsChangeable,
+                            changeFeeAmount: rule.ChangeFeeAmount,
+                            cancellationFeeAmount: rule.CancellationFeeAmount,
+                            pointsPrice: pointsPrice,
+                            pointsTaxes: pointsTaxes,
+                            validFrom: validFrom,
+                            validTo: validTo,
+                            cancellationToken: cancellationToken);
+
+                        faresCreated++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Failed to create fare {FareBasisCode}/{CabinCode} for inventory {InventoryId} — skipping",
+                            rule.FareBasisCode, cabin.CabinCode, inventory.InventoryId);
+                    }
                 }
             }
         }
@@ -227,13 +237,13 @@ public sealed class ImportSchedulesToInventoryHandler
     }
 
     /// <summary>
-    /// Returns the list of operating dates within [validFrom, validTo] that match the DaysOfWeek bitmask.
+    /// Returns operating dates within [from, validTo] that match the DaysOfWeek bitmask.
     /// Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64.
     /// </summary>
-    private static IReadOnlyList<DateTime> GetOperatingDates(DateTime validFrom, DateTime validTo, int daysOfWeek)
+    private static IReadOnlyList<DateTime> GetOperatingDates(DateTime from, DateTime validTo, int daysOfWeek)
     {
         var dates = new List<DateTime>();
-        for (var date = validFrom.Date; date <= validTo.Date; date = date.AddDays(1))
+        for (var date = from.Date; date <= validTo.Date; date = date.AddDays(1))
         {
             var dayBit = date.DayOfWeek switch
             {
