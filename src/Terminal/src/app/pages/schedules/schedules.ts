@@ -46,11 +46,14 @@ export class SchedulesComponent implements OnInit {
     const routes = new Set(all.map(s => `${s.origin}-${s.destination}`));
     const aircraft = new Set(all.map(s => s.aircraftType));
     const dailyFlights = all.filter(s => s.daysOfWeek === 127).length;
+    const totalOperating = all.reduce((sum, s) => sum + s.operatingDateCount, 0);
+    const totalInventory = all.reduce((sum, s) => sum + s.flightsCreated, 0);
     return {
       total: all.length,
       routes: routes.size,
       aircraftTypes: aircraft.size,
       dailyFlights,
+      inventoryCoverage: totalOperating > 0 ? Math.round((totalInventory / totalOperating) * 100) : 0,
     };
   });
 
@@ -83,6 +86,21 @@ export class SchedulesComponent implements OnInit {
   formatDaysOfWeek(bitmask: number): string {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     return days.map((d, i) => (bitmask & (1 << i) ? d : '.')).join('');
+  }
+
+  formatDuration(departureTime: string, arrivalTime: string, arrivalDayOffset: number): string {
+    const [depH, depM] = departureTime.substring(0, 5).split(':').map(Number);
+    const [arrH, arrM] = arrivalTime.substring(0, 5).split(':').map(Number);
+    let totalMinutes = (arrH * 60 + arrM) - (depH * 60 + depM) + arrivalDayOffset * 1440;
+    if (totalMinutes < 0) totalMinutes += 1440;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+  }
+
+  inventoryPercent(schedule: ScheduleSummary): number {
+    if (schedule.operatingDateCount === 0) return 0;
+    return Math.round((schedule.flightsCreated / schedule.operatingDateCount) * 100);
   }
 
   openImportModal(): void {
