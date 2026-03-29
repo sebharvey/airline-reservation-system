@@ -353,6 +353,150 @@ No response body. The user account and all associated refresh tokens have been d
 
 ---
 
+### GET /v1/accounts/{userAccountId}
+
+Retrieve a user account summary by its unique identifier. Returns non-sensitive account details — password hash is never included.
+
+**When to use:** Called by the Loyalty API during points transfer to verify the recipient's registered email address, and during admin customer detail retrieval to populate identity account information (email, locked status, failed login attempts, last login date).
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `userAccountId` | string (UUID) | The unique identifier of the user account |
+
+#### Request
+
+No request body.
+
+```
+GET /v1/accounts/d5e6f7a8-b9c0-1234-5678-9abcdef01234
+```
+
+#### Response — `200 OK`
+
+```json
+{
+  "userAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+  "email": "amara.okafor@example.com",
+  "isEmailVerified": true,
+  "isLocked": false,
+  "failedLoginAttempts": 0,
+  "lastLoginAt": "2025-08-15T11:00:00Z",
+  "passwordChangedAt": "2025-01-10T09:30:00Z",
+  "createdAt": "2025-01-10T09:30:00Z",
+  "updatedAt": "2025-08-15T11:00:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `userAccountId` | string (UUID) | Unique identifier for the user account |
+| `email` | string | The user's registered email address |
+| `isEmailVerified` | boolean | Whether the email address has been verified |
+| `isLocked` | boolean | Whether the account is locked due to failed login attempts |
+| `failedLoginAttempts` | integer | Number of consecutive failed login attempts |
+| `lastLoginAt` | string (datetime) or null | Timestamp of the most recent successful login; null if never logged in |
+| `passwordChangedAt` | string (datetime) | Timestamp of the most recent password change |
+| `createdAt` | string (datetime) | Account creation timestamp |
+| `updatedAt` | string (datetime) | Timestamp of the most recent account modification |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No user account found for the given `userAccountId` |
+
+---
+
+### GET /v1/accounts/by-email/{email}
+
+Retrieve a user account summary by email address. Returns the same `AccountSummaryResponse` as `GET /v1/accounts/{userAccountId}`.
+
+**When to use:** Called by the Loyalty API during admin customer search. When a staff member searches for a customer by email address, the Loyalty API calls this endpoint to resolve the identity account, then uses the returned `userAccountId` to look up the linked customer record via `GET /v1/customers/by-identity/{identityId}` on the Customer MS.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `email` | string | The email address to look up (URL-encoded) |
+
+#### Request
+
+No request body.
+
+```
+GET /v1/accounts/by-email/amara.okafor%40example.com
+```
+
+#### Response — `200 OK`
+
+```json
+{
+  "userAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
+  "email": "amara.okafor@example.com",
+  "isEmailVerified": true,
+  "isLocked": false,
+  "failedLoginAttempts": 0,
+  "lastLoginAt": "2025-08-15T11:00:00Z",
+  "passwordChangedAt": "2025-01-10T09:30:00Z",
+  "createdAt": "2025-01-10T09:30:00Z",
+  "updatedAt": "2025-08-15T11:00:00Z"
+}
+```
+
+Response fields are identical to `GET /v1/accounts/{userAccountId}` — see above.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No user account found for the given email address |
+
+---
+
+### PATCH /v1/accounts/{userAccountId}
+
+Update account fields (email and/or locked status). Admin-initiated — no verification step required for email changes made through this endpoint.
+
+**When to use:** Called by the Loyalty API when a staff member updates a customer's identity account via the Contact Centre application. Can update the email address directly (without verification) and lock or unlock the account.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `userAccountId` | string (UUID) | The unique identifier of the user account |
+
+#### Request
+
+```json
+{
+  "email": "amara.new@example.com",
+  "isLocked": false
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email` | string | No | New email address. Max 254 characters (RFC 5321). Must be unique across all accounts |
+| `isLocked` | boolean | No | Set to `true` to lock or `false` to unlock the account |
+
+At least one field must be provided.
+
+#### Response — `204 No Content`
+
+No response body.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Invalid email format |
+| `404 Not Found` | No user account found for the given `userAccountId` |
+| `409 Conflict` | The email address is already registered to another account |
+
+---
+
 ### GET|POST /v1/accounts/{userAccountId}/verify-email
 
 Mark an email address as verified (`IsEmailVerified=1`). Accepts both `GET` and `POST`. `GET` is the primary method, used when the user follows the verification link in their registration confirmation email. `POST` is available for direct API calls.
@@ -542,6 +686,14 @@ curl -X POST https://{identity-ms-host}/v1/accounts \
     "password": "correct-horse-battery-staple",
     "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
   }'
+```
+
+### Looking up an account by email (via Loyalty API admin customer search)
+
+```bash
+curl -X GET https://{identity-ms-host}/v1/accounts/by-email/amara.okafor%40example.com \
+  -H "x-functions-key: {host-key}" \
+  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
 ```
 
 ### Deleting an identity account (registration rollback)
