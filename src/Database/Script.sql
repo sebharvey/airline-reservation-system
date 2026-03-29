@@ -63,6 +63,7 @@ IF OBJECT_ID('[order].[Basket]',       'U') IS NOT NULL DROP TABLE [order].[Bask
 
 -- offer
 IF OBJECT_ID('[offer].[StoredOffer]',     'U') IS NOT NULL DROP TABLE [offer].[StoredOffer];
+IF OBJECT_ID('[offer].[FareRule]',        'U') IS NOT NULL DROP TABLE [offer].[FareRule];
 IF OBJECT_ID('[offer].[Fare]',            'U') IS NOT NULL DROP TABLE [offer].[Fare];
 IF OBJECT_ID('[offer].[FlightInventory]', 'U') IS NOT NULL DROP TABLE [offer].[FlightInventory];
 
@@ -1294,6 +1295,7 @@ BEGIN TRY
     TRUNCATE TABLE [order].[Order];
     TRUNCATE TABLE [order].[Basket];
     TRUNCATE TABLE [offer].[StoredOffer];
+    TRUNCATE TABLE [offer].[FareRule];
     TRUNCATE TABLE [offer].[Fare];
     TRUNCATE TABLE [offer].[FlightInventory];
     TRUNCATE TABLE [seat].[SeatPricing];
@@ -1447,6 +1449,18 @@ BEGIN TRY
     (@FareId_AX001_Y_Flex, @InvId_AX001_Y,'YFLEXGB','Economy Flex', 'Y','Y', 350.00, 97.25, 447.25,1,1,0.00,  0.00, 35000, 97.25,'2025-01-01','2026-12-31'),
     (@FareId_AX001_Y_Light,@InvId_AX001_Y,'YLOWUK', 'Economy Light','Y','Y', 149.00, 97.25, 246.25,0,0,0.00,149.00,  NULL,  NULL,'2025-01-01','2026-12-31'),
     (@FareId_AX411_Y_Light,@InvId_AX411_Y,'YLOWUK', 'Economy Light','Y','Y', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'2025-01-01','2026-12-31');
+
+    -- offer.FareRule ----------------------------------------------------------
+    INSERT INTO [offer].[FareRule]
+        (FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+         CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+         IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+         PointsPrice, PointsTaxes, ValidFrom, ValidTo)
+    VALUES
+    (NULL,   'JFLEXGB','Business Flex', 'J','J','GBP',1250.00,182.50,1432.50,1,1,  0.00,  0.00,125000,182.50,'2025-01-01','2026-12-31'),
+    (NULL,   'YFLEXGB','Economy Flex',  'Y','Y','GBP', 350.00, 97.25, 447.25,1,1,  0.00,  0.00, 35000, 97.25,'2025-01-01','2026-12-31'),
+    (NULL,   'YLOWUK', 'Economy Light', 'Y','Y','GBP', 149.00, 97.25, 246.25,0,0,  0.00,149.00,  NULL,  NULL,'2025-01-01','2026-12-31'),
+    ('AX411','YLOWUK', 'Economy Light', 'Y','Y','GBP', 199.00,110.50, 309.50,0,0,  0.00,199.00,  NULL,  NULL,'2025-01-01','2026-12-31');
 
     -- offer.StoredOffer -------------------------------------------------------
     DECLARE @OfferId_Out UNIQUEIDENTIFIER = NEWID();
