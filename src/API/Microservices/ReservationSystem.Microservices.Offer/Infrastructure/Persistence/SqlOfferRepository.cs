@@ -149,7 +149,9 @@ public sealed class SqlOfferRepository : IOfferRepository
                    Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM  [offer].[FlightInventory]
             WHERE DepartureDate = @DepartureDate
-            ORDER BY DepartureTime, FlightNumber;
+            ORDER BY DepartureTime,
+                     LEFT(FlightNumber, PATINDEX('%[0-9]%', FlightNumber) - 1),
+                     CAST(SUBSTRING(FlightNumber, PATINDEX('%[0-9]%', FlightNumber), LEN(FlightNumber)) AS INT);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
