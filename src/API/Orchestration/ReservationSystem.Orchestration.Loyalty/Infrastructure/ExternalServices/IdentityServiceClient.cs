@@ -168,4 +168,27 @@ public sealed class IdentityServiceClient
 
         return await response.Content.ReadFromJsonAsync<IdentityAccountSummaryDto>(JsonOptions, cancellationToken);
     }
+
+    /// <summary>
+    /// Admin-initiated update of email and/or locked status — no verification step required.
+    /// Throws <see cref="InvalidOperationException"/> if the email is taken by another account.
+    /// </summary>
+    public async Task UpdateAccountAsync(
+        Guid userAccountId,
+        string? email,
+        bool? isLocked,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { email, isLocked };
+        var response = await _httpClient.PatchAsJsonAsync(
+            $"/api/v1/accounts/{userAccountId}", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No identity account found for ID '{userAccountId}'.");
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException("The email address is already registered to another account.");
+
+        response.EnsureSuccessStatusCode();
+    }
 }

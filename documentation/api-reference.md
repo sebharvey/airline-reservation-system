@@ -138,12 +138,13 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/admin/customers/search` | Search loyalty customers by name or loyalty number; returns a summary list of matching members; accepts optional `query` in the request body |
-| `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, and activity timestamps |
+| `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, activity timestamps, and linked identity account details (email, locked status, failed login attempts, last login, password changed date); password hash is never returned |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address) |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}/transactions` | Retrieve paginated loyalty transaction history for a customer |
 | `POST` | `/v1/admin/customers/{loyaltyNumber}/points` | Assign adjustment points to a customer account; requires points and description |
 | `DELETE` | `/v1/admin/customers/{loyaltyNumber}` | Delete a customer account and all its transactions permanently |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}/status` | Activate or deactivate a customer account; accepts `isActive` boolean |
+| `PATCH` | `/v1/admin/customers/{loyaltyNumber}/identity` | Update identity account fields for a customer; accepts `email` (applied without verification) and `isLocked` (lock or unlock the account); at least one field must be provided; `409` if email already registered to another account |
 
 ---
 

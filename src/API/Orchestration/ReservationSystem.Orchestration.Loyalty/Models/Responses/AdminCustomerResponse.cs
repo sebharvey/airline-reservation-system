@@ -22,4 +22,6 @@ public sealed class AdminCustomerResponse
     public bool IsActive { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
+    /// <summary>Identity account details. Null if the customer has no linked identity account.</summary>
+    public AdminIdentityResponse? Identity { get; init; }
 }

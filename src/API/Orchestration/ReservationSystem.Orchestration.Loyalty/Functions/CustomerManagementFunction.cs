@@ -25,17 +25,20 @@ public sealed class CustomerManagementFunction
     private readonly SearchCustomersHandler _searchHandler;
     private readonly GetTransactionsHandler _getTransactionsHandler;
     private readonly CustomerServiceClient _customerServiceClient;
+    private readonly IdentityServiceClient _identityServiceClient;
     private readonly ILogger<CustomerManagementFunction> _logger;
 
     public CustomerManagementFunction(
         SearchCustomersHandler searchHandler,
         GetTransactionsHandler getTransactionsHandler,
         CustomerServiceClient customerServiceClient,
+        IdentityServiceClient identityServiceClient,
         ILogger<CustomerManagementFunction> logger)
     {
         _searchHandler = searchHandler;
         _getTransactionsHandler = getTransactionsHandler;
         _customerServiceClient = customerServiceClient;
+        _identityServiceClient = identityServiceClient;
         _logger = logger;
     }
 
@@ -80,6 +83,27 @@ public sealed class CustomerManagementFunction
         if (customer is null)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
+        AdminIdentityResponse? identity = null;
+        if (customer.IdentityId.HasValue)
+        {
+            var identityAccount = await _identityServiceClient.GetAccountByIdAsync(customer.IdentityId.Value, cancellationToken);
+            if (identityAccount is not null)
+            {
+                identity = new AdminIdentityResponse
+                {
+                    UserAccountId = identityAccount.UserAccountId,
+                    Email = identityAccount.Email,
+                    IsEmailVerified = identityAccount.IsEmailVerified,
+                    IsLocked = identityAccount.IsLocked,
+                    FailedLoginAttempts = identityAccount.FailedLoginAttempts,
+                    LastLoginAt = identityAccount.LastLoginAt,
+                    PasswordChangedAt = identityAccount.PasswordChangedAt,
+                    CreatedAt = identityAccount.CreatedAt,
+                    UpdatedAt = identityAccount.UpdatedAt,
+                };
+            }
+        }
+
         return await req.OkJsonAsync(new AdminCustomerResponse
         {
             LoyaltyNumber = customer.LoyaltyNumber,
@@ -102,6 +126,7 @@ public sealed class CustomerManagementFunction
             IsActive = customer.IsActive,
             CreatedAt = customer.CreatedAt,
             UpdatedAt = customer.UpdatedAt,
+            Identity = identity,
         });
     }
 
@@ -227,6 +252,53 @@ public sealed class CustomerManagementFunction
 
         if (!found)
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/admin/customers/{loyaltyNumber}/identity
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateCustomerIdentity")]
+    [OpenApiOperation(operationId: "AdminUpdateCustomerIdentity", tags: new[] { "Admin Customers" }, Summary = "Update identity account email or locked status (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminUpdateIdentityRequest), Required = true)]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
+    public async Task<HttpResponseData> UpdateCustomerIdentity(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/admin/customers/{loyaltyNumber}/identity")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminUpdateIdentityRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request!.Email is null && request.IsLocked is null)
+            return await req.BadRequestAsync("At least one of 'email' or 'isLocked' must be provided.");
+
+        var customer = await _customerServiceClient.GetCustomerAsync(loyaltyNumber, cancellationToken);
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        if (!customer.IdentityId.HasValue)
+            return await req.NotFoundAsync($"Customer '{loyaltyNumber}' has no linked identity account.");
+
+        try
+        {
+            await _identityServiceClient.UpdateAccountAsync(
+                customer.IdentityId.Value, request.Email, request.IsLocked, cancellationToken);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"Identity account not found for customer '{loyaltyNumber}'.");
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("The email address is already registered to another account.");
+        }
 
         return req.NoContent();
     }

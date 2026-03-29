@@ -6,6 +6,7 @@ import {
   CustomerDetail,
   Transaction,
   UpdateCustomerRequest,
+  UpdateIdentityRequest,
 } from '../../../services/customer.service';
 import { CustomerSearchStateService } from '../../../services/customer-search-state.service';
 
@@ -131,6 +132,12 @@ export class CustomerDetailComponent implements OnInit {
 
   // Status toggle
   togglingStatus = signal(false);
+
+  // Identity edit
+  editingIdentity = signal(false);
+  editIdentityEmail = signal('');
+  editIdentityIsLocked = signal(false);
+  savingIdentity = signal(false);
 
   ngOnInit(): void {
     this.loyaltyNumber = this.#route.snapshot.paramMap.get('loyaltyNumber') ?? '';
@@ -381,5 +388,53 @@ export class CustomerDetailComponent implements OnInit {
   setPointsAmount(event: Event): void {
     const val = (event.target as HTMLInputElement).value;
     this.addPointsAmount.set(val ? parseInt(val, 10) : null);
+  }
+
+  startEditIdentity(): void {
+    const identity = this.customer()?.identity;
+    this.editIdentityEmail.set(identity?.email ?? '');
+    this.editIdentityIsLocked.set(identity?.isLocked ?? false);
+    this.editingIdentity.set(true);
+    this.success.set('');
+    this.error.set('');
+  }
+
+  cancelEditIdentity(): void {
+    this.editingIdentity.set(false);
+    this.error.set('');
+  }
+
+  async saveIdentity(): Promise<void> {
+    this.savingIdentity.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    const identity = this.customer()?.identity;
+    const request: UpdateIdentityRequest = {};
+
+    const newEmail = this.editIdentityEmail().trim();
+    if (newEmail && newEmail !== identity?.email) {
+      request.email = newEmail;
+    }
+    if (this.editIdentityIsLocked() !== identity?.isLocked) {
+      request.isLocked = this.editIdentityIsLocked();
+    }
+
+    if (!request.email && request.isLocked === undefined) {
+      this.editingIdentity.set(false);
+      this.savingIdentity.set(false);
+      return;
+    }
+
+    try {
+      await this.#customerService.updateIdentity(this.loyaltyNumber, request);
+      this.success.set('Identity account updated successfully.');
+      this.editingIdentity.set(false);
+      await this.loadCustomer();
+    } catch {
+      this.error.set('Failed to update identity account. Please try again.');
+    } finally {
+      this.savingIdentity.set(false);
+    }
   }
 }

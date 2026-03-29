@@ -7,6 +7,7 @@ using ReservationSystem.Microservices.Identity.Application.CreateAccount;
 using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
 using ReservationSystem.Microservices.Identity.Application.GetAccount;
+using ReservationSystem.Microservices.Identity.Application.UpdateAccount;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
 using ReservationSystem.Microservices.Identity.Models.Mappers;
@@ -30,6 +31,7 @@ public sealed class AccountFunction
     private readonly CreateAccountHandler _createAccountHandler;
     private readonly DeleteAccountHandler _deleteAccountHandler;
     private readonly GetAccountHandler _getAccountHandler;
+    private readonly UpdateAccountHandler _updateAccountHandler;
     private readonly VerifyEmailHandler _verifyEmailHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
     private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
@@ -39,6 +41,7 @@ public sealed class AccountFunction
         CreateAccountHandler createAccountHandler,
         DeleteAccountHandler deleteAccountHandler,
         GetAccountHandler getAccountHandler,
+        UpdateAccountHandler updateAccountHandler,
         VerifyEmailHandler verifyEmailHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
         VerifyEmailChangeHandler verifyEmailChangeHandler,
@@ -47,6 +50,7 @@ public sealed class AccountFunction
         _createAccountHandler = createAccountHandler;
         _deleteAccountHandler = deleteAccountHandler;
         _getAccountHandler = getAccountHandler;
+        _updateAccountHandler = updateAccountHandler;
         _verifyEmailHandler = verifyEmailHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
         _verifyEmailChangeHandler = verifyEmailChangeHandler;
@@ -114,10 +118,59 @@ public sealed class AccountFunction
         {
             UserAccountId = account.UserAccountId,
             Email = account.Email,
-            IsEmailVerified = account.IsEmailVerified
+            IsEmailVerified = account.IsEmailVerified,
+            IsLocked = account.IsLocked,
+            FailedLoginAttempts = account.FailedLoginAttempts,
+            LastLoginAt = account.LastLoginAt,
+            PasswordChangedAt = account.PasswordChangedAt,
+            CreatedAt = account.CreatedAt,
+            UpdatedAt = account.UpdatedAt
         };
 
         return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/accounts/{userAccountId:guid}
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateAccount")]
+    [OpenApiOperation(operationId: "UpdateAccount", tags: new[] { "Accounts" }, Summary = "Update account email or locked status (admin)")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateAccountRequest), Required = true, Description = "Fields to update (email, isLocked)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
+    public async Task<HttpResponseData> UpdateAccount(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
+        Guid userAccountId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateAccountRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request!.Email is not null)
+        {
+            var emailErrors = IdentityValidator.ValidateEmailField(request.Email);
+            if (emailErrors.Count > 0)
+                return await req.BadRequestAsync(string.Join(" ", emailErrors));
+        }
+
+        try
+        {
+            var command = new UpdateAccountCommand(userAccountId, request.Email, request.IsLocked);
+            await _updateAccountHandler.HandleAsync(command, cancellationToken);
+            return req.NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
+        catch (InvalidOperationException)
+        {
+            return await req.ConflictAsync("The email address is already registered to another account.");
+        }
     }
 
     // -------------------------------------------------------------------------
