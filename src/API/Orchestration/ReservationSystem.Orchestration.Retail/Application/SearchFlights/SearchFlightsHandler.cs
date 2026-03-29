@@ -36,28 +36,24 @@ public sealed class SearchFlightsHandler
             // Group offers by cabin, then by fare family within each cabin.
             var cabins = f.Offers
                 .GroupBy(o => o.CabinCode)
-                .Select(cabinGroup => new CabinSearchResult
+                .Select(cabinGroup =>
                 {
-                    CabinCode      = cabinGroup.Key,
-                    AvailableSeats = cabinGroup.Max(o => o.SeatsAvailable),
-                    FareFamilies   = cabinGroup
+                    var cabinCheapest = cabinGroup.MinBy(o => o.TotalAmount)!;
+                    var cabinLowestPoints = cabinGroup
+                        .Where(o => o.PointsPrice.HasValue)
+                        .MinBy(o => o.PointsPrice)?.PointsPrice;
+
+                    var fareFamilies = cabinGroup
                         .GroupBy(o => o.FareFamily ?? o.FareBasisCode)
                         .Select(ffGroup =>
                         {
-                            // cheapest by total price; used for both the headline "from" values
-                            // and as the single representative offer shown in the response.
+                            // cheapest within the fare family — used as the single representative offer.
                             var cheapest = ffGroup.MinBy(o => o.TotalAmount)!;
-                            var lowestPoints = ffGroup
-                                .Where(o => o.PointsPrice.HasValue)
-                                .MinBy(o => o.PointsPrice)?.PointsPrice;
 
                             return new FareFamilyOffer
                             {
-                                FareFamily      = ffGroup.Key,
-                                TotalFromPrice  = cheapest.TotalAmount,
-                                Currency        = cheapest.CurrencyCode,
-                                TotalFromPoints = lowestPoints,
-                                Offer           = new FareOffer
+                                FareFamily = ffGroup.Key,
+                                Offer      = new FareOffer
                                 {
                                     OfferId       = cheapest.OfferId,
                                     FareBasisCode = cheapest.FareBasisCode,
@@ -69,7 +65,17 @@ public sealed class SearchFlightsHandler
                                     IsChangeable  = cheapest.IsChangeable
                                 }
                             };
-                        }).ToList()
+                        }).ToList();
+
+                    return new CabinSearchResult
+                    {
+                        CabinCode      = cabinGroup.Key,
+                        AvailableSeats = cabinGroup.Max(o => o.SeatsAvailable),
+                        FromPrice      = cabinCheapest.TotalAmount,
+                        Currency       = cabinCheapest.CurrencyCode,
+                        FromPoints     = cabinLowestPoints,
+                        FareFamilies   = fareFamilies
+                    };
                 }).ToList();
 
             return new FlightSearchResult
