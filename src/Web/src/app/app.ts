@@ -1,10 +1,12 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, NavigationEnd, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { ThemeService } from './services/theme.service';
 import { LoyaltyStateService } from './services/loyalty-state.service';
 import { LoyaltyApiService } from './services/loyalty-api.service';
+// DEBUG — import for basket debug modal; remove with basket debug feature
+import { RetailApiService } from './services/retail-api.service';
 
 @Component({
   selector: 'app-root',
@@ -16,6 +18,13 @@ export class App {
   theme = inject(ThemeService);
   loyaltyState = inject(LoyaltyStateService);
   private readonly loyaltyApi = inject(LoyaltyApiService);
+
+  // DEBUG — basket debug modal state; remove with basket debug feature
+  private readonly retailApi = inject(RetailApiService);
+  readonly basketDebugOpen = signal(false);
+  readonly basketDebugLoading = signal(false);
+  readonly basketDebugData = signal<string | null>(null);
+  readonly basketDebugError = signal<string | null>(null);
 
   #router = inject(Router);
 
@@ -39,6 +48,36 @@ export class App {
     ),
     { initialValue: this.#router.url === '/' }
   );
+
+  // DEBUG — basket debug modal methods; remove with basket debug feature
+  openBasketDebug(): void {
+    const basketId = sessionStorage.getItem('apex_debug_basket_id');
+    this.basketDebugData.set(null);
+    this.basketDebugError.set(null);
+    this.basketDebugOpen.set(true);
+
+    if (!basketId) {
+      this.basketDebugError.set('No active basket found in session.');
+      return;
+    }
+
+    this.basketDebugLoading.set(true);
+    this.retailApi.getBasket(basketId).subscribe({
+      next: data => {
+        this.basketDebugData.set(JSON.stringify(data, null, 2));
+        this.basketDebugLoading.set(false);
+      },
+      error: err => {
+        this.basketDebugError.set(`Error fetching basket: ${err.status ?? ''} ${err.message ?? JSON.stringify(err)}`);
+        this.basketDebugLoading.set(false);
+      }
+    });
+  }
+
+  closeBasketDebug(): void {
+    this.basketDebugOpen.set(false);
+  }
+  // END DEBUG
 
   logout(): void {
     const refreshToken = this.loyaltyState.session()?.refreshToken;
