@@ -24,11 +24,11 @@ public sealed class CreateFareHandler
         if (existingFare is not null)
             throw new InvalidOperationException($"Fare {command.FareBasisCode} already exists for inventory {command.InventoryId}.");
 
-        var bookingClass = command.BookingClass ?? inventory.CabinCode;
+        var bookingClass = command.BookingClass ?? command.CabinCode;
 
         var fare = Fare.Create(
             command.InventoryId, command.FareBasisCode, command.FareFamily,
-            inventory.CabinCode, bookingClass, command.CurrencyCode,
+            command.CabinCode, bookingClass, command.CurrencyCode,
             command.BaseFareAmount, command.TaxAmount,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,

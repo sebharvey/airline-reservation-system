@@ -151,6 +151,7 @@ public sealed class OfferFunction
             InventoryId: inventoryId,
             FareBasisCode: body.GetProperty("fareBasisCode").GetString()!,
             FareFamily: body.TryGetProperty("fareFamily", out var ff) && ff.ValueKind != JsonValueKind.Null ? ff.GetString() : null,
+            CabinCode: body.GetProperty("cabinCode").GetString()!,
             BookingClass: body.TryGetProperty("bookingClass", out var bc) && bc.ValueKind != JsonValueKind.Null ? bc.GetString() : null,
             CurrencyCode: body.GetProperty("currencyCode").GetString()!,
             BaseFareAmount: body.GetProperty("baseFareAmount").GetDecimal(),
@@ -653,10 +654,10 @@ public sealed class OfferFunction
             LoadFactor          = g.TotalSeats > 0
                 ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
                 : 0,
-            F = g.F is null ? null : new CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
-            J = g.J is null ? null : new CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
-            W = g.W is null ? null : new CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
-            Y = g.Y is null ? null : new CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
+            F = g.F is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
+            J = g.J is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
+            W = g.W is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
+            Y = g.Y is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
         }).ToList();
 
         return await req.OkJsonAsync(response);
