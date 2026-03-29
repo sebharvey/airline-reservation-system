@@ -46,6 +46,14 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsBasketResult>(JsonOptions, ct);
     }
 
+    public async Task<string?> GetBasketRawAsync(Guid basketId, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/basket/{basketId}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
     public async Task<OrderMsAddOfferResult> AddOfferAsync(Guid basketId, string offerJson, CancellationToken ct)
     {
         using var content = new StringContent(offerJson, Encoding.UTF8, "application/json");
