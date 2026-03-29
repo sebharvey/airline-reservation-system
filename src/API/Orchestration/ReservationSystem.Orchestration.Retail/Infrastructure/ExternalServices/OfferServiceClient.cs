@@ -15,6 +15,24 @@ public sealed class OfferServiceClient
         _httpClient = httpClientFactory.CreateClient("OfferMs");
     }
 
+    public async Task<OfferSearchResultDto> SearchAsync(
+        string origin,
+        string destination,
+        string departureDate,
+        string cabinCode,
+        int paxCount,
+        string bookingType,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { origin, destination, departureDate, cabinCode, paxCount, bookingType };
+
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/search", body, JsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<OfferSearchResultDto>(JsonOptions, cancellationToken);
+        return result ?? new OfferSearchResultDto();
+    }
+
     public async Task<IReadOnlyList<FlightInventoryGroupDto>> GetFlightInventoryByDateAsync(
         DateOnly departureDate,
         CancellationToken cancellationToken = default)

@@ -29,6 +29,43 @@ public sealed class SearchFunction
     }
 
     // -------------------------------------------------------------------------
+    // POST /v1/search/slice
+    // -------------------------------------------------------------------------
+
+    [Function("SearchFlightsSlice")]
+    [OpenApiOperation(operationId: "SearchFlightsSlice", tags: new[] { "Search" }, Summary = "Search for available flights for a single directional slice")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchSliceRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> SearchSlice(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search/slice")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<SearchSliceRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.Origin)
+            || string.IsNullOrWhiteSpace(request.Destination)
+            || string.IsNullOrWhiteSpace(request.DepartureDate)
+            || string.IsNullOrWhiteSpace(request.CabinCode)
+            || request.PaxCount < 1)
+        {
+            return await req.BadRequestAsync("The fields 'origin', 'destination', 'departureDate', 'cabinCode', and 'paxCount' are required.");
+        }
+
+        var command = new SearchFlightsCommand(
+            request.Origin,
+            request.Destination,
+            request.DepartureDate,
+            request.CabinCode,
+            request.PaxCount,
+            request.BookingType);
+
+        var result = await _searchHandler.HandleAsync(command, cancellationToken);
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
     // POST /v1/search
     // -------------------------------------------------------------------------
 
@@ -54,10 +91,10 @@ public sealed class SearchFunction
         var command = new SearchFlightsCommand(
             request.Origin,
             request.Destination,
-            request.DepartureDate,
-            request.ReturnDate,
+            request.DepartureDate.ToString("yyyy-MM-dd"),
+            request.CabinClass ?? "Y",
             request.PassengerCount,
-            request.CabinClass);
+            "Revenue");
 
         var result = await _searchHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);
