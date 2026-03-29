@@ -148,7 +148,7 @@
       "id": "order-ms",
       "name": "Order Microservice",
       "description": "Manages the complete booking lifecycle from basket creation through confirmation, post-sale changes, and cancellation. Built on the IATA ONE Order standard.",
-      "baseUrl": "https://apexair-order-ms-b2bch8f7fiklkfhz.ukwest-01.azurewebsites.net",
+      "baseUrl": "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net",
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "host-key",
