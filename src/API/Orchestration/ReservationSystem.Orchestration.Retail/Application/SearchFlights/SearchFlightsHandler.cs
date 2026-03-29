@@ -85,6 +85,7 @@ public sealed class SearchFlightsHandler
                 Destination   = f.Destination,
                 DepartureTime = departureDateTime,
                 ArrivalTime   = arrivalDateTime,
+                AircraftType  = f.AircraftType,
                 Cabins        = cabins
             };
         }).ToList();

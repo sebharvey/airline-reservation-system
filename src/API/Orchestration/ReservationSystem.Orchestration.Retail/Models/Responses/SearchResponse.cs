@@ -13,6 +13,7 @@ public sealed class FlightSearchResult
     public string Destination { get; init; } = string.Empty;
     public DateTime DepartureTime { get; init; }
     public DateTime ArrivalTime { get; init; }
+    public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
 }
 
