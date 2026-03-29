@@ -24,11 +24,16 @@ public sealed class CabinSearchResult
 
 /// <summary>
 /// A single fare family option within a cabin, containing one offer.
-/// The OfferId is passed to basket creation when the customer selects this fare.
+/// totalFromPrice/totalFromPoints are headline "from" values derived from the
+/// cheapest offer in the group — the offer object carries the full detail.
+/// The OfferId inside offer is passed to basket creation when the customer selects this fare.
 /// </summary>
 public sealed class FareFamilyOffer
 {
     public string FareFamily { get; init; } = string.Empty;
+    public decimal TotalFromPrice { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public int? TotalFromPoints { get; init; }
     public FareOffer Offer { get; init; } = new();
 }
 

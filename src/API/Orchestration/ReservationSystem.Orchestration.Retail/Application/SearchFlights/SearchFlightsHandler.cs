@@ -44,20 +44,29 @@ public sealed class SearchFlightsHandler
                         .GroupBy(o => o.FareFamily ?? o.FareBasisCode)
                         .Select(ffGroup =>
                         {
-                            var o = ffGroup.First();
+                            // cheapest by total price; used for both the headline "from" values
+                            // and as the single representative offer shown in the response.
+                            var cheapest = ffGroup.MinBy(o => o.TotalAmount)!;
+                            var lowestPoints = ffGroup
+                                .Where(o => o.PointsPrice.HasValue)
+                                .MinBy(o => o.PointsPrice)?.PointsPrice;
+
                             return new FareFamilyOffer
                             {
-                                FareFamily = ffGroup.Key,
-                                Offer      = new FareOffer
+                                FareFamily      = ffGroup.Key,
+                                TotalFromPrice  = cheapest.TotalAmount,
+                                Currency        = cheapest.CurrencyCode,
+                                TotalFromPoints = lowestPoints,
+                                Offer           = new FareOffer
                                 {
-                                    OfferId       = o.OfferId,
-                                    FareBasisCode = o.FareBasisCode,
-                                    BasePrice     = o.BaseFareAmount,
-                                    Tax           = o.TaxAmount,
-                                    TotalPrice    = o.TotalAmount,
-                                    Currency      = o.CurrencyCode,
-                                    IsRefundable  = o.IsRefundable,
-                                    IsChangeable  = o.IsChangeable
+                                    OfferId       = cheapest.OfferId,
+                                    FareBasisCode = cheapest.FareBasisCode,
+                                    BasePrice     = cheapest.BaseFareAmount,
+                                    Tax           = cheapest.TaxAmount,
+                                    TotalPrice    = cheapest.TotalAmount,
+                                    Currency      = cheapest.CurrencyCode,
+                                    IsRefundable  = cheapest.IsRefundable,
+                                    IsChangeable  = cheapest.IsChangeable
                                 }
                             };
                         }).ToList()
