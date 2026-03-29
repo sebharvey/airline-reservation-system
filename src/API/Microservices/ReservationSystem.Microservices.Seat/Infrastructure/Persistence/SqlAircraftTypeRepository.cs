@@ -97,6 +97,6 @@ public sealed class SqlAircraftTypeRepository : IAircraftTypeRepository
         AircraftType.Reconstitute(r.AircraftTypeCode, r.Manufacturer, r.FriendlyName, r.TotalSeats, r.CabinCounts, r.IsActive, r.CreatedAt, r.UpdatedAt);
 
     private sealed record AircraftTypeRecord(
-        string AircraftTypeCode, string Manufacturer, string? FriendlyName, int TotalSeats, string? CabinCounts,
+        string AircraftTypeCode, string Manufacturer, string? FriendlyName, short TotalSeats, string? CabinCounts,
         bool IsActive, DateTime CreatedAt, DateTime UpdatedAt);
 }
