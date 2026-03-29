@@ -272,7 +272,7 @@
       <div class="modal-body">
         <p class="modal-description">
           Generate flight inventory records from all <strong>{{ schedules().length }}</strong> schedules in <strong>{{ selectedGroup()?.name }}</strong>.
-          Define the cabin layout to apply to each flight.
+          Cabin configuration is loaded from the aircraft type registered in the Seat service.
         </p>
 
         @if (importError()) {
@@ -281,39 +281,68 @@
           </div>
         }
 
-        @for (cabin of cabins(); track $index; let ci = $index) {
-          <div class="cabin-card">
-            <div class="cabin-header">
-              <h3 class="cabin-label">Cabin {{ ci + 1 }}</h3>
-              @if (cabins().length > 1) {
-                <button class="btn-remove" (click)="removeCabin(ci)" [disabled]="importing()">Remove</button>
-              }
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Cabin code</label>
-                <select class="form-select" [ngModel]="cabin.cabinCode" (ngModelChange)="updateCabin(ci, 'cabinCode', $event)" [disabled]="importing()">
-                  <option value="F">F &ndash; First</option>
-                  <option value="J">J &ndash; Business</option>
-                  <option value="W">W &ndash; Premium Economy</option>
-                  <option value="Y">Y &ndash; Economy</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Total seats</label>
-                <input class="form-input" type="number" min="1" [ngModel]="cabin.totalSeats" (ngModelChange)="updateCabin(ci, 'totalSeats', +$event)" [disabled]="importing()" />
-              </div>
-            </div>
+        @if (loadingAircraftConfig()) {
+          <div class="aircraft-config-loading">
+            <span class="btn-spinner"></span>
+            <span>Loading aircraft configuration…</span>
           </div>
-        }
+        } @else if (aircraftConfigError()) {
+          <div class="error-banner" role="alert">
+            <span>&#9888;</span> {{ aircraftConfigError() }}
+          </div>
+        } @else {
 
-        <button class="btn-add-cabin" (click)="addCabin()" [disabled]="importing()">+ Add Cabin</button>
+          @if (scheduleAircraftTypeCodes().length > 1) {
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label">Aircraft type</label>
+              <select
+                class="form-select"
+                [ngModel]="selectedAircraftTypeCode()"
+                (ngModelChange)="selectAircraftType($event)"
+                [disabled]="importing()"
+              >
+                @for (code of scheduleAircraftTypeCodes(); track code) {
+                  <option [value]="code">{{ code }}</option>
+                }
+              </select>
+              <p class="form-hint">This schedule group contains multiple aircraft types. Select which configuration to apply.</p>
+            </div>
+          }
+
+          @if (selectedAircraftType(); as aircraftType) {
+            <div class="aircraft-type-header">
+              <span class="badge badge-aircraft">{{ aircraftType.aircraftTypeCode }}</span>
+              @if (aircraftType.friendlyName) {
+                <span class="aircraft-friendly-name">{{ aircraftType.friendlyName }}</span>
+              }
+              <span class="aircraft-total-seats">{{ aircraftType.totalSeats }} seats total</span>
+            </div>
+
+            @if (cabins().length > 0) {
+              @for (cabin of cabins(); track cabin.cabinCode) {
+                <div class="cabin-card">
+                  <div class="cabin-header">
+                    <h3 class="cabin-label">{{ cabin.cabinCode }} &ndash; {{ cabinName(cabin.cabinCode) }}</h3>
+                    <span class="cabin-seat-count">{{ cabin.totalSeats }} seats</span>
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="error-banner" role="alert">
+                <span>&#9888;</span> No cabin configuration found for {{ selectedAircraftTypeCode() }} in the Seat service.
+              </div>
+            }
+          } @else if (selectedAircraftTypeCode()) {
+            <div class="error-banner" role="alert">
+              <span>&#9888;</span> Aircraft type <strong>{{ selectedAircraftTypeCode() }}</strong> is not registered in the Seat service.
+            </div>
+          }
+        }
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeImportModal()" [disabled]="importing()">Cancel</button>
-        <button class="btn-primary" (click)="importToInventory()" [disabled]="importing() || cabins().length === 0">
+        <button class="btn-primary" (click)="importToInventory()" [disabled]="importing() || cabins().length === 0 || loadingAircraftConfig()">
           @if (importing()) {
             <span class="btn-spinner"></span> Importing…
           } @else {

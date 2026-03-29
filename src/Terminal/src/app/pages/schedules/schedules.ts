@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, CabinDefinition } from '../../services/schedule.service';
+import { SeatService, AircraftType } from '../../services/seat.service';
 
 @Component({
   selector: 'app-schedules',
@@ -10,6 +11,7 @@ import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, CabinDefinition
 })
 export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);
+  #seatService = inject(SeatService);
 
   // Schedule groups
   groups = signal<ScheduleGroupSummary[]>([]);
@@ -36,6 +38,18 @@ export class SchedulesComponent implements OnInit {
   importError = signal('');
   importSuccess = signal('');
   cabins = signal<CabinDefinition[]>([]);
+
+  // Aircraft config state
+  loadingAircraftConfig = signal(false);
+  aircraftConfigError = signal('');
+  allAircraftTypes = signal<AircraftType[]>([]);
+  scheduleAircraftTypeCodes = signal<string[]>([]);
+  selectedAircraftTypeCode = signal('');
+
+  selectedAircraftType = computed(() => {
+    const code = this.selectedAircraftTypeCode();
+    return this.allAircraftTypes().find(t => t.aircraftTypeCode === code) ?? null;
+  });
 
   ngOnInit(): void {
     this.loadGroups();
@@ -147,40 +161,51 @@ export class SchedulesComponent implements OnInit {
     return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
   }
 
+  cabinName(code: string): string {
+    const names: Record<string, string> = { F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy' };
+    return names[code] ?? code;
+  }
+
   // ── Import to Inventory ─────────────────────────────────────────────────────
 
-  openImportModal(): void {
+  async openImportModal(): Promise<void> {
     this.importError.set('');
     this.importSuccess.set('');
-    this.cabins.set([this.createDefaultCabin()]);
+    this.aircraftConfigError.set('');
+    this.cabins.set([]);
+    this.allAircraftTypes.set([]);
+    this.selectedAircraftTypeCode.set('');
     this.showImportModal.set(true);
+
+    const uniqueCodes = [...new Set(this.schedules().map(s => s.aircraftType))];
+    this.scheduleAircraftTypeCodes.set(uniqueCodes);
+
+    this.loadingAircraftConfig.set(true);
+    try {
+      const result = await this.#seatService.getAircraftTypes();
+      this.allAircraftTypes.set(result.aircraftTypes);
+      if (uniqueCodes.length > 0) {
+        this.selectAircraftType(uniqueCodes[0]);
+      }
+    } catch {
+      this.aircraftConfigError.set('Failed to load aircraft configuration from Seat service. Please try again.');
+    } finally {
+      this.loadingAircraftConfig.set(false);
+    }
+  }
+
+  selectAircraftType(code: string): void {
+    this.selectedAircraftTypeCode.set(code);
+    const type = this.allAircraftTypes().find(t => t.aircraftTypeCode === code);
+    if (!type || !type.cabinCounts || type.cabinCounts.length === 0) {
+      this.cabins.set([]);
+      return;
+    }
+    this.cabins.set(type.cabinCounts.map(cc => ({ cabinCode: cc.cabin, totalSeats: cc.count })));
   }
 
   closeImportModal(): void {
     this.showImportModal.set(false);
-  }
-
-  createDefaultCabin(): CabinDefinition {
-    return {
-      cabinCode: 'Y',
-      totalSeats: 180,
-    };
-  }
-
-  addCabin(): void {
-    this.cabins.update(c => [...c, this.createDefaultCabin()]);
-  }
-
-  removeCabin(index: number): void {
-    this.cabins.update(c => c.filter((_, i) => i !== index));
-  }
-
-  updateCabin(cabinIndex: number, field: keyof CabinDefinition, value: string | number): void {
-    this.cabins.update(cabins => {
-      const updated = [...cabins];
-      updated[cabinIndex] = { ...updated[cabinIndex], [field]: value };
-      return updated;
-    });
   }
 
   async importToInventory(): Promise<void> {

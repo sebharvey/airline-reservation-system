@@ -571,26 +571,67 @@
 .form-input:disabled,
 .form-select:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Aircraft config */
+.aircraft-config-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.aircraft-type-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.aircraft-friendly-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aircraft-total-seats {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
 /* Cabin card */
 .cabin-card {
   background: var(--bg-light);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .cabin-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
 }
 
 .cabin-label {
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--text);
+}
+
+.cabin-seat-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 /* Buttons */
