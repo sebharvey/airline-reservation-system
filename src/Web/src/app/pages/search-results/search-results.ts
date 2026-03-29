@@ -80,6 +80,52 @@ export class SearchResultsComponent implements OnInit {
     Y: 'Economy'
   };
 
+  private readonly aircraftNames: Record<string, string> = {
+    // Airbus
+    'A319': 'Airbus A319',
+    'A320': 'Airbus A320',
+    'A321': 'Airbus A321',
+    'A332': 'Airbus A330-200',
+    'A333': 'Airbus A330-300',
+    'A339': 'Airbus A330-900neo',
+    'A338': 'Airbus A330-800neo',
+    'A359': 'Airbus A350-900',
+    'A351': 'Airbus A350-1000',
+    'A388': 'Airbus A380-800',
+    // Boeing
+    '737': 'Boeing 737',
+    '738': 'Boeing 737-800',
+    '739': 'Boeing 737-900',
+    '73H': 'Boeing 737-800',
+    '752': 'Boeing 757-200',
+    '753': 'Boeing 757-300',
+    '762': 'Boeing 767-200',
+    '763': 'Boeing 767-300',
+    '764': 'Boeing 767-400',
+    '772': 'Boeing 777-200',
+    '773': 'Boeing 777-300',
+    '77W': 'Boeing 777-300ER',
+    '788': 'Boeing 787-8',
+    '789': 'Boeing 787-9',
+    '78X': 'Boeing 787-10',
+    'B737': 'Boeing 737',
+    'B738': 'Boeing 737-800',
+    'B739': 'Boeing 737-900',
+    'B752': 'Boeing 757-200',
+    'B763': 'Boeing 767-300',
+    'B772': 'Boeing 777-200',
+    'B77W': 'Boeing 777-300ER',
+    'B788': 'Boeing 787-8',
+    'B789': 'Boeing 787-9',
+    'B78X': 'Boeing 787-10',
+    'B744': 'Boeing 747-400',
+    'B748': 'Boeing 747-8'
+  };
+
+  getAircraftName(code: string): string {
+    return this.aircraftNames[code] ?? code;
+  }
+
   readonly outboundRows = computed<FlightRow[]>(() =>
     this.groupByFlight(this.outboundOffers())
   );
