@@ -131,24 +131,38 @@ public sealed class BasketFunction
         }
         catch (JsonException) { /* Let the handler deal with malformed JSON */ }
 
-        // Determine next basket item ID by counting existing flight offers
+        // Build the updated offers array: existing offers + new offer appended
         var existingBasket = await _getBasketHandler.HandleAsync(new GetBasketQuery(basketId), ct);
+        if (existingBasket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+
         var nextItemNumber = 1;
-        if (existingBasket is not null)
+        var offersArray = new JsonArray();
+
+        if (!string.IsNullOrEmpty(existingBasket.BasketData))
         {
             try
             {
-                using var basketDoc = JsonDocument.Parse(existingBasket.BasketData);
-                if (basketDoc.RootElement.TryGetProperty("flightOffers", out var offers) &&
-                    offers.ValueKind == JsonValueKind.Array)
+                var basketNode = JsonNode.Parse(existingBasket.BasketData)?.AsObject();
+                if (basketNode?["flightOffers"] is JsonArray existing)
                 {
-                    nextItemNumber = offers.GetArrayLength() + 1;
+                    nextItemNumber = existing.Count + 1;
+                    foreach (var item in existing)
+                        offersArray.Add(item?.DeepClone());
                 }
             }
             catch { }
         }
 
-        var command = new UpdateBasketFlightsCommand(basketId, body);
+        // Append the new offer with an assigned basketItemId
+        try
+        {
+            var newOffer = JsonNode.Parse(body)!.AsObject();
+            newOffer["basketItemId"] = $"BI-{nextItemNumber}";
+            offersArray.Add(newOffer);
+        }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid offer JSON."); }
+
+        var command = new UpdateBasketFlightsCommand(basketId, offersArray.ToJsonString());
         try
         {
             var basket = await _updateFlightsHandler.HandleAsync(command, ct);

@@ -46,4 +46,7 @@ public sealed class BasketResponse
 
     [JsonPropertyName("updatedAt")]
     public DateTime UpdatedAt { get; init; }
+
+    [JsonPropertyName("basketData")]
+    public string? BasketData { get; init; }
 }

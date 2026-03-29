@@ -12,8 +12,27 @@ public sealed class CreateBasketHandler
         _orderServiceClient = orderServiceClient;
     }
 
-    public Task<BasketResponse> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
+    public async Task<BasketResponse> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var bookingType = command.LoyaltyNumber is not null ? "Reward" : "Revenue";
+
+        var result = await _orderServiceClient.CreateBasketAsync(
+            channelCode: "WEB",
+            currencyCode: "GBP",
+            bookingType: bookingType,
+            loyaltyNumber: command.LoyaltyNumber,
+            totalPointsAmount: null,
+            cancellationToken);
+
+        return new BasketResponse
+        {
+            BasketId = result.BasketId,
+            Status = result.BasketStatus,
+            CustomerId = command.CustomerId,
+            TotalPrice = result.TotalAmount,
+            Currency = result.CurrencyCode,
+            ExpiresAt = result.ExpiresAt,
+            CreatedAt = DateTime.UtcNow
+        };
     }
 }

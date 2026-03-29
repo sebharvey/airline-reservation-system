@@ -40,7 +40,8 @@ public static class OrderMapper
             ConfirmedOrderId = basket.ConfirmedOrderId,
             Version = basket.Version,
             CreatedAt = basket.CreatedAt,
-            UpdatedAt = basket.UpdatedAt
+            UpdatedAt = basket.UpdatedAt,
+            BasketData = basket.BasketData
         };
 
     public static CreateBasketResponse ToCreateResponse(Basket basket) =>
