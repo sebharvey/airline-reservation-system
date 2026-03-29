@@ -255,12 +255,11 @@ public sealed class BasketFunction
     {
         var flights = new List<BasketFlight>();
 
-        if (!string.IsNullOrEmpty(basket.BasketData))
+        if (basket.BasketData.HasValue && basket.BasketData.Value.ValueKind == JsonValueKind.Object)
         {
             try
             {
-                using var doc = JsonDocument.Parse(basket.BasketData);
-                if (doc.RootElement.TryGetProperty("flightOffers", out var offersEl) &&
+                if (basket.BasketData.Value.TryGetProperty("flightOffers", out var offersEl) &&
                     offersEl.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var offer in offersEl.EnumerateArray())

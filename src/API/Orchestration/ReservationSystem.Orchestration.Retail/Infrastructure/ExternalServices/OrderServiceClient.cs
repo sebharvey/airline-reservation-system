@@ -174,7 +174,7 @@ public sealed class OrderMsBasketResult
     public DateTime UpdatedAt { get; init; }
 
     [JsonPropertyName("basketData")]
-    public string? BasketData { get; init; }
+    public JsonElement? BasketData { get; init; }
 }
 
 public sealed class OrderMsAddOfferResult
