@@ -250,6 +250,20 @@ export class FareRulesComponent implements OnInit {
       code += 'R';
     }
 
+    // Cabin and changeable indicators for additional context
+    const cabin = (f.cabinCode || 'Y').toUpperCase();
+    if (cabin !== bookingClass) {
+      code += cabin;
+    }
+    if (f.isChangeable) {
+      code += 'C';
+    }
+
+    // Pad with 'O' (open) suffix to ensure minimum 6 characters
+    while (code.length < 6) {
+      code += 'O';
+    }
+
     // Trim to max 8 characters (IATA fare basis code limit)
     code = code.substring(0, 8).toUpperCase();
     this.updateField('fareBasisCode', code);
