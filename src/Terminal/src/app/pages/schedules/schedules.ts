@@ -1,7 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, ScheduleSummary, ScheduleGroupSummary } from '../../services/schedule.service';
-import { SeatService, AircraftType } from '../../services/seat.service';
 
 @Component({
   selector: 'app-schedules',
@@ -11,7 +10,6 @@ import { SeatService, AircraftType } from '../../services/seat.service';
 })
 export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);
-  #seatService = inject(SeatService);
 
   // Schedule groups
   groups = signal<ScheduleGroupSummary[]>([]);
@@ -37,9 +35,6 @@ export class SchedulesComponent implements OnInit {
   importing = signal(false);
   importError = signal('');
   importSuccess = signal('');
-  loadingAircraftConfig = signal(false);
-  aircraftConfigError = signal('');
-  allAircraftTypes = signal<AircraftType[]>([]);
 
   ngOnInit(): void {
     this.loadGroups();
@@ -153,22 +148,10 @@ export class SchedulesComponent implements OnInit {
 
   // ── Import to Inventory ─────────────────────────────────────────────────────
 
-  async openImportModal(): Promise<void> {
+  openImportModal(): void {
     this.importError.set('');
     this.importSuccess.set('');
-    this.aircraftConfigError.set('');
-    this.allAircraftTypes.set([]);
     this.showImportModal.set(true);
-
-    this.loadingAircraftConfig.set(true);
-    try {
-      const result = await this.#seatService.getAircraftTypes();
-      this.allAircraftTypes.set(result.aircraftTypes);
-    } catch {
-      this.aircraftConfigError.set('Failed to load aircraft configuration from Seat service. Please try again.');
-    } finally {
-      this.loadingAircraftConfig.set(false);
-    }
   }
 
   closeImportModal(): void {
@@ -180,17 +163,8 @@ export class SchedulesComponent implements OnInit {
     this.importError.set('');
     this.importSuccess.set('');
     try {
-      const aircraftConfigs = this.allAircraftTypes()
-        .filter(t => t.cabinCounts && t.cabinCounts.length > 0)
-        .map(t => ({
-          aircraftTypeCode: t.aircraftTypeCode,
-          cabins: t.cabinCounts!.map(cc => ({ cabinCode: cc.cabin, totalSeats: cc.count })),
-        }));
-
-      const result = await this.#scheduleService.importSchedulesToInventory(
-        { aircraftConfigs },
-        this.selectedGroupId() || undefined
-      );
+      const scheduleGroupId = this.selectedGroupId() || undefined;
+      const result = await this.#scheduleService.importSchedulesToInventory({ scheduleGroupId });
       this.importSuccess.set(
         `Import complete: ${result.schedulesProcessed} schedules processed, ${result.inventoriesCreated} inventories created, ${result.inventoriesSkipped} skipped.`
       );

@@ -10,29 +10,33 @@ namespace ReservationSystem.Orchestration.Operations.Application.ImportSchedules
 ///
 /// Flow:
 ///   1. Fetch all schedules from Schedule MS GET /v1/schedules.
-///   2. Build a lookup of aircraftTypeCode → cabin seat counts from the command.
-///   3. Fetch all fare rules from the Offer MS once, grouped by cabin code.
-///   4. For each schedule, resolve its cabin config by AircraftType; skip if not found.
-///   5. Enumerate operating dates from ValidFrom/ValidTo and DaysOfWeek bitmask.
-///   6. For each operating date × cabin, build a batch inventory creation request.
-///   7. Call Offer MS POST /v1/flights/batch — existing records are skipped automatically.
-///   8. For each newly created inventory, apply matching fare rules from storage.
-///   9. Return a summary of schedules processed, inventories created/skipped, and fares created.
+///   2. Fetch aircraft type configurations from Seat MS GET /v1/aircraft-types.
+///   3. Build a lookup of aircraftTypeCode → cabin seat counts from the Seat MS response.
+///   4. Fetch all fare rules from the Offer MS once, grouped by cabin code.
+///   5. For each schedule, resolve its cabin config by AircraftType; skip if not found.
+///   6. Enumerate operating dates from ValidFrom/ValidTo and DaysOfWeek bitmask.
+///   7. For each operating date × cabin, build a batch inventory creation request.
+///   8. Call Offer MS POST /v1/flights/batch — existing records are skipped automatically.
+///   9. For each newly created inventory, apply matching fare rules from storage.
+///  10. Return a summary of schedules processed, inventories created/skipped, and fares created.
 /// </summary>
 public sealed class ImportSchedulesToInventoryHandler
 {
     private readonly ScheduleServiceClient _scheduleClient;
+    private readonly SeatServiceClient _seatClient;
     private readonly OfferServiceClient _offerClient;
     private readonly FareRuleServiceClient _fareRuleClient;
     private readonly ILogger<ImportSchedulesToInventoryHandler> _logger;
 
     public ImportSchedulesToInventoryHandler(
         ScheduleServiceClient scheduleClient,
+        SeatServiceClient seatClient,
         OfferServiceClient offerClient,
         FareRuleServiceClient fareRuleClient,
         ILogger<ImportSchedulesToInventoryHandler> logger)
     {
         _scheduleClient = scheduleClient;
+        _seatClient = seatClient;
         _offerClient = offerClient;
         _fareRuleClient = fareRuleClient;
         _logger = logger;
@@ -60,14 +64,18 @@ public sealed class ImportSchedulesToInventoryHandler
             };
         }
 
-        // 2. Build a lookup of aircraftTypeCode → cabin seat counts from the command.
-        var cabinsByAircraftType = command.AircraftConfigs
+        // 2. Fetch aircraft type configurations from Seat MS.
+        var aircraftTypesResult = await _seatClient.GetAircraftTypesAsync(cancellationToken);
+
+        // 3. Build a lookup of aircraftTypeCode → cabin seat counts from the Seat MS response.
+        var cabinsByAircraftType = aircraftTypesResult.AircraftTypes
+            .Where(a => a.CabinCounts is { Count: > 0 })
             .ToDictionary(
-                c => c.AircraftTypeCode,
-                c => c.Cabins,
+                a => a.AircraftTypeCode,
+                a => (IReadOnlyList<CabinCountDto>)a.CabinCounts!,
                 StringComparer.OrdinalIgnoreCase);
 
-        // 3. Fetch all fare rules from the Offer MS once; group by cabin code.
+        // 4. Fetch all fare rules from the Offer MS once; group by cabin code.
         IReadOnlyList<FareRuleDto> fareRules = [];
         try
         {
@@ -82,8 +90,8 @@ public sealed class ImportSchedulesToInventoryHandler
             .GroupBy(r => r.CabinCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<FareRuleDto>)g.ToList().AsReadOnly(), StringComparer.OrdinalIgnoreCase);
 
-        // 4. Build a batch payload: one entry per schedule × operating date × cabin.
-        //    Schedules whose aircraft type has no registered config are skipped.
+        // 5. Build a batch payload: one entry per schedule × operating date × cabin.
+        //    Schedules whose aircraft type has no registered config in the Seat MS are skipped.
         var flightItems = new List<object>();
         var schedulesWithConfig = new List<ScheduleItemDto>();
 
@@ -92,7 +100,7 @@ public sealed class ImportSchedulesToInventoryHandler
             if (!cabinsByAircraftType.TryGetValue(schedule.AircraftType, out var cabins))
             {
                 _logger.LogWarning(
-                    "ImportSchedulesToInventory: no cabin config for aircraft type '{AircraftType}' — skipping schedule {FlightNumber}",
+                    "ImportSchedulesToInventory: no cabin config for aircraft type '{AircraftType}' in Seat MS — skipping schedule {FlightNumber}",
                     schedule.AircraftType, schedule.FlightNumber);
                 continue;
             }
@@ -117,8 +125,8 @@ public sealed class ImportSchedulesToInventoryHandler
                         origin = schedule.Origin,
                         destination = schedule.Destination,
                         aircraftType = schedule.AircraftType,
-                        cabinCode = cabin.CabinCode,
-                        totalSeats = cabin.TotalSeats
+                        cabinCode = cabin.Cabin,
+                        totalSeats = cabin.Count
                     });
                 }
             }
@@ -135,7 +143,7 @@ public sealed class ImportSchedulesToInventoryHandler
             };
         }
 
-        // 5. Batch-create inventory in Offer MS; existing records are skipped.
+        // 6. Batch-create inventory in Offer MS; existing records are skipped.
         var batchResult = await _offerClient.BatchCreateFlightsAsync(
             new { flights = flightItems }, cancellationToken);
 
@@ -143,7 +151,7 @@ public sealed class ImportSchedulesToInventoryHandler
             "ImportSchedulesToInventory: inventories created={Created}, skipped={Skipped}",
             batchResult.Created, batchResult.Skipped);
 
-        // 6. Apply stored fare rules to each newly created inventory.
+        // 7. Apply stored fare rules to each newly created inventory.
         var scheduleByFlight = schedulesWithConfig
             .ToDictionary(s => s.FlightNumber, StringComparer.OrdinalIgnoreCase);
 

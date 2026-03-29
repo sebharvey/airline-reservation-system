@@ -60,18 +60,8 @@ export interface GetSchedulesResponse {
   schedules: ScheduleSummary[];
 }
 
-export interface CabinSeatCount {
-  cabinCode: string;
-  totalSeats: number;
-}
-
-export interface AircraftCabinConfig {
-  aircraftTypeCode: string;
-  cabins: CabinSeatCount[];
-}
-
 export interface ImportSchedulesToInventoryRequest {
-  aircraftConfigs: AircraftCabinConfig[];
+  scheduleGroupId?: string;
 }
 
 export interface ImportSchedulesToInventoryResponse {
@@ -122,11 +112,9 @@ export class ScheduleService {
     );
   }
 
-  async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest, scheduleGroupId?: string): Promise<ImportSchedulesToInventoryResponse> {
-    let url = `${this.#baseUrl}/schedules/import-inventory`;
-    if (scheduleGroupId) url += `?scheduleGroupId=${scheduleGroupId}`;
+  async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest): Promise<ImportSchedulesToInventoryResponse> {
     return firstValueFrom(
-      this.#http.post<ImportSchedulesToInventoryResponse>(url, request)
+      this.#http.post<ImportSchedulesToInventoryResponse>(`${this.#baseUrl}/schedules/import-inventory`, request)
     );
   }
 }
