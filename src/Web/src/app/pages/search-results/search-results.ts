@@ -94,6 +94,9 @@ export class SearchResultsComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    // Clear any basket from a previous search so each new search starts fresh.
+    this.bookingState.clearBasket();
+
     const p = this.route.snapshot.queryParamMap;
     this.origin.set(p.get('origin') ?? '');
     this.destination.set(p.get('destination') ?? '');
