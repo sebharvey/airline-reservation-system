@@ -147,11 +147,6 @@ export class SchedulesComponent implements OnInit {
     return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
   }
 
-  inventoryPercent(schedule: ScheduleSummary): number {
-    if (schedule.operatingDateCount === 0) return 0;
-    return Math.round((schedule.flightsCreated / schedule.operatingDateCount) * 100);
-  }
-
   // ── Import to Inventory ─────────────────────────────────────────────────────
 
   openImportModal(): void {
