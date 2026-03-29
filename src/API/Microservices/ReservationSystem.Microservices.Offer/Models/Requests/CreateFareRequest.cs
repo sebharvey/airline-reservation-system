@@ -4,6 +4,7 @@ public sealed class CreateFareRequest
 {
     public string FareBasisCode { get; init; } = string.Empty;
     public string? FareFamily { get; init; }
+    public string CabinCode { get; init; } = string.Empty;
     public string? BookingClass { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public decimal BaseFareAmount { get; init; }

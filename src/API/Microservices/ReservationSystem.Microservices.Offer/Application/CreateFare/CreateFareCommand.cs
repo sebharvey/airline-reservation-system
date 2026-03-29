@@ -4,6 +4,7 @@ public sealed record CreateFareCommand(
     Guid InventoryId,
     string FareBasisCode,
     string? FareFamily,
+    string CabinCode,
     string? BookingClass,
     string CurrencyCode,
     decimal BaseFareAmount,
