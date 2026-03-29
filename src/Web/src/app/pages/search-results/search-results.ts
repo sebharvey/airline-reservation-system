@@ -6,6 +6,7 @@ import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { BookingType } from '../../models/order.model';
 import { AIRPORTS } from '../../data/airports';
+import { LoyaltyStateService } from '../../services/loyalty-state.service';
 
 interface FlightRow {
   flightNumber: string;
@@ -29,6 +30,7 @@ export class SearchResultsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly retailApi = inject(RetailApiService);
   private readonly bookingState = inject(BookingStateService);
+  private readonly loyaltyState = inject(LoyaltyStateService);
 
   origin = signal('');
   destination = signal('');
@@ -56,6 +58,9 @@ export class SearchResultsComponent implements OnInit {
   showReturnSearch = signal(false);
 
   farePopup = signal<{ offers: FlightOffer[]; isReturn: boolean } | null>(null);
+
+  basketLoading = signal(false);
+  basketError = signal('');
 
   readonly airports = AIRPORTS;
 
@@ -120,9 +125,10 @@ export class SearchResultsComponent implements OnInit {
     this.retailApi.searchSlice({
       origin: this.origin(),
       destination: this.destination(),
-      departDate: this.departDate(),
+      departureDate: this.departDate(),
       adults: this.adults(),
-      children: this.children()
+      children: this.children(),
+      bookingType: this.bookingType()
     }).subscribe({
       next: (offers) => {
         this.outboundOffers.set(offers);
@@ -141,9 +147,10 @@ export class SearchResultsComponent implements OnInit {
     this.retailApi.searchSlice({
       origin: this.destination(),
       destination: this.origin(),
-      departDate: this.returnDate(),
+      departureDate: this.returnDate(),
       adults: this.adults(),
-      children: this.children()
+      children: this.children(),
+      bookingType: this.bookingType()
     }).subscribe({
       next: (offers) => {
         this.returnOffers.set(offers);
@@ -177,12 +184,32 @@ export class SearchResultsComponent implements OnInit {
     const outbound = this.selectedOutbound();
     if (!outbound) return;
     const inbound = this.isReturn() ? this.selectedReturn() : null;
-    this.bookingState.startBasket(outbound, inbound);
-    if (this.isRewardBooking()) {
-      this.router.navigate(['/booking/reward-login']);
-    } else {
-      this.router.navigate(['/booking/passengers']);
-    }
+
+    this.basketLoading.set(true);
+    this.basketError.set('');
+
+    const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
+
+    this.retailApi.createBasket({
+      outboundOfferId: outbound.offerId,
+      inboundOfferId: inbound?.offerId,
+      bookingType: this.bookingType(),
+      loyaltyNumber
+    }).subscribe({
+      next: (basket) => {
+        this.bookingState.startBasket(outbound, inbound, basket.basketId);
+        this.basketLoading.set(false);
+        if (this.isRewardBooking()) {
+          this.router.navigate(['/booking/reward-login']);
+        } else {
+          this.router.navigate(['/booking/passengers']);
+        }
+      },
+      error: () => {
+        this.basketError.set('Unable to reserve your selection. Please try again.');
+        this.basketLoading.set(false);
+      }
+    });
   }
 
   openFarePopup(offers: FlightOffer[], isReturn: boolean): void {

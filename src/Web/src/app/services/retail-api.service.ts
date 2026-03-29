@@ -2,32 +2,50 @@
  * RetailApiService
  *
  * Channel-facing service for all flight retailing operations.
- * Currently returns mock data as Observables simulating API responses.
- *
- * To connect to real APIs, replace each method body with an HttpClient call:
- *   return this.http.post<FlightOffer[]>('/api/v1/search/slice', params);
- *
- * The Observable<T> contract remains identical — no consumer changes required.
+ * Calls the live Retail API for flight search and basket creation.
+ * Other methods (seatmap, bags, orders, check-in) retain mocks pending
+ * those API endpoints being wired up.
  */
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { map, delay } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
-import { Order, BoardingPass } from '../models/order.model';
-import { getMockFlightOffers, MOCK_FLIGHT_STATUS } from '../data/mock/flight-offers.mock';
+import { Order, BoardingPass, BookingType } from '../models/order.model';
 import { getMockSeatmap } from '../data/mock/seatmap.mock';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
+import { MOCK_FLIGHT_STATUS } from '../data/mock/flight-offers.mock';
 
 export interface SearchSliceParams {
   origin: string;
   destination: string;
-  departDate: string;
+  departureDate: string;
   adults: number;
   children: number;
+  bookingType?: BookingType;
+}
+
+export interface CreateBasketParams {
+  outboundOfferId: string;
+  inboundOfferId?: string;
+  bookingType: BookingType;
+  currencyCode?: string;
+  loyaltyNumber?: string;
+}
+
+export interface CreateBasketResponse {
+  basketId: string;
+  bookingType: string;
+  totalFareAmount: number;
+  totalSeatAmount: number;
+  totalBagAmount: number;
+  totalAmount: number;
+  totalPointsAmount: number | null;
+  currencyCode: string;
+  expiresAt: string;
 }
 
 export interface RetrieveOrderParams {
@@ -36,11 +54,95 @@ export interface RetrieveOrderParams {
   surname: string;
 }
 
+// ---- Live API response shape from POST /api/v1/search/slice ----
+
+interface SearchSliceApiOffer {
+  offerId: string;
+  fareBasisCode: string;
+  basePrice: number;
+  tax: number;
+  totalPrice: number;
+  currency: string;
+  isRefundable: boolean;
+  isChangeable: boolean;
+}
+
+interface SearchSliceApiFareFamily {
+  fareFamily: string;
+  offer: SearchSliceApiOffer;
+}
+
+interface SearchSliceApiCabin {
+  cabinCode: string;
+  availableSeats: number;
+  fromPrice: number;
+  currency: string;
+  fromPoints: number | null;
+  fareFamilies: SearchSliceApiFareFamily[];
+}
+
+interface SearchSliceApiFlight {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureTime: string;
+  arrivalTime: string;
+  cabins: SearchSliceApiCabin[];
+}
+
+interface SearchSliceApiResponse {
+  flights: SearchSliceApiFlight[];
+}
+
+// ----------------------------------------------------------------
+
+const CABIN_NAMES: Record<string, string> = {
+  F: 'First Class',
+  J: 'Business Class',
+  W: 'Premium Economy',
+  Y: 'Economy'
+};
+
 const API_DELAY_MS = 600;
+
+function mapApiResponseToOffers(response: SearchSliceApiResponse): FlightOffer[] {
+  const offers: FlightOffer[] = [];
+  for (const flight of response.flights) {
+    for (const cabin of flight.cabins) {
+      const cabinCode = cabin.cabinCode as CabinCode;
+      for (const family of cabin.fareFamilies) {
+        offers.push({
+          offerId: family.offer.offerId,
+          inventoryId: family.offer.offerId,
+          flightNumber: flight.flightNumber,
+          origin: flight.origin,
+          destination: flight.destination,
+          departureDateTime: flight.departureTime,
+          arrivalDateTime: flight.arrivalTime,
+          aircraftType: '',
+          cabinCode,
+          cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
+          fareFamily: family.fareFamily,
+          fareBasisCode: family.offer.fareBasisCode,
+          bookingClass: family.offer.fareBasisCode.charAt(0),
+          isRefundable: family.offer.isRefundable,
+          isChangeable: family.offer.isChangeable,
+          unitPrice: family.offer.basePrice,
+          taxes: family.offer.tax,
+          totalPrice: family.offer.totalPrice,
+          currency: family.offer.currency,
+          seatsAvailable: cabin.availableSeats,
+          pointsPrice: cabin.fromPoints ?? undefined,
+          pointsTaxes: undefined
+        });
+      }
+    }
+  }
+  return offers;
+}
 
 @Injectable({ providedIn: 'root' })
 export class RetailApiService {
-  // DEBUG — HttpClient injected for basket debug modal; remove with basket debug feature
   readonly #http = inject(HttpClient);
 
   /**
@@ -58,14 +160,36 @@ export class RetailApiService {
    * Search for available flights for a single directional slice.
    */
   searchSlice(params: SearchSliceParams): Observable<FlightOffer[]> {
-    const offers = getMockFlightOffers(
-      params.origin,
-      params.destination,
-      params.departDate,
-      params.adults,
-      params.children
-    );
-    return of(offers).pipe(delay(API_DELAY_MS));
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      origin: params.origin,
+      destination: params.destination,
+      departureDate: params.departureDate,
+      paxCount: params.adults + (params.children ?? 0),
+      bookingType: params.bookingType ?? 'Revenue'
+    };
+    return this.#http
+      .post<SearchSliceApiResponse>(`${base}/api/v1/search/slice`, body)
+      .pipe(map(mapApiResponseToOffers));
+  }
+
+  /**
+   * POST /v1/basket
+   * Create a basket with the selected offer IDs. Returns the server-assigned basketId.
+   */
+  createBasket(params: CreateBasketParams): Observable<CreateBasketResponse> {
+    const base = environment.retailApiBaseUrl;
+    const offerIds = params.inboundOfferId
+      ? [params.outboundOfferId, params.inboundOfferId]
+      : [params.outboundOfferId];
+    const body = {
+      offerIds,
+      channelCode: 'WEB',
+      currencyCode: params.currencyCode ?? 'GBP',
+      bookingType: params.bookingType,
+      loyaltyNumber: params.loyaltyNumber ?? null
+    };
+    return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
   }
 
   /**
@@ -236,7 +360,6 @@ export class RetailApiService {
   /**
    * POST /v1/reward/authorise
    * Authorise a points redemption for a reward booking.
-   * The Retail API calls the Customer MS to verify the balance and place a hold.
    */
   authorisePointsRedemption(
     _loyaltyNumber: string,
