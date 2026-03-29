@@ -1,5 +1,7 @@
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -13,6 +15,36 @@ public sealed class OfferServiceClient
     public OfferServiceClient(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("OfferMs");
+    }
+
+    public async Task<OfferDetailDto?> GetOfferAsync(Guid offerId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/offers/{offerId}", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task HoldInventoryAsync(Guid offerId, CancellationToken cancellationToken = default)
+    {
+        var body = new { offerId };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", body, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(cancellationToken);
+            throw new InvalidOperationException($"Failed to hold inventory for offer {offerId}: {error}");
+        }
+    }
+
+    public async Task ReleaseInventoryAsync(Guid offerId, CancellationToken cancellationToken = default)
+    {
+        var body = new { offerId };
+        // Best-effort — do not throw; releasing is compensating action and must not mask the original error
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/release", body, JsonOptions, cancellationToken);
+        }
+        catch { }
     }
 
     public async Task<OfferSearchResultDto> SearchAsync(

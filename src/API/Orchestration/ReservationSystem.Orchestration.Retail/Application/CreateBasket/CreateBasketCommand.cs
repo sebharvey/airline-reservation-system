@@ -1,5 +1,9 @@
 namespace ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 
 public sealed record CreateBasketCommand(
-    string CustomerId,
-    string? LoyaltyNumber);
+    IReadOnlyList<Guid> OfferIds,
+    string ChannelCode,
+    string? CurrencyCode,
+    string? BookingType,
+    string? LoyaltyNumber,
+    string? CustomerId = null);

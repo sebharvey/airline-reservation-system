@@ -45,13 +45,13 @@ public sealed class UpdateBasketFlightsHandler
         var flightsNode = JsonNode.Parse(command.FlightsData);
         basketJson["flightOffers"] = flightsNode;
 
-        // Calculate total fare amount from flight offers
+        // Calculate total fare amount from flight offers (totalAmount is a top-level field on each offer)
         decimal totalFareAmount = 0m;
         if (flightsNode is JsonArray flightsArray)
         {
             foreach (var offer in flightsArray)
             {
-                var price = offer?["price"]?["totalAmount"]?.GetValue<decimal>() ?? 0m;
+                var price = offer?["totalAmount"]?.GetValue<decimal>() ?? 0m;
                 totalFareAmount += price;
             }
         }
