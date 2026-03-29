@@ -25,7 +25,6 @@ public sealed class AircraftTypeFunction
     private readonly UpdateAircraftTypeHandler _updateHandler;
     private readonly DeleteAircraftTypeHandler _deleteHandler;
     private readonly ISeatmapRepository _seatmapRepository;
-    private readonly IAircraftTypeRepository _aircraftTypeRepository;
     private readonly ILogger<AircraftTypeFunction> _logger;
 
     public AircraftTypeFunction(
@@ -35,7 +34,6 @@ public sealed class AircraftTypeFunction
         UpdateAircraftTypeHandler updateHandler,
         DeleteAircraftTypeHandler deleteHandler,
         ISeatmapRepository seatmapRepository,
-        IAircraftTypeRepository aircraftTypeRepository,
         ILogger<AircraftTypeFunction> logger)
     {
         _getAllHandler = getAllHandler;
@@ -44,7 +42,6 @@ public sealed class AircraftTypeFunction
         _updateHandler = updateHandler;
         _deleteHandler = deleteHandler;
         _seatmapRepository = seatmapRepository;
-        _aircraftTypeRepository = aircraftTypeRepository;
         _logger = logger;
     }
 
@@ -153,7 +150,7 @@ public sealed class AircraftTypeFunction
         if (hasActiveSeatmaps)
             return await req.ConflictAsync($"Cannot delete aircraft type '{aircraftTypeCode}' — active seatmaps reference it.");
 
-        var deleted = await _aircraftTypeRepository.DeleteAsync(aircraftTypeCode, cancellationToken);
+        var deleted = await _deleteHandler.HandleAsync(new DeleteAircraftTypeCommand(aircraftTypeCode), cancellationToken);
         return deleted
             ? req.NoContent()
             : await req.NotFoundAsync($"No aircraft type found for code '{aircraftTypeCode}'.");
