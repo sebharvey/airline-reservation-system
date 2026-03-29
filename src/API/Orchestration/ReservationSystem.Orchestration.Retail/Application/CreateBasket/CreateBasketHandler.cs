@@ -24,7 +24,7 @@ public sealed class CreateBasketHandler
         var offerDetails = new List<OfferDetailDto>();
         foreach (var offerId in command.OfferIds)
         {
-            var offer = await _offerServiceClient.GetOfferAsync(offerId, command.SessionId, cancellationToken);
+            var offer = await _offerServiceClient.GetOfferAsync(offerId, null, cancellationToken);
             if (offer is null)
                 throw new KeyNotFoundException($"Offer {offerId} not found.");
             if (DateTime.TryParse(offer.ExpiresAt, out var offerExpiry) && offerExpiry <= DateTime.UtcNow)
