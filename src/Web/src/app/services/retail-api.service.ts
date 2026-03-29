@@ -91,6 +91,7 @@ interface SearchSliceApiFlight {
   destination: string;
   departureTime: string;
   arrivalTime: string;
+  aircraftType: string;
   cabins: SearchSliceApiCabin[];
 }
 
@@ -129,7 +130,7 @@ function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceRe
           destination: flight.destination,
           departureDateTime: flight.departureTime,
           arrivalDateTime: flight.arrivalTime,
-          aircraftType: '',
+          aircraftType: flight.aircraftType,
           cabinCode,
           cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
           fareFamily: family.fareFamily,
