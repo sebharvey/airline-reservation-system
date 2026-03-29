@@ -18,6 +18,8 @@ public sealed class OfferItemDto
     public bool IsChangeable { get; init; }
     public string BookingType { get; init; } = string.Empty;
     public int SeatsAvailable { get; init; }
+    public int? PointsPrice { get; init; }
+    public decimal? PointsTaxes { get; init; }
 }
 
 /// <summary>
@@ -58,6 +60,7 @@ public sealed class OfferSearchResultDto
 public sealed class OfferDetailDto
 {
     public Guid StoredOfferId { get; init; }
+    public Guid OfferId => StoredOfferId;
     public Guid SessionId { get; init; }
     public string ExpiresAt { get; init; } = string.Empty;
     public Guid InventoryId { get; init; }
