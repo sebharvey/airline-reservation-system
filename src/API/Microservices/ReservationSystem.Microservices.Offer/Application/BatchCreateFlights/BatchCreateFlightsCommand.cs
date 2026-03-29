@@ -1,3 +1,5 @@
+using ReservationSystem.Microservices.Offer.Application.CreateFlight;
+
 namespace ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
 
 public sealed record BatchCreateFlightsCommand(IReadOnlyList<BatchFlightItem> Items);
@@ -11,5 +13,4 @@ public sealed record BatchFlightItem(
     string Origin,
     string Destination,
     string AircraftType,
-    string CabinCode,
-    int TotalSeats);
+    IReadOnlyList<CabinItem> Cabins);

@@ -5,6 +5,8 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 
@@ -37,8 +39,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                   TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status, CreatedAt, UpdatedAt
+                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  InventoryId = @InventoryId;
             """;
@@ -52,16 +54,15 @@ public sealed class SqlOfferRepository : IOfferRepository
     }
 
     public async Task<FlightInventory?> GetInventoryAsync(
-        string flightNumber, DateOnly departureDate, string cabinCode, CancellationToken ct = default)
+        string flightNumber, DateOnly departureDate, CancellationToken ct = default)
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                   TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status, CreatedAt, UpdatedAt
+                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
-              AND  DepartureDate = @DepartureDate
-              AND  CabinCode = @CabinCode;
+              AND  DepartureDate = @DepartureDate;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -70,8 +71,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             new CommandDefinition(sql, new
             {
                 FlightNumber = flightNumber,
-                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue),
-                CabinCode = cabinCode
+                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return row is null ? null : MapToInventory(row);
@@ -82,17 +82,23 @@ public sealed class SqlOfferRepository : IOfferRepository
         CancellationToken ct = default)
     {
         const string sql = """
-            SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                   TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status, CreatedAt, UpdatedAt
-            FROM   [offer].[FlightInventory]
-            WHERE  Origin = @Origin
-              AND  Destination = @Destination
-              AND  DepartureDate = @DepartureDate
-              AND  CabinCode = @CabinCode
-              AND  SeatsAvailable >= @PaxCount
-              AND  Status = 'Active'
-            ORDER BY DepartureTime;
+            SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
+                   fi.ArrivalDayOffset, fi.Origin, fi.Destination, fi.AircraftType,
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+            FROM   [offer].[FlightInventory] fi
+            CROSS APPLY OPENJSON(fi.Cabins) WITH (
+                cabinCode CHAR(1)  '$.cabinCode',
+                totalSeats INT     '$.totalSeats',
+                seatsSold  INT     '$.seatsSold',
+                seatsHeld  INT     '$.seatsHeld'
+            ) AS c
+            WHERE  fi.Origin        = @Origin
+              AND  fi.Destination   = @Destination
+              AND  fi.DepartureDate = @DepartureDate
+              AND  fi.Status        = 'Active'
+              AND  c.cabinCode      = @CabinCode
+              AND  (c.totalSeats - c.seatsSold - c.seatsHeld) >= @PaxCount
+            ORDER BY fi.DepartureTime;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -115,12 +121,11 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                   TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status, CreatedAt, UpdatedAt
+                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
-              AND  DepartureDate = @DepartureDate
-            ORDER BY CabinCode;
+              AND  DepartureDate = @DepartureDate;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -139,38 +144,11 @@ public sealed class SqlOfferRepository : IOfferRepository
         DateOnly departureDate, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT
-                FlightNumber,
-                DepartureDate,
-                DepartureTime,
-                ArrivalTime,
-                ArrivalDayOffset,
-                Origin,
-                Destination,
-                AircraftType,
-                MAX(CASE WHEN Status = 'Active'  THEN 'Active'    ELSE 'Cancelled' END) AS Status,
-                NULLIF(MAX(CASE WHEN CabinCode = 'F' THEN TotalSeats     ELSE 0 END), 0) AS F_TotalSeats,
-                MAX(CASE WHEN CabinCode = 'F' THEN SeatsAvailable ELSE NULL END)         AS F_SeatsAvailable,
-                MAX(CASE WHEN CabinCode = 'F' THEN SeatsSold      ELSE NULL END)         AS F_SeatsSold,
-                MAX(CASE WHEN CabinCode = 'F' THEN SeatsHeld      ELSE NULL END)         AS F_SeatsHeld,
-                NULLIF(MAX(CASE WHEN CabinCode = 'J' THEN TotalSeats     ELSE 0 END), 0) AS J_TotalSeats,
-                MAX(CASE WHEN CabinCode = 'J' THEN SeatsAvailable ELSE NULL END)         AS J_SeatsAvailable,
-                MAX(CASE WHEN CabinCode = 'J' THEN SeatsSold      ELSE NULL END)         AS J_SeatsSold,
-                MAX(CASE WHEN CabinCode = 'J' THEN SeatsHeld      ELSE NULL END)         AS J_SeatsHeld,
-                NULLIF(MAX(CASE WHEN CabinCode = 'W' THEN TotalSeats     ELSE 0 END), 0) AS W_TotalSeats,
-                MAX(CASE WHEN CabinCode = 'W' THEN SeatsAvailable ELSE NULL END)         AS W_SeatsAvailable,
-                MAX(CASE WHEN CabinCode = 'W' THEN SeatsSold      ELSE NULL END)         AS W_SeatsSold,
-                MAX(CASE WHEN CabinCode = 'W' THEN SeatsHeld      ELSE NULL END)         AS W_SeatsHeld,
-                NULLIF(MAX(CASE WHEN CabinCode = 'Y' THEN TotalSeats     ELSE 0 END), 0) AS Y_TotalSeats,
-                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsAvailable ELSE NULL END)         AS Y_SeatsAvailable,
-                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsSold      ELSE NULL END)         AS Y_SeatsSold,
-                MAX(CASE WHEN CabinCode = 'Y' THEN SeatsHeld      ELSE NULL END)         AS Y_SeatsHeld,
-                SUM(TotalSeats)     AS TotalSeats,
-                SUM(SeatsAvailable) AS TotalSeatsAvailable
+            SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
+                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM  [offer].[FlightInventory]
             WHERE DepartureDate = @DepartureDate
-            GROUP BY FlightNumber, DepartureDate, DepartureTime, ArrivalTime, ArrivalDayOffset,
-                     Origin, Destination, AircraftType
             ORDER BY DepartureTime, FlightNumber;
             """;
 
@@ -188,11 +166,11 @@ public sealed class SqlOfferRepository : IOfferRepository
         const string sql = """
             INSERT INTO [offer].[FlightInventory]
                    (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                    ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                    TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status)
+                    ArrivalDayOffset, Origin, Destination, AircraftType,
+                    Cabins, TotalSeats, SeatsAvailable, Status)
             VALUES (@InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
-                    @ArrivalDayOffset, @Origin, @Destination, @AircraftType, @CabinCode,
-                    @TotalSeats, @SeatsAvailable, @SeatsSold, @SeatsHeld, @Status);
+                    @ArrivalDayOffset, @Origin, @Destination, @AircraftType,
+                    @Cabins, @TotalSeats, @SeatsAvailable, @Status);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -209,16 +187,15 @@ public sealed class SqlOfferRepository : IOfferRepository
         const string sql = """
             INSERT INTO [offer].[FlightInventory]
                    (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                    ArrivalDayOffset, Origin, Destination, AircraftType, CabinCode,
-                    TotalSeats, SeatsAvailable, SeatsSold, SeatsHeld, Status)
+                    ArrivalDayOffset, Origin, Destination, AircraftType,
+                    Cabins, TotalSeats, SeatsAvailable, Status)
             SELECT @InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
-                   @ArrivalDayOffset, @Origin, @Destination, @AircraftType, @CabinCode,
-                   @TotalSeats, @SeatsAvailable, @SeatsSold, @SeatsHeld, @Status
+                   @ArrivalDayOffset, @Origin, @Destination, @AircraftType,
+                   @Cabins, @TotalSeats, @SeatsAvailable, @Status
             WHERE NOT EXISTS (
                 SELECT 1 FROM [offer].[FlightInventory]
-                WHERE  FlightNumber   = @FlightNumber
-                  AND  DepartureDate  = @DepartureDate
-                  AND  CabinCode      = @CabinCode
+                WHERE  FlightNumber  = @FlightNumber
+                  AND  DepartureDate = @DepartureDate
             );
             """;
 
@@ -243,28 +220,24 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[FlightInventory]
-            SET    FlightNumber     = @FlightNumber,
-                   DepartureDate    = @DepartureDate,
-                   DepartureTime    = @DepartureTime,
-                   ArrivalTime      = @ArrivalTime,
-                   ArrivalDayOffset = @ArrivalDayOffset,
-                   Origin           = @Origin,
-                   Destination      = @Destination,
-                   AircraftType     = @AircraftType,
-                   CabinCode        = @CabinCode,
-                   TotalSeats       = @TotalSeats,
-                   SeatsAvailable   = @SeatsAvailable,
-                   SeatsSold        = @SeatsSold,
-                   SeatsHeld        = @SeatsHeld,
-                   Status           = @Status,
-                   UpdatedAt        = @UpdatedAt
+            SET    Cabins          = @Cabins,
+                   TotalSeats      = @TotalSeats,
+                   SeatsAvailable  = @SeatsAvailable,
+                   Status          = @Status
             WHERE  InventoryId = @InventoryId;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         var rowsAffected = await connection.ExecuteAsync(
-            new CommandDefinition(sql, MapInventoryToParameters(inventory), commandTimeout: _options.CommandTimeoutSeconds));
+            new CommandDefinition(sql, new
+            {
+                inventory.InventoryId,
+                Cabins = SerializeCabins(inventory),
+                inventory.TotalSeats,
+                inventory.SeatsAvailable,
+                inventory.Status
+            }, commandTimeout: _options.CommandTimeoutSeconds));
 
         if (rowsAffected == 0)
             _logger.LogWarning("UpdateInventoryAsync found no row for FlightInventory {InventoryId}", inventory.InventoryId);
@@ -729,42 +702,61 @@ public sealed class SqlOfferRepository : IOfferRepository
     private static DateOnly ToDateOnly(DateTime dt) => DateOnly.FromDateTime(dt);
     private static TimeOnly ToTimeOnly(TimeSpan ts) => TimeOnly.FromTimeSpan(ts);
 
+    private sealed record CabinJson(
+        [property: JsonPropertyName("cabinCode")] string CabinCode,
+        [property: JsonPropertyName("totalSeats")] int TotalSeats,
+        [property: JsonPropertyName("seatsSold")]  int SeatsSold,
+        [property: JsonPropertyName("seatsHeld")]  int SeatsHeld);
+
+    private static IReadOnlyList<CabinInventory> DeserializeCabins(string json)
+    {
+        var list = JsonSerializer.Deserialize<List<CabinJson>>(json) ?? [];
+        return list.Select(c => CabinInventory.Reconstitute(c.CabinCode, c.TotalSeats, c.SeatsSold, c.SeatsHeld))
+                   .ToList().AsReadOnly();
+    }
+
+    private static string SerializeCabins(FlightInventory inv)
+        => JsonSerializer.Serialize(inv.Cabins.Select(c => new CabinJson(c.CabinCode, c.TotalSeats, c.SeatsSold, c.SeatsHeld)));
+
     private static FlightInventoryGroup MapToInventoryGroup(dynamic row)
     {
-        static FlightInventoryGroup.CabinData? MapCabin(object? totalSeats, object? available, object? sold, object? held)
+        var cabins = JsonSerializer.Deserialize<List<CabinJson>>((string)row.Cabins) ?? [];
+
+        FlightInventoryGroup.CabinData? MapCabin(string code)
         {
-            if (totalSeats is null) return null;
-            return new FlightInventoryGroup.CabinData
+            var c = cabins.FirstOrDefault(x => x.CabinCode == code);
+            return c is null ? null : new FlightInventoryGroup.CabinData
             {
-                TotalSeats     = (int)totalSeats,
-                SeatsAvailable = available is null ? 0 : (int)available,
-                SeatsSold      = sold is null ? 0 : (int)sold,
-                SeatsHeld      = held is null ? 0 : (int)held,
+                TotalSeats     = c.TotalSeats,
+                SeatsAvailable = c.TotalSeats - c.SeatsSold - c.SeatsHeld,
+                SeatsSold      = c.SeatsSold,
+                SeatsHeld      = c.SeatsHeld
             };
         }
 
         return new FlightInventoryGroup
         {
-            FlightNumber     = (string)row.FlightNumber,
-            DepartureDate    = ToDateOnly((DateTime)row.DepartureDate),
-            DepartureTime    = ToTimeOnly((TimeSpan)row.DepartureTime),
-            ArrivalTime      = ToTimeOnly((TimeSpan)row.ArrivalTime),
-            ArrivalDayOffset = (int)row.ArrivalDayOffset,
-            Origin           = (string)row.Origin,
-            Destination      = (string)row.Destination,
-            AircraftType     = (string)row.AircraftType,
-            Status           = (string)row.Status,
-            TotalSeats       = (int)row.TotalSeats,
-            TotalSeatsAvailable = (int)row.TotalSeatsAvailable,
-            F = MapCabin(row.F_TotalSeats, row.F_SeatsAvailable, row.F_SeatsSold, row.F_SeatsHeld),
-            J = MapCabin(row.J_TotalSeats, row.J_SeatsAvailable, row.J_SeatsSold, row.J_SeatsHeld),
-            W = MapCabin(row.W_TotalSeats, row.W_SeatsAvailable, row.W_SeatsSold, row.W_SeatsHeld),
-            Y = MapCabin(row.Y_TotalSeats, row.Y_SeatsAvailable, row.Y_SeatsSold, row.Y_SeatsHeld),
+            FlightNumber        = (string)row.FlightNumber,
+            DepartureDate       = ToDateOnly((DateTime)row.DepartureDate),
+            DepartureTime       = ToTimeOnly((TimeSpan)row.DepartureTime),
+            ArrivalTime         = ToTimeOnly((TimeSpan)row.ArrivalTime),
+            ArrivalDayOffset    = (int)row.ArrivalDayOffset,
+            Origin              = (string)row.Origin,
+            Destination         = (string)row.Destination,
+            AircraftType        = (string)row.AircraftType,
+            Status              = (string)row.Status,
+            TotalSeats          = (int)row.TotalSeats,
+            TotalSeatsAvailable = (int)row.SeatsAvailable,
+            F = MapCabin("F"),
+            J = MapCabin("J"),
+            W = MapCabin("W"),
+            Y = MapCabin("Y"),
         };
     }
 
     private static FlightInventory MapToInventory(dynamic row)
     {
+        var cabins = DeserializeCabins((string)row.Cabins);
         return FlightInventory.Reconstitute(
             inventoryId: (Guid)row.InventoryId,
             flightNumber: (string)row.FlightNumber,
@@ -775,11 +767,9 @@ public sealed class SqlOfferRepository : IOfferRepository
             origin: (string)row.Origin,
             destination: (string)row.Destination,
             aircraftType: (string)row.AircraftType,
-            cabinCode: (string)row.CabinCode,
+            cabins: cabins,
             totalSeats: (int)row.TotalSeats,
             seatsAvailable: (int)row.SeatsAvailable,
-            seatsSold: (int)row.SeatsSold,
-            seatsHeld: (int)row.SeatsHeld,
             status: (string)row.Status,
             createdAt: (DateTime)row.CreatedAt,
             updatedAt: (DateTime)row.UpdatedAt);
@@ -852,43 +842,17 @@ public sealed class SqlOfferRepository : IOfferRepository
         {
             inv.InventoryId,
             inv.FlightNumber,
-            DepartureDate = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
-            DepartureTime = inv.DepartureTime.ToTimeSpan(),
-            ArrivalTime = inv.ArrivalTime.ToTimeSpan(),
+            DepartureDate  = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
+            DepartureTime  = inv.DepartureTime.ToTimeSpan(),
+            ArrivalTime    = inv.ArrivalTime.ToTimeSpan(),
             inv.ArrivalDayOffset,
             inv.Origin,
             inv.Destination,
             inv.AircraftType,
-            inv.CabinCode,
+            Cabins         = SerializeCabins(inv),
             inv.TotalSeats,
             inv.SeatsAvailable,
-            inv.SeatsSold,
-            inv.SeatsHeld,
             inv.Status
-        };
-    }
-
-    private static object MapInventoryToParameters(FlightInventory inv)
-    {
-        return new
-        {
-            inv.InventoryId,
-            inv.FlightNumber,
-            DepartureDate = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
-            DepartureTime = inv.DepartureTime.ToTimeSpan(),
-            ArrivalTime = inv.ArrivalTime.ToTimeSpan(),
-            inv.ArrivalDayOffset,
-            inv.Origin,
-            inv.Destination,
-            inv.AircraftType,
-            inv.CabinCode,
-            inv.TotalSeats,
-            inv.SeatsAvailable,
-            inv.SeatsSold,
-            inv.SeatsHeld,
-            inv.Status,
-            inv.CreatedAt,
-            inv.UpdatedAt
         };
     }
 

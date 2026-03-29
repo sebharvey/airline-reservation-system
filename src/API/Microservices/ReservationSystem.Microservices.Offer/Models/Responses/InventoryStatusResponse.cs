@@ -4,8 +4,7 @@ public sealed class InventoryStatusResponse
 {
     public Guid InventoryId { get; init; }
     public int SeatsAvailable { get; init; }
-    public int SeatsHeld { get; init; }
-    public int SeatsSold { get; init; }
+    public IReadOnlyList<CabinInventoryResponse> Cabins { get; init; } = [];
 }
 
 public sealed class SellInventoryResponse

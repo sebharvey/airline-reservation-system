@@ -91,6 +91,15 @@ public sealed class OfferFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
         catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
+        if (!body.TryGetProperty("cabins", out var cabinsEl) || cabinsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'cabins' array is required.");
+
+        var cabins = cabinsEl.EnumerateArray()
+            .Select(c => new CabinItem(
+                c.GetProperty("cabinCode").GetString()!,
+                c.GetProperty("totalSeats").GetInt32()))
+            .ToList().AsReadOnly();
+
         var command = new CreateFlightCommand(
             FlightNumber: body.GetProperty("flightNumber").GetString()!,
             DepartureDate: body.GetProperty("departureDate").GetString()!,
@@ -100,8 +109,7 @@ public sealed class OfferFunction
             Origin: body.GetProperty("origin").GetString()!,
             Destination: body.GetProperty("destination").GetString()!,
             AircraftType: body.GetProperty("aircraftType").GetString()!,
-            CabinCode: body.GetProperty("cabinCode").GetString()!,
-            TotalSeats: body.GetProperty("totalSeats").GetInt32());
+            Cabins: cabins);
 
         try
         {
@@ -111,12 +119,10 @@ public sealed class OfferFunction
                 inventoryId = inventory.InventoryId,
                 flightNumber = inventory.FlightNumber,
                 departureDate = inventory.DepartureDate.ToString("yyyy-MM-dd"),
-                cabinCode = inventory.CabinCode,
                 totalSeats = inventory.TotalSeats,
                 seatsAvailable = inventory.SeatsAvailable,
-                seatsHeld = inventory.SeatsHeld,
-                seatsSold = inventory.SeatsSold,
-                status = inventory.Status
+                status = inventory.Status,
+                cabins = inventory.Cabins.Select(c => new { cabinCode = c.CabinCode, totalSeats = c.TotalSeats, seatsAvailable = c.SeatsAvailable, seatsSold = c.SeatsSold, seatsHeld = c.SeatsHeld })
             });
         }
         catch (InvalidOperationException ex)
@@ -193,6 +199,15 @@ public sealed class OfferFunction
         var items = new List<BatchFlightItem>();
         foreach (var f in flightsEl.EnumerateArray())
         {
+            if (!f.TryGetProperty("cabins", out var fCabinsEl) || fCabinsEl.ValueKind != JsonValueKind.Array)
+                return await req.BadRequestAsync("Each flight must include a 'cabins' array.");
+
+            var flightCabins = fCabinsEl.EnumerateArray()
+                .Select(c => new CabinItem(
+                    c.GetProperty("cabinCode").GetString()!,
+                    c.GetProperty("totalSeats").GetInt32()))
+                .ToList().AsReadOnly();
+
             items.Add(new BatchFlightItem(
                 FlightNumber: f.GetProperty("flightNumber").GetString()!,
                 DepartureDate: f.GetProperty("departureDate").GetString()!,
@@ -202,8 +217,7 @@ public sealed class OfferFunction
                 Origin: f.GetProperty("origin").GetString()!,
                 Destination: f.GetProperty("destination").GetString()!,
                 AircraftType: f.GetProperty("aircraftType").GetString()!,
-                CabinCode: f.GetProperty("cabinCode").GetString()!,
-                TotalSeats: f.GetProperty("totalSeats").GetInt32()));
+                Cabins: flightCabins));
         }
 
         if (items.Count == 0)
@@ -221,10 +235,10 @@ public sealed class OfferFunction
                 inventoryId = inv.InventoryId,
                 flightNumber = inv.FlightNumber,
                 departureDate = inv.DepartureDate.ToString("yyyy-MM-dd"),
-                cabinCode = inv.CabinCode,
                 totalSeats = inv.TotalSeats,
                 seatsAvailable = inv.SeatsAvailable,
-                status = inv.Status
+                status = inv.Status,
+                cabins = inv.Cabins.Select(c => new { cabinCode = c.CabinCode, totalSeats = c.TotalSeats, seatsAvailable = c.SeatsAvailable })
             })
         });
     }
@@ -382,9 +396,8 @@ public sealed class OfferFunction
             return await req.OkJsonAsync(new
             {
                 inventoryId = inventory.InventoryId,
-                seatsHeld = inventory.SeatsHeld,
                 seatsAvailable = inventory.SeatsAvailable,
-                seatsSold = inventory.SeatsSold
+                cabins = inventory.Cabins.Select(c => new { cabinCode = c.CabinCode, seatsAvailable = c.SeatsAvailable, seatsSold = c.SeatsSold, seatsHeld = c.SeatsHeld })
             });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
@@ -407,11 +420,14 @@ public sealed class OfferFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
         catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
-        var inventoryIds = body.GetProperty("inventoryIds").EnumerateArray()
-            .Select(e => e.GetGuid()).ToList();
+        var sellItems = body.GetProperty("items").EnumerateArray()
+            .Select(e => new SellInventoryItem(
+                e.GetProperty("inventoryId").GetGuid(),
+                e.GetProperty("cabinCode").GetString()!))
+            .ToList();
 
         var command = new SellInventoryCommand(
-            InventoryIds: inventoryIds,
+            Items: sellItems,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             BasketId: body.GetProperty("basketId").GetGuid());
 
@@ -423,9 +439,8 @@ public sealed class OfferFunction
                 sold = inventories.Select(i => new
                 {
                     inventoryId = i.InventoryId,
-                    seatsSold = i.SeatsSold,
-                    seatsHeld = i.SeatsHeld,
-                    seatsAvailable = i.SeatsAvailable
+                    seatsAvailable = i.SeatsAvailable,
+                    cabins = i.Cabins.Select(c => new { cabinCode = c.CabinCode, seatsAvailable = c.SeatsAvailable, seatsSold = c.SeatsSold, seatsHeld = c.SeatsHeld })
                 })
             });
         }
@@ -450,6 +465,7 @@ public sealed class OfferFunction
 
         var command = new ReleaseInventoryCommand(
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
+            CabinCode: body.GetProperty("cabinCode").GetString()!,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
             ReleaseType: body.GetProperty("releaseType").GetString()!,
             BasketId: body.TryGetProperty("basketId", out var bid) && bid.ValueKind != JsonValueKind.Null ? bid.GetGuid() : null);
@@ -461,8 +477,7 @@ public sealed class OfferFunction
             {
                 inventoryId = inventory.InventoryId,
                 seatsAvailable = inventory.SeatsAvailable,
-                seatsHeld = inventory.SeatsHeld,
-                seatsSold = inventory.SeatsSold
+                cabins = inventory.Cabins.Select(c => new { cabinCode = c.CabinCode, seatsAvailable = c.SeatsAvailable, seatsSold = c.SeatsSold, seatsHeld = c.SeatsHeld })
             });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
@@ -524,7 +539,6 @@ public sealed class OfferFunction
             flightId = inventory.InventoryId,
             flightNumber = inventory.FlightNumber,
             departureDate = inventory.DepartureDate.ToString("yyyy-MM-dd"),
-            cabinCode = inventory.CabinCode,
             seatAvailability = seats.Select(s => new
             {
                 seatOfferId = s.SeatOfferId,

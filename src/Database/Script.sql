@@ -140,6 +140,8 @@ PRINT 'Schemas created.';
 -- =============================================================================
 
 -- offer.FlightInventory -------------------------------------------------------
+-- One row per flight per date. Cabin breakdown stored as JSON in Cabins column.
+-- Cabins JSON format: [{"cabinCode":"J","totalSeats":20,"seatsSold":0,"seatsHeld":0}, ...]
 IF OBJECT_ID('[offer].[FlightInventory]', 'U') IS NULL
 CREATE TABLE [offer].[FlightInventory] (
     InventoryId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_FlightInventory_Id      DEFAULT NEWID(),
@@ -151,23 +153,22 @@ CREATE TABLE [offer].[FlightInventory] (
     Origin            CHAR(3)          NOT NULL,
     Destination       CHAR(3)          NOT NULL,
     AircraftType      VARCHAR(4)       NOT NULL,
-    CabinCode         CHAR(1)          NOT NULL,
+    Cabins            NVARCHAR(MAX)    NOT NULL,
     TotalSeats        SMALLINT         NOT NULL,
     SeatsAvailable    SMALLINT         NOT NULL,
-    SeatsSold         SMALLINT         NOT NULL CONSTRAINT DF_FlightInventory_Sold    DEFAULT 0,
-    SeatsHeld         SMALLINT         NOT NULL CONSTRAINT DF_FlightInventory_Held    DEFAULT 0,
     Status            VARCHAR(20)      NOT NULL CONSTRAINT DF_FlightInventory_Status  DEFAULT 'Active',
     CreatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Created DEFAULT SYSUTCDATETIME(),
     UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_FlightInventory        PRIMARY KEY (InventoryId),
-    CONSTRAINT CHK_FlightInventory_Cabin  CHECK (CabinCode IN ('F','J','W','Y')),
-    CONSTRAINT CHK_FlightInventory_Status CHECK (Status    IN ('Active','Cancelled'))
+    CONSTRAINT PK_FlightInventory          PRIMARY KEY (InventoryId),
+    CONSTRAINT UQ_FlightInventory_Flight   UNIQUE      (FlightNumber, DepartureDate),
+    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled')),
+    CONSTRAINT CHK_FlightInventory_Cabins  CHECK (ISJSON(Cabins) = 1)
 );
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Flight' AND object_id = OBJECT_ID('[offer].[FlightInventory]'))
     CREATE INDEX IX_FlightInventory_Flight
-        ON [offer].[FlightInventory] (FlightNumber, DepartureDate, CabinCode)
+        ON [offer].[FlightInventory] (FlightNumber, DepartureDate)
         WHERE Status = 'Active';
 GO
 

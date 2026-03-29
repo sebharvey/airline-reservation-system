@@ -21,21 +21,22 @@ public sealed class CreateFlightHandler
         var departureTime = TimeOnly.Parse(command.DepartureTime);
         var arrivalTime = TimeOnly.Parse(command.ArrivalTime);
 
-        var existing = await _repository.GetInventoryAsync(
-            command.FlightNumber, departureDate, command.CabinCode, ct);
+        var existing = await _repository.GetInventoryAsync(command.FlightNumber, departureDate, ct);
 
         if (existing is not null)
-            throw new InvalidOperationException($"Inventory already exists for {command.FlightNumber} on {command.DepartureDate} cabin {command.CabinCode}.");
+            throw new InvalidOperationException($"Inventory already exists for {command.FlightNumber} on {command.DepartureDate}.");
+
+        var cabins = command.Cabins.Select(c => (c.CabinCode, c.TotalSeats)).ToList().AsReadOnly();
 
         var inventory = FlightInventory.Create(
             command.FlightNumber, departureDate, departureTime, arrivalTime,
             command.ArrivalDayOffset, command.Origin, command.Destination,
-            command.AircraftType, command.CabinCode, command.TotalSeats);
+            command.AircraftType, cabins);
 
         await _repository.CreateInventoryAsync(inventory, ct);
 
-        _logger.LogInformation("Created FlightInventory {InventoryId} for {FlightNumber} on {Date} cabin {Cabin}",
-            inventory.InventoryId, command.FlightNumber, command.DepartureDate, command.CabinCode);
+        _logger.LogInformation("Created FlightInventory {InventoryId} for {FlightNumber} on {Date} with {CabinCount} cabins",
+            inventory.InventoryId, command.FlightNumber, command.DepartureDate, command.Cabins.Count);
 
         return inventory;
     }

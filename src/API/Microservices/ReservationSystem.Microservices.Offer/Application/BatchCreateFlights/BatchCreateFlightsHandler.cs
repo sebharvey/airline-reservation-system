@@ -23,14 +23,18 @@ public sealed class BatchCreateFlightsHandler
         BatchCreateFlightsCommand command, CancellationToken ct = default)
     {
         var inventories = command.Items
-            .Select(item => FlightInventory.Create(
-                item.FlightNumber,
-                DateOnly.Parse(item.DepartureDate),
-                TimeOnly.Parse(item.DepartureTime),
-                TimeOnly.Parse(item.ArrivalTime),
-                item.ArrivalDayOffset,
-                item.Origin, item.Destination,
-                item.AircraftType, item.CabinCode, item.TotalSeats))
+            .Select(item =>
+            {
+                var cabins = item.Cabins.Select(c => (c.CabinCode, c.TotalSeats)).ToList().AsReadOnly();
+                return FlightInventory.Create(
+                    item.FlightNumber,
+                    DateOnly.Parse(item.DepartureDate),
+                    TimeOnly.Parse(item.DepartureTime),
+                    TimeOnly.Parse(item.ArrivalTime),
+                    item.ArrivalDayOffset,
+                    item.Origin, item.Destination,
+                    item.AircraftType, cabins);
+            })
             .ToList()
             .AsReadOnly();
 

@@ -27,13 +27,13 @@ public sealed class HoldInventoryHandler
         var inventory = await _repository.GetInventoryByIdAsync(command.InventoryId, ct)
             ?? throw new KeyNotFoundException($"Inventory {command.InventoryId} not found.");
 
-        if (inventory.CabinCode != command.CabinCode)
-            throw new ArgumentException($"CabinCode mismatch: expected {inventory.CabinCode}, got {command.CabinCode}.");
+        var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == command.CabinCode)
+            ?? throw new ArgumentException($"Cabin {command.CabinCode} not found on inventory {command.InventoryId}.");
 
-        if (inventory.SeatsAvailable < command.PaxCount)
-            throw new InvalidOperationException($"Insufficient seats: {inventory.SeatsAvailable} available, {command.PaxCount} requested.");
+        if (cabin.SeatsAvailable < command.PaxCount)
+            throw new InvalidOperationException($"Insufficient seats in cabin {command.CabinCode}: {cabin.SeatsAvailable} available, {command.PaxCount} requested.");
 
-        inventory.HoldSeats(command.PaxCount);
+        inventory.HoldSeats(command.CabinCode, command.PaxCount);
         await _repository.UpdateInventoryAsync(inventory, ct);
         await _repository.CreateHoldAsync(command.InventoryId, command.BasketId, command.PaxCount, ct);
 
