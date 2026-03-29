@@ -7,15 +7,27 @@
       <p class="page-subtitle">View all stored flight schedules from the season schedule</p>
     </div>
     @if (loaded()) {
-      <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
-        @if (loading()) {
-          <span class="btn-spinner"></span> Refreshing…
-        } @else {
-          Refresh
-        }
-      </button>
+      <div class="header-actions">
+        <button class="btn-inventory" (click)="openImportModal()" [disabled]="loading() || schedules().length === 0">
+          Add to Inventory
+        </button>
+        <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+      </div>
     }
   </div>
+
+  <!-- Import success -->
+  @if (importSuccess()) {
+    <div class="success-banner" role="status">
+      <span>&#10003;</span> {{ importSuccess() }}
+    </div>
+  }
 
   <!-- Error -->
   @if (error()) {
@@ -137,6 +149,137 @@
     <div class="empty-state">
       <span class="btn-spinner loading-spinner"></span>
       <p>Loading schedules…</p>
+    </div>
+  }
+
+  <!-- Import to Inventory modal -->
+  @if (showImportModal()) {
+    <div class="modal-backdrop" (click)="closeImportModal()"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Add to Inventory</h2>
+        <button class="modal-close" (click)="closeImportModal()" [disabled]="importing()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-description">
+          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> stored schedules.
+          Define the cabin layout and fare structure to apply to each flight.
+        </p>
+
+        @if (importError()) {
+          <div class="error-banner" role="alert">
+            <span>&#9888;</span> {{ importError() }}
+          </div>
+        }
+
+        @for (cabin of cabins(); track $index; let ci = $index) {
+          <div class="cabin-card">
+            <div class="cabin-header">
+              <h3 class="cabin-label">Cabin {{ ci + 1 }}</h3>
+              @if (cabins().length > 1) {
+                <button class="btn-remove" (click)="removeCabin(ci)" [disabled]="importing()">Remove</button>
+              }
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Cabin code</label>
+                <select class="form-select" [ngModel]="cabin.cabinCode" (ngModelChange)="updateCabin(ci, 'cabinCode', $event)" [disabled]="importing()">
+                  <option value="F">F &ndash; First</option>
+                  <option value="J">J &ndash; Business</option>
+                  <option value="W">W &ndash; Premium Economy</option>
+                  <option value="Y">Y &ndash; Economy</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Total seats</label>
+                <input class="form-input" type="number" min="1" [ngModel]="cabin.totalSeats" (ngModelChange)="updateCabin(ci, 'totalSeats', +$event)" [disabled]="importing()" />
+              </div>
+            </div>
+
+            <div class="fares-section">
+              <div class="fares-header">
+                <span class="fares-label">Fares</span>
+                <button class="btn-add-sm" (click)="addFare(ci)" [disabled]="importing()">+ Add Fare</button>
+              </div>
+
+              @for (fare of cabin.fares; track $index; let fi = $index) {
+                <div class="fare-card">
+                  <div class="fare-row-header">
+                    <span class="fare-index">Fare {{ fi + 1 }}</span>
+                    @if (cabin.fares.length > 1) {
+                      <button class="btn-remove-sm" (click)="removeFare(ci, fi)" [disabled]="importing()">&times;</button>
+                    }
+                  </div>
+
+                  <div class="form-row form-row-3">
+                    <div class="form-group">
+                      <label class="form-label">Fare basis code</label>
+                      <input class="form-input" type="text" placeholder="e.g. YNBXXX" [ngModel]="fare.fareBasisCode" (ngModelChange)="updateFare(ci, fi, 'fareBasisCode', $event)" [disabled]="importing()" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Fare family</label>
+                      <input class="form-input" type="text" placeholder="e.g. Economy Basic" [ngModel]="fare.fareFamily" (ngModelChange)="updateFare(ci, fi, 'fareFamily', $event)" [disabled]="importing()" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Booking class</label>
+                      <input class="form-input" type="text" maxlength="2" placeholder="e.g. Y" [ngModel]="fare.bookingClass" (ngModelChange)="updateFare(ci, fi, 'bookingClass', $event)" [disabled]="importing()" />
+                    </div>
+                  </div>
+
+                  <div class="form-row form-row-3">
+                    <div class="form-group">
+                      <label class="form-label">Currency</label>
+                      <input class="form-input" type="text" maxlength="3" placeholder="GBP" [ngModel]="fare.currencyCode" (ngModelChange)="updateFare(ci, fi, 'currencyCode', $event)" [disabled]="importing()" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Base fare</label>
+                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.baseFareAmount" (ngModelChange)="updateFare(ci, fi, 'baseFareAmount', +$event)" [disabled]="importing()" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Tax</label>
+                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.taxAmount" (ngModelChange)="updateFare(ci, fi, 'taxAmount', +$event)" [disabled]="importing()" />
+                    </div>
+                  </div>
+
+                  <div class="form-row form-row-4">
+                    <label class="form-checkbox">
+                      <input type="checkbox" [ngModel]="fare.isRefundable" (ngModelChange)="updateFare(ci, fi, 'isRefundable', $event)" [disabled]="importing()" />
+                      Refundable
+                    </label>
+                    <label class="form-checkbox">
+                      <input type="checkbox" [ngModel]="fare.isChangeable" (ngModelChange)="updateFare(ci, fi, 'isChangeable', $event)" [disabled]="importing()" />
+                      Changeable
+                    </label>
+                    <div class="form-group">
+                      <label class="form-label">Change fee</label>
+                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.changeFeeAmount" (ngModelChange)="updateFare(ci, fi, 'changeFeeAmount', +$event)" [disabled]="importing()" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Cancel fee</label>
+                      <input class="form-input" type="number" min="0" step="0.01" [ngModel]="fare.cancellationFeeAmount" (ngModelChange)="updateFare(ci, fi, 'cancellationFeeAmount', +$event)" [disabled]="importing()" />
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <button class="btn-add-cabin" (click)="addCabin()" [disabled]="importing()">+ Add Cabin</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeImportModal()" [disabled]="importing()">Cancel</button>
+        <button class="btn-primary" (click)="importToInventory()" [disabled]="importing() || cabins().length === 0">
+          @if (importing()) {
+            <span class="btn-spinner"></span> Importing…
+          } @else {
+            Import to Inventory
+          }
+        </button>
+      </div>
     </div>
   }
 </div>

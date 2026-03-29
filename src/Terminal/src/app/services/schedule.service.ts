@@ -24,6 +24,38 @@ export interface GetSchedulesResponse {
   schedules: ScheduleSummary[];
 }
 
+export interface FareDefinition {
+  fareBasisCode: string;
+  fareFamily: string;
+  bookingClass: string;
+  currencyCode: string;
+  baseFareAmount: number;
+  taxAmount: number;
+  isRefundable: boolean;
+  isChangeable: boolean;
+  changeFeeAmount: number;
+  cancellationFeeAmount: number;
+  pointsPrice: number | null;
+  pointsTaxes: number | null;
+}
+
+export interface CabinDefinition {
+  cabinCode: string;
+  totalSeats: number;
+  fares: FareDefinition[];
+}
+
+export interface ImportSchedulesToInventoryRequest {
+  cabins: CabinDefinition[];
+}
+
+export interface ImportSchedulesToInventoryResponse {
+  schedulesProcessed: number;
+  inventoriesCreated: number;
+  inventoriesSkipped: number;
+  faresCreated: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ScheduleService {
   #http = inject(HttpClient);
@@ -32,6 +64,12 @@ export class ScheduleService {
   async getSchedules(): Promise<GetSchedulesResponse> {
     return firstValueFrom(
       this.#http.get<GetSchedulesResponse>(this.#baseUrl)
+    );
+  }
+
+  async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest): Promise<ImportSchedulesToInventoryResponse> {
+    return firstValueFrom(
+      this.#http.post<ImportSchedulesToInventoryResponse>(`${this.#baseUrl}/import-inventory`, request)
     );
   }
 }
