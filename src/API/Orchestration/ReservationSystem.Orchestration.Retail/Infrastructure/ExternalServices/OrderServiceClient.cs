@@ -46,7 +46,7 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsBasketResult>(JsonOptions, ct);
     }
 
-    public async Task AddOfferAsync(Guid basketId, string offerJson, CancellationToken ct)
+    public async Task<OrderMsAddOfferResult> AddOfferAsync(Guid basketId, string offerJson, CancellationToken ct)
     {
         using var content = new StringContent(offerJson, Encoding.UTF8, "application/json");
         using var response = await _httpClient.PostAsync($"/api/v1/basket/{basketId}/offers", content, ct);
@@ -55,6 +55,8 @@ public sealed class OrderServiceClient
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Failed to add offer to basket: {error}");
         }
+        return await response.Content.ReadFromJsonAsync<OrderMsAddOfferResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response adding offer to basket.");
     }
 
     public async Task UpdatePassengersAsync(Guid basketId, string passengersJson, CancellationToken ct)
@@ -165,6 +167,21 @@ public sealed class OrderMsBasketResult
 
     [JsonPropertyName("basketData")]
     public string? BasketData { get; init; }
+}
+
+public sealed class OrderMsAddOfferResult
+{
+    [JsonPropertyName("basketId")]
+    public Guid BasketId { get; init; }
+
+    [JsonPropertyName("basketItemId")]
+    public string BasketItemId { get; init; } = string.Empty;
+
+    [JsonPropertyName("totalFareAmount")]
+    public decimal TotalFareAmount { get; init; }
+
+    [JsonPropertyName("totalAmount")]
+    public decimal TotalAmount { get; init; }
 }
 
 public sealed class OrderMsCreateOrderResult

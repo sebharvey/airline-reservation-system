@@ -10,6 +10,7 @@ using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -45,6 +46,8 @@ public sealed class BasketFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBasketRequest), Required = true, Description = "Request body")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "One or more offers expired or consumed")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "One or more offers not found")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -52,12 +55,33 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request!.CustomerId))
-            return await req.BadRequestAsync("The field 'customerId' is required.");
+        if (request!.OfferIds is null || request.OfferIds.Count == 0)
+            return await req.BadRequestAsync("At least one 'offerIds' entry is required.");
 
-        var command = new CreateBasketCommand(request.CustomerId, request.LoyaltyNumber);
-        var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
-        return await req.CreatedAsync($"/v1/basket/{result.BasketId}", result);
+        if (string.IsNullOrWhiteSpace(request.ChannelCode))
+            return await req.BadRequestAsync("The field 'channelCode' is required.");
+
+        var command = new CreateBasketCommand(
+            request.OfferIds,
+            request.ChannelCode,
+            request.CurrencyCode,
+            request.BookingType,
+            request.LoyaltyNumber,
+            request.CustomerId);
+
+        try
+        {
+            var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync($"/v1/basket/{result.BasketId}", result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("expired") || ex.Message.Contains("consumed"))
+        {
+            return await req.GoneAsync(ex.Message);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -234,14 +258,57 @@ public sealed class BasketFunction
     // Helpers
     // -------------------------------------------------------------------------
 
-    private static BasketResponse MapToBasketResponse(OrderMsBasketResult basket) =>
-        new()
+    private static BasketResponse MapToBasketResponse(OrderMsBasketResult basket)
+    {
+        var flights = new List<BasketFlight>();
+
+        if (!string.IsNullOrEmpty(basket.BasketData))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(basket.BasketData);
+                if (doc.RootElement.TryGetProperty("flightOffers", out var offersEl) &&
+                    offersEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var offer in offersEl.EnumerateArray())
+                    {
+                        flights.Add(new BasketFlight
+                        {
+                            OfferId = offer.TryGetProperty("offerId", out var v) && v.TryGetGuid(out var g) ? g : Guid.Empty,
+                            FlightNumber = offer.TryGetProperty("flightNumber", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                            Origin = offer.TryGetProperty("origin", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                            Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                            DepartureDateTime = ParseOfferDateTime(offer, "departureDate", "departureTime"),
+                            ArrivalDateTime = ParseOfferDateTime(offer, "departureDate", "arrivalTime"),
+                            CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                            FareFamily = offer.TryGetProperty("fareFamily", out v) ? v.GetString() : null,
+                            TotalAmount = offer.TryGetProperty("totalAmount", out v) ? v.GetDecimal() : 0m
+                        });
+                    }
+                }
+            }
+            catch { /* Return response with empty flights if basketData is malformed */ }
+        }
+
+        return new BasketResponse
         {
             BasketId = basket.BasketId,
             Status = basket.BasketStatus,
+            Flights = flights,
+            TotalFareAmount = basket.TotalFareAmount,
+            TotalSeatAmount = basket.TotalSeatAmount,
+            TotalBagAmount = basket.TotalBagAmount,
             TotalPrice = basket.TotalAmount ?? 0m,
             Currency = basket.CurrencyCode,
             CreatedAt = basket.CreatedAt,
             ExpiresAt = basket.ExpiresAt
         };
+    }
+
+    private static DateTime ParseOfferDateTime(JsonElement offer, string dateKey, string timeKey)
+    {
+        var date = offer.TryGetProperty(dateKey, out var dv) ? dv.GetString() ?? string.Empty : string.Empty;
+        var time = offer.TryGetProperty(timeKey, out var tv) ? tv.GetString() ?? string.Empty : string.Empty;
+        return DateTime.TryParse($"{date}T{time}", out var dt) ? dt : default;
+    }
 }
