@@ -15,7 +15,7 @@
       <input
         class="search-input"
         type="search"
-        placeholder="Search by name or loyalty number…"
+        placeholder="Search by name, loyalty number, or email address…"
         [value]="search()"
         (input)="setSearch($any($event.target).value)"
         (keydown.enter)="searchCustomers()"
@@ -116,7 +116,7 @@
   <!-- Empty state before first search -->
   @if (!loaded() && !loading()) {
     <div class="empty-state">
-      <p>Enter a name or loyalty number and click Search to find customers.</p>
+      <p>Enter a name, loyalty number, or email address and click Search to find customers.</p>
     </div>
   }
 

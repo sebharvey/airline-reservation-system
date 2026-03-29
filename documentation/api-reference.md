@@ -146,7 +146,7 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/admin/customers/search` | Search loyalty customers by name or loyalty number; returns a summary list of matching members; accepts optional `query` in the request body |
+| `POST` | `/v1/admin/customers/search` | Search loyalty customers by name, loyalty number, or email address; returns a summary list of matching members; accepts optional `query` in the request body; when the query contains an `@` sign the Loyalty API also looks up the Identity microservice by email and resolves the linked customer |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, activity timestamps, and linked identity account details (email, locked status, failed login attempts, last login, password changed date); password hash is never returned |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address) |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}/transactions` | Retrieve paginated loyalty transaction history for a customer |
@@ -404,6 +404,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/accounts` | Create a new login account (called by Loyalty API during registration, after the Customer record is already created; accepts `customerId` to associate the identity with the existing customer) |
 | `DELETE` | `/v1/accounts/{userAccountId}` | Delete a login account (used for registration rollback — called by Loyalty API if the post-identity `PATCH` to link the `identityReference` on the Customer record fails) |
 | `GET` | `/v1/accounts/{userAccountId}` | Retrieve account summary (user account ID, email, and email verification status) by identity account ID; called by the Loyalty API during points transfer to verify the recipient's email address against their loyalty number |
+| `GET` | `/v1/accounts/by-email/{email}` | Retrieve account summary by email address; returns `404` if no account exists for the given email; called by the Loyalty API during admin customer search to resolve a customer by email |
 | `GET`, `POST` | `/v1/accounts/{userAccountId}/verify-email` | Mark an email address as verified; GET is used when the user follows the link in their confirmation email, POST is used for direct API calls |
 | `POST` | `/v1/accounts/{identityReference}/email/change-request` | Initiate an email change; generates verification token and sends link to new address |
 | `POST` | `/v1/email/verify` | Validate a change-request token; updates email and invalidates all active refresh tokens |
