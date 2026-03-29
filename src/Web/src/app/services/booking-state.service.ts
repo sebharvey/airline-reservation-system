@@ -16,8 +16,7 @@ import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
 import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, Passenger, Order, BookingType } from '../models/order.model';
 
-// DEBUG — sessionStorage key for basket debug modal; remove with basket debug feature
-const DEBUG_BASKET_ID_KEY = 'apex_debug_basket_id';
+const BASKET_ID_KEY = 'apex_basket_id';
 
 function uuid(): string {
   return 'bsk-' + Math.random().toString(36).slice(2, 10);
@@ -111,8 +110,7 @@ export class BookingStateService {
     ttl.setHours(ttl.getHours() + TTL_HOURS);
 
     const basketId = apiBasketId ?? uuid();
-    // DEBUG — persist basketId for basket debug modal; remove with basket debug feature
-    sessionStorage.setItem(DEBUG_BASKET_ID_KEY, basketId);
+    localStorage.setItem(BASKET_ID_KEY, basketId);
     this._basket.set({
       basketId,
       bookingType,
@@ -175,22 +173,19 @@ export class BookingStateService {
   /** Store the confirmed order after successful payment. */
   confirmOrder(order: Order): void {
     this._confirmedOrder.set(order);
-    this._basket.set(null); // Basket is deleted on confirmation
-    // DEBUG — clear basketId from sessionStorage; remove with basket debug feature
-    sessionStorage.removeItem(DEBUG_BASKET_ID_KEY);
+    this._basket.set(null);
+    localStorage.removeItem(BASKET_ID_KEY);
   }
 
   clearBasket(): void {
     this._basket.set(null);
-    // DEBUG — clear basketId from sessionStorage; remove with basket debug feature
-    sessionStorage.removeItem(DEBUG_BASKET_ID_KEY);
+    localStorage.removeItem(BASKET_ID_KEY);
   }
 
   clearAll(): void {
     this._basket.set(null);
     this._confirmedOrder.set(null);
     this._bookingType.set('Revenue');
-    // DEBUG — clear basketId from sessionStorage; remove with basket debug feature
-    sessionStorage.removeItem(DEBUG_BASKET_ID_KEY);
+    localStorage.removeItem(BASKET_ID_KEY);
   }
 }

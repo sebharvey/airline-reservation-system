@@ -9,6 +9,7 @@ using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using System.Linq;
 using System.Net;
 using System.Text.Json;
 
@@ -44,10 +45,8 @@ public sealed class BasketFunction
     [Function("CreateBasket")]
     [OpenApiOperation(operationId: "CreateBasket", tags: new[] { "Basket" }, Summary = "Create a new shopping basket")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBasketRequest), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "Created")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateBasketResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "One or more offers expired or consumed")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "One or more offers not found")]
     public async Task<HttpResponseData> Create(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -55,34 +54,23 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (request!.OfferIds is null || request.OfferIds.Count == 0)
-            return await req.BadRequestAsync("At least one 'offerIds' entry is required.");
+        if (request!.Segments is null || request.Segments.Count == 0)
+            return await req.BadRequestAsync("At least one 'segments' entry is required.");
 
         if (string.IsNullOrWhiteSpace(request.ChannelCode))
             return await req.BadRequestAsync("The field 'channelCode' is required.");
 
         var command = new CreateBasketCommand(
-            request.OfferIds,
+            request.Segments.Select(s => new BasketSegment(s.OfferId, s.SessionId)).ToList(),
             request.ChannelCode,
             request.CurrencyCode,
             request.BookingType,
             request.LoyaltyNumber,
-            request.CustomerId,
-            request.SessionId);
+            request.CustomerId);
 
-        try
-        {
-            var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
-            return await req.CreatedAsync($"/v1/basket/{result.BasketId}", result);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return await req.NotFoundAsync(ex.Message);
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("expired") || ex.Message.Contains("consumed"))
-        {
-            return await req.GoneAsync(ex.Message);
-        }
+        var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
+        return await req.CreatedAsync($"/v1/basket/{result.BasketId}",
+            new CreateBasketResponse { BasketId = result.BasketId });
     }
 
     // -------------------------------------------------------------------------
