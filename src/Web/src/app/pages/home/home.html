@@ -134,6 +134,7 @@
             [(ngModel)]="departDate"
             name="departDate"
             [min]="today"
+            (change)="onDepartDateChange()"
             required />
         </div>
 
