@@ -60,13 +60,18 @@ export interface GetSchedulesResponse {
   schedules: ScheduleSummary[];
 }
 
-export interface CabinDefinition {
+export interface CabinSeatCount {
   cabinCode: string;
   totalSeats: number;
 }
 
+export interface AircraftCabinConfig {
+  aircraftTypeCode: string;
+  cabins: CabinSeatCount[];
+}
+
 export interface ImportSchedulesToInventoryRequest {
-  cabins: CabinDefinition[];
+  aircraftConfigs: AircraftCabinConfig[];
 }
 
 export interface ImportSchedulesToInventoryResponse {
