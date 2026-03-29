@@ -9,6 +9,7 @@ public interface IOfferRepository
     Task<IReadOnlyList<Entities.FlightInventory>> GetInventoriesByFlightAsync(string flightNumber, DateOnly departureDate, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventoryGroup>> GetInventoryGroupedByDateAsync(DateOnly departureDate, CancellationToken ct = default);
     Task CreateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FlightInventory>> BatchCreateInventoryAsync(IReadOnlyList<Entities.FlightInventory> inventories, CancellationToken ct = default);
     Task UpdateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
 
     // Fare
