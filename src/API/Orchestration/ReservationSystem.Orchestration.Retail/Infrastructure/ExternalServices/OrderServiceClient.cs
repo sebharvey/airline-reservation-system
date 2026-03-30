@@ -115,6 +115,17 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsCreateOrderResult>(JsonOptions, ct)
             ?? throw new InvalidOperationException("Empty response creating order.");
     }
+
+    public async Task UpdateOrderETicketsAsync(string bookingReference, string eTicketsJson, CancellationToken ct)
+    {
+        using var content = new StringContent(eTicketsJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/tickets", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order e-tickets: {error}");
+        }
+    }
 }
 
 public sealed class OrderMsCreateBasketResult

@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
+using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
@@ -29,6 +30,7 @@ public sealed class OrderFunction
     private readonly UpdateOrderSeatsHandler _updateSeatsHandler;
     private readonly UpdateOrderBagsHandler _updateBagsHandler;
     private readonly UpdateOrderSsrsHandler _updateSsrsHandler;
+    private readonly UpdateOrderETicketsHandler _updateETicketsHandler;
     private readonly CancelOrderHandler _cancelOrderHandler;
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly RebookOrderHandler _rebookOrderHandler;
@@ -41,6 +43,7 @@ public sealed class OrderFunction
         UpdateOrderSeatsHandler updateSeatsHandler,
         UpdateOrderBagsHandler updateBagsHandler,
         UpdateOrderSsrsHandler updateSsrsHandler,
+        UpdateOrderETicketsHandler updateETicketsHandler,
         CancelOrderHandler cancelOrderHandler,
         ChangeOrderHandler changeOrderHandler,
         RebookOrderHandler rebookOrderHandler,
@@ -52,6 +55,7 @@ public sealed class OrderFunction
         _updateSeatsHandler = updateSeatsHandler;
         _updateBagsHandler = updateBagsHandler;
         _updateSsrsHandler = updateSsrsHandler;
+        _updateETicketsHandler = updateETicketsHandler;
         _cancelOrderHandler = cancelOrderHandler;
         _changeOrderHandler = changeOrderHandler;
         _rebookOrderHandler = rebookOrderHandler;
@@ -336,6 +340,36 @@ public sealed class OrderFunction
         try
         {
             var order = await _updateSsrsHandler.HandleAsync(command, ct);
+            if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
+            return await req.OkJsonAsync(new
+            {
+                bookingReference = order.BookingReference,
+                orderStatus = order.OrderStatus,
+                version = order.Version
+            });
+        }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // PATCH /v1/orders/{bookingRef}/tickets
+    [Function("UpdateOrderETickets")]
+    [OpenApiOperation(operationId: "UpdateOrderETickets", tags: new[] { "Orders" }, Summary = "Write issued e-ticket numbers to an order")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Array of issued e-tickets")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateETickets(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/tickets")] HttpRequestData req,
+        string bookingRef, CancellationToken ct)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
+        catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
+
+        var command = new UpdateOrderETicketsCommand(bookingRef, body);
+        try
+        {
+            var order = await _updateETicketsHandler.HandleAsync(command, ct);
             if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
             return await req.OkJsonAsync(new
             {
