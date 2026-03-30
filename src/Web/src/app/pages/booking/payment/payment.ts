@@ -278,10 +278,15 @@ export class PaymentComponent implements OnInit {
     const isReward = basket.bookingType === 'Reward';
     const loyaltyPointsToRedeem = isReward ? basket.totalPointsAmount : undefined;
 
+    const expiryDate = `${this.expiryMonth()}/${this.expiryYear().toString().slice(-2)}`;
+
     this.retailApi.confirmBasket(
       basket.basketId,
       'CreditCard',
       this.cardNumber().replace(/\D/g, ''),
+      expiryDate,
+      this.cvv(),
+      this.cardholderName().trim(),
       loyaltyPointsToRedeem
     ).subscribe({
       next: (result) => {
