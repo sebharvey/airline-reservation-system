@@ -297,7 +297,7 @@ export class PaymentComponent implements OnInit {
       },
       error: (err) => {
         this.paying.set(false);
-        const msg = err?.error?.message ?? err?.message ?? 'Payment failed. Please check your details and try again.';
+        const msg = err?.error?.message ?? 'Please check your payment details and try again.';
         this.paymentError.set(msg);
         this.showErrorModal.set(true);
       }
