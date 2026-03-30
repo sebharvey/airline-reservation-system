@@ -21,6 +21,6 @@ public sealed class JwtOptions
     /// <summary>Identifies the recipients that the token is intended for.</summary>
     public string Audience { get; init; } = "apex-air-reservation";
 
-    /// <summary>Access token lifetime in minutes. Defaults to 15.</summary>
-    public int AccessTokenExpiryMinutes { get; init; } = 15;
+    /// <summary>Access token lifetime in minutes. Defaults to 30.</summary>
+    public int AccessTokenExpiryMinutes { get; init; } = 30;
 }
