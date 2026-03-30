@@ -76,6 +76,17 @@ export class OfferComponent implements OnInit {
     return status === 'Active' ? 'badge-active' : 'badge-inactive';
   }
 
+  ticketingStatus(flight: FlightInventoryGroup): string {
+    const departure = new Date(`${flight.departureDate}T${flight.departureTime}:00`);
+    const now = new Date();
+    const diffMs = departure.getTime() - now.getTime();
+    return diffMs > 60 * 60 * 1000 ? 'Open' : 'Closed';
+  }
+
+  ticketingClass(flight: FlightInventoryGroup): string {
+    return this.ticketingStatus(flight) === 'Open' ? 'badge-active' : 'badge-inactive';
+  }
+
   #todayIso(): string {
     return new Date().toISOString().slice(0, 10);
   }
