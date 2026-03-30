@@ -124,24 +124,14 @@
 
       <!-- Gate / Terminal / Aircraft -->
       <div class="info-grid">
-        @if (flightStatus()!.terminal) {
-          <div class="info-item">
-            <span class="info-label">Terminal</span>
-            <span class="info-value">{{ flightStatus()!.terminal }}</span>
-          </div>
-        }
-        @if (flightStatus()!.gate) {
-          <div class="info-item">
-            <span class="info-label">Gate</span>
-            <span class="info-value gate-value">{{ flightStatus()!.gate }}</span>
-          </div>
-        }
-        @if (!flightStatus()!.gate && !flightStatus()!.terminal) {
-          <div class="info-item">
-            <span class="info-label">Gate / Terminal</span>
-            <span class="info-value info-tba">To be announced</span>
-          </div>
-        }
+        <div class="info-item">
+          <span class="info-label">Terminal</span>
+          <span class="info-value" [class.info-tba]="!flightStatus()!.terminal">{{ flightStatus()!.terminal ?? 'TBC' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Gate</span>
+          <span class="info-value gate-value" [class.info-tba]="!flightStatus()!.gate">{{ flightStatus()!.gate ?? 'TBC' }}</span>
+        </div>
         <div class="info-item">
           <span class="info-label">Aircraft</span>
           <span class="info-value">{{ flightStatus()!.aircraftType }}</span>
