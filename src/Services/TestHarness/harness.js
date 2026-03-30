@@ -216,6 +216,9 @@
             lines.push('  Error: ' + entry.error);
         } else {
             lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
+            if (entry.durationMs !== null && entry.durationMs !== undefined) {
+                lines.push('  Time:   ' + entry.durationMs + ' ms');
+            }
             lines.push('');
             if (entry.responseBody !== null && entry.responseBody !== undefined) {
                 lines.push('  Body:');
@@ -265,6 +268,9 @@
                 lines.push('  Error: ' + entry.error);
             } else {
                 lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
+                if (entry.durationMs !== null && entry.durationMs !== undefined) {
+                    lines.push('  Time:   ' + entry.durationMs + ' ms');
+                }
                 lines.push('');
                 if (entry.responseBody !== null && entry.responseBody !== undefined) {
                     lines.push('  Body:');
@@ -480,12 +486,16 @@
             const scClass = ex.statusCode >= 200 && ex.statusCode < 300 ? 'ok' : 'error';
             tdExpected.innerHTML = `<div class="expected-status ${scClass}">${ex.statusCode} ${statusLabel(ex.statusCode)}</div>`;
 
+            const tdTime = document.createElement('td');
+            tdTime.style.cssText = 'font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);white-space:nowrap';
+
             row.appendChild(tdStep);
             row.appendChild(tdName);
             row.appendChild(tdApi);
             row.appendChild(tdExpected);
+            row.appendChild(tdTime);
 
-            const ref = { row, step, idx };
+            const ref = { row, tdTime, step, idx };
             rowRefs.push(ref);
 
             row.addEventListener('click', () => openStepModal(ref.currentStep || ref.step, ref.idx));
@@ -546,7 +556,10 @@
                 : '<span class="result-badge fail">Fail</span>';
 
             html += '<div class="modal-section"><div class="modal-section-title">Live Result</div>';
-            html += `<div class="live-result-label">Live Response ${resBadge}</div>`;
+            const durationLabel = result.durationMs !== null && result.durationMs !== undefined
+                ? `<span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);margin-left:0.6rem">${result.durationMs} ms</span>`
+                : '';
+            html += `<div class="live-result-label">Live Response ${resBadge}${durationLabel}</div>`;
             if (result.url) html += `<div class="live-url">\u2192 ${esc(result.url)}</div>`;
             if (result.liveError) {
                 html += `<div class="status-code fail">Error: ${esc(result.liveError)}</div>`;
@@ -789,9 +802,10 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus, liveBody, liveError;
+        let liveStatus, liveBody, liveError, durationMs;
 
         try {
+            const t0 = performance.now();
             const response = await fetch(url, fetchOpts);
             liveStatus = response.status;
 
@@ -802,10 +816,12 @@
                 const text = await response.text();
                 liveBody = text.length > 0 ? text : null;
             }
+            durationMs = Math.round(performance.now() - t0);
         } catch (err) {
             liveError = err.message;
             liveStatus = 0;
             liveBody = null;
+            durationMs = null;
         }
 
         // Log this interaction
@@ -818,7 +834,8 @@
             requestBody: requestBody,
             status: liveStatus,
             responseBody: liveBody,
-            error: liveError || null
+            error: liveError || null,
+            durationMs: durationMs
         });
 
         // Store chained values from response
@@ -870,7 +887,12 @@
         row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
         row.classList.add(statusMatch ? 'result-pass' : 'result-fail');
 
-        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, url };
+        // Update timing cell
+        if (ref.tdTime) {
+            ref.tdTime.textContent = durationMs !== null ? durationMs + ' ms' : '—';
+        }
+
+        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, url, durationMs };
     }
 
     function resolvePathParamChains(completedStep, allSteps) {
