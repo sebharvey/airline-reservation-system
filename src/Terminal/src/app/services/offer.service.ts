@@ -29,6 +29,7 @@ export interface FlightInventoryGroup {
   totalSeats: number;
   totalSeatsAvailable: number;
   loadFactor: number;
+  ticketingStatus: string;
 }
 
 // Per-cabin entry within a single-flight inventory response.

@@ -76,6 +76,10 @@ export class OfferComponent implements OnInit {
     return status === 'Active' ? 'badge-active' : 'badge-inactive';
   }
 
+  ticketingClass(flight: FlightInventoryGroup): string {
+    return flight.ticketingStatus === 'Open' ? 'badge-active' : 'badge-inactive';
+  }
+
   #todayIso(): string {
     return new Date().toISOString().slice(0, 10);
   }
