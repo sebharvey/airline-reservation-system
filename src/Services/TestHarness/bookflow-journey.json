@@ -1,0 +1,546 @@
+{
+  "journey": {
+    "name": "Bookflow — Retail API",
+    "description": "End-to-end booking journey via the Retail API: outbound flight search, return flight search, basket creation, passenger entry, seat selection, bag selection, and payment confirmation.",
+    "domain": "Retail",
+    "baseUrls": [
+      { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Search outbound flights",
+      "description": "Search for available outbound flights from LHR to JFK for a single adult passenger on a Revenue booking. Returns a sessionId and a list of flights with cabin and fare-family offers. The sessionId and a selected outbound offerId are forwarded to the basket creation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureDate": "2026-03-31",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
+          "flights": [
+            {
+              "flightNumber": "AX001",
+              "origin": "LHR",
+              "destination": "JFK",
+              "departureTime": "2026-03-31T08:00:00",
+              "arrivalTime": "2026-03-31T11:10:00",
+              "aircraftType": "A351",
+              "cabins": [
+                {
+                  "cabinCode": "J",
+                  "availableSeats": 40,
+                  "fromPrice": 781.50,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    { "fareFamily": "Flex", "offer": { "offerId": "a12d4bf4-7e88-42e6-888e-71a82921b45f", "fareBasisCode": "JFLEXGB", "basePrice": 999.00, "tax": 182.50, "totalPrice": 1181.50, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                    { "fareFamily": "Non-Flex", "offer": { "offerId": "db78522f-1d80-4e64-8114-0b33a12f7169", "fareBasisCode": "JSAVGB", "basePrice": 599.00, "tax": 182.50, "totalPrice": 781.50, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
+                  ]
+                },
+                {
+                  "cabinCode": "W",
+                  "availableSeats": 63,
+                  "fromPrice": 434.00,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    { "fareFamily": "Flex", "offer": { "offerId": "77b3e12e-3436-4528-b1eb-ab766d089b46", "fareBasisCode": "WFLEXGB", "basePrice": 499.00, "tax": 135.00, "totalPrice": 634.00, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                    { "fareFamily": "Non-Flex", "offer": { "offerId": "5c5103ef-fbff-42f5-b376-2265179dbda8", "fareBasisCode": "WSAVGB", "basePrice": 299.00, "tax": 135.00, "totalPrice": 434.00, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
+                  ]
+                },
+                {
+                  "cabinCode": "Y",
+                  "availableSeats": 252,
+                  "fromPrice": 186.25,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    { "fareFamily": "Flex", "offer": { "offerId": "23eb2133-9fa8-44d8-820f-b27d92671be6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                    { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — search results returned. Contains a sessionId scoped to this search, and a list of available flights each with cabins and fare-family offers. The sessionId must be passed alongside the selected offerId when creating the basket.",
+        "keyFields": ["sessionId", "flights"],
+        "validationNotes": "sessionId is a GUID unique to this search session. Each offer contains an offerId (GUID), fareBasisCode, basePrice, tax, totalPrice, isRefundable, and isChangeable. Prices use GBP. Multiple flights may be returned; the caller selects one offer from one flight."
+      },
+      "chainsTo": [
+        { "field": "sessionId", "as": "outboundSessionId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Search return flights",
+      "description": "Search for available return flights from JFK back to LHR for the same passenger on the return date. Returns a second sessionId and flight list. The sessionId and a selected return offerId are forwarded to the basket creation step alongside the outbound selections.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "origin": "JFK",
+          "destination": "LHR",
+          "departureDate": "2026-04-14",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854",
+          "flights": [
+            {
+              "flightNumber": "AX010",
+              "origin": "JFK",
+              "destination": "LHR",
+              "departureTime": "2026-04-14T00:30:00",
+              "arrivalTime": "2026-04-15T12:45:00",
+              "aircraftType": "B789",
+              "cabins": [
+                {
+                  "cabinCode": "Y",
+                  "availableSeats": 207,
+                  "fromPrice": 186.25,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    { "fareFamily": "Flex", "offer": { "offerId": "b6914c3a-749f-477b-bf85-786ac59f32b6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                    { "fareFamily": "Non-Flex", "offer": { "offerId": "38689c32-a37a-4ee8-8ab7-4c59b74f8450", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — return search results returned. Contains a second sessionId and the list of available return flights. This sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
+        "keyFields": ["sessionId", "flights"],
+        "validationNotes": "sessionId is a new GUID, independent from the outbound session. Structure is identical to the outbound search response. Caller selects one return offer and pairs it with this sessionId in the basket segments array."
+      },
+      "chainsTo": [
+        { "field": "sessionId", "as": "returnSessionId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Create basket",
+      "description": "Create a new basket containing the selected outbound and return flight offers. Each segment pairs an offerId with the sessionId from its respective search. The loyalty number is included so points can be accrued on confirmation. Returns a basketId used for all subsequent basket operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "segments": [
+            { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11" },
+            { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854" }
+          ],
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "bookingType": "Revenue",
+          "loyaltyNumber": "AX8564125"
+        },
+        "dataChain": [
+          { "field": "segments[0].sessionId", "from": "outboundSessionId", "source": "Step 1 → response.sessionId" },
+          { "field": "segments[1].sessionId", "from": "returnSessionId", "source": "Step 2 → response.sessionId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — basket created. Returns a basketId (GUID) which is the handle for all subsequent basket operations. Location header contains the basket resource path.",
+        "keyFields": ["basketId"],
+        "validationNotes": "basketId is a GUID. Each segment offerId must match a valid stored offer from its corresponding search session. The basket expires after 60 minutes of inactivity."
+      },
+      "chainsTo": [
+        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10] }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Get basket",
+      "description": "Retrieve the basket immediately after creation to verify the initial state. Confirms both flight offers are present as basket items and that the basket status is Active.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "basketStatus": "Active",
+          "totalFareAmount": 0.00,
+          "totalSeatAmount": 0.00,
+          "totalBagAmount": 0.00,
+          "totalAmount": 0.00,
+          "expiresAt": "2026-03-30T07:52:50.2589669",
+          "confirmedOrderId": null,
+          "version": 5,
+          "basketData": {
+            "bookingType": "oneWay",
+            "channelCode": "WEB",
+            "currencyCode": "GBP",
+            "flightOffers": [
+              { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11", "basketItemId": "BI-1" },
+              { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854", "basketItemId": "BI-2" }
+            ],
+            "passengers": [],
+            "seats": [],
+            "bags": []
+          }
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. basketStatus is 'Active'. Both flight offers are present in basketData.flightOffers, each assigned a basketItemId (BI-1, BI-2). passengers, seats, and bags are empty arrays at this point. All amount totals are 0.00 until pricing is resolved.",
+        "keyFields": ["basketId", "basketStatus", "basketData.flightOffers", "expiresAt"],
+        "validationNotes": "basketStatus must be 'Active'. confirmedOrderId is null until confirmed. version increments on each mutation. expiresAt is 60 minutes from creation."
+      }
+    },
+    {
+      "step": 5,
+      "name": "Add passengers",
+      "description": "Add passenger details to the basket. Each passenger record includes personal details, contact information, and an optional loyalty number for points accrual. The passengerId (PAX-1, PAX-2 …) is assigned by the caller and must be consistent across seats and bags additions.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "Bob",
+            "surname": "Smith",
+            "dateOfBirth": "1999-02-01",
+            "gender": "Male",
+            "loyaltyNumber": "AX123456",
+            "contacts": {
+              "email": "test@example.com",
+              "phone": "077777777777"
+            },
+            "travelDocument": null
+          }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "status": "Active",
+          "flights": [
+            { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "flightNumber": "", "origin": "", "destination": "", "cabinCode": "", "fareFamily": null, "totalAmount": 0 },
+            { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "flightNumber": "", "origin": "", "destination": "", "cabinCode": "", "fareFamily": null, "totalAmount": 0 }
+          ],
+          "totalFareAmount": 0.00,
+          "totalSeatAmount": 0.00,
+          "totalBagAmount": 0.00,
+          "totalPrice": 0.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — passengers saved to the basket. Response is a basket summary. Passenger type must be a valid IATA code: ADT, CHD, INF, or YTH. contacts.email and contacts.phone are required for the primary passenger.",
+        "keyFields": ["basketId", "status", "totalPrice"],
+        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 …) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocument is null for domestic or when not yet collected."
+      }
+    },
+    {
+      "step": 6,
+      "name": "Get basket (after passengers)",
+      "description": "Retrieve the basket after adding passenger details to confirm the passenger record is persisted in basketData.passengers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "basketStatus": "Active",
+          "version": 7,
+          "basketData": {
+            "passengers": [
+              {
+                "passengerId": "PAX-1",
+                "type": "ADT",
+                "givenName": "Bob",
+                "surname": "Smith",
+                "dateOfBirth": "1999-02-01",
+                "gender": "Male",
+                "loyaltyNumber": "AX123456",
+                "contacts": { "email": "test@example.com", "phone": "077777777777" },
+                "travelDocument": null
+              }
+            ],
+            "seats": [],
+            "bags": []
+          }
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. basketData.passengers now contains the added passenger record. seats and bags remain empty. version has incremented to reflect the passengers mutation.",
+        "keyFields": ["basketStatus", "basketData.passengers"],
+        "validationNotes": "version must have incremented since Step 4. basketData.passengers must contain the PAX-1 record with matching givenName, surname, and type."
+      }
+    },
+    {
+      "step": 7,
+      "name": "Add seats",
+      "description": "Add seat selections to the basket for each passenger on each flight segment. Each seat record references the passengerId, the segmentId (offerId of the flight offer), the basketItemRef, the seat offer identifier, the seat number, position, price, and currency.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/seats",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "segmentId": "bc2f449f-a828-4826-a97c-4378531d7253",
+            "basketItemRef": "BI-y19a",
+            "seatOfferId": "so-14g-v1",
+            "seatNumber": "14G",
+            "seatPosition": "Aisle",
+            "price": 50,
+            "currency": "GBP"
+          },
+          {
+            "passengerId": "PAX-1",
+            "segmentId": "19714659-fdbe-4593-9037-948ff69178ca",
+            "basketItemRef": "BI-blya",
+            "seatOfferId": "so-29h-v1",
+            "seatNumber": "29H",
+            "seatPosition": "Middle",
+            "price": 20,
+            "currency": "GBP"
+          }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "status": "Active",
+          "totalFareAmount": 0.00,
+          "totalSeatAmount": 70.00,
+          "totalBagAmount": 0.00,
+          "totalPrice": 70.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seats saved to the basket. totalSeatAmount reflects the sum of all seat prices (£50 outbound + £20 return = £70). totalPrice updates accordingly.",
+        "keyFields": ["basketId", "status", "totalSeatAmount", "totalPrice"],
+        "validationNotes": "segmentId must match the offerId of a flight offer in the basket. seatPosition valid values: Window, Middle, Aisle. One seat per passenger per segment. totalSeatAmount must equal sum of all seat prices."
+      }
+    },
+    {
+      "step": 8,
+      "name": "Get basket (after seats)",
+      "description": "Retrieve the basket after adding seats to confirm both seat records are persisted in basketData.seats and that totalSeatAmount and totalAmount reflect the seat cost.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "basketStatus": "Active",
+          "totalFareAmount": 0.00,
+          "totalSeatAmount": 70.00,
+          "totalBagAmount": 0.00,
+          "totalAmount": 70.00,
+          "version": 9,
+          "basketData": {
+            "seats": [
+              { "passengerId": "PAX-1", "segmentId": "bc2f449f-a828-4826-a97c-4378531d7253", "basketItemRef": "BI-y19a", "seatOfferId": "so-14g-v1", "seatNumber": "14G", "seatPosition": "Aisle", "price": 50, "currency": "GBP" },
+              { "passengerId": "PAX-1", "segmentId": "19714659-fdbe-4593-9037-948ff69178ca", "basketItemRef": "BI-blya", "seatOfferId": "so-29h-v1", "seatNumber": "29H", "seatPosition": "Middle", "price": 20, "currency": "GBP" }
+            ],
+            "bags": []
+          }
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. basketData.seats contains both seat records. totalSeatAmount = 70.00, totalAmount = 70.00. bags is still empty.",
+        "keyFields": ["totalSeatAmount", "totalAmount", "basketData.seats"],
+        "validationNotes": "version must have incremented since Step 6. Both seat records must be present. totalSeatAmount = sum of seat prices (50 + 20 = 70)."
+      }
+    },
+    {
+      "step": 9,
+      "name": "Add bags",
+      "description": "Add additional baggage to the basket for each passenger on each segment. Each bag record references the passengerId, segmentId (basketItemRef of the segment), the bag offer identifier, the number of additional bags, the total price, and currency.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/bags",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "passengerId": "PAX-1",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "status": "Active",
+          "totalFareAmount": 0.00,
+          "totalSeatAmount": 70.00,
+          "totalBagAmount": 360.00,
+          "totalPrice": 430.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — bags saved to the basket. totalBagAmount reflects the combined bag price (£180 + £180 = £360). totalPrice updates to seat + bag total (£70 + £360 = £430).",
+        "keyFields": ["basketId", "status", "totalBagAmount", "totalPrice"],
+        "validationNotes": "segmentId for bags uses the basketItemRef of the segment (e.g. BI-y19a), not the offerId. additionalBags is the count of extra bags beyond the included allowance. totalBagAmount = sum of all bag prices."
+      }
+    },
+    {
+      "step": 10,
+      "name": "Confirm and pay",
+      "description": "Submit payment to confirm the basket and create the order. Provides the payment method, a tokenised payment reference, and an optional loyalty points redemption amount. On success the basket transitions to Confirmed and an orderId is returned.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "paymentMethod": "CreditCard",
+          "paymentToken": "1232346456455345",
+          "loyaltyPointsToRedeem": null
+        },
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "bookingReference": "AX123456",
+          "status": "Confirmed"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — booking confirmed. The basket is marked Confirmed and a new order is created. The response contains the orderId (GUID) and the human-readable bookingReference used for check-in and manage-booking flows.",
+        "keyFields": ["orderId", "bookingReference", "status"],
+        "validationNotes": "paymentMethod valid values: CreditCard, DebitCard, LoyaltyPoints. paymentToken is the tokenised card reference from the payment gateway. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
+      }
+    }
+  ]
+}
