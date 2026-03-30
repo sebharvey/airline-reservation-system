@@ -21,9 +21,9 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": {
-          "origin": "LHR",
-          "destination": "JFK",
-          "departureDate": "2026-03-31",
+          "origin": "__RAND_OUTBOUND_ORIGIN__",
+          "destination": "__RAND_OUTBOUND_DEST__",
+          "departureDate": "__RAND_DEPART_DATE__",
           "paxCount": 1,
           "bookingType": "Revenue"
         }
@@ -83,7 +83,8 @@
         "validationNotes": "sessionId is a GUID unique to this search session. Each offer contains an offerId (GUID), fareBasisCode, basePrice, tax, totalPrice, isRefundable, and isChangeable. Prices use GBP. Multiple flights may be returned; the caller selects one offer from one flight."
       },
       "chainsTo": [
-        { "field": "sessionId", "as": "outboundSessionId", "usedInSteps": [3] }
+        { "field": "sessionId", "as": "outboundSessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId", "as": "outboundOfferId", "usedInSteps": [3] }
       ]
     },
     {
@@ -99,9 +100,9 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": {
-          "origin": "JFK",
-          "destination": "LHR",
-          "departureDate": "2026-04-14",
+          "origin": "__RAND_RETURN_ORIGIN__",
+          "destination": "__RAND_RETURN_DEST__",
+          "departureDate": "__RAND_RETURN_DATE__",
           "paxCount": 1,
           "bookingType": "Revenue"
         }
@@ -141,7 +142,8 @@
         "validationNotes": "sessionId is a new GUID, independent from the outbound session. Structure is identical to the outbound search response. Caller selects one return offer and pairs it with this sessionId in the basket segments array."
       },
       "chainsTo": [
-        { "field": "sessionId", "as": "returnSessionId", "usedInSteps": [3] }
+        { "field": "sessionId", "as": "returnSessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId", "as": "returnOfferId", "usedInSteps": [3] }
       ]
     },
     {
@@ -167,8 +169,10 @@
           "loyaltyNumber": "AX8564125"
         },
         "dataChain": [
+          { "field": "segments[0].offerId",   "from": "outboundOfferId",   "source": "Step 1 → random offer from search results" },
           { "field": "segments[0].sessionId", "from": "outboundSessionId", "source": "Step 1 → response.sessionId" },
-          { "field": "segments[1].sessionId", "from": "returnSessionId", "source": "Step 2 → response.sessionId" }
+          { "field": "segments[1].offerId",   "from": "returnOfferId",     "source": "Step 2 → random offer from search results" },
+          { "field": "segments[1].sessionId", "from": "returnSessionId",   "source": "Step 2 → response.sessionId" }
         ]
       },
       "response": {

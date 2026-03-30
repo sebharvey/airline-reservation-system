@@ -76,8 +76,22 @@
         'Wang', 'Weber', 'Wong', 'Wu', 'Yamamoto', 'Zhang'
     ];
 
+    const ROUTES = [
+        { origin: 'LHR', destination: 'JFK' },
+        { origin: 'LHR', destination: 'LAX' },
+        { origin: 'LHR', destination: 'DXB' },
+        { origin: 'LHR', destination: 'SIN' },
+        { origin: 'LHR', destination: 'HKG' },
+        { origin: 'LHR', destination: 'JNB' },
+        { origin: 'LHR', destination: 'ORD' },
+        { origin: 'LHR', destination: 'BOS' },
+        { origin: 'MAN', destination: 'JFK' },
+        { origin: 'LGW', destination: 'JFK' }
+    ];
+
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
     function randDigits(n) { return Math.floor(Math.random() * Math.pow(10, n)).toString().padStart(n, '0'); }
+    function isoDate(d) { return d.toISOString().split('T')[0]; }
 
     let runtimeVars = {};
 
@@ -107,10 +121,25 @@
         const phone         = '07' + randDigits(9);
         const loyaltyNumber = 'AX' + randDigits(7);
 
+        const route = pick(ROUTES);
+        const today = new Date();
+        const outboundOffset = 7 + Math.floor(Math.random() * 28);   // 7–34 days out
+        const returnOffset   = outboundOffset + 7 + Math.floor(Math.random() * 8); // +7–14 days
+        const outboundDateObj = new Date(today); outboundDateObj.setDate(today.getDate() + outboundOffset);
+        const returnDateObj   = new Date(today); returnDateObj.setDate(today.getDate() + returnOffset);
+
+        const outboundOrigin = route.origin;
+        const outboundDest   = route.destination;
+        const returnOrigin   = route.destination;
+        const returnDest     = route.origin;
+        const departDate     = isoDate(outboundDateObj);
+        const returnDate     = isoDate(returnDateObj);
+
         runtimeVars = {
             givenName, surname, password, email,
             recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
-            gender, dateOfBirth, phone, loyaltyNumber
+            gender, dateOfBirth, phone, loyaltyNumber,
+            outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate
         };
     }
 
@@ -126,10 +155,16 @@
                 .replace(/__RAND_SURNAME__/g,        runtimeVars.surname)
                 .replace(/__RAND_EMAIL__/g,          runtimeVars.email)
                 .replace(/__RAND_PASSWORD__/g,       runtimeVars.password)
-                .replace(/__RAND_GENDER__/g,         runtimeVars.gender)
-                .replace(/__RAND_DOB__/g,            runtimeVars.dateOfBirth)
-                .replace(/__RAND_PHONE__/g,          runtimeVars.phone)
-                .replace(/__RAND_LOYALTY_NUMBER__/g, runtimeVars.loyaltyNumber);
+                .replace(/__RAND_GENDER__/g,            runtimeVars.gender)
+                .replace(/__RAND_DOB__/g,             runtimeVars.dateOfBirth)
+                .replace(/__RAND_PHONE__/g,           runtimeVars.phone)
+                .replace(/__RAND_LOYALTY_NUMBER__/g,  runtimeVars.loyaltyNumber)
+                .replace(/__RAND_OUTBOUND_ORIGIN__/g, runtimeVars.outboundOrigin)
+                .replace(/__RAND_OUTBOUND_DEST__/g,   runtimeVars.outboundDest)
+                .replace(/__RAND_RETURN_ORIGIN__/g,   runtimeVars.returnOrigin)
+                .replace(/__RAND_RETURN_DEST__/g,     runtimeVars.returnDest)
+                .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
+                .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate);
         }
         if (Array.isArray(obj)) return obj.map(applyRuntimeVars);
         if (typeof obj === 'object') {
@@ -571,6 +606,8 @@
         valuesEl.innerHTML = '';
         banner.style.display = '';
         [
+            ['route',     runtimeVars.outboundOrigin + ' \u2192 ' + runtimeVars.outboundDest + ' / ' + runtimeVars.returnDate],
+            ['departs',   runtimeVars.departDate],
             ['givenName', runtimeVars.givenName],
             ['surname',   runtimeVars.surname],
             ['email',     runtimeVars.email],
@@ -638,6 +675,39 @@
         configSelect.disabled = false;
     }
 
+    // Walk a dot-separated path where segments ending with [*] expand arrays.
+    // e.g. 'flights[*].cabins[*].fareFamilies[*].offer.offerId' collects all offerIds.
+    function collectAllValues(obj, pathParts) {
+        if (!pathParts.length || obj == null) return [];
+        const [head, ...tail] = pathParts;
+        const isWildcard = head.endsWith('[*]');
+        const key = isWildcard ? head.slice(0, -3) : head;
+        const val = key ? obj[key] : obj;
+        if (val === undefined || val === null) return [];
+        if (isWildcard) {
+            if (!Array.isArray(val)) return [];
+            if (!tail.length) return val;
+            return val.flatMap(item => collectAllValues(item, tail));
+        }
+        if (!tail.length) return [val];
+        return collectAllValues(val, tail);
+    }
+
+    // Set a value at a dot-separated path supporting array index notation (e.g. segments[0].offerId).
+    function setPath(obj, path, value) {
+        const parts = path.split('.');
+        let cur = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const m = parts[i].match(/^(\w+)\[(\d+)\]$/);
+            cur = m ? cur[m[1]]?.[parseInt(m[2])] : cur[parts[i]];
+            if (cur == null) return;
+        }
+        const last = parts[parts.length - 1];
+        const m = last.match(/^(\w+)\[(\d+)\]$/);
+        if (m) { if (cur[m[1]]) cur[m[1]][parseInt(m[2])] = value; }
+        else    { cur[last] = value; }
+    }
+
     async function runStep(ref, currentSteps) {
         const { row, idx } = ref;
         const step = currentSteps[idx];
@@ -672,13 +742,16 @@
             ? JSON.parse(JSON.stringify(step.request.body))
             : null;
 
-        // Substitute chained values into request body fields
+        // Substitute chained values into request body fields (supports dot/index paths)
         if (step.request.dataChain && requestBody) {
             step.request.dataChain.forEach(chain => {
-                const fieldName = chain.field.replace(/ \(path\)$/, '');
-                const chainKey = chain.from || fieldName;
-                if (fieldName in requestBody && liveChain[chainKey] !== undefined) {
-                    requestBody[fieldName] = liveChain[chainKey];
+                const fieldPath = chain.field.replace(/ \(path\)$/, '');
+                const chainKey  = chain.from || fieldPath;
+                if (liveChain[chainKey] === undefined) return;
+                if (fieldPath.includes('.') || fieldPath.includes('[')) {
+                    setPath(requestBody, fieldPath, liveChain[chainKey]);
+                } else if (fieldPath in requestBody) {
+                    requestBody[fieldPath] = liveChain[chainKey];
                 }
             });
         }
@@ -728,19 +801,28 @@
             error: liveError || null
         });
 
-        // Store chained values from response (supports array indexing e.g. [0].identityId)
+        // Store chained values from response (supports array indexing and randomArrayPath)
         if (step.chainsTo && liveBody && typeof liveBody === 'object') {
             step.chainsTo.forEach(chain => {
-                const field = chain.field;
-                const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
-                if (arrayMatch && Array.isArray(liveBody)) {
-                    const arrIdx = parseInt(arrayMatch[1], 10);
-                    const prop = arrayMatch[2];
-                    if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
-                        liveChain[chain.as || prop] = liveBody[arrIdx][prop];
+                if (chain.randomArrayPath) {
+                    // Collect all values matching the wildcard path and pick one at random
+                    const parts = chain.randomArrayPath.split('.');
+                    const all = collectAllValues(liveBody, parts);
+                    if (all.length > 0) {
+                        liveChain[chain.as] = all[Math.floor(Math.random() * all.length)];
                     }
-                } else if (liveBody[field] !== undefined) {
-                    liveChain[chain.as || field] = liveBody[field];
+                } else {
+                    const field = chain.field;
+                    const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
+                    if (arrayMatch && Array.isArray(liveBody)) {
+                        const arrIdx = parseInt(arrayMatch[1], 10);
+                        const prop = arrayMatch[2];
+                        if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
+                            liveChain[chain.as || prop] = liveBody[arrIdx][prop];
+                        }
+                    } else if (liveBody[field] !== undefined) {
+                        liveChain[chain.as || field] = liveBody[field];
+                    }
                 }
             });
         }
