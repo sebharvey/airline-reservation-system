@@ -53,7 +53,7 @@ public sealed class PaymentServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(ct);
-            if (response.StatusCode == HttpStatusCode.BadRequest)
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
                 throw new PaymentValidationException(error);
             throw new InvalidOperationException($"Payment authorisation failed: {error}");
         }
