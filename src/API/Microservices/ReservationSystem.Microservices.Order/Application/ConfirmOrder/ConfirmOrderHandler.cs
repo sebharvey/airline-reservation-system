@@ -7,8 +7,11 @@ namespace ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 
 /// <summary>
 /// Handles the <see cref="ConfirmOrderCommand"/>.
-/// Validates a draft order has all required data, assigns a booking reference,
-/// transitions it to Confirmed, and deletes the originating basket.
+/// Validation is the first operation: order must be Draft, basket must be
+/// active and unexpired, and the basket must carry passengers and flight
+/// segments. Only after all checks pass does the handler build the full
+/// OrderData, assign a booking reference (PNR), transition the order to
+/// Confirmed, and delete the basket.
 /// </summary>
 public sealed class ConfirmOrderHandler
 {
@@ -32,6 +35,8 @@ public sealed class ConfirmOrderHandler
     {
         _logger.LogInformation("Confirming order {OrderId}", command.OrderId);
 
+        // ── Step 1: validate everything before doing any work ─────────────────
+
         var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken)
             ?? throw new KeyNotFoundException($"Order {command.OrderId} not found.");
 
@@ -46,46 +51,72 @@ public sealed class ConfirmOrderHandler
             throw new InvalidOperationException(
                 $"Basket is no longer active. Current status: {basket.BasketStatus}");
 
-        // Validate the order has the minimum required data
-        var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
-        var dataLists = orderJson["dataLists"]?.AsObject();
-        var passengers = dataLists?["passengers"]?.AsArray();
-        var segments = dataLists?["flightSegments"]?.AsArray();
+        if (basket.IsExpired)
+            throw new InvalidOperationException("Basket has expired.");
 
-        if (passengers is null || passengers.Count == 0)
-            throw new InvalidOperationException("Order cannot be confirmed: no passengers present.");
+        var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
+        var passengersNode = basketJson["passengers"]?.AsArray();
+        var segmentsNode = basketJson["flightOffers"]?.AsArray();
 
-        if (segments is null || segments.Count == 0)
-            throw new InvalidOperationException("Order cannot be confirmed: no flight segments present.");
+        if (passengersNode is null || passengersNode.Count == 0)
+            throw new InvalidOperationException("Order cannot be confirmed: no passengers present in basket.");
 
-        // Merge payment references into order data
+        if (segmentsNode is null || segmentsNode.Count == 0)
+            throw new InvalidOperationException("Order cannot be confirmed: no flight segments present in basket.");
+
+        // ── Step 2: build full OrderData from basket and payment references ───
+
+        // Carry forward bookingType and any reward redemption data from the draft OrderData
+        var draftData = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
+        var bookingType = draftData["bookingType"]?.GetValue<string>() ?? "Revenue";
+
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
-        orderJson["payments"] = paymentsNode?.DeepClone() ?? new JsonArray();
 
-        // Append OrderConfirmed history event
-        if (orderJson["history"] is not JsonArray history)
+        var orderData = new JsonObject
         {
-            history = new JsonArray();
-            orderJson["history"] = history;
-        }
-        history.Add(new JsonObject
-        {
-            ["event"] = "OrderConfirmed",
-            ["timestamp"] = DateTime.UtcNow.ToString("o")
-        });
+            ["dataLists"] = new JsonObject
+            {
+                ["passengers"] = passengersNode.DeepClone(),
+                ["flightSegments"] = segmentsNode.DeepClone()
+            },
+            ["orderItems"] = segmentsNode.DeepClone(),
+            ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
+            ["eTickets"] = new JsonArray(),
+            ["seatAssignments"] = basketJson["seats"]?.DeepClone() ?? new JsonArray(),
+            ["bagItems"] = basketJson["bags"]?.DeepClone() ?? new JsonArray(),
+            ["ssrItems"] = basketJson["ssrSelections"]?.DeepClone() ?? new JsonArray(),
+            ["bookingType"] = bookingType,
+            ["history"] = new JsonArray
+            {
+                draftData["history"]?[0]?.DeepClone() ?? new JsonObject
+                {
+                    ["event"] = "OrderCreated",
+                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                },
+                new JsonObject
+                {
+                    ["event"] = "OrderConfirmed",
+                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                }
+            }
+        };
+
+        if (draftData["pointsRedemption"] is JsonNode redemption)
+            orderData["pointsRedemption"] = redemption.DeepClone();
+
+        // ── Step 3: confirm order, persist, delete basket ─────────────────────
 
         var bookingReference = GenerateBookingReference();
 
         order.Confirm(
             bookingReference,
-            order.TotalAmount ?? 0m,
-            orderJson.ToJsonString(),
+            basket.TotalAmount ?? order.TotalAmount ?? 0m,
+            orderData.ToJsonString(),
             basket.ExpiresAt);
 
         await _orderRepository.UpdateAsync(order, cancellationToken);
 
-        // Mark basket as confirmed then delete it
         basket.Confirm(order.OrderId);
         await _basketRepository.UpdateAsync(basket, cancellationToken);
         await _basketRepository.DeleteAsync(basket.BasketId, cancellationToken);

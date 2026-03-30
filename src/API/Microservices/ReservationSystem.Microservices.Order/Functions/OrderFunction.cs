@@ -80,26 +80,15 @@ public sealed class OrderFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateOrderRequest>(_logger, ct);
         if (error is not null) return error;
 
-        if (request!.BasketId == Guid.Empty)
-            return await req.BadRequestAsync("The field 'basketId' is required.");
+        var command = OrderMapper.ToCommand(request!);
+        var order = await _createOrderHandler.HandleAsync(command, ct);
 
-        if (request.BookingType == "Reward" && string.IsNullOrWhiteSpace(request.RedemptionReference))
-            return await req.BadRequestAsync("'redemptionReference' is required for Reward bookings.");
-
-        try
-        {
-            var command = OrderMapper.ToCommand(request);
-            var order = await _createOrderHandler.HandleAsync(command, ct);
-
-            var httpResponse = req.CreateResponse(HttpStatusCode.Created);
-            httpResponse.Headers.Add("Content-Type", "application/json");
-            httpResponse.Headers.Add("Location", $"/v1/orders/{order.OrderId}");
-            await httpResponse.WriteStringAsync(JsonSerializer.Serialize(
-                OrderMapper.ToCreateResponse(order), SharedJsonOptions.CamelCase));
-            return httpResponse;
-        }
-        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
-        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+        var httpResponse = req.CreateResponse(HttpStatusCode.Created);
+        httpResponse.Headers.Add("Content-Type", "application/json");
+        httpResponse.Headers.Add("Location", $"/v1/orders/{order.OrderId}");
+        await httpResponse.WriteStringAsync(JsonSerializer.Serialize(
+            OrderMapper.ToCreateResponse(order), SharedJsonOptions.CamelCase));
+        return httpResponse;
     }
 
     // POST /v1/orders/confirm

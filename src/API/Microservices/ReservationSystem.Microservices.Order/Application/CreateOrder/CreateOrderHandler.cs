@@ -7,9 +7,10 @@ namespace ReservationSystem.Microservices.Order.Application.CreateOrder;
 
 /// <summary>
 /// Handles the <see cref="CreateOrderCommand"/>.
-/// Creates a Draft order record from a basket. The basket is left intact so
-/// that PATCH operations can be applied before the order is confirmed via
-/// <see cref="ConfirmOrder.ConfirmOrderHandler"/>.
+/// Creates a minimal Draft order record and returns the OrderId immediately —
+/// no validation is performed. The basket is left intact. All validation
+/// (basket state, passenger completeness, segment completeness) is deferred
+/// to <see cref="ConfirmOrder.ConfirmOrderHandler"/> as its first step.
 /// </summary>
 public sealed class CreateOrderHandler
 {
@@ -33,29 +34,17 @@ public sealed class CreateOrderHandler
     {
         _logger.LogInformation("Creating draft order from basket {BasketId}", command.BasketId);
 
+        // Load basket silently to obtain channel and currency for the Order row.
+        // No validation — if the basket is missing or invalid that will be caught at confirm time.
         var basket = await _basketRepository.GetByIdAsync(command.BasketId, cancellationToken);
-        if (basket is null)
-            throw new InvalidOperationException($"Basket {command.BasketId} not found.");
+        var channelCode = basket?.ChannelCode ?? "WEB";
+        var currencyCode = basket?.CurrencyCode ?? "GBP";
+        var totalAmount = basket?.TotalAmount;
 
-        if (basket.BasketStatus != BasketStatusValues.Active)
-            throw new InvalidOperationException($"Basket is not active. Current status: {basket.BasketStatus}");
-
-        // Build OrderData from basket — payment references are empty until the order is confirmed
-        var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
-
+        // Minimal OrderData — basket content is read and validated at confirm time
         var orderData = new JsonObject
         {
-            ["dataLists"] = new JsonObject
-            {
-                ["passengers"] = basketJson["passengers"]?.DeepClone() ?? new JsonArray(),
-                ["flightSegments"] = basketJson["flightOffers"]?.DeepClone() ?? new JsonArray()
-            },
-            ["orderItems"] = basketJson["flightOffers"]?.DeepClone() ?? new JsonArray(),
-            ["payments"] = new JsonArray(),
-            ["eTickets"] = new JsonArray(),
-            ["seatAssignments"] = basketJson["seats"]?.DeepClone() ?? new JsonArray(),
-            ["bagItems"] = basketJson["bags"]?.DeepClone() ?? new JsonArray(),
-            ["ssrItems"] = basketJson["ssrSelections"]?.DeepClone() ?? new JsonArray(),
+            ["basketId"] = command.BasketId.ToString(),
             ["bookingType"] = command.BookingType,
             ["history"] = new JsonArray
             {
@@ -77,15 +66,15 @@ public sealed class CreateOrderHandler
         }
 
         var order = Domain.Entities.Order.Create(
-            basket.ChannelCode,
-            basket.CurrencyCode,
-            basket.TotalAmount,
+            channelCode,
+            currencyCode,
+            totalAmount,
             orderData.ToJsonString());
 
         await _orderRepository.CreateAsync(order, cancellationToken);
 
         _logger.LogInformation(
-            "Draft order {OrderId} created from basket {BasketId}",
+            "Draft order {OrderId} created for basket {BasketId}",
             order.OrderId, command.BasketId);
 
         return order;
