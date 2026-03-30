@@ -8,10 +8,12 @@ public sealed record CreateBasketResult(Guid BasketId);
 public sealed class CreateBasketHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
 
-    public CreateBasketHandler(OrderServiceClient orderServiceClient)
+    public CreateBasketHandler(OrderServiceClient orderServiceClient, OfferServiceClient offerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
+        _offerServiceClient = offerServiceClient;
     }
 
     public async Task<CreateBasketResult> HandleAsync(CreateBasketCommand command, CancellationToken cancellationToken)
@@ -30,11 +32,50 @@ public sealed class CreateBasketHandler
 
         foreach (var segment in command.Segments)
         {
-            var offerJson = JsonSerializer.Serialize(new
+            // Look up the stored offer to get pricing and flight details
+            var offerDetail = await _offerServiceClient.GetOfferAsync(segment.OfferId, segment.SessionId, cancellationToken);
+
+            string offerJson;
+            if (offerDetail is not null)
             {
-                offerId   = segment.OfferId,
-                sessionId = segment.SessionId
-            });
+                var offerItem = offerDetail.Offers.FirstOrDefault(o => o.OfferId == segment.OfferId)
+                    ?? offerDetail.Offers.FirstOrDefault();
+
+                offerJson = JsonSerializer.Serialize(new
+                {
+                    offerId        = segment.OfferId,
+                    sessionId      = segment.SessionId,
+                    inventoryId    = offerDetail.InventoryId,
+                    flightNumber   = offerDetail.FlightNumber,
+                    departureDate  = offerDetail.DepartureDate,
+                    departureTime  = offerDetail.DepartureTime,
+                    arrivalTime    = offerDetail.ArrivalTime,
+                    origin         = offerDetail.Origin,
+                    destination    = offerDetail.Destination,
+                    aircraftType   = offerDetail.AircraftType,
+                    offerExpiresAt = offerDetail.ExpiresAt,
+                    cabinCode      = offerItem?.CabinCode,
+                    fareBasisCode  = offerItem?.FareBasisCode,
+                    fareFamily     = offerItem?.FareFamily,
+                    totalAmount    = offerItem?.TotalAmount ?? 0m,
+                    baseFareAmount = offerItem?.BaseFareAmount ?? 0m,
+                    taxAmount      = offerItem?.TaxAmount ?? 0m,
+                    isRefundable   = offerItem?.IsRefundable ?? false,
+                    isChangeable   = offerItem?.IsChangeable ?? false,
+                    pointsPrice    = offerItem?.PointsPrice,
+                    pointsTaxes    = offerItem?.PointsTaxes
+                });
+            }
+            else
+            {
+                // Offer not found — fall back to reference-only (totals will be 0)
+                offerJson = JsonSerializer.Serialize(new
+                {
+                    offerId   = segment.OfferId,
+                    sessionId = segment.SessionId
+                });
+            }
+
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
         }
 

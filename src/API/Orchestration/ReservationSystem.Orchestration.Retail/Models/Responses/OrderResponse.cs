@@ -7,9 +7,17 @@ public sealed class OrderResponse
     public string CustomerId { get; init; } = string.Empty;
     public IReadOnlyList<OrderFlight> Flights { get; init; } = [];
     public IReadOnlyList<OrderPassenger> Passengers { get; init; } = [];
+    public IReadOnlyList<IssuedETicket> ETickets { get; init; } = [];
     public decimal TotalPrice { get; init; }
     public string Currency { get; init; } = string.Empty;
     public DateTime BookedAt { get; init; }
+}
+
+public sealed class IssuedETicket
+{
+    public string PassengerId { get; init; } = string.Empty;
+    public string SegmentId { get; init; } = string.Empty;
+    public string ETicketNumber { get; init; } = string.Empty;
 }
 
 public sealed class OrderFlight

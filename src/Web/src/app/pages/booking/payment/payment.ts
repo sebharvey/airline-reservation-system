@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
-import { RetailApiService } from '../../../services/retail-api.service';
+import { RetailApiService, IssuedETicket } from '../../../services/retail-api.service';
 import { Basket, Order, OrderItem, FlightSegment, Payment, Passenger, PointsRedemption } from '../../../models/order.model';
 
 function randomAlpha(len: number): string {
@@ -20,15 +20,11 @@ function generateBookingRef(): string {
   return randomAlpha(2) + randomNum(4);
 }
 
-function generateETicket(): string {
-  return '125-' + randomNum(10);
-}
-
 function generateOrderId(): string {
   return 'ORD-' + randomNum(8);
 }
 
-function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string): Order {
+function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string, issuedETickets?: IssuedETicket[]): Order {
   const now = new Date().toISOString();
   const orderId = generateOrderId();
   const payRef = 'PAY-' + randomNum(8);
@@ -55,9 +51,12 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     const paxRefs = fo.passengerRefs;
     const eTickets = paxRefs.map(pRef => {
       const pax = basket.passengers.find(p => p.passengerId === pRef);
+      const realTicket = issuedETickets?.find(
+        t => t.passengerId === pRef && t.segmentId === fo.basketItemId
+      );
       return {
         passengerId: pax?.passengerId ?? pRef,
-        eTicketNumber: generateETicket()
+        eTicketNumber: realTicket?.eTicketNumber ?? 'N/A'
       };
     });
 
@@ -290,7 +289,7 @@ export class PaymentComponent implements OnInit {
       loyaltyPointsToRedeem
     ).subscribe({
       next: (result) => {
-        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber);
+        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber, result.eTickets);
         this.bookingState.confirmOrder(order);
         this.paying.set(false);
         this.router.navigate(['/booking/confirmation']);

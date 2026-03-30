@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using System.Linq;
 
 namespace ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 
@@ -83,6 +84,7 @@ public sealed class ConfirmBasketHandler
         }
 
         // 4. Issue e-tickets via Delivery MS using the confirmed booking reference
+        var issuedTickets = new List<IssuedTicket>();
         if (basket.BasketData.HasValue && !string.IsNullOrEmpty(order.BookingReference))
         {
             try
@@ -90,17 +92,23 @@ public sealed class ConfirmBasketHandler
                 var (passengers, segments) = ParseBasketDataForTickets(basket.BasketData.Value.GetRawText());
                 if (passengers.Count > 0 && segments.Count > 0)
                 {
-                    var tickets = await _deliveryServiceClient.IssueTicketsAsync(
+                    issuedTickets = await _deliveryServiceClient.IssueTicketsAsync(
                         command.BasketId,
                         order.BookingReference,
                         passengers,
                         segments,
                         cancellationToken);
 
-                    // 5. Populate departure manifest
-                    if (tickets.Count > 0)
+                    // 5. Write e-ticket numbers back into OrderData
+                    if (issuedTickets.Count > 0)
                     {
-                        var entries = BuildManifestEntries(tickets, passengers, segments);
+                        var eTicketsJson = System.Text.Json.JsonSerializer.Serialize(
+                            issuedTickets.Select(t => new { t.PassengerId, t.SegmentId, t.ETicketNumber }));
+                        await _orderServiceClient.UpdateOrderETicketsAsync(
+                            order.BookingReference, eTicketsJson, cancellationToken);
+
+                        // 6. Populate departure manifest
+                        var entries = BuildManifestEntries(issuedTickets, passengers, segments);
                         await _deliveryServiceClient.CreateManifestAsync(
                             order.BookingReference,
                             entries,
@@ -108,13 +116,14 @@ public sealed class ConfirmBasketHandler
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Ticket/manifest failure after order creation — order is confirmed, tickets need manual issuance
+                System.Console.Error.WriteLine($"[ConfirmBasket] Ticket issuance failed for {order.BookingReference}: {ex.Message}");
             }
         }
 
-        // 6. Settle payment
+        // 7. Settle payment
         await _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
 
         return new OrderResponse
@@ -122,6 +131,12 @@ public sealed class ConfirmBasketHandler
             BookingReference = order.BookingReference ?? string.Empty,
             Status = order.OrderStatus,
             CustomerId = string.Empty,
+            ETickets = issuedTickets.Select(t => new IssuedETicket
+            {
+                PassengerId = t.PassengerId,
+                SegmentId = t.SegmentId,
+                ETicketNumber = t.ETicketNumber
+            }).ToList(),
             TotalPrice = order.TotalAmount ?? totalAmount,
             Currency = order.CurrencyCode,
             BookedAt = DateTime.UtcNow

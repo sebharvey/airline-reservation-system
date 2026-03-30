@@ -44,12 +44,19 @@ export interface CreateBasketResponse {
   basketId: string;
 }
 
+export interface IssuedETicket {
+  passengerId: string;
+  segmentId: string;
+  eTicketNumber: string;
+}
+
 export interface ConfirmBasketResponse {
   bookingReference: string;
   status: string;
   totalPrice: number;
   currency: string;
   bookedAt: string;
+  eTickets: IssuedETicket[];
 }
 
 export interface RetrieveOrderParams {
