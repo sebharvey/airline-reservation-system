@@ -234,13 +234,16 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<ConfirmBasketRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request!.PaymentMethod))
-            return await req.BadRequestAsync("The field 'paymentMethod' is required.");
+        if (string.IsNullOrWhiteSpace(request!.Payment?.Method))
+            return await req.BadRequestAsync("The field 'payment.method' is required.");
 
         var command = new ConfirmBasketCommand(
             basketId,
-            request.PaymentMethod,
-            request.PaymentToken,
+            request.Payment.Method,
+            request.Payment.CardNumber,
+            request.Payment.ExpiryDate,
+            request.Payment.Cvv,
+            request.Payment.CardholderName,
             request.LoyaltyPointsToRedeem);
 
         var result = await _confirmBasketHandler.HandleAsync(command, cancellationToken);
