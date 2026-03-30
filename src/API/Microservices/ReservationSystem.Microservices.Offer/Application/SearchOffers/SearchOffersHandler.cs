@@ -31,12 +31,43 @@ public sealed class SearchOffersHandler
         var inventories = await _repository.SearchAvailableInventoryAsync(
             command.Origin, command.Destination, departureDate, command.PaxCount, ct);
 
-        var sessionId = Guid.NewGuid();
+        if (inventories.Count == 0)
+        {
+            _logger.LogInformation(
+                "Search {Origin}-{Destination} on {Date}: no inventory available",
+                command.Origin, command.Destination, command.DepartureDate);
+            return null;
+        }
+
+        // 2. Collect the unique flight numbers and cabin codes across all results so we can
+        //    fetch every applicable fare rule in a single query rather than one per cabin.
+        var flightNumbers = inventories.Select(i => i.FlightNumber).Distinct().ToList();
+        var cabinCodes    = inventories
+            .SelectMany(i => i.Cabins)
+            .Where(c => c.SeatsAvailable >= command.PaxCount)
+            .Select(c => c.CabinCode)
+            .Distinct()
+            .ToList();
+
+        if (cabinCodes.Count == 0)
+        {
+            _logger.LogInformation(
+                "Search {Origin}-{Destination} on {Date}: no cabin has enough seats for {PaxCount} passengers",
+                command.Origin, command.Destination, command.DepartureDate, command.PaxCount);
+            return null;
+        }
+
+        // 3. Single DB round-trip for all fare rules needed by this search.
+        var allRules = await _repository.GetApplicableFareRulesForFlightsAsync(
+            flightNumbers, cabinCodes, departureDate, ct);
+
+        var sessionId         = Guid.NewGuid();
         var allInventoryFares = new List<(FlightInventory Inventory, IReadOnlyList<(Fare Fare, Guid FareRuleId)> Fares)>();
+        var faresToInsert     = new List<Fare>();
 
         foreach (var inventory in inventories)
         {
-            // 2. Collect eligible fares across all cabins for this flight.
+            // 4. Collect eligible fares across all cabins for this flight.
             var flightFares = new List<(Fare Fare, Guid FareRuleId)>();
 
             foreach (var cabin in inventory.Cabins)
@@ -44,22 +75,24 @@ public sealed class SearchOffersHandler
                 if (cabin.SeatsAvailable < command.PaxCount)
                     continue;
 
-                // 3. Retrieve all applicable fare rules for this cabin in tier order
-                //    (global default → flight default → flight + date window).
-                var rules = await _repository.GetApplicableFareRulesAsync(
-                    inventory.FlightNumber, cabin.CabinCode, departureDate, ct);
+                // 5. Filter the pre-fetched rule set to this cabin and flight (including global
+                //    defaults where FlightNumber is null), preserving the least-to-most-specific
+                //    ordering the repository returns them in.
+                var rules = allRules
+                    .Where(r => r.CabinCode == cabin.CabinCode
+                             && (r.FlightNumber is null || r.FlightNumber == inventory.FlightNumber))
+                    .ToList();
 
                 if (rules.Count == 0)
                     continue;
 
-                // 4. Apply cascade: rules arrive ordered least-to-most-specific.
-                //    Iterating in order and overwriting by (FareBasisCode, RuleType) means the last
-                //    (most-specific) rule for each combination wins — O(n) single pass.
+                // 6. Apply cascade: overwrite by (FareBasisCode, RuleType) so the last
+                //    (most-specific) rule wins — O(n) single pass.
                 var effective = new Dictionary<string, FareRule>(StringComparer.Ordinal);
                 foreach (var rule in rules)
                     effective[$"{rule.FareBasisCode}:{rule.RuleType}"] = rule;
 
-                // 5. For each effective rule, derive a fare snapshot.
+                // 7. For each effective rule, derive a fare snapshot.
                 foreach (var rule in effective.Values)
                 {
                     // Revenue search: skip pure-points rules that carry no base fare.
@@ -71,7 +104,7 @@ public sealed class SearchOffersHandler
                         continue;
 
                     var fare = BuildFareFromRule(inventory.InventoryId, rule);
-                    await _repository.CreateFareAsync(fare, ct);
+                    faresToInsert.Add(fare);
                     flightFares.Add((fare, rule.FareRuleId));
                 }
             }
@@ -90,8 +123,9 @@ public sealed class SearchOffersHandler
             return null;
         }
 
-        // 6. Create ONE stored offer for the entire search. FaresInfo contains an array
-        //    of inventory entries so flight details remain authoritative in FlightInventory.
+        // 8. Persist all fares in a single batch, then create the stored offer.
+        await _repository.BatchCreateFaresAsync(faresToInsert, ct);
+
         var storedOffer = StoredOffer.Create(allInventoryFares, bookingType, sessionId);
         await _repository.CreateStoredOfferAsync(storedOffer, ct);
 
