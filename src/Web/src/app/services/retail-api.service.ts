@@ -231,9 +231,20 @@ export class RetailApiService {
    * POST /v1/basket/{basketId}/confirm
    * Confirm the basket — processes payment, creates order, issues e-tickets.
    */
-  confirmBasket(basketId: string, paymentMethod: string, paymentToken?: string, loyaltyPointsToRedeem?: number): Observable<ConfirmBasketResponse> {
+  confirmBasket(
+    basketId: string,
+    paymentMethod: string,
+    cardNumber: string,
+    expiryDate: string,
+    cvv: string,
+    cardholderName: string,
+    loyaltyPointsToRedeem?: number
+  ): Observable<ConfirmBasketResponse> {
     const base = environment.retailApiBaseUrl;
-    const body = { paymentMethod, paymentToken: paymentToken ?? null, loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null };
+    const body = {
+      payment: { method: paymentMethod, cardNumber, expiryDate, cvv, cardholderName },
+      loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null
+    };
     return this.#http.post<ConfirmBasketResponse>(`${base}/api/v1/basket/${basketId}/confirm`, body);
   }
 
