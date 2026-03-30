@@ -754,7 +754,24 @@
         let endpoint = api.endpoint;
         if (api.pathParams) {
             for (const [k, v] of Object.entries(api.pathParams)) {
-                const chainedValue = liveChain[k];
+                let chainedValue = liveChain[k];
+                // If not found directly, resolve "from-step-N" references by looking up
+                // the source step's chainsTo entry that matches on field name
+                if (chainedValue === undefined && typeof v === 'string') {
+                    const fromStepMatch = v.match(/^from-step-(\d+)$/);
+                    if (fromStepMatch) {
+                        const srcStepNum = parseInt(fromStepMatch[1]);
+                        const srcStep = currentSteps.find(s => s.step === srcStepNum);
+                        if (srcStep && srcStep.chainsTo) {
+                            const matchingChain = srcStep.chainsTo.find(c =>
+                                c.field === k || (typeof c.as === 'string' && c.as === k)
+                            );
+                            if (matchingChain) {
+                                chainedValue = liveChain[matchingChain.as || matchingChain.field];
+                            }
+                        }
+                    }
+                }
                 endpoint = endpoint.replace(`{${k}}`, chainedValue !== undefined ? chainedValue : v);
             }
         }
