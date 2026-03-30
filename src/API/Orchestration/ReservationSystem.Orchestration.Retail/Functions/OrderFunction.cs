@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
+using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
 
@@ -25,6 +26,36 @@ public sealed class OrderFunction
     {
         _getOrderHandler = getOrderHandler;
         _logger = logger;
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/orders/retrieve
+    // -------------------------------------------------------------------------
+
+    [Function("RetrieveOrder")]
+    [OpenApiOperation(operationId: "RetrieveOrder", tags: new[] { "Orders" }, Summary = "Retrieve an order by booking reference and passenger name")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RetrieveOrderRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> RetrieveOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/retrieve")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (body, error) = await req.TryDeserializeBodyAsync<RetrieveOrderRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(body!.BookingReference) || string.IsNullOrWhiteSpace(body.Surname))
+            return await req.BadRequestAsync("'bookingReference' and 'surname' are required.");
+
+        var order = await _getOrderHandler.HandleRetrieveAsync(
+            body.BookingReference.ToUpperInvariant().Trim(),
+            body.Surname.Trim(),
+            cancellationToken);
+
+        if (order is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(order);
     }
 
     // -------------------------------------------------------------------------

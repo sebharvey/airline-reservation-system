@@ -12,12 +12,26 @@ public sealed class GetOrderHandler
         _orderServiceClient = orderServiceClient;
     }
 
+    public async Task<OrderResponse?> HandleRetrieveAsync(string bookingReference, string surname, CancellationToken cancellationToken)
+    {
+        var order = await _orderServiceClient.RetrieveOrderAsync(bookingReference, surname, cancellationToken);
+        if (order is null)
+            return null;
+
+        return MapToResponse(order, bookingReference);
+    }
+
     public async Task<OrderResponse?> HandleAsync(GetOrderQuery query, CancellationToken cancellationToken)
     {
         var order = await _orderServiceClient.GetOrderByRefAsync(query.BookingReference, cancellationToken);
         if (order is null)
             return null;
 
+        return MapToResponse(order, query.BookingReference);
+    }
+
+    private static OrderResponse MapToResponse(OrderMsOrderResult order, string fallbackBookingReference)
+    {
         var flights = new List<OrderFlight>();
         var passengers = new List<OrderPassenger>();
         var eTickets = new List<IssuedETicket>();
@@ -87,7 +101,7 @@ public sealed class GetOrderHandler
 
         return new OrderResponse
         {
-            BookingReference = order.BookingReference ?? query.BookingReference,
+            BookingReference = order.BookingReference ?? fallbackBookingReference,
             Status = order.OrderStatus,
             Flights = flights,
             Passengers = passengers,
