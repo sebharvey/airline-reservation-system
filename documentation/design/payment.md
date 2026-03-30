@@ -12,7 +12,7 @@ The Payment microservice is the financial orchestration layer for all Apex Air t
 Payment processing follows a three-step lifecycle: initialise, authorise, and settle. Each transaction is tracked by a unique `PaymentId` (GUID) generated at initialisation and returned to the Retail API for use in all subsequent operations.
 
 - The Retail API first calls the initialise endpoint with order details (amount, currency, payment type, description) to create the payment record. The Payment MS generates a `PaymentId` and returns it.
-- The Retail API then calls the authorise endpoint with the `PaymentId`, card details, and optionally an explicit `amount`. A `PaymentEvent` row with `EventType = Authorised` is created per call. `AuthorisedAmount` accumulates across calls.
+- The Retail API then calls the authorise endpoint with the `PaymentId`, a `cardDetails` object (`cardNumber`, `expiryDate`, `cvv`, `cardholderName`), and optionally an explicit `amount`. A `PaymentEvent` row with `EventType = Authorised` is created per call. `AuthorisedAmount` accumulates across calls. Full card data is held in memory only and never persisted (PCI DSS).
 - Fare payment is authorised and settled during the booking confirmation flow; ancillary payments (seat, bag) are authorised upfront and settled after order confirmation. Each settle call creates a new `PaymentEvent` row (`PartialSettlement` or `Settled`). `SettledAmount` accumulates across calls.
 - If an authorised payment needs to be cancelled before settlement, the void endpoint releases the held funds and creates a `Voided` PaymentEvent.
 - The Payment DB is the system of record for all financial transactions.
@@ -40,7 +40,7 @@ sequenceDiagram
     PaymentDB-->>PaymentMS: 201 Created — paymentId generated
     PaymentMS-->>RetailAPI: 201 Created — paymentId, amount, status
 
-    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/authorise (card details)
+    RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/authorise (cardDetails: cardNumber, expiryDate, cvv, cardholderName)
     PaymentMS->>PaymentDB: Update Payment record (status=Authorised, cardType, cardLast4, authorisedAmount, authorisedAt)
     PaymentMS->>PaymentDB: Insert PaymentEvent record (eventType=Authorised)
     PaymentDB-->>PaymentMS: 200 OK — authorisation recorded
