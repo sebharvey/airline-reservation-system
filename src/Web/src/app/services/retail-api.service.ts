@@ -8,9 +8,9 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, delay } from 'rxjs/operators';
+import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
 import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
@@ -286,26 +286,20 @@ export class RetailApiService {
    * Retrieve a confirmed order by booking reference and passenger name.
    */
   retrieveOrder(params: RetrieveOrderParams): Observable<Order> {
-    const ref = params.bookingReference.toUpperCase().trim();
-    const order = MOCK_ORDERS[ref];
-    if (!order) {
-      return throwError(() => ({
-        status: 404,
-        message: 'Booking not found. Please check your reference and name.'
-      })).pipe(delay(API_DELAY_MS));
-    }
-    // Validate passenger name (case-insensitive check on first passenger)
-    const nameMatch = order.passengers.some(
-      p => p.surname.toLowerCase() === params.surname.toLowerCase().trim() ||
-           p.givenName.toLowerCase() === params.givenName.toLowerCase().trim()
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      bookingReference: params.bookingReference.toUpperCase().trim(),
+      givenName: params.givenName.trim(),
+      surname: params.surname.trim()
+    };
+    return this.#http.post<Order>(`${base}/api/v1/orders/retrieve`, body).pipe(
+      catchError((err: HttpErrorResponse) => {
+        const message = err.status === 404
+          ? 'Booking not found. Please check your reference and name.'
+          : 'Unable to retrieve booking. Please try again.';
+        return throwError(() => ({ status: err.status, message }));
+      })
     );
-    if (!nameMatch) {
-      return throwError(() => ({
-        status: 404,
-        message: 'Booking not found. Please check your reference and name.'
-      })).pipe(delay(API_DELAY_MS));
-    }
-    return of({ ...order }).pipe(delay(API_DELAY_MS));
   }
 
   /**
