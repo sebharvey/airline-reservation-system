@@ -41,7 +41,7 @@ public sealed class VoidPaymentHandler
             return null;
         }
 
-        if (payment.Status != PaymentStatus.Authorised)
+        if (payment.Status != PaymentStatus.Authorised && payment.Status != PaymentStatus.Initialised)
         {
             _logger.LogWarning("Cannot void payment {PaymentId} — current status is {Status}",
                 command.PaymentId, payment.Status);
@@ -50,6 +50,7 @@ public sealed class VoidPaymentHandler
         }
 
         // TODO: Call payment gateway to void / reverse the authorisation hold.
+        // Only required for Authorised payments — Initialised payments have no gateway hold to release.
         // Use the gateway authorisation reference obtained during the authorise step.
         // On failure, leave the payment in Authorised status and return an error.
 
