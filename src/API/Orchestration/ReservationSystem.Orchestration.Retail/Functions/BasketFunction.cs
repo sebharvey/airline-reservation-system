@@ -246,8 +246,15 @@ public sealed class BasketFunction
             request.Payment.CardholderName,
             request.LoyaltyPointsToRedeem);
 
-        var result = await _confirmBasketHandler.HandleAsync(command, cancellationToken);
-        return await req.OkJsonAsync(result);
+        try
+        {
+            var result = await _confirmBasketHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync($"/v1/basket/{basketId}/confirm", result);
+        }
+        catch (PaymentValidationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
     }
 
     // -------------------------------------------------------------------------

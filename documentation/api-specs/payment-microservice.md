@@ -196,7 +196,7 @@ Supports **partial authorisation**: when `amount` is provided, only that portion
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields, invalid field format, or `amount` ≤ 0 |
+| `400 Bad Request` | Missing required fields, invalid field format, `amount` ≤ 0, or card number fails Luhn validation |
 | `404 Not Found` | No payment found for the given `paymentId` |
 | `409 Conflict` | Payment is not in `Initialised` or `PartiallySettled` status — cannot be authorised in its current state |
 | `422 Unprocessable Entity` | Card declined by payment provider — insufficient funds, expired card, or fraud check failure |
