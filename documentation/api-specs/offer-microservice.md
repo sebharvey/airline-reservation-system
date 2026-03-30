@@ -690,6 +690,37 @@ Retrieve a stored offer by its per-fare `offerId` (found inside `FaresInfo`). Va
 
 ---
 
+### GET /v1/flights/{flightNumber}/inventory
+
+Retrieve flight inventory for a specific flight number and departure date, with cabin F/J/W/Y breakdown. Returns a single aggregated response with per-cabin seat counts.
+
+**When to use:** Called by the Operations API to derive flight status from current inventory state.
+
+#### Request
+
+No request body.
+
+| Path Parameter | Type | Required | Description |
+|----------------|------|----------|-------------|
+| `flightNumber` | string | Yes | Flight number, e.g. `"AX001"` |
+
+| Query Parameter | Type | Required | Description |
+|-----------------|------|----------|-------------|
+| `departureDate` | string (date) | No | Departure date in `yyyy-MM-dd` format. Defaults to today (UTC) |
+
+#### Response — `200 OK`
+
+Returns a `FlightInventoryGroupResponse` with the same shape as the `GET /v1/admin/inventory` endpoint, but for a single flight.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | `departureDate` not in `yyyy-MM-dd` format |
+| `404 Not Found` | No inventory exists for the given flight number and departure date |
+
+---
+
 ### GET /v1/flights/{flightId}/seat-availability
 
 Retrieve current seat availability status for a flight. Returns one entry per selectable seat with availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory` and seat reservations. Does **not** return pricing — pricing is owned by the Seat MS.

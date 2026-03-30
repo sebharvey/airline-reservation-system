@@ -16,7 +16,7 @@ import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from
 import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
-import { MOCK_FLIGHT_STATUS } from '../data/mock/flight-offers.mock';
+
 
 export interface SearchSliceParams {
   origin: string;
@@ -357,11 +357,19 @@ export class RetailApiService {
 
   /**
    * GET /v1/flights/{flightNumber}/status
-   * Get real-time flight status.
+   * Get real-time flight status from the Operations API.
    */
-  getFlightStatus(flightNumber: string): Observable<FlightStatus | null> {
-    const status = MOCK_FLIGHT_STATUS[flightNumber.toUpperCase()] ?? null;
-    return of(status).pipe(delay(API_DELAY_MS));
+  getFlightStatus(flightNumber: string, date?: string): Observable<FlightStatus | null> {
+    const base = environment.operationsApiBaseUrl;
+    const dateParam = date ? `?date=${date}` : '';
+    return this.#http
+      .get<FlightStatus>(`${base}/api/v1/flights/${encodeURIComponent(flightNumber)}/status${dateParam}`)
+      .pipe(
+        catchError((err: HttpErrorResponse) => {
+          if (err.status === 404) return of(null);
+          return throwError(() => err);
+        })
+      );
   }
 
   /**

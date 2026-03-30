@@ -40,16 +40,6 @@
     </button>
   </form>
 
-  <!-- Demo Hints -->
-  <div class="demo-hint">
-    <span class="hint-label">Try these flights</span>
-    <div class="demo-chips">
-      @for (fn of demoFlights; track fn) {
-        <button type="button" class="chip" (click)="fillDemo(fn)">{{ fn }}</button>
-      }
-    </div>
-  </div>
-
   <!-- Loading Spinner -->
   @if (loading()) {
     <div class="loading-container">
@@ -64,7 +54,6 @@
       <span class="not-found-icon">&#9888;</span>
       <h3>No Flight Found</h3>
       <p>No status information was found for <strong>{{ flightNumber() }}</strong>. Please check the flight number and try again.</p>
-      <p class="not-found-hint">Available flights: AX001, AX002, AX301, AX411</p>
     </div>
   }
 
@@ -135,24 +124,14 @@
 
       <!-- Gate / Terminal / Aircraft -->
       <div class="info-grid">
-        @if (flightStatus()!.terminal) {
-          <div class="info-item">
-            <span class="info-label">Terminal</span>
-            <span class="info-value">{{ flightStatus()!.terminal }}</span>
-          </div>
-        }
-        @if (flightStatus()!.gate) {
-          <div class="info-item">
-            <span class="info-label">Gate</span>
-            <span class="info-value gate-value">{{ flightStatus()!.gate }}</span>
-          </div>
-        }
-        @if (!flightStatus()!.gate && !flightStatus()!.terminal) {
-          <div class="info-item">
-            <span class="info-label">Gate / Terminal</span>
-            <span class="info-value info-tba">To be announced</span>
-          </div>
-        }
+        <div class="info-item">
+          <span class="info-label">Terminal</span>
+          <span class="info-value" [class.info-tba]="!flightStatus()!.terminal">{{ flightStatus()!.terminal ?? 'TBC' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Gate</span>
+          <span class="info-value gate-value" [class.info-tba]="!flightStatus()!.gate">{{ flightStatus()!.gate ?? 'TBC' }}</span>
+        </div>
         <div class="info-item">
           <span class="info-label">Aircraft</span>
           <span class="info-value">{{ flightStatus()!.aircraftType }}</span>
