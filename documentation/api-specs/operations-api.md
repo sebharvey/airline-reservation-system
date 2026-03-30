@@ -66,7 +66,7 @@ Takes schedules stored in the Schedule MS (optionally filtered by `scheduleGroup
 | Service | Endpoints Called | Purpose |
 |---------|-----------------|---------|
 | **Schedule MS** | `POST /v1/schedules`, `GET /v1/schedules`, `GET /v1/schedule-groups`, `POST /v1/schedule-groups`, `PUT /v1/schedule-groups/{id}`, `DELETE /v1/schedule-groups/{id}` | Persist schedule definitions (SSIM import), retrieve schedules (inventory import), manage schedule groups |
-| **Offer MS** | `POST /v1/flights/batch`, `POST /v1/flights/{inventoryId}/fares` | Batch-create `FlightInventory` records, create `Fare` records per inventory |
+| **Offer MS** | `POST /v1/flights/batch`, `POST /v1/flights/{inventoryId}/fares`, `GET /v1/flights/{flightNumber}/inventory` | Batch-create `FlightInventory` records, create `Fare` records per inventory, retrieve flight inventory for status derivation |
 
 ---
 
@@ -410,6 +410,77 @@ Import schedules stored in the Schedule MS into the Offer MS inventory tables. O
 | Status | Reason |
 |--------|--------|
 | `500 Internal Server Error` | Downstream microservice call failed (Schedule MS, Seat MS, or Offer MS returned an error) |
+
+---
+
+### GET /v1/flights/{flightNumber}/status
+
+Public endpoint — returns real-time flight status derived from the Offer microservice's flight inventory. No authentication required (function name does not start with `Admin`, so the `TerminalAuthenticationMiddleware` is bypassed).
+
+**When to use:** Called by the Angular web app's flight status page to display departure/arrival times, gate, terminal, aircraft type, delay information, and operational status for a given flight on a given date.
+
+#### Request
+
+No request body.
+
+| Path Parameter | Type | Required | Description |
+|----------------|------|----------|-------------|
+| `flightNumber` | string | Yes | Flight number, e.g. `"AX001"` |
+
+| Query Parameter | Type | Required | Description |
+|-----------------|------|----------|-------------|
+| `date` | string (date) | No | Departure date in `yyyy-MM-dd` format. Defaults to today (UTC) |
+
+#### Response — `200 OK`
+
+```json
+{
+  "flightNumber": "AX001",
+  "origin": "LHR",
+  "destination": "JFK",
+  "scheduledDepartureDateTime": "2026-05-15T08:00:00Z",
+  "scheduledArrivalDateTime": "2026-05-15T11:10:00Z",
+  "estimatedDepartureDateTime": "2026-05-15T08:00:00Z",
+  "estimatedArrivalDateTime": "2026-05-15T11:10:00Z",
+  "status": "OnTime",
+  "gate": null,
+  "terminal": null,
+  "aircraftType": "A351",
+  "delayMinutes": 0,
+  "statusMessage": "Flight is on time — 42% booked"
+}
+```
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `flightNumber` | string | No | Flight number |
+| `origin` | string | No | IATA 3-letter departure airport code |
+| `destination` | string | No | IATA 3-letter arrival airport code |
+| `scheduledDepartureDateTime` | string (ISO 8601) | No | Scheduled departure date-time UTC |
+| `scheduledArrivalDateTime` | string (ISO 8601) | No | Scheduled arrival date-time UTC |
+| `estimatedDepartureDateTime` | string (ISO 8601) | Yes | Estimated departure (same as scheduled unless delayed) |
+| `estimatedArrivalDateTime` | string (ISO 8601) | Yes | Estimated arrival (same as scheduled unless delayed) |
+| `status` | string | No | One of: `OnTime`, `Delayed`, `Boarding`, `Departed`, `Landed`, `Cancelled` |
+| `gate` | string | Yes | Departure gate (null if not yet assigned) |
+| `terminal` | string | Yes | Departure terminal (null if not yet assigned) |
+| `aircraftType` | string | No | Aircraft type code, e.g. `"A351"` |
+| `delayMinutes` | integer | No | Delay in minutes (`0` if on time) |
+| `statusMessage` | string | No | Human-readable status message including load factor |
+
+#### Orchestration flow
+
+1. Parse and validate `flightNumber` (path) and `date` (query, default today).
+2. Call Offer MS `GET /v1/flights/{flightNumber}/inventory?departureDate={date}`.
+3. If the Offer MS returns `404 Not Found`, return `404` to the caller.
+4. Map the inventory response to the `FlightStatus` response shape — derive `status` from inventory status (`Cancelled` → `Cancelled`, otherwise `OnTime`), compose ISO 8601 date-times from departure/arrival date and time fields, and include the load factor in the status message.
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing or invalid `flightNumber`, or `date` not in `yyyy-MM-dd` format |
+| `404 Not Found` | No inventory exists in the Offer MS for the given flight number and date |
+| `500 Internal Server Error` | Downstream Offer MS call failed |
 
 ---
 

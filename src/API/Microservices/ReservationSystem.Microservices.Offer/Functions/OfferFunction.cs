@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
+using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
@@ -41,6 +42,7 @@ public sealed class OfferFunction
     private readonly GetSeatAvailabilityHandler _seatAvailabilityHandler;
     private readonly ReserveSeatHandler _reserveSeatHandler;
     private readonly UpdateSeatStatusHandler _updateSeatStatusHandler;
+    private readonly GetFlightInventoryHandler _getFlightInventoryByFlightHandler;
     private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
     private readonly ILogger<OfferFunction> _logger;
 
@@ -57,6 +59,7 @@ public sealed class OfferFunction
         GetSeatAvailabilityHandler seatAvailabilityHandler,
         ReserveSeatHandler reserveSeatHandler,
         UpdateSeatStatusHandler updateSeatStatusHandler,
+        GetFlightInventoryHandler getFlightInventoryByFlightHandler,
         GetFlightInventoryByDateHandler getFlightInventoryHandler,
         ILogger<OfferFunction> logger)
     {
@@ -72,6 +75,7 @@ public sealed class OfferFunction
         _seatAvailabilityHandler = seatAvailabilityHandler;
         _reserveSeatHandler = reserveSeatHandler;
         _updateSeatStatusHandler = updateSeatStatusHandler;
+        _getFlightInventoryByFlightHandler = getFlightInventoryByFlightHandler;
         _getFlightInventoryHandler = getFlightInventoryHandler;
         _logger = logger;
     }
@@ -628,6 +632,81 @@ public sealed class OfferFunction
             return await req.OkJsonAsync(new { updated = count });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+    }
+
+    // GET /v1/flights/{flightNumber}/inventory?departureDate=yyyy-MM-dd
+    [Function("GetFlightInventory")]
+    [OpenApiOperation(operationId: "GetFlightInventory", tags: new[] { "Flights" }, Summary = "Get flight inventory for a specific flight number and departure date")]
+    [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Flight number (e.g. AX001)")]
+    [OpenApiParameter(name: "departureDate", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Departure date (yyyy-MM-dd). Defaults to today.")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightInventoryGroupResponse), Description = "OK — returns flight inventory with cabin breakdown")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no inventory exists for the given flight and date")]
+    public async Task<HttpResponseData> GetFlightInventory(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightNumber}/inventory")] HttpRequestData req,
+        string flightNumber,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(flightNumber))
+            return await req.BadRequestAsync("'flightNumber' is required.");
+
+        var dateParam = System.Web.HttpUtility.ParseQueryString(req.Url.Query)["departureDate"];
+
+        DateOnly departureDate;
+        if (string.IsNullOrWhiteSpace(dateParam))
+        {
+            departureDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        }
+        else if (!DateOnly.TryParseExact(dateParam, "yyyy-MM-dd", out departureDate))
+        {
+            return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
+        }
+
+        var inventories = await _getFlightInventoryByFlightHandler.HandleAsync(
+            new GetFlightInventoryQuery(flightNumber.ToUpperInvariant(), departureDate), ct);
+
+        if (inventories.Count == 0)
+            return await req.NotFoundAsync($"No inventory found for flight '{flightNumber}' on {departureDate:yyyy-MM-dd}.");
+
+        // Aggregate all cabin inventories for the flight into a single response
+        var first = inventories[0];
+        var totalSeats = inventories.Sum(i => i.TotalSeats);
+        var totalAvailable = inventories.Sum(i => i.SeatsAvailable);
+
+        var cabinLookup = inventories
+            .SelectMany(i => i.Cabins)
+            .GroupBy(c => c.CabinCode)
+            .ToDictionary(g => g.Key, g => new Models.Responses.CabinInventory
+            {
+                TotalSeats = g.Sum(c => c.TotalSeats),
+                SeatsAvailable = g.Sum(c => c.SeatsAvailable),
+                SeatsSold = g.Sum(c => c.SeatsSold),
+                SeatsHeld = g.Sum(c => c.SeatsHeld)
+            });
+
+        var response = new FlightInventoryGroupResponse
+        {
+            FlightNumber        = first.FlightNumber,
+            DepartureDate       = first.DepartureDate.ToString("yyyy-MM-dd"),
+            DepartureTime       = first.DepartureTime.ToString("HH:mm"),
+            ArrivalTime         = first.ArrivalTime.ToString("HH:mm"),
+            ArrivalDayOffset    = first.ArrivalDayOffset,
+            Origin              = first.Origin,
+            Destination         = first.Destination,
+            AircraftType        = first.AircraftType,
+            Status              = first.Status,
+            TotalSeats          = totalSeats,
+            TotalSeatsAvailable = totalAvailable,
+            LoadFactor          = totalSeats > 0
+                ? (int)Math.Round((double)(totalSeats - totalAvailable) / totalSeats * 100)
+                : 0,
+            F = cabinLookup.GetValueOrDefault("F"),
+            J = cabinLookup.GetValueOrDefault("J"),
+            W = cabinLookup.GetValueOrDefault("W"),
+            Y = cabinLookup.GetValueOrDefault("Y"),
+        };
+
+        return await req.OkJsonAsync(response);
     }
 
     // GET /v1/admin/inventory?departureDate=yyyy-MM-dd

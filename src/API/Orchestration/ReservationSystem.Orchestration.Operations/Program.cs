@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Orchestration.Operations.Swagger;
+using ReservationSystem.Orchestration.Operations.Application.GetFlightStatus;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
@@ -65,6 +66,7 @@ var host = new HostBuilder()
         services.AddScoped<FareRuleServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
+        services.AddScoped<GetFlightStatusHandler>();
         services.AddScoped<ImportSsimHandler>();
         services.AddScoped<ImportSchedulesToInventoryHandler>();
     })
