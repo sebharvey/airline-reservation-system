@@ -177,6 +177,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Depart
         ON [offer].[FlightInventory] (DepartureDate, DepartureTime);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Route' AND object_id = OBJECT_ID('[offer].[FlightInventory]'))
+    CREATE INDEX IX_FlightInventory_Route
+        ON [offer].[FlightInventory] (Origin, Destination, DepartureDate)
+        INCLUDE (SeatsAvailable)
+        WHERE Status = 'Active';
+GO
+
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('
@@ -275,6 +282,15 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FareRule_FlightNumber' AND object_id = OBJECT_ID('[offer].[FareRule]'))
     CREATE INDEX IX_FareRule_FlightNumber ON [offer].[FareRule] (FlightNumber) WHERE FlightNumber IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FareRule_CabinCode' AND object_id = OBJECT_ID('[offer].[FareRule]'))
+    CREATE INDEX IX_FareRule_CabinCode
+        ON [offer].[FareRule] (CabinCode, FlightNumber)
+        INCLUDE (FareBasisCode, FareFamily, BookingClass, RuleType, CurrencyCode,
+                 MinAmount, MaxAmount, TaxAmount, MinPoints, MaxPoints, PointsTaxes,
+                 IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                 ValidFrom, ValidTo);
 GO
 
 IF OBJECT_ID('[offer].[TR_FareRule_UpdatedAt]', 'TR') IS NULL

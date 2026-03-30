@@ -384,6 +384,31 @@ public sealed class SqlOfferRepository : IOfferRepository
         _logger.LogDebug("Inserted Fare {FareId} into [offer].[Fare]", fare.FareId);
     }
 
+    public async Task BatchCreateFaresAsync(IReadOnlyList<Fare> fares, CancellationToken ct = default)
+    {
+        if (fares.Count == 0)
+            return;
+
+        const string sql = """
+            INSERT INTO [offer].[Fare]
+                   (FareId, InventoryId, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                    CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
+                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                    PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+            VALUES (@FareId, @InventoryId, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
+                    @CurrencyCode, @BaseFareAmount, @TaxAmount, @TotalAmount,
+                    @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
+                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(sql, fares.Select(MapFareToParameters), commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug("BatchCreateFaresAsync: inserted {Count} fares", fares.Count);
+    }
+
     // -------------------------------------------------------------------------
     // StoredOffer
     // -------------------------------------------------------------------------
@@ -684,6 +709,49 @@ public sealed class SqlOfferRepository : IOfferRepository
             {
                 CabinCode = cabinCode,
                 FlightNumber = flightNumber,
+                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
+            }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToFareRule).ToList().AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<FareRule>> GetApplicableFareRulesForFlightsAsync(
+        IReadOnlyList<string> flightNumbers, IReadOnlyList<string> cabinCodes,
+        DateOnly departureDate, CancellationToken ct = default)
+    {
+        // Single query that retrieves all fare rules applicable to any of the supplied
+        // (flightNumber, cabinCode) combinations for the given departure date, ordered
+        // least-to-most-specific so callers can apply the last-wins cascade per pair.
+        const string sql = """
+            SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
+                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes,
+                   IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
+                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            FROM   [offer].[FareRule]
+            WHERE  CabinCode IN @CabinCodes
+              AND (
+                  (FlightNumber IS NULL      AND ValidFrom IS NULL AND ValidTo IS NULL)
+               OR (FlightNumber IN @FlightNumbers AND ValidFrom IS NULL AND ValidTo IS NULL)
+               OR (FlightNumber IN @FlightNumbers AND ValidFrom <= @DepartureDate AND ValidTo > @DepartureDate)
+              )
+            ORDER BY
+              CabinCode ASC,
+              CASE
+                WHEN FlightNumber IS NULL     AND ValidFrom IS NULL THEN 0
+                WHEN FlightNumber IS NOT NULL AND ValidFrom IS NULL THEN 1
+                ELSE 2
+              END ASC,
+              FareBasisCode ASC;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new
+            {
+                CabinCodes    = cabinCodes,
+                FlightNumbers = flightNumbers,
                 DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
