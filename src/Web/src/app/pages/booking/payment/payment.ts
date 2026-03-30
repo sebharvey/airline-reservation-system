@@ -200,6 +200,7 @@ export class PaymentComponent implements OnInit {
   submitted = signal(false);
   paying = signal(false);
   paymentError = signal('');
+  showErrorModal = signal(false);
 
   readonly cardDisplayNumber = computed(() => {
     const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
@@ -298,8 +299,13 @@ export class PaymentComponent implements OnInit {
         this.paying.set(false);
         const msg = err?.error?.message ?? err?.message ?? 'Payment failed. Please check your details and try again.';
         this.paymentError.set(msg);
+        this.showErrorModal.set(true);
       }
     });
+  }
+
+  dismissErrorModal(): void {
+    this.showErrorModal.set(false);
   }
 
   formatPrice(amount: number): string {
