@@ -70,6 +70,14 @@ export class SeatsComponent implements OnInit {
 
   readonly selectionCount = computed(() => this.selections().size);
 
+  readonly activeCabin = computed((): CabinSeatmap | null => {
+    const entry = this.activeEntry();
+    if (!entry?.seatmap) return null;
+    return entry.seatmap.cabins.find(c => c.cabinCode === entry.flightOffer.cabinCode)
+      ?? entry.seatmap.cabins[0]
+      ?? null;
+  });
+
   ngOnInit(): void {
     if (!this.basket()) {
       this.router.navigate(['/']);
