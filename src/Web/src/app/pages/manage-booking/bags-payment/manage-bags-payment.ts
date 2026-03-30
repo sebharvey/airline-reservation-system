@@ -20,6 +20,7 @@ export class ManageBagsPaymentComponent implements OnInit {
   submitted = signal(false);
   errorMessage = signal('');
   paymentError = signal('');
+  showErrorModal = signal(false);
 
   bookingRef = signal('');
   givenName = signal('');
@@ -168,11 +169,17 @@ export class ManageBagsPaymentComponent implements OnInit {
           }
         });
       },
-      error: (err: { message?: string }) => {
+      error: (err: { error?: { message?: string }, message?: string }) => {
         this.paying.set(false);
-        this.paymentError.set(err?.message ?? 'Payment failed. Please try again.');
+        const msg = (err as any)?.error?.message ?? err?.message ?? 'Payment failed. Please try again.';
+        this.paymentError.set(msg);
+        this.showErrorModal.set(true);
       }
     });
+  }
+
+  dismissErrorModal(): void {
+    this.showErrorModal.set(false);
   }
 
   onBack(): void {

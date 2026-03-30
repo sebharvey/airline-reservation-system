@@ -154,14 +154,6 @@
       </div>
     </div>
 
-    <!-- Payment error -->
-    @if (paymentError()) {
-      <div class="error-banner">
-        <span>&#9888;</span>
-        {{ paymentError() }}
-      </div>
-    }
-
     <!-- Pay button -->
     <div class="action-buttons">
       <button
@@ -181,3 +173,16 @@
     <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
   }
 </div>
+
+<!-- Payment Error Modal -->
+@if (showErrorModal()) {
+  <div class="error-modal-backdrop" (click)="dismissErrorModal()" role="dialog" aria-modal="true" aria-labelledby="ci-payment-error-title">
+    <div class="error-modal-card" (click)="$event.stopPropagation()">
+      <div class="error-modal-icon">&#9888;</div>
+      <div class="error-modal-title" id="ci-payment-error-title">Payment unsuccessful</div>
+      <div class="error-modal-message">{{ paymentError() }}</div>
+      <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>
+    </div>
+  </div>
+}
+

@@ -142,9 +142,6 @@
         </div>
       </div>
 
-      <!-- Payment Error -->
-      <div class="payment-error" *ngIf="paymentError()">{{ paymentError() }}</div>
-
       <!-- Pay Button -->
       <button class="btn-pay" [class.loading]="paying()" [disabled]="paying()" (click)="onPay()">
         <span class="btn-pay-content" *ngIf="!paying()">
@@ -164,3 +161,14 @@
   </ng-container>
 
 </div>
+
+<!-- Payment Error Modal -->
+<div class="error-modal-backdrop" *ngIf="showErrorModal()" (click)="dismissErrorModal()" role="dialog" aria-modal="true" aria-labelledby="payment-error-title">
+  <div class="error-modal-card fade-in" (click)="$event.stopPropagation()">
+    <div class="error-modal-icon">&#9888;</div>
+    <div class="error-modal-title" id="payment-error-title">Payment unsuccessful</div>
+    <div class="error-modal-message">{{ paymentError() }}</div>
+    <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>
+  </div>
+</div>
+
