@@ -1,0 +1,126 @@
+<div class="order-list-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Orders</h1>
+      <p class="page-subtitle">Search and view booking orders</p>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-row">
+    <div class="search-field">
+      <span class="search-icon">&#128269;</span>
+      <input
+        class="search-input"
+        type="search"
+        placeholder="Search by PNR (e.g. ABC123)…"
+        [value]="search()"
+        (input)="setSearch($any($event.target).value)"
+        (keydown.enter)="searchByPnr()"
+        maxlength="6"
+      />
+    </div>
+    <button class="search-btn" (click)="searchByPnr()" [disabled]="loading()">
+      @if (loading()) {
+        <span class="btn-spinner"></span> Searching…
+      } @else {
+        Search
+      }
+    </button>
+    @if (searchMode() && !loading()) {
+      <button class="clear-btn" (click)="clearSearch()">Clear</button>
+    }
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Orders table -->
+  @if (loaded() && !loading()) {
+    <div class="table-card">
+      <table class="order-table">
+        <thead>
+          <tr>
+            <th>PNR</th>
+            <th>Passenger</th>
+            <th class="hide-mobile">Route</th>
+            <th>Status</th>
+            <th class="hide-mobile">Channel</th>
+            <th class="hide-mobile">Amount</th>
+            <th class="hide-mobile">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.bookingReference) {
+            <tr class="order-row" (click)="openOrder(order.bookingReference)">
+              <td class="mono pnr-cell">{{ order.bookingReference }}</td>
+              <td>
+                <div class="passenger-cell">
+                  <div class="avatar">
+                    {{ order.leadPassengerName ? order.leadPassengerName[0] : '?' }}
+                  </div>
+                  <div class="passenger-info">
+                    <span class="passenger-name">
+                      {{ order.leadPassengerName || 'Unknown' }}
+                    </span>
+                    <span class="route-mobile">{{ order.route || '—' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="hide-mobile route-cell">{{ order.route || '—' }}</td>
+              <td>
+                <span class="status-badge" [class]="statusBadgeClass(order.orderStatus)">
+                  {{ order.orderStatus }}
+                </span>
+              </td>
+              <td class="hide-mobile">
+                <span class="channel-badge" [class]="channelBadgeClass(order.channelCode)">
+                  {{ order.channelCode }}
+                </span>
+              </td>
+              <td class="hide-mobile amount-cell">
+                {{ formatAmount(order.totalAmount, order.currencyCode) }}
+              </td>
+              <td class="hide-mobile muted">{{ formatDate(order.createdAt) }}</td>
+            </tr>
+          }
+
+          @if (orders().length === 0) {
+            <tr>
+              <td colspan="7" class="empty-row">
+                @if (searchMode()) {
+                  No order found for PNR "{{ search().toUpperCase() }}".
+                } @else {
+                  No orders found.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">
+      @if (searchMode()) {
+        {{ orders().length === 1 ? '1 result' : orders().length + ' results' }} for "{{ search().toUpperCase() }}"
+      } @else {
+        Showing last {{ orders().length }} orders
+      }
+    </p>
+  }
+
+  <!-- Loading state -->
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner large-spinner"></span>
+      <p>Loading orders…</p>
+    </div>
+  }
+
+</div>

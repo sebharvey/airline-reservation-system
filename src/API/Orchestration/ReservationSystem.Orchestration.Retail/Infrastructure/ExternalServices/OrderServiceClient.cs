@@ -116,6 +116,22 @@ public sealed class OrderServiceClient
             ?? throw new InvalidOperationException("Empty response creating order.");
     }
 
+    public async Task<OrderMsOrderResult?> GetOrderByRefAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/orders/{bookingReference}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
+    }
+
+    public async Task<List<OrderMsOrderResult>> GetRecentOrdersAsync(int limit, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/admin/orders?limit={limit}", ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<OrderMsOrderResult>>(JsonOptions, ct)
+            ?? new List<OrderMsOrderResult>();
+    }
+
     public async Task UpdateOrderETicketsAsync(string bookingReference, string eTicketsJson, CancellationToken ct)
     {
         using var content = new StringContent(eTicketsJson, Encoding.UTF8, "application/json");
@@ -201,6 +217,42 @@ public sealed class OrderMsAddOfferResult
 
     [JsonPropertyName("totalAmount")]
     public decimal TotalAmount { get; init; }
+}
+
+public sealed class OrderMsOrderResult
+{
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
+
+    [JsonPropertyName("bookingReference")]
+    public string? BookingReference { get; init; }
+
+    [JsonPropertyName("orderStatus")]
+    public string OrderStatus { get; init; } = string.Empty;
+
+    [JsonPropertyName("channelCode")]
+    public string ChannelCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("currencyCode")]
+    public string CurrencyCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("ticketingTimeLimit")]
+    public DateTime? TicketingTimeLimit { get; init; }
+
+    [JsonPropertyName("totalAmount")]
+    public decimal? TotalAmount { get; init; }
+
+    [JsonPropertyName("version")]
+    public int Version { get; init; }
+
+    [JsonPropertyName("createdAt")]
+    public DateTime CreatedAt { get; init; }
+
+    [JsonPropertyName("updatedAt")]
+    public DateTime UpdatedAt { get; init; }
+
+    [JsonPropertyName("orderData")]
+    public JsonElement? OrderData { get; init; }
 }
 
 public sealed class OrderMsCreateOrderResult

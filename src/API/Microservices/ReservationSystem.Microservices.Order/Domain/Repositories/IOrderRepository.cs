@@ -10,6 +10,8 @@ public interface IOrderRepository
 
     Task<IReadOnlyList<Entities.Order>> GetByFlightAsync(string flightNumber, string departureDate, string? status = null, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Entities.Order>> GetRecentAsync(int limit, CancellationToken cancellationToken = default);
+
     Task CreateAsync(Entities.Order order, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Entities.Order order, CancellationToken cancellationToken = default);

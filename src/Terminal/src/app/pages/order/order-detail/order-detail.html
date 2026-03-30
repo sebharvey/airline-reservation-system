@@ -1,0 +1,327 @@
+<div class="order-detail-page fade-in">
+
+  <!-- Header -->
+  <div class="detail-header">
+    <button class="back-btn" (click)="goBack()">
+      <span class="back-arrow">&larr;</span>
+      <span>Orders</span>
+    </button>
+
+    @if (order(); as o) {
+      <div class="order-header-info">
+        <div class="header-icon">&#128196;</div>
+        <div class="header-text">
+          <h1 class="header-ref mono">{{ o.bookingReference }}</h1>
+          <div class="header-meta">
+            <span class="status-badge" [class]="statusBadgeClass(o.orderStatus)">{{ o.orderStatus }}</span>
+            <span class="meta-item">{{ o.channelCode }}</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-item">{{ o.currencyCode }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-amount">
+        <span class="amount-value">{{ formatAmount(o.totalAmount) }}</span>
+        <span class="amount-label">Total</span>
+      </div>
+    }
+  </div>
+
+  <!-- Alerts -->
+  @if (error()) {
+    <div class="alert alert-error" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner"></span>
+      <span>Loading order…</span>
+    </div>
+  }
+
+  @if (order(); as o) {
+
+    <!-- Meta strip -->
+    <div class="meta-strip">
+      <div class="meta-chip">
+        <span class="chip-label">Created</span>
+        <span class="chip-value">{{ formatDateTime(o.createdAt) }}</span>
+      </div>
+      <div class="meta-chip">
+        <span class="chip-label">Last updated</span>
+        <span class="chip-value">{{ formatDateTime(o.updatedAt) }}</span>
+      </div>
+      @if (o.ticketingTimeLimit) {
+        <div class="meta-chip">
+          <span class="chip-label">Ticketing limit</span>
+          <span class="chip-value">{{ formatDateTime(o.ticketingTimeLimit) }}</span>
+        </div>
+      }
+      <div class="meta-chip">
+        <span class="chip-label">Version</span>
+        <span class="chip-value">{{ o.version }}</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" [class.tab-active]="activeTab() === 'itinerary'" (click)="switchTab('itinerary')">
+        Itinerary
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'passengers'" (click)="switchTab('passengers')">
+        Passengers
+        @if (passengers().length) {
+          <span class="tab-count">{{ passengers().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'ancillaries'" (click)="switchTab('ancillaries')">
+        Ancillaries
+        @if (ancillaryItems().length) {
+          <span class="tab-count">{{ ancillaryItems().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'payments'" (click)="switchTab('payments')">
+        Payments
+        @if (payments().length) {
+          <span class="tab-count">{{ payments().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'history'" (click)="switchTab('history')">
+        History
+        @if (history().length) {
+          <span class="tab-count">{{ history().length }}</span>
+        }
+      </button>
+    </div>
+
+    <!-- ── ITINERARY TAB ── -->
+    @if (activeTab() === 'itinerary') {
+      <div class="tab-content fade-in">
+        @if (segments().length === 0) {
+          <p class="empty-tab">No flight segments on record.</p>
+        }
+        @for (seg of segments(); track seg.segmentId; let i = $index) {
+          <div class="segment-card">
+            <div class="segment-header">
+              <span class="flight-badge">{{ seg.flightNumber }}</span>
+              <span class="cabin-badge">{{ seg.cabinClass }}</span>
+              @if (seg.fareClass) {
+                <span class="fare-badge">{{ seg.fareClass }}</span>
+              }
+            </div>
+            <div class="segment-route">
+              <div class="route-point">
+                <span class="airport-code">{{ seg.origin }}</span>
+                <span class="route-time">{{ formatTime(seg.departureTime) }}</span>
+                <span class="route-date muted">{{ formatDate(seg.departureTime) }}</span>
+              </div>
+              <div class="route-arrow">
+                <div class="arrow-line"></div>
+                <span class="duration-label">{{ duration(seg.departureTime, seg.arrivalTime) }}</span>
+              </div>
+              <div class="route-point route-point-dest">
+                <span class="airport-code">{{ seg.destination }}</span>
+                <span class="route-time">{{ formatTime(seg.arrivalTime) }}</span>
+                <span class="route-date muted">{{ formatDate(seg.arrivalTime) }}</span>
+              </div>
+            </div>
+
+            <!-- E-tickets for this segment -->
+            @if (passengers().length > 0) {
+              <div class="segment-tickets">
+                <span class="tickets-label">E-tickets</span>
+                <div class="tickets-list">
+                  @for (pax of passengers(); track pax.passengerId) {
+                    <div class="ticket-row">
+                      <span class="ticket-pax">{{ pax.givenName }} {{ pax.surname }}</span>
+                      <span class="ticket-number mono">
+                        {{ getETicketForPaxSegment(pax.passengerId, seg.segmentId) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── PASSENGERS TAB ── -->
+    @if (activeTab() === 'passengers') {
+      <div class="tab-content fade-in">
+        @if (passengers().length === 0) {
+          <p class="empty-tab">No passenger data on record.</p>
+        }
+        @for (pax of passengers(); track pax.passengerId; let i = $index) {
+          <div class="info-card">
+            <div class="info-card-header">
+              <div class="pax-avatar">{{ pax.givenName[0] }}</div>
+              <div class="pax-header-text">
+                <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+                <span class="pax-type">{{ passengerTypeLabel(pax.passengerType) }}</span>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">Date of birth</span>
+                <span class="field-value">{{ formatDate(pax.dateOfBirth) }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Email</span>
+                <span class="field-value">{{ pax.contactEmail || '—' }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Phone</span>
+                <span class="field-value">{{ pax.contactPhone || '—' }}</span>
+              </div>
+              @if (pax.loyaltyNumber) {
+                <div class="field-row">
+                  <span class="field-label">Loyalty no.</span>
+                  <span class="field-value mono">{{ pax.loyaltyNumber }}</span>
+                </div>
+              }
+              @if (pax.documentNumber) {
+                <div class="field-row">
+                  <span class="field-label">Document</span>
+                  <span class="field-value">{{ pax.documentType }} {{ pax.documentNumber }}</span>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Expiry</span>
+                  <span class="field-value">{{ formatDate(pax.documentExpiry) }}</span>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Nationality</span>
+                  <span class="field-value">{{ pax.documentNationality || '—' }}</span>
+                </div>
+              }
+
+              <!-- Seats for this passenger -->
+              @for (seg of segments(); track seg.segmentId) {
+                <div class="field-row">
+                  <span class="field-label">Seat ({{ seg.flightNumber }})</span>
+                  <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── ANCILLARIES TAB ── -->
+    @if (activeTab() === 'ancillaries') {
+      <div class="tab-content fade-in">
+        @if (ancillaryItems().length === 0) {
+          <p class="empty-tab">No ancillary items on record.</p>
+        } @else {
+          <div class="table-card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Passenger</th>
+                  <th>Segment</th>
+                  <th>Detail</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of ancillaryItems(); track item.itemId) {
+                  @let pax = passengers().find(p => p.passengerId === item.passengerId);
+                  @let seg = segments().find(s => s.segmentId === item.segmentId);
+                  <tr>
+                    <td>
+                      <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">
+                        {{ item.itemType }}
+                      </span>
+                    </td>
+                    <td>{{ pax ? pax.givenName + ' ' + pax.surname : (item.passengerId || '—') }}</td>
+                    <td class="mono">{{ seg ? seg.flightNumber : (item.segmentId || '—') }}</td>
+                    <td>
+                      @if (item.seatNumber) { <span class="mono">{{ item.seatNumber }}</span> }
+                      @else if (item.bagWeightKg) { {{ item.bagWeightKg }}kg }
+                      @else { — }
+                    </td>
+                    <td>
+                      <span class="status-badge badge-default">{{ item.status }}</span>
+                    </td>
+                    <td>{{ formatAmount(item.amount, item.currency) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── PAYMENTS TAB ── -->
+    @if (activeTab() === 'payments') {
+      <div class="tab-content fade-in">
+        @if (payments().length === 0) {
+          <p class="empty-tab">No payment records on record.</p>
+        } @else {
+          <div class="table-card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Payment ID</th>
+                  <th>Method</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th class="hide-mobile">Authorised</th>
+                  <th class="hide-mobile">Settled</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pay of payments(); track pay.paymentId) {
+                  <tr>
+                    <td class="mono muted small-mono">{{ pay.paymentId }}</td>
+                    <td>{{ pay.paymentMethod || '—' }}</td>
+                    <td class="amount-cell">{{ formatAmount(pay.amount, pay.currency) }}</td>
+                    <td>
+                      <span class="pay-status-badge" [class]="paymentStatusClass(pay.status)">
+                        {{ pay.status }}
+                      </span>
+                    </td>
+                    <td class="hide-mobile muted">{{ formatDateTime(pay.authorisedAt) }}</td>
+                    <td class="hide-mobile muted">{{ formatDateTime(pay.settledAt) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── HISTORY TAB ── -->
+    @if (activeTab() === 'history') {
+      <div class="tab-content fade-in">
+        @if (history().length === 0) {
+          <p class="empty-tab">No history events on record.</p>
+        } @else {
+          <div class="history-list">
+            @for (event of history(); track event.timestamp + event.eventType) {
+              <div class="history-event">
+                <div class="event-dot"></div>
+                <div class="event-body">
+                  <span class="event-type">{{ event.eventType }}</span>
+                  <span class="event-desc">{{ event.description }}</span>
+                  <span class="event-time muted">{{ formatDateTime(event.timestamp) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  }
+
+</div>

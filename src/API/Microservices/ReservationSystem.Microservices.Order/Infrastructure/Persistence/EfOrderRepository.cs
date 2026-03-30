@@ -66,6 +66,15 @@ public sealed class EfOrderRepository : IOrderRepository
         }).ToList().AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<Domain.Entities.Order>> GetRecentAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders
+            .AsNoTracking()
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task CreateAsync(Domain.Entities.Order order, CancellationToken cancellationToken = default)
     {
         _context.Orders.Add(order);
