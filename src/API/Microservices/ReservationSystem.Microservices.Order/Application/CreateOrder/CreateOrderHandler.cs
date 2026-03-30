@@ -99,7 +99,7 @@ public sealed class CreateOrderHandler
             OrderStatusValues.Confirmed,
             order.ChannelCode,
             order.CurrencyCode,
-            order.TicketingTimeLimit,
+            basket.ExpiresAt,
             order.TotalAmount,
             order.Version,
             order.OrderData,
