@@ -91,7 +91,7 @@ export class SeatsComponent implements OnInit {
     this.seatmapEntries.set(entries);
 
     basket.flightOffers.forEach((fo, idx) => {
-      this.retailApi.getFlightSeatmap(fo.inventoryId, fo.flightNumber, fo.cabinCode).subscribe({
+      this.retailApi.getFlightSeatmap(fo.inventoryId, fo.flightNumber, fo.aircraftType).subscribe({
         next: (seatmap) => {
           this.seatmapEntries.update(list => {
             const updated = [...list];

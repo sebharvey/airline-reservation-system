@@ -14,7 +14,6 @@ import { map, delay } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
 import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
-import { getMockSeatmap } from '../data/mock/seatmap.mock';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
 import { MOCK_FLIGHT_STATUS } from '../data/mock/flight-offers.mock';
@@ -259,8 +258,10 @@ export class RetailApiService {
    * GET /v1/flights/{flightId}/seatmap
    * Retrieve seatmap with pricing and availability for a flight.
    */
-  getFlightSeatmap(flightId: string, flightNumber: string, cabinCode?: CabinCode): Observable<Seatmap> {
-    return of(getMockSeatmap(flightId, flightNumber, cabinCode)).pipe(delay(API_DELAY_MS));
+  getFlightSeatmap(flightId: string, flightNumber: string, aircraftType: string): Observable<Seatmap> {
+    const base = environment.retailApiBaseUrl;
+    const params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}`;
+    return this.#http.get<Seatmap>(`${base}/api/v1/flights/${flightId}/seatmap?${params}`);
   }
 
   /**
