@@ -1,6 +1,8 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -51,6 +53,8 @@ public sealed class PaymentServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(ct);
+            if ((int)response.StatusCode is >= 400 and < 500)
+                throw new PaymentValidationException(error);
             throw new InvalidOperationException($"Payment authorisation failed: {error}");
         }
     }
