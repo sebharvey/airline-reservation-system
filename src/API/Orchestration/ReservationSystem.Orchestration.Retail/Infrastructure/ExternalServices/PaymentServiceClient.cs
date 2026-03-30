@@ -53,7 +53,7 @@ public sealed class PaymentServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(ct);
-            if ((int)response.StatusCode is >= 400 and < 500)
+            if (response.StatusCode == HttpStatusCode.BadRequest)
                 throw new PaymentValidationException(error);
             throw new InvalidOperationException($"Payment authorisation failed: {error}");
         }
