@@ -50,7 +50,19 @@ export const routes: Routes = [
       },
       {
         path: 'users',
-        loadComponent: () => import('./pages/users/users').then(m => m.UsersComponent),
+        loadComponent: () => import('./pages/users/user').then(m => m.UserComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/users/user-list/user-list').then(m => m.UserListComponent),
+          },
+          {
+            path: ':userId',
+            loadComponent: () =>
+              import('./pages/users/user-detail/user-detail').then(m => m.UserDetailComponent),
+          },
+        ],
       },
     ],
   },

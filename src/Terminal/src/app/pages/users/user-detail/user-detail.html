@@ -1,0 +1,237 @@
+<div class="user-detail-page fade-in">
+
+  <!-- ── Header ── -->
+  <div class="detail-header">
+    <button class="back-btn" (click)="goBack()">
+      <span class="back-arrow">&larr;</span>
+      <span class="back-label">Users</span>
+    </button>
+
+    @if (!isNew) {
+      @if (user(); as u) {
+        <div class="user-header-info">
+          <div class="header-avatar">{{ u.firstName[0] }}</div>
+          <div class="header-text">
+            <h1 class="header-name">{{ u.firstName }} {{ u.lastName }}</h1>
+            <div class="header-meta">
+              <span class="mono">{{ u.username }}</span>
+              <span class="badge" [class]="statusBadgeClass(u)">{{ statusLabel(u) }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    } @else {
+      <h1 class="header-name">New User Account</h1>
+    }
+  </div>
+
+  <!-- ── Alerts ── -->
+  @if (error()) {
+    <div class="alert alert-error" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+  @if (success()) {
+    <div class="alert alert-success" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  <!-- ── Loading ── -->
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="spinner"></span>
+      <span>Loading user...</span>
+    </div>
+  }
+
+  <!-- ── New user creation form ── -->
+  @if (isNew) {
+    <div class="detail-card">
+      <h3 class="section-title">Account details</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-label">Username</label>
+          <input class="field-input" type="text" placeholder="e.g. JBLOGGS"
+            [value]="newUsername()"
+            (input)="setNewUserField('username', $any($event.target).value)"
+            [disabled]="saving()" />
+        </div>
+        <div class="field">
+          <label class="field-label">First Name</label>
+          <input class="field-input" type="text" placeholder="Joe"
+            [value]="newFirstName()"
+            (input)="setNewUserField('firstName', $any($event.target).value)"
+            [disabled]="saving()" />
+        </div>
+        <div class="field">
+          <label class="field-label">Last Name</label>
+          <input class="field-input" type="text" placeholder="Bloggs"
+            [value]="newLastName()"
+            (input)="setNewUserField('lastName', $any($event.target).value)"
+            [disabled]="saving()" />
+        </div>
+        <div class="field">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" placeholder="j.bloggs@apexair.com"
+            [value]="newEmail()"
+            (input)="setNewUserField('email', $any($event.target).value)"
+            [disabled]="saving()" />
+        </div>
+        <div class="field">
+          <label class="field-label">Password</label>
+          <input class="field-input" type="password" placeholder="Initial password"
+            [value]="newPassword()"
+            (input)="setNewUserField('password', $any($event.target).value)"
+            [disabled]="saving()" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="goBack()" [disabled]="saving()">Cancel</button>
+        <button class="btn-primary" (click)="createUser()" [disabled]="saving()">
+          @if (saving()) {
+            <span class="btn-spinner"></span> Creating...
+          } @else {
+            Create Account
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Existing user view ── -->
+  @if (!isNew && user(); as u) {
+
+    @if (!editing()) {
+      <!-- View mode -->
+      <div class="detail-actions-bar">
+        @if (u.isLocked) {
+          <button class="btn-activate" (click)="unlockUser()">Unlock Account</button>
+        }
+        @if (!isSelf(u) || !u.isActive) {
+          <button
+            class="btn-toggle-status"
+            [class.btn-suspend]="u.isActive"
+            [class.btn-activate]="!u.isActive"
+            (click)="toggleStatus()"
+          >
+            {{ u.isActive ? 'Deactivate' : 'Activate' }}
+          </button>
+        }
+        @if (!isSelf(u)) {
+          <button class="btn-delete" (click)="deleteUser()">Delete</button>
+        }
+        <button class="btn-secondary" (click)="openResetPassword()">Reset Password</button>
+        <button class="edit-btn" (click)="startEdit()">Edit User</button>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-section">
+          <h3 class="section-title">Account details</h3>
+          <div class="field-grid">
+            <div class="field-display">
+              <span class="field-label">User ID</span>
+              <span class="field-value mono">{{ u.userId }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Username</span>
+              <span class="field-value mono">{{ u.username }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">First Name</span>
+              <span class="field-value">{{ u.firstName }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Last Name</span>
+              <span class="field-value">{{ u.lastName }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Email</span>
+              <span class="field-value">{{ u.email }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Status</span>
+              <span class="field-value">
+                <span class="badge" [class]="statusBadgeClass(u)">{{ statusLabel(u) }}</span>
+              </span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Last Login</span>
+              <span class="field-value">{{ formatDate(u.lastLoginAt) }}</span>
+            </div>
+            <div class="field-display">
+              <span class="field-label">Created</span>
+              <span class="field-value">{{ formatDate(u.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset password form -->
+      @if (showResetPassword()) {
+        <div class="detail-card">
+          <h3 class="section-title">Reset password</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label class="field-label">New Password</label>
+              <input class="field-input" type="password" placeholder="Enter new password"
+                [value]="resetPasswordValue()"
+                (input)="resetPasswordValue.set($any($event.target).value)"
+                [disabled]="resettingPassword()" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-secondary" (click)="cancelResetPassword()" [disabled]="resettingPassword()">Cancel</button>
+            <button class="btn-primary" (click)="resetPassword()" [disabled]="resettingPassword()">
+              @if (resettingPassword()) {
+                <span class="btn-spinner"></span> Resetting...
+              } @else {
+                Reset Password
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+    } @else {
+      <!-- Edit mode -->
+      <div class="detail-card">
+        <h3 class="section-title">Edit user details</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label">First Name</label>
+            <input class="field-input" type="text"
+              [value]="editFirstName()"
+              (input)="editFirstName.set($any($event.target).value)"
+              [disabled]="saving()" />
+          </div>
+          <div class="field">
+            <label class="field-label">Last Name</label>
+            <input class="field-input" type="text"
+              [value]="editLastName()"
+              (input)="editLastName.set($any($event.target).value)"
+              [disabled]="saving()" />
+          </div>
+          <div class="field">
+            <label class="field-label">Email</label>
+            <input class="field-input" type="email"
+              [value]="editEmail()"
+              (input)="editEmail.set($any($event.target).value)"
+              [disabled]="saving()" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="cancelEdit()" [disabled]="saving()">Cancel</button>
+          <button class="btn-primary" (click)="saveEdit()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="btn-spinner"></span> Saving...
+            } @else {
+              Save Changes
+            }
+          </button>
+        </div>
+      </div>
+    }
+
+  }
+</div>
