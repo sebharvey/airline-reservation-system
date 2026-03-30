@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Order.Swagger;
 using ReservationSystem.Microservices.Order.Application.CancelOrder;
 using ReservationSystem.Microservices.Order.Application.ChangeOrder;
+using ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.DeleteExpiredBaskets;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
@@ -75,6 +76,7 @@ var host = new HostBuilder()
         services.AddScoped<UpdateBasketSsrsHandler>();
         services.AddScoped<ExpireBasketHandler>();
         services.AddScoped<CreateOrderHandler>();
+        services.AddScoped<ConfirmOrderHandler>();
         services.AddScoped<GetOrderHandler>();
         services.AddScoped<UpdateOrderSeatsHandler>();
         services.AddScoped<UpdateOrderBagsHandler>();

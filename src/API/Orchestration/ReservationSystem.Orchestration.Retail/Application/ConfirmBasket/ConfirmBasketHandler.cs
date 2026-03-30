@@ -35,8 +35,16 @@ public sealed class ConfirmBasketHandler
 
         var totalAmount = basket.TotalAmount ?? 0m;
         var currency = basket.CurrencyCode;
+        var bookingType = command.LoyaltyPointsToRedeem.HasValue ? "Reward" : "Revenue";
 
-        // 2. Initialise and authorise payment
+        // 2. Create draft order in Order MS — no booking reference yet, basket remains active
+        var draftOrder = await _orderServiceClient.CreateOrderAsync(
+            command.BasketId,
+            bookingType: bookingType,
+            redemptionReference: null,
+            cancellationToken);
+
+        // 3. Initialise and authorise payment
         var paymentId = await _paymentServiceClient.InitialiseAsync(
             paymentType: "Fare",
             method: command.PaymentMethod,
@@ -58,34 +66,31 @@ public sealed class ConfirmBasketHandler
             throw;
         }
 
-        // 3. Create order in Order MS — booking reference generated here
+        // 4. Confirm order in Order MS — validates completeness, assigns booking reference,
+        //    writes payment references into OrderData, and deletes the basket
         var paymentRefs = new List<object>
         {
             new { type = command.PaymentMethod, paymentReference = paymentId, amount = totalAmount }
         };
 
-        var bookingType = command.LoyaltyPointsToRedeem.HasValue ? "Reward" : "Revenue";
-
-        OrderMsCreateOrderResult order;
+        OrderMsConfirmOrderResult confirmedOrder;
         try
         {
-            order = await _orderServiceClient.CreateOrderAsync(
+            confirmedOrder = await _orderServiceClient.ConfirmOrderAsync(
+                draftOrder.OrderId,
                 command.BasketId,
-                eTickets: [],
-                paymentReferences: paymentRefs,
-                bookingType: bookingType,
-                redemptionReference: null,
+                paymentRefs,
                 cancellationToken);
         }
         catch
         {
-            await _paymentServiceClient.VoidAsync(paymentId, "OrderCreationFailure", cancellationToken);
+            await _paymentServiceClient.VoidAsync(paymentId, "OrderConfirmationFailure", cancellationToken);
             throw;
         }
 
-        // 4. Issue e-tickets via Delivery MS using the confirmed booking reference
+        // 5. Issue e-tickets via Delivery MS using the confirmed booking reference
         var issuedTickets = new List<IssuedTicket>();
-        if (basket.BasketData.HasValue && !string.IsNullOrEmpty(order.BookingReference))
+        if (basket.BasketData.HasValue)
         {
             try
             {
@@ -94,23 +99,23 @@ public sealed class ConfirmBasketHandler
                 {
                     issuedTickets = await _deliveryServiceClient.IssueTicketsAsync(
                         command.BasketId,
-                        order.BookingReference,
+                        confirmedOrder.BookingReference,
                         passengers,
                         segments,
                         cancellationToken);
 
-                    // 5. Write e-ticket numbers back into OrderData
+                    // 6. Write e-ticket numbers back into OrderData
                     if (issuedTickets.Count > 0)
                     {
                         var eTicketsJson = System.Text.Json.JsonSerializer.Serialize(
                             issuedTickets.Select(t => new { t.PassengerId, t.SegmentId, t.ETicketNumber }));
                         await _orderServiceClient.UpdateOrderETicketsAsync(
-                            order.BookingReference, eTicketsJson, cancellationToken);
+                            confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
 
-                        // 6. Populate departure manifest
+                        // 7. Populate departure manifest
                         var entries = BuildManifestEntries(issuedTickets, passengers, segments);
                         await _deliveryServiceClient.CreateManifestAsync(
-                            order.BookingReference,
+                            confirmedOrder.BookingReference,
                             entries,
                             cancellationToken);
                     }
@@ -118,18 +123,18 @@ public sealed class ConfirmBasketHandler
             }
             catch (Exception ex)
             {
-                // Ticket/manifest failure after order creation — order is confirmed, tickets need manual issuance
-                System.Console.Error.WriteLine($"[ConfirmBasket] Ticket issuance failed for {order.BookingReference}: {ex.Message}");
+                // Ticket/manifest failure after order confirmation — order is confirmed, tickets need manual issuance
+                System.Console.Error.WriteLine($"[ConfirmBasket] Ticket issuance failed for {confirmedOrder.BookingReference}: {ex.Message}");
             }
         }
 
-        // 7. Settle payment
+        // 8. Settle payment
         await _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
 
         return new OrderResponse
         {
-            BookingReference = order.BookingReference ?? string.Empty,
-            Status = order.OrderStatus,
+            BookingReference = confirmedOrder.BookingReference,
+            Status = confirmedOrder.OrderStatus,
             CustomerId = string.Empty,
             ETickets = issuedTickets.Select(t => new IssuedETicket
             {
@@ -137,8 +142,8 @@ public sealed class ConfirmBasketHandler
                 SegmentId = t.SegmentId,
                 ETicketNumber = t.ETicketNumber
             }).ToList(),
-            TotalPrice = order.TotalAmount ?? totalAmount,
-            Currency = order.CurrencyCode,
+            TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
+            Currency = confirmedOrder.CurrencyCode,
             BookedAt = DateTime.UtcNow
         };
     }

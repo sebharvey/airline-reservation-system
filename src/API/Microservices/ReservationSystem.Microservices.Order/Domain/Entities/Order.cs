@@ -120,7 +120,7 @@ public sealed class Order
         Version++;
     }
 
-    public bool IsMutable => OrderStatus is OrderStatusValues.Confirmed or OrderStatusValues.Changed;
+    public bool IsMutable => OrderStatus is OrderStatusValues.Draft or OrderStatusValues.Confirmed or OrderStatusValues.Changed;
 }
 
 public static class OrderStatusValues

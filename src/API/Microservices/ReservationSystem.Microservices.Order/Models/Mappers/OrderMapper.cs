@@ -1,3 +1,4 @@
+using ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Domain.Entities;
@@ -20,10 +21,16 @@ public static class OrderMapper
     public static CreateOrderCommand ToCommand(CreateOrderRequest request) =>
         new(
             BasketId: request.BasketId,
-            ETicketsJson: request.ETickets is not null ? JsonSerializer.Serialize(request.ETickets) : "[]",
-            PaymentReferencesJson: request.PaymentReferences is not null ? JsonSerializer.Serialize(request.PaymentReferences) : "[]",
             RedemptionReference: request.RedemptionReference,
             BookingType: string.IsNullOrWhiteSpace(request.BookingType) ? "Revenue" : request.BookingType);
+
+    public static ConfirmOrderCommand ToConfirmCommand(ConfirmOrderRequest request) =>
+        new(
+            OrderId: request.OrderId,
+            BasketId: request.BasketId,
+            PaymentReferencesJson: request.PaymentReferences is not null
+                ? JsonSerializer.Serialize(request.PaymentReferences)
+                : "[]");
 
     public static BasketResponse ToResponse(Basket basket) =>
         new()
@@ -84,6 +91,16 @@ public static class OrderMapper
         {
             OrderId = order.OrderId,
             BookingReference = order.BookingReference,
+            OrderStatus = order.OrderStatus,
+            TotalAmount = order.TotalAmount,
+            CurrencyCode = order.CurrencyCode
+        };
+
+    public static ConfirmOrderResponse ToConfirmResponse(Domain.Entities.Order order) =>
+        new()
+        {
+            OrderId = order.OrderId,
+            BookingReference = order.BookingReference ?? string.Empty,
             OrderStatus = order.OrderStatus,
             TotalAmount = order.TotalAmount,
             CurrencyCode = order.CurrencyCode

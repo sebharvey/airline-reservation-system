@@ -15,9 +15,10 @@ The Order microservice manages the complete booking lifecycle — from basket cr
 The **bookflow** is the end-to-end initial purchase journey — from flight offer selection and basket creation through passenger details, ancillary selection, payment, and order confirmation — all within a single basket session bounded by the ticketing time limit.
 
 - The `Basket` is a transient Order DB record accumulating flight offers, seat offers, bag offers, and passenger details as the booking is built.
-- Hard-deleted on successful sale; expires automatically after **60 minutes** if abandoned — matching the `StoredOffer` expiry window so that all offer IDs referenced by an active basket remain valid throughout the basket lifetime.
+- Hard-deleted on successful booking confirmation; expires automatically after **60 minutes** if abandoned — matching the `StoredOffer` expiry window so that all offer IDs referenced by an active basket remain valid throughout the basket lifetime.
 - A ticketing time limit (TTL) is set at basket creation and stored on the `order.Order` record itself (not the basket); if elapsed, held inventory is released and the basket is marked expired.
 - For each `OfferId` in the basket, the Order MS retrieves the stored offer snapshot from the Offer MS, guaranteeing the price and fare conditions match exactly what the customer was shown at search time.
+- Order creation is a **two-step process**: `POST /v1/orders` creates a `Draft` order record from the basket (basket remains active); `POST /v1/orders/confirm` validates completeness, authorises payment, assigns the booking reference (PNR), transitions the order to `Confirmed`, and deletes the basket. PATCH operations on the order record are permitted between creation and confirmation.
 
 ```mermaid
 sequenceDiagram
@@ -116,11 +117,23 @@ sequenceDiagram
         CustomerMS-->>RetailAPI: 200 OK — redemptionReference, points held against balance
     end
 
+    alt Revenue booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, bookingType=Revenue)
+    else Reward booking
+        RetailAPI->>OrderMS: POST /v1/orders (basketId, bookingType=Reward, redemptionReference)
+    end
+    OrderMS-->>RetailAPI: 201 Created — draft order (orderId, orderStatus=Draft)
+    Note over OrderMS: Basket remains active; no booking reference assigned yet
+
     alt Revenue booking — authorise fare payment
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalFareAmount, currency, card details, description=Fare)
+        RetailAPI->>PaymentMS: POST /v1/payment/initialise (type=Fare, amount=totalFareAmount, currency)
+        PaymentMS-->>RetailAPI: 200 OK — paymentId-1
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalFareAmount, card details)
         PaymentMS-->>RetailAPI: 200 OK — fare authorisation confirmed (paymentId-1)
     else Reward booking — authorise tax payment only
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalTaxesAmount, currency, card details, description=RewardTaxes)
+        RetailAPI->>PaymentMS: POST /v1/payment/initialise (type=RewardTaxes, amount=totalTaxesAmount, currency)
+        PaymentMS-->>RetailAPI: 200 OK — paymentId-1
+        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/authorise (amount=totalTaxesAmount, card details)
         PaymentMS-->>RetailAPI: 200 OK — taxes authorisation confirmed (paymentId-1)
     end
 
@@ -134,10 +147,20 @@ sequenceDiagram
         PaymentMS-->>RetailAPI: 200 OK — bag authorisation confirmed (paymentId-3)
     end
 
-    RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, passenger details, flight segments)
+    RetailAPI->>OrderMS: POST /v1/orders/confirm (orderId, basketId, paymentReferences)
+    Note over OrderMS: Validates passengers and segments present; assigns booking reference;<br/>writes payment references into OrderData; transitions OrderStatus to Confirmed;<br/>deletes basket
+    OrderMS-->>RetailAPI: 200 OK — order confirmed (bookingReference, orderStatus=Confirmed)
+
+    RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, bookingReference, passenger details, flight segments)
     DeliveryMS-->>RetailAPI: 201 Created — e-ticket numbers issued
     RetailAPI->>OfferMS: POST /v1/inventory/sell (inventoryIds, offerId, sessionId — mark seats as sold)
     OfferMS-->>RetailAPI: 200 OK — inventory updated (SeatsSold incremented, SeatsHeld decremented)
+
+    RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/tickets (e-ticket numbers)
+    OrderMS-->>RetailAPI: 200 OK — e-tickets written to OrderData
+
+    RetailAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per segment)
+    DeliveryMS-->>RetailAPI: 201 Created — manifest entries written
 
     opt Reward booking — settle points redemption
         RetailAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/settle (redemptionReference)
@@ -147,17 +170,6 @@ sequenceDiagram
 
     RetailAPI->>PaymentMS: POST /v1/payment/{paymentId-1}/settle (settledAmount)
     PaymentMS-->>RetailAPI: 200 OK — payment settled
-
-    alt Revenue booking
-        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-ticket numbers, paymentIds — fare + any ancillaries)
-    else Reward booking
-        RetailAPI->>OrderMS: POST /v1/orders (basketId, e-tickets, paymentIds, redemptionReference, bookingType=Reward)
-    end
-    OrderMS-->>RetailAPI: 201 Created — order confirmed (6-digit bookingReference)
-    Note over OrderMS: Basket record deleted on successful order confirmation
-
-    RetailAPI->>DeliveryMS: POST /v1/manifest (inventoryId, seatNumber, bookingReference, eTicketNumber, passengerId — per PAX per segment)
-    DeliveryMS-->>RetailAPI: 201 Created — manifest entries written
 
     Note over RetailAPI, PaymentMS: Settle ancillary payments after order confirmation - failure does not roll back the booking but must be flagged for manual reconciliation
     opt Seats were selected during bookflow

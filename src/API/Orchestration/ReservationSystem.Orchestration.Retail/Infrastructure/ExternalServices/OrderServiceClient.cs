@@ -101,11 +101,10 @@ public sealed class OrderServiceClient
     }
 
     public async Task<OrderMsCreateOrderResult> CreateOrderAsync(
-        Guid basketId, List<object> eTickets, List<object> paymentReferences,
-        string bookingType, string? redemptionReference,
+        Guid basketId, string bookingType, string? redemptionReference,
         CancellationToken ct)
     {
-        var payload = new { basketId, eTickets, paymentReferences, bookingType, redemptionReference };
+        var payload = new { basketId, bookingType, redemptionReference };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -114,6 +113,21 @@ public sealed class OrderServiceClient
         }
         return await response.Content.ReadFromJsonAsync<OrderMsCreateOrderResult>(JsonOptions, ct)
             ?? throw new InvalidOperationException("Empty response creating order.");
+    }
+
+    public async Task<OrderMsConfirmOrderResult> ConfirmOrderAsync(
+        Guid orderId, Guid basketId, List<object> paymentReferences,
+        CancellationToken ct)
+    {
+        var payload = new { orderId, basketId, paymentReferences };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders/confirm", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to confirm order: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<OrderMsConfirmOrderResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response confirming order.");
     }
 
     public async Task<OrderMsOrderResult?> GetOrderByRefAsync(string bookingReference, CancellationToken ct)
@@ -271,6 +285,24 @@ public sealed class OrderMsCreateOrderResult
 
     [JsonPropertyName("bookingReference")]
     public string? BookingReference { get; init; }
+
+    [JsonPropertyName("orderStatus")]
+    public string OrderStatus { get; init; } = string.Empty;
+
+    [JsonPropertyName("totalAmount")]
+    public decimal? TotalAmount { get; init; }
+
+    [JsonPropertyName("currencyCode")]
+    public string CurrencyCode { get; init; } = string.Empty;
+}
+
+public sealed class OrderMsConfirmOrderResult
+{
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
+
+    [JsonPropertyName("bookingReference")]
+    public string BookingReference { get; init; } = string.Empty;
 
     [JsonPropertyName("orderStatus")]
     public string OrderStatus { get; init; } = string.Empty;
