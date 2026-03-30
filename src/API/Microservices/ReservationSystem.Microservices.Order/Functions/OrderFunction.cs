@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Order.Application.CancelOrder;
 using ReservationSystem.Microservices.Order.Application.ChangeOrder;
+using ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
@@ -26,6 +27,7 @@ namespace ReservationSystem.Microservices.Order.Functions;
 public sealed class OrderFunction
 {
     private readonly CreateOrderHandler _createOrderHandler;
+    private readonly ConfirmOrderHandler _confirmOrderHandler;
     private readonly GetOrderHandler _getOrderHandler;
     private readonly UpdateOrderSeatsHandler _updateSeatsHandler;
     private readonly UpdateOrderBagsHandler _updateBagsHandler;
@@ -39,6 +41,7 @@ public sealed class OrderFunction
 
     public OrderFunction(
         CreateOrderHandler createOrderHandler,
+        ConfirmOrderHandler confirmOrderHandler,
         GetOrderHandler getOrderHandler,
         UpdateOrderSeatsHandler updateSeatsHandler,
         UpdateOrderBagsHandler updateBagsHandler,
@@ -51,6 +54,7 @@ public sealed class OrderFunction
         ILogger<OrderFunction> logger)
     {
         _createOrderHandler = createOrderHandler;
+        _confirmOrderHandler = confirmOrderHandler;
         _getOrderHandler = getOrderHandler;
         _updateSeatsHandler = updateSeatsHandler;
         _updateBagsHandler = updateBagsHandler;
@@ -65,9 +69,9 @@ public sealed class OrderFunction
 
     // POST /v1/orders
     [Function("CreateOrder")]
-    [OpenApiOperation(operationId: "CreateOrder", tags: new[] { "Orders" }, Summary = "Create an order from a basket")]
+    [OpenApiOperation(operationId: "CreateOrder", tags: new[] { "Orders" }, Summary = "Create a draft order from a basket")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateOrderRequest), Required = true, Description = "The order creation request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateOrderResponse), Description = "Created")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateOrderResponse), Description = "Created — order is in Draft status with no booking reference yet")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateOrder(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders")] HttpRequestData req,
@@ -89,10 +93,41 @@ public sealed class OrderFunction
 
             var httpResponse = req.CreateResponse(HttpStatusCode.Created);
             httpResponse.Headers.Add("Content-Type", "application/json");
-            httpResponse.Headers.Add("Location", $"/v1/orders/{order.BookingReference}");
+            httpResponse.Headers.Add("Location", $"/v1/orders/{order.OrderId}");
             await httpResponse.WriteStringAsync(JsonSerializer.Serialize(
                 OrderMapper.ToCreateResponse(order), SharedJsonOptions.CamelCase));
             return httpResponse;
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // POST /v1/orders/confirm
+    [Function("ConfirmOrder")]
+    [OpenApiOperation(operationId: "ConfirmOrder", tags: new[] { "Orders" }, Summary = "Confirm a draft order, assigning a booking reference (PNR)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ConfirmOrderRequest), Required = true, Description = "The order confirmation request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ConfirmOrderResponse), Description = "OK — order confirmed with booking reference")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
+    public async Task<HttpResponseData> ConfirmOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/confirm")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<ConfirmOrderRequest>(_logger, ct);
+        if (error is not null) return error;
+
+        if (request!.OrderId == Guid.Empty)
+            return await req.BadRequestAsync("The field 'orderId' is required.");
+
+        if (request.BasketId == Guid.Empty)
+            return await req.BadRequestAsync("The field 'basketId' is required.");
+
+        try
+        {
+            var command = OrderMapper.ToConfirmCommand(request);
+            var order = await _confirmOrderHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(OrderMapper.ToConfirmResponse(order));
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
@@ -191,8 +226,8 @@ public sealed class OrderFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/{bookingRef}")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
-        // Avoid routing conflicts with "retrieve" POST endpoint
-        if (bookingRef == "retrieve")
+        // Avoid routing conflicts with static POST sub-routes
+        if (bookingRef is "retrieve" or "confirm")
             return req.CreateResponse(HttpStatusCode.MethodNotAllowed);
 
         var order = await _getOrderHandler.HandleAsync(new GetOrderQuery(bookingRef), ct);

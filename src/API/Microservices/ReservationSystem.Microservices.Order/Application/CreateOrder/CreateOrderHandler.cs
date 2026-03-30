@@ -7,7 +7,9 @@ namespace ReservationSystem.Microservices.Order.Application.CreateOrder;
 
 /// <summary>
 /// Handles the <see cref="CreateOrderCommand"/>.
-/// Confirms a basket and creates a new order.
+/// Creates a Draft order record from a basket. The basket is left intact so
+/// that PATCH operations can be applied before the order is confirmed via
+/// <see cref="ConfirmOrder.ConfirmOrderHandler"/>.
 /// </summary>
 public sealed class CreateOrderHandler
 {
@@ -29,29 +31,17 @@ public sealed class CreateOrderHandler
         CreateOrderCommand command,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating order from basket {BasketId}", command.BasketId);
+        _logger.LogInformation("Creating draft order from basket {BasketId}", command.BasketId);
 
         var basket = await _basketRepository.GetByIdAsync(command.BasketId, cancellationToken);
         if (basket is null)
-        {
             throw new InvalidOperationException($"Basket {command.BasketId} not found.");
-        }
 
         if (basket.BasketStatus != BasketStatusValues.Active)
-        {
-            throw new InvalidOperationException($"Basket is not open. Current status: {basket.BasketStatus}");
-        }
+            throw new InvalidOperationException($"Basket is not active. Current status: {basket.BasketStatus}");
 
-        var bookingReference = GenerateBookingReference();
-
-        // Build OrderData from basket data per IATA ONE Order structure
+        // Build OrderData from basket — payment references are empty until the order is confirmed
         var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
-
-        // Parse e-tickets and payment references from the command
-        JsonNode? eTicketsNode = null;
-        JsonNode? paymentsNode = null;
-        try { eTicketsNode = JsonNode.Parse(command.ETicketsJson); } catch { }
-        try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
 
         var orderData = new JsonObject
         {
@@ -61,8 +51,8 @@ public sealed class CreateOrderHandler
                 ["flightSegments"] = basketJson["flightOffers"]?.DeepClone() ?? new JsonArray()
             },
             ["orderItems"] = basketJson["flightOffers"]?.DeepClone() ?? new JsonArray(),
-            ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
-            ["eTickets"] = eTicketsNode?.DeepClone() ?? new JsonArray(),
+            ["payments"] = new JsonArray(),
+            ["eTickets"] = new JsonArray(),
             ["seatAssignments"] = basketJson["seats"]?.DeepClone() ?? new JsonArray(),
             ["bagItems"] = basketJson["bags"]?.DeepClone() ?? new JsonArray(),
             ["ssrItems"] = basketJson["ssrSelections"]?.DeepClone() ?? new JsonArray(),
@@ -71,7 +61,7 @@ public sealed class CreateOrderHandler
             {
                 new JsonObject
                 {
-                    ["event"] = "OrderConfirmed",
+                    ["event"] = "OrderCreated",
                     ["timestamp"] = DateTime.UtcNow.ToString("o")
                 }
             }
@@ -82,7 +72,7 @@ public sealed class CreateOrderHandler
             orderData["pointsRedemption"] = new JsonObject
             {
                 ["redemptionReference"] = command.RedemptionReference,
-                ["status"] = "Settled"
+                ["status"] = "Pending"
             };
         }
 
@@ -92,37 +82,12 @@ public sealed class CreateOrderHandler
             basket.TotalAmount,
             orderData.ToJsonString());
 
-        // Use Reconstitute to set the booking reference and confirmed status
-        var confirmedOrder = Domain.Entities.Order.Reconstitute(
-            order.OrderId,
-            bookingReference,
-            OrderStatusValues.Confirmed,
-            order.ChannelCode,
-            order.CurrencyCode,
-            basket.ExpiresAt,
-            order.TotalAmount,
-            order.Version,
-            order.OrderData,
-            order.CreatedAt,
-            order.UpdatedAt);
+        await _orderRepository.CreateAsync(order, cancellationToken);
 
-        await _orderRepository.CreateAsync(confirmedOrder, cancellationToken);
+        _logger.LogInformation(
+            "Draft order {OrderId} created from basket {BasketId}",
+            order.OrderId, command.BasketId);
 
-        // Confirm and delete the basket
-        basket.Confirm(confirmedOrder.OrderId);
-        await _basketRepository.UpdateAsync(basket, cancellationToken);
-        await _basketRepository.DeleteAsync(basket.BasketId, cancellationToken);
-
-        _logger.LogInformation("Order {OrderId} created with booking reference {BookingReference} from basket {BasketId}",
-            confirmedOrder.OrderId, bookingReference, command.BasketId);
-
-        return confirmedOrder;
-    }
-
-    private static string GenerateBookingReference()
-    {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        var random = new Random();
-        return new string(Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+        return order;
     }
 }

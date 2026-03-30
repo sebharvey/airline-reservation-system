@@ -7,29 +7,11 @@ public sealed class CreateOrderRequest
     [JsonPropertyName("basketId")]
     public Guid BasketId { get; init; }
 
-    [JsonPropertyName("eTickets")]
-    public List<ETicketItem>? ETickets { get; init; }
-
-    [JsonPropertyName("paymentReferences")]
-    public List<PaymentReferenceItem>? PaymentReferences { get; init; }
-
     [JsonPropertyName("redemptionReference")]
     public string? RedemptionReference { get; init; }
 
     [JsonPropertyName("bookingType")]
     public string BookingType { get; init; } = "Revenue";
-}
-
-public sealed class ETicketItem
-{
-    [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
-
-    [JsonPropertyName("segmentId")]
-    public string SegmentId { get; init; } = string.Empty;
-
-    [JsonPropertyName("eTicketNumber")]
-    public string ETicketNumber { get; init; } = string.Empty;
 }
 
 public sealed class PaymentReferenceItem
