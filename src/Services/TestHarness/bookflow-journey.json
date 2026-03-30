@@ -256,14 +256,14 @@
           {
             "passengerId": "PAX-1",
             "type": "ADT",
-            "givenName": "Bob",
-            "surname": "Smith",
-            "dateOfBirth": "1999-02-01",
-            "gender": "Male",
-            "loyaltyNumber": "AX123456",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": "__RAND_LOYALTY_NUMBER__",
             "contacts": {
-              "email": "test@example.com",
-              "phone": "077777777777"
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
             },
             "travelDocument": null
           }
@@ -325,12 +325,12 @@
               {
                 "passengerId": "PAX-1",
                 "type": "ADT",
-                "givenName": "Bob",
-                "surname": "Smith",
-                "dateOfBirth": "1999-02-01",
-                "gender": "Male",
-                "loyaltyNumber": "AX123456",
-                "contacts": { "email": "test@example.com", "phone": "077777777777" },
+                "givenName": "__RAND_GIVEN_NAME__",
+                "surname": "__RAND_SURNAME__",
+                "dateOfBirth": "__RAND_DOB__",
+                "gender": "__RAND_GENDER__",
+                "loyaltyNumber": "__RAND_LOYALTY_NUMBER__",
+                "contacts": { "email": "__RAND_EMAIL__", "phone": "__RAND_PHONE__" },
                 "travelDocument": null
               }
             ],
@@ -524,7 +524,7 @@
             "cardNumber": "4111111111111234",
             "expiryDate": "12/28",
             "cvv": "737",
-            "cardholderName": "Bob Smith"
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
           },
           "loyaltyPointsToRedeem": null
         },
@@ -565,7 +565,7 @@
             "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
             "cvv": "737",
-            "cardholderName": "Bob Smith"
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
           },
           "loyaltyPointsToRedeem": null
         },

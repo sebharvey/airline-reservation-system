@@ -96,9 +96,21 @@
                                    recipientSurname.toLowerCase() + '.' +
                                    randDigits(6) + '@testmail.example.com';
 
+        const genders = ['Male', 'Female'];
+        const gender  = pick(genders);
+
+        const dobYear  = 1950 + Math.floor(Math.random() * 56);  // 1950–2005
+        const dobMonth = (1 + Math.floor(Math.random() * 12)).toString().padStart(2, '0');
+        const dobDay   = (1 + Math.floor(Math.random() * 28)).toString().padStart(2, '0');
+        const dateOfBirth = `${dobYear}-${dobMonth}-${dobDay}`;
+
+        const phone         = '07' + randDigits(9);
+        const loyaltyNumber = 'AX' + randDigits(7);
+
         runtimeVars = {
             givenName, surname, password, email,
-            recipientGivenName, recipientSurname, recipientPassword, recipientEmail
+            recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
+            gender, dateOfBirth, phone, loyaltyNumber
         };
     }
 
@@ -110,10 +122,14 @@
                 .replace(/__RAND_RECIPIENT_SURNAME__/g,    runtimeVars.recipientSurname)
                 .replace(/__RAND_RECIPIENT_EMAIL__/g,      runtimeVars.recipientEmail)
                 .replace(/__RAND_RECIPIENT_PASSWORD__/g,   runtimeVars.recipientPassword)
-                .replace(/__RAND_GIVEN_NAME__/g, runtimeVars.givenName)
-                .replace(/__RAND_SURNAME__/g,    runtimeVars.surname)
-                .replace(/__RAND_EMAIL__/g,      runtimeVars.email)
-                .replace(/__RAND_PASSWORD__/g,   runtimeVars.password);
+                .replace(/__RAND_GIVEN_NAME__/g,     runtimeVars.givenName)
+                .replace(/__RAND_SURNAME__/g,        runtimeVars.surname)
+                .replace(/__RAND_EMAIL__/g,          runtimeVars.email)
+                .replace(/__RAND_PASSWORD__/g,       runtimeVars.password)
+                .replace(/__RAND_GENDER__/g,         runtimeVars.gender)
+                .replace(/__RAND_DOB__/g,            runtimeVars.dateOfBirth)
+                .replace(/__RAND_PHONE__/g,          runtimeVars.phone)
+                .replace(/__RAND_LOYALTY_NUMBER__/g, runtimeVars.loyaltyNumber);
         }
         if (Array.isArray(obj)) return obj.map(applyRuntimeVars);
         if (typeof obj === 'object') {
