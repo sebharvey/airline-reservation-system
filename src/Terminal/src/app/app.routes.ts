@@ -19,6 +19,18 @@ export const routes: Routes = [
       {
         path: 'order',
         loadComponent: () => import('./pages/order/order').then(m => m.OrderComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/order/order-list/order-list').then(m => m.OrderListComponent),
+          },
+          {
+            path: ':bookingRef',
+            loadComponent: () =>
+              import('./pages/order/order-detail/order-detail').then(m => m.OrderDetailComponent),
+          },
+        ],
       },
       {
         path: 'customer',

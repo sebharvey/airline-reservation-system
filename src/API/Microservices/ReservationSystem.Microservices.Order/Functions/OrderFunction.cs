@@ -471,6 +471,23 @@ public sealed class OrderFunction
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
+    // GET /v1/admin/orders?limit=10
+    [Function("GetRecentOrders")]
+    [OpenApiOperation(operationId: "GetRecentOrders", tags: new[] { "Admin Orders" }, Summary = "Get the most recently created orders")]
+    [OpenApiParameter(name: "limit", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Number of orders to return (default 10, max 100)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse[]), Description = "OK")]
+    public async Task<HttpResponseData> GetRecentOrders(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        if (!int.TryParse(query["limit"], out var limit) || limit <= 0 || limit > 100)
+            limit = 10;
+
+        var orders = await _orderRepository.GetRecentAsync(limit, ct);
+        return await req.OkJsonAsync(orders.Select(o => OrderMapper.ToResponse(o)));
+    }
+
     // POST /v1/orders/{bookingRef}/checkin
     [Function("CheckIn")]
     [OpenApiOperation(operationId: "CheckIn", tags: new[] { "Orders" }, Summary = "Check in passengers for an order")]
