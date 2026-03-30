@@ -1,5 +1,4 @@
 import { FlightOffer } from '../../models/flight.model';
-import { FlightStatus } from '../../models/flight.model';
 
 // Apex Air IATA code: AX | Hub: LHR
 // Flights are dated ~2 months from now for realistic mock data
@@ -393,58 +392,3 @@ function generateGenericOffers(origin: string, destination: string, departDate: 
     }
   ];
 }
-
-export const MOCK_FLIGHT_STATUS: Record<string, FlightStatus> = {
-  'AX001': {
-    flightNumber: 'AX001',
-    origin: 'LHR', destination: 'JFK',
-    scheduledDepartureDateTime: '2026-05-15T07:00:00Z',
-    scheduledArrivalDateTime: '2026-05-15T12:10:00Z',
-    estimatedDepartureDateTime: '2026-05-15T07:00:00Z',
-    estimatedArrivalDateTime: '2026-05-15T12:10:00Z',
-    status: 'OnTime',
-    gate: 'B45', terminal: 'T5',
-    aircraftType: 'A351',
-    delayMinutes: 0,
-    statusMessage: 'Flight is on time'
-  },
-  'AX002': {
-    flightNumber: 'AX002',
-    origin: 'JFK', destination: 'LHR',
-    scheduledDepartureDateTime: '2026-05-15T07:00:00Z',
-    scheduledArrivalDateTime: '2026-05-15T19:15:00Z',
-    estimatedDepartureDateTime: '2026-05-15T07:45:00Z',
-    estimatedArrivalDateTime: '2026-05-15T20:00:00Z',
-    status: 'Delayed',
-    gate: '12A', terminal: 'T4',
-    aircraftType: 'A351',
-    delayMinutes: 45,
-    statusMessage: 'Delayed by 45 minutes due to late inbound aircraft'
-  },
-  'AX301': {
-    flightNumber: 'AX301',
-    origin: 'LHR', destination: 'SIN',
-    scheduledDepartureDateTime: '2026-05-15T21:30:00Z',
-    scheduledArrivalDateTime: '2026-05-16T17:45:00Z',
-    estimatedDepartureDateTime: '2026-05-15T21:30:00Z',
-    estimatedArrivalDateTime: '2026-05-16T17:45:00Z',
-    status: 'Boarding',
-    gate: 'C22', terminal: 'T5',
-    aircraftType: 'A351',
-    delayMinutes: 0,
-    statusMessage: 'Boarding now — Gate C22'
-  },
-  'AX411': {
-    flightNumber: 'AX411',
-    origin: 'LHR', destination: 'DEL',
-    scheduledDepartureDateTime: '2026-05-15T20:30:00Z',
-    scheduledArrivalDateTime: '2026-05-16T09:00:00Z',
-    estimatedDepartureDateTime: null,
-    estimatedArrivalDateTime: null,
-    status: 'OnTime',
-    gate: 'A18', terminal: 'T5',
-    aircraftType: 'B789',
-    delayMinutes: 0,
-    statusMessage: 'Flight is on time'
-  }
-};

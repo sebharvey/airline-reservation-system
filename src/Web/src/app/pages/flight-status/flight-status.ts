@@ -20,8 +20,6 @@ const STATUS_CONFIG: Record<FlightStatusCode, StatusDisplay> = {
   Cancelled: { label: 'Cancelled', cssClass: 'status-cancelled' },
 };
 
-const DEMO_FLIGHTS = ['AX001', 'AX002', 'AX301', 'AX411'];
-
 @Component({
   selector: 'app-flight-status',
   standalone: true,
@@ -32,10 +30,9 @@ const DEMO_FLIGHTS = ['AX001', 'AX002', 'AX301', 'AX411'];
 export class FlightStatusComponent {
   private readonly retailApi = inject(RetailApiService);
 
-  readonly demoFlights = DEMO_FLIGHTS;
   readonly statusConfig = STATUS_CONFIG;
 
-  flightNumber = signal('AX001');
+  flightNumber = signal('');
   flightDate = signal('');
   loading = signal(false);
   searched = signal(false);
@@ -56,10 +53,6 @@ export class FlightStatusComponent {
     this.flightDate.set(v);
   }
 
-  fillDemo(fn: string): void {
-    this.flightNumber.set(fn);
-  }
-
   search(): void {
     const fn = this.flightNumber().trim();
     if (!fn) return;
@@ -68,7 +61,9 @@ export class FlightStatusComponent {
     this.searched.set(false);
     this.result.set(null);
 
-    this.retailApi.getFlightStatus(fn).subscribe({
+    const date = this.flightDate().trim() || undefined;
+
+    this.retailApi.getFlightStatus(fn, date).subscribe({
       next: (status) => {
         this.loading.set(false);
         this.searched.set(true);
