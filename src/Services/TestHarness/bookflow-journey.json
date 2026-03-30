@@ -188,7 +188,7 @@
         "validationNotes": "basketId is a GUID. Each segment offerId must match a valid stored offer from its corresponding search session. The basket expires after 60 minutes of inactivity."
       },
       "chainsTo": [
-        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11] }
+        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13] }
       ]
     },
     {
@@ -227,8 +227,8 @@
             "channelCode": "WEB",
             "currencyCode": "GBP",
             "flightOffers": [
-              { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11", "basketItemId": "BI-1" },
-              { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854", "basketItemId": "BI-2" }
+              { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11", "basketItemId": "BI-1", "inventoryId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0", "flightNumber": "AX001", "aircraftType": "A351" },
+              { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854", "basketItemId": "BI-2", "inventoryId": "3a5f9c12-b847-4d29-a318-7e1f042d8b56", "flightNumber": "AX010", "aircraftType": "B789" }
             ],
             "passengers": [],
             "seats": [],
@@ -241,7 +241,17 @@
         "description": "200 OK — basket retrieved. basketStatus is 'Active'. Both flight offers are present in basketData.flightOffers, each assigned a basketItemId (BI-1, BI-2). passengers, seats, and bags are empty arrays at this point. All amount totals are 0.00 until pricing is resolved.",
         "keyFields": ["basketId", "basketStatus", "basketData.flightOffers", "expiresAt"],
         "validationNotes": "basketStatus must be 'Active'. confirmedOrderId is null until confirmed. version increments on each mutation. expiresAt is 60 minutes from creation."
-      }
+      },
+      "chainsTo": [
+        { "path": "basketData.flightOffers[0].inventoryId",  "as": "outboundInventoryId",  "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[0].flightNumber", "as": "outboundFlightNumber", "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[0].aircraftType", "as": "outboundAircraftType", "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[0].basketItemId", "as": "outboundBasketItemId", "usedInSteps": [9] },
+        { "path": "basketData.flightOffers[1].inventoryId",  "as": "returnInventoryId",    "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[1].flightNumber", "as": "returnFlightNumber",   "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[1].aircraftType", "as": "returnAircraftType",   "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[1].basketItemId", "as": "returnBasketItemId",   "usedInSteps": [9] }
+      ]
     },
     {
       "step": 5,
@@ -352,8 +362,157 @@
     },
     {
       "step": 7,
+      "name": "Get outbound seatmap",
+      "description": "Retrieve the seat map for the outbound flight using the inventoryId, flightNumber, and aircraftType chained from the basket. Returns a cabin-structured map of priced seat offers with availability status. A random available seat is selected from the response and its details chained to the add-seats step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{outboundInventoryId}/seatmap?aircraftType={outboundAircraftType}&flightNumber={outboundFlightNumber}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "outboundInventoryId": "from-step-4",
+          "outboundAircraftType": "from-step-4",
+          "outboundFlightNumber": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "outboundInventoryId", "from": "outboundInventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "outboundFlightNumber", "from": "outboundFlightNumber", "source": "Step 4 → basketData.flightOffers[0].flightNumber" },
+          { "field": "outboundAircraftType", "from": "outboundAircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0",
+          "flightNumber": "AX001",
+          "aircraftType": "A351",
+          "cabins": [
+            {
+              "cabinCode": "J",
+              "cabinName": "Business",
+              "columns": ["A","D","G","K"],
+              "layout": "1-2-1",
+              "startRow": 1,
+              "endRow": 10,
+              "seats": [
+                { "seatOfferId": "so-1a-v1",  "seatNumber": "1A",  "column": "A", "rowNumber": 1, "position": "Window", "cabinCode": "J", "price": 0,  "currency": "GBP", "availability": "available", "attributes": ["ExtraLegroom"] },
+                { "seatOfferId": "so-1k-v1",  "seatNumber": "1K",  "column": "K", "rowNumber": 1, "position": "Window", "cabinCode": "J", "price": 0,  "currency": "GBP", "availability": "sold",      "attributes": ["ExtraLegroom"] },
+                { "seatOfferId": "so-2a-v1",  "seatNumber": "2A",  "column": "A", "rowNumber": 2, "position": "Window", "cabinCode": "J", "price": 0,  "currency": "GBP", "availability": "available", "attributes": [] }
+              ]
+            },
+            {
+              "cabinCode": "Y",
+              "cabinName": "Economy",
+              "columns": ["A","B","C","D","E","F","G","H","J","K"],
+              "layout": "3-4-3",
+              "startRow": 20,
+              "endRow": 55,
+              "seats": [
+                { "seatOfferId": "so-20a-v1", "seatNumber": "20A", "column": "A", "rowNumber": 20, "position": "Window", "cabinCode": "Y", "price": 70, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-20b-v1", "seatNumber": "20B", "column": "B", "rowNumber": 20, "position": "Middle", "cabinCode": "Y", "price": 20, "currency": "GBP", "availability": "sold",      "attributes": [] },
+                { "seatOfferId": "so-20c-v1", "seatNumber": "20C", "column": "C", "rowNumber": 20, "position": "Aisle",  "cabinCode": "Y", "price": 50, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-21a-v1", "seatNumber": "21A", "column": "A", "rowNumber": 21, "position": "Window", "cabinCode": "Y", "price": 70, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-21b-v1", "seatNumber": "21B", "column": "B", "rowNumber": 21, "position": "Middle", "cabinCode": "Y", "price": 20, "currency": "GBP", "availability": "available", "attributes": [] }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned. Contains cabins each with a seats array. Each seat has a seatOfferId, seatNumber, position, price, currency, and availability status. Only seats with availability 'available' can be selected. A random available seat is picked and chained to Step 9.",
+        "keyFields": ["flightId", "cabins"],
+        "validationNotes": "availability values: 'available', 'held', 'sold'. Seats with status other than 'available' must not be selected. price reflects the surcharge for that seat position; Business/First class seats carry no surcharge."
+      },
+      "chainsTo": [
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "outboundSeatOfferId",
+            "seatNumber":  "outboundSeatNumber",
+            "position":    "outboundSeatPosition",
+            "price":       "outboundSeatPrice",
+            "currency":    "outboundSeatCurrency"
+          },
+          "usedInSteps": [9]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Get return seatmap",
+      "description": "Retrieve the seat map for the return flight using details chained from the basket. A random available seat is selected and chained to the add-seats step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{returnInventoryId}/seatmap?aircraftType={returnAircraftType}&flightNumber={returnFlightNumber}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "returnInventoryId":  "from-step-4",
+          "returnAircraftType": "from-step-4",
+          "returnFlightNumber": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "returnInventoryId",  "from": "returnInventoryId",  "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
+          { "field": "returnFlightNumber", "from": "returnFlightNumber", "source": "Step 4 → basketData.flightOffers[1].flightNumber" },
+          { "field": "returnAircraftType", "from": "returnAircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "3a5f9c12-b847-4d29-a318-7e1f042d8b56",
+          "flightNumber": "AX010",
+          "aircraftType": "B789",
+          "cabins": [
+            {
+              "cabinCode": "Y",
+              "cabinName": "Economy",
+              "columns": ["A","B","C","D","E","F","G","H","J"],
+              "layout": "3-3-3",
+              "startRow": 15,
+              "endRow": 42,
+              "seats": [
+                { "seatOfferId": "so-15a-v1", "seatNumber": "15A", "column": "A", "rowNumber": 15, "position": "Window", "cabinCode": "Y", "price": 70, "currency": "GBP", "availability": "sold",      "attributes": [] },
+                { "seatOfferId": "so-15b-v1", "seatNumber": "15B", "column": "B", "rowNumber": 15, "position": "Middle", "cabinCode": "Y", "price": 20, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-15c-v1", "seatNumber": "15C", "column": "C", "rowNumber": 15, "position": "Aisle",  "cabinCode": "Y", "price": 50, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-16a-v1", "seatNumber": "16A", "column": "A", "rowNumber": 16, "position": "Window", "cabinCode": "Y", "price": 70, "currency": "GBP", "availability": "available", "attributes": [] },
+                { "seatOfferId": "so-16b-v1", "seatNumber": "16B", "column": "B", "rowNumber": 16, "position": "Middle", "cabinCode": "Y", "price": 20, "currency": "GBP", "availability": "available", "attributes": [] }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — return flight seatmap returned. Structure identical to the outbound seatmap response. A random available seat is picked and chained to Step 9.",
+        "keyFields": ["flightId", "cabins"],
+        "validationNotes": "Same seat selection rules apply as Step 7. The picked seat's seatOfferId, seatNumber, position, price, and currency are chained for use in Step 9."
+      },
+      "chainsTo": [
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "returnSeatOfferId",
+            "seatNumber":  "returnSeatNumber",
+            "position":    "returnSeatPosition",
+            "price":       "returnSeatPrice",
+            "currency":    "returnSeatCurrency"
+          },
+          "usedInSteps": [9]
+        }
+      ]
+    },
+    {
+      "step": 9,
       "name": "Add seats",
-      "description": "Add seat selections to the basket for each passenger on each flight segment. Each seat record references the passengerId, the segmentId (offerId of the flight offer), the basketItemRef, the seat offer identifier, the seat number, position, price, and currency.",
+      "description": "Add seat selections to the basket for each passenger on each flight segment. Seat details (seatOfferId, seatNumber, position, price, currency) are taken from the seatmap responses in Steps 7 and 8.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -366,27 +525,40 @@
         "body": [
           {
             "passengerId": "PAX-1",
-            "segmentId": "bc2f449f-a828-4826-a97c-4378531d7253",
-            "basketItemRef": "BI-y19a",
-            "seatOfferId": "so-14g-v1",
-            "seatNumber": "14G",
-            "seatPosition": "Aisle",
-            "price": 50,
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId",
+            "seatNumber": "from-chain-outboundSeatNumber",
+            "seatPosition": "from-chain-outboundSeatPosition",
+            "price": 0,
             "currency": "GBP"
           },
           {
             "passengerId": "PAX-1",
-            "segmentId": "19714659-fdbe-4593-9037-948ff69178ca",
-            "basketItemRef": "BI-blya",
-            "seatOfferId": "so-29h-v1",
-            "seatNumber": "29H",
-            "seatPosition": "Middle",
-            "price": 20,
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId",
+            "seatNumber": "from-chain-returnSeatNumber",
+            "seatPosition": "from-chain-returnSeatPosition",
+            "price": 0,
             "currency": "GBP"
           }
         ],
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+          { "field": "[0].segmentId",    "from": "outboundInventoryId",  "source": "Step 4 → basket outbound inventoryId" },
+          { "field": "[0].basketItemRef","from": "outboundBasketItemId", "source": "Step 4 → basket outbound basketItemId" },
+          { "field": "[0].seatOfferId",  "from": "outboundSeatOfferId",  "source": "Step 7 → random available seat" },
+          { "field": "[0].seatNumber",   "from": "outboundSeatNumber",   "source": "Step 7 → random available seat" },
+          { "field": "[0].seatPosition", "from": "outboundSeatPosition", "source": "Step 7 → random available seat" },
+          { "field": "[0].price",        "from": "outboundSeatPrice",    "source": "Step 7 → random available seat" },
+          { "field": "[0].currency",     "from": "outboundSeatCurrency", "source": "Step 7 → random available seat" },
+          { "field": "[1].segmentId",    "from": "returnInventoryId",    "source": "Step 4 → basket return inventoryId" },
+          { "field": "[1].basketItemRef","from": "returnBasketItemId",   "source": "Step 4 → basket return basketItemId" },
+          { "field": "[1].seatOfferId",  "from": "returnSeatOfferId",    "source": "Step 8 → random available seat" },
+          { "field": "[1].seatNumber",   "from": "returnSeatNumber",     "source": "Step 8 → random available seat" },
+          { "field": "[1].seatPosition", "from": "returnSeatPosition",   "source": "Step 8 → random available seat" },
+          { "field": "[1].price",        "from": "returnSeatPrice",      "source": "Step 8 → random available seat" },
+          { "field": "[1].currency",     "from": "returnSeatCurrency",   "source": "Step 8 → random available seat" }
         ]
       },
       "response": {
@@ -395,21 +567,21 @@
           "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
           "status": "Active",
           "totalFareAmount": 0.00,
-          "totalSeatAmount": 70.00,
+          "totalSeatAmount": 0.00,
           "totalBagAmount": 0.00,
-          "totalPrice": 70.00,
+          "totalPrice": 0.00,
           "currency": "GBP"
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seats saved to the basket. totalSeatAmount reflects the sum of all seat prices (£50 outbound + £20 return = £70). totalPrice updates accordingly.",
+        "description": "200 OK — seats saved to the basket. totalSeatAmount reflects the sum of the two selected seat prices. totalPrice updates accordingly.",
         "keyFields": ["basketId", "status", "totalSeatAmount", "totalPrice"],
-        "validationNotes": "segmentId must match the offerId of a flight offer in the basket. seatPosition valid values: Window, Middle, Aisle. One seat per passenger per segment. totalSeatAmount must equal sum of all seat prices."
+        "validationNotes": "segmentId must be the inventoryId of the flight (not the offerId). seatOfferId must match a valid seat offer from the seatmap response. seatPosition valid values: Window, Middle, Aisle. One seat per passenger per segment."
       }
     },
     {
-      "step": 8,
+      "step": 10,
       "name": "Get basket (after seats)",
       "description": "Retrieve the basket after adding seats to confirm both seat records are persisted in basketData.seats and that totalSeatAmount and totalAmount reflect the seat cost.",
       "type": "positive",
@@ -454,7 +626,7 @@
       }
     },
     {
-      "step": 9,
+      "step": 11,
       "name": "Add bags",
       "description": "Add additional baggage to the basket for each passenger on each segment. Each bag record references the passengerId, segmentId (basketItemRef of the segment), the bag offer identifier, the number of additional bags, the total price, and currency.",
       "type": "positive",
@@ -510,7 +682,7 @@
       }
     },
     {
-      "step": 10,
+      "step": 12,
       "name": "Confirm and pay — invalid card (Luhn failure)",
       "description": "Attempt to confirm the basket with a card number that fails the Luhn check. The Payment service must reject the card details and return a 4xx error so the consumer can surface a meaningful message to the user. The basket must remain Active so payment can be retried.",
       "type": "negative",
@@ -551,7 +723,7 @@
       }
     },
     {
-      "step": 11,
+      "step": 13,
       "name": "Confirm and pay — valid card",
       "description": "Submit payment with a card number that passes the Luhn check to confirm the basket and create the order. The basket transitions to Confirmed and an orderId is returned.",
       "type": "positive",

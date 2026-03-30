@@ -693,19 +693,39 @@
         return collectAllValues(val, tail);
     }
 
-    // Set a value at a dot-separated path supporting array index notation (e.g. segments[0].offerId).
+    // Navigate a dot-separated path (supports key[N] and standalone [N] segments).
+    function getPath(obj, path) {
+        const parts = path.split('.');
+        let cur = obj;
+        for (const part of parts) {
+            if (cur == null) return undefined;
+            const solo = part.match(/^\[(\d+)\]$/);
+            const embedded = part.match(/^(\w+)\[(\d+)\]$/);
+            if (solo)     cur = Array.isArray(cur) ? cur[parseInt(solo[1])] : undefined;
+            else if (embedded) cur = cur[embedded[1]]?.[parseInt(embedded[2])];
+            else          cur = cur[part];
+        }
+        return cur;
+    }
+
+    // Set a value at a dot-separated path (supports key[N] and standalone [N] segments).
     function setPath(obj, path, value) {
         const parts = path.split('.');
         let cur = obj;
         for (let i = 0; i < parts.length - 1; i++) {
-            const m = parts[i].match(/^(\w+)\[(\d+)\]$/);
-            cur = m ? cur[m[1]]?.[parseInt(m[2])] : cur[parts[i]];
+            const solo = parts[i].match(/^\[(\d+)\]$/);
+            const embedded = parts[i].match(/^(\w+)\[(\d+)\]$/);
+            if (solo)     cur = Array.isArray(cur) ? cur[parseInt(solo[1])] : null;
+            else if (embedded) cur = cur[embedded[1]]?.[parseInt(embedded[2])];
+            else          cur = cur[parts[i]];
             if (cur == null) return;
         }
         const last = parts[parts.length - 1];
-        const m = last.match(/^(\w+)\[(\d+)\]$/);
-        if (m) { if (cur[m[1]]) cur[m[1]][parseInt(m[2])] = value; }
-        else    { cur[last] = value; }
+        const solo = last.match(/^\[(\d+)\]$/);
+        const embedded = last.match(/^(\w+)\[(\d+)\]$/);
+        if (solo && Array.isArray(cur)) cur[parseInt(solo[1])] = value;
+        else if (embedded) { if (cur[embedded[1]]) cur[embedded[1]][parseInt(embedded[2])] = value; }
+        else cur[last] = value;
     }
 
     async function runStep(ref, currentSteps) {
@@ -801,16 +821,31 @@
             error: liveError || null
         });
 
-        // Store chained values from response (supports array indexing and randomArrayPath)
+        // Store chained values from response
         if (step.chainsTo && liveBody && typeof liveBody === 'object') {
             step.chainsTo.forEach(chain => {
                 if (chain.randomArrayPath) {
-                    // Collect all values matching the wildcard path and pick one at random
+                    // Collect all values at the wildcard path and pick one at random
                     const parts = chain.randomArrayPath.split('.');
                     const all = collectAllValues(liveBody, parts);
                     if (all.length > 0) {
                         liveChain[chain.as] = all[Math.floor(Math.random() * all.length)];
                     }
+                } else if (chain.randomAvailableSeatFrom) {
+                    // Collect all available seats from cabins and pick one at random,
+                    // mapping each seat field to a named chain var via chain.as object
+                    const cabins = liveBody[chain.randomAvailableSeatFrom];
+                    if (!Array.isArray(cabins)) return;
+                    const available = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
+                    if (!available.length) return;
+                    const seat = available[Math.floor(Math.random() * available.length)];
+                    for (const [srcField, alias] of Object.entries(chain.as)) {
+                        liveChain[alias] = seat[srcField];
+                    }
+                } else if (chain.path) {
+                    // Navigate a nested path to extract a single value
+                    const val = getPath(liveBody, chain.path);
+                    if (val !== undefined) liveChain[chain.as] = val;
                 } else {
                     const field = chain.field;
                     const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
