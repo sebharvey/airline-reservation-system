@@ -55,7 +55,7 @@ label {
   font-size: 0.78rem;
 }
 
-input {
+input, select {
   padding: 12px 18px;
   border: 2px solid var(--border);
   border-radius: var(--radius-lg);
@@ -69,7 +69,12 @@ input {
   box-sizing: border-box;
 }
 
-input:focus {
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input:focus, select:focus {
   border-color: var(--grad-start);
 }
 

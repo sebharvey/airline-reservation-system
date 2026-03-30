@@ -9,25 +9,33 @@
   <form class="form" (submit)="$event.preventDefault(); search()">
     <div class="field-row">
       <div class="field">
-        <label for="flightNumber">Flight Number</label>
-        <input
-          id="flightNumber"
-          type="text"
-          placeholder="e.g. AX001"
-          [value]="flightNumber()"
-          (input)="setFlightNumber($any($event.target).value)"
-          autocomplete="off"
-          autocapitalize="characters"
-        />
-      </div>
-      <div class="field">
-        <label for="flightDate">Date <span class="optional">(optional)</span></label>
+        <label for="flightDate">Date</label>
         <input
           id="flightDate"
           type="date"
           [value]="flightDate()"
           (input)="setFlightDate($any($event.target).value)"
         />
+      </div>
+      <div class="field">
+        <label for="flightNumber">Flight Number</label>
+        <select
+          id="flightNumber"
+          [value]="flightNumber()"
+          (change)="setFlightNumber($any($event.target).value)"
+          [disabled]="flightsLoading() || flights().length === 0"
+        >
+          @if (flightsLoading()) {
+            <option value="">Loading flights...</option>
+          } @else if (flights().length === 0) {
+            <option value="">No flights for this date</option>
+          } @else {
+            <option value="">Select a flight</option>
+            @for (f of flights(); track f.flightNumber) {
+              <option [value]="f.flightNumber">{{ f.flightNumber }} — {{ f.origin }} to {{ f.destination }} ({{ f.departureTime }})</option>
+            }
+          }
+        </select>
       </div>
     </div>
 

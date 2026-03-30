@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Operations.Application.GetFlightStatus;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
 
@@ -17,12 +18,72 @@ namespace ReservationSystem.Orchestration.Operations.Functions;
 public sealed class FlightStatusFunction
 {
     private readonly GetFlightStatusHandler _handler;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly ILogger<FlightStatusFunction> _logger;
 
-    public FlightStatusFunction(GetFlightStatusHandler handler, ILogger<FlightStatusFunction> logger)
+    public FlightStatusFunction(
+        GetFlightStatusHandler handler,
+        OfferServiceClient offerServiceClient,
+        ILogger<FlightStatusFunction> logger)
     {
         _handler = handler;
+        _offerServiceClient = offerServiceClient;
         _logger = logger;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/flights?date=yyyy-MM-dd
+    // -------------------------------------------------------------------------
+
+    [Function("GetFlights")]
+    [OpenApiOperation(operationId: "GetFlights", tags: new[] { "Flight Status" }, Summary = "List available flights for a given date")]
+    [OpenApiParameter(name: "date", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Departure date (yyyy-MM-dd). Defaults to today.")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FlightSummaryResponse>), Description = "OK — returns list of flights")]
+    public async Task<HttpResponseData> GetFlights(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var dateParam = qs["date"];
+
+        string departureDate;
+        if (string.IsNullOrWhiteSpace(dateParam))
+        {
+            departureDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        }
+        else if (!DateOnly.TryParseExact(dateParam, "yyyy-MM-dd", out var parsed))
+        {
+            return await req.BadRequestAsync("'date' must be in yyyy-MM-dd format.");
+        }
+        else
+        {
+            departureDate = parsed.ToString("yyyy-MM-dd");
+        }
+
+        try
+        {
+            var inventories = await _offerServiceClient.GetFlightsByDateAsync(departureDate, cancellationToken);
+
+            var flights = inventories
+                .OrderBy(i => i.DepartureTime)
+                .ThenBy(i => i.FlightNumber)
+                .Select(i => new FlightSummaryResponse
+                {
+                    FlightNumber  = i.FlightNumber,
+                    Origin        = i.Origin,
+                    Destination   = i.Destination,
+                    DepartureTime = i.DepartureTime,
+                    AircraftType  = i.AircraftType
+                })
+                .ToList();
+
+            return await req.OkJsonAsync(flights);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve flights for {Date}", departureDate);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------

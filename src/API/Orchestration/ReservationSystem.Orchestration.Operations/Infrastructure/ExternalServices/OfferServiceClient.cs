@@ -22,6 +22,18 @@ public sealed class OfferServiceClient
         _httpClient = httpClientFactory.CreateClient("OfferMs");
     }
 
+    public async Task<IReadOnlyList<FlightInventoryDto>> GetFlightsByDateAsync(
+        string departureDate,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/v1/admin/inventory?departureDate={departureDate}";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<IReadOnlyList<FlightInventoryDto>>(JsonOptions, cancellationToken);
+        return result ?? [];
+    }
+
     public async Task<FlightInventoryDto?> GetFlightInventoryAsync(
         string flightNumber,
         string departureDate,

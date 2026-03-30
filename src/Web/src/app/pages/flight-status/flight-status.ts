@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
-import { FlightStatus } from '../../models/flight.model';
+import { FlightSummary, FlightStatus } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
 
 export type FlightStatusCode = FlightStatus['status'];
@@ -27,11 +27,13 @@ const STATUS_CONFIG: Record<FlightStatusCode, StatusDisplay> = {
   templateUrl: './flight-status.html',
   styleUrl: './flight-status.css'
 })
-export class FlightStatusComponent {
+export class FlightStatusComponent implements OnInit {
   private readonly retailApi = inject(RetailApiService);
 
   readonly statusConfig = STATUS_CONFIG;
 
+  flights = signal<FlightSummary[]>([]);
+  flightsLoading = signal(false);
   flightNumber = signal('');
   flightDate = signal('');
   loading = signal(false);
@@ -45,12 +47,26 @@ export class FlightStatusComponent {
 
   readonly notFound = computed(() => this.result() === 'not-found');
 
+  ngOnInit(): void {
+    const today = new Date().toISOString().split('T')[0];
+    this.flightDate.set(today);
+    this.loadFlights(today);
+  }
+
   setFlightNumber(v: string): void {
-    this.flightNumber.set(v.toUpperCase());
+    this.flightNumber.set(v);
   }
 
   setFlightDate(v: string): void {
     this.flightDate.set(v);
+    this.flightNumber.set('');
+    this.result.set(null);
+    this.searched.set(false);
+    if (v) {
+      this.loadFlights(v);
+    } else {
+      this.flights.set([]);
+    }
   }
 
   search(): void {
@@ -110,5 +126,19 @@ export class FlightStatusComponent {
   isEstimatedDifferent(scheduled: string, estimated: string | null): boolean {
     if (!estimated) return false;
     return new Date(scheduled).getTime() !== new Date(estimated).getTime();
+  }
+
+  private loadFlights(date: string): void {
+    this.flightsLoading.set(true);
+    this.retailApi.getFlights(date).subscribe({
+      next: (flights) => {
+        this.flights.set(flights);
+        this.flightsLoading.set(false);
+      },
+      error: () => {
+        this.flights.set([]);
+        this.flightsLoading.set(false);
+      }
+    });
   }
 }
