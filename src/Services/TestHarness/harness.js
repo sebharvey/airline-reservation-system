@@ -878,6 +878,8 @@
 
         completedStep.chainsTo.forEach(chain => {
             const alias = chain.as || chain.field;
+            // randomAvailableSeatFrom uses an object for 'as' — skip, nothing to resolve here
+            if (typeof alias !== 'string') return;
             const value = liveChain[alias];
             if (value === undefined) return;
 
@@ -885,7 +887,9 @@
             allSteps.forEach(s => {
                 if (s.apiCall.pathParams) {
                     for (const [paramName, paramVal] of Object.entries(s.apiCall.pathParams)) {
-                        if (paramVal === fromRef) {
+                        // Only update the param whose name matches this chain's alias,
+                        // preventing one chain from overwriting unrelated params.
+                        if (paramVal === fromRef && paramName === alias) {
                             liveChain[paramName] = value;
                         }
                     }
