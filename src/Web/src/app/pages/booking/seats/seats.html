@@ -59,39 +59,41 @@
         </span>
       </div>
 
-      <!-- Cabin sections -->
-      <div class="cabin-section" *ngFor="let cabin of sm.cabins">
-        <div class="cabin-label">{{ cabin.cabinName }}</div>
+      <!-- Cabin section (filtered to selected cabin) -->
+      <ng-container *ngIf="activeCabin() as cabin">
+        <div class="cabin-section">
+          <div class="cabin-label">{{ cabin.cabinName }}</div>
 
-        <!-- Column headers -->
-        <div class="seat-row seat-header-row">
-          <div class="row-num-cell"></div>
-          <ng-container *ngFor="let col of cabin.columns; let ci = index">
-            <div class="seat-col-header" [class.aisle-after]="hasAisle(cabin.layout, ci)">{{ col }}</div>
-          </ng-container>
-        </div>
-
-        <!-- Seat rows -->
-        <div class="seat-row" *ngFor="let row of getSeatRows(cabin)">
-          <div class="row-num-cell">{{ row }}</div>
-          <ng-container *ngFor="let col of cabin.columns; let ci = index">
-            <ng-container *ngIf="getSeatForRowCol(cabin, row, col) as seat; else gapSeat">
-              <button
-                [class]="getSeatClass(seat, entry.flightOffer.basketItemId)"
-                [class.aisle-after]="hasAisle(cabin.layout, ci)"
-                [disabled]="seat.availability !== 'available'"
-                (click)="selectSeat(seat, entry)"
-                [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.currency + ' ' + seat.price : '')">
-                <span class="seat-num">{{ seat.seatNumber }}</span>
-                <span class="seat-price-label">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
-              </button>
+          <!-- Column headers -->
+          <div class="seat-row seat-header-row">
+            <div class="row-num-cell"></div>
+            <ng-container *ngFor="let col of cabin.columns; let ci = index">
+              <div class="seat-col-header" [class.aisle-after]="hasAisle(cabin.layout, ci)">{{ col }}</div>
             </ng-container>
-            <ng-template #gapSeat>
-              <div class="seat seat-gap" [class.aisle-after]="hasAisle(cabin.layout, ci)"></div>
-            </ng-template>
-          </ng-container>
+          </div>
+
+          <!-- Seat rows -->
+          <div class="seat-row" *ngFor="let row of getSeatRows(cabin)">
+            <div class="row-num-cell">{{ row }}</div>
+            <ng-container *ngFor="let col of cabin.columns; let ci = index">
+              <ng-container *ngIf="getSeatForRowCol(cabin, row, col) as seat; else gapSeat">
+                <button
+                  [class]="getSeatClass(seat, entry.flightOffer.basketItemId)"
+                  [class.aisle-after]="hasAisle(cabin.layout, ci)"
+                  [disabled]="seat.availability !== 'available'"
+                  (click)="selectSeat(seat, entry)"
+                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.currency + ' ' + seat.price : '')">
+                  <span class="seat-num">{{ seat.seatNumber }}</span>
+                  <span class="seat-price-label">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
+                </button>
+              </ng-container>
+              <ng-template #gapSeat>
+                <div class="seat seat-gap" [class.aisle-after]="hasAisle(cabin.layout, ci)"></div>
+              </ng-template>
+            </ng-container>
+          </div>
         </div>
-      </div>
+      </ng-container>
 
       <!-- Legend -->
       <div class="legend">
