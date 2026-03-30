@@ -76,6 +76,14 @@ export interface BagPolicyResponse {
   additionalBagOffers: BagOffer[];
 }
 
+export interface FlightSummary {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureTime: string;
+  aircraftType: string;
+}
+
 export interface FlightStatus {
   flightNumber: string;
   origin: string;

@@ -12,7 +12,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { FlightOffer, Seatmap, BagPolicyResponse, FlightStatus, CabinCode } from '../models/flight.model';
+import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, CabinCode } from '../models/flight.model';
 import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
@@ -353,6 +353,18 @@ export class RetailApiService {
       });
 
     return of(boardingPasses).pipe(delay(API_DELAY_MS));
+  }
+
+  /**
+   * GET /v1/flights?date=yyyy-MM-dd
+   * List available flights for a given date from the Operations API.
+   */
+  getFlights(date?: string): Observable<FlightSummary[]> {
+    const base = environment.operationsApiBaseUrl;
+    const dateParam = date ? `?date=${date}` : '';
+    return this.#http.get<FlightSummary[]>(`${base}/api/v1/flights${dateParam}`).pipe(
+      catchError(() => of([]))
+    );
   }
 
   /**
