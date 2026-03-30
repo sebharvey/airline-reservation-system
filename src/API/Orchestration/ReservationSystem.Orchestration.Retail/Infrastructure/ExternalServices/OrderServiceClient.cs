@@ -124,6 +124,15 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
     }
 
+    public async Task<OrderMsOrderResult?> RetrieveOrderAsync(string bookingReference, string surname, CancellationToken ct)
+    {
+        var payload = new { bookingReference, surname };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders/retrieve", payload, JsonOptions, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
+    }
+
     public async Task<List<OrderMsOrderResult>> GetRecentOrdersAsync(int limit, CancellationToken ct)
     {
         using var response = await _httpClient.GetAsync($"/api/v1/admin/orders?limit={limit}", ct);
