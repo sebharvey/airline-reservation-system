@@ -5,6 +5,7 @@
     // =====================================================================
 
     const CONFIGS = [
+        { value: 'bookflow',          label: 'Bookflow (Retail API)' },
         { value: 'payment',           label: 'Payment' },
         { value: 'user',              label: 'User' },
         { value: 'loyalty',           label: 'Loyalty' },
