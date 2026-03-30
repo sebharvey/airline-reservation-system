@@ -38,9 +38,15 @@ public sealed class PaymentServiceClient
         return result.PaymentId;
     }
 
-    public async Task AuthoriseAsync(string paymentId, decimal amount, string? paymentToken, CancellationToken ct)
+    public async Task AuthoriseAsync(
+        string paymentId, decimal amount,
+        string? cardNumber, string? expiryDate, string? cvv, string? cardholderName,
+        CancellationToken ct)
     {
-        var payload = new { amount, paymentToken };
+        var cardDetails = cardNumber is not null
+            ? new { cardNumber, expiryDate, cvv, cardholderName }
+            : (object?)null;
+        var payload = new { amount, cardDetails };
         using var response = await _httpClient.PostAsJsonAsync($"/api/v1/payment/{paymentId}/authorise", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

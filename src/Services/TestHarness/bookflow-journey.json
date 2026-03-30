@@ -508,7 +508,7 @@
     {
       "step": 10,
       "name": "Confirm and pay",
-      "description": "Submit payment to confirm the basket and create the order. Provides the payment method, a tokenised payment reference, and an optional loyalty points redemption amount. On success the basket transitions to Confirmed and an orderId is returned.",
+      "description": "Submit payment to confirm the basket and create the order. Provides the payment method and card details nested under a payment object. On success the basket transitions to Confirmed and an orderId is returned.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -519,8 +519,13 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": {
-          "paymentMethod": "CreditCard",
-          "paymentToken": "1232346456455345",
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111234",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "Bob Smith"
+          },
           "loyaltyPointsToRedeem": null
         },
         "dataChain": [
@@ -539,7 +544,7 @@
         "statusCode": 201,
         "description": "201 Created — booking confirmed. The basket is marked Confirmed and a new order is created. The response contains the orderId (GUID) and the human-readable bookingReference used for check-in and manage-booking flows.",
         "keyFields": ["orderId", "bookingReference", "status"],
-        "validationNotes": "paymentMethod valid values: CreditCard, DebitCard, LoyaltyPoints. paymentToken is the tokenised card reference from the payment gateway. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
+        "validationNotes": "payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
       }
     }
   ]

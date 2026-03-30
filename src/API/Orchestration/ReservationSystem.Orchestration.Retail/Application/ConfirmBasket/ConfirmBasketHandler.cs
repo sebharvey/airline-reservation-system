@@ -46,7 +46,10 @@ public sealed class ConfirmBasketHandler
 
         try
         {
-            await _paymentServiceClient.AuthoriseAsync(paymentId, totalAmount, command.PaymentToken, cancellationToken);
+            await _paymentServiceClient.AuthoriseAsync(
+                paymentId, totalAmount,
+                command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName,
+                cancellationToken);
         }
         catch
         {
