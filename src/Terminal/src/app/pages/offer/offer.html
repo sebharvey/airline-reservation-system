@@ -120,7 +120,7 @@
                 <span class="load-pct muted">{{ flight.loadFactor }}%</span>
               </td>
               <td>
-                <span class="badge" [class]="ticketingClass(flight)">{{ ticketingStatus(flight) }}</span>
+                <span class="badge" [class]="ticketingClass(flight)">{{ flight.ticketingStatus }}</span>
               </td>
             </tr>
           }

@@ -655,26 +655,35 @@ public sealed class OfferFunction
         var groups = await _getFlightInventoryHandler.HandleAsync(
             new GetFlightInventoryByDateQuery(departureDate), ct);
 
-        var response = groups.Select(g => new FlightInventoryGroupResponse
+        var now = DateTime.UtcNow;
+
+        var response = groups.Select(g =>
         {
-            FlightNumber        = g.FlightNumber,
-            DepartureDate       = g.DepartureDate.ToString("yyyy-MM-dd"),
-            DepartureTime       = g.DepartureTime.ToString("HH:mm"),
-            ArrivalTime         = g.ArrivalTime.ToString("HH:mm"),
-            ArrivalDayOffset    = g.ArrivalDayOffset,
-            Origin              = g.Origin,
-            Destination         = g.Destination,
-            AircraftType        = g.AircraftType,
-            Status              = g.Status,
-            TotalSeats          = g.TotalSeats,
-            TotalSeatsAvailable = g.TotalSeatsAvailable,
-            LoadFactor          = g.TotalSeats > 0
-                ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
-                : 0,
-            F = g.F is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
-            J = g.J is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
-            W = g.W is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
-            Y = g.Y is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
+            var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
+            var ticketingStatus = (departure - now).TotalHours > 1 ? "Open" : "Closed";
+
+            return new FlightInventoryGroupResponse
+            {
+                FlightNumber        = g.FlightNumber,
+                DepartureDate       = g.DepartureDate.ToString("yyyy-MM-dd"),
+                DepartureTime       = g.DepartureTime.ToString("HH:mm"),
+                ArrivalTime         = g.ArrivalTime.ToString("HH:mm"),
+                ArrivalDayOffset    = g.ArrivalDayOffset,
+                Origin              = g.Origin,
+                Destination         = g.Destination,
+                AircraftType        = g.AircraftType,
+                Status              = g.Status,
+                TotalSeats          = g.TotalSeats,
+                TotalSeatsAvailable = g.TotalSeatsAvailable,
+                LoadFactor          = g.TotalSeats > 0
+                    ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
+                    : 0,
+                TicketingStatus     = ticketingStatus,
+                F = g.F is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
+                J = g.J is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
+                W = g.W is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
+                Y = g.Y is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
+            };
         }).ToList();
 
         return await req.OkJsonAsync(response);

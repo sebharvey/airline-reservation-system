@@ -20,6 +20,7 @@ public sealed class FlightInventoryGroupResponse
     public int TotalSeats { get; init; }
     public int TotalSeatsAvailable { get; init; }
     public int LoadFactor { get; init; }
+    public string TicketingStatus { get; init; } = string.Empty;
 }
 
 public sealed class CabinInventory
