@@ -4,13 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
 
-interface DemoHint {
-  ref: string;
-  name: string;
-  givenName: string;
-  surname: string;
-}
-
 @Component({
   selector: 'app-manage-booking',
   standalone: true,
@@ -25,11 +18,6 @@ export class ManageBookingComponent {
   loading = signal(false);
   errorMessage = signal('');
 
-  readonly demoHints: DemoHint[] = [
-    { ref: 'AB1234', name: 'Alex Taylor', givenName: 'Alex', surname: 'Taylor' },
-    { ref: 'CD5678', name: 'Sam Morgan', givenName: 'Sam', surname: 'Morgan' }
-  ];
-
   constructor(
     private retailApi: RetailApiService,
     private router: Router
@@ -37,13 +25,6 @@ export class ManageBookingComponent {
 
   onReferenceInput(value: string): void {
     this.bookingReference.set(value.toUpperCase());
-  }
-
-  fillDemo(hint: DemoHint): void {
-    this.bookingReference.set(hint.ref);
-    this.givenName.set(hint.givenName);
-    this.surname.set(hint.surname);
-    this.errorMessage.set('');
   }
 
   get isFormValid(): boolean {
