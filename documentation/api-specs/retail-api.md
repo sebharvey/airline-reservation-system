@@ -755,7 +755,7 @@ Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separat
 | `400 Bad Request` | Missing payment details or malformed request |
 | `404 Not Found` | Basket not found |
 | `410 Gone` | Basket has expired |
-| `422 Unprocessable Entity` | Insufficient points balance (reward), card declined, or ticketing failed |
+| `422 Unprocessable Entity` | Invalid card details (card number fails Luhn validation, expired card, or invalid CVV format), insufficient points balance (reward), card declined by payment provider, or ticketing failed |
 
 ---
 
