@@ -50,7 +50,15 @@ export class OrderListComponent implements OnInit {
     this.searchMode.set(true);
     try {
       const result = await this.#orderService.getOrderByRef(pnr);
-      this.orders.set(result ? [result as unknown as OrderSummary] : []);
+      if (result) {
+        const segments = result.orderData?.dataLists?.flightSegments ?? [];
+        const route = segments.length > 0
+          ? `${segments[0].origin} → ${segments[segments.length - 1].destination}`
+          : '';
+        this.orders.set([{ ...result, route } as unknown as OrderSummary]);
+      } else {
+        this.orders.set([]);
+      }
       this.loaded.set(true);
     } catch {
       this.error.set('Failed to search orders. Please try again.');

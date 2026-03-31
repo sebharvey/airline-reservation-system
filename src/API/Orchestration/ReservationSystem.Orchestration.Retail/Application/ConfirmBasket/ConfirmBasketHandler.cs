@@ -8,15 +8,18 @@ namespace ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 public sealed class ConfirmBasketHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
 
     public ConfirmBasketHandler(
         OrderServiceClient orderServiceClient,
+        OfferServiceClient offerServiceClient,
         PaymentServiceClient paymentServiceClient,
         DeliveryServiceClient deliveryServiceClient)
     {
         _orderServiceClient = orderServiceClient;
+        _offerServiceClient = offerServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
     }
@@ -88,7 +91,29 @@ public sealed class ConfirmBasketHandler
             throw;
         }
 
-        // 5. Issue e-tickets via Delivery MS using the confirmed booking reference
+        // 5. Sell flight inventory — convert held seats to sold in each cabin
+        if (basket.BasketData.HasValue)
+        {
+            try
+            {
+                var (inventoryItems, paxCount) = ParseBasketDataForInventorySell(basket.BasketData.Value.GetRawText());
+                if (inventoryItems.Count > 0 && paxCount > 0)
+                {
+                    await _offerServiceClient.SellInventoryAsync(
+                        command.BasketId, inventoryItems, paxCount, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Inventory sell failure is logged but does not roll back the confirmed order —
+                // the booking is already committed and the customer paid. Inventory can be
+                // reconciled manually if needed.
+                System.Console.Error.WriteLine(
+                    $"[ConfirmBasket] Inventory sell failed for basket {command.BasketId}: {ex.Message}");
+            }
+        }
+
+        // 6. Issue e-tickets via Delivery MS using the confirmed booking reference
         var issuedTickets = new List<IssuedTicket>();
         if (basket.BasketData.HasValue)
         {
@@ -233,5 +258,42 @@ public sealed class ConfirmBasketHandler
         }
 
         return entries;
+    }
+
+    private static (List<(Guid InventoryId, string CabinCode)> items, int paxCount) ParseBasketDataForInventorySell(
+        string basketDataJson)
+    {
+        var items = new List<(Guid, string)>();
+        var paxCount = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("passengers", out var passengersEl) &&
+                passengersEl.ValueKind == JsonValueKind.Array)
+            {
+                paxCount = passengersEl.GetArrayLength();
+            }
+
+            if (root.TryGetProperty("flightOffers", out var offersEl) &&
+                offersEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var offer in offersEl.EnumerateArray())
+                {
+                    if (offer.TryGetProperty("inventoryId", out var invIdEl) &&
+                        invIdEl.TryGetGuid(out var inventoryId) &&
+                        offer.TryGetProperty("cabinCode", out var cabinEl))
+                    {
+                        var cabinCode = cabinEl.GetString() ?? "Y";
+                        items.Add((inventoryId, cabinCode));
+                    }
+                }
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return (items, paxCount);
     }
 }

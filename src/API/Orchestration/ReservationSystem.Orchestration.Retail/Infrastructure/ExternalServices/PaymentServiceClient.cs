@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -79,6 +80,22 @@ public sealed class PaymentServiceClient
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Payment void failed: {error}");
         }
+    }
+
+    public async Task<PaymentDetailDto?> GetPaymentAsync(string paymentId, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/payment/{paymentId}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PaymentDetailDto>(JsonOptions, ct);
+    }
+
+    public async Task<IReadOnlyList<PaymentEventDto>> GetPaymentEventsAsync(string paymentId, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/payment/{paymentId}/events", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return [];
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<IReadOnlyList<PaymentEventDto>>(JsonOptions, ct) ?? [];
     }
 }
 

@@ -25,12 +25,51 @@
   font-size: 0.875rem;
 }
 
+/* Header controls — date picker + refresh button */
+.header-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 /* Date filter */
 .date-filter {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--grad-start, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  height: 36px;
+}
+
+.refresh-btn:hover:not(:disabled) { opacity: 0.88; }
+.refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .date-label {
   font-size: 0.75rem;
