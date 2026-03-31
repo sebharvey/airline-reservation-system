@@ -77,9 +77,9 @@ body {
     background: #f0f3fb;
 }
 .harness-table tbody td {
-    padding: 1rem;
+    padding: 0.6rem 1rem;
     border-bottom: 1px solid var(--border);
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 /* Row result state — after live run */
@@ -676,28 +676,55 @@ body {
     .harness-table thead { display: none; }
     .harness-table tbody tr {
         display: flex;
-        flex-direction: column;
-        margin-bottom: 0.75rem;
-        border-radius: 8px;
+        flex-direction: row;
+        align-items: center;
+        margin-bottom: 0.4rem;
+        border-radius: 6px;
         border: 1px solid var(--border);
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
         overflow: hidden;
+        min-height: 0;
     }
-    .harness-table tbody td {
-        display: block;
-        padding: 0.65rem 0.85rem;
-        border-bottom: 1px solid rgba(0,0,0,0.04);
-    }
-    .harness-table tbody td:last-child { border-bottom: none; }
 
+    /* Step# — compact left badge */
     .harness-table tbody td:nth-child(1) {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 2.4rem;
+        padding: 0.55rem 0.3rem;
         background: var(--surface-raised);
-        padding: 0.6rem 0.85rem;
+        border-right: 1px solid var(--border);
+        border-bottom: none;
+        align-self: stretch;
     }
-    .step-number { font-size: 0.95rem; margin-bottom: 0; }
+    /* Name — grows to fill remaining space */
+    .harness-table tbody td:nth-child(2) {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        padding: 0.55rem 0.75rem;
+        border-bottom: none;
+    }
+    /* API Call — hidden on mobile; detail is in the modal */
+    .harness-table tbody td:nth-child(3) { display: none; }
+    /* Expected — hidden on mobile */
+    .harness-table tbody td:nth-child(4) { display: none; }
+    /* Time — compact right cell */
+    .harness-table tbody td:nth-child(5) {
+        display: block;
+        flex-shrink: 0;
+        padding: 0.55rem 0.6rem;
+        border-bottom: none;
+        text-align: right;
+        white-space: nowrap;
+        font-size: 0.72rem;
+    }
+
+    .step-number { font-size: 0.82rem; margin-bottom: 0; }
+    .step-name { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0; }
+    .step-desc { display: none; }
 
     .harness-table tbody tr.result-pass {
         border-left: 3px solid var(--positive);
@@ -730,10 +757,10 @@ body {
 @media (max-width: 420px) {
     body { padding: 0.5rem; }
     .header h1 { font-size: 1rem; }
-    .harness-table tbody td { padding: 0.5rem 0.65rem; }
-    .endpoint-url { font-size: 0.65rem; }
-    .method-badge { font-size: 0.62rem; padding: 0.15rem 0.4rem; }
-    .json-block { font-size: 0.6rem; }
-    .expected-status { font-size: 0.75rem; }
+    .harness-table tbody td:nth-child(1) { width: 2rem; padding: 0.5rem 0.2rem; }
+    .harness-table tbody td:nth-child(2) { padding: 0.5rem 0.55rem; }
+    .harness-table tbody td:nth-child(5) { padding: 0.5rem 0.45rem; font-size: 0.68rem; }
+    .step-number { font-size: 0.75rem; }
+    .step-name { font-size: 0.78rem; }
     .modal { max-height: 95vh; }
 }
