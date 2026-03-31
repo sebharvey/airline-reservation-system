@@ -277,6 +277,9 @@ public sealed class BasketFunction
                         flights.Add(new BasketFlight
                         {
                             OfferId = offer.TryGetProperty("offerId", out var v) && v.TryGetGuid(out var g) ? g : Guid.Empty,
+                            InventoryId = offer.TryGetProperty("inventoryId", out v) && v.TryGetGuid(out var ig) ? ig : null,
+                            AircraftType = offer.TryGetProperty("aircraftType", out v) ? v.GetString() : null,
+                            BasketItemId = offer.TryGetProperty("basketItemId", out v) ? v.GetString() ?? string.Empty : string.Empty,
                             FlightNumber = offer.TryGetProperty("flightNumber", out v) ? v.GetString() ?? string.Empty : string.Empty,
                             Origin = offer.TryGetProperty("origin", out v) ? v.GetString() ?? string.Empty : string.Empty,
                             Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,

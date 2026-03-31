@@ -20,6 +20,9 @@ public sealed class BasketResponse
 public sealed class BasketFlight
 {
     public Guid OfferId { get; init; }
+    public Guid? InventoryId { get; init; }
+    public string? AircraftType { get; init; }
+    public string BasketItemId { get; init; } = string.Empty;
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
