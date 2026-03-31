@@ -342,10 +342,13 @@
     // =====================================================================
 
     let liveStepIndices, liveChain, liveResults, rowRefs, hasRuntimeVars, defaultBaseUrlId;
+    let nextStepCursor = 0;
+    let nextCurrentSteps = null;
 
     const tbody = document.getElementById('journeyBody');
     const baseUrlListEl = document.getElementById('baseUrlList');
     const btnRunAll = document.getElementById('btnRunAll');
+    const btnNextStep = document.getElementById('btnNextStep');
 
     // =====================================================================
     // Initialise journey after load or switch
@@ -386,6 +389,10 @@
         }
 
         btnRunAll.disabled = false;
+        nextStepCursor = 0;
+        nextCurrentSteps = null;
+        btnNextStep.disabled = false;
+        btnNextStep.textContent = '\u23ED Next';
     }
 
     // =====================================================================
@@ -646,6 +653,59 @@
     btnRunAll.addEventListener('click', runLiveSteps);
 
     // =====================================================================
+    // Next Step button
+    // =====================================================================
+
+    btnNextStep.addEventListener('click', runNextStep);
+
+    async function runNextStep() {
+        // First click — initialise the run without executing anything yet
+        if (nextCurrentSteps === null) {
+            apiLog = [];
+            btnCopyLogs.disabled = true;
+            configSelect.disabled = true;
+            btnRunAll.disabled = true;
+
+            if (hasRuntimeVars) {
+                generateRuntimeVars();
+                nextCurrentSteps = buildStepsWithVars();
+                updateRuntimeBanner();
+            } else {
+                nextCurrentSteps = JSON.parse(JSON.stringify(raw.steps));
+            }
+
+            buildTableRows(nextCurrentSteps);
+            liveChain = {};
+            liveResults = {};
+            nextStepCursor = 0;
+        }
+
+        if (nextStepCursor >= liveStepIndices.length) return;
+
+        btnNextStep.disabled = true;
+        btnNextStep.textContent = '\u23F3 Running\u2026';
+
+        const stepIdx = liveStepIndices[nextStepCursor];
+        nextStepCursor++;
+
+        await runStep(rowRefs[stepIdx], nextCurrentSteps);
+
+        if (nextStepCursor >= liveStepIndices.length) {
+            // All steps done
+            btnNextStep.disabled = true;
+            btnNextStep.textContent = '\u23ED Next';
+            btnRunAll.disabled = false;
+            btnCopyLogs.disabled = false;
+            configSelect.disabled = false;
+            nextCurrentSteps = null;
+            nextStepCursor = 0;
+        } else {
+            btnNextStep.disabled = false;
+            btnNextStep.textContent = '\u23ED Next';
+        }
+    }
+
+    // =====================================================================
     // Live API invocation
     // =====================================================================
 
@@ -654,6 +714,9 @@
         btnRunAll.textContent = '\u23F3 Running\u2026';
         btnCopyLogs.disabled = true;
         configSelect.disabled = true;
+        btnNextStep.disabled = true;
+        nextStepCursor = 0;
+        nextCurrentSteps = null;
 
         // Clear previous logs
         apiLog = [];
@@ -679,6 +742,8 @@
         btnRunAll.textContent = '\u25B6 Run';
         btnCopyLogs.disabled = false;
         configSelect.disabled = false;
+        btnNextStep.disabled = false;
+        btnNextStep.textContent = '\u23ED Next';
     }
 
     // Walk a dot-separated path where segments ending with [*] expand arrays.
