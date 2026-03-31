@@ -49,12 +49,11 @@ public sealed class SettlePaymentHandler
                 $"Payment '{command.PaymentId}' cannot be settled — current status is '{payment.Status}'.");
         }
 
-        // Total settled after this call must not exceed total authorised
-        var totalSettledAfter = (payment.SettledAmount ?? 0m) + command.Amount;
-        if (totalSettledAfter > payment.AuthorisedAmount)
+        // Settlement must capture the full authorised amount — partial settlement is not permitted.
+        if (command.Amount != payment.AuthorisedAmount)
         {
             throw new ArgumentException(
-                $"Total settled amount ({totalSettledAfter}) would exceed total authorised amount ({payment.AuthorisedAmount}).");
+                $"Settlement amount ({command.Amount}) must equal the authorised amount ({payment.AuthorisedAmount}). Partial settlement is not permitted.");
         }
 
         // TODO: Call payment gateway to capture / settle the authorised funds.
@@ -64,19 +63,18 @@ public sealed class SettlePaymentHandler
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
-        // Derive event type from post-settle status: fully settled → Settled, otherwise PartialSettlement
-        var eventType = payment.Status == PaymentStatus.Settled
-            ? PaymentEventType.Settled
-            : PaymentEventType.PartialSettlement;
+        // Update the existing Authorised PaymentEvent row to Settled — do not create a new row.
+        var paymentEvent = await _repository.GetEventByPaymentIdAsync(payment.PaymentId, cancellationToken);
 
-        var settleEvent = PaymentEvent.Create(
-            payment.PaymentId,
-            eventType,
-            command.Amount,
-            payment.CurrencyCode,
-            $"Payment settled for {command.Amount} {payment.CurrencyCode}");
+        if (paymentEvent is not null)
+        {
+            paymentEvent.Update(
+                PaymentEventType.Settled,
+                command.Amount,
+                $"Payment settled for {command.Amount} {payment.CurrencyCode}");
 
-        await _repository.CreateEventAsync(settleEvent, cancellationToken);
+            await _repository.UpdateEventAsync(paymentEvent, cancellationToken);
+        }
 
         _logger.LogInformation("Settled payment {PaymentId} for {Amount} {Currency}",
             command.PaymentId, command.Amount, payment.CurrencyCode);
