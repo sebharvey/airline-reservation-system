@@ -59,8 +59,8 @@
         </div>
         <span
           class="status-badge"
-          [class]="getStatusCssClass(flightStatus()!.status)"
-        >{{ getStatusLabel(flightStatus()!.status) }}</span>
+          [class]="getStatusCssClass(computeDisplayStatus(flightStatus()!))"
+        >{{ getStatusLabel(computeDisplayStatus(flightStatus()!)) }}</span>
       </div>
 
       <!-- Route -->

@@ -5,17 +5,19 @@ import { FlightStatus, ScheduledFlightNumber } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
 
 export type FlightStatusCode = FlightStatus['status'];
+export type DisplayStatusCode = FlightStatusCode | 'InFlight';
 
 interface StatusDisplay {
   label: string;
   cssClass: string;
 }
 
-const STATUS_CONFIG: Record<FlightStatusCode, StatusDisplay> = {
+const STATUS_CONFIG: Record<DisplayStatusCode, StatusDisplay> = {
   OnTime:    { label: 'On Time',   cssClass: 'status-ontime' },
   Delayed:   { label: 'Delayed',   cssClass: 'status-delayed' },
   Boarding:  { label: 'Boarding',  cssClass: 'status-boarding' },
   Departed:  { label: 'Departed',  cssClass: 'status-departed' },
+  InFlight:  { label: 'In Flight', cssClass: 'status-inflight' },
   Landed:    { label: 'Landed',    cssClass: 'status-landed' },
   Cancelled: { label: 'Cancelled', cssClass: 'status-cancelled' },
 };
@@ -86,11 +88,26 @@ export class FlightStatusComponent implements OnInit {
     return AIRPORTS.find(ap => ap.code === code)?.city ?? code;
   }
 
-  getStatusLabel(status: FlightStatusCode): string {
+  computeDisplayStatus(flight: FlightStatus): DisplayStatusCode {
+    if (flight.status === 'Cancelled') return 'Cancelled';
+
+    const now = new Date();
+    const departure = new Date(flight.estimatedDepartureDateTime ?? flight.scheduledDepartureDateTime);
+    const arrival = new Date(flight.estimatedArrivalDateTime ?? flight.scheduledArrivalDateTime);
+    const minutesToDeparture = (departure.getTime() - now.getTime()) / 60000;
+
+    if (now >= arrival) return 'Landed';
+    if (now >= departure) return 'InFlight';
+    if (minutesToDeparture <= 60) return 'Boarding';
+
+    return flight.status;
+  }
+
+  getStatusLabel(status: DisplayStatusCode): string {
     return STATUS_CONFIG[status]?.label ?? status;
   }
 
-  getStatusCssClass(status: FlightStatusCode): string {
+  getStatusCssClass(status: DisplayStatusCode): string {
     return STATUS_CONFIG[status]?.cssClass ?? '';
   }
 
