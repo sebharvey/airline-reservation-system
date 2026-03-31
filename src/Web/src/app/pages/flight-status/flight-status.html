@@ -13,17 +13,10 @@
         id="flightNumber"
         [value]="flightNumber()"
         (change)="setFlightNumber($any($event.target).value)"
-        [disabled]="flightsLoading() || flights().length === 0"
       >
-        @if (flightsLoading()) {
-          <option value="">Loading flights...</option>
-        } @else if (flights().length === 0) {
-          <option value="">No flights available</option>
-        } @else {
-          <option value="">Select a flight</option>
-          @for (f of flights(); track f.flightNumber) {
-            <option [value]="f.flightNumber">{{ f.flightNumber }} — {{ f.origin }} to {{ f.destination }} ({{ f.departureTime }})</option>
-          }
+        <option value="">Select a flight</option>
+        @for (fn of flightNumbers; track fn) {
+          <option [value]="fn">{{ fn }}</option>
         }
       </select>
     </div>

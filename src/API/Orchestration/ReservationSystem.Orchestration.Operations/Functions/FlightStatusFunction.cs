@@ -87,16 +87,15 @@ public sealed class FlightStatusFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/flights/{flightNumber}/status?date=yyyy-MM-dd
+    // GET /v1/flights/{flightNumber}/status
     // -------------------------------------------------------------------------
 
     [Function("GetFlightStatus")]
-    [OpenApiOperation(operationId: "GetFlightStatus", tags: new[] { "Flight Status" }, Summary = "Get real-time flight status for a given flight number and date")]
+    [OpenApiOperation(operationId: "GetFlightStatus", tags: new[] { "Flight Status" }, Summary = "Get real-time flight status for a given flight number (today's date)")]
     [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Flight number (e.g. AX001)")]
-    [OpenApiParameter(name: "date", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Departure date (yyyy-MM-dd). Defaults to today.")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightStatusResponse), Description = "OK — returns flight status")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no flight found for the given flight number and date")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no flight found for the given flight number today")]
     public async Task<HttpResponseData> GetFlightStatus(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightNumber}/status")] HttpRequestData req,
         string flightNumber,
@@ -105,22 +104,7 @@ public sealed class FlightStatusFunction
         if (string.IsNullOrWhiteSpace(flightNumber))
             return await req.BadRequestAsync("'flightNumber' is required.");
 
-        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-        var dateParam = qs["date"];
-
-        string departureDate;
-        if (string.IsNullOrWhiteSpace(dateParam))
-        {
-            departureDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
-        }
-        else if (!DateOnly.TryParseExact(dateParam, "yyyy-MM-dd", out var parsed))
-        {
-            return await req.BadRequestAsync("'date' must be in yyyy-MM-dd format.");
-        }
-        else
-        {
-            departureDate = parsed.ToString("yyyy-MM-dd");
-        }
+        var departureDate = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
         try
         {
@@ -128,7 +112,7 @@ public sealed class FlightStatusFunction
             var result = await _handler.HandleAsync(query, cancellationToken);
 
             if (result is null)
-                return await req.NotFoundAsync($"No flight found for '{flightNumber}' on {departureDate}.");
+                return await req.NotFoundAsync($"No flight found for '{flightNumber}' today.");
 
             return await req.OkJsonAsync(result);
         }
@@ -139,7 +123,7 @@ public sealed class FlightStatusFunction
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve flight status for {FlightNumber} on {Date}", flightNumber, departureDate);
+            _logger.LogError(ex, "Failed to retrieve flight status for {FlightNumber}", flightNumber);
             return await req.InternalServerErrorAsync();
         }
     }
