@@ -15,4 +15,6 @@ public interface IOrderRepository
     Task CreateAsync(Entities.Order order, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Entities.Order order, CancellationToken cancellationToken = default);
+
+    Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default);
 }

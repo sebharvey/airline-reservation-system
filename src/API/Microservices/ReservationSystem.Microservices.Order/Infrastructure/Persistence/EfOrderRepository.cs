@@ -89,4 +89,22 @@ public sealed class EfOrderRepository : IOrderRepository
         if (rowsAffected == 0)
             _logger.LogWarning("UpdateAsync found no row for Order {OrderId}", order.OrderId);
     }
+
+    public async Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateTime.UtcNow.AddHours(-24);
+        var expiredDrafts = await _context.Orders
+            .Where(o => o.OrderStatus == "Draft" && o.UpdatedAt < cutoff)
+            .ToListAsync(cancellationToken);
+
+        if (expiredDrafts.Count == 0)
+            return 0;
+
+        _context.Orders.RemoveRange(expiredDrafts);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted {Count} expired draft order(s) from [order].[Order]", expiredDrafts.Count);
+
+        return expiredDrafts.Count;
+    }
 }
