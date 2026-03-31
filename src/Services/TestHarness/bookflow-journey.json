@@ -21,8 +21,8 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": {
-          "origin": "__RAND_OUTBOUND_ORIGIN__",
-          "destination": "__RAND_OUTBOUND_DEST__",
+          "origin": "LHR",
+          "destination": "JFK",
           "departureDate": "__RAND_DEPART_DATE__",
           "paxCount": 1,
           "bookingType": "Revenue"
@@ -100,8 +100,8 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": {
-          "origin": "__RAND_RETURN_ORIGIN__",
-          "destination": "__RAND_RETURN_DEST__",
+          "origin": "JFK",
+          "destination": "LHR",
           "departureDate": "__RAND_RETURN_DATE__",
           "paxCount": 1,
           "bookingType": "Revenue"
