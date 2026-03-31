@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
-import { FlightSummary, FlightStatus } from '../../models/flight.model';
+import { FlightStatus } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
 
 export type FlightStatusCode = FlightStatus['status'];
@@ -27,15 +27,14 @@ const STATUS_CONFIG: Record<FlightStatusCode, StatusDisplay> = {
   templateUrl: './flight-status.html',
   styleUrl: './flight-status.css'
 })
-export class FlightStatusComponent implements OnInit {
+export class FlightStatusComponent {
   private readonly retailApi = inject(RetailApiService);
 
   readonly statusConfig = STATUS_CONFIG;
+  readonly flightNumbers = ['AX001', 'AX002', 'AX301', 'AX411'];
 
-  flights = signal<FlightSummary[]>([]);
-  flightsLoading = signal(false);
   flightNumber = signal('');
-  selectedDate = signal(new Date().toISOString().split('T')[0]);
+  private readonly flightDate = new Date().toISOString().split('T')[0];
   loading = signal(false);
   searched = signal(false);
   result = signal<FlightStatus | null | 'not-found'>(null);
@@ -47,20 +46,8 @@ export class FlightStatusComponent implements OnInit {
 
   readonly notFound = computed(() => this.result() === 'not-found');
 
-  ngOnInit(): void {
-    this.loadFlights(this.selectedDate());
-  }
-
   setFlightNumber(v: string): void {
     this.flightNumber.set(v);
-  }
-
-  setDate(date: string): void {
-    this.selectedDate.set(date);
-    this.flightNumber.set('');
-    this.result.set(null);
-    this.searched.set(false);
-    this.loadFlights(date);
   }
 
   search(): void {
@@ -71,7 +58,7 @@ export class FlightStatusComponent implements OnInit {
     this.searched.set(false);
     this.result.set(null);
 
-    const date = this.selectedDate();
+    const date = this.flightDate;
 
     this.retailApi.getFlightStatus(fn, date).subscribe({
       next: (status) => {
@@ -122,17 +109,4 @@ export class FlightStatusComponent implements OnInit {
     return new Date(scheduled).getTime() !== new Date(estimated).getTime();
   }
 
-  private loadFlights(date: string): void {
-    this.flightsLoading.set(true);
-    this.retailApi.getFlights(date).subscribe({
-      next: (flights) => {
-        this.flights.set(flights);
-        this.flightsLoading.set(false);
-      },
-      error: () => {
-        this.flights.set([]);
-        this.flightsLoading.set(false);
-      }
-    });
-  }
 }
