@@ -60,8 +60,25 @@ export interface OrderItem {
   eTicketNumber: string | null;
   seatNumber: string | null;
   bagWeightKg: number | null;
+  ssrCode: string | null;
   amount: number | null;
   currency: string | null;
+}
+
+export interface SsrOption {
+  ssrCatalogueId: string;
+  ssrCode: string;
+  label: string;
+  category: string;
+  isActive: boolean;
+}
+
+export interface SsrPatchAction {
+  action: 'add' | 'remove';
+  ssrCode?: string;
+  passengerRef?: string;
+  segmentRef?: string;
+  itemId?: string;
 }
 
 export interface PaymentEvent {
@@ -140,6 +157,21 @@ export class OrderService {
       this.#http.patch(
         `${environment.retailApiUrl}/api/v1/orders/${bookingRef.toUpperCase()}/passengers`,
         { passengers },
+      )
+    );
+  }
+
+  async getSsrOptions(): Promise<SsrOption[]> {
+    return firstValueFrom(
+      this.#http.get<SsrOption[]>(`${environment.retailApiUrl}/api/v1/ssr/options`)
+    );
+  }
+
+  async updateOrderSsrs(bookingRef: string, actions: SsrPatchAction[]): Promise<void> {
+    await firstValueFrom(
+      this.#http.patch(
+        `${environment.retailApiUrl}/api/v1/orders/${bookingRef.toUpperCase()}/ssrs`,
+        { actions }
       )
     );
   }
