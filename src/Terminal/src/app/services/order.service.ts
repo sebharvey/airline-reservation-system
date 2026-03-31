@@ -54,6 +54,14 @@ export interface OrderItem {
   currency: string | null;
 }
 
+export interface PaymentEvent {
+  eventType: string;
+  amount: number;
+  currency: string;
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface OrderPayment {
   paymentId: string;
   amount: number;
@@ -62,6 +70,7 @@ export interface OrderPayment {
   paymentMethod: string | null;
   authorisedAt: string | null;
   settledAt: string | null;
+  events?: PaymentEvent[];
 }
 
 export interface OrderHistoryEvent {

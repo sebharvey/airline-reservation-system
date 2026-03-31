@@ -73,14 +73,14 @@ public sealed class ConfirmOrderHandler
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
 
-        // Build lean flight order items — keep only the inventory reference fields;
-        // flight details are resolved at read time via inventoryId from the Offer MS.
+        // Build lean flight order items — keep inventory reference fields plus cabin and segment ID
+        // so that flight details can be resolved at read time and e-tickets can be matched by segment.
         var flightOrderItems = new JsonArray();
         foreach (var offer in segmentsNode)
         {
             if (offer is not JsonObject offerObj) continue;
             var item = new JsonObject();
-            foreach (var prop in new[] { "offerId", "sessionId", "inventoryId" })
+            foreach (var prop in new[] { "offerId", "sessionId", "inventoryId", "cabinCode", "basketItemId" })
             {
                 if (offerObj[prop] is JsonNode val)
                     item[prop] = val.DeepClone();

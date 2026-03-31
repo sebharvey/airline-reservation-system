@@ -70,4 +70,25 @@ public sealed class OfferServiceClient
 
         return result ?? [];
     }
+
+    public async Task SellInventoryAsync(
+        Guid basketId,
+        IReadOnlyList<(Guid InventoryId, string CabinCode)> items,
+        int paxCount,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new
+        {
+            items = items.Select(i => new { inventoryId = i.InventoryId, cabinCode = i.CabinCode }),
+            paxCount,
+            basketId
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/sell", payload, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(cancellationToken);
+            throw new InvalidOperationException($"Failed to sell inventory: {error}");
+        }
+    }
 }
