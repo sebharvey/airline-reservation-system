@@ -6,10 +6,12 @@ namespace ReservationSystem.Orchestration.Retail.Application.GetOrder;
 public sealed class GetOrderHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
 
-    public GetOrderHandler(OrderServiceClient orderServiceClient)
+    public GetOrderHandler(OrderServiceClient orderServiceClient, OfferServiceClient offerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
+        _offerServiceClient = offerServiceClient;
     }
 
     public async Task<OrderResponse?> HandleRetrieveAsync(string bookingReference, string surname, CancellationToken cancellationToken)
@@ -18,7 +20,7 @@ public sealed class GetOrderHandler
         if (order is null)
             return null;
 
-        return MapToResponse(order, bookingReference);
+        return await MapToResponseAsync(order, bookingReference, cancellationToken);
     }
 
     public async Task<OrderResponse?> HandleAsync(GetOrderQuery query, CancellationToken cancellationToken)
@@ -27,10 +29,10 @@ public sealed class GetOrderHandler
         if (order is null)
             return null;
 
-        return MapToResponse(order, query.BookingReference);
+        return await MapToResponseAsync(order, query.BookingReference, cancellationToken);
     }
 
-    private static OrderResponse MapToResponse(OrderMsOrderResult order, string fallbackBookingReference)
+    private async Task<OrderResponse> MapToResponseAsync(OrderMsOrderResult order, string fallbackBookingReference, CancellationToken cancellationToken)
     {
         var flights = new List<OrderFlight>();
         var passengers = new List<OrderPassenger>();
@@ -54,35 +56,36 @@ public sealed class GetOrderHandler
                             });
                         }
                     }
-
-                    if (dataLists.TryGetProperty("flightSegments", out var segments))
-                    {
-                        foreach (var seg in segments.EnumerateArray())
-                        {
-                            DateTime.TryParse(
-                                seg.TryGetProperty("departureTime", out var dt) ? dt.GetString() : null,
-                                out var departure);
-                            DateTime.TryParse(
-                                seg.TryGetProperty("arrivalTime", out var at) ? at.GetString() : null,
-                                out var arrival);
-
-                            flights.Add(new OrderFlight
-                            {
-                                FlightNumber = seg.TryGetProperty("flightNumber", out var fn) ? fn.GetString() ?? "" : "",
-                                Origin = seg.TryGetProperty("origin", out var orig) ? orig.GetString() ?? "" : "",
-                                Destination = seg.TryGetProperty("destination", out var dst) ? dst.GetString() ?? "" : "",
-                                DepartureTime = departure,
-                                ArrivalTime = arrival,
-                                CabinClass = seg.TryGetProperty("cabinClass", out var cc) ? cc.GetString() ?? "" : "",
-                            });
-                        }
-                    }
                 }
 
                 if (data.TryGetProperty("orderItems", out var items))
                 {
                     foreach (var item in items.EnumerateArray())
                     {
+                        // Resolve flight details from the Offer MS using inventoryId
+                        if (item.TryGetProperty("inventoryId", out var invIdEl) &&
+                            invIdEl.TryGetGuid(out var inventoryId))
+                        {
+                            var inv = await _offerServiceClient.GetFlightByInventoryIdAsync(inventoryId, cancellationToken);
+                            if (inv is not null)
+                            {
+                                var departureDateTime = DateTime.TryParse(
+                                    $"{inv.DepartureDate}T{inv.DepartureTime}:00Z", out var dep) ? dep : default;
+                                var arrivalDateTime = DateTime.TryParse(
+                                    $"{inv.DepartureDate}T{inv.ArrivalTime}:00Z", out var arr) ? arr : default;
+
+                                flights.Add(new OrderFlight
+                                {
+                                    FlightNumber = inv.FlightNumber,
+                                    Origin = inv.Origin,
+                                    Destination = inv.Destination,
+                                    DepartureTime = departureDateTime,
+                                    ArrivalTime = arrivalDateTime,
+                                    CabinClass = string.Empty,
+                                });
+                            }
+                        }
+
                         var eTicket = item.TryGetProperty("eTicketNumber", out var et) ? et.GetString() : null;
                         if (!string.IsNullOrEmpty(eTicket))
                         {

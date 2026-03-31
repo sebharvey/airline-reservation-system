@@ -73,14 +73,28 @@ public sealed class ConfirmOrderHandler
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
 
+        // Build lean flight order items — keep only the inventory reference fields;
+        // flight details are resolved at read time via inventoryId from the Offer MS.
+        var flightOrderItems = new JsonArray();
+        foreach (var offer in segmentsNode)
+        {
+            if (offer is not JsonObject offerObj) continue;
+            var item = new JsonObject();
+            foreach (var prop in new[] { "offerId", "sessionId", "inventoryId" })
+            {
+                if (offerObj[prop] is JsonNode val)
+                    item[prop] = val.DeepClone();
+            }
+            flightOrderItems.Add(item);
+        }
+
         var orderData = new JsonObject
         {
             ["dataLists"] = new JsonObject
             {
-                ["passengers"] = passengersNode.DeepClone(),
-                ["flightSegments"] = segmentsNode.DeepClone()
+                ["passengers"] = passengersNode.DeepClone()
             },
-            ["orderItems"] = segmentsNode.DeepClone(),
+            ["orderItems"] = flightOrderItems,
             ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
             ["eTickets"] = new JsonArray(),
             ["seatAssignments"] = basketJson["seats"]?.DeepClone() ?? new JsonArray(),

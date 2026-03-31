@@ -46,6 +46,16 @@ public sealed class OfferServiceClient
         return result ?? new OfferSearchResultDto();
     }
 
+    public async Task<FlightInventoryDetailDto?> GetFlightByInventoryIdAsync(
+        Guid inventoryId,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/flights/{inventoryId}", cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FlightInventoryDetailDto>(JsonOptions, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<FlightInventoryGroupDto>> GetFlightInventoryByDateAsync(
         DateOnly departureDate,
         CancellationToken cancellationToken = default)
