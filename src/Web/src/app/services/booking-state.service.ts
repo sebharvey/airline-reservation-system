@@ -14,7 +14,7 @@
 
 import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
-import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, Passenger, Order, BookingType } from '../models/order.model';
+import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, Passenger, Order, BookingType } from '../models/order.model';
 
 const BASKET_ID_KEY = 'apex_basket_id';
 
@@ -118,6 +118,7 @@ export class BookingStateService {
       passengers: [],
       seatSelections: [],
       bagSelections: [],
+      ssrSelections: [],
       totalFareAmount: bookingType === 'Reward' ? 0 : totalFare,
       totalPointsAmount: bookingType === 'Reward' ? totalPoints : 0,
       totalTaxesAmount: bookingType === 'Reward' ? totalTaxes : 0,
@@ -153,6 +154,11 @@ export class BookingStateService {
         totalAmount: base + totalSeats + b.totalBagAmount
       };
     });
+  }
+
+  /** Save SSR selections to the basket (no charge — total unchanged). */
+  setSsrSelections(selections: BasketSsrSelection[]): void {
+    this._basket.update(b => b ? { ...b, ssrSelections: selections } : b);
   }
 
   /** Save bag selections and recalculate total. */

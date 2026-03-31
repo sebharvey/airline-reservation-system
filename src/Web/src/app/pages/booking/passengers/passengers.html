@@ -96,6 +96,16 @@
       </div>
     </div>
 
+    <!-- Wheelchair assistance -->
+    <div class="wheelchair-section">
+      <label class="wheelchair-toggle" [for]="'wheelchair' + i">
+        <input type="checkbox" [(ngModel)]="form.wheelchairRequested" [name]="'wheelchair' + i" [id]="'wheelchair' + i" />
+        <span class="wheelchair-icon">&#9855;</span>
+        <span class="wheelchair-label">Wheelchair assistance required</span>
+        <span class="wheelchair-note">(WCHR — can walk but needs help over distances and with steps)</span>
+      </label>
+    </div>
+
     <!-- Contact details - first adult only -->
     <div class="contact-section" *ngIf="isFirstAdult(i)">
       <div class="contact-section-title">Contact Details</div>

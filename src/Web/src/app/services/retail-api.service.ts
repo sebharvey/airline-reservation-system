@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode } from '../models/flight.model';
-import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection } from '../models/order.model';
+import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
 
@@ -222,6 +222,15 @@ export class RetailApiService {
   updateBasketSeats(basketId: string, seatSelections: BasketSeatSelection[]): Observable<void> {
     const base = environment.retailApiBaseUrl;
     return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/seats`, seatSelections);
+  }
+
+  /**
+   * PUT /v1/basket/{basketId}/ssrs
+   * Store SSR selections in the basket (no charge).
+   */
+  updateBasketSsrs(basketId: string, ssrSelections: BasketSsrSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/ssrs`, ssrSelections);
   }
 
   /**

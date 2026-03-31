@@ -2,10 +2,12 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { Passenger } from '../../../models/order.model';
+import { Passenger, BasketSsrSelection } from '../../../models/order.model';
 
 interface PassengerForm {
   passengerId: string;
@@ -18,6 +20,7 @@ interface PassengerForm {
   loyaltyNumber: string;
   email: string;
   phone: string;
+  wheelchairRequested: boolean;
 }
 
 @Component({
@@ -102,7 +105,8 @@ export class PassengersComponent implements OnInit {
         gender: '',
         loyaltyNumber: '',
         email: '',
-        phone: ''
+        phone: '',
+        wheelchairRequested: false
       });
     }
 
@@ -117,7 +121,8 @@ export class PassengersComponent implements OnInit {
         gender: '',
         loyaltyNumber: '',
         email: '',
-        phone: ''
+        phone: '',
+        wheelchairRequested: false
       });
     }
 
@@ -200,15 +205,30 @@ export class PassengersComponent implements OnInit {
       travelDocument: null
     }));
 
-    const basketId = this.basket()?.basketId;
+    const basket = this.basket();
+    const basketId = basket?.basketId;
     if (!basketId) return;
+
+    const ssrSelections: BasketSsrSelection[] = [];
+    for (const f of this.forms()) {
+      if (f.wheelchairRequested) {
+        for (const offer of (basket?.flightOffers ?? [])) {
+          ssrSelections.push({ ssrCode: 'WCHR', passengerRef: f.passengerId, segmentRef: offer.inventoryId });
+        }
+      }
+    }
 
     this.saving.set(true);
     this.saveError.set('');
 
-    this.retailApi.updateBasketPassengers(basketId, passengers).subscribe({
+    this.retailApi.updateBasketPassengers(basketId, passengers).pipe(
+      switchMap(() => ssrSelections.length > 0
+        ? this.retailApi.updateBasketSsrs(basketId, ssrSelections)
+        : of(undefined))
+    ).subscribe({
       next: () => {
         this.bookingState.setPassengers(passengers);
+        this.bookingState.setSsrSelections(ssrSelections);
         this.saving.set(false);
         this.router.navigate(['/booking/seats']);
       },
