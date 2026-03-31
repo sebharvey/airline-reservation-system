@@ -55,7 +55,11 @@ export class OrderListComponent implements OnInit {
         const route = segments.length > 0
           ? `${segments[0].origin} → ${segments[segments.length - 1].destination}`
           : '';
-        this.orders.set([{ ...result, route } as unknown as OrderSummary]);
+        const passengers = result.orderData?.dataLists?.passengers ?? [];
+        const leadPassengerName = passengers.length > 0
+          ? `${passengers[0].givenName} ${passengers[0].surname}`.trim()
+          : '';
+        this.orders.set([{ ...result, route, leadPassengerName } as unknown as OrderSummary]);
       } else {
         this.orders.set([]);
       }
