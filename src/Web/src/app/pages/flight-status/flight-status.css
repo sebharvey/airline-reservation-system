@@ -38,6 +38,10 @@ h2 {
   gap: 12px;
 }
 
+.form > .field {
+  max-width: 500px;
+}
+
 .field {
   display: flex;
   flex-direction: column;

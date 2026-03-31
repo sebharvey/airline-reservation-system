@@ -35,7 +35,7 @@ export class FlightStatusComponent implements OnInit {
   flights = signal<FlightSummary[]>([]);
   flightsLoading = signal(false);
   flightNumber = signal('');
-  flightDate = signal('');
+  private readonly flightDate = new Date().toISOString().split('T')[0];
   loading = signal(false);
   searched = signal(false);
   result = signal<FlightStatus | null | 'not-found'>(null);
@@ -48,25 +48,11 @@ export class FlightStatusComponent implements OnInit {
   readonly notFound = computed(() => this.result() === 'not-found');
 
   ngOnInit(): void {
-    const today = new Date().toISOString().split('T')[0];
-    this.flightDate.set(today);
-    this.loadFlights(today);
+    this.loadFlights(this.flightDate);
   }
 
   setFlightNumber(v: string): void {
     this.flightNumber.set(v);
-  }
-
-  setFlightDate(v: string): void {
-    this.flightDate.set(v);
-    this.flightNumber.set('');
-    this.result.set(null);
-    this.searched.set(false);
-    if (v) {
-      this.loadFlights(v);
-    } else {
-      this.flights.set([]);
-    }
   }
 
   search(): void {
@@ -77,7 +63,7 @@ export class FlightStatusComponent implements OnInit {
     this.searched.set(false);
     this.result.set(null);
 
-    const date = this.flightDate().trim() || undefined;
+    const date = this.flightDate;
 
     this.retailApi.getFlightStatus(fn, date).subscribe({
       next: (status) => {
