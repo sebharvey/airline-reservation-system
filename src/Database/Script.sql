@@ -496,7 +496,7 @@ CREATE TABLE [payment].[Payment] (
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Payment           PRIMARY KEY (PaymentId),
     CONSTRAINT CHK_Payment_Type     CHECK (PaymentType IN ('Fare','SeatAncillary','BagAncillary','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes')),
-    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Settled','Refunded','Declined','Voided'))
+    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Partial','Settled','Refunded','Declined','Voided'))
 );
 GO
 
