@@ -8,6 +8,15 @@
   <!-- Search Form -->
   <form class="form" (submit)="$event.preventDefault(); search()">
     <div class="field">
+      <label for="flightDate">Date</label>
+      <input
+        type="date"
+        id="flightDate"
+        [value]="selectedDate()"
+        (change)="setDate($any($event.target).value)"
+      />
+    </div>
+    <div class="field">
       <label for="flightNumber">Flight Number</label>
       <select
         id="flightNumber"
