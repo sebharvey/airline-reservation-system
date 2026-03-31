@@ -41,12 +41,6 @@ public sealed class SettlePaymentHandler
             return null;
         }
 
-        if (payment.Status == PaymentStatus.Settled)
-        {
-            _logger.LogInformation("Payment {PaymentId} is already settled — returning existing record", command.PaymentId);
-            return PaymentMapper.ToSettleResponse(payment);
-        }
-
         if (payment.Status != PaymentStatus.Authorised)
         {
             _logger.LogWarning("Cannot settle payment {PaymentId} — current status is {Status}",
