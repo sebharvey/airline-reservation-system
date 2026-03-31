@@ -1087,6 +1087,7 @@
             chainFields.add(f);
         });
         if (chainsTo) chainsTo.forEach(c => {
+            if (!c.field) return;
             const parts = c.field.split('.');
             chainFields.add(parts[parts.length - 1]);
         });
