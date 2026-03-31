@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
-import { FlightStatus } from '../../models/flight.model';
+import { FlightStatus, ScheduledFlightNumber } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
 
 export type FlightStatusCode = FlightStatus['status'];
@@ -27,11 +27,11 @@ const STATUS_CONFIG: Record<FlightStatusCode, StatusDisplay> = {
   templateUrl: './flight-status.html',
   styleUrl: './flight-status.css'
 })
-export class FlightStatusComponent {
+export class FlightStatusComponent implements OnInit {
   private readonly retailApi = inject(RetailApiService);
 
   readonly statusConfig = STATUS_CONFIG;
-  readonly flightNumbers = ['AX001', 'AX002', 'AX301', 'AX411'];
+  flightNumbers = signal<ScheduledFlightNumber[]>([]);
 
   flightNumber = signal('');
   loading = signal(false);
@@ -44,6 +44,12 @@ export class FlightStatusComponent {
   });
 
   readonly notFound = computed(() => this.result() === 'not-found');
+
+  ngOnInit(): void {
+    this.retailApi.getFlightNumbers().subscribe(flights => {
+      this.flightNumbers.set(flights);
+    });
+  }
 
   setFlightNumber(v: string): void {
     this.flightNumber.set(v);
