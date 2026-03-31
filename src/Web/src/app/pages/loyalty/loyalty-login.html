@@ -35,7 +35,17 @@
       </div>
     </div>
 
-    <a class="forgot-link" [routerLink]="['/loyalty/password-reset']">Forgot password?</a>
+    <div class="remember-row">
+      <label class="remember-label">
+        <input
+          type="checkbox"
+          [checked]="rememberMe()"
+          (change)="rememberMe.set($any($event.target).checked)"
+        />
+        Remember me
+      </label>
+      <a class="forgot-link" [routerLink]="['/loyalty/password-reset']">Forgot password?</a>
+    </div>
 
     @if (errorMessage()) {
       <div class="error-banner" role="alert">{{ errorMessage() }}</div>

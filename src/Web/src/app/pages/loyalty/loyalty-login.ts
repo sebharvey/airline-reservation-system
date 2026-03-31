@@ -19,6 +19,7 @@ export class LoyaltyLoginComponent implements OnInit {
 
   email = signal('');
   password = signal('');
+  rememberMe = signal(false);
   showPassword = signal(false);
   loading = signal(false);
   errorMessage = signal<string | null>(null);
@@ -50,7 +51,7 @@ export class LoyaltyLoginComponent implements OnInit {
     this.loading.set(true);
     this.loyaltyApi.login({ email: this.email(), password: this.password() }).subscribe({
       next: (session) => {
-        this.loyaltyState.setSession(session);
+        this.loyaltyState.setSession(session, this.rememberMe());
         this.loading.set(false);
         this.router.navigate(['/loyalty/account']);
       },

@@ -28,7 +28,7 @@ export class HomeComponent {
   }
 
   origin = 'LHR';
-  destination = '';
+  destination = 'JFK';
   departDate = '';
   returnDate = '';
   adults = 1;
@@ -41,7 +41,7 @@ export class HomeComponent {
 
   // Combobox state
   originQuery = 'LHR';
-  destinationQuery = '';
+  destinationQuery = 'JFK';
   showOriginDropdown = false;
   showDestinationDropdown = false;
 
