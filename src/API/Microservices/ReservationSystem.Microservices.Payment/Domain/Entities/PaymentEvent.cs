@@ -91,7 +91,6 @@ public static class PaymentEventType
 {
     public const string Authorised = "Authorised";
     public const string Settled = "Settled";
-    public const string PartialSettlement = "PartialSettlement";
     public const string Refunded = "Refunded";
     public const string Declined = "Declined";
     public const string Voided = "Voided";

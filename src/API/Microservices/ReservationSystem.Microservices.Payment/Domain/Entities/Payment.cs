@@ -110,11 +110,7 @@ public sealed class Payment
 
     /// <summary>
     /// Records a card authorisation against this payment.
-    /// <para>
-    /// <see cref="AuthorisedAmount"/> accumulates across multiple calls, supporting
-    /// partial authorisation (multiple auth+settle cycles against one initialised payment).
-    /// May be called from <c>Initialised</c> or <c>PartiallySettled</c> status.
-    /// </para>
+    /// May be called from <c>Initialised</c> status only.
     /// </summary>
     public void Authorise(decimal authorisedAmount, string? cardType, string? cardLast4)
     {
@@ -128,19 +124,13 @@ public sealed class Payment
 
     /// <summary>
     /// Records a settlement capture against this payment.
-    /// <para>
-    /// <see cref="SettledAmount"/> accumulates across multiple calls. Status becomes
-    /// <c>Settled</c> once the running total reaches the full initialised
-    /// <see cref="Amount"/>; otherwise it becomes <c>PartiallySettled</c>.
-    /// </para>
+    /// The settled amount must equal the authorised amount — partial settlement is not permitted.
     /// </summary>
     public void Settle(decimal settledAmount)
     {
-        SettledAmount = (SettledAmount ?? 0m) + settledAmount;
+        SettledAmount = settledAmount;
         SettledAt = DateTime.UtcNow;
-        Status = SettledAmount < Amount
-            ? PaymentStatus.PartiallySettled
-            : PaymentStatus.Settled;
+        Status = PaymentStatus.Settled;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -152,9 +142,7 @@ public sealed class Payment
 
     public void Refund(decimal refundAmount)
     {
-        Status = refundAmount < SettledAmount
-            ? PaymentStatus.PartiallySettled
-            : PaymentStatus.Refunded;
+        Status = PaymentStatus.Refunded;
         UpdatedAt = DateTime.UtcNow;
     }
 }
@@ -168,7 +156,6 @@ public static class PaymentStatus
     public const string Initialised = "Initialised";
     public const string Authorised = "Authorised";
     public const string Settled = "Settled";
-    public const string PartiallySettled = "PartiallySettled";
     public const string Refunded = "Refunded";
     public const string Failed = "Failed";
     public const string Declined = "Declined";

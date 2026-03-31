@@ -42,7 +42,7 @@ public sealed class AuthorisePaymentHandler
             return null;
         }
 
-        if (payment.Status != PaymentStatus.Initialised && payment.Status != PaymentStatus.PartiallySettled)
+        if (payment.Status != PaymentStatus.Initialised)
         {
             _logger.LogWarning("Cannot authorise payment {PaymentId} — current status is {Status}",
                 command.PaymentId, payment.Status);
@@ -50,9 +50,8 @@ public sealed class AuthorisePaymentHandler
                 $"Payment '{command.PaymentId}' cannot be authorised — current status is '{payment.Status}'.");
         }
 
-        // When no explicit amount is supplied, authorise the full remaining uninitialised balance.
-        var remaining = payment.Amount - (payment.AuthorisedAmount ?? 0m);
-        var amountToAuthorise = command.Amount ?? remaining;
+        // When no explicit amount is supplied, authorise the full payment amount.
+        var amountToAuthorise = command.Amount ?? payment.Amount;
 
         if (amountToAuthorise <= 0)
             throw new ArgumentException("Amount to authorise must be greater than zero.");

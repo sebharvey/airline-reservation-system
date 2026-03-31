@@ -71,7 +71,9 @@ public sealed class EfPaymentRepository : IPaymentRepository
     public async Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.PaymentEvents
-            .FirstOrDefaultAsync(pe => pe.PaymentId == paymentId, cancellationToken);
+            .Where(pe => pe.PaymentId == paymentId && pe.EventType == PaymentEventType.Authorised)
+            .OrderByDescending(pe => pe.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<PaymentEvent>> GetEventsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default)

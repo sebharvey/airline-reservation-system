@@ -496,7 +496,7 @@ CREATE TABLE [payment].[Payment] (
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Payment           PRIMARY KEY (PaymentId),
     CONSTRAINT CHK_Payment_Type     CHECK (PaymentType IN ('Fare','SeatAncillary','BagAncillary','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes')),
-    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Settled','PartiallySettled','Refunded','Declined','Voided'))
+    CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Settled','Refunded','Declined','Voided'))
 );
 GO
 
@@ -533,7 +533,7 @@ CREATE TABLE [payment].[PaymentEvent] (
     UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_PaymentEvent_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_PaymentEvent         PRIMARY KEY (PaymentEventId),
     CONSTRAINT FK_PaymentEvent_Payment FOREIGN KEY (PaymentId) REFERENCES [payment].[Payment](PaymentId),
-    CONSTRAINT CHK_PaymentEvent_Type   CHECK (EventType IN ('Authorised','Settled','PartialSettlement','Refunded','Declined','Voided'))
+    CONSTRAINT CHK_PaymentEvent_Type   CHECK (EventType IN ('Authorised','Settled','Refunded','Declined','Voided'))
 );
 GO
 
@@ -1547,13 +1547,11 @@ BEGIN TRY
     (@PayId3,'JC0005','Fare',        'CreditCard','Mastercard','1234', 309.50, 309.50, 309.50,'Settled',SYSUTCDATETIME(),SYSUTCDATETIME(),'Fare — AX411 LHR-DEL, Economy Light, 1 PAX');
 
     -- payment.PaymentEvent ----------------------------------------------------
+    -- One row per payment: created at authorisation, updated to Settled on settlement.
     INSERT INTO [payment].[PaymentEvent] (PaymentId, EventType, Amount, Notes) VALUES
-    (@PayId1,'Authorised',2865.00,'Fare authorisation — Visa 4242'),
-    (@PayId1,'Settled',   2865.00,'Fare settled at order confirmation'),
-    (@PayId2,'Authorised',  60.00,'Bag ancillary authorisation'),
-    (@PayId2,'Settled',     60.00,'Bag ancillary settled after order confirmation'),
-    (@PayId3,'Authorised', 309.50,'Fare authorisation'),
-    (@PayId3,'Settled',    309.50,'Settled at confirmation');
+    (@PayId1,'Settled',2865.00,'Fare settled at order confirmation'),
+    (@PayId2,'Settled',  60.00,'Bag ancillary settled after order confirmation'),
+    (@PayId3,'Settled', 309.50,'Settled at confirmation');
 
     -- order.Order — AB1234 (Amara + Jordan, LHR↔JFK Business Flex) -----------
     DECLARE @OrderId1 UNIQUEIDENTIFIER = NEWID();

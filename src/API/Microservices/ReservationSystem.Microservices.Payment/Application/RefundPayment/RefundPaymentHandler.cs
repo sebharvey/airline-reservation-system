@@ -40,7 +40,7 @@ public sealed class RefundPaymentHandler
             return null;
         }
 
-        if (payment.Status != PaymentStatus.Settled && payment.Status != PaymentStatus.PartiallySettled)
+        if (payment.Status != PaymentStatus.Settled)
         {
             _logger.LogWarning("Cannot refund payment {PaymentId} — current status is {Status}",
                 command.PaymentId, payment.Status);
