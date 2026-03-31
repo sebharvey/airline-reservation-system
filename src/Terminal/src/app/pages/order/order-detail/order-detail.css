@@ -558,6 +558,96 @@
   font-size: 0.75rem;
 }
 
+/* Edit button */
+.edit-btn {
+  margin-left: auto;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--grad-start);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.edit-btn:hover { background: rgba(102, 126, 234, 0.06); border-color: var(--grad-start); }
+
+/* Edit form */
+.edit-form {
+  padding-top: 4px;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.edit-input {
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.875rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+.edit-input:focus { border-color: var(--grad-start); background: var(--white); }
+
+.edit-error {
+  font-size: 0.82rem;
+  color: #f85149;
+  margin-bottom: 10px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cancel-btn {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.cancel-btn:hover { background: var(--bg-light); }
+.cancel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .edit-form-grid { grid-template-columns: 1fr; }
+}
+
 /* Utility */
 .muted    { color: var(--text-muted); }
 .mono     { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }

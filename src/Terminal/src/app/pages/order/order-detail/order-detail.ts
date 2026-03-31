@@ -2,6 +2,14 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent } from '../../../services/order.service';
 
+interface EditForm {
+  givenName: string;
+  surname: string;
+  dateOfBirth: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
 @Component({
   selector: 'app-order-detail',
   templateUrl: './order-detail.html',
@@ -18,6 +26,10 @@ export class OrderDetailComponent implements OnInit {
   order = signal<OrderDetail | null>(null);
   activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history'>('itinerary');
   copied = signal(false);
+  editingPaxId = signal<string | null>(null);
+  editForm = signal<EditForm>({ givenName: '', surname: '', dateOfBirth: null, email: null, phone: null });
+  editSaving = signal(false);
+  editError = signal('');
 
   passengers = computed<OrderPassenger[]>(() =>
     this.order()?.orderData?.dataLists?.passengers ?? []
@@ -78,6 +90,52 @@ export class OrderDetailComponent implements OnInit {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     });
+  }
+
+  startEdit(pax: OrderPassenger): void {
+    this.editingPaxId.set(pax.passengerId);
+    this.editError.set('');
+    this.editForm.set({
+      givenName: pax.givenName,
+      surname: pax.surname,
+      dateOfBirth: pax.dateOfBirth,
+      email: pax.contacts?.email ?? null,
+      phone: pax.contacts?.phone ?? null,
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingPaxId.set(null);
+    this.editError.set('');
+  }
+
+  updateEditField(field: keyof EditForm, value: string): void {
+    this.editForm.update(f => ({ ...f, [field]: value || null }));
+  }
+
+  async saveEdit(pax: OrderPassenger): Promise<void> {
+    this.editSaving.set(true);
+    this.editError.set('');
+    const form = this.editForm();
+    const updated: OrderPassenger = {
+      ...pax,
+      givenName: form.givenName,
+      surname: form.surname,
+      dateOfBirth: form.dateOfBirth,
+      contacts: { email: form.email, phone: form.phone },
+    };
+    const updatedPassengers = this.passengers().map(p =>
+      p.passengerId === pax.passengerId ? updated : p
+    );
+    try {
+      await this.#orderService.updateOrderPassengers(this.bookingRef, updatedPassengers);
+      this.editingPaxId.set(null);
+      await this.loadOrder();
+    } catch {
+      this.editError.set('Failed to save changes. Please try again.');
+    } finally {
+      this.editSaving.set(false);
+    }
   }
 
   statusBadgeClass(status: string): string {

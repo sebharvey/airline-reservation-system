@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
+using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
@@ -29,6 +30,7 @@ public sealed class OrderFunction
     private readonly CreateOrderHandler _createOrderHandler;
     private readonly ConfirmOrderHandler _confirmOrderHandler;
     private readonly GetOrderHandler _getOrderHandler;
+    private readonly UpdateOrderPassengersHandler _updatePassengersHandler;
     private readonly UpdateOrderSeatsHandler _updateSeatsHandler;
     private readonly UpdateOrderBagsHandler _updateBagsHandler;
     private readonly UpdateOrderSsrsHandler _updateSsrsHandler;
@@ -43,6 +45,7 @@ public sealed class OrderFunction
         CreateOrderHandler createOrderHandler,
         ConfirmOrderHandler confirmOrderHandler,
         GetOrderHandler getOrderHandler,
+        UpdateOrderPassengersHandler updatePassengersHandler,
         UpdateOrderSeatsHandler updateSeatsHandler,
         UpdateOrderBagsHandler updateBagsHandler,
         UpdateOrderSsrsHandler updateSsrsHandler,
@@ -56,6 +59,7 @@ public sealed class OrderFunction
         _createOrderHandler = createOrderHandler;
         _confirmOrderHandler = confirmOrderHandler;
         _getOrderHandler = getOrderHandler;
+        _updatePassengersHandler = updatePassengersHandler;
         _updateSeatsHandler = updateSeatsHandler;
         _updateBagsHandler = updateBagsHandler;
         _updateSsrsHandler = updateSsrsHandler;
@@ -240,10 +244,10 @@ public sealed class OrderFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
 
-        var command = new ChangeOrderCommand(bookingRef, body);
+        var command = new UpdateOrderPassengersCommand(bookingRef.ToUpperInvariant(), body);
         try
         {
-            var order = await _changeOrderHandler.HandleAsync(command, ct);
+            var order = await _updatePassengersHandler.HandleAsync(command, ct);
             if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
             return await req.OkJsonAsync(new
             {
