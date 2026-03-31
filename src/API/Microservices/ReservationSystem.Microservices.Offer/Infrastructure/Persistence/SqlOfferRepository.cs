@@ -413,6 +413,21 @@ public sealed class SqlOfferRepository : IOfferRepository
     // StoredOffer
     // -------------------------------------------------------------------------
 
+    public async Task<int> DeleteExpiredStoredOffersAsync(CancellationToken ct = default)
+    {
+        const string sql = """
+            DELETE FROM [offer].[StoredOffer]
+            WHERE  ExpiresAt < SYSUTCDATETIME();
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var deletedCount = await connection.ExecuteAsync(
+            new CommandDefinition(sql, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
+
+        return deletedCount;
+    }
+
     public async Task<StoredOffer?> GetStoredOfferByOfferIdAsync(Guid offerId, CancellationToken ct = default)
     {
         // Locate the StoredOffer row whose FaresInfo JSON contains the given per-cabin OfferId
