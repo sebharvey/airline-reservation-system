@@ -7,16 +7,26 @@
       <p class="page-subtitle">Cabin seat availability by departure date</p>
     </div>
 
-    <!-- Date filter -->
-    <div class="date-filter">
-      <label class="date-label" for="dep-date">Departure date</label>
-      <input
-        id="dep-date"
-        class="date-input"
-        type="date"
-        [value]="selectedDate()"
-        (change)="onDateChange($any($event.target).value)"
-      />
+    <!-- Date filter + refresh -->
+    <div class="header-controls">
+      <div class="date-filter">
+        <label class="date-label" for="dep-date">Departure date</label>
+        <input
+          id="dep-date"
+          class="date-input"
+          type="date"
+          [value]="selectedDate()"
+          (change)="onDateChange($any($event.target).value)"
+        />
+      </div>
+      <button class="refresh-btn" (click)="loadInventory()" [disabled]="loading()" title="Refresh inventory">
+        @if (loading()) {
+          <span class="btn-spinner"></span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        }
+        Refresh
+      </button>
     </div>
   </div>
 
