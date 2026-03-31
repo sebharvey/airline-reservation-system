@@ -215,6 +215,12 @@
 .customer-name { font-weight: 600; color: var(--text); font-size: 0.875rem; }
 .customer-loyalty-mobile { font-size: 0.75rem; color: var(--text-muted); display: none; }
 
+.loyalty-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Badges */
 .badge {
   display: inline-block;

@@ -17,6 +17,7 @@ export class OrderListComponent implements OnInit {
   error = signal('');
   loaded = signal(false);
   searchMode = signal(false);
+  copiedRef = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     await this.loadRecentOrders();
@@ -69,6 +70,14 @@ export class OrderListComponent implements OnInit {
 
   setSearch(val: string): void {
     this.search.set(val);
+  }
+
+  copyToClipboard(text: string, event: Event): void {
+    event.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedRef.set(text);
+      setTimeout(() => this.copiedRef.set(null), 2000);
+    });
   }
 
   statusBadgeClass(status: string): string {

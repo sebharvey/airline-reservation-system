@@ -182,6 +182,12 @@
   letter-spacing: 0.5px;
 }
 
+.pnr-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Passenger cell */
 .passenger-cell {
   display: flex;

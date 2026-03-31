@@ -18,6 +18,7 @@ export class CustomerListComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
+  copiedRef = signal<string | null>(null);
 
   stats = computed(() => {
     const all = this.customers();
@@ -86,5 +87,13 @@ export class CustomerListComponent implements OnInit {
 
   formatPoints(points: number): string {
     return points.toLocaleString();
+  }
+
+  copyToClipboard(text: string, event: Event): void {
+    event.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedRef.set(text);
+      setTimeout(() => this.copiedRef.set(null), 2000);
+    });
   }
 }

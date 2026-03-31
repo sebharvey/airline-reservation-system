@@ -92,6 +92,7 @@ export class CustomerDetailComponent implements OnInit {
   saving = signal(false);
   error = signal('');
   success = signal('');
+  copied = signal(false);
 
   customer = signal<CustomerDetail | null>(null);
   editing = signal(false);
@@ -351,6 +352,13 @@ export class CustomerDetailComponent implements OnInit {
 
   goBack(): void {
     this.#router.navigate(['/customer']);
+  }
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    });
   }
 
   tierBadgeClass(tier: string): string {

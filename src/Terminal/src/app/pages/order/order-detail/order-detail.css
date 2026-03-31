@@ -54,6 +54,12 @@
 
 .header-text { min-width: 0; }
 
+.header-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .header-ref {
   font-size: 1.5rem;
   font-weight: 800;
