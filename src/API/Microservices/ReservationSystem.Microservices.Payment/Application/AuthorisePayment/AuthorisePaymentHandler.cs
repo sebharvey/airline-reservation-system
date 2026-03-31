@@ -42,7 +42,7 @@ public sealed class AuthorisePaymentHandler
             return null;
         }
 
-        if (payment.Status != PaymentStatus.Initialised)
+        if (payment.Status != PaymentStatus.Initialised && payment.Status != PaymentStatus.Partial)
         {
             _logger.LogWarning("Cannot authorise payment {PaymentId} — current status is {Status}",
                 command.PaymentId, payment.Status);

@@ -110,7 +110,7 @@ public sealed class Payment
 
     /// <summary>
     /// Records a card authorisation against this payment.
-    /// May be called from <c>Initialised</c> status only.
+    /// May be called from <c>Initialised</c> or <c>Partial</c> status.
     /// </summary>
     public void Authorise(decimal authorisedAmount, string? cardType, string? cardLast4)
     {
@@ -124,13 +124,15 @@ public sealed class Payment
 
     /// <summary>
     /// Records a settlement capture against this payment.
-    /// The settled amount must equal the authorised amount — partial settlement is not permitted.
+    /// Accumulates the settled amount and transitions to <c>Partial</c> until
+    /// the running settled total reaches the full payment amount, at which point
+    /// the status becomes <c>Settled</c>.
     /// </summary>
     public void Settle(decimal settledAmount)
     {
-        SettledAmount = settledAmount;
+        SettledAmount = (SettledAmount ?? 0m) + settledAmount;
         SettledAt = DateTime.UtcNow;
-        Status = PaymentStatus.Settled;
+        Status = SettledAmount >= Amount ? PaymentStatus.Settled : PaymentStatus.Partial;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -155,6 +157,7 @@ public static class PaymentStatus
 {
     public const string Initialised = "Initialised";
     public const string Authorised = "Authorised";
+    public const string Partial = "Partial";
     public const string Settled = "Settled";
     public const string Refunded = "Refunded";
     public const string Failed = "Failed";
