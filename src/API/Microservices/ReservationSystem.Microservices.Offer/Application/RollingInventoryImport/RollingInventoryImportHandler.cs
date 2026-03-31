@@ -2,8 +2,8 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
 using ReservationSystem.Microservices.Offer.Application.CreateFlight;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
+using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
-using ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 
@@ -24,15 +24,15 @@ namespace ReservationSystem.Microservices.Offer.Application.RollingInventoryImpo
 /// </summary>
 public sealed class RollingInventoryImportHandler
 {
-    private readonly ScheduleServiceClient _scheduleClient;
-    private readonly SeatServiceClient _seatClient;
+    private readonly IScheduleServiceClient _scheduleClient;
+    private readonly ISeatServiceClient _seatClient;
     private readonly BatchCreateFlightsHandler _batchCreateFlightsHandler;
     private readonly IOfferRepository _repository;
     private readonly ILogger<RollingInventoryImportHandler> _logger;
 
     public RollingInventoryImportHandler(
-        ScheduleServiceClient scheduleClient,
-        SeatServiceClient seatClient,
+        IScheduleServiceClient scheduleClient,
+        ISeatServiceClient seatClient,
         BatchCreateFlightsHandler batchCreateFlightsHandler,
         IOfferRepository repository,
         ILogger<RollingInventoryImportHandler> logger)
@@ -69,7 +69,7 @@ public sealed class RollingInventoryImportHandler
             .Where(a => a.CabinCounts is { Count: > 0 })
             .ToDictionary(
                 a => a.AircraftTypeCode,
-                a => (IReadOnlyList<CabinCountResult>)a.CabinCounts!,
+                a => (IReadOnlyList<CabinCount>)a.CabinCounts!,
                 StringComparer.OrdinalIgnoreCase);
 
         // 3. Build flight items for the target date.
@@ -151,18 +151,8 @@ public sealed class RollingInventoryImportHandler
         if (batchResult.Created.Count == 0)
             return;
 
-        IReadOnlyList<FareRule> allApplicableRules;
-        try
-        {
-            allApplicableRules = await _repository.GetApplicableFareRulesForFlightsAsync(
-                flightNumbers, cabinCodes, targetDateOnly, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "RollingInventoryImport: could not fetch fare rules — inventory created without fares");
-            return;
-        }
+        var allApplicableRules = await _repository.GetApplicableFareRulesForFlightsAsync(
+            flightNumbers, cabinCodes, targetDateOnly, ct);
 
         var rulesByCabinAndFlight = allApplicableRules
             .GroupBy(r => (r.CabinCode, r.FlightNumber))
@@ -182,8 +172,8 @@ public sealed class RollingInventoryImportHandler
 
                 foreach (var rule in specificRules.Concat(globalRules))
                 {
-                    var validFrom = rule.ValidFrom ?? DateTime.UtcNow;
-                    var validTo = rule.ValidTo ?? DateTime.UtcNow.AddYears(1);
+                    var validFrom = rule.ValidFrom ?? DateTimeOffset.UtcNow;
+                    var validTo = rule.ValidTo ?? DateTimeOffset.UtcNow.AddYears(1);
 
                     faresToCreate.Add(Fare.Create(
                         inventory.InventoryId,

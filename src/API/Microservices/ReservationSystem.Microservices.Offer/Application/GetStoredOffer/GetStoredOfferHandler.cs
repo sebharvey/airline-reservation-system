@@ -34,7 +34,7 @@ public sealed class GetStoredOfferHandler
             return null;
         }
 
-        if (offer.ExpiresAt <= DateTime.UtcNow)
+        if (offer.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             _logger.LogWarning("Offer {OfferId} is expired", query.OfferId);
             throw new OfferGoneException($"Offer {query.OfferId} has expired. Customer must re-search.");
