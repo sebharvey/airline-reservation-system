@@ -371,11 +371,10 @@ export class RetailApiService {
    * GET /v1/flights/{flightNumber}/status
    * Get real-time flight status from the Operations API.
    */
-  getFlightStatus(flightNumber: string, date?: string): Observable<FlightStatus | null> {
+  getFlightStatus(flightNumber: string): Observable<FlightStatus | null> {
     const base = environment.operationsApiBaseUrl;
-    const dateParam = date ? `?date=${date}` : '';
     return this.#http
-      .get<FlightStatus>(`${base}/api/v1/flights/${encodeURIComponent(flightNumber)}/status${dateParam}`)
+      .get<FlightStatus>(`${base}/api/v1/flights/${encodeURIComponent(flightNumber)}/status`)
       .pipe(
         catchError((err: HttpErrorResponse) => {
           if (err.status === 404) return of(null);

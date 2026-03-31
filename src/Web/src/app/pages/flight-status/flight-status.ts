@@ -34,7 +34,6 @@ export class FlightStatusComponent {
   readonly flightNumbers = ['AX001', 'AX002', 'AX301', 'AX411'];
 
   flightNumber = signal('');
-  private readonly flightDate = new Date().toISOString().split('T')[0];
   loading = signal(false);
   searched = signal(false);
   result = signal<FlightStatus | null | 'not-found'>(null);
@@ -58,9 +57,7 @@ export class FlightStatusComponent {
     this.searched.set(false);
     this.result.set(null);
 
-    const date = this.flightDate;
-
-    this.retailApi.getFlightStatus(fn, date).subscribe({
+    this.retailApi.getFlightStatus(fn).subscribe({
       next: (status) => {
         this.loading.set(false);
         this.searched.set(true);
