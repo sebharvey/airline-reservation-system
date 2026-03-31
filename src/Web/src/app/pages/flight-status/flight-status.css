@@ -42,6 +42,24 @@ h2 {
   max-width: 500px;
 }
 
+@media (min-width: 768px) {
+  .form {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .form > .field {
+    flex: 1;
+    max-width: none;
+  }
+
+  .form > .btn-primary {
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 .field {
   display: flex;
   flex-direction: column;

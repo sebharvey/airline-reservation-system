@@ -426,6 +426,27 @@ body {
     cursor: not-allowed;
 }
 
+.btn-next-step {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--warning, #b45309);
+    background: var(--warning-bg, rgba(180, 83, 9, 0.08));
+    color: var(--warning, #b45309);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-next-step:hover:not(:disabled) {
+    background: rgba(180, 83, 9, 0.16);
+}
+.btn-next-step:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .btn-copy-logs {
     font-family: var(--font-mono);
     font-size: 0.78rem;
@@ -659,7 +680,7 @@ body {
     .config-select {
         flex: 1;
     }
-    .btn-run-all, .btn-copy-logs {
+    .btn-run-all, .btn-next-step, .btn-copy-logs {
         flex: 1;
         text-align: center;
         padding: 0.6rem 1rem;
