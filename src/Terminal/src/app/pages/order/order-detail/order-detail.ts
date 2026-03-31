@@ -17,6 +17,7 @@ export class OrderDetailComponent implements OnInit {
   error = signal('');
   order = signal<OrderDetail | null>(null);
   activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history'>('itinerary');
+  copied = signal(false);
 
   passengers = computed<OrderPassenger[]>(() =>
     this.order()?.orderData?.dataLists?.passengers ?? []
@@ -70,6 +71,13 @@ export class OrderDetailComponent implements OnInit {
 
   goBack(): void {
     this.#router.navigate(['/order']);
+  }
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    });
   }
 
   statusBadgeClass(status: string): string {

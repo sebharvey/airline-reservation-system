@@ -72,6 +72,12 @@
   margin-top: 2px;
 }
 
+.loyalty-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .header-points {
   display: flex;
   flex-direction: column;
