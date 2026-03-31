@@ -14,18 +14,28 @@ export interface OrderSummary {
   route: string;
 }
 
+export interface PassengerContacts {
+  email: string | null;
+  phone: string | null;
+}
+
+export interface PassengerTravelDocument {
+  type: string | null;
+  number: string | null;
+  issuingCountry: string | null;
+  expiryDate: string | null;
+  nationality: string | null;
+}
+
 export interface OrderPassenger {
   passengerId: string;
   givenName: string;
   surname: string;
   dateOfBirth: string | null;
-  passengerType: string;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  documentType: string | null;
-  documentNumber: string | null;
-  documentExpiry: string | null;
-  documentNationality: string | null;
+  type: string;
+  gender: string | null;
+  contacts: PassengerContacts | null;
+  travelDocument: PassengerTravelDocument | null;
   loyaltyNumber: string | null;
 }
 
@@ -123,5 +133,14 @@ export class OrderService {
       if (err?.status === 404) return null;
       throw err;
     }
+  }
+
+  async updateOrderPassengers(bookingRef: string, passengers: OrderPassenger[]): Promise<void> {
+    await firstValueFrom(
+      this.#http.patch(
+        `${environment.retailApiUrl}/api/v1/orders/${bookingRef.toUpperCase()}/passengers`,
+        { passengers },
+      )
+    );
   }
 }

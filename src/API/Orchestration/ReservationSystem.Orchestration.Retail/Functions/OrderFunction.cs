@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
@@ -18,13 +19,16 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class OrderFunction
 {
     private readonly GetOrderHandler _getOrderHandler;
+    private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<OrderFunction> _logger;
 
     public OrderFunction(
         GetOrderHandler getOrderHandler,
+        OrderServiceClient orderServiceClient,
         ILogger<OrderFunction> logger)
     {
         _getOrderHandler = getOrderHandler;
+        _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
 
@@ -78,6 +82,32 @@ public sealed class OrderFunction
             return req.CreateResponse(HttpStatusCode.NotFound);
 
         return await req.OkJsonAsync(order);
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/orders/{bookingRef}/passengers
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateOrderPassengers")]
+    [OpenApiOperation(operationId: "UpdateOrderPassengers", tags: new[] { "Orders" }, Summary = "Update passenger details for an order")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdatePassengers(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/passengers")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch { return await req.BadRequestAsync("Failed to read request body."); }
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderPassengersAsync(bookingRef.ToUpperInvariant(), body, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (InvalidOperationException ex) { return await req.BadRequestAsync(ex.Message); }
     }
 
     // -------------------------------------------------------------------------

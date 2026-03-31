@@ -176,51 +176,93 @@
               <div class="pax-avatar">{{ pax.givenName[0] }}</div>
               <div class="pax-header-text">
                 <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
-                <span class="pax-type">{{ passengerTypeLabel(pax.passengerType) }}</span>
+                <span class="pax-type">{{ passengerTypeLabel(pax.type) }}</span>
               </div>
+              @if (editingPaxId() !== pax.passengerId) {
+                <button class="edit-btn" (click)="startEdit(pax)">Edit</button>
+              }
             </div>
-            <div class="field-grid">
-              <div class="field-row">
-                <span class="field-label">Date of birth</span>
-                <span class="field-value">{{ formatDate(pax.dateOfBirth) }}</span>
-              </div>
-              <div class="field-row">
-                <span class="field-label">Email</span>
-                <span class="field-value">{{ pax.contactEmail || '—' }}</span>
-              </div>
-              <div class="field-row">
-                <span class="field-label">Phone</span>
-                <span class="field-value">{{ pax.contactPhone || '—' }}</span>
-              </div>
-              @if (pax.loyaltyNumber) {
-                <div class="field-row">
-                  <span class="field-label">Loyalty no.</span>
-                  <span class="field-value mono">{{ pax.loyaltyNumber }}</span>
-                </div>
-              }
-              @if (pax.documentNumber) {
-                <div class="field-row">
-                  <span class="field-label">Document</span>
-                  <span class="field-value">{{ pax.documentType }} {{ pax.documentNumber }}</span>
-                </div>
-                <div class="field-row">
-                  <span class="field-label">Expiry</span>
-                  <span class="field-value">{{ formatDate(pax.documentExpiry) }}</span>
-                </div>
-                <div class="field-row">
-                  <span class="field-label">Nationality</span>
-                  <span class="field-value">{{ pax.documentNationality || '—' }}</span>
-                </div>
-              }
 
-              <!-- Seats for this passenger -->
-              @for (seg of segments(); track seg.segmentId) {
-                <div class="field-row">
-                  <span class="field-label">Seat ({{ seg.flightNumber }})</span>
-                  <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
+            @if (editingPaxId() === pax.passengerId) {
+              <!-- Edit form -->
+              <div class="edit-form">
+                <div class="edit-form-grid">
+                  <div class="edit-field">
+                    <label class="field-label">First name</label>
+                    <input class="edit-input" type="text" [value]="editForm().givenName" (input)="updateEditField('givenName', $any($event.target).value)" />
+                  </div>
+                  <div class="edit-field">
+                    <label class="field-label">Surname</label>
+                    <input class="edit-input" type="text" [value]="editForm().surname" (input)="updateEditField('surname', $any($event.target).value)" />
+                  </div>
+                  <div class="edit-field">
+                    <label class="field-label">Date of birth</label>
+                    <input class="edit-input" type="date" [value]="editForm().dateOfBirth ?? ''" (input)="updateEditField('dateOfBirth', $any($event.target).value)" />
+                  </div>
+                  <div class="edit-field">
+                    <label class="field-label">Email</label>
+                    <input class="edit-input" type="email" [value]="editForm().email ?? ''" (input)="updateEditField('email', $any($event.target).value)" />
+                  </div>
+                  <div class="edit-field">
+                    <label class="field-label">Phone</label>
+                    <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
+                  </div>
                 </div>
-              }
-            </div>
+                @if (editError()) {
+                  <div class="edit-error">{{ editError() }}</div>
+                }
+                <div class="edit-actions">
+                  <button class="save-btn" [disabled]="editSaving()" (click)="saveEdit(pax)">
+                    {{ editSaving() ? 'Saving…' : 'Save changes' }}
+                  </button>
+                  <button class="cancel-btn" [disabled]="editSaving()" (click)="cancelEdit()">Cancel</button>
+                </div>
+              </div>
+            } @else {
+              <!-- Read-only view -->
+              <div class="field-grid">
+                <div class="field-row">
+                  <span class="field-label">Date of birth</span>
+                  <span class="field-value">{{ formatDate(pax.dateOfBirth) }}</span>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Email</span>
+                  <span class="field-value">{{ pax.contacts?.email || '—' }}</span>
+                </div>
+                <div class="field-row">
+                  <span class="field-label">Phone</span>
+                  <span class="field-value">{{ pax.contacts?.phone || '—' }}</span>
+                </div>
+                @if (pax.loyaltyNumber) {
+                  <div class="field-row">
+                    <span class="field-label">Loyalty no.</span>
+                    <span class="field-value mono">{{ pax.loyaltyNumber }}</span>
+                  </div>
+                }
+                @if (pax.travelDocument?.number) {
+                  <div class="field-row">
+                    <span class="field-label">Document</span>
+                    <span class="field-value">{{ pax.travelDocument?.type }} {{ pax.travelDocument?.number }}</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="field-label">Expiry</span>
+                    <span class="field-value">{{ formatDate(pax.travelDocument?.expiryDate) }}</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="field-label">Nationality</span>
+                    <span class="field-value">{{ pax.travelDocument?.nationality || '—' }}</span>
+                  </div>
+                }
+
+                <!-- Seats for this passenger -->
+                @for (seg of segments(); track seg.segmentId) {
+                  <div class="field-row">
+                    <span class="field-label">Seat ({{ seg.flightNumber }})</span>
+                    <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
       </div>
