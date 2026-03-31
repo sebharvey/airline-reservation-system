@@ -261,6 +261,44 @@
   font-weight: 500;
 }
 
+/* ── Wheelchair Section ── */
+.wheelchair-section {
+  border-top: 1.5px solid var(--border);
+  padding: 14px 18px;
+}
+
+.wheelchair-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wheelchair-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--grad-start);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.wheelchair-icon {
+  font-size: 1.1rem;
+  color: var(--grad-start);
+}
+
+.wheelchair-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wheelchair-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* ── Contact Section ── */
 .contact-section {
   border-top: 1.5px solid var(--border);

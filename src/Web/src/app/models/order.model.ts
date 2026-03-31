@@ -160,6 +160,12 @@ export interface BasketBagSelection {
   currency: string;
 }
 
+export interface BasketSsrSelection {
+  ssrCode: string;
+  passengerRef: string;
+  segmentRef: string;
+}
+
 export interface Basket {
   basketId: string;
   bookingType: BookingType;
@@ -167,6 +173,7 @@ export interface Basket {
   passengers: Passenger[];
   seatSelections: BasketSeatSelection[];
   bagSelections: BasketBagSelection[];
+  ssrSelections: BasketSsrSelection[];
   totalFareAmount: number;
   totalPointsAmount: number;
   totalTaxesAmount: number;

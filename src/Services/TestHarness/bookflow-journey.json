@@ -188,7 +188,7 @@
         "validationNotes": "basketId is a GUID. Each segment offerId must match a valid stored offer from its corresponding search session. The basket expires after 60 minutes of inactivity."
       },
       "chainsTo": [
-        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13] }
+        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] }
       ]
     },
     {
@@ -683,6 +683,44 @@
     },
     {
       "step": 12,
+      "name": "Add SSRs — wheelchair assistance",
+      "description": "Store wheelchair assistance (WCHR) SSR selections on the basket for PAX-1 across all segments. SSRs carry no charge; the basket total is unchanged. Returns the basketId and SSR count.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/ssrs",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          { "ssrCode": "WCHR", "passengerRef": "PAX-1", "segmentRef": "__OUTBOUND_INVENTORY_ID__" },
+          { "ssrCode": "WCHR", "passengerRef": "PAX-1", "segmentRef": "__RETURN_INVENTORY_ID__" }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" },
+          { "field": "[0].segmentRef", "from": "outboundInventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[1].segmentRef", "from": "returnInventoryId", "source": "Step 4 → basketData.flightOffers[1].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "ssrCount": 2,
+          "totalAmount": 430.00
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — SSR selections saved to the basket. totalAmount is unchanged because SSRs carry no charge (EU Regulation 1107/2006). ssrCount reflects the number of SSR items recorded (one per passenger per segment).",
+        "keyFields": ["basketId", "ssrCount", "totalAmount"],
+        "validationNotes": "ssrCode must be a valid 4-character IATA SSR code from the SSR catalogue. passengerRef must match a passengerId already in the basket. segmentRef must be the inventoryId of a flight offer in the basket. totalAmount must not change — SSRs are zero-cost."
+      }
+    },
+    {
+      "step": 13,
       "name": "Confirm and pay — invalid card (Luhn failure)",
       "description": "Attempt to confirm the basket with a card number that fails the Luhn check. The Payment service must reject the card details and return a 4xx error so the consumer can surface a meaningful message to the user. The basket must remain Active so payment can be retried.",
       "type": "negative",
@@ -723,7 +761,7 @@
       }
     },
     {
-      "step": 13,
+      "step": 14,
       "name": "Confirm and pay — valid card",
       "description": "Submit payment with a card number that passes the Luhn check to confirm the basket and create the order. The basket transitions to Confirmed and an orderId is returned.",
       "type": "positive",
