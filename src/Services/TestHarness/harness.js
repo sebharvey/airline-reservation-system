@@ -77,16 +77,7 @@
     ];
 
     const ROUTES = [
-        { origin: 'LHR', destination: 'JFK' },
-        { origin: 'LHR', destination: 'LAX' },
-        { origin: 'LHR', destination: 'DXB' },
-        { origin: 'LHR', destination: 'SIN' },
-        { origin: 'LHR', destination: 'HKG' },
-        { origin: 'LHR', destination: 'JNB' },
-        { origin: 'LHR', destination: 'ORD' },
-        { origin: 'LHR', destination: 'BOS' },
-        { origin: 'MAN', destination: 'JFK' },
-        { origin: 'LGW', destination: 'JFK' }
+        { origin: 'LHR', destination: 'JFK' }
     ];
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
