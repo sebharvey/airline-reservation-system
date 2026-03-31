@@ -15,6 +15,7 @@ using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
+using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -44,6 +45,7 @@ public sealed class OfferFunction
     private readonly UpdateSeatStatusHandler _updateSeatStatusHandler;
     private readonly GetFlightInventoryHandler _getFlightInventoryByFlightHandler;
     private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
+    private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -61,6 +63,7 @@ public sealed class OfferFunction
         UpdateSeatStatusHandler updateSeatStatusHandler,
         GetFlightInventoryHandler getFlightInventoryByFlightHandler,
         GetFlightInventoryByDateHandler getFlightInventoryHandler,
+        GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -77,6 +80,7 @@ public sealed class OfferFunction
         _updateSeatStatusHandler = updateSeatStatusHandler;
         _getFlightInventoryByFlightHandler = getFlightInventoryByFlightHandler;
         _getFlightInventoryHandler = getFlightInventoryHandler;
+        _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
         _logger = logger;
     }
 
@@ -632,6 +636,37 @@ public sealed class OfferFunction
             return await req.OkJsonAsync(new { updated = count });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+    }
+
+    // GET /v1/flights/{inventoryId}
+    [Function("GetFlightByInventoryId")]
+    [OpenApiOperation(operationId: "GetFlightByInventoryId", tags: new[] { "Flights" }, Summary = "Get flight details for a specific inventory record by ID")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID (GUID)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightInventoryGroupResponse), Description = "OK — returns flight details for the inventory record")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no inventory record exists for the given ID")]
+    public async Task<HttpResponseData> GetFlightByInventoryId(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{inventoryId:guid}")] HttpRequestData req,
+        Guid inventoryId, CancellationToken ct)
+    {
+        var inventory = await _getFlightByInventoryIdHandler.HandleAsync(
+            new GetFlightByInventoryIdQuery(inventoryId), ct);
+
+        if (inventory is null)
+            return await req.NotFoundAsync($"No inventory record found for ID '{inventoryId}'.");
+
+        return await req.OkJsonAsync(new
+        {
+            inventoryId   = inventory.InventoryId,
+            flightNumber  = inventory.FlightNumber,
+            origin        = inventory.Origin,
+            destination   = inventory.Destination,
+            departureDate = inventory.DepartureDate.ToString("yyyy-MM-dd"),
+            departureTime = inventory.DepartureTime.ToString("HH:mm"),
+            arrivalTime   = inventory.ArrivalTime.ToString("HH:mm"),
+            arrivalDayOffset = inventory.ArrivalDayOffset,
+            aircraftType  = inventory.AircraftType,
+            status        = inventory.Status
+        });
     }
 
     // GET /v1/flights/{flightNumber}/inventory?departureDate=yyyy-MM-dd

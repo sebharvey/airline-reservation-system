@@ -690,6 +690,56 @@ Retrieve a stored offer by its per-fare `offerId` (found inside `FaresInfo`). Va
 
 ---
 
+### GET /v1/flights/{inventoryId}
+
+Retrieve flight details for a single inventory record by its GUID. Returns the flight's schedule information (flight number, route, times, aircraft type, status). Does not include fare pricing or seat availability — use `GET /v1/offers/{offerId}` for fare details and `GET /v1/flights/{inventoryId}/seat-availability` for per-seat status.
+
+**When to use:** Called by the Retail API when displaying a confirmed order to resolve flight details from the `inventoryId` stored on each flight order item, without re-fetching a stored offer (which may have expired).
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `inventoryId` | string (UUID) | The inventory record identifier |
+
+#### Response — `200 OK`
+
+```json
+{
+  "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "flightNumber": "AX001",
+  "origin": "LHR",
+  "destination": "JFK",
+  "departureDate": "2026-08-15",
+  "departureTime": "08:00",
+  "arrivalTime": "11:10",
+  "arrivalDayOffset": 0,
+  "aircraftType": "A351",
+  "status": "Active"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `inventoryId` | string (UUID) | Inventory record identifier, echoed back |
+| `flightNumber` | string | Flight number |
+| `origin` | string | IATA origin airport code |
+| `destination` | string | IATA destination airport code |
+| `departureDate` | string (date) | Scheduled departure date (`yyyy-MM-dd`) |
+| `departureTime` | string (time) | Scheduled departure time (`HH:mm`, local airport time) |
+| `arrivalTime` | string (time) | Scheduled arrival time (`HH:mm`, local airport time) |
+| `arrivalDayOffset` | integer | Number of additional days for arrival (0 = same day, 1 = next day) |
+| `aircraftType` | string | IATA aircraft type code (4-char, e.g. `A351`) |
+| `status` | string | Inventory status (`Active`, `Cancelled`) |
+
+#### Error Responses
+
+| Status | Condition |
+|--------|--------|
+| `404 Not Found` | No inventory record exists for the given `inventoryId` |
+
+---
+
 ### GET /v1/flights/{flightNumber}/inventory
 
 Retrieve flight inventory for a specific flight number and departure date, with cabin F/J/W/Y breakdown. Returns a single aggregated response with per-cabin seat counts.

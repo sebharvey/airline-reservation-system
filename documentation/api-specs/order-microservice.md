@@ -158,13 +158,13 @@ Confirmed post-sale record. Created once the basket is confirmed — payment tak
 
 #### OrderData JSON Structure
 
-Aligned to IATA ONE Order concepts. Contains: `dataLists` (passengers array, flightSegments array), `orderItems` (array of flight, seat, and bag order items with `offerId`, fare details, `eTickets`, `seatAssignments`, `paymentId`), `payments` (array of payment records), `history` (append-only event log).
+Aligned to IATA ONE Order concepts. Contains: `dataLists` (passengers array), `orderItems` (array of flight, seat, and bag order items), `payments` (array of payment records), `history` (append-only event log).
 
 For reward bookings, add to `OrderData`: `bookingType: "Reward"`, `totalPointsAmount`, `pointsRedemption` object (`redemptionReference`, `loyaltyNumber`, `pointsRedeemed`, `status`). The standard `payments` array covers cash transactions (taxes and ancillaries only for reward bookings).
 
-Each `flightSegment` includes: `segmentId`, `flightNumber`, `origin`, `destination`, `departureDateTime`, `arrivalDateTime`, `aircraftType`, `operatingCarrier`, `marketingCarrier`, `cabinCode`, `bookingClass`.
+Each `orderItem` of type `Flight` includes: `orderItemId`, `type: "Flight"`, `inventoryId` (GUID — used to resolve flight details from the Offer MS via `GET /v1/flights/{inventoryId}`), `segmentRef`, `passengerRefs`, `unitPrice`, `taxes`, `totalPrice`, `paymentReference`, `eTickets` (array of `{passengerId, eTicketNumber}`), `seatAssignments` (array of `{passengerId, seatNumber}`).
 
-Each `orderItem` of type `Flight` includes: `orderItemId`, `type: "Flight"`, `segmentRef`, `passengerRefs`, `offerId`, `fareBasisCode`, `fareFamily`, `unitPrice`, `taxes`, `totalPrice`, `isRefundable`, `isChangeable`, `paymentId`, `eTickets` (array of `{passengerId, eTicketNumber}`), `seatAssignments` (array of `{passengerId, seatNumber}`).
+> **Flight detail lookup:** Flight properties (flight number, origin, destination, departure/arrival times, aircraft type, fare basis, fare family, refund/change conditions) are **not** stored on the order. When these details are needed (e.g. booking display in the web or Terminal app), the consuming layer (Retail API) resolves them at read time by calling `GET /v1/flights/{inventoryId}` on the Offer MS using the `inventoryId` stored on each flight order item.
 
 ---
 
