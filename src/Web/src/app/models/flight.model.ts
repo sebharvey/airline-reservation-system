@@ -84,6 +84,14 @@ export interface FlightSummary {
   aircraftType: string;
 }
 
+export interface ScheduledFlightNumber {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureTime: string;
+  arrivalTime: string;
+}
+
 export interface FlightStatus {
   flightNumber: string;
   origin: string;

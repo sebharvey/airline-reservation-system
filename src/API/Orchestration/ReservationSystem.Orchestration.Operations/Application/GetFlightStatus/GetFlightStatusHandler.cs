@@ -63,7 +63,7 @@ public sealed class GetFlightStatusHandler
         return status switch
         {
             "Cancelled" => "This flight has been cancelled",
-            _ => $"Flight is on time — {loadFactor}% booked"
+            _ => "Flight is on time"
         };
     }
 }

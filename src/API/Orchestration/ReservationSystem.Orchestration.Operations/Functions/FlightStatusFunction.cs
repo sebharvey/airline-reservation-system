@@ -19,15 +19,18 @@ public sealed class FlightStatusFunction
 {
     private readonly GetFlightStatusHandler _handler;
     private readonly OfferServiceClient _offerServiceClient;
+    private readonly ScheduleServiceClient _scheduleServiceClient;
     private readonly ILogger<FlightStatusFunction> _logger;
 
     public FlightStatusFunction(
         GetFlightStatusHandler handler,
         OfferServiceClient offerServiceClient,
+        ScheduleServiceClient scheduleServiceClient,
         ILogger<FlightStatusFunction> logger)
     {
         _handler = handler;
         _offerServiceClient = offerServiceClient;
+        _scheduleServiceClient = scheduleServiceClient;
         _logger = logger;
     }
 
@@ -124,6 +127,53 @@ public sealed class FlightStatusFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve flight status for {FlightNumber}", flightNumber);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/flight-numbers
+    // -------------------------------------------------------------------------
+
+    [Function("GetFlightNumbers")]
+    [OpenApiOperation(operationId: "GetFlightNumbers", tags: new[] { "Flight Status" }, Summary = "List flight numbers and route details from active schedules for the current period")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FlightNumberResponse>), Description = "OK — returns distinct flight numbers with route and time details")]
+    public async Task<HttpResponseData> GetFlightNumbers(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flight-numbers")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var schedules = await _scheduleServiceClient.GetSchedulesAsync(cancellationToken: cancellationToken);
+
+            var flights = schedules.Schedules
+                .Where(s =>
+                    DateOnly.TryParse(s.ValidFrom, out var from) &&
+                    DateOnly.TryParse(s.ValidTo, out var to) &&
+                    today >= from && today <= to)
+                .GroupBy(s => s.FlightNumber)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    return new FlightNumberResponse
+                    {
+                        FlightNumber  = first.FlightNumber,
+                        Origin        = first.Origin,
+                        Destination   = first.Destination,
+                        DepartureTime = first.DepartureTime,
+                        ArrivalTime   = first.ArrivalTime
+                    };
+                })
+                .OrderBy(f => f.FlightNumber)
+                .ToList()
+                .AsReadOnly();
+
+            return await req.OkJsonAsync(flights);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve flight numbers");
             return await req.InternalServerErrorAsync();
         }
     }

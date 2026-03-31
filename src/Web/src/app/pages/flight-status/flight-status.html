@@ -15,8 +15,8 @@
         (change)="setFlightNumber($any($event.target).value)"
       >
         <option value="">Select a flight</option>
-        @for (fn of flightNumbers; track fn) {
-          <option [value]="fn">{{ fn }}</option>
+        @for (flight of flightNumbers(); track flight.flightNumber) {
+          <option [value]="flight.flightNumber">{{ flight.flightNumber }} — {{ flight.origin }} → {{ flight.destination }} {{ flight.departureTime }}–{{ flight.arrivalTime }}</option>
         }
       </select>
     </div>
@@ -126,12 +126,6 @@
           <span class="info-label">Aircraft</span>
           <span class="info-value">{{ flightStatus()!.aircraftType }}</span>
         </div>
-      </div>
-
-      <!-- Status Message -->
-      <div class="status-message">
-        <span class="status-msg-icon">&#8505;</span>
-        <p>{{ flightStatus()!.statusMessage }}</p>
       </div>
 
     </div>
