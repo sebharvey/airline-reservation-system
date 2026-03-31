@@ -217,6 +217,36 @@ public sealed class BasketFunction
     }
 
     // -------------------------------------------------------------------------
+    // PUT /v1/basket/{basketId}/ssrs
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateBasketSsrs")]
+    [OpenApiOperation(operationId: "UpdateBasketSsrs", tags: new[] { "Basket" }, Summary = "Update SSR selections in basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "SSR selections")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateSsrs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/ssrs")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdateSsrs");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.UpdateSsrsAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
+    }
+
+    // -------------------------------------------------------------------------
     // POST /v1/basket/{basketId}/confirm
     // -------------------------------------------------------------------------
 
