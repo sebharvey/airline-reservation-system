@@ -25,9 +25,21 @@ export class LoyaltyStateService {
     this.restoreFromStorage();
   }
 
+  private _useLocalStorage = false;
+
+  private get _storage(): Storage {
+    return this._useLocalStorage ? localStorage : sessionStorage;
+  }
+
   private restoreFromStorage(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      let stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        this._useLocalStorage = true;
+      } else {
+        stored = sessionStorage.getItem(STORAGE_KEY);
+        this._useLocalStorage = false;
+      }
       if (stored) {
         const session: AuthSession = JSON.parse(stored);
         if (session?.accessToken && session?.customer) {
@@ -36,19 +48,23 @@ export class LoyaltyStateService {
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }
 
-  setSession(session: AuthSession): void {
+  setSession(session: AuthSession, rememberMe = false): void {
+    this._useLocalStorage = rememberMe;
     this._session.set(session);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    this._storage.setItem(STORAGE_KEY, JSON.stringify(session));
+    const other = rememberMe ? sessionStorage : localStorage;
+    other.removeItem(STORAGE_KEY);
   }
 
   updateCustomer(customer: LoyaltyCustomer): void {
     this._session.update(s => {
       if (!s) return s;
       const updated = { ...s, customer };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      this._storage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
   }
@@ -57,7 +73,7 @@ export class LoyaltyStateService {
     this._session.update(s => {
       if (!s) return s;
       const updated = { ...s, accessToken, refreshToken };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      this._storage.setItem(STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
   }
@@ -65,5 +81,6 @@ export class LoyaltyStateService {
   logout(): void {
     this._session.set(null);
     localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
   }
 }

@@ -82,11 +82,36 @@ input:focus {
   padding: 4px 6px;
 }
 
+.remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -8px;
+}
+
+.remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 4px;
+  accent-color: var(--grad-start);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .forgot-link {
   font-size: 0.82rem;
   color: var(--grad-start);
-  text-align: right;
-  margin-top: -8px;
   text-decoration: none;
 }
 
