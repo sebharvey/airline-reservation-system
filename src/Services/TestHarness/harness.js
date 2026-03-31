@@ -471,7 +471,7 @@
             const row = document.createElement('tr');
 
             const tdStep = document.createElement('td');
-            tdStep.innerHTML = `<div class="step-number">Step ${step.step}</div>`;
+            tdStep.innerHTML = `<div class="step-number"><span class="step-label">Step </span>${step.step}</div>`;
 
             const tdName = document.createElement('td');
             tdName.innerHTML = `<div class="step-name">${esc(step.name)}</div>`;

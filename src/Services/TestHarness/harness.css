@@ -722,6 +722,7 @@ body {
         font-size: 0.72rem;
     }
 
+    .step-label { display: none; }
     .step-number { font-size: 0.82rem; margin-bottom: 0; }
     .step-name { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0; }
     .step-desc { display: none; }
