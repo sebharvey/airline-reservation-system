@@ -100,6 +100,17 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task UpdateSsrsAsync(Guid basketId, string ssrsJson, CancellationToken ct)
+    {
+        using var content = new StringContent(ssrsJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PutAsync($"/api/v1/basket/{basketId}/ssrs", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update basket SSRs: {error}");
+        }
+    }
+
     public async Task<OrderMsCreateOrderResult> CreateOrderAsync(
         Guid basketId, string bookingType, string? redemptionReference,
         CancellationToken ct)
