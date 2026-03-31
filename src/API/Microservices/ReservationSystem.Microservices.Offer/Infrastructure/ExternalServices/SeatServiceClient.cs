@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 
 namespace ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 
@@ -8,7 +9,7 @@ namespace ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 /// HTTP client for the Seat microservice.
 /// Used by the rolling inventory import timer trigger to resolve cabin configurations.
 /// </summary>
-public sealed class SeatServiceClient
+public sealed class SeatServiceClient : ISeatServiceClient
 {
     private readonly HttpClient _httpClient;
 
@@ -26,29 +27,12 @@ public sealed class SeatServiceClient
     /// <summary>
     /// Retrieves all aircraft types from the Seat MS GET /v1/aircraft-types endpoint.
     /// </summary>
-    public async Task<GetAircraftTypesResult> GetAircraftTypesAsync(CancellationToken cancellationToken = default)
+    public async Task<AircraftTypeData> GetAircraftTypesAsync(CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync("/api/v1/aircraft-types", cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<GetAircraftTypesResult>(JsonOptions, cancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<AircraftTypeData>(JsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("Empty response from Seat MS get aircraft types.");
     }
-}
-
-public sealed class GetAircraftTypesResult
-{
-    public IReadOnlyList<AircraftTypeResult> AircraftTypes { get; init; } = [];
-}
-
-public sealed class AircraftTypeResult
-{
-    public string AircraftTypeCode { get; init; } = string.Empty;
-    public IReadOnlyList<CabinCountResult>? CabinCounts { get; init; }
-}
-
-public sealed class CabinCountResult
-{
-    public string Cabin { get; init; } = string.Empty;
-    public int Count { get; init; }
 }

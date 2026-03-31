@@ -42,8 +42,8 @@ public sealed class FlightInventory
     public int TotalSeats { get; private set; }
     public int SeatsAvailable { get; private set; }
     public string Status { get; private set; } = string.Empty;
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
 
     private FlightInventory() { }
 
@@ -77,7 +77,7 @@ public sealed class FlightInventory
         Guid inventoryId, string flightNumber, DateOnly departureDate, TimeOnly departureTime,
         TimeOnly arrivalTime, int arrivalDayOffset, string origin, string destination,
         string aircraftType, IReadOnlyList<CabinInventory> cabins,
-        int totalSeats, int seatsAvailable, string status, DateTime createdAt, DateTime updatedAt)
+        int totalSeats, int seatsAvailable, string status, DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
         var inv = new FlightInventory
         {
@@ -142,10 +142,10 @@ public sealed class Fare
     public decimal CancellationFeeAmount { get; private set; }
     public int? PointsPrice { get; private set; }
     public decimal? PointsTaxes { get; private set; }
-    public DateTime ValidFrom { get; private set; }
-    public DateTime ValidTo { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public DateTimeOffset ValidFrom { get; private set; }
+    public DateTimeOffset ValidTo { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
 
     private Fare() { }
 
@@ -153,7 +153,7 @@ public sealed class Fare
         Guid inventoryId, string fareBasisCode, string? fareFamily, string cabinCode,
         string bookingClass, string currencyCode, decimal baseFareAmount, decimal taxAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo)
+        int? pointsPrice, decimal? pointsTaxes, DateTimeOffset validFrom, DateTimeOffset validTo)
     {
         return new Fare
         {
@@ -166,7 +166,7 @@ public sealed class Fare
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             PointsPrice = pointsPrice, PointsTaxes = pointsTaxes,
             ValidFrom = validFrom, ValidTo = validTo,
-            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
         };
     }
 
@@ -175,8 +175,8 @@ public sealed class Fare
         string cabinCode, string bookingClass, string currencyCode,
         decimal baseFareAmount, decimal taxAmount, decimal totalAmount,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        int? pointsPrice, decimal? pointsTaxes, DateTime validFrom, DateTime validTo,
-        DateTime createdAt, DateTime updatedAt)
+        int? pointsPrice, decimal? pointsTaxes, DateTimeOffset validFrom, DateTimeOffset validTo,
+        DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
         return new Fare
         {
@@ -241,9 +241,9 @@ public sealed class StoredOffer
     public Guid StoredOfferId { get; private set; }
     public Guid SessionId { get; private set; }
     public string FaresInfo { get; private set; } = string.Empty;
-    public DateTime CreatedAt { get; private set; }
-    public DateTime ExpiresAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset ExpiresAt { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts =
         new() { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
@@ -296,13 +296,13 @@ public sealed class StoredOffer
             StoredOfferId = Guid.NewGuid(),
             SessionId     = sessionId,
             FaresInfo     = System.Text.Json.JsonSerializer.Serialize(faresInfo, JsonOpts),
-            ExpiresAt     = DateTime.UtcNow.AddMinutes(60)
+            ExpiresAt     = DateTimeOffset.UtcNow.AddMinutes(60)
         };
     }
 
     public static StoredOffer Reconstitute(
         Guid storedOfferId, Guid sessionId, string faresInfo,
-        DateTime createdAt, DateTime expiresAt, DateTime updatedAt)
+        DateTimeOffset createdAt, DateTimeOffset expiresAt, DateTimeOffset updatedAt)
     {
         return new StoredOffer
         {
@@ -340,10 +340,10 @@ public sealed class FareRule
     public bool IsChangeable { get; private set; }
     public decimal ChangeFeeAmount { get; private set; }
     public decimal CancellationFeeAmount { get; private set; }
-    public DateTime? ValidFrom { get; private set; }
-    public DateTime? ValidTo { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
+    public DateTimeOffset? ValidFrom { get; private set; }
+    public DateTimeOffset? ValidTo { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
 
     private FareRule() { }
 
@@ -353,7 +353,7 @@ public sealed class FareRule
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        DateTime? validFrom, DateTime? validTo)
+        DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
         return new FareRule
         {
@@ -366,7 +366,7 @@ public sealed class FareRule
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             ValidFrom = validFrom, ValidTo = validTo,
-            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
         };
     }
 
@@ -376,7 +376,7 @@ public sealed class FareRule
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        DateTime? validFrom, DateTime? validTo, DateTime createdAt, DateTime updatedAt)
+        DateTimeOffset? validFrom, DateTimeOffset? validTo, DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
         return new FareRule
         {
@@ -398,7 +398,7 @@ public sealed class FareRule
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
-        DateTime? validFrom, DateTime? validTo)
+        DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
         RuleType = ruleType; FlightNumber = flightNumber;
         FareBasisCode = fareBasisCode; FareFamily = fareFamily;
@@ -408,6 +408,6 @@ public sealed class FareRule
         IsRefundable = isRefundable; IsChangeable = isChangeable;
         ChangeFeeAmount = changeFeeAmount; CancellationFeeAmount = cancellationFeeAmount;
         ValidFrom = validFrom; ValidTo = validTo;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

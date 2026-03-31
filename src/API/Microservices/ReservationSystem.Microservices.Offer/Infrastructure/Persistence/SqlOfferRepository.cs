@@ -369,11 +369,11 @@ public sealed class SqlOfferRepository : IOfferRepository
                    (FareId, InventoryId, FareBasisCode, FareFamily, CabinCode, BookingClass,
                     CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+                    PointsPrice, PointsTaxes, ValidFrom, ValidTo)
             VALUES (@FareId, @InventoryId, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
                     @CurrencyCode, @BaseFareAmount, @TaxAmount, @TotalAmount,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -394,11 +394,11 @@ public sealed class SqlOfferRepository : IOfferRepository
                    (FareId, InventoryId, FareBasisCode, FareFamily, CabinCode, BookingClass,
                     CurrencyCode, BaseFareAmount, TaxAmount, TotalAmount,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    PointsPrice, PointsTaxes, ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+                    PointsPrice, PointsTaxes, ValidFrom, ValidTo)
             VALUES (@FareId, @InventoryId, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
                     @CurrencyCode, @BaseFareAmount, @TaxAmount, @TotalAmount,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+                    @PointsPrice, @PointsTaxes, @ValidFrom, @ValidTo);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -518,8 +518,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, BasketId, PaxCount, CreatedAt)
-            VALUES (@HoldId, @InventoryId, @BasketId, @PaxCount, @CreatedAt);
+                   (HoldId, InventoryId, BasketId, PaxCount)
+            VALUES (@HoldId, @InventoryId, @BasketId, @PaxCount);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -530,8 +530,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                 HoldId = Guid.NewGuid(),
                 InventoryId = inventoryId,
                 BasketId = basketId,
-                PaxCount = paxCount,
-                CreatedAt = DateTime.UtcNow
+                PaxCount = paxCount
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, BasketId {BasketId}", inventoryId, basketId);
@@ -567,22 +566,19 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[SeatReservation]
-                   (SeatReservationId, InventoryId, SeatNumber, BasketId, Status, CreatedAt, UpdatedAt)
-            VALUES (@SeatReservationId, @InventoryId, @SeatNumber, @BasketId, @Status, @CreatedAt, @UpdatedAt);
+                   (SeatReservationId, InventoryId, SeatNumber, BasketId, Status)
+            VALUES (@SeatReservationId, @InventoryId, @SeatNumber, @BasketId, @Status);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
-        var now = DateTime.UtcNow;
         var parameters = seatNumbers.Select(seat => new
         {
             SeatReservationId = Guid.NewGuid(),
             InventoryId = inventoryId,
             SeatNumber = seat,
             BasketId = basketId,
-            Status = "Held",
-            CreatedAt = now,
-            UpdatedAt = now
+            Status = "Held"
         });
 
         await connection.ExecuteAsync(
@@ -596,8 +592,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[SeatReservation]
-            SET    Status    = @Status,
-                   UpdatedAt = @UpdatedAt
+            SET    Status = @Status
             WHERE  InventoryId = @InventoryId
               AND  SeatNumber  = @SeatNumber;
             """;
@@ -609,8 +604,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             {
                 InventoryId = inventoryId,
                 SeatNumber = seatNumber,
-                Status = status,
-                UpdatedAt = DateTime.UtcNow
+                Status = status
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         if (rowsAffected == 0)
@@ -781,12 +775,12 @@ public sealed class SqlOfferRepository : IOfferRepository
                     CurrencyCode, MinAmount, MaxAmount, TaxAmount,
                     MinPoints, MaxPoints, PointsTaxes,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    ValidFrom, ValidTo, CreatedAt, UpdatedAt)
+                    ValidFrom, ValidTo)
             VALUES (@FareRuleId, @RuleType, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
                     @CurrencyCode, @MinAmount, @MaxAmount, @TaxAmount,
                     @MinPoints, @MaxPoints, @PointsTaxes,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @ValidFrom, @ValidTo, @CreatedAt, @UpdatedAt);
+                    @ValidFrom, @ValidTo);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -923,8 +917,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             totalSeats: (int)row.TotalSeats,
             seatsAvailable: (int)row.SeatsAvailable,
             status: (string)row.Status,
-            createdAt: (DateTime)row.CreatedAt,
-            updatedAt: (DateTime)row.UpdatedAt);
+            createdAt: new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
+            updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
     }
 
     private static Fare MapToFare(dynamic row)
@@ -946,10 +940,10 @@ public sealed class SqlOfferRepository : IOfferRepository
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
             pointsPrice: (int?)row.PointsPrice,
             pointsTaxes: (decimal?)row.PointsTaxes,
-            validFrom: (DateTime)row.ValidFrom,
-            validTo: (DateTime)row.ValidTo,
-            createdAt: (DateTime)row.CreatedAt,
-            updatedAt: (DateTime)row.UpdatedAt);
+            validFrom: new DateTimeOffset((DateTime)row.ValidFrom, TimeSpan.Zero),
+            validTo: new DateTimeOffset((DateTime)row.ValidTo, TimeSpan.Zero),
+            createdAt: new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
+            updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
     }
 
     private static StoredOffer MapToStoredOffer(dynamic row)
@@ -958,9 +952,9 @@ public sealed class SqlOfferRepository : IOfferRepository
             storedOfferId: (Guid)row.StoredOfferId,
             sessionId:     (Guid)row.SessionId,
             faresInfo:     (string)row.FaresInfo,
-            createdAt:     (DateTime)row.CreatedAt,
-            expiresAt:     (DateTime)row.ExpiresAt,
-            updatedAt:     (DateTime)row.UpdatedAt);
+            createdAt:     new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
+            expiresAt:     new DateTimeOffset((DateTime)row.ExpiresAt, TimeSpan.Zero),
+            updatedAt:     new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
     }
 
     private static object MapInventoryToInsertParameters(FlightInventory inv)
@@ -1004,12 +998,13 @@ public sealed class SqlOfferRepository : IOfferRepository
             fare.PointsPrice,
             fare.PointsTaxes,
             fare.ValidFrom,
-            fare.ValidTo,
-            fare.CreatedAt,
-            fare.UpdatedAt
+            fare.ValidTo
         };
     }
 
+
+    private static DateTimeOffset? ToNullableDateTimeOffset(DateTime? dt) =>
+        dt.HasValue ? new DateTimeOffset(dt.Value, TimeSpan.Zero) : null;
 
     private static FareRule MapToFareRule(dynamic row)
     {
@@ -1032,10 +1027,10 @@ public sealed class SqlOfferRepository : IOfferRepository
             isChangeable: (bool)row.IsChangeable,
             changeFeeAmount: (decimal)row.ChangeFeeAmount,
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
-            validFrom: (DateTime?)row.ValidFrom,
-            validTo: (DateTime?)row.ValidTo,
-            createdAt: (DateTime)row.CreatedAt,
-            updatedAt: (DateTime)row.UpdatedAt);
+            validFrom: ToNullableDateTimeOffset((DateTime?)row.ValidFrom),
+            validTo: ToNullableDateTimeOffset((DateTime?)row.ValidTo),
+            createdAt: new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
+            updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
     }
 
     private static object MapFareRuleToParameters(FareRule fareRule)
@@ -1061,9 +1056,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             fareRule.ChangeFeeAmount,
             fareRule.CancellationFeeAmount,
             fareRule.ValidFrom,
-            fareRule.ValidTo,
-            fareRule.CreatedAt,
-            fareRule.UpdatedAt
+            fareRule.ValidTo
         };
     }
 

@@ -33,7 +33,7 @@ public sealed class CreateFareHandler
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
             command.PointsPrice, command.PointsTaxes,
-            DateTime.Parse(command.ValidFrom), DateTime.Parse(command.ValidTo));
+            DateTimeOffset.Parse(command.ValidFrom), DateTimeOffset.Parse(command.ValidTo));
 
         await _repository.CreateFareAsync(fare, ct);
 

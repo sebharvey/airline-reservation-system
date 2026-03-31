@@ -143,8 +143,8 @@ public sealed class SearchOffersHandler
     /// </summary>
     private static Fare BuildFareFromRule(Guid inventoryId, FareRule rule)
     {
-        var validFrom = rule.ValidFrom ?? new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var validTo   = rule.ValidTo   ?? new DateTime(2099, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+        var validFrom = rule.ValidFrom ?? new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var validTo   = rule.ValidTo   ?? new DateTimeOffset(2099, 12, 31, 23, 59, 59, TimeSpan.Zero);
 
         return Fare.Create(
             inventoryId:          inventoryId,

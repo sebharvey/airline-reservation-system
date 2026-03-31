@@ -16,6 +16,8 @@ using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
+using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
+using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -25,8 +27,6 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Offer.Models.Requests;
 using ReservationSystem.Microservices.Offer.Models.Responses;
-using static ReservationSystem.Microservices.Offer.Models.Responses.FlightInventoryGroupResponse;
-
 namespace ReservationSystem.Microservices.Offer.Functions;
 
 public sealed class OfferFunction
@@ -97,7 +97,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         if (!body.TryGetProperty("cabins", out var cabinsEl) || cabinsEl.ValueKind != JsonValueKind.Array)
             return await req.BadRequestAsync("'cabins' array is required.");
@@ -153,7 +153,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new CreateFareCommand(
             InventoryId: inventoryId,
@@ -200,7 +200,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         if (!body.TryGetProperty("flights", out var flightsEl) || flightsEl.ValueKind != JsonValueKind.Array)
             return await req.BadRequestAsync("'flights' array is required.");
@@ -264,7 +264,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new SearchOffersCommand(
             Origin: body.GetProperty("origin").GetString()!,
@@ -408,7 +408,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new HoldInventoryCommand(
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
@@ -444,7 +444,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var sellItems = body.GetProperty("items").EnumerateArray()
             .Select(e => new SellInventoryItem(
@@ -487,7 +487,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new ReleaseInventoryCommand(
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
@@ -523,7 +523,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new CancelInventoryCommand(
             FlightNumber: body.GetProperty("flightNumber").GetString()!,
@@ -588,7 +588,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var seatNumbers = body.GetProperty("seatNumbers").EnumerateArray()
             .Select(e => e.GetString()!).ToList();
@@ -620,7 +620,7 @@ public sealed class OfferFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var updates = body.GetProperty("updates").EnumerateArray()
             .Select(u => new SeatStatusUpdate(
@@ -697,28 +697,13 @@ public sealed class OfferFunction
             return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
         }
 
-        var inventories = await _getFlightInventoryByFlightHandler.HandleAsync(
+        var result = await _getFlightInventoryByFlightHandler.HandleAsync(
             new GetFlightInventoryQuery(flightNumber.ToUpperInvariant(), departureDate), ct);
 
-        if (inventories.Count == 0)
+        if (result is null)
             return await req.NotFoundAsync($"No inventory found for flight '{flightNumber}' on {departureDate:yyyy-MM-dd}.");
 
-        // Aggregate all cabin inventories for the flight into a single response
-        var first = inventories[0];
-        var totalSeats = inventories.Sum(i => i.TotalSeats);
-        var totalAvailable = inventories.Sum(i => i.SeatsAvailable);
-
-        var cabinLookup = inventories
-            .SelectMany(i => i.Cabins)
-            .GroupBy(c => c.CabinCode)
-            .ToDictionary(g => g.Key, g => new Models.Responses.CabinInventory
-            {
-                TotalSeats = g.Sum(c => c.TotalSeats),
-                SeatsAvailable = g.Sum(c => c.SeatsAvailable),
-                SeatsSold = g.Sum(c => c.SeatsSold),
-                SeatsHeld = g.Sum(c => c.SeatsHeld)
-            });
-
+        var first = result.First;
         var response = new FlightInventoryGroupResponse
         {
             FlightNumber        = first.FlightNumber,
@@ -730,18 +715,33 @@ public sealed class OfferFunction
             Destination         = first.Destination,
             AircraftType        = first.AircraftType,
             Status              = first.Status,
-            TotalSeats          = totalSeats,
-            TotalSeatsAvailable = totalAvailable,
-            LoadFactor          = totalSeats > 0
-                ? (int)Math.Round((double)(totalSeats - totalAvailable) / totalSeats * 100)
+            TotalSeats          = result.TotalSeats,
+            TotalSeatsAvailable = result.TotalAvailable,
+            LoadFactor          = result.TotalSeats > 0
+                ? (int)Math.Round((double)(result.TotalSeats - result.TotalAvailable) / result.TotalSeats * 100)
                 : 0,
-            F = cabinLookup.GetValueOrDefault("F"),
-            J = cabinLookup.GetValueOrDefault("J"),
-            W = cabinLookup.GetValueOrDefault("W"),
-            Y = cabinLookup.GetValueOrDefault("Y"),
+            F = MapCabinAggregation(result.CabinAggregations, "F"),
+            J = MapCabinAggregation(result.CabinAggregations, "J"),
+            W = MapCabinAggregation(result.CabinAggregations, "W"),
+            Y = MapCabinAggregation(result.CabinAggregations, "Y"),
         };
 
         return await req.OkJsonAsync(response);
+    }
+
+    private static Models.Responses.CabinInventory? MapCabinAggregation(
+        IReadOnlyDictionary<string, CabinAggregation> aggregations, string cabinCode)
+    {
+        if (!aggregations.TryGetValue(cabinCode, out var agg))
+            return null;
+
+        return new Models.Responses.CabinInventory
+        {
+            TotalSeats = agg.TotalSeats,
+            SeatsAvailable = agg.SeatsAvailable,
+            SeatsSold = agg.SeatsSold,
+            SeatsHeld = agg.SeatsHeld
+        };
     }
 
     // GET /v1/admin/inventory?departureDate=yyyy-MM-dd
@@ -766,16 +766,12 @@ public sealed class OfferFunction
             return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
         }
 
-        var groups = await _getFlightInventoryHandler.HandleAsync(
+        var results = await _getFlightInventoryHandler.HandleAsync(
             new GetFlightInventoryByDateQuery(departureDate), ct);
 
-        var now = DateTime.UtcNow;
-
-        var response = groups.Select(g =>
+        var response = results.Select(r =>
         {
-            var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
-            var ticketingStatus = (departure - now).TotalHours > 1 ? "Open" : "Closed";
-
+            var g = r.Group;
             return new FlightInventoryGroupResponse
             {
                 FlightNumber        = g.FlightNumber,
@@ -789,17 +785,27 @@ public sealed class OfferFunction
                 Status              = g.Status,
                 TotalSeats          = g.TotalSeats,
                 TotalSeatsAvailable = g.TotalSeatsAvailable,
-                LoadFactor          = g.TotalSeats > 0
-                    ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
-                    : 0,
-                TicketingStatus     = ticketingStatus,
-                F = g.F is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.F.TotalSeats, SeatsAvailable = g.F.SeatsAvailable, SeatsSold = g.F.SeatsSold, SeatsHeld = g.F.SeatsHeld },
-                J = g.J is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.J.TotalSeats, SeatsAvailable = g.J.SeatsAvailable, SeatsSold = g.J.SeatsSold, SeatsHeld = g.J.SeatsHeld },
-                W = g.W is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.W.TotalSeats, SeatsAvailable = g.W.SeatsAvailable, SeatsSold = g.W.SeatsSold, SeatsHeld = g.W.SeatsHeld },
-                Y = g.Y is null ? null : new Models.Responses.CabinInventory { TotalSeats = g.Y.TotalSeats, SeatsAvailable = g.Y.SeatsAvailable, SeatsSold = g.Y.SeatsSold, SeatsHeld = g.Y.SeatsHeld },
+                LoadFactor          = r.LoadFactor,
+                TicketingStatus     = r.TicketingStatus,
+                F = MapCabinData(g.F),
+                J = MapCabinData(g.J),
+                W = MapCabinData(g.W),
+                Y = MapCabinData(g.Y),
             };
         }).ToList();
 
         return await req.OkJsonAsync(response);
+    }
+
+    private static Models.Responses.CabinInventory? MapCabinData(Domain.Entities.FlightInventoryGroup.CabinData? data)
+    {
+        if (data is null) return null;
+        return new Models.Responses.CabinInventory
+        {
+            TotalSeats = data.TotalSeats,
+            SeatsAvailable = data.SeatsAvailable,
+            SeatsSold = data.SeatsSold,
+            SeatsHeld = data.SeatsHeld
+        };
     }
 }

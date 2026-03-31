@@ -27,8 +27,8 @@ public sealed class UpdateFareRuleHandler
             command.MinPoints, command.MaxPoints, command.PointsTaxes,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
-            string.IsNullOrEmpty(command.ValidFrom) ? null : DateTime.Parse(command.ValidFrom),
-            string.IsNullOrEmpty(command.ValidTo) ? null : DateTime.Parse(command.ValidTo));
+            string.IsNullOrEmpty(command.ValidFrom) ? null : DateTimeOffset.Parse(command.ValidFrom),
+            string.IsNullOrEmpty(command.ValidTo) ? null : DateTimeOffset.Parse(command.ValidTo));
 
         await _repository.UpdateFareRuleAsync(fareRule, ct);
 

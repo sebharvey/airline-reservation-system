@@ -27,6 +27,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
+using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
@@ -39,21 +40,19 @@ var host = new HostBuilder()
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
-        // ── OpenAPI ────────────────────────────────────────────────────────────
+        // ── Telemetry / Application Insights ───────────────────────────────
         services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
-
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
+        // ── Configuration ──────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
 
+        // ── Infrastructure ─────────────────────────────────────────────────
         services.AddSingleton<SqlConnectionFactory>();
         services.AddScoped<IOfferRepository, SqlOfferRepository>();
 
-        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
-
-        // ── Named HttpClients for rolling inventory import (timer trigger) ────────
         services.AddHttpClient("ScheduleMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net/");
@@ -70,10 +69,14 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
-        services.AddScoped<ScheduleServiceClient>();
-        services.AddScoped<SeatServiceClient>();
-        services.AddScoped<RollingInventoryImportHandler>();
+        services.AddScoped<IScheduleServiceClient, ScheduleServiceClient>();
+        services.AddScoped<ISeatServiceClient, SeatServiceClient>();
 
+        // ── Health checks ──────────────────────────────────────────────────
+        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
+
+        // ── Application handlers ───────────────────────────────────────────
+        services.AddScoped<RollingInventoryImportHandler>();
         services.AddScoped<DeleteExpiredFlightInventoryHandler>();
         services.AddScoped<DeleteExpiredStoredOffersHandler>();
         services.AddScoped<CreateFlightHandler>();
@@ -88,7 +91,6 @@ var host = new HostBuilder()
         services.AddScoped<GetSeatAvailabilityHandler>();
         services.AddScoped<ReserveSeatHandler>();
         services.AddScoped<UpdateSeatStatusHandler>();
-
         services.AddScoped<CreateFareRuleHandler>();
         services.AddScoped<UpdateFareRuleHandler>();
         services.AddScoped<DeleteFareRuleHandler>();

@@ -12,6 +12,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.OpenApi.Models;
+using ReservationSystem.Microservices.Offer.Models.Mappers;
 using ReservationSystem.Microservices.Offer.Models.Requests;
 using ReservationSystem.Microservices.Offer.Models.Responses;
 
@@ -58,10 +59,10 @@ public sealed class FareRuleFunction
             if (body.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String)
                 query = q.GetString();
         }
-        catch (JsonException) { /* empty body is fine for search */ }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in search request body"); }
 
         var rules = await _searchHandler.HandleAsync(new SearchFareRulesQuery(query), ct);
-        return await req.OkJsonAsync(MapToResponseList(rules));
+        return await req.OkJsonAsync(FareRuleMapper.ToResponseList(rules));
     }
 
     // GET /v1/fare-rules/{fareRuleId}
@@ -79,7 +80,7 @@ public sealed class FareRuleFunction
         if (rule is null)
             return await req.NotFoundAsync($"FareRule '{fareRuleId}' not found.");
 
-        return await req.OkJsonAsync(MapToResponse(rule));
+        return await req.OkJsonAsync(FareRuleMapper.ToResponse(rule));
     }
 
     // POST /v1/fare-rules
@@ -94,7 +95,7 @@ public sealed class FareRuleFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new CreateFareRuleCommand(
             RuleType: body.TryGetProperty("ruleType", out var rt) && rt.ValueKind != JsonValueKind.Null ? rt.GetString()! : "Money",
@@ -120,7 +121,7 @@ public sealed class FareRuleFunction
         try
         {
             var rule = await _createHandler.HandleAsync(command, ct);
-            return await req.CreatedAsync($"/v1/fare-rules/{rule.FareRuleId}", MapToResponse(rule));
+            return await req.CreatedAsync($"/v1/fare-rules/{rule.FareRuleId}", FareRuleMapper.ToResponse(rule));
         }
         catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
     }
@@ -139,7 +140,7 @@ public sealed class FareRuleFunction
     {
         JsonElement body;
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
         var command = new UpdateFareRuleCommand(
             FareRuleId: fareRuleId,
@@ -166,7 +167,7 @@ public sealed class FareRuleFunction
         try
         {
             var rule = await _updateHandler.HandleAsync(command, ct);
-            return await req.OkJsonAsync(MapToResponse(rule));
+            return await req.OkJsonAsync(FareRuleMapper.ToResponse(rule));
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
         catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
@@ -190,37 +191,4 @@ public sealed class FareRuleFunction
         return req.CreateResponse(HttpStatusCode.NoContent);
     }
 
-    private static object MapToResponse(Domain.Entities.FareRule r)
-    {
-        return new
-        {
-            fareRuleId = r.FareRuleId,
-            ruleType = r.RuleType,
-            flightNumber = r.FlightNumber,
-            fareBasisCode = r.FareBasisCode,
-            fareFamily = r.FareFamily,
-            cabinCode = r.CabinCode,
-            bookingClass = r.BookingClass,
-            currencyCode = r.CurrencyCode,
-            minAmount = r.MinAmount,
-            maxAmount = r.MaxAmount,
-            taxAmount = r.TaxAmount,
-            minPoints = r.MinPoints,
-            maxPoints = r.MaxPoints,
-            pointsTaxes = r.PointsTaxes,
-            isRefundable = r.IsRefundable,
-            isChangeable = r.IsChangeable,
-            changeFeeAmount = r.ChangeFeeAmount,
-            cancellationFeeAmount = r.CancellationFeeAmount,
-            validFrom = r.ValidFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            validTo = r.ValidTo?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            createdAt = r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            updatedAt = r.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
-        };
-    }
-
-    private static IEnumerable<object> MapToResponseList(IReadOnlyList<Domain.Entities.FareRule> rules)
-    {
-        return rules.Select(MapToResponse);
-    }
 }
