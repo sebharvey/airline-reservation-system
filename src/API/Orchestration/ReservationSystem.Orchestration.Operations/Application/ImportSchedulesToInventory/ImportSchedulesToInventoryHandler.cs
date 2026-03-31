@@ -97,6 +97,12 @@ public sealed class ImportSchedulesToInventoryHandler
         var schedulesWithConfig = new List<ScheduleItemDto>();
         var today = DateTime.UtcNow.Date;
 
+        // Hard cap at 3 months from today. If the caller provides an earlier ToDate, honour it.
+        var threeMonthCap = today.AddMonths(3);
+        var importCeiling = (command.ToDate.HasValue && command.ToDate.Value.Date < threeMonthCap)
+            ? command.ToDate.Value.Date
+            : threeMonthCap;
+
         foreach (var schedule in schedulesResult.Schedules)
         {
             if (!cabinsByAircraftType.TryGetValue(schedule.AircraftType, out var cabins))
@@ -112,9 +118,9 @@ public sealed class ImportSchedulesToInventoryHandler
             var validFrom = DateTime.Parse(schedule.ValidFrom);
             var validTo = DateTime.Parse(schedule.ValidTo);
 
-            // Apply upper date cap if specified (e.g. today + 3 months from the terminal).
-            if (command.ToDate.HasValue && validTo.Date > command.ToDate.Value.Date)
-                validTo = command.ToDate.Value.Date;
+            // Never import beyond the 3-month ceiling.
+            if (validTo.Date > importCeiling)
+                validTo = importCeiling;
 
             // Never import dates in the past — floor the start to today.
             var effectiveFrom = validFrom.Date < today ? today : validFrom.Date;
