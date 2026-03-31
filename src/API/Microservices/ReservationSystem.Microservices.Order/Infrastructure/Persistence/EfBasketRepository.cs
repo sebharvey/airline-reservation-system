@@ -37,10 +37,16 @@ public sealed class EfBasketRepository : IBasketRepository
 
     public async Task UpdateAsync(Basket basket, CancellationToken cancellationToken = default)
     {
-        _context.Baskets.Update(basket);
-        var rowsAffected = await _context.SaveChangesAsync(cancellationToken);
-        if (rowsAffected == 0)
+        var existing = await _context.Baskets.FindAsync([basket.BasketId], cancellationToken);
+        if (existing is null)
+        {
             _logger.LogWarning("UpdateAsync found no row for Basket {BasketId}", basket.BasketId);
+            return;
+        }
+
+        _context.Entry(existing).CurrentValues.SetValues(basket);
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogDebug("Updated Basket {BasketId} in [order].[Basket]", basket.BasketId);
     }
 
     public async Task DeleteAsync(Guid basketId, CancellationToken cancellationToken = default)
