@@ -648,6 +648,73 @@
   .edit-form-grid { grid-template-columns: 1fr; }
 }
 
+/* SSR management */
+.ssr-table-card { margin-bottom: 20px; }
+
+.remove-ssr-btn {
+  background: none;
+  border: 1.5px solid rgba(248, 81, 73, 0.4);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f85149;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  white-space: nowrap;
+}
+.remove-ssr-btn:hover { background: rgba(248, 81, 73, 0.08); border-color: #f85149; }
+.remove-ssr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ssr-add-section { margin-top: 8px; }
+
+.add-ssr-btn {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.add-ssr-btn:hover { opacity: 0.88; }
+
+.ssr-add-form {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+}
+
+.ssr-form-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.ssr-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ssr-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 12px 0;
+}
+
+@media (max-width: 700px) {
+  .ssr-form-grid { grid-template-columns: 1fr; }
+}
+
 /* Utility */
 .muted    { color: var(--text-muted); }
 .mono     { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }

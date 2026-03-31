@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -24,12 +24,24 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history'>('itinerary');
+  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs'>('itinerary');
   copied = signal(false);
   editingPaxId = signal<string | null>(null);
   editForm = signal<EditForm>({ givenName: '', surname: '', dateOfBirth: null, email: null, phone: null });
   editSaving = signal(false);
   editError = signal('');
+
+  ssrOptions = signal<SsrOption[]>([]);
+  ssrOptionsLoading = signal(false);
+  ssrOptionsError = signal('');
+  ssrSaving = signal(false);
+  ssrError = signal('');
+  showAddSsr = signal(false);
+  addSsrForm = signal<{ ssrCode: string; passengerRef: string; segmentRef: string }>({
+    ssrCode: '', passengerRef: '', segmentRef: '',
+  });
+
+  readonly objectKeys = Object.keys;
 
   passengers = computed<OrderPassenger[]>(() =>
     this.order()?.orderData?.dataLists?.passengers ?? []
@@ -46,6 +58,19 @@ export class OrderDetailComponent implements OnInit {
   ancillaryItems = computed<OrderItem[]>(() =>
     (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType !== 'Flight')
   );
+
+  ssrItems = computed<OrderItem[]>(() =>
+    (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType === 'SSR')
+  );
+
+  ssrOptionsByCategory = computed<Record<string, SsrOption[]>>(() => {
+    const groups: Record<string, SsrOption[]> = {};
+    for (const opt of this.ssrOptions()) {
+      if (!groups[opt.category]) groups[opt.category] = [];
+      groups[opt.category].push(opt);
+    }
+    return groups;
+  });
 
   payments = computed<OrderPayment[]>(() =>
     this.order()?.orderData?.payments ?? []
@@ -77,8 +102,9 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history'): void {
+  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs'): void {
     this.activeTab.set(tab);
+    if (tab === 'ssrs') this.loadSsrOptions();
   }
 
   goBack(): void {
@@ -219,5 +245,74 @@ export class OrderDetailComponent implements OnInit {
     const hours = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     return `${hours}h ${mins}m`;
+  }
+
+  async loadSsrOptions(): Promise<void> {
+    if (this.ssrOptions().length > 0) return;
+    this.ssrOptionsLoading.set(true);
+    this.ssrOptionsError.set('');
+    try {
+      const opts = await this.#orderService.getSsrOptions();
+      this.ssrOptions.set(opts);
+    } catch {
+      this.ssrOptionsError.set('Failed to load SSR catalogue.');
+    } finally {
+      this.ssrOptionsLoading.set(false);
+    }
+  }
+
+  async removeSsr(item: OrderItem): Promise<void> {
+    this.ssrSaving.set(true);
+    this.ssrError.set('');
+    const action: SsrPatchAction = { action: 'remove', itemId: item.itemId };
+    try {
+      await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
+      await this.loadOrder();
+    } catch (err: any) {
+      this.ssrError.set(
+        err?.status === 422
+          ? 'Cannot remove SSR: within the 24-hour amendment cut-off window.'
+          : 'Failed to remove SSR. Please try again.'
+      );
+    } finally {
+      this.ssrSaving.set(false);
+    }
+  }
+
+  async addSsr(): Promise<void> {
+    const form = this.addSsrForm();
+    if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
+    this.ssrSaving.set(true);
+    this.ssrError.set('');
+    const action: SsrPatchAction = {
+      action: 'add',
+      ssrCode: form.ssrCode,
+      passengerRef: form.passengerRef,
+      segmentRef: form.segmentRef,
+    };
+    try {
+      await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
+      this.showAddSsr.set(false);
+      this.addSsrForm.set({ ssrCode: '', passengerRef: '', segmentRef: '' });
+      await this.loadOrder();
+    } catch (err: any) {
+      this.ssrError.set(
+        err?.status === 422
+          ? 'Cannot add SSR: within the 24-hour amendment cut-off window.'
+          : 'Failed to add SSR. Please try again.'
+      );
+    } finally {
+      this.ssrSaving.set(false);
+    }
+  }
+
+  updateAddSsrField(field: 'ssrCode' | 'passengerRef' | 'segmentRef', value: string): void {
+    this.addSsrForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  getSsrLabel(ssrCode: string | null | undefined): string {
+    if (!ssrCode) return '—';
+    const opt = this.ssrOptions().find(o => o.ssrCode === ssrCode);
+    return opt ? opt.label : ssrCode;
   }
 }
