@@ -197,3 +197,14 @@ One row per **search session**. All matching flights and their cabin fares are s
 Deletes all `offer.FlightInventory` rows — and their child `offer.Fare` rows — whose departure datetime is more than 48 hours in the past. The 48-hour grace window ensures that late-arriving data or post-flight reporting queries are not disrupted before the cleanup runs.
 
 The function logs a start message and a completion message containing the count of deleted inventory rows. It is invoked by the Azure Functions runtime on its cron schedule and receives a `CancellationToken` for graceful shutdown.
+
+### `DeleteExpiredStoredOffers`
+
+- **Function name:** `DeleteExpiredStoredOffers`
+- **Schedule:** `0 0 0 * * *` — daily at midnight UTC
+- **Microservice:** `ReservationSystem.Microservices.Offer`
+- **Handler:** `DeleteExpiredStoredOffersHandler`
+
+Deletes all `offer.StoredOffer` rows whose `ExpiresAt` is in the past. Stored offers expire 60 minutes after creation, so by the time this cleanup runs any expired row has been unserviceable for hours. This keeps the table lean and prevents unbounded growth from abandoned search sessions.
+
+The function logs a start message and a completion message containing the count of deleted stored offer rows. It is invoked by the Azure Functions runtime on its cron schedule and receives a `CancellationToken` for graceful shutdown.
