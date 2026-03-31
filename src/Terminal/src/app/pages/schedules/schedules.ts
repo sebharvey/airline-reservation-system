@@ -164,7 +164,10 @@ export class SchedulesComponent implements OnInit {
     this.importSuccess.set('');
     try {
       const scheduleGroupId = this.selectedGroupId() || undefined;
-      const result = await this.#scheduleService.importSchedulesToInventory({ scheduleGroupId });
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() + 3);
+      const toDate = cutoff.toISOString().substring(0, 10);
+      const result = await this.#scheduleService.importSchedulesToInventory({ scheduleGroupId, toDate });
       this.importSuccess.set(
         `Import complete: ${result.schedulesProcessed} schedules processed, ${result.inventoriesCreated} inventories created, ${result.inventoriesSkipped} skipped.`
       );

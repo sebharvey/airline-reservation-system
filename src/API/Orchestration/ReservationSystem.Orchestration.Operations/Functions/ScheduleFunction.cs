@@ -156,7 +156,12 @@ public sealed class ScheduleFunction
 
         try
         {
-            var command = new ImportSchedulesToInventoryCommand(request.ScheduleGroupId);
+            DateTime? toDate = null;
+            if (!string.IsNullOrEmpty(request.ToDate) &&
+                DateTime.TryParse(request.ToDate, out var parsedToDate))
+                toDate = parsedToDate.Date;
+
+            var command = new ImportSchedulesToInventoryCommand(request.ScheduleGroupId, toDate);
             var response = await _importSchedulesToInventoryHandler.HandleAsync(command, cancellationToken);
             return await req.OkJsonAsync(response);
         }

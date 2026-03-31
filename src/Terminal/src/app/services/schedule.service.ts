@@ -62,6 +62,7 @@ export interface GetSchedulesResponse {
 
 export interface ImportSchedulesToInventoryRequest {
   scheduleGroupId?: string;
+  toDate?: string;
 }
 
 export interface ImportSchedulesToInventoryResponse {
