@@ -32,8 +32,14 @@ public sealed class CreateBasketHandler
 
         foreach (var segment in command.Segments)
         {
-            // Look up the stored offer to get pricing and flight details
+            // Look up the stored offer to get pricing and flight details.
+            // First try the session-scoped lookup (faster, indexed). If the session ID does not
+            // match the stored offer (e.g. search returned empty and a random session was issued),
+            // fall back to a session-unscoped lookup so flight details are always resolved when
+            // the offer exists.
             var offerDetail = await _offerServiceClient.GetOfferAsync(segment.OfferId, segment.SessionId, cancellationToken);
+            if (offerDetail is null)
+                offerDetail = await _offerServiceClient.GetOfferAsync(segment.OfferId, null, cancellationToken);
 
             string offerJson;
             if (offerDetail is not null)

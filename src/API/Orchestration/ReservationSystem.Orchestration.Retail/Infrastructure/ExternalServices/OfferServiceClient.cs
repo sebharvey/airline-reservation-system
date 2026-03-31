@@ -24,7 +24,7 @@ public sealed class OfferServiceClient
             : $"/api/v1/offers/{offerId}";
 
         using var response = await _httpClient.GetAsync(url, cancellationToken);
-        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone) return null;
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
     }
