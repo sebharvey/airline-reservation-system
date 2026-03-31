@@ -41,12 +41,6 @@ public sealed class SettlePaymentHandler
             return null;
         }
 
-        if (payment.Status == PaymentStatus.Settled)
-        {
-            _logger.LogInformation("Payment {PaymentId} is already settled — returning existing record", command.PaymentId);
-            return PaymentMapper.ToSettleResponse(payment);
-        }
-
         if (payment.Status != PaymentStatus.Authorised)
         {
             _logger.LogWarning("Cannot settle payment {PaymentId} — current status is {Status}",
@@ -70,15 +64,17 @@ public sealed class SettlePaymentHandler
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
-        // Create a new PaymentEvent row for this settlement to preserve the full event history.
-        var paymentEvent = PaymentEvent.Create(
-            payment.PaymentId,
-            PaymentEventType.Settled,
-            command.Amount,
-            payment.CurrencyCode,
-            $"Payment settled for {command.Amount} {payment.CurrencyCode}");
+        // Update the existing Authorised PaymentEvent row to Settled rather than inserting a new row.
+        // This keeps one row per auth/settle pair (e.g. two rows for a split fare + seat payment).
+        var paymentEvent = await _repository.GetEventByPaymentIdAsync(payment.PaymentId, cancellationToken);
 
-        await _repository.CreateEventAsync(paymentEvent, cancellationToken);
+        if (paymentEvent is not null)
+        {
+            paymentEvent.Update(PaymentEventType.Settled, command.Amount,
+                $"Payment settled for {command.Amount} {payment.CurrencyCode}");
+
+            await _repository.UpdateEventAsync(paymentEvent, cancellationToken);
+        }
 
         _logger.LogInformation("Settled payment {PaymentId} for {Amount} {Currency}",
             command.PaymentId, command.Amount, payment.CurrencyCode);
