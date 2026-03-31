@@ -26,7 +26,9 @@ using ReservationSystem.Microservices.Offer.Application.SearchFareRules;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
+using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
+using ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 using ReservationSystem.Microservices.Offer.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
@@ -50,6 +52,27 @@ var host = new HostBuilder()
         services.AddScoped<IOfferRepository, SqlOfferRepository>();
 
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
+
+        // ── Named HttpClients for rolling inventory import (timer trigger) ────────
+        services.AddHttpClient("ScheduleMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["ScheduleMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
+        services.AddHttpClient("SeatMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"] ?? "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["SeatMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
+        services.AddScoped<ScheduleServiceClient>();
+        services.AddScoped<SeatServiceClient>();
+        services.AddScoped<RollingInventoryImportHandler>();
 
         services.AddScoped<DeleteExpiredFlightInventoryHandler>();
         services.AddScoped<DeleteExpiredStoredOffersHandler>();

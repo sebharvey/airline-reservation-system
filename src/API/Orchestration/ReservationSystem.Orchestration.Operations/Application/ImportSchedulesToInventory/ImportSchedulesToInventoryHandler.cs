@@ -112,6 +112,10 @@ public sealed class ImportSchedulesToInventoryHandler
             var validFrom = DateTime.Parse(schedule.ValidFrom);
             var validTo = DateTime.Parse(schedule.ValidTo);
 
+            // Apply upper date cap if specified (e.g. today + 3 months from the terminal).
+            if (command.ToDate.HasValue && validTo.Date > command.ToDate.Value.Date)
+                validTo = command.ToDate.Value.Date;
+
             // Never import dates in the past — floor the start to today.
             var effectiveFrom = validFrom.Date < today ? today : validFrom.Date;
 
