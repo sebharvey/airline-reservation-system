@@ -746,11 +746,33 @@ body {
     .modal-overlay { padding: 0; align-items: flex-end; }
     .modal {
         max-width: 100%;
-        max-height: 92vh;
+        max-height: 88vh;
         border-radius: 12px 12px 0 0;
     }
-    .modal-header { padding: 1rem; }
-    .modal-body { padding: 0.85rem; }
+    .modal::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0.55rem auto 0;
+        flex-shrink: 0;
+    }
+    .modal-header { padding: 0.75rem 1rem; }
+    .modal-close {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 1.1rem;
+    }
+    .modal-body {
+        padding: 0.85rem;
+        padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    }
     .modal-section { padding: 0.65rem 0.75rem; }
     .modal-title { font-size: 0.9rem; }
 }
@@ -763,5 +785,5 @@ body {
     .harness-table tbody td:nth-child(5) { padding: 0.5rem 0.45rem; font-size: 0.68rem; }
     .step-number { font-size: 0.75rem; }
     .step-name { font-size: 0.78rem; }
-    .modal { max-height: 95vh; }
+    .modal { max-height: 92vh; }
 }

@@ -529,12 +529,14 @@
 
         html += '<div class="modal-section"><div class="modal-section-title">Expected Response</div>';
         html += buildExpectedCell(step).innerHTML;
-        const respTd = buildResponseCell(step);
-        if (step.response.body !== null && step.response.body !== undefined) {
-            html += '<div style="margin-top:0.6rem">' + respTd.querySelector('.json-block').outerHTML + '</div>';
-        }
-        if (step.chainsTo && step.chainsTo.length) {
-            html += respTd.querySelector('.chain-section') ? respTd.querySelector('.chain-section').outerHTML : '';
+        if (step.response) {
+            const respTd = buildResponseCell(step);
+            if (step.response.body !== null && step.response.body !== undefined) {
+                html += '<div style="margin-top:0.6rem">' + respTd.querySelector('.json-block').outerHTML + '</div>';
+            }
+            if (step.chainsTo && step.chainsTo.length) {
+                html += respTd.querySelector('.chain-section') ? respTd.querySelector('.chain-section').outerHTML : '';
+            }
         }
         html += '</div>';
 
