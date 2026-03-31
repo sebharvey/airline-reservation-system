@@ -84,10 +84,16 @@ public sealed class EfOrderRepository : IOrderRepository
 
     public async Task UpdateAsync(Domain.Entities.Order order, CancellationToken cancellationToken = default)
     {
-        _context.Orders.Update(order);
-        var rowsAffected = await _context.SaveChangesAsync(cancellationToken);
-        if (rowsAffected == 0)
+        var existing = await _context.Orders.FindAsync([order.OrderId], cancellationToken);
+        if (existing is null)
+        {
             _logger.LogWarning("UpdateAsync found no row for Order {OrderId}", order.OrderId);
+            return;
+        }
+
+        _context.Entry(existing).CurrentValues.SetValues(order);
+        await _context.SaveChangesAsync(cancellationToken);
+        _logger.LogDebug("Updated Order {OrderId} in [order].[Order]", order.OrderId);
     }
 
     public async Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default)

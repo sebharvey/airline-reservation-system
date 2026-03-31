@@ -21,7 +21,6 @@ public sealed class OrderDbContext : DbContext
             entity.ToTable("Basket", "order", t =>
             {
                 t.HasTrigger("TR_Basket_UpdatedAt");
-                t.UseSqlOutputClause(false);
             });
 
             entity.HasKey(b => b.BasketId);
@@ -102,7 +101,6 @@ public sealed class OrderDbContext : DbContext
             entity.ToTable("Order", "order", t =>
             {
                 t.HasTrigger("TR_Order_UpdatedAt");
-                t.UseSqlOutputClause(false);
             });
 
             entity.HasKey(o => o.OrderId);
