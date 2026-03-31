@@ -17,10 +17,10 @@ public sealed class BasketCleanupFunction
         _logger = logger;
     }
 
-    // Runs at the top of every hour: "0 0 * * * *"
+    // Runs daily at midnight UTC: "0 0 0 * * *"
     [Function("DeleteExpiredBaskets")]
     public async Task Run(
-        [TimerTrigger("0 0 * * * *")] TimerInfo timerInfo,
+        [TimerTrigger("0 0 0 * * *")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         _logger.LogInformation("DeleteExpiredBaskets timer triggered at {UtcNow:O}", DateTime.UtcNow);
