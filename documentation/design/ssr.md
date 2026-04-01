@@ -9,10 +9,10 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - SSRs are segment-specific — a connecting passenger requires independent SSR entries per leg.
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
 - On IROPS rebooking, the Disruption API carries all SSR items from the cancelled segment to the replacement itinerary.
-- The SSR catalogue is stored in a dedicated `retail.SsrCatalogue` table owned by the Retail API. The `GET /v1/ssr/options` endpoint reads from this table. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
+- The SSR catalogue is stored in `order.SsrCatalogue`, owned by the Order MS. The Retail API exposes `GET /v1/ssr/options` to channels by proxying to the Order MS `GET /v1/ssr/options` endpoint — the Retail API holds no direct database connection. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
 - Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
 
-## `retail.SsrCatalogue` data schema
+## `order.SsrCatalogue` data schema
 
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
@@ -58,7 +58,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 
 SSR selection is an optional bookflow step offered after passenger details are captured, alongside seat and bag selection.
 
-- The Retail API serves the SSR catalogue from its own `retail.SsrCatalogue` table — no downstream microservice call required.
+- The Retail API retrieves the SSR catalogue by calling `GET /v1/ssr/options` on the Order MS, which owns `order.SsrCatalogue`.
 - No payment triggered — selections are appended to the basket as SSR items and committed to `OrderData` at order confirmation.
 - SSR codes are included in the manifest payload written to the Delivery MS, ensuring operational visibility from the moment the booking is confirmed.
 
@@ -73,6 +73,8 @@ sequenceDiagram
     Note over Traveller, Web: Bookflow — passenger details entered - basket active
 
     Web->>RetailAPI: GET /v1/ssr/options
+    RetailAPI->>OrderMS: GET /v1/ssr/options
+    OrderMS-->>RetailAPI: 200 OK — active SSR codes and labels by category
     RetailAPI-->>Web: 200 OK — supported SSR codes and labels by category (Meal, Mobility, Accessibility)
     Web-->>Traveller: Display SSR options per passenger per segment
 
@@ -118,6 +120,8 @@ sequenceDiagram
     RetailAPI-->>Web: 200 OK — current SSRs displayed per passenger per segment
 
     Web->>RetailAPI: GET /v1/ssr/options
+    RetailAPI->>OrderMS: GET /v1/ssr/options
+    OrderMS-->>RetailAPI: 200 OK — active SSR codes and labels by category
     RetailAPI-->>Web: 200 OK — supported SSR codes by category (Meal, Mobility, Accessibility)
 
     Traveller->>Web: Add, update, or remove SSR(s)

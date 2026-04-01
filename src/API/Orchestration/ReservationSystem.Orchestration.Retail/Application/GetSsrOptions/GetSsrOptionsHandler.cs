@@ -1,27 +1,26 @@
-using Microsoft.EntityFrameworkCore;
-using ReservationSystem.Orchestration.Retail.Infrastructure.Persistence;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
 
 public sealed class GetSsrOptionsHandler
 {
-    private readonly RetailDbContext _context;
+    private readonly OrderServiceClient _orderServiceClient;
 
-    public GetSsrOptionsHandler(RetailDbContext context)
+    public GetSsrOptionsHandler(OrderServiceClient orderServiceClient)
     {
-        _context = context;
+        _orderServiceClient = orderServiceClient;
     }
 
     public async Task<GetSsrOptionsResponse> HandleAsync(GetSsrOptionsQuery query, CancellationToken cancellationToken)
     {
-        var options = await _context.SsrCatalogue
-            .Where(e => e.IsActive)
-            .OrderBy(e => e.Category)
-            .ThenBy(e => e.SsrCode)
-            .Select(e => new SsrOptionDto(e.SsrCode, e.Label, e.Category))
-            .ToListAsync(cancellationToken);
+        var result = await _orderServiceClient.GetSsrOptionsAsync(query.CabinCode, query.FlightNumbers, cancellationToken);
 
-        return new GetSsrOptionsResponse(options.AsReadOnly());
+        var options = result.SsrOptions
+            .Select(o => new SsrOptionDto(o.SsrCode, o.Label, o.Category))
+            .ToList()
+            .AsReadOnly();
+
+        return new GetSsrOptionsResponse(options);
     }
 }

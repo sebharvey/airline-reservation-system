@@ -15,9 +15,6 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
-using ReservationSystem.Orchestration.Retail.Infrastructure.Persistence;
-using ReservationSystem.Shared.Common.Infrastructure.Configuration;
-using Microsoft.EntityFrameworkCore;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
@@ -72,24 +69,6 @@ var host = new HostBuilder()
         services.AddHttpClient("CustomerMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"] ?? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net/");
-        });
-
-        // ── Database ───────────────────────────────────────────────────────────
-        services.Configure<DatabaseOptions>(
-            context.Configuration.GetSection(DatabaseOptions.SectionName));
-        services.AddDbContext<RetailDbContext>((provider, options) =>
-        {
-            var dbOptions = provider
-                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
-                .Value;
-            if (string.IsNullOrEmpty(dbOptions.ConnectionString))
-                throw new InvalidOperationException(
-                    "Database:ConnectionString has not been configured. " +
-                    "Add the Database__ConnectionString application setting to the Retail API.");
-            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
-            {
-                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
-            });
         });
 
         // ── Health check ───────────────────────────────────────────────────────

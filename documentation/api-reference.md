@@ -273,6 +273,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `PATCH` | `/v1/orders/{bookingRef}/bags` | Add or update bag order items on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove SSR items on a confirmed order; publishes `OrderChanged` event |
 | `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS data for passengers |
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories from `order.SsrCatalogue`; called by the Retail API to serve the channel-facing SSR catalogue |
 
 ---
 

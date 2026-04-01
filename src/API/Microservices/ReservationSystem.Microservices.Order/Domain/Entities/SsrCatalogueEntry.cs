@@ -1,4 +1,4 @@
-namespace ReservationSystem.Orchestration.Retail.Infrastructure.Persistence;
+namespace ReservationSystem.Microservices.Order.Domain.Entities;
 
 public sealed class SsrCatalogueEntry
 {
