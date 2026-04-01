@@ -30,6 +30,7 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 | Schedule MS | `https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net` | UK South |
 | Identity MS | `https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net` | UK South |
 | User MS | `https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net` | UK South |
+| Ancillary MS | `https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net` | UK South |
 
 ---
 
