@@ -1,0 +1,66 @@
+<div class="page fade-in">
+
+  <div class="page-header">
+    <span class="page-icon">&#128268;</span>
+    <h2>NDC Integration</h2>
+    <p>IATA New Distribution Capability — XML API endpoints for direct airline offer and order management</p>
+  </div>
+
+  <!-- Standard badge row -->
+  <div class="standards-row">
+    <span class="badge badge-iata">IATA NDC</span>
+    <span class="badge badge-version">Schema 21.3</span>
+    <span class="badge badge-xml">XML / SOAP</span>
+    <span class="badge badge-onorder">ONE Order</span>
+  </div>
+
+  <!-- Coming-soon notice -->
+  <div class="info-banner">
+    <span class="info-icon">&#9432;</span>
+    <div>
+      <p class="info-title">Endpoint invocation coming soon</p>
+      <p class="info-body">Each endpoint below will support inline XML request editing and one-click invocation directly from this page, along with live response display — similar to the services dashboard. XML schema documentation and example payloads will also be available here.</p>
+    </div>
+  </div>
+
+  <!-- Endpoint cards -->
+  <div class="endpoints-list">
+    @for (ep of endpoints; track ep.name) {
+      <div class="endpoint-card">
+
+        <div class="endpoint-header">
+          <div class="endpoint-identity">
+            <span class="method-badge">{{ ep.method }}</span>
+            <span class="endpoint-name">{{ ep.name }}</span>
+            <span class="version-tag">v{{ ep.version }}</span>
+          </div>
+          <span class="endpoint-coming-soon">Coming soon</span>
+        </div>
+
+        <p class="endpoint-description">{{ ep.description }}</p>
+
+        <div class="endpoint-body-placeholder">
+          <div class="placeholder-col">
+            <span class="placeholder-label">Request XML</span>
+            <div class="placeholder-editor">
+              <span class="placeholder-hint">XML request editor will appear here</span>
+            </div>
+          </div>
+          <div class="placeholder-col">
+            <span class="placeholder-label">Response XML</span>
+            <div class="placeholder-editor">
+              <span class="placeholder-hint">Live XML response will appear here</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="endpoint-actions">
+          <button class="btn-invoke" disabled>Send Request</button>
+          <button class="btn-copy-stub" disabled>Copy example</button>
+        </div>
+
+      </div>
+    }
+  </div>
+
+</div>

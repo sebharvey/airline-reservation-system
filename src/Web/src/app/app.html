@@ -29,6 +29,7 @@
     @if (!isBoardingPass()) {
       <footer class="footer">
         <p>© 2026 Apex Air. All rights reserved.</p>
+        <a routerLink="/ndc" routerLinkActive="footer-link-active" class="footer-link">NDC</a>
         <!-- DEBUG — basket debug button; remove with basket debug feature -->
         <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
         <!-- END DEBUG -->
