@@ -14,6 +14,9 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrders;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
+using ReservationSystem.Orchestration.Retail.Application.CreateSsrOption;
+using ReservationSystem.Orchestration.Retail.Application.UpdateSsrOption;
+using ReservationSystem.Orchestration.Retail.Application.DeactivateSsrOption;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -86,6 +89,9 @@ var host = new HostBuilder()
         services.AddScoped<GetAdminOrdersHandler>();
         services.AddScoped<GetAdminOrderDetailHandler>();
         services.AddScoped<GetSsrOptionsHandler>();
+        services.AddScoped<CreateSsrOptionHandler>();
+        services.AddScoped<UpdateSsrOptionHandler>();
+        services.AddScoped<DeactivateSsrOptionHandler>();
     })
     .Build();
 

@@ -204,6 +204,46 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task<OrderMsSsrOptionResponse?> CreateSsrOptionAsync(string ssrCode, string label, string category, CancellationToken ct)
+    {
+        var payload = new { ssrCode, label, category };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/ssr/options", payload, JsonOptions, ct);
+        if (response.StatusCode == HttpStatusCode.Conflict) return null;
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to create SSR option: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<OrderMsSsrOptionResponse>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response creating SSR option.");
+    }
+
+    public async Task<OrderMsSsrOptionResponse?> UpdateSsrOptionAsync(string ssrCode, string label, string category, CancellationToken ct)
+    {
+        var payload = new { label, category };
+        using var response = await _httpClient.PutAsJsonAsync($"/api/v1/ssr/options/{Uri.EscapeDataString(ssrCode)}", payload, JsonOptions, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update SSR option: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<OrderMsSsrOptionResponse>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response updating SSR option.");
+    }
+
+    public async Task<bool> DeactivateSsrOptionAsync(string ssrCode, CancellationToken ct)
+    {
+        using var response = await _httpClient.DeleteAsync($"/api/v1/ssr/options/{Uri.EscapeDataString(ssrCode)}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to deactivate SSR option: {error}");
+        }
+        return true;
+    }
+
     public async Task<OrderMsSsrOptionsResult> GetSsrOptionsAsync(string? cabinCode, string? flightNumbers, CancellationToken ct)
     {
         var url = "/api/v1/ssr/options";
@@ -382,4 +422,22 @@ public sealed class OrderMsSsrOptionDto
 
     [JsonPropertyName("category")]
     public string Category { get; init; } = string.Empty;
+}
+
+public sealed class OrderMsSsrOptionResponse
+{
+    [JsonPropertyName("ssrCatalogueId")]
+    public Guid SsrCatalogueId { get; init; }
+
+    [JsonPropertyName("ssrCode")]
+    public string SsrCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("label")]
+    public string Label { get; init; } = string.Empty;
+
+    [JsonPropertyName("category")]
+    public string Category { get; init; } = string.Empty;
+
+    [JsonPropertyName("isActive")]
+    public bool IsActive { get; init; }
 }
