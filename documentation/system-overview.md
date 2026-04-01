@@ -36,6 +36,12 @@ A Modern Airline Retailing system built on offer and order capability.
   - Flight Manifest (creation, update, removal, check-in status, SSR propagation)
   - Boarding Cards (generation, BCBP barcode string assembly)
 
+- **Ancillary** — seat selection and checked baggage ancillary pricing, offer generation, and seatmap definitions
+  - Seatmap Definitions (aircraft type, cabin layout, seat attributes)
+  - Seat Pricing & Offers (position-based pricing, Business/First no-charge policy, deterministic SeatOfferId generation)
+  - Bag Policy (free allowance by cabin, weight limits)
+  - Bag Pricing & Offers (additional bag pricing by sequence, deterministic BagOfferId generation)
+
 - **Schedule** — flight schedule definition and bulk inventory generation
   - Schedule Management (creation with route/times/days/aircraft/window, operating date enumeration via DaysOfWeek bitmask)
   - Inventory Generation (bulk FlightInventory and Fare record creation, FlightsCreated count tracking)
@@ -139,6 +145,11 @@ graph LR
             ACCOUNTING_DB[(Accounting DB)]
         end
 
+        subgraph ANCILLARY_SVC["Ancillary Service"]
+            ANCILLARY[Ancillary]
+            ANCILLARY_DB[(Ancillary DB)]
+        end
+
         subgraph SCHEDULE_SVC["Schedule Service"]
             SCHEDULE[Schedule]
             SCHEDULE_DB[(Schedule DB)]
@@ -167,9 +178,9 @@ graph LR
     CC & AIRPORT & ACCT_CH & OPS_APP --> ADMIN_API
 
     %% Orchestration → Microservices
-    RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER
+    RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & ANCILLARY
     LOYALTY_API --> IDENTITY & CUSTOMER
-    AIRPORT_API --> ORDER & DELIVERY & CUSTOMER
+    AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & ANCILLARY
     FINANCE_API --> ACCOUNTING
     DISRUPTION_API --> OFFER & ORDER & DELIVERY
     OPERATIONS_API --> SCHEDULE & OFFER
@@ -183,6 +194,7 @@ graph LR
     DELIVERY --> DELIVERY_DB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
+    ANCILLARY --> ANCILLARY_DB
     SCHEDULE --> SCHEDULE_DB
     USER --> USER_DB
 
@@ -211,9 +223,9 @@ graph LR
 
 ### Orchestration APIs
 
-- **Retail API** — primary sales orchestration layer; coordinates search, basket, payment, ticketing, and post-sale flows across Offer, Order, Payment, Delivery, and Customer microservices.
+- **Retail API** — primary sales orchestration layer; coordinates search, basket, payment, ticketing, and post-sale flows across Offer, Order, Payment, Delivery, Customer, and Ancillary microservices.
 - **Loyalty API** — handles member registration, authentication, profile management, and points operations via Identity and Customer microservices.
-- **Airport API** *(future)* — check-in, boarding, and gate operations; coordinates Order, Delivery, and Customer microservices.
+- **Airport API** *(future)* — check-in, boarding, and gate operations; coordinates Order, Delivery, Customer, and Ancillary microservices.
 - **Finance API** *(future)* — financial reporting and reconciliation; routes to Accounting microservice.
 - **Disruption API** — receives IROPS events from FOS and orchestrates rebooking across Offer, Order, and Delivery microservices.
 - **Operations API** — schedule submission and inventory generation via Schedule and Offer microservices.
@@ -227,6 +239,7 @@ graph LR
 - **Delivery** — e-tickets, manifests, and boarding cards. Owns Delivery DB.
 - **Customer** — loyalty profiles, points ledger, tier management. Owns Customer DB.
 - **Accounting** — revenue recording, refund tracking, points liability, reporting. Owns Accounting DB.
+- **Ancillary** — seatmap definitions, fleet-wide seat pricing, seat offer generation, bag policies, bag pricing, and bag offer generation. Owns Ancillary DB.
 - **Schedule** — flight schedule definitions and bulk inventory generation. Owns Schedule DB.
 - **User** — employee user accounts, credentials, and account lockout for all internal staff. Owns User DB. Separate from the Identity microservice, which manages loyalty member credentials.
 

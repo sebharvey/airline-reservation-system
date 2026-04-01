@@ -27,6 +27,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │   │   ├── payment.md
 │   │   ├── delivery.md
 │   │   ├── disruption.md
+│   │   ├── ancillary.md
 │   │   ├── ssr.md
 │   │   ├── customer.md
 │   │   ├── identity.md
@@ -96,7 +97,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 ## Key rules — never violate these
 
 1. **No direct microservice-to-microservice calls.** All cross-domain synchronous calls route through an orchestration API.
-2. **Domain names are fixed.** Offer, Order, Payment, Delivery, Customer, Identity, Accounting, Seat, Bag, Schedule, Disruption, Loyalty — used verbatim everywhere.
+2. **Domain names are fixed.** Offer, Order, Payment, Delivery, Customer, Identity, Accounting, Ancillary, Schedule, Disruption, Loyalty — used verbatim everywhere.
 3. **Stored Offer pattern.** Prices locked at search time via stored offer snapshot. Orders retrieve by `OfferId`, never re-price on confirmation.
 4. **E-ticket numbers are immutable.** Changes trigger reissuance, not amendment.
 5. **Monetary amounts use `DECIMAL`, never floating-point.**

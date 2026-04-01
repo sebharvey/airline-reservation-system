@@ -33,6 +33,7 @@
   - [Manifest](#manifest)
   - [Documents](#documents)
   - [Boarding Cards](#boarding-cards)
+- [Ancillary Microservice](#ancillary-microservice--full-api-spec)
 - [Identity Microservice](#identity-microservice--full-api-spec)
   - [Authentication](#authentication-1)
   - [Account Management](#account-management)
@@ -324,6 +325,62 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings for checked-in passengers |
+
+---
+
+## Ancillary Microservice — [Full API Spec](api-specs/ancillary-microservice.md)
+
+The Ancillary microservice owns seat ancillaries (seatmap definitions, fleet-wide seat pricing, and seat offer generation) and bag ancillaries (checked baggage policies, bag pricing, and bag offer generation). `SeatOfferId` and `BagOfferId` values are deterministic — generated on demand without offer storage.
+
+**Seat — offer/query endpoints (called by Retail API during the booking path)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/seatmap/{aircraftType}` | Retrieve seatmap definition and cabin layout for an aircraft type (physical layout, seat attributes, cabin configuration only — no pricing or availability) |
+| `GET` | `/v1/seat-offers?flightId={flightId}` | Generate and return priced seat offers for a specific flight; returns one `SeatOfferId` per selectable seat with current price and seat attributes; `SeatOfferId` is deterministic (stateless — no DB write required); used by Retail API to build the full seatmap response (layout + pricing + availability) for the channel |
+| `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve and validate a specific seat offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding a seat to a basket or confirming a seat purchase |
+
+**Seat — admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/aircraft-types` | List all aircraft types |
+| `POST` | `/v1/aircraft-types` | Create a new aircraft type record |
+| `GET` | `/v1/aircraft-types/{aircraftTypeCode}` | Retrieve an aircraft type by code |
+| `PUT` | `/v1/aircraft-types/{aircraftTypeCode}` | Update an aircraft type record |
+| `DELETE` | `/v1/aircraft-types/{aircraftTypeCode}` | Delete an aircraft type (only permitted if no active seatmaps reference it) |
+| `GET` | `/v1/seatmaps` | List all seatmap definitions |
+| `POST` | `/v1/seatmaps` | Create a new seatmap definition for an aircraft type |
+| `GET` | `/v1/seatmaps/{seatmapId}` | Retrieve a seatmap definition by ID |
+| `PUT` | `/v1/seatmaps/{seatmapId}` | Replace the cabin layout of an existing seatmap (increments `Version`) |
+| `DELETE` | `/v1/seatmaps/{seatmapId}` | Delete a seatmap definition |
+| `GET` | `/v1/seat-pricing` | List all seat pricing rules |
+| `POST` | `/v1/seat-pricing` | Create a new seat pricing rule (`cabinCode`, `seatPosition`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/seat-pricing/{seatPricingId}` | Retrieve a seat pricing rule by ID |
+| `PUT` | `/v1/seat-pricing/{seatPricingId}` | Update a seat pricing rule |
+| `DELETE` | `/v1/seat-pricing/{seatPricingId}` | Delete a seat pricing rule |
+
+**Bag — offer/query endpoints (called by Retail API during the booking path)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}` | Generate and return the free bag policy and priced bag offers for a flight and cabin; returns one `BagOfferId` per available bag tier; `BagOfferId` is deterministic (stateless — no DB write required) |
+| `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a bag offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding bags to a basket or confirming a bag purchase |
+
+**Bag — admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/bag-policies` | List all bag allowance policies |
+| `POST` | `/v1/bag-policies` | Create a new bag allowance policy (`cabinCode`, `freeBagsIncluded`, `maxWeightKgPerBag`) |
+| `GET` | `/v1/bag-policies/{policyId}` | Retrieve a bag policy by ID |
+| `PUT` | `/v1/bag-policies/{policyId}` | Update a bag allowance policy |
+| `DELETE` | `/v1/bag-policies/{policyId}` | Delete a bag allowance policy |
+| `GET` | `/v1/bag-pricing` | List all bag pricing rules |
+| `POST` | `/v1/bag-pricing` | Create a new bag pricing rule (`bagSequence`, `currencyCode`, `price`, `validFrom`, `validTo`) |
+| `GET` | `/v1/bag-pricing/{pricingId}` | Retrieve a bag pricing rule by ID |
+| `PUT` | `/v1/bag-pricing/{pricingId}` | Update a bag pricing rule |
+| `DELETE` | `/v1/bag-pricing/{pricingId}` | Delete a bag pricing rule |
 
 ---
 
