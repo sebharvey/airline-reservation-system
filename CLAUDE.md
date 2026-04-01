@@ -27,8 +27,6 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │   │   ├── payment.md
 │   │   ├── delivery.md
 │   │   ├── disruption.md
-│   │   ├── seat.md
-│   │   ├── bag.md
 │   │   ├── ssr.md
 │   │   ├── customer.md
 │   │   ├── identity.md
