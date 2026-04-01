@@ -177,6 +177,22 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task UpdateOrderSsrsAsync(string bookingReference, string ssrsJson, CancellationToken ct)
+    {
+        using var content = new StringContent(ssrsJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/ssrs", content, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException(error);
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order SSRs: {error}");
+        }
+    }
+
     public async Task UpdateOrderETicketsAsync(string bookingReference, string eTicketsJson, CancellationToken ct)
     {
         using var content = new StringContent(eTicketsJson, Encoding.UTF8, "application/json");

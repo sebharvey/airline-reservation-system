@@ -394,58 +394,114 @@
           </div>
         }
 
-        <!-- Current SSRs -->
-        @if (ssrItems().length === 0) {
-          <p class="empty-tab">No special service requests on this order.</p>
-        } @else {
-          <div class="table-card ssr-table-card">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th>Passenger</th>
-                  <th>Segment</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of ssrItems(); track item.itemId) {
-                  @let pax = passengers().find(p => p.passengerId === item.passengerId);
-                  @let seg = segments().find(s => s.segmentId === item.segmentId);
-                  <tr>
-                    <td><span class="item-type-badge item-ssr mono">{{ item.ssrCode || '—' }}</span></td>
-                    <td>{{ getSsrLabel(item.ssrCode) }}</td>
-                    <td>{{ pax ? pax.givenName + ' ' + pax.surname : (item.passengerId || '—') }}</td>
-                    <td class="mono">{{ seg ? seg.flightNumber + ' (' + seg.origin + '→' + seg.destination + ')' : (item.segmentId || '—') }}</td>
-                    <td><span class="status-badge badge-default">{{ item.status }}</span></td>
-                    <td>
-                      <button class="remove-ssr-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">Remove</button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+        <!-- SSR catalogue loading state (needed for edit dropdowns) -->
+        @if (ssrOptionsLoading()) {
+          <div class="ssr-loading">
+            <span class="spinner"></span>
+            <span>Loading SSR catalogue…</span>
           </div>
-        }
+        } @else if (ssrOptionsError()) {
+          <div class="alert alert-error" role="alert">
+            <span>&#9888;</span> {{ ssrOptionsError() }}
+          </div>
+        } @else {
 
-        <!-- Add SSR -->
-        <div class="ssr-add-section">
-          @if (!showAddSsr()) {
-            <button class="add-ssr-btn" (click)="showAddSsr.set(true)">+ Add SSR</button>
+          <!-- Current SSRs -->
+          @if (ssrItems().length === 0) {
+            <p class="empty-tab">No special service requests on this order.</p>
           } @else {
-            <div class="ssr-add-form">
-              <div class="ssr-form-title">Add special service request</div>
+            <div class="table-card ssr-table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Passenger</th>
+                    <th>Segment</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of ssrItems(); track ssrKey(item)) {
+                    @if (editingSsrKey() === ssrKey(item)) {
+                      <!-- Inline edit row -->
+                      <tr class="ssr-edit-row">
+                        <td colspan="4">
+                          <div class="ssr-form-grid">
+                            <div class="edit-field">
+                              <label class="field-label">SSR type</label>
+                              <select class="edit-input" [value]="editSsrForm().ssrCode" (change)="updateEditSsrField('ssrCode', $any($event.target).value)">
+                                <option value="">Select SSR…</option>
+                                @for (category of objectKeys(ssrOptionsByCategory()); track category) {
+                                  <optgroup [label]="category">
+                                    @for (opt of ssrOptionsByCategory()[category]; track opt.ssrCode) {
+                                      <option [value]="opt.ssrCode">{{ opt.ssrCode }} — {{ opt.label }}</option>
+                                    }
+                                  </optgroup>
+                                }
+                              </select>
+                            </div>
+                            <div class="edit-field">
+                              <label class="field-label">Passenger</label>
+                              <select class="edit-input" [value]="editSsrForm().passengerRef" (change)="updateEditSsrField('passengerRef', $any($event.target).value)">
+                                <option value="">Select passenger…</option>
+                                @for (pax of passengers(); track pax.passengerId) {
+                                  <option [value]="pax.passengerId">{{ pax.givenName }} {{ pax.surname }}</option>
+                                }
+                              </select>
+                            </div>
+                            <div class="edit-field">
+                              <label class="field-label">Flight segment</label>
+                              <select class="edit-input" [value]="editSsrForm().segmentRef" (change)="updateEditSsrField('segmentRef', $any($event.target).value)">
+                                <option value="">Select segment…</option>
+                                @for (seg of segments(); track seg.segmentId) {
+                                  <option [value]="seg.segmentId">{{ seg.flightNumber }} ({{ seg.origin }} → {{ seg.destination }})</option>
+                                }
+                              </select>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="edit-actions ssr-row-actions">
+                            <button
+                              class="save-btn"
+                              [disabled]="ssrSaving() || !editSsrForm().ssrCode || !editSsrForm().passengerRef || !editSsrForm().segmentRef"
+                              (click)="saveEditSsr(item)"
+                            >
+                              {{ ssrSaving() ? 'Saving…' : 'Save' }}
+                            </button>
+                            <button class="cancel-btn" [disabled]="ssrSaving()" (click)="cancelEditSsr()">Cancel</button>
+                          </div>
+                        </td>
+                      </tr>
+                    } @else {
+                      <!-- Read-only row -->
+                      <tr>
+                        <td><span class="item-type-badge item-ssr mono">{{ item.ssrCode }}</span></td>
+                        <td>{{ getSsrLabel(item.ssrCode) }}</td>
+                        <td>{{ getPassengerName(item.passengerRef) }}</td>
+                        <td class="mono">{{ getSegmentLabel(item.segmentRef) }}</td>
+                        <td>
+                          <div class="ssr-row-actions">
+                            <button class="edit-btn" [disabled]="ssrSaving()" (click)="startEditSsr(item)">Edit</button>
+                            <button class="remove-ssr-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">Remove</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
 
-              @if (ssrOptionsLoading()) {
-                <div class="ssr-loading">
-                  <span class="spinner"></span>
-                  <span>Loading SSR catalogue…</span>
-                </div>
-              } @else if (ssrOptionsError()) {
-                <div class="edit-error">{{ ssrOptionsError() }}</div>
-              } @else {
+          <!-- Add SSR -->
+          <div class="ssr-add-section">
+            @if (!showAddSsr()) {
+              <button class="add-ssr-btn" [disabled]="editingSsrKey() !== null" (click)="showAddSsr.set(true)">+ Add SSR</button>
+            } @else {
+              <div class="ssr-add-form">
+                <div class="ssr-form-title">Add special service request</div>
                 <div class="ssr-form-grid">
                   <div class="edit-field">
                     <label class="field-label">SSR type</label>
@@ -489,10 +545,11 @@
                   </button>
                   <button class="cancel-btn" [disabled]="ssrSaving()" (click)="showAddSsr.set(false)">Cancel</button>
                 </div>
-              }
-            </div>
-          }
-        </div>
+              </div>
+            }
+          </div>
+
+        }
 
       </div>
     }
