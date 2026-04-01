@@ -78,6 +78,14 @@ public sealed class UpdateOrderSsrsHandler
 
                     if (action == "add" && ssrCode is not null && passengerRef is not null && segmentRef is not null)
                     {
+                        var duplicate = ssrItems.Any(i =>
+                            string.Equals(i["passengerRef"]?.GetValue<string>(), passengerRef, StringComparison.OrdinalIgnoreCase) &&
+                            string.Equals(i["segmentRef"]?.GetValue<string>(), segmentRef, StringComparison.OrdinalIgnoreCase));
+
+                        if (duplicate)
+                            throw new InvalidOperationException(
+                                $"An SSR already exists for passenger {passengerRef} on segment {segmentRef}. Remove it before adding a new one.");
+
                         ssrItems.Add(new JsonObject
                         {
                             ["ssrCode"] = ssrCode,
