@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
@@ -160,7 +161,6 @@ public sealed class ConfirmOrderHandler
     private static string GenerateBookingReference()
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        var random = new Random();
-        return new string(Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+        return RandomNumberGenerator.GetString(chars, 6);
     }
 }
