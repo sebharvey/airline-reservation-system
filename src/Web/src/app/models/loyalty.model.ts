@@ -44,6 +44,10 @@ export interface LoyaltyCustomer {
   stateOrRegion: string;
   postalCode: string;
   countryCode: string;
+  passportNumber: string;
+  passportIssueDate: string;
+  passportIssuer: string;
+  knownTravellerNumber: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   tierProgressPoints: number;

@@ -129,7 +129,7 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 | `POST` | `/v1/register` | Register a new loyalty programme member, creating linked Identity and Customer records |
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer's profile, tier status, and points balance |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
-| `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language) |
+| `PATCH` | `/v1/customers/{loyaltyNumber}/profile` | Update profile details (name, date of birth, nationality, phone, preferred language, passport number, passport issue date, passport issuing country, Known Traveller Number) |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold against the customer's balance for a reward booking; returns a `RedemptionReference`; verifies sufficient balance before placing hold |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a previously authorised points redemption; deducts points from balance and appends a `Redeem` transaction to the loyalty ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback (e.g. ticketing failure after points authorisation) |
@@ -148,7 +148,7 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 |--------|----------|-------------|
 | `POST` | `/v1/admin/customers/search` | Search loyalty customers by name, loyalty number, or email address; returns a summary list of matching members; accepts optional `query` in the request body; when the query contains an `@` sign the Loyalty API also looks up the Identity microservice by email and resolves the linked customer |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}` | Retrieve full customer details including address, tier, points, activity timestamps, and linked identity account details (email, locked status, failed login attempts, last login, password changed date); password hash is never returned |
-| `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address) |
+| `PATCH` | `/v1/admin/customers/{loyaltyNumber}` | Update customer profile fields (name, date of birth, nationality, phone, language, address, passport number, passport issue date, passport issuing country, Known Traveller Number) |
 | `GET` | `/v1/admin/customers/{loyaltyNumber}/transactions` | Retrieve paginated loyalty transaction history for a customer |
 | `POST` | `/v1/admin/customers/{loyaltyNumber}/points` | Assign adjustment points to a customer account; requires points and description |
 | `DELETE` | `/v1/admin/customers/{loyaltyNumber}` | Delete a customer account and all its transactions permanently |
@@ -424,7 +424,7 @@ The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferI
 | `POST` | `/v1/customers` | Create a new loyalty account (called by Loyalty API as the **first** step of registration, before the Identity account is created; `identityReference` is initially `null` and linked in a subsequent `PATCH`) |
 | `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile, tier status, and points balance |
 | `GET` | `/v1/customers/by-identity/{identityId}` | Retrieve a customer profile by Identity MS account ID; used by the Loyalty API during login to resolve the loyalty number |
-| `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language, `identityReference`); also used by Loyalty API during registration to link the `identityReference` returned from the Identity MS after account creation |
+| `PATCH` | `/v1/customers/{loyaltyNumber}` | Update profile fields (name, date of birth, nationality, phone, preferred language, passport number, passport issue date, passport issuing country, Known Traveller Number, `identityReference`); also used by Loyalty API during registration to link the `identityReference` returned from the Identity MS after account creation |
 | `DELETE` | `/v1/customers/{loyaltyNumber}` | Delete a customer record (used for registration rollback — called by Loyalty API if Identity account creation fails, or if the subsequent `PATCH` to link the `identityReference` fails) |
 | `GET` | `/v1/customers/{loyaltyNumber}/transactions` | Retrieve paginated points transaction history |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold for a reward booking; verifies `PointsBalance >= requestedPoints`, places hold, returns `RedemptionReference` |

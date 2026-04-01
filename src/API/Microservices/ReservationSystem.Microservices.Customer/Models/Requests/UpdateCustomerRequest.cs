@@ -18,6 +18,10 @@ public sealed class UpdateCustomerRequest
     public string? StateOrRegion { get; init; }
     public string? PostalCode { get; init; }
     public string? CountryCode { get; init; }
+    public string? PassportNumber { get; init; }
+    public DateOnly? PassportIssueDate { get; init; }
+    public string? PassportIssuer { get; init; }
+    public string? KnownTravellerNumber { get; init; }
     public Guid? IdentityId { get; init; }
     public string? TierCode { get; init; }
     public bool? IsActive { get; init; }

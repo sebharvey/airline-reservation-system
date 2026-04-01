@@ -113,6 +113,27 @@ public sealed class CustomerDbContext : DbContext
                   .IsRequired(false)
                   .HasConversion(v => v, v => v != null ? v.TrimEnd() : null);
 
+            entity.Property(c => c.PassportNumber)
+                  .HasColumnName("PassportNumber")
+                  .HasColumnType("varchar(50)")
+                  .IsRequired(false);
+
+            entity.Property(c => c.PassportIssueDate)
+                  .HasColumnName("PassportIssueDate")
+                  .HasColumnType("date")
+                  .IsRequired(false);
+
+            entity.Property(c => c.PassportIssuer)
+                  .HasColumnName("PassportIssuer")
+                  .HasColumnType("char(2)")
+                  .IsRequired(false)
+                  .HasConversion(v => v, v => v != null ? v.TrimEnd() : null);
+
+            entity.Property(c => c.KnownTravellerNumber)
+                  .HasColumnName("KnownTravellerNumber")
+                  .HasColumnType("varchar(50)")
+                  .IsRequired(false);
+
             entity.Property(c => c.TierCode)
                   .HasColumnName("TierCode")
                   .HasColumnType("varchar(20)")

@@ -22,6 +22,10 @@ public sealed class Customer
     public string? StateOrRegion { get; private set; }
     public string? PostalCode { get; private set; }
     public string? CountryCode { get; private set; }
+    public string? PassportNumber { get; private set; }
+    public DateOnly? PassportIssueDate { get; private set; }
+    public string? PassportIssuer { get; private set; }
+    public string? KnownTravellerNumber { get; private set; }
     public string TierCode { get; private set; } = string.Empty;
     public int PointsBalance { get; private set; }
     public int TierProgressPoints { get; private set; }
@@ -45,6 +49,10 @@ public sealed class Customer
         string? stateOrRegion = null,
         string? postalCode = null,
         string? countryCode = null,
+        string? passportNumber = null,
+        DateOnly? passportIssueDate = null,
+        string? passportIssuer = null,
+        string? knownTravellerNumber = null,
         string? tierCode = null,
         Guid? identityId = null,
         bool? isActive = null)
@@ -62,6 +70,10 @@ public sealed class Customer
         if (stateOrRegion is not null) StateOrRegion = stateOrRegion;
         if (postalCode is not null) PostalCode = postalCode;
         if (countryCode is not null) CountryCode = countryCode;
+        if (passportNumber is not null) PassportNumber = passportNumber;
+        if (passportIssueDate is not null) PassportIssueDate = passportIssueDate;
+        if (passportIssuer is not null) PassportIssuer = passportIssuer;
+        if (knownTravellerNumber is not null) KnownTravellerNumber = knownTravellerNumber;
         if (tierCode is not null) TierCode = tierCode;
         if (identityId is not null) IdentityId = identityId;
         if (isActive is not null) IsActive = isActive.Value;
@@ -142,6 +154,10 @@ public sealed class Customer
         string? stateOrRegion,
         string? postalCode,
         string? countryCode,
+        string? passportNumber,
+        DateOnly? passportIssueDate,
+        string? passportIssuer,
+        string? knownTravellerNumber,
         string tierCode,
         int pointsBalance,
         int tierProgressPoints,
@@ -167,6 +183,10 @@ public sealed class Customer
             StateOrRegion = stateOrRegion,
             PostalCode = postalCode,
             CountryCode = countryCode,
+            PassportNumber = passportNumber,
+            PassportIssueDate = passportIssueDate,
+            PassportIssuer = passportIssuer,
+            KnownTravellerNumber = knownTravellerNumber,
             TierCode = tierCode,
             PointsBalance = pointsBalance,
             TierProgressPoints = tierProgressPoints,

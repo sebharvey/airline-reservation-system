@@ -18,6 +18,10 @@ public sealed record UpdateCustomerCommand(
     string? StateOrRegion,
     string? PostalCode,
     string? CountryCode,
+    string? PassportNumber,
+    DateOnly? PassportIssueDate,
+    string? PassportIssuer,
+    string? KnownTravellerNumber,
     Guid? IdentityId,
     string? TierCode,
     bool? IsActive);

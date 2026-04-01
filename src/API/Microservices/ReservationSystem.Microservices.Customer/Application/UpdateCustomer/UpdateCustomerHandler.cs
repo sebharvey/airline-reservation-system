@@ -58,6 +58,10 @@ public sealed class UpdateCustomerHandler
             stateOrRegion: command.StateOrRegion,
             postalCode: command.PostalCode,
             countryCode: command.CountryCode,
+            passportNumber: command.PassportNumber,
+            passportIssueDate: command.PassportIssueDate,
+            passportIssuer: command.PassportIssuer,
+            knownTravellerNumber: command.KnownTravellerNumber,
             tierCode: command.TierCode,
             identityId: command.IdentityId,
             isActive: command.IsActive);
