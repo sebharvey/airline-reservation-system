@@ -59,6 +59,27 @@
   letter-spacing: 0.04em;
 }
 
+/* ── Prefill Banner ── */
+.prefill-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #166534;
+  box-sizing: border-box;
+}
+
+.prefill-icon {
+  font-size: 1rem;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
 /* ── Basket Summary ── */
 .basket-summary {
   width: 100%;

@@ -42,6 +42,12 @@
     </div>
   </div>
 
+  <!-- Prefill notice -->
+  <div class="prefill-banner" *ngIf="prefilled()">
+    <span class="prefill-icon">&#10003;</span>
+    Your details have been pre-filled from your loyalty account. Please check them before continuing.
+  </div>
+
   <!-- Passenger Forms -->
   <div class="passenger-form-card" *ngFor="let form of forms(); let i = index; trackBy: trackByIndex">
     <div class="passenger-form-header">
