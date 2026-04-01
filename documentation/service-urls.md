@@ -23,7 +23,7 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 | Offer MS | `https://reservation-system-db-microservice-offer-dnfdbebdezemaghp.uksouth-01.azurewebsites.net` | UK South |
 | Order MS | `https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net` | UK South |
 | Payment MS | `https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net` | UK South |
-| Delivery MS | TBC | TBC |
+| Delivery MS | `https://reservation-system-db-microservice-delivery-ehe2f4c3dybehwat.uksouth-01.azurewebsites.net` | UK South |
 | Customer MS | `https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net` | UK South |
 | Ancillary MS | `https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net` | UK South |
 | Schedule MS | `https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net` | UK South |
