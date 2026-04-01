@@ -46,6 +46,7 @@ export class PassengersComponent implements OnInit {
   countdown = signal('');
   saving = signal(false);
   saveError = signal('');
+  prefilled = signal(false);
 
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -129,9 +130,9 @@ export class PassengersComponent implements OnInit {
     this.forms.set(passengers);
   }
 
-  /** Autofill the lead passenger from loyalty account details for reward bookings. */
+  /** Autofill the lead passenger from loyalty account details when the user is logged in. */
   private autofillFromLoyalty(): void {
-    if (!this.isRewardBooking()) return;
+    if (!this.loyaltyState.isLoggedIn()) return;
     const customer = this.loyaltyState.currentCustomer();
     if (!customer) return;
 
@@ -142,10 +143,12 @@ export class PassengersComponent implements OnInit {
     leadPax.givenName = customer.givenName;
     leadPax.surname = customer.surname;
     leadPax.dateOfBirth = customer.dateOfBirth;
+    leadPax.gender = (customer.gender as 'Male' | 'Female' | 'Other') || '';
     leadPax.email = customer.email;
     leadPax.phone = customer.phone;
     leadPax.loyaltyNumber = customer.loyaltyNumber;
     this.forms.set([...forms]);
+    this.prefilled.set(true);
   }
 
   private startCountdown(): void {
