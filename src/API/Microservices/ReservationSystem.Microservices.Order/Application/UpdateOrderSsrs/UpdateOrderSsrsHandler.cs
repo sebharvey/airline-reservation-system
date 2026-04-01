@@ -79,6 +79,7 @@ public sealed class UpdateOrderSsrsHandler
                     if (action == "add" && ssrCode is not null && passengerRef is not null && segmentRef is not null)
                     {
                         var duplicate = ssrItems.Any(i =>
+                            string.Equals(i["ssrCode"]?.GetValue<string>(), ssrCode, StringComparison.OrdinalIgnoreCase) &&
                             string.Equals(i["passengerRef"]?.GetValue<string>(), passengerRef, StringComparison.OrdinalIgnoreCase) &&
                             string.Equals(i["segmentRef"]?.GetValue<string>(), segmentRef, StringComparison.OrdinalIgnoreCase));
 
