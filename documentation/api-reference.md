@@ -80,7 +80,7 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `retail.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `order.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
 | `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); admin endpoint — not channel-facing |
 | `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; admin endpoint |
 | `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; admin endpoint |

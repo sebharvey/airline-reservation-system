@@ -82,6 +82,10 @@ var host = new HostBuilder()
             var dbOptions = provider
                 .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
                 .Value;
+            if (string.IsNullOrEmpty(dbOptions.ConnectionString))
+                throw new InvalidOperationException(
+                    "Database:ConnectionString has not been configured. " +
+                    "Add the Database__ConnectionString application setting to the Retail API.");
             options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
             {
                 sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
