@@ -162,35 +162,85 @@
 
 /* ── Footer ── */
 .footer {
-  padding: 16px 24px;
   border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: var(--text-muted);
   background: var(--white);
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── Footer link ── */
-.footer-link {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: color 0.2s ease;
-  flex-shrink: 0;
+.footer-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px 24px;
+  padding: 40px 24px 32px;
 }
 
-.footer-link:hover,
+.footer-brand-col {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-brand {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.footer-tagline {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+}
+
+.footer-col-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.footer-col-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-col-list a {
+  font-size: 0.83rem;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-col-list a:hover,
 .footer-link-active {
   color: var(--grad-start);
 }
 
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+
 /* ── DEBUG — basket debug button & modal; remove with basket debug feature ── */
 .debug-basket-btn {
-  margin-left: auto;
   padding: 3px 10px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -475,9 +525,33 @@
   /* ── Full-width footer ── */
   .footer {
     width: 100%;
+  }
+
+  .footer-inner {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 0 48px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px clamp(40px, 5vw, 80px) 48px;
+  }
+
+  .footer-brand-col {
+    grid-column: auto;
+  }
+
+  .footer-brand {
+    font-size: 1.3rem;
+  }
+
+  .footer-tagline {
+    font-size: 0.85rem;
+    max-width: 220px;
+  }
+
+  .footer-bottom {
+    max-width: 1280px;
+    margin: 0 auto;
     padding: 20px clamp(40px, 5vw, 80px);
-    background: var(--white);
-    border-top: 1px solid var(--border);
-    font-size: 0.83rem;
+    font-size: 0.8rem;
   }
 }
