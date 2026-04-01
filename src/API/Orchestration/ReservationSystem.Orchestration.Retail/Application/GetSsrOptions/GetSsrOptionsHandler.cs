@@ -1,35 +1,27 @@
-using Dapper;
-using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
+using ReservationSystem.Orchestration.Retail.Infrastructure.Persistence;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
-using ReservationSystem.Shared.Common.Infrastructure.Configuration;
-using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 namespace ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
 
 public sealed class GetSsrOptionsHandler
 {
-    private readonly SqlConnectionFactory _connectionFactory;
-    private readonly DatabaseOptions _options;
+    private readonly RetailDbContext _context;
 
-    public GetSsrOptionsHandler(SqlConnectionFactory connectionFactory, IOptions<DatabaseOptions> options)
+    public GetSsrOptionsHandler(RetailDbContext context)
     {
-        _connectionFactory = connectionFactory;
-        _options = options.Value;
+        _context = context;
     }
 
     public async Task<GetSsrOptionsResponse> HandleAsync(GetSsrOptionsQuery query, CancellationToken cancellationToken)
     {
-        const string sql = """
-            SELECT SsrCode, Label, Category
-            FROM   [retail].[SsrCatalogue]
-            WHERE  IsActive = 1
-            ORDER  BY Category, SsrCode;
-            """;
+        var options = await _context.SsrCatalogue
+            .Where(e => e.IsActive)
+            .OrderBy(e => e.Category)
+            .ThenBy(e => e.SsrCode)
+            .Select(e => new SsrOptionDto(e.SsrCode, e.Label, e.Category))
+            .ToListAsync(cancellationToken);
 
-        using var conn = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        var rows = await conn.QueryAsync<SsrOptionDto>(
-            new CommandDefinition(sql, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: cancellationToken));
-
-        return new GetSsrOptionsResponse(rows.ToList().AsReadOnly());
+        return new GetSsrOptionsResponse(options.AsReadOnly());
     }
 }

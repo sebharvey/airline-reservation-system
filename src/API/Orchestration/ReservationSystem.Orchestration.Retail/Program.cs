@@ -15,8 +15,9 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Retail.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
-using ReservationSystem.Shared.Common.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
@@ -76,7 +77,16 @@ var host = new HostBuilder()
         // ── Database ───────────────────────────────────────────────────────────
         services.Configure<DatabaseOptions>(
             context.Configuration.GetSection(DatabaseOptions.SectionName));
-        services.AddSingleton<SqlConnectionFactory>();
+        services.AddDbContext<RetailDbContext>((provider, options) =>
+        {
+            var dbOptions = provider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
+                .Value;
+            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
+            {
+                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
+            });
+        });
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
