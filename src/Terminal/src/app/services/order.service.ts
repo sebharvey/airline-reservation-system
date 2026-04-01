@@ -73,12 +73,17 @@ export interface SsrOption {
   isActive: boolean;
 }
 
+export interface SsrItem {
+  ssrCode: string;
+  passengerRef: string;
+  segmentRef: string;
+}
+
 export interface SsrPatchAction {
   action: 'add' | 'remove';
-  ssrCode?: string;
-  passengerRef?: string;
-  segmentRef?: string;
-  itemId?: string;
+  ssrCode: string;
+  passengerRef: string;
+  segmentRef: string;
 }
 
 export interface PaymentEvent {
@@ -112,6 +117,7 @@ export interface OrderData {
     flightSegments: FlightSegment[];
   };
   orderItems: OrderItem[];
+  ssrItems: SsrItem[];
   payments: OrderPayment[];
   history: OrderHistoryEvent[];
 }

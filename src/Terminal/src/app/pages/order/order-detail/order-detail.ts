@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, SsrItem } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -8,6 +8,12 @@ interface EditForm {
   dateOfBirth: string | null;
   email: string | null;
   phone: string | null;
+}
+
+interface SsrEditForm {
+  ssrCode: string;
+  passengerRef: string;
+  segmentRef: string;
 }
 
 @Component({
@@ -37,9 +43,11 @@ export class OrderDetailComponent implements OnInit {
   ssrSaving = signal(false);
   ssrError = signal('');
   showAddSsr = signal(false);
-  addSsrForm = signal<{ ssrCode: string; passengerRef: string; segmentRef: string }>({
-    ssrCode: '', passengerRef: '', segmentRef: '',
-  });
+  addSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
+
+  // Edit-in-place state for existing SSR rows
+  editingSsrKey = signal<string | null>(null);
+  editSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
 
   readonly objectKeys = Object.keys;
 
@@ -59,8 +67,8 @@ export class OrderDetailComponent implements OnInit {
     (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType !== 'Flight')
   );
 
-  ssrItems = computed<OrderItem[]>(() =>
-    (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType === 'SSR')
+  ssrItems = computed<SsrItem[]>(() =>
+    this.order()?.orderData?.ssrItems ?? []
   );
 
   ssrOptionsByCategory = computed<Record<string, SsrOption[]>>(() => {
@@ -261,10 +269,19 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  async removeSsr(item: OrderItem): Promise<void> {
+  ssrKey(item: SsrItem): string {
+    return `${item.ssrCode}|${item.passengerRef}|${item.segmentRef}`;
+  }
+
+  async removeSsr(item: SsrItem): Promise<void> {
     this.ssrSaving.set(true);
     this.ssrError.set('');
-    const action: SsrPatchAction = { action: 'remove', itemId: item.itemId };
+    const action: SsrPatchAction = {
+      action: 'remove',
+      ssrCode: item.ssrCode,
+      passengerRef: item.passengerRef,
+      segmentRef: item.segmentRef,
+    };
     try {
       await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
       await this.loadOrder();
@@ -273,6 +290,49 @@ export class OrderDetailComponent implements OnInit {
         err?.status === 422
           ? 'Cannot remove SSR: within the 24-hour amendment cut-off window.'
           : 'Failed to remove SSR. Please try again.'
+      );
+    } finally {
+      this.ssrSaving.set(false);
+    }
+  }
+
+  startEditSsr(item: SsrItem): void {
+    this.editingSsrKey.set(this.ssrKey(item));
+    this.editSsrForm.set({
+      ssrCode: item.ssrCode,
+      passengerRef: item.passengerRef,
+      segmentRef: item.segmentRef,
+    });
+    this.ssrError.set('');
+  }
+
+  cancelEditSsr(): void {
+    this.editingSsrKey.set(null);
+    this.ssrError.set('');
+  }
+
+  updateEditSsrField(field: keyof SsrEditForm, value: string): void {
+    this.editSsrForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  async saveEditSsr(original: SsrItem): Promise<void> {
+    const form = this.editSsrForm();
+    if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
+    this.ssrSaving.set(true);
+    this.ssrError.set('');
+    const actions: SsrPatchAction[] = [
+      { action: 'remove', ssrCode: original.ssrCode, passengerRef: original.passengerRef, segmentRef: original.segmentRef },
+      { action: 'add', ssrCode: form.ssrCode, passengerRef: form.passengerRef, segmentRef: form.segmentRef },
+    ];
+    try {
+      await this.#orderService.updateOrderSsrs(this.bookingRef, actions);
+      this.editingSsrKey.set(null);
+      await this.loadOrder();
+    } catch (err: any) {
+      this.ssrError.set(
+        err?.status === 422
+          ? 'Cannot edit SSR: within the 24-hour amendment cut-off window.'
+          : 'Failed to save SSR changes. Please try again.'
       );
     } finally {
       this.ssrSaving.set(false);
@@ -306,7 +366,7 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  updateAddSsrField(field: 'ssrCode' | 'passengerRef' | 'segmentRef', value: string): void {
+  updateAddSsrField(field: keyof SsrEditForm, value: string): void {
     this.addSsrForm.update(f => ({ ...f, [field]: value }));
   }
 
@@ -314,5 +374,15 @@ export class OrderDetailComponent implements OnInit {
     if (!ssrCode) return '—';
     const opt = this.ssrOptions().find(o => o.ssrCode === ssrCode);
     return opt ? opt.label : ssrCode;
+  }
+
+  getPassengerName(passengerRef: string): string {
+    const pax = this.passengers().find(p => p.passengerId === passengerRef);
+    return pax ? `${pax.givenName} ${pax.surname}` : passengerRef;
+  }
+
+  getSegmentLabel(segmentRef: string): string {
+    const seg = this.segments().find(s => s.segmentId === segmentRef);
+    return seg ? `${seg.flightNumber} (${seg.origin}→${seg.destination})` : segmentRef;
   }
 }

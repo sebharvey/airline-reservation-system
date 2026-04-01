@@ -143,6 +143,33 @@ public sealed class OrderFunction
     }
 
     // -------------------------------------------------------------------------
+    // PATCH /v1/orders/{bookingRef}/ssrs
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateOrderSsrs")]
+    [OpenApiOperation(operationId: "UpdateOrderSsrs", tags: new[] { "Orders" }, Summary = "Add or remove SSRs on an order")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable — within amendment cut-off window")]
+    public async Task<HttpResponseData> UpdateSsrs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/ssrs")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch { return await req.BadRequestAsync("Failed to read request body."); }
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderSsrsAsync(bookingRef.ToUpperInvariant(), body, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // -------------------------------------------------------------------------
     // PATCH /v1/orders/{bookingRef}/cancel
     // -------------------------------------------------------------------------
 
