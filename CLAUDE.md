@@ -50,7 +50,6 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │       └── coding-standards.md
 ├── src/
 │   ├── API/
-│   │   ├── Template/                     ← reference scaffold — never modify
 │   │   ├── Microservices/                ← standalone domain microservices (.NET 8, Azure Functions)
 │   │   ├── Orchestration/                ← cross-domain orchestration APIs
 │   │   ├── Shared/                       ← shared infrastructure (DB, JSON, HTTP helpers)
