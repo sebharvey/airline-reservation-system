@@ -28,22 +28,66 @@
 
     @if (!isBoardingPass()) {
       <footer class="footer">
-        <p>© 2026 Apex Air. All rights reserved.</p>
-        <a routerLink="/ndc" routerLinkActive="footer-link-active" class="footer-link">NDC</a>
-        <!-- DEBUG — basket debug button; remove with basket debug feature -->
-        <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
-        <!-- END DEBUG -->
-        <button
-          class="theme-toggle"
-          (click)="theme.toggle()"
-          [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-          [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-        >
-          <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
-          <span class="toggle-track" [class.is-dark]="theme.isDark()">
-            <span class="toggle-thumb"></span>
+        <div class="footer-inner">
+
+          <div class="footer-brand-col">
+            <span class="footer-brand">✈ Apex Air</span>
+            <p class="footer-tagline">Modern travel, seamlessly delivered.</p>
+            <button
+              class="theme-toggle"
+              (click)="theme.toggle()"
+              [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+              [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+            >
+              <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+              <span class="toggle-track" [class.is-dark]="theme.isDark()">
+                <span class="toggle-thumb"></span>
+              </span>
+            </button>
+          </div>
+
+          <div class="footer-links-col">
+            <h4 class="footer-col-heading">Travel</h4>
+            <ul class="footer-col-list">
+              <li><a routerLink="/">Search Flights</a></li>
+              <li><a routerLink="/manage-booking">Manage Booking</a></li>
+              <li><a routerLink="/check-in">Online Check-In</a></li>
+              <li><a routerLink="/flight-status">Flight Status</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-links-col">
+            <h4 class="footer-col-heading">Rewards</h4>
+            <ul class="footer-col-list">
+              <li><a routerLink="/loyalty">Apex Rewards</a></li>
+              <li><a routerLink="/loyalty/register">Join Free</a></li>
+              <li><a routerLink="/loyalty/account">My Account</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-links-col">
+            <h4 class="footer-col-heading">Company</h4>
+            <ul class="footer-col-list">
+              <li><a routerLink="/ndc" routerLinkActive="footer-link-active">NDC API</a></li>
+              <li><a href="#">About Us</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="footer-bottom">
+          <span>© 2026 Apex Air. All rights reserved.</span>
+          <span class="footer-bottom-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Cookie Settings</a>
           </span>
-        </button>
+          <!-- DEBUG — basket debug button; remove with basket debug feature -->
+          <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
+          <!-- END DEBUG -->
+        </div>
       </footer>
     }
 
