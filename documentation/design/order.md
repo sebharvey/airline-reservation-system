@@ -18,7 +18,7 @@ The **bookflow** is the end-to-end initial purchase journey — from flight offe
 - Hard-deleted on successful booking confirmation; expires automatically after **60 minutes** if abandoned — matching the `StoredOffer` expiry window so that all offer IDs referenced by an active basket remain valid throughout the basket lifetime.
 - A ticketing time limit (TTL) is set at basket creation and stored on the `order.Order` record itself (not the basket); if elapsed, held inventory is released and the basket is marked expired.
 - For each `OfferId` in the basket, the Order MS retrieves the stored offer snapshot from the Offer MS, guaranteeing the price and fare conditions match exactly what the customer was shown at search time.
-- Order creation is a **two-step process**: `POST /v1/orders` creates a `Draft` order record from the basket (basket remains active); `POST /v1/orders/confirm` validates completeness, authorises payment, assigns the booking reference (PNR), transitions the order to `Confirmed`, and deletes the basket. PATCH operations on the order record are permitted between creation and confirmation.
+- Order creation is a **two-step process**: `POST /v1/orders` creates a `Draft` order record from the basket (basket remains active); `POST /v1/orders/confirm` validates completeness (including that no flight departs within 1 hour — ticketing closed), authorises payment, assigns the booking reference (PNR), transitions the order to `Confirmed`, and deletes the basket. PATCH operations on the order record are permitted between creation and confirmation.
 
 ```mermaid
 sequenceDiagram
@@ -148,7 +148,7 @@ sequenceDiagram
     end
 
     RetailAPI->>OrderMS: POST /v1/orders/confirm (orderId, basketId, paymentReferences)
-    Note over OrderMS: Validates passengers and segments present; assigns booking reference;<br/>writes payment references into OrderData; transitions OrderStatus to Confirmed;<br/>deletes basket
+    Note over OrderMS: Validates passengers and segments present; rejects if any flight departs within 1 hour (ticketing closed);<br/>assigns booking reference; writes payment references into OrderData;<br/>transitions OrderStatus to Confirmed; deletes basket
     OrderMS-->>RetailAPI: 200 OK — order confirmed (bookingReference, orderStatus=Confirmed)
 
     RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, bookingReference, passenger details, flight segments)
@@ -271,6 +271,7 @@ Ticketing occurs as part of the order confirmation sequence, orchestrated by the
   - `now < TicketingTimeLimit` — if elapsed, basket must be marked `Expired` and inventory released
   - All stored offers referenced in the basket are unconsumed and not expired
   - Fare payment has been successfully authorised (`paymentId` held)
+  - `departureDateTime > now + 1 hour` for every flight segment — if any flight departs within 1 hour, the Order MS rejects the confirmation with `422 Unprocessable Entity` (ticketing closed; no new sales once boarding is imminent)
 
 - **E-ticket issuance** (Retail API → Delivery MS):
   - Retail API calls `POST /v1/tickets` on the Delivery microservice, passing: basket ID, passenger details, and flight segments
