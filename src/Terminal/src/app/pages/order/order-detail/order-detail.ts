@@ -315,8 +315,9 @@ export class OrderDetailComponent implements OnInit {
     this.editSsrForm.update(f => ({ ...f, [field]: value }));
   }
 
-  ssrExistsForPaxSegment(passengerRef: string, segmentRef: string, excludeKey?: string): boolean {
+  ssrExistsForPaxSegment(ssrCode: string, passengerRef: string, segmentRef: string, excludeKey?: string): boolean {
     return this.ssrItems().some(item =>
+      item.ssrCode === ssrCode &&
       item.passengerRef === passengerRef &&
       item.segmentRef === segmentRef &&
       (!excludeKey || this.ssrKey(item) !== excludeKey)
@@ -326,7 +327,7 @@ export class OrderDetailComponent implements OnInit {
   async saveEditSsr(original: SsrItem): Promise<void> {
     const form = this.editSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
-    if (this.ssrExistsForPaxSegment(form.passengerRef, form.segmentRef, this.ssrKey(original))) {
+    if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef, this.ssrKey(original))) {
       this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
       return;
     }
@@ -354,7 +355,7 @@ export class OrderDetailComponent implements OnInit {
   async addSsr(): Promise<void> {
     const form = this.addSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
-    if (this.ssrExistsForPaxSegment(form.passengerRef, form.segmentRef)) {
+    if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef)) {
       this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
       return;
     }
