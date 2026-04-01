@@ -89,14 +89,23 @@ public sealed class ConfirmOrderHandler
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
 
-        // Build lean flight order items — keep inventory reference fields plus cabin and segment ID
-        // so that flight details can be resolved at read time and e-tickets can be matched by segment.
+        // Build flight order items — persist all fare/pricing and flight detail fields so that
+        // prices are locked at confirmation time and never re-fetched or re-calculated.
         var flightOrderItems = new JsonArray();
         foreach (var offer in segmentsNode)
         {
             if (offer is not JsonObject offerObj) continue;
             var item = new JsonObject();
-            foreach (var prop in new[] { "offerId", "sessionId", "inventoryId", "cabinCode", "basketItemId" })
+            foreach (var prop in new[]
+            {
+                "offerId", "sessionId", "inventoryId", "cabinCode", "basketItemId",
+                "flightNumber", "departureDate", "departureTime", "arrivalTime",
+                "origin", "destination", "aircraftType",
+                "fareBasisCode", "fareFamily",
+                "totalAmount", "baseFareAmount", "taxAmount",
+                "isRefundable", "isChangeable",
+                "pointsPrice", "pointsTaxes"
+            })
             {
                 if (offerObj[prop] is JsonNode val)
                     item[prop] = val.DeepClone();
@@ -106,6 +115,7 @@ public sealed class ConfirmOrderHandler
 
         var orderData = new JsonObject
         {
+            ["currencyCode"] = basket.CurrencyCode,
             ["dataLists"] = new JsonObject
             {
                 ["passengers"] = passengersNode.DeepClone()
@@ -137,7 +147,26 @@ public sealed class ConfirmOrderHandler
 
         // ── Step 3: confirm order, persist, delete basket ─────────────────────
 
-        var bookingReference = GenerateBookingReference();
+        // Generate a booking reference that is unique in the database, retrying on the rare
+        // chance of a collision (keyspace is 36^6 ≈ 2.2 billion, but collisions are possible).
+        const int maxPnrAttempts = 5;
+        string bookingReference = string.Empty;
+        for (var attempt = 1; attempt <= maxPnrAttempts; attempt++)
+        {
+            var candidate = GenerateBookingReference();
+            var existing = await _orderRepository.GetByBookingReferenceAsync(candidate, cancellationToken);
+            if (existing is null)
+            {
+                bookingReference = candidate;
+                break;
+            }
+            _logger.LogWarning(
+                "Booking reference collision on attempt {Attempt}/{Max}, regenerating", attempt, maxPnrAttempts);
+        }
+
+        if (string.IsNullOrEmpty(bookingReference))
+            throw new InvalidOperationException(
+                $"Unable to generate a unique booking reference after {maxPnrAttempts} attempts.");
 
         order.Confirm(
             bookingReference,
