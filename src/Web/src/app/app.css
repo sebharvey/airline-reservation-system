@@ -173,6 +173,21 @@
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
+/* ── Footer link ── */
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.footer-link:hover,
+.footer-link-active {
+  color: var(--grad-start);
+}
+
 /* ── DEBUG — basket debug button & modal; remove with basket debug feature ── */
 .debug-basket-btn {
   margin-left: auto;

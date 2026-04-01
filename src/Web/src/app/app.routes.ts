@@ -5,6 +5,7 @@ import { CheckInComponent } from './pages/check-in/check-in';
 import { ManageBookingComponent } from './pages/manage-booking/manage-booking';
 import { FlightStatusComponent } from './pages/flight-status/flight-status';
 import { LoyaltyLoginComponent } from './pages/loyalty/loyalty-login';
+import { NdcComponent } from './pages/ndc/ndc';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -64,5 +65,6 @@ export const routes: Routes = [
   },
 
   { path: 'flight-status', component: FlightStatusComponent },
+  { path: 'ndc', component: NdcComponent },
   { path: '**', redirectTo: '' }
 ];
