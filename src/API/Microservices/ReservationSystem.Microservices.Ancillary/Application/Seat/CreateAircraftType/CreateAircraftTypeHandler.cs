@@ -1,0 +1,31 @@
+using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Ancillary.Domain.Entities.Seat;
+using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Seat;
+
+namespace ReservationSystem.Microservices.Ancillary.Application.Seat.CreateAircraftType;
+
+/// <summary>
+/// Handles the <see cref="CreateAircraftTypeCommand"/>.
+/// Creates and persists a new aircraft type.
+/// </summary>
+public sealed class CreateAircraftTypeHandler
+{
+    private readonly IAircraftTypeRepository _repository;
+    private readonly ILogger<CreateAircraftTypeHandler> _logger;
+
+    public CreateAircraftTypeHandler(
+        IAircraftTypeRepository repository,
+        ILogger<CreateAircraftTypeHandler> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    public async Task<AircraftType> HandleAsync(CreateAircraftTypeCommand command, CancellationToken cancellationToken = default)
+    {
+        var entity = AircraftType.Create(command.AircraftTypeCode, command.Manufacturer, command.TotalSeats, command.FriendlyName, command.CabinCounts);
+        var created = await _repository.CreateAsync(entity, cancellationToken);
+        _logger.LogInformation("Created AircraftType {AircraftTypeCode}", created.AircraftTypeCode);
+        return created;
+    }
+}

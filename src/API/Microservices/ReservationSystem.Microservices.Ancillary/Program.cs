@@ -1,0 +1,102 @@
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using ReservationSystem.Microservices.Ancillary.Swagger;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.CreateAircraftType;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.CreateSeatmap;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.CreateSeatPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.DeleteSeatPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetAircraftType;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetAllAircraftTypes;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetAllSeatPricings;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetSeatmap;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetSeatOffer;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetSeatOffers;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetSeatPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateAircraftType;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.DeleteAircraftType;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.DeleteSeatmap;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetAllSeatmaps;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.GetSeatmapById;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateSeatmap;
+using ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateSeatPricing;
+using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Seat;
+using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Seat;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.CreateBagPolicy;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.CreateBagPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.DeleteBagPolicy;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.DeleteBagPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.GetAllBagPolicies;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.GetAllBagPricings;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.GetBagPolicy;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.GetBagPricing;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPolicy;
+using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPricing;
+using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Bag;
+using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Bag;
+using ReservationSystem.Shared.Common.Health;
+using ReservationSystem.Shared.Common.Infrastructure.Configuration;
+using ReservationSystem.Shared.Common.Infrastructure.Persistence;
+
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureOpenApi()
+    .ConfigureServices((context, services) =>
+    {
+        // ── OpenAPI ────────────────────────────────────────────────────────────
+        services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
+
+        services.AddApplicationInsightsTelemetryWorkerService();
+        services.ConfigureFunctionsApplicationInsights();
+
+        services.Configure<DatabaseOptions>(
+            context.Configuration.GetSection(DatabaseOptions.SectionName));
+
+        // ── Infrastructure ─────────────────────────────────────────────────────
+        services.AddSingleton<SqlConnectionFactory>();
+        services.AddScoped<IAircraftTypeRepository, SqlAircraftTypeRepository>();
+        services.AddScoped<ISeatmapRepository, SqlSeatmapRepository>();
+        services.AddScoped<ISeatPricingRepository, SqlSeatPricingRepository>();
+        services.AddScoped<IBagPolicyRepository, SqlBagPolicyRepository>();
+        services.AddScoped<IBagPricingRepository, SqlBagPricingRepository>();
+
+        // ── Health check ────────────────────────────────────────────────────────
+        services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
+
+        // ── Application use-case handlers (Seat) ────────────────────────────────
+        services.AddScoped<GetSeatmapHandler>();
+        services.AddScoped<GetSeatOffersHandler>();
+        services.AddScoped<GetSeatOfferHandler>();
+        services.AddScoped<GetAllAircraftTypesHandler>();
+        services.AddScoped<CreateAircraftTypeHandler>();
+        services.AddScoped<GetAircraftTypeHandler>();
+        services.AddScoped<UpdateAircraftTypeHandler>();
+        services.AddScoped<GetAllSeatPricingsHandler>();
+        services.AddScoped<CreateSeatPricingHandler>();
+        services.AddScoped<GetSeatPricingHandler>();
+        services.AddScoped<UpdateSeatPricingHandler>();
+        services.AddScoped<DeleteSeatPricingHandler>();
+        services.AddScoped<DeleteAircraftTypeHandler>();
+        services.AddScoped<GetAllSeatmapsHandler>();
+        services.AddScoped<GetSeatmapByIdHandler>();
+        services.AddScoped<CreateSeatmapHandler>();
+        services.AddScoped<UpdateSeatmapHandler>();
+        services.AddScoped<DeleteSeatmapHandler>();
+
+        // ── Application use-case handlers (Bag) ─────────────────────────────────
+        services.AddScoped<GetBagPolicyHandler>();
+        services.AddScoped<GetAllBagPoliciesHandler>();
+        services.AddScoped<CreateBagPolicyHandler>();
+        services.AddScoped<UpdateBagPolicyHandler>();
+        services.AddScoped<DeleteBagPolicyHandler>();
+        services.AddScoped<GetBagPricingHandler>();
+        services.AddScoped<GetAllBagPricingsHandler>();
+        services.AddScoped<CreateBagPricingHandler>();
+        services.AddScoped<UpdateBagPricingHandler>();
+        services.AddScoped<DeleteBagPricingHandler>();
+    })
+    .Build();
+
+host.Run();
