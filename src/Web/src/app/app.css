@@ -367,17 +367,31 @@
     padding: 18px 20px 20px;
   }
 
-  /* Stack brand above links with breathing room */
+  /* Row 1: brand + user info; Row 2: nav links */
   .nav-inner {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
-    gap: 16px;
+    align-items: center;
+    gap: 0;
+  }
+
+  .nav-brand {
+    order: 1;
+  }
+
+  .nav-user {
+    order: 2;
+    margin-left: auto;
+    margin-bottom: 0;
   }
 
   .nav-links {
+    order: 3;
     width: 100%;
     justify-content: space-between;
+    margin-top: 12px;
   }
 
   .nav-links a {
