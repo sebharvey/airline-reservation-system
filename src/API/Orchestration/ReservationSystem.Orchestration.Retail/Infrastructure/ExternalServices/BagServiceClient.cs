@@ -6,7 +6,7 @@ public sealed class BagServiceClient
 
     public BagServiceClient(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("BagMs");
+        _httpClient = httpClientFactory.CreateClient("AncillaryMs");
     }
 
     // Methods will be implemented when business logic is built out

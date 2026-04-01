@@ -46,14 +46,9 @@ var host = new HostBuilder()
             client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net/");
         });
 
-        services.AddHttpClient("SeatMs", client =>
+        services.AddHttpClient("AncillaryMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"] ?? "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net/");
-        });
-
-        services.AddHttpClient("BagMs", client =>
-        {
-            client.BaseAddress = context.Configuration["BagMs:BaseUrl"] is { } url ? new Uri(url) : null;
+            client.BaseAddress = new Uri(context.Configuration["AncillaryMs:BaseUrl"] ?? "https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net/");
         });
 
         services.AddHttpClient("PaymentMs", client =>

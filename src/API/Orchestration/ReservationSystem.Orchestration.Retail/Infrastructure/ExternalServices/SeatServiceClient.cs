@@ -13,7 +13,7 @@ public sealed class SeatServiceClient
 
     public SeatServiceClient(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("SeatMs");
+        _httpClient = httpClientFactory.CreateClient("AncillaryMs");
     }
 
     public async Task<SeatmapLayoutDto?> GetSeatmapAsync(string aircraftType, CancellationToken cancellationToken = default)

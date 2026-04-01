@@ -25,12 +25,10 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 | Payment MS | `https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net` | UK South |
 | Delivery MS | TBC | TBC |
 | Customer MS | `https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net` | UK South |
-| Seat MS | `https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net` | UK South |
-| Bag MS | TBC | TBC |
+| Ancillary MS | `https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net` | UK South |
 | Schedule MS | `https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net` | UK South |
 | Identity MS | `https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net` | UK South |
 | User MS | `https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net` | UK South |
-| Ancillary MS | `https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net` | UK South |
 
 ---
 
@@ -55,6 +53,8 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Operations API | `ScheduleMs:HostKey` | Schedule MS — Azure Function host key |
 | Operations API | `OfferMs:BaseUrl` | Offer MS |
 | Operations API | `OfferMs:HostKey` | Offer MS — Azure Function host key |
+| Operations API | `AncillaryMs:BaseUrl` | Ancillary MS |
+| Operations API | `AncillaryMs:HostKey` | Ancillary MS — Azure Function host key |
 | Admin API | `UserMs:BaseUrl` | User MS |
 | Admin API | `UserMs:HostKey` | User MS — Azure Function host key |
 | Loyalty API | `IdentityMs:BaseUrl` | Identity MS |
@@ -70,8 +70,7 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Retail API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
 | Retail API | `PaymentMs:BaseUrl` | Payment MS |
 | Retail API | `DeliveryMs:BaseUrl` | Delivery MS |
-| Retail API | `SeatMs:BaseUrl` | Seat MS |
-| Retail API | `BagMs:BaseUrl` | Bag MS |
+| Retail API | `AncillaryMs:BaseUrl` | Ancillary MS |
 | Disruption API | `OfferMs:BaseUrl` | Offer MS |
 | Disruption API | `OrderMs:BaseUrl` | Order MS |
 | Disruption API | `DeliveryMs:BaseUrl` | Delivery MS |
