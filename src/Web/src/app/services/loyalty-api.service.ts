@@ -47,6 +47,10 @@ export interface UpdateProfileParams {
   stateOrRegion?: string;
   postalCode?: string;
   countryCode?: string;
+  passportNumber?: string;
+  passportIssueDate?: string;
+  passportIssuer?: string;
+  knownTravellerNumber?: string;
 }
 
 export interface UpdatePreferencesParams {
@@ -100,6 +104,10 @@ interface ApiCustomerProfile {
   stateOrRegion?: string;
   postalCode?: string;
   countryCode?: string;
+  passportNumber?: string;
+  passportIssueDate?: string;
+  passportIssuer?: string;
+  knownTravellerNumber?: string;
   tier: LoyaltyTier;
   pointsBalance: number;
   memberSince: string;
@@ -150,6 +158,10 @@ function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
     stateOrRegion: api.stateOrRegion ?? '',
     postalCode: api.postalCode ?? '',
     countryCode: api.countryCode ?? '',
+    passportNumber: api.passportNumber ?? '',
+    passportIssueDate: api.passportIssueDate ?? '',
+    passportIssuer: api.passportIssuer ?? '',
+    knownTravellerNumber: api.knownTravellerNumber ?? '',
     tier: api.tier ?? 'Blue',
     pointsBalance: api.pointsBalance ?? 0,
     tierProgressPoints: 0,

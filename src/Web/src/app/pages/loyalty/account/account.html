@@ -441,6 +441,54 @@
             </div>
           </div>
 
+          <div class="section-divider">Travel documents</div>
+
+          <div class="field">
+            <label for="pPassportNumber">Passport number</label>
+            <input
+              id="pPassportNumber"
+              type="text"
+              [value]="profilePassportNumber()"
+              (input)="profilePassportNumber.set($any($event.target).value)"
+              placeholder="e.g. 123456789"
+            />
+          </div>
+
+          <div class="field">
+            <label for="pPassportIssueDate">Passport issue date</label>
+            <input
+              id="pPassportIssueDate"
+              type="date"
+              [value]="profilePassportIssueDate()"
+              (input)="profilePassportIssueDate.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
+            <label for="pPassportIssuer">Issuing country</label>
+            <select
+              id="pPassportIssuer"
+              [value]="profilePassportIssuer()"
+              (change)="profilePassportIssuer.set($any($event.target).value)"
+            >
+              <option value="">Select country</option>
+              @for (country of countries; track country.code) {
+                <option [value]="country.code" [selected]="country.code === profilePassportIssuer()">{{ country.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="pKtn">Known traveller number (KTN)</label>
+            <input
+              id="pKtn"
+              type="text"
+              [value]="profileKnownTravellerNumber()"
+              (input)="profileKnownTravellerNumber.set($any($event.target).value)"
+              placeholder="e.g. 12345678901"
+            />
+          </div>
+
           <div class="field">
             <label for="pLanguage">Preferred Language</label>
             <select

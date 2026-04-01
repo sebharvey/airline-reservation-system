@@ -40,6 +40,10 @@ export interface CustomerDetail {
   stateOrRegion: string | null;
   postalCode: string | null;
   countryCode: string | null;
+  passportNumber: string | null;
+  passportIssueDate: string | null;
+  passportIssuer: string | null;
+  knownTravellerNumber: string | null;
   tierCode: string;
   pointsBalance: number;
   tierProgressPoints: number;
@@ -72,6 +76,10 @@ export interface UpdateCustomerRequest {
   stateOrRegion?: string | null;
   postalCode?: string | null;
   countryCode?: string | null;
+  passportNumber?: string | null;
+  passportIssueDate?: string | null;
+  passportIssuer?: string | null;
+  knownTravellerNumber?: string | null;
 }
 
 export interface Transaction {

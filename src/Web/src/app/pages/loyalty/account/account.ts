@@ -109,6 +109,10 @@ export class LoyaltyAccountComponent implements OnInit {
   profileStateOrRegion = signal('');
   profilePostalCode = signal('');
   profileCountryCode = signal('');
+  profilePassportNumber = signal('');
+  profilePassportIssueDate = signal('');
+  profilePassportIssuer = signal('');
+  profileKnownTravellerNumber = signal('');
 
   profileLoading = signal(false);
   profileError = signal<string | null>(null);
@@ -224,6 +228,10 @@ export class LoyaltyAccountComponent implements OnInit {
     this.profileStateOrRegion.set(c.stateOrRegion ?? '');
     this.profilePostalCode.set(c.postalCode ?? '');
     this.profileCountryCode.set(c.countryCode ?? '');
+    this.profilePassportNumber.set(c.passportNumber ?? '');
+    this.profilePassportIssueDate.set(c.passportIssueDate ?? '');
+    this.profilePassportIssuer.set(c.passportIssuer ?? '');
+    this.profileKnownTravellerNumber.set(c.knownTravellerNumber ?? '');
   }
 
   setTab(tab: AccountTab): void {
@@ -354,6 +362,10 @@ export class LoyaltyAccountComponent implements OnInit {
       stateOrRegion: this.profileStateOrRegion() || undefined,
       postalCode: this.profilePostalCode() || undefined,
       countryCode: this.profileCountryCode() || undefined,
+      passportNumber: this.profilePassportNumber() || undefined,
+      passportIssueDate: this.profilePassportIssueDate() || undefined,
+      passportIssuer: this.profilePassportIssuer() || undefined,
+      knownTravellerNumber: this.profileKnownTravellerNumber() || undefined,
     }).subscribe({
       next: (updated) => {
         this.loyaltyState.updateCustomer(updated);

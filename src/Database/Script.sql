@@ -1018,6 +1018,10 @@ CREATE TABLE [customer].[Customer] (
     StateOrRegion      VARCHAR(100)         NULL,
     PostalCode         VARCHAR(20)          NULL,
     CountryCode        CHAR(2)              NULL,
+    PassportNumber     VARCHAR(50)          NULL,
+    PassportIssueDate  DATE                 NULL,
+    PassportIssuer     CHAR(2)              NULL,
+    KnownTravellerNumber VARCHAR(50)        NULL,
     TierCode           VARCHAR(20)      NOT NULL CONSTRAINT DF_Customer_Tier     DEFAULT 'Blue',
     PointsBalance      INT              NOT NULL CONSTRAINT DF_Customer_Points   DEFAULT 0,
     TierProgressPoints INT              NOT NULL CONSTRAINT DF_Customer_Tier2    DEFAULT 0,
@@ -1156,6 +1160,22 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'CountryCode')
     ALTER TABLE [customer].[Customer] ADD CountryCode CHAR(2) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PassportNumber')
+    ALTER TABLE [customer].[Customer] ADD PassportNumber VARCHAR(50) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PassportIssueDate')
+    ALTER TABLE [customer].[Customer] ADD PassportIssueDate DATE NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PassportIssuer')
+    ALTER TABLE [customer].[Customer] ADD PassportIssuer CHAR(2) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'KnownTravellerNumber')
+    ALTER TABLE [customer].[Customer] ADD KnownTravellerNumber VARCHAR(50) NULL;
 GO
 
 -- =============================================================================

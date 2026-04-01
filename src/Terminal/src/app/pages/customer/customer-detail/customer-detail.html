@@ -186,6 +186,28 @@
             </div>
 
             <div class="detail-section">
+              <h3 class="section-title">Travel documents</h3>
+              <div class="field-grid">
+                <div class="field-display">
+                  <span class="field-label">Passport number</span>
+                  <span class="field-value">{{ c.passportNumber ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Passport issue date</span>
+                  <span class="field-value">{{ c.passportIssueDate ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Issuing country</span>
+                  <span class="field-value">{{ c.passportIssuer ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Known traveller number</span>
+                  <span class="field-value">{{ c.knownTravellerNumber ?? '—' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
               <h3 class="section-title">Loyalty</h3>
               <div class="field-grid">
                 <div class="field-display">
@@ -460,6 +482,45 @@
                     <option [value]="country.code" [selected]="editCountryCode() === country.code">{{ country.name }}</option>
                   }
                 </select>
+              </div>
+            </div>
+
+            <h3 class="section-title section-title-spaced">Travel documents</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label">Passport number</label>
+                <input class="field-input" type="text"
+                  [value]="editPassportNumber()"
+                  (input)="setField(editPassportNumber.set.bind(editPassportNumber), $event)"
+                  [disabled]="saving()"
+                  placeholder="e.g. 123456789" />
+              </div>
+              <div class="field">
+                <label class="field-label">Passport issue date</label>
+                <input class="field-input" type="date"
+                  [value]="editPassportIssueDate()"
+                  (input)="setField(editPassportIssueDate.set.bind(editPassportIssueDate), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
+                <label class="field-label">Issuing country</label>
+                <select class="field-input"
+                  [value]="editPassportIssuer()"
+                  (change)="setField(editPassportIssuer.set.bind(editPassportIssuer), $event)"
+                  [disabled]="saving()">
+                  <option value="">Select country</option>
+                  @for (country of countries; track country.code) {
+                    <option [value]="country.code" [selected]="editPassportIssuer() === country.code">{{ country.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Known traveller number (KTN)</label>
+                <input class="field-input" type="text"
+                  [value]="editKnownTravellerNumber()"
+                  (input)="setField(editKnownTravellerNumber.set.bind(editKnownTravellerNumber), $event)"
+                  [disabled]="saving()"
+                  placeholder="e.g. 12345678901" />
               </div>
             </div>
 

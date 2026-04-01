@@ -115,6 +115,10 @@ export class CustomerDetailComponent implements OnInit {
   editStateOrRegion = signal('');
   editPostalCode = signal('');
   editCountryCode = signal('');
+  editPassportNumber = signal('');
+  editPassportIssueDate = signal('');
+  editPassportIssuer = signal('');
+  editKnownTravellerNumber = signal('');
 
   // Transactions
   transactions = signal<Transaction[]>([]);
@@ -184,6 +188,10 @@ export class CustomerDetailComponent implements OnInit {
     this.editStateOrRegion.set(c.stateOrRegion ?? '');
     this.editPostalCode.set(c.postalCode ?? '');
     this.editCountryCode.set(c.countryCode ?? '');
+    this.editPassportNumber.set(c.passportNumber ?? '');
+    this.editPassportIssueDate.set(c.passportIssueDate ?? '');
+    this.editPassportIssuer.set(c.passportIssuer ?? '');
+    this.editKnownTravellerNumber.set(c.knownTravellerNumber ?? '');
   }
 
   startEdit(): void {
@@ -218,6 +226,10 @@ export class CustomerDetailComponent implements OnInit {
       stateOrRegion: this.editStateOrRegion() || null,
       postalCode: this.editPostalCode() || null,
       countryCode: this.editCountryCode() || null,
+      passportNumber: this.editPassportNumber() || null,
+      passportIssueDate: this.editPassportIssueDate() || null,
+      passportIssuer: this.editPassportIssuer() || null,
+      knownTravellerNumber: this.editKnownTravellerNumber() || null,
     };
 
     try {

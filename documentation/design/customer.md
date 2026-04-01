@@ -217,7 +217,7 @@ sequenceDiagram
 
 ### Update Profile Details
 
-Customers may update their loyalty profile (name, date of birth, nationality, preferred language, phone) at any time via the loyalty portal.
+Customers may update their loyalty profile (name, date of birth, nationality, preferred language, phone, passport details, and Known Traveller Number) at any time via the loyalty portal.
 
 - The Loyalty API validates the JWT using the Identity MS public signing key — no DB round-trip required — before forwarding changes to the Customer MS.
 - Updating a loyalty profile name does **not** amend any confirmed booking or issued e-ticket; those records are independent (owned by Order and Delivery MS respectively).
@@ -413,6 +413,10 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 | Nationality | CHAR(3) | Yes | | | ISO 3166-1 alpha-3 |
 | PreferredLanguage | CHAR(5) | Yes | `'en-GB'` | | BCP 47 language tag |
 | PhoneNumber | VARCHAR(30) | Yes | | | |
+| PassportNumber | VARCHAR(50) | Yes | | | Machine-readable passport document number |
+| PassportIssueDate | DATE | Yes | | | Date the passport was issued |
+| PassportIssuer | CHAR(2) | Yes | | | ISO 3166-1 alpha-2 country code of the issuing country |
+| KnownTravellerNumber | VARCHAR(50) | Yes | | | TSA/CBP Trusted Traveller Programme number (e.g. TSA PreCheck, Global Entry, NEXUS) |
 | TierCode | VARCHAR(20) | No | `'Blue'` | | FK ref to `customer.TierConfig(TierCode)` enforced at application layer |
 | PointsBalance | INT | No | `0` | | Current redeemable points balance |
 | TierProgressPoints | INT | No | `0` | | Qualifying points for tier evaluation; not decremented on redemption |
