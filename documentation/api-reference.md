@@ -80,7 +80,7 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `retail.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `order.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
 | `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); admin endpoint — not channel-facing |
 | `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; admin endpoint |
 | `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; admin endpoint |
@@ -273,6 +273,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `PATCH` | `/v1/orders/{bookingRef}/bags` | Add or update bag order items on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove SSR items on a confirmed order; publishes `OrderChanged` event |
 | `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS data for passengers |
+| `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories from `order.SsrCatalogue`; called by the Retail API to serve the channel-facing SSR catalogue |
 
 ---
 

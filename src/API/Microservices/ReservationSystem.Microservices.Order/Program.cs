@@ -27,6 +27,7 @@ using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
+using ReservationSystem.Microservices.Order.Application.GetSsrOptions;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 using ReservationSystem.Microservices.Order.Infrastructure.Persistence;
@@ -63,6 +64,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddScoped<IBasketRepository, EfBasketRepository>();
         services.AddScoped<IOrderRepository, EfOrderRepository>();
+        services.AddScoped<ISsrCatalogueRepository, EfSsrCatalogueRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
@@ -89,6 +91,7 @@ var host = new HostBuilder()
         services.AddScoped<CancelOrderHandler>();
         services.AddScoped<ChangeOrderHandler>();
         services.AddScoped<RebookOrderHandler>();
+        services.AddScoped<GetSsrOptionsHandler>();
     })
     .Build();
 

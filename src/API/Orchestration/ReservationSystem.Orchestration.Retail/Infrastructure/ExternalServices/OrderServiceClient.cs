@@ -187,6 +187,20 @@ public sealed class OrderServiceClient
             throw new InvalidOperationException($"Failed to update order e-tickets: {error}");
         }
     }
+
+    public async Task<OrderMsSsrOptionsResult> GetSsrOptionsAsync(string? cabinCode, string? flightNumbers, CancellationToken ct)
+    {
+        var url = "/api/v1/ssr/options";
+        var qs = new List<string>();
+        if (!string.IsNullOrEmpty(cabinCode)) qs.Add($"cabinCode={Uri.EscapeDataString(cabinCode)}");
+        if (!string.IsNullOrEmpty(flightNumbers)) qs.Add($"flightNumbers={Uri.EscapeDataString(flightNumbers)}");
+        if (qs.Count > 0) url += "?" + string.Join("&", qs);
+
+        using var response = await _httpClient.GetAsync(url, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OrderMsSsrOptionsResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response retrieving SSR options.");
+    }
 }
 
 public sealed class OrderMsCreateBasketResult
@@ -334,4 +348,22 @@ public sealed class OrderMsConfirmOrderResult
 
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; init; } = string.Empty;
+}
+
+public sealed class OrderMsSsrOptionsResult
+{
+    [JsonPropertyName("ssrOptions")]
+    public List<OrderMsSsrOptionDto> SsrOptions { get; init; } = new();
+}
+
+public sealed class OrderMsSsrOptionDto
+{
+    [JsonPropertyName("ssrCode")]
+    public string SsrCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("label")]
+    public string Label { get; init; } = string.Empty;
+
+    [JsonPropertyName("category")]
+    public string Category { get; init; } = string.Empty;
 }

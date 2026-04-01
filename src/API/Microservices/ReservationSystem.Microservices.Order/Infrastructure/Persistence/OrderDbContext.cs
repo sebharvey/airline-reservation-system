@@ -5,7 +5,7 @@ namespace ReservationSystem.Microservices.Order.Infrastructure.Persistence;
 
 /// <summary>
 /// Entity Framework Core DbContext for the Order bounded context.
-/// Manages the [order].[Basket] and [order].[Order] tables.
+/// Manages the [order].[Basket], [order].[Order], and [order].[SsrCatalogue] tables.
 /// </summary>
 public sealed class OrderDbContext : DbContext
 {
@@ -13,6 +13,7 @@ public sealed class OrderDbContext : DbContext
 
     public DbSet<Basket> Baskets => Set<Basket>();
     public DbSet<Domain.Entities.Order> Orders => Set<Domain.Entities.Order>();
+    public DbSet<SsrCatalogueEntry> SsrCatalogue => Set<SsrCatalogueEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -163,6 +164,56 @@ public sealed class OrderDbContext : DbContext
                   .HasColumnName("UpdatedAt")
                   .HasColumnType("datetime2")
                   .IsRequired();
+        });
+
+        modelBuilder.Entity<SsrCatalogueEntry>(entity =>
+        {
+            entity.ToTable("SsrCatalogue", "order", t =>
+            {
+                t.HasTrigger("TR_SsrCatalogue_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+            entity.HasKey(e => e.SsrCatalogueId);
+
+            entity.Property(e => e.SsrCatalogueId)
+                  .HasColumnName("SsrCatalogueId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.SsrCode)
+                  .HasColumnName("SsrCode")
+                  .HasColumnType("char(4)")
+                  .HasMaxLength(4)
+                  .IsRequired();
+
+            entity.Property(e => e.Label)
+                  .HasColumnName("Label")
+                  .HasColumnType("varchar(100)")
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(e => e.Category)
+                  .HasColumnName("Category")
+                  .HasColumnType("varchar(20)")
+                  .HasMaxLength(20)
+                  .IsRequired();
+
+            entity.Property(e => e.IsActive)
+                  .HasColumnName("IsActive")
+                  .HasColumnType("bit")
+                  .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+
+            entity.Property(e => e.UpdatedAt)
+                  .HasColumnName("UpdatedAt")
+                  .HasColumnType("datetime2")
+                  .IsRequired();
+
+            entity.HasIndex(e => e.SsrCode).HasDatabaseName("IX_SsrCatalogue_Code");
         });
     }
 }
