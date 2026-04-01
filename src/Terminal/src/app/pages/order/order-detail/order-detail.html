@@ -418,12 +418,12 @@
                           <div class="ssr-form-grid">
                             <div class="edit-field">
                               <label class="field-label">SSR type</label>
-                              <select class="edit-input" [value]="editSsrForm().ssrCode" (change)="updateEditSsrField('ssrCode', $any($event.target).value)">
+                              <select class="edit-input" (change)="updateEditSsrField('ssrCode', $any($event.target).value)">
                                 <option value="">Select SSR…</option>
                                 @for (category of objectKeys(ssrOptionsByCategory()); track category) {
                                   <optgroup [label]="category">
                                     @for (opt of ssrOptionsByCategory()[category]; track opt.ssrCode) {
-                                      <option [value]="opt.ssrCode">{{ opt.ssrCode }} — {{ opt.label }}</option>
+                                      <option [value]="opt.ssrCode" [selected]="opt.ssrCode === editSsrForm().ssrCode">{{ opt.ssrCode }} — {{ opt.label }}</option>
                                     }
                                   </optgroup>
                                 }
@@ -431,19 +431,19 @@
                             </div>
                             <div class="edit-field">
                               <label class="field-label">Passenger</label>
-                              <select class="edit-input" [value]="editSsrForm().passengerRef" (change)="updateEditSsrField('passengerRef', $any($event.target).value)">
+                              <select class="edit-input" (change)="updateEditSsrField('passengerRef', $any($event.target).value)">
                                 <option value="">Select passenger…</option>
                                 @for (pax of passengers(); track pax.passengerId) {
-                                  <option [value]="pax.passengerId">{{ pax.givenName }} {{ pax.surname }}</option>
+                                  <option [value]="pax.passengerId" [selected]="pax.passengerId === editSsrForm().passengerRef">{{ pax.givenName }} {{ pax.surname }}</option>
                                 }
                               </select>
                             </div>
                             <div class="edit-field">
                               <label class="field-label">Flight segment</label>
-                              <select class="edit-input" [value]="editSsrForm().segmentRef" (change)="updateEditSsrField('segmentRef', $any($event.target).value)">
+                              <select class="edit-input" (change)="updateEditSsrField('segmentRef', $any($event.target).value)">
                                 <option value="">Select segment…</option>
                                 @for (seg of segments(); track seg.segmentId) {
-                                  <option [value]="seg.segmentId">{{ seg.flightNumber }} ({{ seg.origin }} → {{ seg.destination }})</option>
+                                  <option [value]="seg.segmentId" [selected]="seg.segmentId === editSsrForm().segmentRef">{{ seg.flightNumber }} ({{ seg.origin }} → {{ seg.destination }})</option>
                                 }
                               </select>
                             </div>

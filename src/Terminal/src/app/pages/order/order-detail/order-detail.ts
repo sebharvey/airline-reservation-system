@@ -315,9 +315,21 @@ export class OrderDetailComponent implements OnInit {
     this.editSsrForm.update(f => ({ ...f, [field]: value }));
   }
 
+  ssrExistsForPaxSegment(passengerRef: string, segmentRef: string, excludeKey?: string): boolean {
+    return this.ssrItems().some(item =>
+      item.passengerRef === passengerRef &&
+      item.segmentRef === segmentRef &&
+      (!excludeKey || this.ssrKey(item) !== excludeKey)
+    );
+  }
+
   async saveEditSsr(original: SsrItem): Promise<void> {
     const form = this.editSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
+    if (this.ssrExistsForPaxSegment(form.passengerRef, form.segmentRef, this.ssrKey(original))) {
+      this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
+      return;
+    }
     this.ssrSaving.set(true);
     this.ssrError.set('');
     const actions: SsrPatchAction[] = [
@@ -331,7 +343,7 @@ export class OrderDetailComponent implements OnInit {
     } catch (err: any) {
       this.ssrError.set(
         err?.status === 422
-          ? 'Cannot edit SSR: within the 24-hour amendment cut-off window.'
+          ? (err?.error?.message ?? 'Cannot edit SSR: within the 24-hour amendment cut-off window.')
           : 'Failed to save SSR changes. Please try again.'
       );
     } finally {
@@ -342,6 +354,10 @@ export class OrderDetailComponent implements OnInit {
   async addSsr(): Promise<void> {
     const form = this.addSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
+    if (this.ssrExistsForPaxSegment(form.passengerRef, form.segmentRef)) {
+      this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
+      return;
+    }
     this.ssrSaving.set(true);
     this.ssrError.set('');
     const action: SsrPatchAction = {
@@ -358,7 +374,7 @@ export class OrderDetailComponent implements OnInit {
     } catch (err: any) {
       this.ssrError.set(
         err?.status === 422
-          ? 'Cannot add SSR: within the 24-hour amendment cut-off window.'
+          ? (err?.error?.message ?? 'Cannot add SSR: within the 24-hour amendment cut-off window.')
           : 'Failed to add SSR. Please try again.'
       );
     } finally {
