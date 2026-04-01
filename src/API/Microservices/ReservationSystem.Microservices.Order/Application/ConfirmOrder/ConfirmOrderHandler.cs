@@ -64,6 +64,21 @@ public sealed class ConfirmOrderHandler
         if (segmentsNode is null || segmentsNode.Count == 0)
             throw new InvalidOperationException("Order cannot be confirmed: no flight segments present in basket.");
 
+        var ticketingCutoff = DateTime.UtcNow.AddHours(1);
+        foreach (var offer in segmentsNode)
+        {
+            if (offer is not JsonObject offerObj) continue;
+            var departureDateTimeStr = offerObj["departureDateTime"]?.GetValue<string>();
+            if (departureDateTimeStr is not null &&
+                DateTime.TryParse(departureDateTimeStr, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var departureUtc) &&
+                departureUtc <= ticketingCutoff)
+            {
+                var flightNumber = offerObj["flightNumber"]?.GetValue<string>() ?? "unknown";
+                throw new InvalidOperationException(
+                    $"Ticketing is closed for flight {flightNumber}: departure at {departureDateTimeStr} is within 1 hour.");
+            }
+        }
+
         // ── Step 2: build full OrderData from basket and payment references ───
 
         // Carry forward bookingType and any reward redemption data from the draft OrderData
