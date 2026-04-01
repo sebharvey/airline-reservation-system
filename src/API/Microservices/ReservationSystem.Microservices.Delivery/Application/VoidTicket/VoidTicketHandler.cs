@@ -29,7 +29,7 @@ public sealed class VoidTicketHandler
         if (ticket.IsVoided)
         {
             _logger.LogWarning("Ticket {ETicketNumber} is already voided", eTicketNumber);
-            return null; // caller should return 422
+            throw new InvalidOperationException($"Ticket '{eTicketNumber}' is already voided.");
         }
 
         ticket.Void();
