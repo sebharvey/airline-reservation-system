@@ -7,7 +7,7 @@ import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
-export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'preferences';
+export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'flights' | 'preferences';
 
 interface TierBenefit {
   tier: LoyaltyTier;

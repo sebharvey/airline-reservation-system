@@ -86,6 +86,11 @@
     >Profile</button>
     <button
       class="tab"
+      [class.active]="activeTab() === 'flights'"
+      (click)="setTab('flights')"
+    >Flights</button>
+    <button
+      class="tab"
       [class.active]="activeTab() === 'preferences'"
       (click)="setTab('preferences')"
     >Settings</button>
@@ -503,6 +508,16 @@
             }
           </button>
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- Flights Tab -->
+  @if (activeTab() === 'flights') {
+    <div class="tab-content fade-in">
+      <div class="flights-placeholder">
+        <h3 class="section-heading">My Flights</h3>
+        <p class="flights-placeholder-desc">Your past and upcoming flights will appear here. This section is coming soon.</p>
       </div>
     </div>
   }

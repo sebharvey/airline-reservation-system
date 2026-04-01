@@ -554,6 +554,19 @@
   font-size: 0.9rem;
 }
 
+/* ── Flights Placeholder ── */
+.flights-placeholder {
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  padding: 32px;
+}
+
+.flights-placeholder-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 /* ── Profile Form ── */
 .profile-form-card {
   background: var(--bg-light);
