@@ -168,9 +168,10 @@ export class OrderService {
   }
 
   async getSsrOptions(): Promise<SsrOption[]> {
-    return firstValueFrom(
-      this.#http.get<SsrOption[]>(`${environment.retailApiUrl}/api/v1/ssr/options`)
+    const response = await firstValueFrom(
+      this.#http.get<{ ssrOptions: SsrOption[] }>(`${environment.retailApiUrl}/api/v1/ssr/options`)
     );
+    return response.ssrOptions;
   }
 
   async updateOrderSsrs(bookingRef: string, actions: SsrPatchAction[]): Promise<void> {

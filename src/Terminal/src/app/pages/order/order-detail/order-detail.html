@@ -394,19 +394,7 @@
           </div>
         }
 
-        <!-- SSR catalogue loading state (needed for edit dropdowns) -->
-        @if (ssrOptionsLoading()) {
-          <div class="ssr-loading">
-            <span class="spinner"></span>
-            <span>Loading SSR catalogue…</span>
-          </div>
-        } @else if (ssrOptionsError()) {
-          <div class="alert alert-error" role="alert">
-            <span>&#9888;</span> {{ ssrOptionsError() }}
-          </div>
-        } @else {
-
-          <!-- Current SSRs -->
+          <!-- Current SSRs — shown immediately, independent of catalogue loading -->
           @if (ssrItems().length === 0) {
             <p class="empty-tab">No special service requests on this order.</p>
           } @else {
@@ -483,7 +471,7 @@
                         <td class="mono">{{ getSegmentLabel(item.segmentRef) }}</td>
                         <td>
                           <div class="ssr-row-actions">
-                            <button class="edit-btn" [disabled]="ssrSaving()" (click)="startEditSsr(item)">Edit</button>
+                            <button class="edit-btn" [disabled]="ssrSaving() || ssrOptionsLoading()" (click)="startEditSsr(item)">Edit</button>
                             <button class="remove-ssr-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">Remove</button>
                           </div>
                         </td>
@@ -494,6 +482,18 @@
               </table>
             </div>
           }
+
+          <!-- SSR catalogue loading state (needed for add/edit dropdowns) -->
+          @if (ssrOptionsLoading()) {
+            <div class="ssr-loading">
+              <span class="spinner"></span>
+              <span>Loading SSR catalogue…</span>
+            </div>
+          } @else if (ssrOptionsError()) {
+            <div class="alert alert-error" role="alert">
+              <span>&#9888;</span> {{ ssrOptionsError() }}
+            </div>
+          } @else {
 
           <!-- Add SSR -->
           <div class="ssr-add-section">
@@ -549,7 +549,7 @@
             }
           </div>
 
-        }
+          }
 
       </div>
     }
