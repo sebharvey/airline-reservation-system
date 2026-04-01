@@ -8,6 +8,7 @@ import {
   Transaction,
   UpdateCustomerRequest,
   UpdateIdentityRequest,
+  SetPasswordRequest,
 } from '../../../services/customer.service';
 import { CustomerSearchStateService } from '../../../services/customer-search-state.service';
 
@@ -140,6 +141,15 @@ export class CustomerDetailComponent implements OnInit {
   editIdentityEmail = signal('');
   editIdentityIsLocked = signal(false);
   savingIdentity = signal(false);
+
+  // Set password
+  showSetPasswordForm = signal(false);
+  setPasswordValue = signal('');
+  setPasswordConfirm = signal('');
+  settingPassword = signal(false);
+
+  // Verify email
+  verifyingEmail = signal(false);
 
   ngOnInit(): void {
     this.loyaltyNumber = this.#route.snapshot.paramMap.get('loyaltyNumber') ?? '';
@@ -448,6 +458,68 @@ export class CustomerDetailComponent implements OnInit {
       }
     } finally {
       this.savingIdentity.set(false);
+    }
+  }
+
+  openSetPasswordForm(): void {
+    this.setPasswordValue.set('');
+    this.setPasswordConfirm.set('');
+    this.showSetPasswordForm.set(true);
+    this.success.set('');
+    this.error.set('');
+  }
+
+  cancelSetPassword(): void {
+    this.showSetPasswordForm.set(false);
+  }
+
+  async submitSetPassword(): Promise<void> {
+    const password = this.setPasswordValue().trim();
+    const confirm = this.setPasswordConfirm().trim();
+
+    if (!password) {
+      this.error.set('Please enter a new password.');
+      return;
+    }
+    if (password !== confirm) {
+      this.error.set('Passwords do not match.');
+      return;
+    }
+
+    this.settingPassword.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      const request: SetPasswordRequest = { newPassword: password };
+      await this.#customerService.setPassword(this.loyaltyNumber, request);
+      this.success.set('Password updated successfully.');
+      this.showSetPasswordForm.set(false);
+      await this.loadCustomer();
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 400) {
+        this.error.set(err.error?.detail ?? 'Password does not meet requirements.');
+      } else {
+        this.error.set('Failed to set password. Please try again.');
+      }
+    } finally {
+      this.settingPassword.set(false);
+    }
+  }
+
+  async markEmailVerified(): Promise<void> {
+    this.verifyingEmail.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.#customerService.markEmailVerified(this.loyaltyNumber);
+      this.success.set('Email address marked as verified.');
+      await this.loadCustomer();
+    } catch {
+      this.error.set('Failed to verify email address. Please try again.');
+    } finally {
+      this.verifyingEmail.set(false);
     }
   }
 }

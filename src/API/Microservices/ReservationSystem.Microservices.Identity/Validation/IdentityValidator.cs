@@ -60,6 +60,16 @@ public static class IdentityValidator
     }
 
     /// <summary>
+    /// Validate the password field for the POST /v1/accounts/{id}/set-password endpoint.
+    /// </summary>
+    public static List<string> ValidatePasswordField(string? password)
+    {
+        var errors = new List<string>();
+        CommonFieldValidator.ValidatePassword(password, errors, fieldName: "newPassword");
+        return errors;
+    }
+
+    /// <summary>
     /// Validate that a required token field is present.
     /// Used for refresh, logout, and verify-email-change endpoints.
     /// </summary>

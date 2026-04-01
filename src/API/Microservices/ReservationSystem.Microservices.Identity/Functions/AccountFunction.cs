@@ -8,6 +8,8 @@ using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
 using ReservationSystem.Microservices.Identity.Application.GetAccount;
 using ReservationSystem.Microservices.Identity.Application.GetAccountByEmail;
+using ReservationSystem.Microservices.Identity.Application.Login;
+using ReservationSystem.Microservices.Identity.Application.SetPassword;
 using ReservationSystem.Microservices.Identity.Application.UpdateAccount;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
@@ -34,6 +36,7 @@ public sealed class AccountFunction
     private readonly GetAccountHandler _getAccountHandler;
     private readonly GetAccountByEmailHandler _getAccountByEmailHandler;
     private readonly UpdateAccountHandler _updateAccountHandler;
+    private readonly SetPasswordHandler _setPasswordHandler;
     private readonly VerifyEmailHandler _verifyEmailHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
     private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
@@ -45,6 +48,7 @@ public sealed class AccountFunction
         GetAccountHandler getAccountHandler,
         GetAccountByEmailHandler getAccountByEmailHandler,
         UpdateAccountHandler updateAccountHandler,
+        SetPasswordHandler setPasswordHandler,
         VerifyEmailHandler verifyEmailHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
         VerifyEmailChangeHandler verifyEmailChangeHandler,
@@ -55,6 +59,7 @@ public sealed class AccountFunction
         _getAccountHandler = getAccountHandler;
         _getAccountByEmailHandler = getAccountByEmailHandler;
         _updateAccountHandler = updateAccountHandler;
+        _setPasswordHandler = setPasswordHandler;
         _verifyEmailHandler = verifyEmailHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
         _verifyEmailChangeHandler = verifyEmailChangeHandler;
@@ -231,6 +236,42 @@ public sealed class AccountFunction
             var command = new DeleteAccountCommand(userAccountId);
             await _deleteAccountHandler.HandleAsync(command, cancellationToken);
             return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"No user account found for ID '{userAccountId}'.");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/accounts/{userAccountId:guid}/set-password
+    // -------------------------------------------------------------------------
+
+    [Function("SetPassword")]
+    [OpenApiOperation(operationId: "SetPassword", tags: new[] { "Accounts" }, Summary = "Set password directly on an account (admin)")]
+    [OpenApiParameter(name: "userAccountId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "User account ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SetPasswordRequest), Required = true, Description = "New password")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Password set")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> SetPassword(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/set-password")] HttpRequestData req,
+        Guid userAccountId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<SetPasswordRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        var validationErrors = IdentityValidator.ValidatePasswordField(request!.NewPassword);
+        if (validationErrors.Count > 0)
+            return await req.BadRequestAsync(string.Join(" ", validationErrors));
+
+        try
+        {
+            var passwordHash = LoginHandler.HashPassword(request.NewPassword!);
+            var command = new SetPasswordCommand(userAccountId, passwordHash);
+            await _setPasswordHandler.HandleAsync(command, cancellationToken);
+            return req.NoContent();
         }
         catch (KeyNotFoundException)
         {

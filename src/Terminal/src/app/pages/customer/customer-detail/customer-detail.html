@@ -215,12 +215,24 @@
               <div class="detail-section detail-section-full">
                 <div class="section-title-row">
                   <h3 class="section-title">Identity account</h3>
-                  @if (!editingIdentity()) {
-                    <button class="edit-btn edit-btn-sm" (click)="startEditIdentity()">Edit</button>
+                  @if (!editingIdentity() && !showSetPasswordForm()) {
+                    <div class="section-title-actions">
+                      @if (!id.isEmailVerified) {
+                        <button class="edit-btn edit-btn-sm" (click)="markEmailVerified()" [disabled]="verifyingEmail()">
+                          @if (verifyingEmail()) {
+                            <span class="btn-spinner"></span> Verifying…
+                          } @else {
+                            Mark Email Verified
+                          }
+                        </button>
+                      }
+                      <button class="edit-btn edit-btn-sm" (click)="openSetPasswordForm()">Set Password</button>
+                      <button class="edit-btn edit-btn-sm" (click)="startEditIdentity()">Edit</button>
+                    </div>
                   }
                 </div>
 
-                @if (!editingIdentity()) {
+                @if (!editingIdentity() && !showSetPasswordForm()) {
                   <div class="field-grid">
                     <div class="field-display">
                       <span class="field-label">Email</span>
@@ -262,6 +274,35 @@
                       <span class="field-label">Last updated</span>
                       <span class="field-value">{{ formatDateTime(id.updatedAt) }}</span>
                     </div>
+                  </div>
+                } @else if (showSetPasswordForm()) {
+                  <div class="form-grid">
+                    <div class="field">
+                      <label class="field-label">New password</label>
+                      <input class="field-input" type="password"
+                        [value]="setPasswordValue()"
+                        (input)="setField(setPasswordValue.set.bind(setPasswordValue), $event)"
+                        [disabled]="settingPassword()"
+                        placeholder="Enter new password" />
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Confirm password</label>
+                      <input class="field-input" type="password"
+                        [value]="setPasswordConfirm()"
+                        (input)="setField(setPasswordConfirm.set.bind(setPasswordConfirm), $event)"
+                        [disabled]="settingPassword()"
+                        placeholder="Re-enter new password" />
+                    </div>
+                  </div>
+                  <div class="form-actions">
+                    <button class="btn-secondary" (click)="cancelSetPassword()" [disabled]="settingPassword()">Cancel</button>
+                    <button class="btn-primary" (click)="submitSetPassword()" [disabled]="settingPassword()">
+                      @if (settingPassword()) {
+                        <span class="btn-spinner"></span> Setting…
+                      } @else {
+                        Set Password
+                      }
+                    </button>
                   </div>
                 } @else {
                   <div class="form-grid">
