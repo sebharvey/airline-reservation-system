@@ -185,6 +185,30 @@ public sealed class IdentityServiceClient
     }
 
     /// <summary>
+    /// Admin-initiated direct password set — no reset token required.
+    /// </summary>
+    public async Task SetPasswordAsync(
+        Guid userAccountId,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { newPassword };
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/accounts/{userAccountId}/set-password", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No identity account found for ID '{userAccountId}'.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var message = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new ArgumentException(message);
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
     /// Admin-initiated update of email and/or locked status — no verification step required.
     /// Throws <see cref="InvalidOperationException"/> if the email is taken by another account.
     /// </summary>

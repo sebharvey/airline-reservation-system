@@ -255,6 +255,13 @@
   margin-bottom: 0;
 }
 
+.section-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .detail-section-full {
   grid-column: 1 / -1;
 }

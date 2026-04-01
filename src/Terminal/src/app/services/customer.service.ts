@@ -54,6 +54,10 @@ export interface UpdateIdentityRequest {
   isLocked?: boolean;
 }
 
+export interface SetPasswordRequest {
+  newPassword: string;
+}
+
 export interface UpdateCustomerRequest {
   givenName?: string;
   surname?: string;
@@ -147,6 +151,18 @@ export class CustomerService {
   async updateIdentity(loyaltyNumber: string, request: UpdateIdentityRequest): Promise<void> {
     await firstValueFrom(
       this.#http.patch(`${this.#baseUrl}/${loyaltyNumber}/identity`, request)
+    );
+  }
+
+  async setPassword(loyaltyNumber: string, request: SetPasswordRequest): Promise<void> {
+    await firstValueFrom(
+      this.#http.post(`${this.#baseUrl}/${loyaltyNumber}/identity/set-password`, request)
+    );
+  }
+
+  async markEmailVerified(loyaltyNumber: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.post(`${this.#baseUrl}/${loyaltyNumber}/identity/verify-email`, {})
     );
   }
 }

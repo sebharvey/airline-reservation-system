@@ -304,6 +304,84 @@ public sealed class CustomerManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // POST /v1/admin/customers/{loyaltyNumber}/identity/set-password
+    // -------------------------------------------------------------------------
+
+    [Function("AdminSetCustomerPassword")]
+    [OpenApiOperation(operationId: "AdminSetCustomerPassword", tags: new[] { "Admin Customers" }, Summary = "Set a password on a customer identity account (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminSetPasswordRequest), Required = true)]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Password set")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> SetCustomerPassword(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/customers/{loyaltyNumber}/identity/set-password")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminSetPasswordRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.NewPassword))
+            return await req.BadRequestAsync("The 'newPassword' field is required.");
+
+        var customer = await _customerServiceClient.GetCustomerAsync(loyaltyNumber, cancellationToken);
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        if (!customer.IdentityId.HasValue)
+            return await req.NotFoundAsync($"Customer '{loyaltyNumber}' has no linked identity account.");
+
+        try
+        {
+            await _identityServiceClient.SetPasswordAsync(customer.IdentityId.Value, request.NewPassword, cancellationToken);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"Identity account not found for customer '{loyaltyNumber}'.");
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/admin/customers/{loyaltyNumber}/identity/verify-email
+    // -------------------------------------------------------------------------
+
+    [Function("AdminVerifyCustomerEmail")]
+    [OpenApiOperation(operationId: "AdminVerifyCustomerEmail", tags: new[] { "Admin Customers" }, Summary = "Mark a customer email address as verified (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Email marked as verified")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> VerifyCustomerEmail(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/customers/{loyaltyNumber}/identity/verify-email")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var customer = await _customerServiceClient.GetCustomerAsync(loyaltyNumber, cancellationToken);
+        if (customer is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        if (!customer.IdentityId.HasValue)
+            return await req.NotFoundAsync($"Customer '{loyaltyNumber}' has no linked identity account.");
+
+        try
+        {
+            await _identityServiceClient.VerifyEmailAsync(customer.IdentityId.Value, cancellationToken);
+        }
+        catch (KeyNotFoundException)
+        {
+            return await req.NotFoundAsync($"Identity account not found for customer '{loyaltyNumber}'.");
+        }
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
     // PATCH /v1/admin/customers/{loyaltyNumber}/status
     // -------------------------------------------------------------------------
 
