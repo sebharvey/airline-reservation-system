@@ -18,7 +18,7 @@ public class DeliveryApiIntegrationTests : IAsyncLifetime
 {
     private static readonly string BaseUrl =
         string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DELIVERY_API_BASE_URL"))
-            ? "https://reservation-system-db-microservice-delivery-cxhzaxfaagd4g9gy.uksouth-01.azurewebsites.net"
+            ? "https://reservation-system-db-microservice-delivery-ehe2f4c3dybehwat.uksouth-01.azurewebsites.net"
             : Environment.GetEnvironmentVariable("DELIVERY_API_BASE_URL")!;
 
     private static readonly string? HostKey = Environment.GetEnvironmentVariable("DELIVERY_API_HOST_KEY");
