@@ -238,22 +238,6 @@
   flex-wrap: wrap;
 }
 
-.footer-bottom-links {
-  display: flex;
-  gap: 16px;
-  margin-left: auto;
-}
-
-.footer-bottom-links a {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 0.75rem;
-  transition: color 0.2s ease;
-}
-
-.footer-bottom-links a:hover {
-  color: var(--grad-start);
-}
 
 /* ── DEBUG — basket debug button & modal; remove with basket debug feature ── */
 .debug-basket-btn {
@@ -568,10 +552,6 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 20px clamp(40px, 5vw, 80px);
-    font-size: 0.8rem;
-  }
-
-  .footer-bottom-links a {
     font-size: 0.8rem;
   }
 }
