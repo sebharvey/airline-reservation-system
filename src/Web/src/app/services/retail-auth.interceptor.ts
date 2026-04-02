@@ -21,6 +21,7 @@ export const retailAuthInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   const loyaltyState = inject(LoyaltyStateService);
+  const router = inject(Router);
   const session = loyaltyState.session();
   if (!session?.accessToken) {
     return next(req);
@@ -30,7 +31,7 @@ export const retailAuthInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
         loyaltyState.logout();
-        inject(Router).navigate(['/loyalty']);
+        router.navigate(['/loyalty']);
       }
       return throwError(() => error);
     })
