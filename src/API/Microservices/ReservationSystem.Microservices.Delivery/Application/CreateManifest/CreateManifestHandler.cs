@@ -35,8 +35,8 @@ public sealed class CreateManifestHandler
                 : "[]";
 
             var manifest = Manifest.Create(
-                entry.TicketId, entry.InventoryId, entry.FlightNumber, departureDate,
-                entry.AircraftType, entry.SeatNumber, entry.CabinCode,
+                entry.TicketId, entry.InventoryId, entry.FlightNumber, entry.Origin, entry.Destination,
+                departureDate, entry.AircraftType, entry.SeatNumber, entry.CabinCode,
                 request.BookingReference, entry.ETicketNumber,
                 entry.PassengerId, entry.GivenName, entry.Surname,
                 ssrCodesJson, departureTime, arrivalTime);

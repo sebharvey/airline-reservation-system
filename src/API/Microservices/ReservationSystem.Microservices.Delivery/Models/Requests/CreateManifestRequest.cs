@@ -13,6 +13,8 @@ public sealed class ManifestEntryRequest
     [JsonPropertyName("ticketId")] public Guid TicketId { get; init; }
     [JsonPropertyName("inventoryId")] public Guid InventoryId { get; init; }
     [JsonPropertyName("flightNumber")] public string FlightNumber { get; init; } = string.Empty;
+    [JsonPropertyName("origin")] public string Origin { get; init; } = string.Empty;
+    [JsonPropertyName("destination")] public string Destination { get; init; } = string.Empty;
     [JsonPropertyName("departureDate")] public string DepartureDate { get; init; } = string.Empty;
     [JsonPropertyName("departureTime")] public string DepartureTime { get; init; } = string.Empty;
     [JsonPropertyName("arrivalTime")] public string ArrivalTime { get; init; } = string.Empty;

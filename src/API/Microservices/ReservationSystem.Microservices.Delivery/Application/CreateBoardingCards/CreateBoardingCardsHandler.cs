@@ -180,8 +180,8 @@ public sealed class CreateBoardingCardsHandler
             : $"{surname}/{givenName}".PadRight(20);
 
         var carrier = ExtractCarrierCode(flightNumber);
-        var fn = flightNumber.Replace(carrier, string.Empty).PadStart(4, '0');
-        var seat = seatNumber.PadStart(4, '0');
+        var fn = flightNumber.Replace(carrier, string.Empty).PadLeft(4, '0');
+        var seat = seatNumber.PadLeft(4, '0');
 
         return $"M1{name}E{bookingRef} {origin}{destination}{carrier} {fn} {DateTime.UtcNow:yyyy-MM-dd}J{seat}{sequenceNumber}1";
     }

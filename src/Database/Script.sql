@@ -605,6 +605,8 @@ CREATE TABLE [delivery].[Manifest] (
     TicketId         UNIQUEIDENTIFIER NOT NULL,
     InventoryId      UNIQUEIDENTIFIER NOT NULL,
     FlightNumber     VARCHAR(10)      NOT NULL,
+    Origin           CHAR(3)          NOT NULL,
+    Destination      CHAR(3)          NOT NULL,
     DepartureDate    DATE             NOT NULL,
     AircraftType     CHAR(4)          NOT NULL,
     SeatNumber       VARCHAR(5)       NOT NULL,
