@@ -57,6 +57,61 @@ public sealed class DeliveryServiceClient
             throw new InvalidOperationException($"Manifest creation failed: {error}");
         }
     }
+
+    public async Task VoidTicketAsync(string eTicketNumber, CancellationToken ct)
+    {
+        using var content = new System.Net.Http.StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/tickets/{Uri.EscapeDataString(eTicketNumber)}/void", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Ticket void failed for {eTicketNumber}: {error}");
+        }
+    }
+
+    public async Task DeleteManifestAsync(string bookingReference, string flightNumber, string departureDate, CancellationToken ct)
+    {
+        using var response = await _httpClient.DeleteAsync(
+            $"/api/v1/manifest/{Uri.EscapeDataString(bookingReference)}/flight/{Uri.EscapeDataString(flightNumber)}/{Uri.EscapeDataString(departureDate)}", ct);
+        // 404 is acceptable — manifest entry may not exist
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Manifest deletion failed: {error}");
+        }
+    }
+
+    public async Task<List<IssuedTicket>> ReissueTicketsAsync(
+        string bookingReference, string reason,
+        List<TicketPassenger> passengers, List<TicketSegment> segments,
+        CancellationToken ct)
+    {
+        var payload = new { bookingReference, reason, passengers, segments };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/tickets/reissue", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Ticket reissuance failed: {error}");
+        }
+        var result = await response.Content.ReadFromJsonAsync<IssueTicketsResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from ticket reissuance.");
+        return result.Tickets;
+    }
+
+    public async Task IssueDocumentAsync(
+        string bookingReference, string documentType, string passengerId,
+        string inventoryId, decimal amount, string currency,
+        CancellationToken ct)
+    {
+        var payload = new { bookingReference, documentType, passengerId, inventoryId, amount, currency };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/documents", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            // Document issuance failure is non-fatal — log but do not roll back
+            System.Console.Error.WriteLine($"[DeliveryServiceClient] Document issuance failed: {error}");
+        }
+    }
 }
 
 public sealed class IssuedTicket

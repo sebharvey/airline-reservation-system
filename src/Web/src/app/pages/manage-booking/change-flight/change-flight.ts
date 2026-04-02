@@ -30,6 +30,14 @@ export class ChangeFlightComponent implements OnInit {
   flightOffers = signal<FlightOffer[]>([]);
   selectedOffer = signal<FlightOffer | null>(null);
 
+  // Payment form (shown when add-collect > 0)
+  cardholderName = signal('');
+  cardNumber = signal('');
+  expiryMonth = signal('');
+  expiryYear = signal('');
+  cvv = signal('');
+  paymentSubmitted = signal(false);
+
   readonly changeableSegments = computed((): FlightSegment[] => {
     const o = this.order();
     if (!o) return [];
@@ -38,17 +46,44 @@ export class ChangeFlightComponent implements OnInit {
     );
   });
 
-  readonly addCollectEstimate = computed((): string => {
+  readonly addCollectAmount = computed((): number => {
     const offer = this.selectedOffer();
     const o = this.order();
-    if (!offer || !o) return '';
+    if (!offer || !o) return 0;
     const seg = this.selectedSegment();
-    if (!seg) return '';
+    if (!seg) return 0;
     const existingItem = o.orderItems.find(oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId);
-    if (!existingItem) return '';
-    const diff = offer.totalPrice - existingItem.totalPrice;
+    if (!existingItem) return 0;
+    return Math.max(0, offer.totalPrice - existingItem.totalPrice);
+  });
+
+  readonly addCollectEstimate = computed((): string => {
+    const diff = this.addCollectAmount();
+    const offer = this.selectedOffer();
+    if (!offer) return '';
     if (diff <= 0) return 'No additional charge';
     return `Add collect: ${this.formatCurrency(diff, offer.currency)}`;
+  });
+
+  readonly requiresPayment = computed((): boolean => this.addCollectAmount() > 0);
+
+  readonly expiryYears = computed(() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 12 }, (_, i) => current + i);
+  });
+
+  readonly expiryMonths = [
+    { value: '01', label: '01 - Jan' }, { value: '02', label: '02 - Feb' },
+    { value: '03', label: '03 - Mar' }, { value: '04', label: '04 - Apr' },
+    { value: '05', label: '05 - May' }, { value: '06', label: '06 - Jun' },
+    { value: '07', label: '07 - Jul' }, { value: '08', label: '08 - Aug' },
+    { value: '09', label: '09 - Sep' }, { value: '10', label: '10 - Oct' },
+    { value: '11', label: '11 - Nov' }, { value: '12', label: '12 - Dec' }
+  ];
+
+  readonly cardDisplayNumber = computed(() => {
+    const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
+    return raw.replace(/(.{4})/g, '$1 ').trim();
   });
 
   constructor(
@@ -132,21 +167,56 @@ export class ChangeFlightComponent implements OnInit {
 
   selectOffer(offer: FlightOffer): void {
     this.selectedOffer.set(this.selectedOffer()?.offerId === offer.offerId ? null : offer);
+    // Reset payment form when a new offer is selected
+    this.cardholderName.set('');
+    this.cardNumber.set('');
+    this.expiryMonth.set('');
+    this.expiryYear.set('');
+    this.cvv.set('');
+    this.paymentSubmitted.set(false);
+  }
+
+  onCardNumberInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').substring(0, 16);
+    this.cardNumber.set(digits);
+    input.value = digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  isPaymentFormValid(): boolean {
+    if (!this.requiresPayment()) return true;
+    const name = this.cardholderName().trim();
+    const num = this.cardNumber().replace(/\D/g, '');
+    const month = this.expiryMonth();
+    const year = this.expiryYear();
+    const cvv = this.cvv().trim();
+    return !!(name && num.length === 16 && month && year && cvv.length >= 3);
   }
 
   confirmChange(): void {
     const offer = this.selectedOffer();
     if (!offer || this.confirming()) return;
 
+    this.paymentSubmitted.set(true);
+    if (!this.isPaymentFormValid()) return;
+
     this.confirming.set(true);
     this.errorMessage.set('');
 
-    this.retailApi.changeOrder(this.bookingRef(), offer.offerId).subscribe({
+    const payment = this.requiresPayment() ? {
+      method: 'CreditCard',
+      cardNumber: this.cardNumber().replace(/\D/g, ''),
+      expiryDate: `${this.expiryMonth()}/${this.expiryYear()}`,
+      cvv: this.cvv().trim(),
+      cardholderName: this.cardholderName().trim()
+    } : undefined;
+
+    this.retailApi.changeOrder(this.bookingRef(), offer.offerId, payment).subscribe({
       next: (res) => {
         this.confirming.set(false);
         if (res.success) {
           const chargeMsg = res.addCollect > 0
-            ? ` An additional charge of ${this.formatCurrency(res.addCollect, res.currency)} has been applied.`
+            ? ` An additional charge of ${this.formatCurrency(res.addCollect, offer.currency)} has been applied.`
             : '';
           this.successMessage.set(`Flight changed successfully.${chargeMsg}`);
         } else {

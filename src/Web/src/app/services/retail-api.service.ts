@@ -15,7 +15,6 @@ import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode } from '../models/flight.model';
 import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
-import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
 
 
 export interface SearchSliceParams {
@@ -278,16 +277,10 @@ export class RetailApiService {
    * Retrieve bag policy and priced bag offers for a flight and cabin.
    */
   getBagOffers(inventoryId: string, cabinCode: CabinCode): Observable<BagPolicyResponse> {
-    const response = MOCK_BAG_POLICIES[cabinCode] ?? MOCK_BAG_POLICIES['Y'];
-    // Refresh bagOfferIds to simulate snapshot generation
-    const freshOffers = {
-      ...response,
-      additionalBagOffers: response.additionalBagOffers.map(o => ({
-        ...o,
-        bagOfferId: `${o.bagOfferId}-${Date.now()}`
-      }))
-    };
-    return of(freshOffers).pipe(delay(API_DELAY_MS));
+    const base = environment.retailApiBaseUrl;
+    return this.#http.get<BagPolicyResponse>(
+      `${base}/api/v1/bags/offers?inventoryId=${encodeURIComponent(inventoryId)}&cabinCode=${encodeURIComponent(cabinCode)}`
+    );
   }
 
   /**
@@ -426,10 +419,21 @@ export class RetailApiService {
 
   /**
    * PATCH /v1/orders/{bookingRef}/seats  (post-sale seat change)
-   * PATCH /v1/checkin/{bookingRef}/seats (check-in seat selection - no charge)
    */
-  updateSeats(_bookingRef: string, _seatSelections: { passengerId: string; segmentId: string; seatNumber: string }[]): Observable<{ success: boolean }> {
-    return of({ success: true }).pipe(delay(API_DELAY_MS));
+  updateSeats(bookingRef: string, seatSelections: { passengerId: string; segmentId: string; seatNumber: string }[]): Observable<{ success: boolean }> {
+    const base = environment.retailApiBaseUrl;
+    const body = { seatSelections };
+    return this.#http
+      .patch<{ bookingReference: string; updated: boolean }>(
+        `${base}/api/v1/orders/${encodeURIComponent(bookingRef)}/seats`, body
+      )
+      .pipe(
+        map(res => ({ success: res.updated })),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Seat update failed. Please try again.'
+        })))
+      );
   }
 
   /**
@@ -451,28 +455,74 @@ export class RetailApiService {
    * Purchase additional bags post-sale via Manage Booking.
    */
   addManageBookingBags(
-    _bookingRef: string,
-    _bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
-    _cardLast4: string,
-    _cardType: string
+    bookingRef: string,
+    bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
+    payment: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }
   ): Observable<{ success: boolean; paymentReference: string }> {
-    return of({ success: true, paymentReference: 'AXPAY-MB-' + Date.now() }).pipe(delay(API_DELAY_MS));
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      bagSelections: bags.map(b => ({
+        bagOfferId: b.bagOfferId,
+        passengerRef: b.passengerId,
+        inventoryId: b.segmentId
+      })),
+      payment
+    };
+    return this.#http
+      .post<{ bookingReference: string; totalBagAmount: number; paymentId: string }>(
+        `${base}/api/v1/orders/${encodeURIComponent(bookingRef)}/bags`, body
+      )
+      .pipe(
+        map(res => ({ success: true, paymentReference: res.paymentId })),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Bag purchase failed. Please try again.'
+        })))
+      );
   }
 
   /**
    * POST /v1/orders/{bookingRef}/cancel
    * Cancel a confirmed booking.
    */
-  cancelOrder(_bookingRef: string, _reason: string): Observable<{ success: boolean; refundAmount: number; currency: string }> {
-    return of({ success: true, refundAmount: 4431.00, currency: 'GBP' }).pipe(delay(API_DELAY_MS));
+  cancelOrder(bookingRef: string, _reason: string): Observable<{ success: boolean; refundAmount: number; currency: string }> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http
+      .post<{ bookingReference: string; orderStatus: string; refundableAmount: number; refundInitiated: boolean }>(
+        `${base}/api/v1/orders/${encodeURIComponent(bookingRef)}/cancel`, {}
+      )
+      .pipe(
+        map(res => ({ success: true, refundAmount: res.refundableAmount, currency: 'GBP' })),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Cancellation failed. Please try again.'
+        })))
+      );
   }
 
   /**
    * POST /v1/orders/{bookingRef}/change
    * Change a confirmed flight.
    */
-  changeOrder(_bookingRef: string, _newOfferId: string): Observable<{ success: boolean; addCollect: number; currency: string }> {
-    return of({ success: true, addCollect: 150.00, currency: 'GBP' }).pipe(delay(API_DELAY_MS));
+  changeOrder(
+    bookingRef: string,
+    newOfferId: string,
+    payment?: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }
+  ): Observable<{ success: boolean; addCollect: number; currency: string; newFlightNumber?: string }> {
+    const base = environment.retailApiBaseUrl;
+    const body: Record<string, unknown> = { newOfferId };
+    if (payment) body['payment'] = payment;
+    return this.#http
+      .post<{ bookingReference: string; newFlightNumber: string; totalDue: number; paymentId?: string }>(
+        `${base}/api/v1/orders/${encodeURIComponent(bookingRef)}/change`, body
+      )
+      .pipe(
+        map(res => ({ success: true, addCollect: res.totalDue, currency: 'GBP', newFlightNumber: res.newFlightNumber })),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Flight change failed. Please try again.'
+        })))
+      );
   }
 
   /**

@@ -91,4 +91,32 @@ public sealed class OfferServiceClient
             throw new InvalidOperationException($"Failed to sell inventory: {error}");
         }
     }
+
+    public async Task ReleaseInventoryAsync(
+        Guid inventoryId, string cabinCode, string releaseType,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new { inventoryId, cabinCode, releaseType };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/release", payload, JsonOptions, cancellationToken);
+        // Non-fatal — inventory release failure does not prevent cancellation from completing
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(cancellationToken);
+            System.Console.Error.WriteLine($"[OfferServiceClient] Inventory release failed for {inventoryId}: {error}");
+        }
+    }
+
+    public async Task<OfferDetailDto?> HoldInventoryAsync(
+        Guid inventoryId, string cabinCode, int paxCount,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new { inventoryId, cabinCode, paxCount };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", payload, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(cancellationToken);
+            throw new InvalidOperationException($"Inventory hold failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
+    }
 }

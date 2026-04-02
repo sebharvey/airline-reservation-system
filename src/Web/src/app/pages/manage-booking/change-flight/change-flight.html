@@ -135,6 +135,106 @@
       </div>
     }
 
+    <!-- Payment form (shown when a flight is selected and add-collect > 0) -->
+    @if (selectedOffer() && requiresPayment()) {
+      <div class="section">
+        <h3 class="section-title">Payment</h3>
+        <div class="card payment-card">
+          <p class="payment-summary">
+            Additional charge: <strong>{{ formatCurrency(addCollectAmount(), selectedOffer()!.currency) }}</strong>
+          </p>
+
+          <div class="field">
+            <label for="cardholderName">Cardholder Name</label>
+            <input
+              id="cardholderName"
+              type="text"
+              autocomplete="cc-name"
+              placeholder="Name as it appears on card"
+              [ngModel]="cardholderName()"
+              (ngModelChange)="cardholderName.set($event)"
+              name="cardholderName"
+              [class.field--error]="paymentSubmitted() && !cardholderName().trim()"
+            />
+            @if (paymentSubmitted() && !cardholderName().trim()) {
+              <span class="field-error">Cardholder name is required</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="cardNumber">Card Number</label>
+            <input
+              id="cardNumber"
+              type="text"
+              inputmode="numeric"
+              autocomplete="cc-number"
+              placeholder="1234 5678 9012 3456"
+              [value]="cardDisplayNumber()"
+              (input)="onCardNumberInput($event)"
+              name="cardNumber"
+              maxlength="19"
+              [class.field--error]="paymentSubmitted() && cardNumber().replace(/\D/g, '').length !== 16"
+            />
+            @if (paymentSubmitted() && cardNumber().replace(/\D/g, '').length !== 16) {
+              <span class="field-error">Enter a valid 16-digit card number</span>
+            }
+          </div>
+
+          <div class="field-row">
+            <div class="field field--half">
+              <label>Expiry Date</label>
+              <div class="expiry-inputs">
+                <select
+                  [ngModel]="expiryMonth()"
+                  (ngModelChange)="expiryMonth.set($event)"
+                  name="expiryMonth"
+                  [class.field--error]="paymentSubmitted() && !expiryMonth()"
+                >
+                  <option value="">MM</option>
+                  @for (m of expiryMonths; track m.value) {
+                    <option [value]="m.value">{{ m.label }}</option>
+                  }
+                </select>
+                <select
+                  [ngModel]="expiryYear()"
+                  (ngModelChange)="expiryYear.set($event)"
+                  name="expiryYear"
+                  [class.field--error]="paymentSubmitted() && !expiryYear()"
+                >
+                  <option value="">YYYY</option>
+                  @for (y of expiryYears(); track y) {
+                    <option [value]="y">{{ y }}</option>
+                  }
+                </select>
+              </div>
+              @if (paymentSubmitted() && (!expiryMonth() || !expiryYear())) {
+                <span class="field-error">Expiry date is required</span>
+              }
+            </div>
+
+            <div class="field field--half">
+              <label for="cvv">CVV</label>
+              <input
+                id="cvv"
+                type="text"
+                inputmode="numeric"
+                autocomplete="cc-csc"
+                placeholder="CVV"
+                [ngModel]="cvv()"
+                (ngModelChange)="cvv.set($event)"
+                name="cvv"
+                maxlength="4"
+                [class.field--error]="paymentSubmitted() && cvv().trim().length < 3"
+              />
+              @if (paymentSubmitted() && cvv().trim().length < 3) {
+                <span class="field-error">Enter a valid CVV</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Confirm -->
     @if (selectedOffer()) {
       <div class="action-buttons">
@@ -146,6 +246,8 @@
         >
           @if (confirming()) {
             <span class="spinner"></span> Processing&hellip;
+          } @else if (requiresPayment()) {
+            Pay &amp; Confirm Flight Change
           } @else {
             Confirm Flight Change
           }

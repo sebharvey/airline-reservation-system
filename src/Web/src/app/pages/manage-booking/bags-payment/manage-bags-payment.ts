@@ -152,11 +152,18 @@ export class ManageBagsPaymentComponent implements OnInit {
       price: b.price
     }));
 
+    const payment = {
+      method: 'CreditCard',
+      cardNumber: this.cardNumber().replace(/\D/g, ''),
+      expiryDate: `${this.expiryMonth()}/${this.expiryYear()}`,
+      cvv: this.cvv().trim(),
+      cardholderName: this.cardholderName().trim()
+    };
+
     this.retailApi.addManageBookingBags(
       this.bookingRef(),
       bags,
-      this.cardLast4(),
-      this.detectCardType()
+      payment
     ).subscribe({
       next: () => {
         this.paying.set(false);

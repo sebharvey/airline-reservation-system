@@ -202,6 +202,54 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task CancelOrderAsync(string bookingReference, object requestBody, CancellationToken ct)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(requestBody, JsonOptions);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/cancel", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to cancel order: {error}");
+        }
+    }
+
+    public async Task ChangeOrderAsync(string bookingReference, object changeData, CancellationToken ct)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(changeData, JsonOptions);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/change", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to change order: {error}");
+        }
+    }
+
+    public async Task UpdateOrderBagsPostSaleAsync(string bookingReference, object bagsData, CancellationToken ct)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(bagsData, JsonOptions);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/bags", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order bags: {error}");
+        }
+    }
+
+    public async Task UpdateOrderSeatsPostSaleAsync(string bookingReference, object seatsData, CancellationToken ct)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(seatsData, JsonOptions);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/seats", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order seats: {error}");
+        }
+    }
+
     public async Task UpdateOrderETicketsAsync(string bookingReference, string eTicketsJson, CancellationToken ct)
     {
         using var content = new StringContent(eTicketsJson, Encoding.UTF8, "application/json");
