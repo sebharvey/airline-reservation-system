@@ -11,7 +11,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./app-shell').then(m => m.AppShell),
     children: [
-      { path: '', redirectTo: 'terminal', pathMatch: 'full' },
+      { path: '', redirectTo: 'offer', pathMatch: 'full' },
       {
         path: 'offer',
         loadComponent: () => import('./pages/offer/offer').then(m => m.OfferComponent),
