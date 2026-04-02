@@ -36,6 +36,11 @@ public sealed class GetProfileHandler
             StateOrRegion = customer.StateOrRegion,
             PostalCode = customer.PostalCode,
             CountryCode = customer.CountryCode,
+            PassportNumber = customer.PassportNumber,
+            PassportIssueDate = customer.PassportIssueDate,
+            PassportIssuer = customer.PassportIssuer,
+            PassportExpiryDate = customer.PassportExpiryDate,
+            KnownTravellerNumber = customer.KnownTravellerNumber,
             Tier = customer.TierCode,
             PointsBalance = customer.PointsBalance,
             MemberSince = customer.CreatedAt
