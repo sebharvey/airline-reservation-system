@@ -8,6 +8,8 @@ public interface IManifestRepository
 
     Task<IReadOnlyList<Manifest>> GetByFlightAsync(string flightNumber, DateTime departureDate, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Manifest>> GetByBookingAsync(string bookingReference, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Manifest>> GetByBookingAndFlightAsync(string bookingReference, string flightNumber, DateTime departureDate, CancellationToken cancellationToken = default);
 
     Task<Manifest?> GetByInventoryAndPassengerAsync(Guid inventoryId, string passengerId, CancellationToken cancellationToken = default);

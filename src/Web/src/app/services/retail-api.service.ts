@@ -402,22 +402,41 @@ export class RetailApiService {
 
   /**
    * POST /v1/oci/checkin
-   * Complete online check-in: marks coupons as checked-in on the ticket
-   * via the Delivery MS and returns boarding passes derived from ticket data.
+   * Complete online check-in: marks passengers as checked-in in the Delivery MS.
+   * Returns a status confirmation — boarding passes are retrieved separately
+   * via POST /v1/oci/boardingpasses.
    */
   submitOciCheckIn(
     bookingRef: string,
     passengers: { passengerId: string; inventoryIds: string[] }[]
-  ): Observable<BoardingPass[]> {
+  ): Observable<{ status: string; bookingReference: string; message: string }> {
     const base = environment.retailApiBaseUrl;
     const body = { bookingReference: bookingRef, passengers };
     return this.#http
-      .post<{ boardingPasses: BoardingPass[] }>(`${base}/api/v1/oci/checkin`, body)
+      .post<{ status: string; bookingReference: string; message: string }>(`${base}/api/v1/oci/checkin`, body)
+      .pipe(
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Check-in failed. Please try again or visit the airport desk.'
+        })))
+      );
+  }
+
+  /**
+   * POST /v1/oci/boardingpasses
+   * Retrieve boarding passes for all checked-in passengers on a booking,
+   * reading from the delivery.Ticket and delivery.Manifest database tables.
+   */
+  getOciBoardingPasses(bookingRef: string): Observable<BoardingPass[]> {
+    const base = environment.retailApiBaseUrl;
+    const body = { bookingReference: bookingRef };
+    return this.#http
+      .post<{ boardingPasses: BoardingPass[] }>(`${base}/api/v1/oci/boardingpasses`, body)
       .pipe(
         map(res => res.boardingPasses),
         catchError((err: HttpErrorResponse) => throwError(() => ({
           status: err.status,
-          message: err.error?.message ?? 'Check-in failed. Please try again or visit the airport desk.'
+          message: err.error?.message ?? 'Unable to retrieve boarding passes. Please try again.'
         })))
       );
   }

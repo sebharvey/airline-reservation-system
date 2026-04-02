@@ -22,6 +22,7 @@ using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.CreateBoardingCards;
+using ReservationSystem.Microservices.Delivery.Application.GetBoardingCardsByBooking;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Health;
@@ -78,6 +79,7 @@ var host = new HostBuilder()
         services.AddScoped<GetDocumentsByBookingHandler>();
         services.AddScoped<VoidDocumentHandler>();
         services.AddScoped<CreateBoardingCardsHandler>();
+        services.AddScoped<GetBoardingCardsByBookingHandler>();
     })
     .Build();
 

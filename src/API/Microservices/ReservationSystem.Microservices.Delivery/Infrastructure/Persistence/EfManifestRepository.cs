@@ -33,6 +33,16 @@ public sealed class EfManifestRepository : IManifestRepository
         return manifests.AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<Manifest>> GetByBookingAsync(string bookingReference, CancellationToken cancellationToken = default)
+    {
+        var manifests = await _context.Manifests
+            .AsNoTracking()
+            .Where(m => m.BookingReference == bookingReference && m.CheckedIn)
+            .OrderBy(m => m.PassengerId).ThenBy(m => m.DepartureDate)
+            .ToListAsync(cancellationToken);
+        return manifests.AsReadOnly();
+    }
+
     public async Task<IReadOnlyList<Manifest>> GetByBookingAndFlightAsync(string bookingReference, string flightNumber, DateTime departureDate, CancellationToken cancellationToken = default)
     {
         var manifests = await _context.Manifests

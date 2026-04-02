@@ -104,14 +104,29 @@ public sealed class DeliveryServiceClient
         CancellationToken ct)
     {
         var payload = new { bookingReference, passengers };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/checkin", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Check-in failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<CreateBoardingCardsResult>(JsonOptions, ct)
+               ?? throw new InvalidOperationException("Empty response from check-in.");
+    }
+
+    public async Task<CreateBoardingCardsResult> GetBoardingCardsByBookingAsync(
+        string bookingReference,
+        CancellationToken ct)
+    {
+        var payload = new { bookingReference };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/boarding-cards", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(ct);
-            throw new InvalidOperationException($"Boarding card creation failed: {error}");
+            throw new InvalidOperationException($"Boarding card retrieval failed: {error}");
         }
         return await response.Content.ReadFromJsonAsync<CreateBoardingCardsResult>(JsonOptions, ct)
-               ?? throw new InvalidOperationException("Empty response from boarding card creation.");
+               ?? throw new InvalidOperationException("Empty response from boarding card retrieval.");
     }
 
     public async Task IssueDocumentAsync(

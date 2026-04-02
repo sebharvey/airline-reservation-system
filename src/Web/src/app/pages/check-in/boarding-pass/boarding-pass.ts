@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
-import { CheckInStateService } from '../../../services/check-in-state.service';
+import { RetailApiService } from '../../../services/retail-api.service';
 import { BoardingPass } from '../../../models/order.model';
 import QRCode from 'qrcode';
 
@@ -35,19 +35,33 @@ export class BoardingPassComponent implements OnInit {
   });
 
   constructor(
-    private router: Router,
-    private checkInState: CheckInStateService
+    private route: ActivatedRoute,
+    private retailApi: RetailApiService
   ) {}
 
   ngOnInit(): void {
-    const passes = this.checkInState.boardingPasses();
-    if (!passes || passes.length === 0) {
-      this.errorMessage.set('No boarding passes found. Please complete check-in again.');
+    const bookingRef = this.route.snapshot.queryParamMap.get('bookingRef');
+    if (!bookingRef) {
+      this.errorMessage.set('No booking reference found. Please complete check-in again.');
       this.loading.set(false);
       return;
     }
-    this.boardingPasses.set(passes);
-    this.generateQrCodes(passes).then(() => this.loading.set(false));
+
+    this.retailApi.getOciBoardingPasses(bookingRef).subscribe({
+      next: (passes) => {
+        if (!passes || passes.length === 0) {
+          this.errorMessage.set('No boarding passes found. Please complete check-in again.');
+          this.loading.set(false);
+          return;
+        }
+        this.boardingPasses.set(passes);
+        this.generateQrCodes(passes).then(() => this.loading.set(false));
+      },
+      error: (err: { message?: string }) => {
+        this.errorMessage.set(err?.message ?? 'Unable to retrieve boarding passes. Please try again.');
+        this.loading.set(false);
+      }
+    });
   }
 
   private async generateQrCodes(passes: BoardingPass[]): Promise<void> {
