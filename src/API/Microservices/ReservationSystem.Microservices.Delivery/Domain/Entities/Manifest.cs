@@ -10,6 +10,8 @@ public sealed class Manifest
     public Guid TicketId { get; private set; }
     public Guid InventoryId { get; private set; }
     public string FlightNumber { get; private set; } = string.Empty;
+    public string Origin { get; private set; } = string.Empty;
+    public string Destination { get; private set; } = string.Empty;
     public DateTime DepartureDate { get; private set; }
     public string AircraftType { get; private set; } = string.Empty;
     public string SeatNumber { get; private set; } = string.Empty;
@@ -31,8 +33,8 @@ public sealed class Manifest
     private Manifest() { }
 
     public static Manifest Create(
-        Guid ticketId, Guid inventoryId, string flightNumber, DateTime departureDate,
-        string aircraftType, string seatNumber, string cabinCode,
+        Guid ticketId, Guid inventoryId, string flightNumber, string origin, string destination,
+        DateTime departureDate, string aircraftType, string seatNumber, string cabinCode,
         string bookingReference, string eTicketNumber,
         string passengerId, string givenName, string surname,
         string? ssrCodes, TimeSpan departureTime, TimeSpan arrivalTime)
@@ -44,6 +46,8 @@ public sealed class Manifest
             TicketId = ticketId,
             InventoryId = inventoryId,
             FlightNumber = flightNumber,
+            Origin = origin,
+            Destination = destination,
             DepartureDate = departureDate,
             AircraftType = aircraftType,
             SeatNumber = seatNumber,
@@ -66,7 +70,8 @@ public sealed class Manifest
 
     public static Manifest Reconstitute(
         Guid manifestId, Guid ticketId, Guid inventoryId,
-        string flightNumber, DateTime departureDate, string aircraftType,
+        string flightNumber, string origin, string destination,
+        DateTime departureDate, string aircraftType,
         string seatNumber, string cabinCode, string bookingReference,
         string eTicketNumber, string passengerId, string givenName,
         string surname, string? ssrCodes, TimeSpan departureTime,
@@ -79,6 +84,8 @@ public sealed class Manifest
             TicketId = ticketId,
             InventoryId = inventoryId,
             FlightNumber = flightNumber,
+            Origin = origin,
+            Destination = destination,
             DepartureDate = departureDate,
             AircraftType = aircraftType,
             SeatNumber = seatNumber,

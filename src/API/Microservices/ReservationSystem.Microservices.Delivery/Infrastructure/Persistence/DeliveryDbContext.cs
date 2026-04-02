@@ -54,6 +54,8 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.TicketId).HasColumnType("uniqueidentifier").IsRequired();
             entity.Property(m => m.InventoryId).HasColumnType("uniqueidentifier").IsRequired();
             entity.Property(m => m.FlightNumber).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
+            entity.Property(m => m.Origin).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
+            entity.Property(m => m.Destination).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
             entity.Property(m => m.DepartureDate).HasColumnType("date").IsRequired();
             entity.Property(m => m.AircraftType).HasColumnType("char(4)").HasMaxLength(4).IsRequired();
             entity.Property(m => m.SeatNumber).HasColumnType("varchar(5)").HasMaxLength(5).IsRequired();
