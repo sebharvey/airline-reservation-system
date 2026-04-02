@@ -37,6 +37,16 @@ public sealed class DeliveryServiceClient
         return result.Tickets;
     }
 
+    public async Task<List<AdminTicketRecord>> GetTicketsByBookingAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/tickets?bookingRef={Uri.EscapeDataString(bookingReference)}", ct);
+        if (!response.IsSuccessStatusCode)
+            return [];
+
+        var result = await response.Content.ReadFromJsonAsync<List<AdminTicketRecord>>(JsonOptions, ct);
+        return result ?? [];
+    }
+
     public async Task CreateManifestAsync(string bookingReference, List<ManifestEntry> entries, CancellationToken ct)
     {
         var payload = new { bookingReference, entries };
@@ -176,6 +186,20 @@ public sealed class ManifestEntry
 
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
+}
+
+public sealed class AdminTicketRecord
+{
+    [JsonPropertyName("ticketId")] public string TicketId { get; init; } = string.Empty;
+    [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("isVoided")] public bool IsVoided { get; init; }
+    [JsonPropertyName("voidedAt")] public DateTime? VoidedAt { get; init; }
+    [JsonPropertyName("ticketData")] public JsonElement? TicketData { get; init; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; init; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; init; }
+    [JsonPropertyName("version")] public int Version { get; init; }
 }
 
 file sealed class IssueTicketsResult

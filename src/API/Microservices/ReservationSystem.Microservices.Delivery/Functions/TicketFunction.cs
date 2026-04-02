@@ -3,11 +3,13 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
+using System.Collections.Generic;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -15,21 +17,44 @@ namespace ReservationSystem.Microservices.Delivery.Functions;
 
 public sealed class TicketFunction
 {
+    private readonly GetTicketsByBookingHandler _getByBookingHandler;
     private readonly IssueTicketsHandler _issueHandler;
     private readonly VoidTicketHandler _voidHandler;
     private readonly ReissueTicketsHandler _reissueHandler;
     private readonly ILogger<TicketFunction> _logger;
 
     public TicketFunction(
+        GetTicketsByBookingHandler getByBookingHandler,
         IssueTicketsHandler issueHandler,
         VoidTicketHandler voidHandler,
         ReissueTicketsHandler reissueHandler,
         ILogger<TicketFunction> logger)
     {
+        _getByBookingHandler = getByBookingHandler;
         _issueHandler = issueHandler;
         _voidHandler = voidHandler;
         _reissueHandler = reissueHandler;
         _logger = logger;
+    }
+
+    // GET /v1/tickets?bookingRef={bookingRef}
+    [Function("GetTicketsByBooking")]
+    [OpenApiOperation(operationId: "GetTicketsByBooking", tags: new[] { "Tickets" }, Summary = "Get all tickets for a booking reference")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The 6-character booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<GetTicketResponse>), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> GetTicketsByBooking(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/tickets")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var queryParams = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var bookingRef = queryParams["bookingRef"]?.Trim().ToUpperInvariant();
+
+        if (string.IsNullOrEmpty(bookingRef))
+            return await req.BadRequestAsync("The 'bookingRef' query parameter is required.");
+
+        var result = await _getByBookingHandler.HandleAsync(bookingRef, cancellationToken);
+        return await req.OkJsonAsync(result);
     }
 
     // POST /v1/tickets

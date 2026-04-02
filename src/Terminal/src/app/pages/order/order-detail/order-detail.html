@@ -115,6 +115,12 @@
           <span class="tab-count">{{ ssrItems().length }}</span>
         }
       </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'tickets'" (click)="switchTab('tickets')">
+        Tickets
+        @if (tickets().length) {
+          <span class="tab-count">{{ tickets().length }}</span>
+        }
+      </button>
     </div>
 
     <!-- ── ITINERARY TAB ── -->
@@ -554,6 +560,306 @@
       </div>
     }
 
+    <!-- ── TICKETS TAB ── -->
+    @if (activeTab() === 'tickets') {
+      <div class="tab-content fade-in">
+
+        @if (ticketsError()) {
+          <div class="alert alert-error" role="alert">
+            <span>&#9888;</span> {{ ticketsError() }}
+          </div>
+        }
+
+        @if (ticketsLoading()) {
+          <div class="loading-state">
+            <span class="spinner"></span>
+            <span>Loading tickets…</span>
+          </div>
+        } @else if (tickets().length === 0 && !ticketsError()) {
+          <p class="empty-tab">No tickets on record for this booking.</p>
+        } @else {
+
+          <!-- Active tickets -->
+          @if (activeTickets().length > 0) {
+            <div class="tickets-section-label">Active tickets</div>
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>E-ticket number</th>
+                    <th>Passenger</th>
+                    <th class="hide-mobile">Issued</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ticket of activeTickets(); track ticket.ticketId) {
+                    <tr class="ticket-list-row" (click)="openTicketModal(ticket)">
+                      <td class="mono">{{ ticket.eTicketNumber }}</td>
+                      <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
+                      <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
+                      <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <!-- Voided tickets -->
+          @if (voidedTickets().length > 0) {
+            <div class="tickets-section-label tickets-section-voided">Voided tickets</div>
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>E-ticket number</th>
+                    <th>Passenger</th>
+                    <th class="hide-mobile">Voided</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ticket of voidedTickets(); track ticket.ticketId) {
+                    <tr class="ticket-list-row ticket-voided-row" (click)="openTicketModal(ticket)">
+                      <td class="mono muted">{{ ticket.eTicketNumber }}</td>
+                      <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
+                      <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
+                      <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+        }
+      </div>
+    }
+
   }
 
 </div>
+
+<!-- ── TICKET DETAIL MODAL ── -->
+@if (selectedTicket(); as t) {
+  <div class="modal-backdrop" (click)="closeTicketModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span class="modal-title mono">{{ t.eTicketNumber }}</span>
+          @if (t.isVoided) {
+            <span class="status-badge badge-cancelled">Voided</span>
+          } @else {
+            <span class="status-badge badge-confirmed">Active</span>
+          }
+        </div>
+        <button class="modal-close-btn" (click)="closeTicketModal()">&#x2715;</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Passenger & booking -->
+        <div class="modal-section">
+          <div class="modal-section-title">Passenger</div>
+          <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Name</span>
+              <span class="field-value">{{ t.ticketData?.passenger?.givenName }} {{ t.ticketData?.passenger?.surname }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Type</span>
+              <span class="field-value">{{ passengerTypeLabel(t.ticketData?.passenger?.passengerTypeCode || 'ADT') }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Passenger ID</span>
+              <span class="field-value mono">{{ t.passengerId }}</span>
+            </div>
+            @if (t.ticketData?.passenger?.frequentFlyer) {
+              <div class="field-row">
+                <span class="field-label">Frequent flyer</span>
+                <span class="field-value mono">{{ t.ticketData!.passenger!.frequentFlyer!.carrier }} {{ t.ticketData!.passenger!.frequentFlyer!.number }} ({{ t.ticketData!.passenger!.frequentFlyer!.tier }})</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Fare construction -->
+        @if (t.ticketData?.fareConstruction) {
+          <div class="modal-section">
+            <div class="modal-section-title">Fare</div>
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">Base fare</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.baseFare, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Total taxes</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalTaxes, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Total</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalAmount, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+              </div>
+              @if (t.ticketData!.fareConstruction!.fareCalculationLine) {
+                <div class="field-row field-row-full">
+                  <span class="field-label">Fare calculation</span>
+                  <span class="field-value mono small-mono">{{ t.ticketData!.fareConstruction!.fareCalculationLine }}</span>
+                </div>
+              }
+            </div>
+            @if (t.ticketData!.fareConstruction!.taxes.length > 0) {
+              <div class="tax-list">
+                @for (tax of t.ticketData!.fareConstruction!.taxes; track tax.code) {
+                  <div class="tax-row">
+                    <span class="mono">{{ tax.code }}</span>
+                    <span>{{ tax.description }}</span>
+                    <span>{{ formatAmount(tax.amount, tax.currency) }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Form of payment -->
+        @if (t.ticketData?.formOfPayment) {
+          <div class="modal-section">
+            <div class="modal-section-title">Form of payment</div>
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">Type</span>
+                <span class="field-value">{{ t.ticketData!.formOfPayment!.type }}{{ t.ticketData!.formOfPayment!.cardType ? ' / ' + t.ticketData!.formOfPayment!.cardType : '' }}</span>
+              </div>
+              @if (t.ticketData!.formOfPayment!.maskedPan) {
+                <div class="field-row">
+                  <span class="field-label">Card</span>
+                  <span class="field-value mono">{{ t.ticketData!.formOfPayment!.maskedPan }}</span>
+                </div>
+              }
+              <div class="field-row">
+                <span class="field-label">Amount</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.formOfPayment!.amount, t.ticketData!.formOfPayment!.currency) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Coupons -->
+        @if (t.ticketData?.coupons?.length) {
+          <div class="modal-section">
+            <div class="modal-section-title">Coupons</div>
+            @for (coupon of t.ticketData!.coupons; track coupon.couponNumber) {
+              <div class="coupon-card">
+                <div class="coupon-header">
+                  <span class="flight-badge">{{ coupon.marketing?.flightNumber || '—' }}</span>
+                  <span class="cabin-badge">{{ coupon.cabin || coupon.classOfService || '—' }}</span>
+                  <span class="fare-badge">{{ coupon.fareBasisCode || '—' }}</span>
+                  <span class="coupon-status-badge">{{ couponStatusLabel(coupon.status) }}</span>
+                </div>
+                <div class="coupon-route">
+                  <span class="airport-code">{{ coupon.origin }}</span>
+                  <div class="route-arrow"><div class="arrow-line"></div></div>
+                  <span class="airport-code">{{ coupon.destination }}</span>
+                </div>
+                <div class="field-grid">
+                  <div class="field-row">
+                    <span class="field-label">Date</span>
+                    <span class="field-value">{{ coupon.departureDate || '—' }}</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="field-label">Dep. time</span>
+                    <span class="field-value">{{ coupon.departureTime || '—' }}</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="field-label">Seat</span>
+                    <span class="field-value mono">{{ coupon.seat || '—' }}</span>
+                  </div>
+                  @if (coupon.baggageAllowance) {
+                    <div class="field-row">
+                      <span class="field-label">Baggage</span>
+                      <span class="field-value">{{ coupon.baggageAllowance.quantity }}{{ coupon.baggageAllowance.type === 'PIECE' ? 'pc' : '' }}{{ coupon.baggageAllowance.weightKg ? ' / ' + coupon.baggageAllowance.weightKg + 'kg' : '' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- SSR codes on ticket -->
+        @if (t.ticketData?.ssrCodes?.length) {
+          <div class="modal-section">
+            <div class="modal-section-title">SSR codes</div>
+            <div class="ssr-chips">
+              @for (ssr of t.ticketData!.ssrCodes; track ssr.code + ssr.segmentRef) {
+                <span class="ssr-chip"><span class="mono">{{ ssr.code }}</span> — {{ ssr.description }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Endorsements -->
+        @if (t.ticketData?.endorsementsRestrictions) {
+          <div class="modal-section">
+            <div class="modal-section-title">Endorsements / restrictions</div>
+            <p class="field-value mono small-mono">{{ t.ticketData!.endorsementsRestrictions }}</p>
+          </div>
+        }
+
+        <!-- Void info -->
+        @if (t.isVoided) {
+          <div class="modal-section">
+            <div class="modal-section-title">Void record</div>
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">Voided at</span>
+                <span class="field-value">{{ formatDateTime(t.voidedAt) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Change history -->
+        @if (t.ticketData?.changeHistory?.length) {
+          <div class="modal-section">
+            <div class="modal-section-title">Change history</div>
+            <div class="history-list">
+              @for (event of t.ticketData!.changeHistory; track event.occurredAt) {
+                <div class="history-event">
+                  <div class="event-dot"></div>
+                  <div class="event-body">
+                    <span class="event-type">{{ event.eventType }}</span>
+                    <span class="event-desc">{{ event.detail }}</span>
+                    <span class="event-time muted">{{ formatDateTime(event.occurredAt) }} · {{ event.actor }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Record metadata -->
+        <div class="modal-section modal-section-meta">
+          <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Issued</span>
+              <span class="field-value">{{ formatDateTime(t.createdAt) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Updated</span>
+              <span class="field-value">{{ formatDateTime(t.updatedAt) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Version</span>
+              <span class="field-value">{{ t.version }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+

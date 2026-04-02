@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, SsrItem } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, SsrItem, Ticket } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -30,7 +30,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs'>('itinerary');
+  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('itinerary');
   copied = signal(false);
   editingPaxId = signal<string | null>(null);
   editForm = signal<EditForm>({ givenName: '', surname: '', dateOfBirth: null, email: null, phone: null });
@@ -48,6 +48,12 @@ export class OrderDetailComponent implements OnInit {
   // Edit-in-place state for existing SSR rows
   editingSsrKey = signal<string | null>(null);
   editSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
+
+  // Tickets tab state
+  tickets = signal<Ticket[]>([]);
+  ticketsLoading = signal(false);
+  ticketsError = signal('');
+  selectedTicket = signal<Ticket | null>(null);
 
   readonly objectKeys = Object.keys;
 
@@ -110,9 +116,10 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs'): void {
+  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'): void {
     this.activeTab.set(tab);
     if (tab === 'ssrs') this.loadSsrOptions();
+    if (tab === 'tickets') this.loadTickets();
   }
 
   goBack(): void {
@@ -253,6 +260,44 @@ export class OrderDetailComponent implements OnInit {
     const hours = Math.floor(diffMs / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     return `${hours}h ${mins}m`;
+  }
+
+  async loadTickets(): Promise<void> {
+    if (this.tickets().length > 0) return;
+    this.ticketsLoading.set(true);
+    this.ticketsError.set('');
+    try {
+      const result = await this.#orderService.getTicketsByBookingRef(this.bookingRef);
+      this.tickets.set(result);
+    } catch {
+      this.ticketsError.set('Failed to load tickets. Please try again.');
+    } finally {
+      this.ticketsLoading.set(false);
+    }
+  }
+
+  activeTickets = computed<Ticket[]>(() =>
+    this.tickets().filter(t => !t.isVoided)
+  );
+
+  voidedTickets = computed<Ticket[]>(() =>
+    this.tickets().filter(t => t.isVoided)
+  );
+
+  openTicketModal(ticket: Ticket): void {
+    this.selectedTicket.set(ticket);
+  }
+
+  closeTicketModal(): void {
+    this.selectedTicket.set(null);
+  }
+
+  couponStatusLabel(status: string): string {
+    return {
+      O: 'Open', A: 'Airport control', C: 'Checked in',
+      B: 'Boarded', F: 'Flown', R: 'Refunded', E: 'Exchanged',
+      V: 'Void', S: 'Suspended',
+    }[status] ?? status;
   }
 
   async loadSsrOptions(): Promise<void> {
