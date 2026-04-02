@@ -28,6 +28,9 @@ using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
 using ReservationSystem.Microservices.Order.Application.GetSsrOptions;
+using ReservationSystem.Microservices.Order.Application.CreateSsrOption;
+using ReservationSystem.Microservices.Order.Application.UpdateSsrOption;
+using ReservationSystem.Microservices.Order.Application.DeactivateSsrOption;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 using ReservationSystem.Microservices.Order.Infrastructure.Persistence;
@@ -92,6 +95,9 @@ var host = new HostBuilder()
         services.AddScoped<ChangeOrderHandler>();
         services.AddScoped<RebookOrderHandler>();
         services.AddScoped<GetSsrOptionsHandler>();
+        services.AddScoped<CreateSsrOptionHandler>();
+        services.AddScoped<UpdateSsrOptionHandler>();
+        services.AddScoped<DeactivateSsrOptionHandler>();
     })
     .Build();
 
