@@ -71,11 +71,7 @@ public sealed class AuthFunction
             var result = await _loginHandler.HandleAsync(command, cancellationToken);
             return await req.OkJsonAsync(result);
         }
-        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 400)
-        {
-            return await req.BadRequestAsync("Invalid login request.");
-        }
-        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 401)
+        catch (HttpRequestException ex) when ((int?)ex.StatusCode is 400 or 401)
         {
             return await req.UnauthorizedAsync("Invalid credentials.");
         }
