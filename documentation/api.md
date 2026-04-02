@@ -14,7 +14,8 @@ This guide describes how to build backend APIs for the Apex Air Reservation Syst
 | Serialisation | `System.Text.Json` with camelCase naming |
 | HTTP | Azure Functions HTTP trigger (no ASP.NET routing middleware) |
 | DI | Built-in `Microsoft.Extensions.DependencyInjection` |
-| Shared infrastructure | `ReservationSystem.Shared.Common` (connection factory, DB options, JSON options, HTTP extensions) |
+| Shared infrastructure | `ReservationSystem.Shared.Common` — generic utility code (HTTP helpers, JSON options, SQL connection, pagination, guard clauses) |
+| Shared business logic | `ReservationSystem.Shared.Business` — domain-aware code shared across services (field validation, JWT, password hashing, staff auth middleware) |
 
 ---
 
@@ -28,6 +29,83 @@ There are two categories of API project, placed in different directories under `
 | `Orchestration` | `src/API/Orchestration/` | Cross-domain API that coordinates calls across multiple microservices within a single request flow |
 
 Microservices must never call other microservices. All synchronous cross-domain coordination is the exclusive responsibility of orchestration APIs. See `principles/architecture-principals.md`.
+
+---
+
+## Shared Libraries
+
+All APIs (microservices and orchestration) live under `src/API/Shared/` and reference two class libraries:
+
+### ReservationSystem.Shared.Common
+
+Generic, technology-level utilities with **no knowledge of the airline domain**. Use these for cross-cutting infrastructure concerns that are the same in every project.
+
+| Namespace | Contents | When to use |
+|-----------|----------|-------------|
+| `Shared.Common.Http` | `HttpRequestExtensions`, `HttpResponseExtensions`, `HttpResponseMessageExtensions`, `ApiError`, `CorrelationId`, `IdempotencyKey` | Reading requests, writing standardised responses, propagating correlation IDs and idempotency keys |
+| `Shared.Common.Health` | `HealthCheckFunction`, `HealthCheckService`, `HealthCheckExtensions`, `IHealthCheckProvider` | Registering and exposing the `/v1/health` endpoint |
+| `Shared.Common.Infrastructure.Configuration` | `DatabaseOptions` | Binding the `Database` config section for SQL connections |
+| `Shared.Common.Infrastructure.Persistence` | `SqlConnectionFactory` | Creating open `SqlConnection` instances for Dapper queries |
+| `Shared.Common.Json` | `SharedJsonOptions` | Accessing the standard `CamelCase` and `CamelCaseIgnoreNull` serialiser options |
+| `Shared.Common.Models` | `PagedResult<T>`, `PagedRequest` | Returning paginated results from list endpoints |
+| `Shared.Common.Validation` | `Guard` | Lightweight guard-clause helpers that throw `ArgumentException` on invalid inputs |
+
+**Do not add airline-domain knowledge here.** If the code would only make sense in an airline context, it belongs in `Shared.Business`.
+
+### ReservationSystem.Shared.Business
+
+Domain-aware code that encodes **airline system business rules** shared across multiple services. Reference this library wherever services need common validation, security, or authentication behaviour.
+
+| Namespace | Contents | When to use |
+|-----------|----------|-------------|
+| `Shared.Business.Validation` | `CommonFieldValidator` | Validating email addresses, passwords, names, phone numbers, BCP 47 language tags, and ISO 3166-1 country codes in service-specific validators |
+| `Shared.Business.Security` | `PasswordHasher`, `IJwtService`, `JwtService` | Hashing passwords and tokens (SHA-256), generating JWT access tokens; inject `IJwtService` in handlers that issue tokens |
+| `Shared.Business.Infrastructure.Configuration` | `JwtOptions` | Binding the `Jwt` config section in services that issue or validate JWT tokens; register with `services.AddOptions<JwtOptions>().Bind(...).ValidateDataAnnotations()` |
+| `Shared.Business.Middleware` | `TerminalAuthenticationMiddleware` | Validating staff JWT tokens on `Admin`-prefixed Azure Functions; register with `worker.UseMiddleware<TerminalAuthenticationMiddleware>()` in orchestration API `Program.cs` |
+
+**Dependency direction:** `Shared.Business` references `Shared.Common`. Never reference `Shared.Business` from `Shared.Common`.
+
+### Usage pattern
+
+```csharp
+// Service-specific validator delegates field rules to CommonFieldValidator:
+using ReservationSystem.Shared.Business.Validation;
+
+public static class CustomerValidator
+{
+    public static List<string> ValidateCreate(string? givenName, string? email)
+    {
+        var errors = new List<string>();
+        CommonFieldValidator.ValidateRequiredName(givenName, errors, "givenName");
+        CommonFieldValidator.ValidateEmail(email, errors);
+        return errors;
+    }
+}
+
+// Handler that issues tokens injects IJwtService:
+using ReservationSystem.Shared.Business.Security;
+
+public sealed class LoginHandler(IJwtService jwtService, ...)
+{
+    private (string Token, DateTime ExpiresAt) GenerateJwt(UserAccount account)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, account.UserAccountId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, account.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+        return jwtService.GenerateToken(claims);
+    }
+}
+
+// Program.cs registration:
+services.AddOptions<JwtOptions>()
+    .Bind(context.Configuration.GetSection(JwtOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+services.AddScoped<IJwtService, JwtService>();
+```
 
 ---
 

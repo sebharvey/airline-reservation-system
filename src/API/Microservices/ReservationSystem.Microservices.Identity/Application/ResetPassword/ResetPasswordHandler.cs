@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.Identity.Application.ResetPassword;
 
@@ -36,7 +36,7 @@ public sealed class ResetPasswordHandler
         if (account is null)
             throw new ArgumentException("Invalid or expired reset token.");
 
-        var newPasswordHash = LoginHandler.HashPassword(command.NewPassword);
+        var newPasswordHash = PasswordHasher.HashPassword(command.NewPassword);
         account.ChangePassword(newPasswordHash);
         account.Unlock();
         account.ClearPasswordResetToken();

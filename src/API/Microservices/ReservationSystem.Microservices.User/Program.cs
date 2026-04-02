@@ -16,9 +16,10 @@ using ReservationSystem.Microservices.User.Application.UnlockUser;
 using ReservationSystem.Microservices.User.Application.ResetPassword;
 using ReservationSystem.Microservices.User.Application.Login;
 using ReservationSystem.Microservices.User.Domain.Repositories;
-using ReservationSystem.Microservices.User.Infrastructure.Configuration;
 using ReservationSystem.Microservices.User.Infrastructure.Persistence;
 using ReservationSystem.Microservices.User.Swagger;
+using ReservationSystem.Shared.Business.Infrastructure.Configuration;
+using ReservationSystem.Shared.Business.Security;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
@@ -54,6 +55,7 @@ var host = new HostBuilder()
             });
         });
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<IJwtService, JwtService>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));

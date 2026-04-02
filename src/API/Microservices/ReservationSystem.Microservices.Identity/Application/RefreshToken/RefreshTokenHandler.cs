@@ -1,10 +1,8 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
-using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Models.Responses;
-using System.Security.Cryptography;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.Identity.Application.RefreshToken;
 
@@ -37,7 +35,7 @@ public sealed class RefreshTokenHandler
         RefreshTokenCommand command,
         CancellationToken cancellationToken = default)
     {
-        var tokenHash = LoginHandler.HashToken(command.RefreshToken);
+        var tokenHash = PasswordHasher.HashToken(command.RefreshToken);
         var existingToken = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash, cancellationToken);
 
         if (existingToken is null || !existingToken.IsValid)
@@ -57,8 +55,8 @@ public sealed class RefreshTokenHandler
             throw new UnauthorizedAccessException("Invalid or expired refresh token.");
         }
 
-        var rawNewToken = GenerateSecureToken();
-        var newTokenHash = LoginHandler.HashToken(rawNewToken);
+        var rawNewToken = PasswordHasher.GenerateSecureToken();
+        var newTokenHash = PasswordHasher.HashToken(rawNewToken);
         var newExpiry = DateTime.UtcNow.AddDays(RefreshTokenDays);
 
         var newRefreshToken = Domain.Entities.RefreshToken.Create(
@@ -79,11 +77,5 @@ public sealed class RefreshTokenHandler
             RefreshToken = rawNewToken,
             ExpiresAt = expiresAt
         };
-    }
-
-    private static string GenerateSecureToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes);
     }
 }

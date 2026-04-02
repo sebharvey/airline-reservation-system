@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
-using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
+using ReservationSystem.Shared.Business.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Models.Responses;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

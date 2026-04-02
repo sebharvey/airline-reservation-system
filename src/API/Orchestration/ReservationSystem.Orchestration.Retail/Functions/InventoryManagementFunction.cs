@@ -13,7 +13,7 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 /// <summary>
 /// HTTP-triggered functions for staff-facing flight inventory management.
 /// All routes require a valid staff JWT token with the "User" role claim,
-/// enforced by <see cref="ReservationSystem.Shared.Common.Middleware.TerminalAuthenticationMiddleware"/>.
+/// enforced by <see cref="ReservationSystem.Shared.Business.Middleware.TerminalAuthenticationMiddleware"/>.
 /// Function names are prefixed with "Admin" to trigger staff middleware.
 /// </summary>
 public sealed class InventoryManagementFunction

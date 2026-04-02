@@ -26,7 +26,7 @@ using ReservationSystem.Orchestration.Loyalty.Application.SearchCustomers;
 using ReservationSystem.Orchestration.Loyalty.Application.TransferPoints;
 using ReservationSystem.Orchestration.Loyalty.Application.VerifyEmailChange;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
-using ReservationSystem.Shared.Common.Middleware;
+using ReservationSystem.Shared.Business.Middleware;
 using ReservationSystem.Orchestration.Loyalty.Middleware;
 
 var host = new HostBuilder()

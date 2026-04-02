@@ -8,7 +8,7 @@ using ReservationSystem.Shared.Common.Http;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace ReservationSystem.Shared.Common.Middleware;
+namespace ReservationSystem.Shared.Business.Middleware;
 
 /// <summary>
 /// Azure Functions middleware that validates staff JWT tokens (issued by the User

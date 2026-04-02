@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.Identity.Application.Logout;
 
@@ -25,7 +25,7 @@ public sealed class LogoutHandler
         LogoutCommand command,
         CancellationToken cancellationToken = default)
     {
-        var tokenHash = LoginHandler.HashToken(command.RefreshToken);
+        var tokenHash = PasswordHasher.HashToken(command.RefreshToken);
         var token = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash, cancellationToken);
 
         if (token is null || token.IsRevoked)

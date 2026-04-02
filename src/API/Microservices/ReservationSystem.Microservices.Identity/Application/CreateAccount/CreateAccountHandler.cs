@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Identity.Application.Login;
 using ReservationSystem.Microservices.Identity.Domain.Entities;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
 using ReservationSystem.Microservices.Identity.Models.Responses;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.Identity.Application.CreateAccount;
 
@@ -35,7 +35,7 @@ public sealed class CreateAccountHandler
             throw new InvalidOperationException("An account with this email already exists.");
         }
 
-        var passwordHash = LoginHandler.HashPassword(command.Password);
+        var passwordHash = PasswordHasher.HashPassword(command.Password);
         var account = UserAccount.Create(command.Email, passwordHash);
 
         await _userAccountRepository.CreateAsync(account, cancellationToken);

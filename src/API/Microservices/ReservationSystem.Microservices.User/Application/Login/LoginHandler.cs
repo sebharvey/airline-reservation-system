@@ -1,13 +1,9 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using ReservationSystem.Microservices.User.Domain.Repositories;
-using ReservationSystem.Microservices.User.Infrastructure.Configuration;
 using ReservationSystem.Microservices.User.Models.Responses;
+using ReservationSystem.Shared.Business.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace ReservationSystem.Microservices.User.Application.Login;
 
@@ -18,18 +14,18 @@ namespace ReservationSystem.Microservices.User.Application.Login;
 public sealed class LoginHandler
 {
     private readonly IUserRepository _userRepository;
-    private readonly JwtOptions _jwtOptions;
+    private readonly IJwtService _jwtService;
     private readonly ILogger<LoginHandler> _logger;
 
     private const int MaxFailedAttempts = 5;
 
     public LoginHandler(
         IUserRepository userRepository,
-        IOptions<JwtOptions> jwtOptions,
+        IJwtService jwtService,
         ILogger<LoginHandler> logger)
     {
         _userRepository = userRepository;
-        _jwtOptions = jwtOptions.Value;
+        _jwtService = jwtService;
         _logger = logger;
     }
 
@@ -57,7 +53,7 @@ public sealed class LoginHandler
             throw new InvalidOperationException("Account is locked due to repeated failed login attempts.");
         }
 
-        var passwordValid = VerifyPassword(command.Password, user.PasswordHash);
+        var passwordValid = PasswordHasher.VerifyPassword(command.Password, user.PasswordHash);
 
         if (!passwordValid)
         {
@@ -87,25 +83,8 @@ public sealed class LoginHandler
         };
     }
 
-    private static bool VerifyPassword(string plaintext, string storedHash)
+    private (string Token, DateTime ExpiresAt) GenerateJwt(Domain.Entities.User user)
     {
-        var computedHash = HashPassword(plaintext);
-        return string.Equals(computedHash, storedHash, StringComparison.Ordinal);
-    }
-
-    internal static string HashPassword(string password)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
-    }
-
-    internal (string Token, DateTime ExpiresAt) GenerateJwt(Domain.Entities.User user)
-    {
-        var keyBytes = Convert.FromBase64String(_jwtOptions.Secret);
-        var key = new SymmetricSecurityKey(keyBytes);
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpiryMinutes);
-
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
@@ -115,13 +94,6 @@ public sealed class LoginHandler
             new Claim(ClaimTypes.Role, "User"),
         };
 
-        var token = new JwtSecurityToken(
-            issuer: _jwtOptions.Issuer,
-            audience: _jwtOptions.Audience,
-            claims: claims,
-            expires: expiresAt,
-            signingCredentials: credentials);
-
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        return _jwtService.GenerateToken(claims);
     }
 }
