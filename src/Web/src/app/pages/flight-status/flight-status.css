@@ -294,13 +294,13 @@ input:focus, select:focus {
   flex-shrink: 0;
 }
 
-.status-ontime    { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1.5px solid rgba(39,174,96,0.4); }
-.status-delayed   { background: rgba(243,156,18,0.15); color: #d68910; border: 1.5px solid rgba(243,156,18,0.4); }
-.status-boarding  { background: rgba(52,152,219,0.15); color: #2980b9; border: 1.5px solid rgba(52,152,219,0.4); }
-.status-departed  { background: rgba(127,140,141,0.15); color: #7f8c8d; border: 1.5px solid rgba(127,140,141,0.4); }
-.status-inflight  { background: rgba(26,188,156,0.15); color: #16a085; border: 1.5px solid rgba(26,188,156,0.4); }
-.status-landed    { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1.5px solid rgba(39,174,96,0.4); }
-.status-cancelled { background: rgba(231,76,60,0.15);  color: #e74c3c; border: 1.5px solid rgba(231,76,60,0.4); }
+.status-ontime    { background: rgba(39,174,96,0.25);   color: #1e8449; border: 1.5px solid rgba(39,174,96,0.7); }
+.status-delayed   { background: rgba(243,156,18,0.25);  color: #b7770d; border: 1.5px solid rgba(243,156,18,0.7); }
+.status-boarding  { background: rgba(52,152,219,0.25);  color: #1a6fa3; border: 1.5px solid rgba(52,152,219,0.7); }
+.status-departed  { background: rgba(127,140,141,0.25); color: #5d6d6e; border: 1.5px solid rgba(127,140,141,0.7); }
+.status-inflight  { background: rgba(26,188,156,0.25);  color: #0e7a6a; border: 1.5px solid rgba(26,188,156,0.7); }
+.status-landed    { background: rgba(39,174,96,0.25);   color: #1e8449; border: 1.5px solid rgba(39,174,96,0.7); }
+.status-cancelled { background: rgba(231,76,60,0.25);   color: #c0392b; border: 1.5px solid rgba(231,76,60,0.7); }
 
 /* ── Route Section ── */
 .route-section {
