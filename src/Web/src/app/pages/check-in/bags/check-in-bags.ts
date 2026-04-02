@@ -200,7 +200,7 @@ export class CheckInBagsComponent implements OnInit {
       const bagOfferId = this.getBagOfferId(seg.offers, state.alreadyPurchased, state.selectedAdditional);
       selections.push({
         passengerId: state.passengerId,
-        segmentRef: state.segmentRef,
+        segmentId: state.segmentRef,
         bagOfferId,
         additionalBags: state.selectedAdditional,
         price,
