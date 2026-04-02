@@ -90,10 +90,12 @@ export class ManageBookingDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+
     this.route.queryParams.subscribe(params => {
       const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
+      const gn = params['givenName'] ?? navState?.['givenName'] ?? '';
+      const sn = params['surname'] ?? navState?.['surname'] ?? '';
       this.bookingRef.set(ref);
       this.givenName.set(gn);
       this.surname.set(sn);
