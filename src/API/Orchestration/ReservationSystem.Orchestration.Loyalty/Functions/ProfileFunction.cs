@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Models;
+using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Loyalty.Application.DeleteAccount;
 using ReservationSystem.Orchestration.Loyalty.Application.EmailChangeRequest;
 using ReservationSystem.Orchestration.Loyalty.Application.GetPreferences;
@@ -36,6 +37,7 @@ public sealed class ProfileFunction
     private readonly DeleteAccountHandler _deleteAccountHandler;
     private readonly EmailChangeRequestHandler _emailChangeRequestHandler;
     private readonly VerifyEmailChangeHandler _verifyEmailChangeHandler;
+    private readonly CustomerServiceClient _customerServiceClient;
     private readonly ILogger<ProfileFunction> _logger;
 
     public ProfileFunction(
@@ -47,6 +49,7 @@ public sealed class ProfileFunction
         DeleteAccountHandler deleteAccountHandler,
         EmailChangeRequestHandler emailChangeRequestHandler,
         VerifyEmailChangeHandler verifyEmailChangeHandler,
+        CustomerServiceClient customerServiceClient,
         ILogger<ProfileFunction> logger)
     {
         _getProfileHandler = getProfileHandler;
@@ -57,6 +60,7 @@ public sealed class ProfileFunction
         _deleteAccountHandler = deleteAccountHandler;
         _emailChangeRequestHandler = emailChangeRequestHandler;
         _verifyEmailChangeHandler = verifyEmailChangeHandler;
+        _customerServiceClient = customerServiceClient;
         _logger = logger;
     }
 
@@ -175,6 +179,38 @@ public sealed class ProfileFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/{loyaltyNumber}/orders
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerOrders")]
+    [OpenApiOperation(operationId: "GetCustomerOrders", tags: new[] { "Profile" }, Summary = "Get order references linked to a loyalty account")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminCustomerOrdersResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetOrders(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var result = await _customerServiceClient.GetCustomerOrdersAsync(loyaltyNumber, cancellationToken);
+
+        if (result is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(new AdminCustomerOrdersResponse
+        {
+            LoyaltyNumber = result.LoyaltyNumber,
+            Orders = result.Orders.Select(o => new AdminCustomerOrderItem
+            {
+                CustomerOrderId = o.CustomerOrderId,
+                OrderId = o.OrderId,
+                BookingReference = o.BookingReference,
+                CreatedAt = o.CreatedAt,
+            }).ToList()
+        });
     }
 
     // -------------------------------------------------------------------------
