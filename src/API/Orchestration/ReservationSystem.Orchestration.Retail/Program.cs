@@ -15,6 +15,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
+using ReservationSystem.Orchestration.Retail.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -88,6 +89,7 @@ var host = new HostBuilder()
         services.AddScoped<GetAdminOrderDetailHandler>();
         services.AddScoped<GetAdminOrderTicketsHandler>();
         services.AddScoped<GetSsrOptionsHandler>();
+        services.AddScoped<OciRetrieveHandler>();
     })
     .Build();
 

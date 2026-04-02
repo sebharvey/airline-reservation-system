@@ -1,9 +1,9 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RetailApiService } from '../../../services/retail-api.service';
-import { Order, TravelDocument } from '../../../models/order.model';
+import { CheckInStateService } from '../../../services/check-in-state.service';
+import { OciOrder, OciFlightSegment } from '../../../models/order.model';
 
 interface TravelDocumentForm {
   type: 'PASSPORT' | 'ID_CARD';
@@ -17,7 +17,7 @@ interface PassengerCheckInState {
   passengerId: string;
   givenName: string;
   surname: string;
-  passengerType: 'ADT' | 'CHD';
+  passengerType: string;
   selected: boolean;
   travelDocument: TravelDocumentForm;
 }
@@ -30,13 +30,7 @@ interface PassengerCheckInState {
   styleUrl: './check-in-details.css'
 })
 export class CheckInDetailsComponent implements OnInit {
-  order = signal<Order | null>(null);
-  loading = signal(true);
-  errorMessage = signal('');
-
-  bookingRef = signal('');
-  givenName = signal('');
-  surname = signal('');
+  order = signal<OciOrder | null>(null);
 
   passengerStates = signal<PassengerCheckInState[]>([]);
 
@@ -45,16 +39,6 @@ export class CheckInDetailsComponent implements OnInit {
       .filter(s => s.selected)
       .map(s => s.passengerId)
   );
-
-  readonly hasSeats = computed((): boolean => {
-    const o = this.order();
-    if (!o) return false;
-    return o.orderItems.some(
-      oi => oi.type === 'Flight' &&
-        oi.seatAssignments &&
-        oi.seatAssignments.some(sa => !!sa.seatNumber)
-    );
-  });
 
   readonly canProceed = computed((): boolean =>
     this.selectedPassengerIds().length > 0
@@ -66,52 +50,29 @@ export class CheckInDetailsComponent implements OnInit {
   ];
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private retailApi: RetailApiService
+    private checkInState: CheckInStateService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
-
-      if (!ref) {
-        this.router.navigate(['/check-in']);
-        return;
-      }
-      this.loadOrder(ref, gn, sn);
-    });
+    const order = this.checkInState.currentOrder();
+    if (!order) {
+      this.router.navigate(['/check-in']);
+      return;
+    }
+    this.order.set(order);
+    this.passengerStates.set(order.passengers.map(pax => ({
+      passengerId: pax.passengerId,
+      givenName: pax.givenName,
+      surname: pax.surname,
+      passengerType: pax.type,
+      selected: true,
+      travelDocument: { type: 'PASSPORT', number: '', issuingCountry: '', expiryDate: '', nationality: '' }
+    })));
   }
 
-  private loadOrder(ref: string, gn: string, sn: string): void {
-    this.loading.set(true);
-    this.errorMessage.set('');
-    this.retailApi.retrieveForCheckIn({ bookingReference: ref, givenName: gn, surname: sn }).subscribe({
-      next: (order) => {
-        this.order.set(order);
-        this.loading.set(false);
-        const states: PassengerCheckInState[] = order.passengers.map(pax => ({
-          passengerId: pax.passengerId,
-          givenName: pax.givenName,
-          surname: pax.surname,
-          passengerType: pax.type,
-          selected: true,
-          travelDocument: pax.travelDocument
-            ? { ...pax.travelDocument }
-            : { type: 'PASSPORT', number: '', issuingCountry: '', expiryDate: '', nationality: '' }
-        }));
-        this.passengerStates.set(states);
-      },
-      error: (err: { message?: string }) => {
-        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
-        this.loading.set(false);
-      }
-    });
+  getSeatNumber(passengerId: string, seg: OciFlightSegment): string | null {
+    return seg.seatAssignments.find(s => s.passengerId === passengerId)?.seatNumber ?? null;
   }
 
   togglePassenger(index: number): void {
@@ -130,14 +91,7 @@ export class CheckInDetailsComponent implements OnInit {
   }
 
   proceedToBags(): void {
-    this.router.navigate(['/check-in/bags'], {
-      queryParams: {
-        bookingRef: this.bookingRef(),
-        givenName: this.givenName(),
-        surname: this.surname(),
-        passengerIds: this.selectedPassengerIds().join(',')
-      }
-    });
+    this.router.navigate(['/check-in/bags']);
   }
 
   formatDateTime(dt: string): string {

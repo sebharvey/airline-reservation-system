@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode } from '../models/flight.model';
-import { Order, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 import { MOCK_BAG_POLICIES } from '../data/mock/bag-policy.mock';
 
@@ -317,6 +317,27 @@ export class RetailApiService {
    */
   retrieveForCheckIn(params: RetrieveOrderParams): Observable<Order> {
     return this.retrieveOrder(params);
+  }
+
+  /**
+   * POST /v1/orders/oci/retrieve
+   * Retrieve a booking for the online check-in journey.
+   * Returns an OCI-specific response with enriched passenger and flight segment data.
+   */
+  retrieveOciOrder(params: RetrieveOrderParams): Observable<OciOrder> {
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      bookingReference: params.bookingReference.toUpperCase().trim(),
+      surname: params.surname.trim()
+    };
+    return this.#http.post<OciOrder>(`${base}/api/v1/orders/oci/retrieve`, body).pipe(
+      catchError((err: HttpErrorResponse) => {
+        const message = err.status === 404
+          ? 'Booking not found. Please check your reference and surname.'
+          : 'Unable to retrieve booking. Please try again.';
+        return throwError(() => ({ status: err.status, message }));
+      })
+    );
   }
 
   /**
