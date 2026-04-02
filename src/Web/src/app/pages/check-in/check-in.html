@@ -69,16 +69,4 @@
   <div class="info-note">
     <span>&#9432;</span> Online check-in is available from 48 hours up to 1 hour before departure.
   </div>
-
-  <div class="hint-section">
-    <p class="hint-title">Demo bookings</p>
-    <div class="hint-list">
-      @for (hint of demoHints; track hint.ref) {
-        <button type="button" class="hint-chip" (click)="fillDemo(hint)">
-          <span class="hint-ref">{{ hint.ref }}</span>
-          <span class="hint-name">{{ hint.name }}</span>
-        </button>
-      }
-    </div>
-  </div>
 </div>
