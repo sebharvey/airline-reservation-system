@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.OciBags;
+using ReservationSystem.Orchestration.Retail.Application.OciCheckIn;
 using ReservationSystem.Orchestration.Retail.Application.OciPassengerDetails;
 using ReservationSystem.Orchestration.Retail.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
@@ -22,17 +23,20 @@ public sealed class OciFunction
     private readonly OciRetrieveHandler _ociRetrieveHandler;
     private readonly OciBagsHandler _ociBagsHandler;
     private readonly OciPassengerDetailsHandler _ociPassengerDetailsHandler;
+    private readonly OciCheckInHandler _ociCheckInHandler;
     private readonly ILogger<OciFunction> _logger;
 
     public OciFunction(
         OciRetrieveHandler ociRetrieveHandler,
         OciBagsHandler ociBagsHandler,
         OciPassengerDetailsHandler ociPassengerDetailsHandler,
+        OciCheckInHandler ociCheckInHandler,
         ILogger<OciFunction> logger)
     {
         _ociRetrieveHandler = ociRetrieveHandler;
         _ociBagsHandler = ociBagsHandler;
         _ociPassengerDetailsHandler = ociPassengerDetailsHandler;
+        _ociCheckInHandler = ociCheckInHandler;
         _logger = logger;
     }
 
@@ -150,6 +154,44 @@ public sealed class OciFunction
         try
         {
             var result = await _ociBagsHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.BadRequestAsync(ex.Message); }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/oci/checkin
+    // -------------------------------------------------------------------------
+
+    [Function("OciCheckIn")]
+    [OpenApiOperation(operationId: "OciCheckIn", tags: new[] { "OCI" }, Summary = "Complete online check-in and generate boarding passes")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(OciCheckInRequest), Required = true, Description = "Check-in request with booking reference and passengers")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OciCheckInResponse), Description = "OK — boarding passes generated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> CheckIn(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/checkin")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (body, error) = await req.TryDeserializeBodyAsync<OciCheckInRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(body!.BookingReference))
+            return await req.BadRequestAsync("'bookingReference' is required.");
+
+        if (body.Passengers.Count == 0)
+            return await req.BadRequestAsync("'passengers' must not be empty.");
+
+        var command = new OciCheckInCommand(
+            BookingReference: body.BookingReference.ToUpperInvariant().Trim(),
+            Passengers: body.Passengers
+                .Select(p => new OciCheckInPassengerCommand(p.PassengerId, p.InventoryIds))
+                .ToList());
+
+        try
+        {
+            var result = await _ociCheckInHandler.HandleAsync(command, cancellationToken);
             return await req.OkJsonAsync(result);
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }

@@ -1,0 +1,53 @@
+<div class="page fade-in">
+  <div class="page-header">
+    <h2>Dangerous Goods Declaration</h2>
+    <p>Please read and confirm the following before completing check-in</p>
+  </div>
+
+  <div class="hazmat-panel">
+    <div class="hazmat-icon">&#9888;</div>
+    <h3>Prohibited and Restricted Items</h3>
+    <p class="hazmat-intro">
+      Certain items are restricted or prohibited from being carried in your baggage.
+      By continuing, you confirm that your baggage does not contain any of the following:
+    </p>
+
+    <ul class="hazmat-list">
+      <li>Explosives, fireworks, or flares</li>
+      <li>Compressed gases (including aerosols beyond permitted limits)</li>
+      <li>Flammable liquids or solids (including lighter fuel)</li>
+      <li>Oxidising substances and organic peroxides</li>
+      <li>Toxic or infectious substances</li>
+      <li>Radioactive materials</li>
+      <li>Corrosives (including batteries with free liquid)</li>
+      <li>Items that could ignite or cause harm during the flight</li>
+    </ul>
+
+    <p class="hazmat-note">
+      Failure to comply may result in prosecution. If you are unsure whether an item is permitted,
+      please check with airport staff before proceeding.
+    </p>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="error-banner">
+      <span>&#9888;</span>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <div class="action-buttons">
+    <button
+      type="button"
+      class="btn-primary"
+      [disabled]="submitting()"
+      (click)="confirm()"
+    >
+      @if (submitting()) {
+        <span class="spinner"></span> Completing check-in&hellip;
+      } @else {
+        I confirm &mdash; Complete Check-In
+      }
+    </button>
+  </div>
+</div>

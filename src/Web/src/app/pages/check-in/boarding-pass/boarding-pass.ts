@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
-import { RetailApiService } from '../../../services/retail-api.service';
+import { CheckInStateService } from '../../../services/check-in-state.service';
 import { BoardingPass } from '../../../models/order.model';
 import QRCode from 'qrcode';
 
@@ -21,11 +21,6 @@ export class BoardingPassComponent implements OnInit {
 
   @ViewChild('carouselTrack') carouselTrack?: ElementRef<HTMLElement>;
 
-  bookingRef = signal('');
-  givenName = signal('');
-  surname = signal('');
-  passengerIds = signal<string[]>([]);
-
   readonly groupedByPassenger = computed((): { name: string; passes: BoardingPass[] }[] => {
     const passes = this.boardingPasses();
     const map = new Map<string, { name: string; passes: BoardingPass[] }>();
@@ -40,44 +35,19 @@ export class BoardingPassComponent implements OnInit {
   });
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
-    private retailApi: RetailApiService
+    private checkInState: CheckInStateService
   ) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
-      const paxIds = (params['passengerIds'] ?? params['paxIds'] ?? '').split(',').filter(Boolean);
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
-      this.passengerIds.set(paxIds);
-
-      if (!ref) {
-        this.router.navigate(['/check-in']);
-        return;
-      }
-      this.submitCheckIn(ref, paxIds);
-    });
-  }
-
-  private submitCheckIn(ref: string, paxIds: string[]): void {
-    this.loading.set(true);
-    this.errorMessage.set('');
-    this.retailApi.submitCheckIn(ref, paxIds).subscribe({
-      next: async (passes) => {
-        this.boardingPasses.set(passes);
-        await this.generateQrCodes(passes);
-        this.loading.set(false);
-      },
-      error: (err: { message?: string }) => {
-        this.errorMessage.set(err?.message ?? 'Check-in failed. Please try again or visit the airport desk.');
-        this.loading.set(false);
-      }
-    });
+    const passes = this.checkInState.boardingPasses();
+    if (!passes || passes.length === 0) {
+      this.errorMessage.set('No boarding passes found. Please complete check-in again.');
+      this.loading.set(false);
+      return;
+    }
+    this.boardingPasses.set(passes);
+    this.generateQrCodes(passes).then(() => this.loading.set(false));
   }
 
   private async generateQrCodes(passes: BoardingPass[]): Promise<void> {
