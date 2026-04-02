@@ -1,9 +1,18 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { OciOrder } from '../models/order.model';
 
+export interface OciTravelDocument {
+  passengerId: string;
+  type: 'PASSPORT' | 'ID_CARD';
+  number: string;
+  issuingCountry: string;
+  expiryDate: string;
+  nationality: string;
+}
+
 export interface CheckInBagSelection {
   passengerId: string;
-  segmentId: string;
+  segmentRef: string;
   bagOfferId: string;
   additionalBags: number;
   price: number;
@@ -12,7 +21,7 @@ export interface CheckInBagSelection {
 
 export interface CheckInSeatSelection {
   passengerId: string;
-  segmentId: string;
+  segmentRef: string;
   seatNumber: string;
   seatPrice: number;
   currency: string;
@@ -21,6 +30,8 @@ export interface CheckInSeatSelection {
 @Injectable({ providedIn: 'root' })
 export class CheckInStateService {
   readonly currentOrder = signal<OciOrder | null>(null);
+  readonly selectedPassengerIds = signal<string[]>([]);
+  readonly travelDocuments = signal<OciTravelDocument[]>([]);
   readonly bagSelections = signal<CheckInBagSelection[]>([]);
   readonly seatSelections = signal<CheckInSeatSelection[]>([]);
 
@@ -40,6 +51,11 @@ export class CheckInStateService {
     this.currentOrder.set(order);
   }
 
+  setPassengerCheckInData(passengerIds: string[], travelDocs: OciTravelDocument[]): void {
+    this.selectedPassengerIds.set(passengerIds);
+    this.travelDocuments.set(travelDocs);
+  }
+
   setBagSelections(sels: CheckInBagSelection[]): void {
     this.bagSelections.set(sels);
   }
@@ -50,6 +66,8 @@ export class CheckInStateService {
 
   clear(): void {
     this.currentOrder.set(null);
+    this.selectedPassengerIds.set([]);
+    this.travelDocuments.set([]);
     this.bagSelections.set([]);
     this.seatSelections.set([]);
   }

@@ -9,7 +9,7 @@
   </div>
 
   <!-- Loading -->
-  @if (loading()) {
+  @if (seatmapLoading()) {
     <div class="loading-state">
       <span class="spinner-dark"></span>
       <span>Loading booking&hellip;</span>
@@ -25,7 +25,7 @@
   }
 
   <!-- Main content -->
-  @if (!loading() && order(); as o) {
+  @if (!seatmapLoading() && order(); as o) {
 
     <!-- Passenger tabs -->
     <div class="section">
@@ -148,7 +148,7 @@
         } @else if (!seatsAlwaysFree() && totalSeatCost() > 0) {
           Continue &mdash; {{ currency() }} {{ totalSeatCost().toFixed(2) }} seat charge
         } @else {
-          Continue to Boarding Pass
+          Continue to Baggage
         }
       </button>
       <button type="button" class="btn-secondary" [disabled]="submitting()" (click)="skip()">

@@ -1,13 +1,14 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService, CheckInBagSelection } from '../../../services/check-in-state.service';
-import { Order } from '../../../models/order.model';
-import { BagOffer, BagPolicy } from '../../../models/flight.model';
+import { OciOrder, OciFlightSegment } from '../../../models/order.model';
+import { BagOffer, BagPolicy, CabinCode } from '../../../models/flight.model';
 
 interface SegmentBagData {
-  segmentId: string;
+  segmentRef: string;
+  inventoryId: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -22,7 +23,7 @@ interface PassengerBagState {
   key: string;
   passengerId: string;
   passengerName: string;
-  segmentId: string;
+  segmentRef: string;
   alreadyPurchased: number;
   selectedAdditional: number;
 }
@@ -35,21 +36,13 @@ interface PassengerBagState {
   styleUrl: './check-in-bags.css'
 })
 export class CheckInBagsComponent implements OnInit {
-  order = signal<Order | null>(null);
-  loading = signal(true);
-  errorMessage = signal('');
-
-  bookingRef = signal('');
-  givenName = signal('');
-  surname = signal('');
-  passengerIds = signal<string[]>([]);
-
+  order = signal<OciOrder | null>(null);
   segmentBagData = signal<SegmentBagData[]>([]);
   passengerBagStates = signal<PassengerBagState[]>([]);
 
-  readonly checkedInPassengers = computed(() => {
+  readonly selectedPassengers = computed(() => {
     const o = this.order();
-    const ids = this.passengerIds();
+    const ids = this.checkInState.selectedPassengerIds();
     if (!o) return [];
     return o.passengers.filter(p => ids.includes(p.passengerId));
   });
@@ -60,10 +53,8 @@ export class CheckInBagsComponent implements OnInit {
     let total = 0;
     for (const state of states) {
       if (state.selectedAdditional === 0) continue;
-      const seg = segs.find(s => s.segmentId === state.segmentId);
-      if (seg) {
-        total += this.computePrice(seg.offers, state.alreadyPurchased, state.selectedAdditional);
-      }
+      const seg = segs.find(s => s.segmentRef === state.segmentRef);
+      if (seg) total += this.computePrice(seg.offers, state.alreadyPurchased, state.selectedAdditional);
     }
     return total;
   });
@@ -71,53 +62,28 @@ export class CheckInBagsComponent implements OnInit {
   readonly currency = computed(() => this.order()?.currencyCode ?? 'GBP');
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private retailApi: RetailApiService,
     private checkInState: CheckInStateService
   ) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
-      const paxIds = (params['passengerIds'] ?? '').split(',').filter(Boolean);
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
-      this.passengerIds.set(paxIds);
-
-      if (!ref) {
-        this.router.navigate(['/check-in']);
-        return;
-      }
-      this.loadOrder(ref, gn, sn);
-    });
+    const order = this.checkInState.currentOrder();
+    if (!order) {
+      this.router.navigate(['/check-in']);
+      return;
+    }
+    this.order.set(order);
+    this.initBagData(order);
   }
 
-  private loadOrder(ref: string, gn: string, sn: string): void {
-    this.loading.set(true);
-    this.retailApi.retrieveForCheckIn({ bookingReference: ref, givenName: gn, surname: sn }).subscribe({
-      next: (order) => {
-        this.order.set(order);
-        this.loading.set(false);
-        this.initBagData(order);
-      },
-      error: (err: { message?: string }) => {
-        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
-        this.loading.set(false);
-      }
-    });
-  }
-
-  private initBagData(order: Order): void {
-    const paxIds = this.passengerIds();
+  private initBagData(order: OciOrder): void {
+    const paxIds = this.checkInState.selectedPassengerIds();
     const passengers = order.passengers.filter(p => paxIds.includes(p.passengerId));
 
-    // Build segment bag data entries (loading)
     const segData: SegmentBagData[] = order.flightSegments.map(seg => ({
-      segmentId: seg.segmentId,
+      segmentRef: seg.segmentRef,
+      inventoryId: seg.inventoryId,
       flightNumber: seg.flightNumber,
       origin: seg.origin,
       destination: seg.destination,
@@ -129,39 +95,27 @@ export class CheckInBagsComponent implements OnInit {
     }));
     this.segmentBagData.set(segData);
 
-    // Build per-passenger-per-segment states
     const states: PassengerBagState[] = [];
     for (const pax of passengers) {
       for (const seg of order.flightSegments) {
-        const bagItem = order.orderItems.find(
-          oi => oi.type === 'Bag' &&
-                oi.segmentRef === seg.segmentId &&
-                oi.passengerRefs.includes(pax.passengerId)
-        );
         states.push({
-          key: `${pax.passengerId}__${seg.segmentId}`,
+          key: `${pax.passengerId}__${seg.segmentRef}`,
           passengerId: pax.passengerId,
           passengerName: `${pax.givenName} ${pax.surname}`,
-          segmentId: seg.segmentId,
-          alreadyPurchased: bagItem?.additionalBags ?? 0,
+          segmentRef: seg.segmentRef,
+          alreadyPurchased: 0,
           selectedAdditional: 0
         });
       }
     }
     this.passengerBagStates.set(states);
 
-    // Load bag policies per segment
     order.flightSegments.forEach((seg, idx) => {
-      this.retailApi.getBagOffers(seg.segmentId, seg.cabinCode as 'F' | 'J' | 'W' | 'Y').subscribe({
+      this.retailApi.getBagOffers(seg.inventoryId, seg.cabinCode as CabinCode).subscribe({
         next: (response) => {
           this.segmentBagData.update(list => {
             const updated = [...list];
-            updated[idx] = {
-              ...updated[idx],
-              policy: response.policy,
-              offers: response.additionalBagOffers,
-              loading: false
-            };
+            updated[idx] = { ...updated[idx], policy: response.policy, offers: response.additionalBagOffers, loading: false };
             return updated;
           });
         },
@@ -176,8 +130,8 @@ export class CheckInBagsComponent implements OnInit {
     });
   }
 
-  getPaxStatesForSegment(segmentId: string): PassengerBagState[] {
-    return this.passengerBagStates().filter(s => s.segmentId === segmentId);
+  getPaxStatesForSegment(segmentRef: string): PassengerBagState[] {
+    return this.passengerBagStates().filter(s => s.segmentRef === segmentRef);
   }
 
   maxNewBags(alreadyPurchased: number): number {
@@ -185,8 +139,7 @@ export class CheckInBagsComponent implements OnInit {
   }
 
   additionalOptions(alreadyPurchased: number): number[] {
-    const max = this.maxNewBags(alreadyPurchased);
-    return Array.from({ length: max + 1 }, (_, i) => i);
+    return Array.from({ length: this.maxNewBags(alreadyPurchased) + 1 }, (_, i) => i);
   }
 
   computePrice(offers: BagOffer[], alreadyPurchased: number, additional: number): number {
@@ -222,38 +175,32 @@ export class CheckInBagsComponent implements OnInit {
   }
 
   cabinLabel(cabinCode: string): string {
-    switch (cabinCode) {
-      case 'F': return 'First';
-      case 'J': return 'Business';
-      case 'W': return 'Premium Economy';
-      case 'Y': return 'Economy';
-      default: return cabinCode;
-    }
+    const labels: Record<string, string> = { F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy' };
+    return labels[cabinCode] ?? cabinCode;
   }
 
-  continueToSeats(): void {
+  continueToPayment(): void {
     this.saveBagSelections();
-    this.router.navigate(['/check-in/seats'], { queryParams: this.navParams() });
+    this.router.navigate(['/check-in/boarding-pass']);
   }
 
   skip(): void {
     this.checkInState.setBagSelections([]);
-    this.router.navigate(['/check-in/seats'], { queryParams: this.navParams() });
+    this.router.navigate(['/check-in/seats']);
   }
 
   private saveBagSelections(): void {
     const segs = this.segmentBagData();
     const selections: CheckInBagSelection[] = [];
-
     for (const state of this.passengerBagStates()) {
       if (state.selectedAdditional === 0) continue;
-      const seg = segs.find(s => s.segmentId === state.segmentId);
+      const seg = segs.find(s => s.segmentRef === state.segmentRef);
       if (!seg) continue;
       const price = this.computePrice(seg.offers, state.alreadyPurchased, state.selectedAdditional);
       const bagOfferId = this.getBagOfferId(seg.offers, state.alreadyPurchased, state.selectedAdditional);
       selections.push({
         passengerId: state.passengerId,
-        segmentId: state.segmentId,
+        segmentRef: state.segmentRef,
         bagOfferId,
         additionalBags: state.selectedAdditional,
         price,
@@ -261,14 +208,5 @@ export class CheckInBagsComponent implements OnInit {
       });
     }
     this.checkInState.setBagSelections(selections);
-  }
-
-  private navParams(): Record<string, string> {
-    return {
-      bookingRef: this.bookingRef(),
-      givenName: this.givenName(),
-      surname: this.surname(),
-      passengerIds: this.passengerIds().join(',')
-    };
   }
 }

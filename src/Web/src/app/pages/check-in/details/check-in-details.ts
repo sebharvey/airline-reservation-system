@@ -2,8 +2,9 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CheckInStateService } from '../../../services/check-in-state.service';
+import { CheckInStateService, OciTravelDocument } from '../../../services/check-in-state.service';
 import { OciOrder, OciFlightSegment } from '../../../models/order.model';
+import { COUNTRIES, Country } from '../../../data/countries';
 
 interface TravelDocumentForm {
   type: 'PASSPORT' | 'ID_CARD';
@@ -31,8 +32,9 @@ interface PassengerCheckInState {
 })
 export class CheckInDetailsComponent implements OnInit {
   order = signal<OciOrder | null>(null);
-
   passengerStates = signal<PassengerCheckInState[]>([]);
+
+  readonly countries: Country[] = COUNTRIES;
 
   readonly selectedPassengerIds = computed((): string[] =>
     this.passengerStates()
@@ -90,8 +92,21 @@ export class CheckInDetailsComponent implements OnInit {
     this.passengerStates.set(states);
   }
 
-  proceedToBags(): void {
-    this.router.navigate(['/check-in/bags']);
+  proceedToSeats(): void {
+    const selected = this.passengerStates().filter(s => s.selected);
+    const travelDocs: OciTravelDocument[] = selected.map(s => ({
+      passengerId: s.passengerId,
+      type: s.travelDocument.type,
+      number: s.travelDocument.number,
+      issuingCountry: s.travelDocument.issuingCountry,
+      expiryDate: s.travelDocument.expiryDate,
+      nationality: s.travelDocument.nationality,
+    }));
+    this.checkInState.setPassengerCheckInData(
+      selected.map(s => s.passengerId),
+      travelDocs
+    );
+    this.router.navigate(['/check-in/seats']);
   }
 
   formatDateTime(dt: string): string {

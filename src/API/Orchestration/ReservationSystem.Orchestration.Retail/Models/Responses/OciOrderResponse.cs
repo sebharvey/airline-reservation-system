@@ -20,6 +20,7 @@ public sealed class OciPassenger
 public sealed class OciFlightSegment
 {
     public string SegmentRef { get; init; } = string.Empty;
+    public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;

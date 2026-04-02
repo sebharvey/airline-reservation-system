@@ -175,6 +175,17 @@ public sealed class OrderServiceClient
             ?? new List<OrderMsOrderResult>();
     }
 
+    public async Task UpdateOrderBagsAsync(string bookingReference, string bagsJson, CancellationToken ct)
+    {
+        using var content = new StringContent(bagsJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/bags", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order bags: {error}");
+        }
+    }
+
     public async Task UpdateOrderPassengersAsync(string bookingReference, string passengersJson, CancellationToken ct)
     {
         using var content = new StringContent(passengersJson, Encoding.UTF8, "application/json");
