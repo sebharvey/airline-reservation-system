@@ -2,6 +2,13 @@ namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 
 public sealed class OciCheckInResponse
 {
+    public string Status { get; init; } = "Success";
+    public string BookingReference { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+}
+
+public sealed class OciBoardingPassesResponse
+{
     public IReadOnlyList<OciBoardingPass> BoardingPasses { get; init; } = [];
 }
 

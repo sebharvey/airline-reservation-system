@@ -114,6 +114,21 @@ public sealed class DeliveryServiceClient
                ?? throw new InvalidOperationException("Empty response from boarding card creation.");
     }
 
+    public async Task<CreateBoardingCardsResult> GetBoardingCardsByBookingAsync(
+        string bookingReference,
+        CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"/api/v1/boarding-cards?bookingRef={Uri.EscapeDataString(bookingReference)}", ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Boarding card retrieval failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<CreateBoardingCardsResult>(JsonOptions, ct)
+               ?? throw new InvalidOperationException("Empty response from boarding card retrieval.");
+    }
+
     public async Task IssueDocumentAsync(
         string bookingReference, string documentType, string passengerId,
         string inventoryId, decimal amount, string currency,

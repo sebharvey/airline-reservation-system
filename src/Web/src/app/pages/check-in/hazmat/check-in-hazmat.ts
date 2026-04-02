@@ -45,10 +45,11 @@ export class CheckInHazmatComponent implements OnInit {
     this.errorMessage.set('');
 
     this.retailApi.submitOciCheckIn(order.bookingReference, passengers).subscribe({
-      next: (passes) => {
-        this.checkInState.setBoardingPasses(passes);
+      next: () => {
         this.submitting.set(false);
-        this.router.navigate(['/check-in/boarding-pass']);
+        this.router.navigate(['/check-in/boarding-pass'], {
+          queryParams: { bookingRef: order.bookingReference }
+        });
       },
       error: (err: { message?: string }) => {
         this.submitting.set(false);

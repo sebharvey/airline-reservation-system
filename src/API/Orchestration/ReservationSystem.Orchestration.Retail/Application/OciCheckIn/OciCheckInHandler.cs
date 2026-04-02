@@ -25,34 +25,20 @@ public sealed class OciCheckInHandler
             })
             .ToList();
 
+        // Marks manifest entries as checked-in and generates boarding card records in the Delivery MS.
+        // The boarding passes themselves are retrieved separately via POST /v1/oci/boardingpasses.
         var result = await _deliveryServiceClient.CreateBoardingCardsAsync(
             command.BookingReference, passengers, cancellationToken);
 
-        var boardingPasses = result.BoardingCards
-            .Select(bc => new OciBoardingPass
-            {
-                BookingReference = bc.BookingReference,
-                PassengerId = bc.PassengerId,
-                GivenName = bc.GivenName,
-                Surname = bc.Surname,
-                FlightNumber = bc.FlightNumber,
-                Origin = bc.Origin,
-                Destination = bc.Destination,
-                DepartureDateTime = bc.DepartureDateTime,
-                SeatNumber = bc.SeatNumber,
-                CabinCode = bc.CabinCode,
-                ETicketNumber = bc.ETicketNumber,
-                SequenceNumber = bc.SequenceNumber,
-                BcbpBarcode = bc.BcbpString,
-                Gate = bc.Gate,
-                BoardingTime = bc.BoardingTime
-            })
-            .ToList();
-
         _logger.LogInformation(
-            "OCI check-in completed for booking {BookingRef}: {Count} boarding pass(es) generated",
-            command.BookingReference, boardingPasses.Count);
+            "OCI check-in completed for booking {BookingRef}: {Count} passenger segment(s) checked in",
+            command.BookingReference, result.BoardingCards.Count);
 
-        return new OciCheckInResponse { BoardingPasses = boardingPasses };
+        return new OciCheckInResponse
+        {
+            Status = "Success",
+            BookingReference = command.BookingReference,
+            Message = "Check-in completed successfully"
+        };
     }
 }

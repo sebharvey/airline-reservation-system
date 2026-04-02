@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Microservices.Delivery.Application.CreateBoardingCards;
+using ReservationSystem.Microservices.Delivery.Application.GetBoardingCardsByBooking;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
@@ -14,13 +15,16 @@ namespace ReservationSystem.Microservices.Delivery.Functions;
 public sealed class BoardingCardFunction
 {
     private readonly CreateBoardingCardsHandler _createHandler;
+    private readonly GetBoardingCardsByBookingHandler _getByBookingHandler;
     private readonly ILogger<BoardingCardFunction> _logger;
 
     public BoardingCardFunction(
         CreateBoardingCardsHandler createHandler,
+        GetBoardingCardsByBookingHandler getByBookingHandler,
         ILogger<BoardingCardFunction> logger)
     {
         _createHandler = createHandler;
+        _getByBookingHandler = getByBookingHandler;
         _logger = logger;
     }
 
@@ -53,5 +57,25 @@ public sealed class BoardingCardFunction
             _logger.LogError(ex, "Failed to create boarding cards for booking {BookingRef}", request.BookingReference);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // GET /v1/boarding-cards?bookingRef=ABC123
+    [Function("GetBoardingCardsByBooking")]
+    [OpenApiOperation(operationId: "GetBoardingCardsByBooking", tags: new[] { "BoardingCards" }, Summary = "Retrieve boarding cards for all checked-in passengers on a booking")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CreateBoardingCardsResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — bookingRef missing")]
+    public async Task<HttpResponseData> GetBoardingCardsByBooking(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/boarding-cards")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var bookingRef = query["bookingRef"];
+
+        if (string.IsNullOrWhiteSpace(bookingRef))
+            return await req.BadRequestAsync("The 'bookingRef' query parameter is required.");
+
+        var result = await _getByBookingHandler.HandleAsync(bookingRef.ToUpperInvariant().Trim(), cancellationToken);
+        return await req.OkJsonAsync(result);
     }
 }
