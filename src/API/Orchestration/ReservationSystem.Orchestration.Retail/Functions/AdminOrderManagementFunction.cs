@@ -6,6 +6,8 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrders;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
+using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
 
@@ -21,15 +23,18 @@ public sealed class AdminOrderManagementFunction
 {
     private readonly GetAdminOrdersHandler _getAdminOrdersHandler;
     private readonly GetAdminOrderDetailHandler _getAdminOrderDetailHandler;
+    private readonly GetAdminOrderTicketsHandler _getAdminOrderTicketsHandler;
     private readonly ILogger<AdminOrderManagementFunction> _logger;
 
     public AdminOrderManagementFunction(
         GetAdminOrdersHandler getAdminOrdersHandler,
         GetAdminOrderDetailHandler getAdminOrderDetailHandler,
+        GetAdminOrderTicketsHandler getAdminOrderTicketsHandler,
         ILogger<AdminOrderManagementFunction> logger)
     {
         _getAdminOrdersHandler = getAdminOrdersHandler;
         _getAdminOrderDetailHandler = getAdminOrderDetailHandler;
+        _getAdminOrderTicketsHandler = getAdminOrderTicketsHandler;
         _logger = logger;
     }
 
@@ -74,6 +79,25 @@ public sealed class AdminOrderManagementFunction
 
         if (result is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/{bookingRef}/tickets
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetOrderTickets")]
+    [OpenApiOperation(operationId: "AdminGetOrderTickets", tags: new[] { "Admin Orders" }, Summary = "Get all tickets for an order by booking reference (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<AdminTicketRecord>), Description = "OK")]
+    public async Task<HttpResponseData> GetOrderTickets(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/{bookingRef}/tickets")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        var result = await _getAdminOrderTicketsHandler.HandleAsync(
+            bookingRef.ToUpperInvariant(), cancellationToken);
 
         return await req.OkJsonAsync(result);
     }

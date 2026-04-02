@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Delivery.Application.DeleteManifest;
 using ReservationSystem.Microservices.Delivery.Application.GetDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.GetManifest;
+using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.PatchManifest;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
@@ -62,6 +63,7 @@ var host = new HostBuilder()
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Application use-case handlers ──────────────────────────────────────
+        services.AddScoped<GetTicketsByBookingHandler>();
         services.AddScoped<IssueTicketsHandler>();
         services.AddScoped<VoidTicketHandler>();
         services.AddScoped<ReissueTicketsHandler>();

@@ -58,6 +58,29 @@ public static class DeliveryMapper
             CreatedAt = document.CreatedAt
         };
 
+    public static GetTicketResponse ToGetTicketResponse(Ticket ticket)
+    {
+        JsonElement? ticketData = null;
+        if (!string.IsNullOrWhiteSpace(ticket.TicketData) && ticket.TicketData != "{}")
+        {
+            ticketData = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
+        }
+
+        return new GetTicketResponse
+        {
+            TicketId = ticket.TicketId,
+            ETicketNumber = ticket.ETicketNumber,
+            BookingReference = ticket.BookingReference,
+            PassengerId = ticket.PassengerId,
+            IsVoided = ticket.IsVoided,
+            VoidedAt = ticket.VoidedAt,
+            TicketData = ticketData,
+            CreatedAt = ticket.CreatedAt,
+            UpdatedAt = ticket.UpdatedAt,
+            Version = ticket.Version
+        };
+    }
+
     public static GetDocumentResponse ToGetDocumentResponse(Document document)
     {
         JsonElement? docData = null;
