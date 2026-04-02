@@ -36,6 +36,7 @@ public sealed class CreateBasketHandler
             ["bookingType"] = "oneWay",
             ["channelCode"] = command.ChannelCode,
             ["currencyCode"] = command.CurrencyCode,
+            ["loyaltyNumber"] = command.LoyaltyNumber,
             ["flightOffers"] = new JsonArray(),
             ["passengers"] = new JsonArray(),
             ["seats"] = new JsonArray(),
