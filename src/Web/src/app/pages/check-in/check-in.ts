@@ -5,13 +5,6 @@ import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
 import { CheckInStateService } from '../../services/check-in-state.service';
 
-interface DemoHint {
-  ref: string;
-  name: string;
-  givenName: string;
-  surname: string;
-}
-
 @Component({
   selector: 'app-check-in',
   standalone: true,
@@ -26,12 +19,6 @@ export class CheckInComponent {
   loading = signal(false);
   errorMessage = signal('');
 
-  readonly demoHints: DemoHint[] = [
-    { ref: 'AB1234', name: 'Alex Taylor', givenName: 'Alex', surname: 'Taylor' },
-    { ref: 'CD5678', name: 'Sam Morgan', givenName: 'Sam', surname: 'Morgan' },
-    { ref: 'EF9012', name: 'Jamie Patel', givenName: 'Jamie', surname: 'Patel' }
-  ];
-
   constructor(
     private retailApi: RetailApiService,
     private checkInState: CheckInStateService,
@@ -40,13 +27,6 @@ export class CheckInComponent {
 
   onReferenceInput(value: string): void {
     this.bookingReference.set(value.toUpperCase());
-  }
-
-  fillDemo(hint: DemoHint): void {
-    this.bookingReference.set(hint.ref);
-    this.givenName.set(hint.givenName);
-    this.surname.set(hint.surname);
-    this.errorMessage.set('');
   }
 
   get isFormValid(): boolean {
