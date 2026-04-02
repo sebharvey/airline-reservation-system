@@ -557,17 +557,17 @@
 
       <!-- Add points action bar -->
       <div class="detail-actions-bar">
-        <button class="edit-btn" (click)="openAddPointsForm()">Assign Points</button>
+        <button class="edit-btn" (click)="openAddPointsForm()">Adjust Points</button>
       </div>
 
       <!-- Add points form -->
       @if (showAddPointsForm()) {
         <div class="add-points-form">
-          <h3 class="section-title">Assign points to account</h3>
+          <h3 class="section-title">Adjust points</h3>
           <div class="form-grid">
             <div class="field">
               <label class="field-label">Points</label>
-              <input class="field-input" type="number" min="1"
+              <input class="field-input" type="number"
                 [value]="addPointsAmount()"
                 (input)="setPointsAmount($event)"
                 [disabled]="addPointsSaving()"
@@ -586,9 +586,9 @@
             <button class="btn-secondary" (click)="cancelAddPoints()" [disabled]="addPointsSaving()">Cancel</button>
             <button class="btn-primary" (click)="submitAddPoints()" [disabled]="addPointsSaving()">
               @if (addPointsSaving()) {
-                <span class="btn-spinner"></span> Assigning…
+                <span class="btn-spinner"></span> Adjusting…
               } @else {
-                Assign Points
+                Adjust Points
               }
             </button>
           </div>
