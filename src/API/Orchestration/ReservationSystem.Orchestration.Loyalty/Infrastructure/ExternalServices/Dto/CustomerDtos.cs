@@ -21,6 +21,11 @@ public sealed class CustomerDto
     public string? StateOrRegion { get; init; }
     public string? PostalCode { get; init; }
     public string? CountryCode { get; init; }
+    public string? PassportNumber { get; init; }
+    public DateOnly? PassportIssueDate { get; init; }
+    public string? PassportIssuer { get; init; }
+    public DateOnly? PassportExpiryDate { get; init; }
+    public string? KnownTravellerNumber { get; init; }
     public string TierCode { get; init; } = string.Empty;
     public int PointsBalance { get; init; }
     public int TierProgressPoints { get; init; }
