@@ -1,4 +1,4 @@
-using ReservationSystem.Shared.Common.Validation;
+using ReservationSystem.Shared.Business.Validation;
 
 namespace ReservationSystem.Orchestration.Loyalty.Validation;
 
