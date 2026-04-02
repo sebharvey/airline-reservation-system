@@ -8,7 +8,7 @@ using ReservationSystem.Microservices.Identity.Application.DeleteAccount;
 using ReservationSystem.Microservices.Identity.Application.EmailChangeRequest;
 using ReservationSystem.Microservices.Identity.Application.GetAccount;
 using ReservationSystem.Microservices.Identity.Application.GetAccountByEmail;
-using ReservationSystem.Microservices.Identity.Application.Login;
+using ReservationSystem.Shared.Business.Security;
 using ReservationSystem.Microservices.Identity.Application.SetPassword;
 using ReservationSystem.Microservices.Identity.Application.UpdateAccount;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
@@ -268,7 +268,7 @@ public sealed class AccountFunction
 
         try
         {
-            var passwordHash = LoginHandler.HashPassword(request.NewPassword!);
+            var passwordHash = PasswordHasher.HashPassword(request.NewPassword!);
             var command = new SetPasswordCommand(userAccountId, passwordHash);
             await _setPasswordHandler.HandleAsync(command, cancellationToken);
             return req.NoContent();

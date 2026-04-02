@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.User.Domain.Repositories;
 using ReservationSystem.Microservices.User.Models.Responses;
-using System.Security.Cryptography;
-using System.Text;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.User.Application.AddUser;
 
@@ -39,7 +38,7 @@ public sealed class AddUserHandler
             throw new InvalidOperationException("A user with this email already exists.");
         }
 
-        var passwordHash = HashPassword(command.Password);
+        var passwordHash = PasswordHasher.HashPassword(command.Password);
         var user = Domain.Entities.User.Create(command.Username, command.Email, passwordHash, command.FirstName, command.LastName);
 
         await _userRepository.CreateAsync(user, cancellationToken);
@@ -49,9 +48,5 @@ public sealed class AddUserHandler
         return new AddUserResponse { UserId = user.UserId };
     }
 
-    internal static string HashPassword(string password)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
-    }
+
 }

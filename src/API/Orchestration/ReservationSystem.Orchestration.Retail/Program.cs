@@ -4,7 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
-using ReservationSystem.Shared.Common.Middleware;
+using ReservationSystem.Shared.Business.Middleware;
 using ReservationSystem.Orchestration.Retail.Swagger;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;

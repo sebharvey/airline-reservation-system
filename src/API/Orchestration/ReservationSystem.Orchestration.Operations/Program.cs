@@ -12,7 +12,7 @@ using ReservationSystem.Orchestration.Operations.Application.GetFlightStatus;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
-using ReservationSystem.Shared.Common.Middleware;
+using ReservationSystem.Shared.Business.Middleware;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>

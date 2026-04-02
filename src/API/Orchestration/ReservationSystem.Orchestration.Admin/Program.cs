@@ -7,7 +7,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
-using ReservationSystem.Shared.Common.Middleware;
+using ReservationSystem.Shared.Business.Middleware;
 using ReservationSystem.Orchestration.Admin.Swagger;
 using ReservationSystem.Orchestration.Admin.Application.Login;
 using ReservationSystem.Orchestration.Admin.Infrastructure.ExternalServices;

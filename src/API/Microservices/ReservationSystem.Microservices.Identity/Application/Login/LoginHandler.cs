@@ -1,14 +1,10 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using ReservationSystem.Microservices.Identity.Domain.Entities;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
-using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Models.Responses;
+using ReservationSystem.Shared.Business.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using RefreshTokenEntity = ReservationSystem.Microservices.Identity.Domain.Entities.RefreshToken;
 
 namespace ReservationSystem.Microservices.Identity.Application.Login;
@@ -21,7 +17,7 @@ public sealed class LoginHandler
 {
     private readonly IUserAccountRepository _userAccountRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
-    private readonly JwtOptions _jwtOptions;
+    private readonly IJwtService _jwtService;
     private readonly ILogger<LoginHandler> _logger;
 
     private const int MaxFailedAttempts = 5;
@@ -30,12 +26,12 @@ public sealed class LoginHandler
     public LoginHandler(
         IUserAccountRepository userAccountRepository,
         IRefreshTokenRepository refreshTokenRepository,
-        IOptions<JwtOptions> jwtOptions,
+        IJwtService jwtService,
         ILogger<LoginHandler> logger)
     {
         _userAccountRepository = userAccountRepository;
         _refreshTokenRepository = refreshTokenRepository;
-        _jwtOptions = jwtOptions.Value;
+        _jwtService = jwtService;
         _logger = logger;
     }
 
@@ -51,7 +47,7 @@ public sealed class LoginHandler
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
-        var passwordValid = VerifyPassword(command.Password, account.PasswordHash);
+        var passwordValid = PasswordHasher.VerifyPassword(command.Password, account.PasswordHash);
 
         if (!passwordValid)
         {
@@ -84,8 +80,8 @@ public sealed class LoginHandler
         account.RecordSuccessfulLogin();
         await _userAccountRepository.UpdateAsync(account, cancellationToken);
 
-        var rawRefreshToken = GenerateSecureToken();
-        var refreshTokenHash = HashToken(rawRefreshToken);
+        var rawRefreshToken = PasswordHasher.GenerateSecureToken();
+        var refreshTokenHash = PasswordHasher.HashToken(rawRefreshToken);
         var refreshTokenExpiry = DateTime.UtcNow.AddDays(RefreshTokenDays);
 
         var refreshToken = RefreshTokenEntity.Create(
@@ -108,37 +104,8 @@ public sealed class LoginHandler
         };
     }
 
-    private static bool VerifyPassword(string plaintext, string storedHash)
-    {
-        var computedHash = HashPassword(plaintext);
-        return string.Equals(computedHash, storedHash, StringComparison.Ordinal);
-    }
-
-    internal static string HashPassword(string password)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
-    }
-
-    private static string GenerateSecureToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes);
-    }
-
-    internal static string HashToken(string token)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(bytes);
-    }
-
     internal (string Token, DateTime ExpiresAt) GenerateJwt(UserAccount account)
     {
-        var keyBytes = Convert.FromBase64String(_jwtOptions.Secret);
-        var key = new SymmetricSecurityKey(keyBytes);
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpiryMinutes);
-
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, account.UserAccountId.ToString()),
@@ -146,13 +113,6 @@ public sealed class LoginHandler
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        var token = new JwtSecurityToken(
-            issuer: _jwtOptions.Issuer,
-            audience: _jwtOptions.Audience,
-            claims: claims,
-            expires: expiresAt,
-            signingCredentials: credentials);
-
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        return _jwtService.GenerateToken(claims);
     }
 }

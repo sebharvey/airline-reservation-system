@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.User.Application.AddUser;
 using ReservationSystem.Microservices.User.Domain.Repositories;
+using ReservationSystem.Shared.Business.Security;
 
 namespace ReservationSystem.Microservices.User.Application.ResetPassword;
 
@@ -31,7 +31,7 @@ public sealed class ResetPasswordHandler
             return false;
         }
 
-        var passwordHash = AddUserHandler.HashPassword(command.NewPassword);
+        var passwordHash = PasswordHasher.HashPassword(command.NewPassword);
         user.ResetPassword(passwordHash);
         await _userRepository.UpdateAsync(user, cancellationToken);
 

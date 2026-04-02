@@ -23,8 +23,9 @@ using ReservationSystem.Microservices.Identity.Application.VerifyEmail;
 using ReservationSystem.Microservices.Identity.Application.VerifyEmailChange;
 using ReservationSystem.Microservices.Identity.Application.VerifyToken;
 using ReservationSystem.Microservices.Identity.Domain.Repositories;
-using ReservationSystem.Microservices.Identity.Infrastructure.Configuration;
 using ReservationSystem.Microservices.Identity.Infrastructure.Persistence;
+using ReservationSystem.Shared.Business.Infrastructure.Configuration;
+using ReservationSystem.Shared.Business.Security;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
@@ -62,6 +63,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddScoped<IUserAccountRepository, EfUserAccountRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
+        services.AddScoped<IJwtService, JwtService>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));

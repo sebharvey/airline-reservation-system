@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ReservationSystem.Shared.Common.Validation;
+namespace ReservationSystem.Shared.Business.Validation;
 
 /// <summary>
 /// Shared field-level validation helpers for common passenger and user profile
