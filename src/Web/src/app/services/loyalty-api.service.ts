@@ -50,6 +50,7 @@ export interface UpdateProfileParams {
   passportNumber?: string;
   passportIssueDate?: string;
   passportIssuer?: string;
+  passportExpiryDate?: string;
   knownTravellerNumber?: string;
 }
 
@@ -107,6 +108,7 @@ interface ApiCustomerProfile {
   passportNumber?: string;
   passportIssueDate?: string;
   passportIssuer?: string;
+  passportExpiryDate?: string;
   knownTravellerNumber?: string;
   tier: LoyaltyTier;
   pointsBalance: number;
@@ -161,6 +163,7 @@ function mapCustomer(api: ApiCustomerProfile): LoyaltyCustomer {
     passportNumber: api.passportNumber ?? '',
     passportIssueDate: api.passportIssueDate ?? '',
     passportIssuer: api.passportIssuer ?? '',
+    passportExpiryDate: api.passportExpiryDate ?? '',
     knownTravellerNumber: api.knownTravellerNumber ?? '',
     tier: api.tier ?? 'Blue',
     pointsBalance: api.pointsBalance ?? 0,

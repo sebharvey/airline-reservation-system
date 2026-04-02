@@ -24,6 +24,7 @@ public sealed class CustomerResponse
     public string? PassportNumber { get; init; }
     public DateOnly? PassportIssueDate { get; init; }
     public string? PassportIssuer { get; init; }
+    public DateOnly? PassportExpiryDate { get; init; }
     public string? KnownTravellerNumber { get; init; }
     public string TierCode { get; init; } = string.Empty;
     public int PointsBalance { get; init; }

@@ -118,6 +118,7 @@ export class CustomerDetailComponent implements OnInit {
   editPassportNumber = signal('');
   editPassportIssueDate = signal('');
   editPassportIssuer = signal('');
+  editPassportExpiryDate = signal('');
   editKnownTravellerNumber = signal('');
 
   // Transactions
@@ -191,6 +192,7 @@ export class CustomerDetailComponent implements OnInit {
     this.editPassportNumber.set(c.passportNumber ?? '');
     this.editPassportIssueDate.set(c.passportIssueDate ?? '');
     this.editPassportIssuer.set(c.passportIssuer ?? '');
+    this.editPassportExpiryDate.set(c.passportExpiryDate ?? '');
     this.editKnownTravellerNumber.set(c.knownTravellerNumber ?? '');
   }
 
@@ -229,6 +231,7 @@ export class CustomerDetailComponent implements OnInit {
       passportNumber: this.editPassportNumber() || null,
       passportIssueDate: this.editPassportIssueDate() || null,
       passportIssuer: this.editPassportIssuer() || null,
+      passportExpiryDate: this.editPassportExpiryDate() || null,
       knownTravellerNumber: this.editKnownTravellerNumber() || null,
     };
 

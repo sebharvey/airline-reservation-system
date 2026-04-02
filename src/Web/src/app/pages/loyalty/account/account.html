@@ -479,6 +479,16 @@
           </div>
 
           <div class="field">
+            <label for="pPassportExpiry">Passport expiry date</label>
+            <input
+              id="pPassportExpiry"
+              type="date"
+              [value]="profilePassportExpiryDate()"
+              (input)="profilePassportExpiryDate.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
             <label for="pKtn">Known traveller number (KTN)</label>
             <input
               id="pKtn"

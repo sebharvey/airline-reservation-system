@@ -129,6 +129,11 @@ public sealed class CustomerDbContext : DbContext
                   .IsRequired(false)
                   .HasConversion(v => v, v => v != null ? v.TrimEnd() : null);
 
+            entity.Property(c => c.PassportExpiryDate)
+                  .HasColumnName("PassportExpiryDate")
+                  .HasColumnType("date")
+                  .IsRequired(false);
+
             entity.Property(c => c.KnownTravellerNumber)
                   .HasColumnName("KnownTravellerNumber")
                   .HasColumnType("varchar(50)")

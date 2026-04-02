@@ -47,6 +47,7 @@ export interface LoyaltyCustomer {
   passportNumber: string;
   passportIssueDate: string;
   passportIssuer: string;
+  passportExpiryDate: string;
   knownTravellerNumber: string;
   tier: LoyaltyTier;
   pointsBalance: number;

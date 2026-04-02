@@ -43,6 +43,7 @@ export interface CustomerDetail {
   passportNumber: string | null;
   passportIssueDate: string | null;
   passportIssuer: string | null;
+  passportExpiryDate: string | null;
   knownTravellerNumber: string | null;
   tierCode: string;
   pointsBalance: number;
@@ -79,6 +80,7 @@ export interface UpdateCustomerRequest {
   passportNumber?: string | null;
   passportIssueDate?: string | null;
   passportIssuer?: string | null;
+  passportExpiryDate?: string | null;
   knownTravellerNumber?: string | null;
 }
 
