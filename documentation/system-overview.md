@@ -19,7 +19,7 @@ A Modern Airline Retailing system built on offer and order capability.
   - Flight Inventory (creation per flight/cabin/date, seat hold/sell/release, inventory cancellation IROPS)
   - Fares (definition/retrieval per inventory, validity and conditions)
   - Stored Offers (search and snapshot creation, retrieval and consumption control)
-  - Seat Offers (per-seat availability and offer generation, seat reservation and status updates)
+  - Seat Availability (seat reservation and status updates)
 
 - **Order** — booking lifecycle and post-sale state management
   - Basket (creation, accumulation, confirmation, expiry/cleanup)
@@ -36,13 +36,11 @@ A Modern Airline Retailing system built on offer and order capability.
   - Flight Manifest (creation, update, removal, check-in status, SSR propagation)
   - Boarding Cards (generation, BCBP barcode string assembly)
 
-- **Seat** — seatmap definitions and fleet-wide seat pricing rules
+- **Ancillary** — seat selection and checked baggage ancillary pricing, offer generation, and seatmap definitions
   - Seatmap Definitions (aircraft type, cabin layout, seat attributes)
-  - Seat Pricing (position-based pricing, Business/First no-charge policy)
-
-- **Bag** — checked baggage policy and ancillary pricing
+  - Seat Pricing & Offers (position-based pricing, Business/First no-charge policy, deterministic SeatOfferId generation)
   - Bag Policy (free allowance by cabin, weight limits)
-  - Bag Pricing & Offers (additional bag pricing by sequence, stored bag offer snapshots)
+  - Bag Pricing & Offers (additional bag pricing by sequence, deterministic BagOfferId generation)
 
 - **Schedule** — flight schedule definition and bulk inventory generation
   - Schedule Management (creation with route/times/days/aircraft/window, operating date enumeration via DaysOfWeek bitmask)
@@ -147,14 +145,9 @@ graph LR
             ACCOUNTING_DB[(Accounting DB)]
         end
 
-        subgraph SEAT_SVC["Seat Service"]
-            SEAT[Seat]
-            SEAT_DB[(Seat DB)]
-        end
-
-        subgraph BAG_SVC["Bag Service"]
-            BAG[Bag]
-            BAG_DB[(Bag DB)]
+        subgraph ANCILLARY_SVC["Ancillary Service"]
+            ANCILLARY[Ancillary]
+            ANCILLARY_DB[(Ancillary DB)]
         end
 
         subgraph SCHEDULE_SVC["Schedule Service"]
@@ -185,9 +178,9 @@ graph LR
     CC & AIRPORT & ACCT_CH & OPS_APP --> ADMIN_API
 
     %% Orchestration → Microservices
-    RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & SEAT & BAG
+    RETAIL_API --> OFFER & ORDER & PAYMENT & DELIVERY & CUSTOMER & ANCILLARY
     LOYALTY_API --> IDENTITY & CUSTOMER
-    AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & SEAT & BAG
+    AIRPORT_API --> ORDER & DELIVERY & CUSTOMER & ANCILLARY
     FINANCE_API --> ACCOUNTING
     DISRUPTION_API --> OFFER & ORDER & DELIVERY
     OPERATIONS_API --> SCHEDULE & OFFER
@@ -201,8 +194,7 @@ graph LR
     DELIVERY --> DELIVERY_DB
     CUSTOMER --> CUSTOMER_DB
     ACCOUNTING --> ACCOUNTING_DB
-    SEAT --> SEAT_DB
-    BAG --> BAG_DB
+    ANCILLARY --> ANCILLARY_DB
     SCHEDULE --> SCHEDULE_DB
     USER --> USER_DB
 
@@ -231,9 +223,9 @@ graph LR
 
 ### Orchestration APIs
 
-- **Retail API** — primary sales orchestration layer; coordinates search, basket, payment, ticketing, and post-sale flows across Offer, Order, Payment, Delivery, Customer, Seat, and Bag microservices.
+- **Retail API** — primary sales orchestration layer; coordinates search, basket, payment, ticketing, and post-sale flows across Offer, Order, Payment, Delivery, Customer, and Ancillary microservices.
 - **Loyalty API** — handles member registration, authentication, profile management, and points operations via Identity and Customer microservices.
-- **Airport API** *(future)* — check-in, boarding, and gate operations; coordinates Order, Delivery, Customer, Seat, and Bag microservices.
+- **Airport API** *(future)* — check-in, boarding, and gate operations; coordinates Order, Delivery, Customer, and Ancillary microservices.
 - **Finance API** *(future)* — financial reporting and reconciliation; routes to Accounting microservice.
 - **Disruption API** — receives IROPS events from FOS and orchestrates rebooking across Offer, Order, and Delivery microservices.
 - **Operations API** — schedule submission and inventory generation via Schedule and Offer microservices.
@@ -247,8 +239,7 @@ graph LR
 - **Delivery** — e-tickets, manifests, and boarding cards. Owns Delivery DB.
 - **Customer** — loyalty profiles, points ledger, tier management. Owns Customer DB.
 - **Accounting** — revenue recording, refund tracking, points liability, reporting. Owns Accounting DB.
-- **Seat** — seatmap definitions and fleet-wide seat pricing rules. Owns Seat DB.
-- **Bag** — baggage policy, pricing, and bag offer snapshots. Owns Bag DB.
+- **Ancillary** — seatmap definitions, fleet-wide seat pricing, seat offer generation, bag policies, bag pricing, and bag offer generation. Owns Ancillary DB.
 - **Schedule** — flight schedule definitions and bulk inventory generation. Owns Schedule DB.
 - **User** — employee user accounts, credentials, and account lockout for all internal staff. Owns User DB. Separate from the Identity microservice, which manages loyalty member credentials.
 
@@ -295,7 +286,6 @@ Apex Air (IATA carrier code **AX**) operates a hub-and-spoke network from London
 - Basket lifecycle: transient Order DB record, hard-deleted on sale, 60-minute expiry matching StoredOffer
 - Optimistic Concurrency Control: integer `Version` column on booking/ticket records
 - Payment DB: `paymentId` (GUID) is the sole identifier for payments, shared between Payment and Order domains
-- SeatPricing: fleet-wide position-based pricing, Retail API merges layout + pricing + availability
 - Delivery DB: owns Ticket, Manifest, Document tables; never reads from `order.Order` directly
 - Manifest seatmap validation: orchestration layer validates `SeatNumber` against active seatmap before calling Delivery MS
 - Delivery accounting events: `TicketIssued` and `DocumentIssued` events published to event bus

@@ -33,8 +33,7 @@
   - [Manifest](#manifest)
   - [Documents](#documents)
   - [Boarding Cards](#boarding-cards)
-- [Seat Microservice](#seat-microservice--full-api-spec)
-- [Bag Microservice](#bag-microservice--full-api-spec)
+- [Ancillary Microservice](#ancillary-microservice--full-api-spec)
 - [Identity Microservice](#identity-microservice--full-api-spec)
   - [Authentication](#authentication-1)
   - [Account Management](#account-management)
@@ -329,11 +328,11 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 
 ---
 
-## Seat Microservice — [Full API Spec](api-specs/seat-microservice.md)
+## Ancillary Microservice — [Full API Spec](api-specs/ancillary-microservice.md)
 
-The Seat microservice owns seat offer generation. `SeatOfferId` values are deterministic (derived from `flightId`, `seatNumber`, and a pricing-rule hash) — no offer storage is required. Seat MS generates priced seat offers on demand; pricing rules are stored in `seat.SeatPricing`.
+The Ancillary microservice owns seat ancillaries (seatmap definitions, fleet-wide seat pricing, and seat offer generation) and bag ancillaries (checked baggage policies, bag pricing, and bag offer generation). `SeatOfferId` and `BagOfferId` values are deterministic — generated on demand without offer storage.
 
-**Offer / query endpoints (called by Retail API during the booking path)**
+**Seat — offer/query endpoints (called by Retail API during the booking path)**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -341,7 +340,7 @@ The Seat microservice owns seat offer generation. `SeatOfferId` values are deter
 | `GET` | `/v1/seat-offers?flightId={flightId}` | Generate and return priced seat offers for a specific flight; returns one `SeatOfferId` per selectable seat with current price and seat attributes; `SeatOfferId` is deterministic (stateless — no DB write required); used by Retail API to build the full seatmap response (layout + pricing + availability) for the channel |
 | `GET` | `/v1/seat-offers/{seatOfferId}` | Retrieve and validate a specific seat offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding a seat to a basket or confirming a seat purchase |
 
-**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+**Seat — admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -361,20 +360,14 @@ The Seat microservice owns seat offer generation. `SeatOfferId` values are deter
 | `PUT` | `/v1/seat-pricing/{seatPricingId}` | Update a seat pricing rule |
 | `DELETE` | `/v1/seat-pricing/{seatPricingId}` | Delete a seat pricing rule |
 
----
-
-## Bag Microservice — [Full API Spec](api-specs/bags-microservice.md)
-
-The Bag microservice owns bag pricing rules and bag offer generation. `BagOfferId` values are deterministic (derived from `inventoryId`, `cabinCode`, `bagCount`, and a pricing-rule hash) — no offer storage is required. Bag MS generates priced bag offers on demand from `bag.BagPricing` rules.
-
-**Offer / query endpoints (called by Retail API during the booking path)**
+**Bag — offer/query endpoints (called by Retail API during the booking path)**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}` | Generate and return the free bag policy and priced bag offers for a flight and cabin; returns one `BagOfferId` per available bag tier; `BagOfferId` is deterministic (stateless — no DB write required) |
 | `GET` | `/v1/bags/offers/{bagOfferId}` | Retrieve and validate a bag offer by deterministic ID; confirms the pricing rule that generated the ID is still active and returns the current price; used by Retail API when adding bags to a basket or confirming a bag purchase |
 
-**Admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
+**Bag — admin endpoints (called from a future Contact Centre admin app — not channel-facing)**
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
