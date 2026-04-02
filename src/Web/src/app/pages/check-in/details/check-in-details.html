@@ -102,25 +102,29 @@
               <div class="field-row">
                 <div class="field">
                   <label>Issuing Country</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. GBR"
-                    maxlength="3"
+                  <select
                     [ngModel]="state.travelDocument.issuingCountry"
-                    (ngModelChange)="updateDocField(i, 'issuingCountry', $event.toUpperCase())"
+                    (ngModelChange)="updateDocField(i, 'issuingCountry', $event)"
                     [name]="'issuingCountry-' + state.passengerId"
-                  />
+                  >
+                    <option value="">Select country&hellip;</option>
+                    @for (c of countries; track c.code) {
+                      <option [value]="c.code">{{ c.name }}</option>
+                    }
+                  </select>
                 </div>
                 <div class="field">
                   <label>Nationality</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. GBR"
-                    maxlength="3"
+                  <select
                     [ngModel]="state.travelDocument.nationality"
-                    (ngModelChange)="updateDocField(i, 'nationality', $event.toUpperCase())"
+                    (ngModelChange)="updateDocField(i, 'nationality', $event)"
                     [name]="'nationality-' + state.passengerId"
-                  />
+                  >
+                    <option value="">Select nationality&hellip;</option>
+                    @for (c of countries; track c.code) {
+                      <option [value]="c.code">{{ c.name }}</option>
+                    }
+                  </select>
                 </div>
               </div>
 

@@ -194,6 +194,7 @@ export interface OciSeatAssignment {
 
 export interface OciFlightSegment {
   segmentRef: string;
+  inventoryId: string;
   flightNumber: string;
   origin: string;
   destination: string;

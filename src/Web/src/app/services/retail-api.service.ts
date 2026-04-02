@@ -482,6 +482,29 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/orders/oci/{bookingRef}/bags
+   * Purchase additional bags during online check-in.
+   */
+  addOciBags(
+    bookingRef: string,
+    bagSelections: { passengerId: string; segmentRef: string; bagOfferId: string; additionalBags: number }[],
+    payment?: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }
+  ): Observable<{ bookingReference: string; bagsPurchased: number; paymentReference?: string }> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.post<{ bookingReference: string; bagsPurchased: number; paymentReference?: string }>(
+      `${base}/api/v1/orders/oci/${bookingRef}/bags`,
+      { bagSelections, payment: payment ?? null }
+    ).pipe(
+      catchError((err: HttpErrorResponse) => {
+        const message = err.status === 404
+          ? 'Booking not found.'
+          : 'Unable to process bag purchase. Please try again.';
+        return throwError(() => ({ status: err.status, message }));
+      })
+    );
+  }
+
+  /**
    * POST /v1/orders/{bookingRef}/cancel
    * Cancel a confirmed booking.
    */

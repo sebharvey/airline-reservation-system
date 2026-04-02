@@ -83,6 +83,7 @@ public sealed class OciRetrieveHandler
                         flightSegments.Add(new OciFlightSegment
                         {
                             SegmentRef = item.TryGetProperty("segmentRef", out var sr) ? sr.GetString() ?? "" : "",
+                            InventoryId = inventoryId,
                             FlightNumber = inv.FlightNumber,
                             Origin = inv.Origin,
                             Destination = inv.Destination,

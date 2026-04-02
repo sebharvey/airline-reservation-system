@@ -4,27 +4,9 @@
     <p>Review your bag allowance and add extras if needed</p>
   </div>
 
-  <!-- Loading -->
-  @if (loading()) {
-    <div class="loading-state">
-      <span class="spinner-dark"></span>
-      <span>Loading booking&hellip;</span>
-    </div>
-  }
+  @if (order(); as o) {
 
-  <!-- Error -->
-  @if (errorMessage() && !loading()) {
-    <div class="error-banner">
-      <span>&#9888;</span>
-      {{ errorMessage() }}
-    </div>
-    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
-  }
-
-  <!-- Main content -->
-  @if (!loading() && !errorMessage() && order()) {
-
-    @for (segData of segmentBagData(); track segData.segmentId) {
+    @for (segData of segmentBagData(); track segData.segmentRef) {
       <div class="section">
         <h3 class="section-title">{{ segData.flightNumber }} &mdash; {{ segData.origin }} &#8594; {{ segData.destination }}</h3>
 
@@ -36,11 +18,10 @@
         }
 
         @if (!segData.loading && segData.policy) {
-          @for (state of getPaxStatesForSegment(segData.segmentId); track state.key) {
+          @for (state of getPaxStatesForSegment(segData.segmentRef); track state.key) {
             <div class="card pax-bag-card">
               <div class="pax-name">{{ state.passengerName }}</div>
 
-              <!-- Current allowance -->
               <div class="allowance-row">
                 <div class="allowance-item">
                   <span class="allowance-icon">&#10003;</span>
@@ -55,7 +36,6 @@
                 }
               </div>
 
-              <!-- Add more bags -->
               @if (maxNewBags(state.alreadyPurchased) > 0) {
                 <div class="add-bags-row">
                   <span class="add-bags-label">Add extra bags:</span>
@@ -81,7 +61,6 @@
       </div>
     }
 
-    <!-- Cost summary -->
     @if (totalBagCost() > 0) {
       <div class="cost-summary">
         <span class="cost-label">Additional bags total</span>
@@ -89,7 +68,6 @@
       </div>
     }
 
-    <!-- Actions -->
     <div class="action-buttons">
       <button type="button" class="btn-primary" (click)="continueToSeats()">
         @if (totalBagCost() > 0) {
@@ -103,6 +81,6 @@
       </button>
     </div>
 
-    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+    <a routerLink="/check-in/details" class="back-link">&#8592; Back to Passenger Details</a>
   }
 </div>
