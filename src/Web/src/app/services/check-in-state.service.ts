@@ -12,7 +12,7 @@ export interface OciTravelDocument {
 
 export interface CheckInBagSelection {
   passengerId: string;
-  segmentRef: string;
+  segmentId: string;
   bagOfferId: string;
   additionalBags: number;
   price: number;
@@ -21,7 +21,7 @@ export interface CheckInBagSelection {
 
 export interface CheckInSeatSelection {
   passengerId: string;
-  segmentRef: string;
+  segmentId: string;
   seatNumber: string;
   seatPrice: number;
   currency: string;

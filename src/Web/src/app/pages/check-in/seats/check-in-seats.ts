@@ -182,7 +182,7 @@ export class CheckInSeatsComponent implements OnInit {
       next: () => {
         const paidSeats: CheckInSeatSelection[] = this.selections()
           .filter(s => s.price > 0)
-          .map(s => ({ passengerId: s.passengerId, segmentRef: s.segmentRef, seatNumber: s.seatNumber, seatPrice: s.price, currency: s.currency }));
+          .map(s => ({ passengerId: s.passengerId, segmentId: s.segmentRef, seatNumber: s.seatNumber, seatPrice: s.price, currency: s.currency }));
         this.checkInState.setSeatSelections(paidSeats);
         this.submitting.set(false);
         this.router.navigate(['/check-in/bags']);
