@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { OciOrder } from '../models/order.model';
+import { OciOrder, BoardingPass } from '../models/order.model';
 
 export interface OciTravelDocument {
   passengerId: string;
@@ -35,6 +35,7 @@ export class CheckInStateService {
   readonly travelDocuments = signal<OciTravelDocument[]>([]);
   readonly bagSelections = signal<CheckInBagSelection[]>([]);
   readonly seatSelections = signal<CheckInSeatSelection[]>([]);
+  readonly boardingPasses = signal<BoardingPass[]>([]);
 
   readonly totalBagAmount = computed(() =>
     this.bagSelections().reduce((sum, s) => sum + s.price, 0)
@@ -65,11 +66,16 @@ export class CheckInStateService {
     this.seatSelections.set(sels);
   }
 
+  setBoardingPasses(passes: BoardingPass[]): void {
+    this.boardingPasses.set(passes);
+  }
+
   clear(): void {
     this.currentOrder.set(null);
     this.selectedPassengerIds.set([]);
     this.travelDocuments.set([]);
     this.bagSelections.set([]);
     this.seatSelections.set([]);
+    this.boardingPasses.set([]);
   }
 }

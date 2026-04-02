@@ -98,6 +98,22 @@ public sealed class DeliveryServiceClient
         return result.Tickets;
     }
 
+    public async Task<CreateBoardingCardsResult> CreateBoardingCardsAsync(
+        string bookingReference,
+        List<BoardingCardPassengerRequest> passengers,
+        CancellationToken ct)
+    {
+        var payload = new { bookingReference, passengers };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/boarding-cards", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Boarding card creation failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<CreateBoardingCardsResult>(JsonOptions, ct)
+               ?? throw new InvalidOperationException("Empty response from boarding card creation.");
+    }
+
     public async Task IssueDocumentAsync(
         string bookingReference, string documentType, string passengerId,
         string inventoryId, decimal amount, string currency,
@@ -255,6 +271,40 @@ public sealed class AdminTicketRecord
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; init; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; init; }
     [JsonPropertyName("version")] public int Version { get; init; }
+}
+
+public sealed class BoardingCardPassengerRequest
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("inventoryIds")]
+    public List<string> InventoryIds { get; init; } = [];
+}
+
+public sealed class CreateBoardingCardsResult
+{
+    [JsonPropertyName("boardingCards")]
+    public List<BoardingCardItem> BoardingCards { get; init; } = [];
+}
+
+public sealed class BoardingCardItem
+{
+    [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
+    [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
+    [JsonPropertyName("flightNumber")] public string FlightNumber { get; init; } = string.Empty;
+    [JsonPropertyName("departureDateTime")] public string DepartureDateTime { get; init; } = string.Empty;
+    [JsonPropertyName("seatNumber")] public string SeatNumber { get; init; } = string.Empty;
+    [JsonPropertyName("cabinCode")] public string CabinCode { get; init; } = string.Empty;
+    [JsonPropertyName("sequenceNumber")] public string SequenceNumber { get; init; } = string.Empty;
+    [JsonPropertyName("bcbpString")] public string BcbpString { get; init; } = string.Empty;
+    [JsonPropertyName("origin")] public string Origin { get; init; } = string.Empty;
+    [JsonPropertyName("destination")] public string Destination { get; init; } = string.Empty;
+    [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("gate")] public string Gate { get; init; } = string.Empty;
+    [JsonPropertyName("boardingTime")] public string BoardingTime { get; init; } = string.Empty;
 }
 
 file sealed class IssueTicketsResult

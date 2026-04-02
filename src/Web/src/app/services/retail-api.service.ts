@@ -401,6 +401,28 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/oci/checkin
+   * Complete online check-in: marks coupons as checked-in on the ticket
+   * via the Delivery MS and returns boarding passes derived from ticket data.
+   */
+  submitOciCheckIn(
+    bookingRef: string,
+    passengers: { passengerId: string; inventoryIds: string[] }[]
+  ): Observable<BoardingPass[]> {
+    const base = environment.retailApiBaseUrl;
+    const body = { bookingReference: bookingRef, passengers };
+    return this.#http
+      .post<{ boardingPasses: BoardingPass[] }>(`${base}/api/v1/oci/checkin`, body)
+      .pipe(
+        map(res => res.boardingPasses),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Check-in failed. Please try again or visit the airport desk.'
+        })))
+      );
+  }
+
+  /**
    * GET /v1/flights?date=yyyy-MM-dd
    * List available flights for a given date from the Operations API.
    */

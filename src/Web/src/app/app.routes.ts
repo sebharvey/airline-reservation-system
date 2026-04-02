@@ -48,6 +48,7 @@ export const routes: Routes = [
       { path: 'bags', loadComponent: () => import('./pages/check-in/bags/check-in-bags').then(m => m.CheckInBagsComponent) },
       { path: 'seats', loadComponent: () => import('./pages/check-in/seats/check-in-seats').then(m => m.CheckInSeatsComponent) },
       { path: 'payment', loadComponent: () => import('./pages/check-in/payment/check-in-payment').then(m => m.CheckInPaymentComponent) },
+      { path: 'hazmat', loadComponent: () => import('./pages/check-in/hazmat/check-in-hazmat').then(m => m.CheckInHazmatComponent) },
       { path: 'boarding-pass', loadComponent: () => import('./pages/check-in/boarding-pass/boarding-pass').then(m => m.BoardingPassComponent) },
     ]
   },
