@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import {
   CustomerService,
   CustomerDetail,
+  CustomerOrderItem,
   Transaction,
   UpdateCustomerRequest,
   UpdateIdentityRequest,
@@ -127,6 +128,10 @@ export class CustomerDetailComponent implements OnInit {
   transactionsPage = signal(1);
   transactionsTotalCount = signal(0);
   transactionsPageSize = 20;
+
+  // Orders
+  orders = signal<CustomerOrderItem[]>([]);
+  ordersLoading = signal(false);
 
   // Add points
   showAddPointsForm = signal(false);
@@ -276,6 +281,25 @@ export class CustomerDetailComponent implements OnInit {
     if (tab === 'transactions' && this.transactions().length === 0) {
       await this.loadTransactions();
     }
+    if (tab === 'orders' && this.orders().length === 0 && !this.ordersLoading()) {
+      await this.loadOrders();
+    }
+  }
+
+  async loadOrders(): Promise<void> {
+    this.ordersLoading.set(true);
+    try {
+      const result = await this.#customerService.getCustomerOrders(this.loyaltyNumber);
+      this.orders.set(result.orders);
+    } catch {
+      this.error.set('Failed to load orders.');
+    } finally {
+      this.ordersLoading.set(false);
+    }
+  }
+
+  navigateToOrder(bookingReference: string): void {
+    this.#router.navigate(['/order', bookingReference]);
   }
 
   async loadTransactions(): Promise<void> {

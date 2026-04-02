@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Customer.Domain.Entities;
+using CustomerOrder = ReservationSystem.Microservices.Customer.Domain.Entities.CustomerOrder;
 
 namespace ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 
@@ -14,6 +15,7 @@ public sealed class CustomerDbContext : DbContext
     public DbSet<Domain.Entities.Customer> Customers => Set<Domain.Entities.Customer>();
     public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
     public DbSet<CustomerPreferences> CustomerPreferences => Set<CustomerPreferences>();
+    public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -282,6 +284,46 @@ public sealed class CustomerDbContext : DbContext
                   .WithOne()
                   .HasForeignKey<CustomerPreferences>(p => p.CustomerId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CustomerOrder>(entity =>
+        {
+            entity.ToTable("Order", "customer");
+
+            entity.HasKey(o => o.CustomerOrderId);
+
+            entity.Property(o => o.CustomerOrderId)
+                  .HasColumnName("CustomerOrderId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedNever();
+
+            entity.Property(o => o.CustomerId)
+                  .HasColumnName("CustomerId")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired();
+
+            entity.Property(o => o.OrderId)
+                  .HasColumnName("OrderId")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired();
+
+            entity.HasIndex(o => o.OrderId)
+                  .IsUnique();
+
+            entity.Property(o => o.BookingReference)
+                  .HasColumnName("BookingReference")
+                  .HasColumnType("char(6)")
+                  .IsRequired()
+                  .HasConversion(v => v, v => v != null ? v.TrimEnd() : v);
+
+            entity.Property(o => o.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2");
+
+            entity.HasOne<Domain.Entities.Customer>()
+                  .WithMany()
+                  .HasForeignKey(o => o.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

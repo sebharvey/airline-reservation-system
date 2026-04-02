@@ -573,10 +573,40 @@
   <!-- Flights Tab -->
   @if (activeTab() === 'flights') {
     <div class="tab-content fade-in">
-      <div class="flights-placeholder">
-        <h3 class="section-heading">My Flights</h3>
-        <p class="flights-placeholder-desc">Your past and upcoming flights will appear here. This section is coming soon.</p>
-      </div>
+      <h3 class="section-heading">My Flights</h3>
+
+      @if (flightsLoading()) {
+        <div class="empty-state">
+          <span class="spinner"></span>
+        </div>
+      }
+
+      @if (!flightsLoading() && flightOrders().length > 0) {
+        <div class="transactions-table-wrapper">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Booking Reference</th>
+                <th class="col-date">Date Booked</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of flightOrders(); track order.customerOrderId) {
+                <tr>
+                  <td class="font-mono">{{ order.bookingReference }}</td>
+                  <td class="col-date">{{ formatDate(order.createdAt) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (!flightsLoading() && flightOrders().length === 0) {
+        <div class="empty-state">
+          <p>No flights found on your account yet.</p>
+        </div>
+      }
     </div>
   }
 

@@ -108,6 +108,18 @@ export interface AddPointsRequest {
   description: string;
 }
 
+export interface CustomerOrderItem {
+  customerOrderId: string;
+  orderId: string;
+  bookingReference: string;
+  createdAt: string;
+}
+
+export interface CustomerOrdersResponse {
+  loyaltyNumber: string;
+  orders: CustomerOrderItem[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
   #http = inject(HttpClient);
@@ -173,6 +185,14 @@ export class CustomerService {
   async markEmailVerified(loyaltyNumber: string): Promise<void> {
     await firstValueFrom(
       this.#http.post(`${this.#baseUrl}/${loyaltyNumber}/identity/verify-email`, {})
+    );
+  }
+
+  async getCustomerOrders(loyaltyNumber: string): Promise<CustomerOrdersResponse> {
+    return firstValueFrom(
+      this.#http.get<CustomerOrdersResponse>(
+        `${this.#baseUrl}/${loyaltyNumber}/orders`
+      )
     );
   }
 }

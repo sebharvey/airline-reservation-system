@@ -16,6 +16,8 @@ using ReservationSystem.Microservices.Customer.Application.SettlePoints;
 using ReservationSystem.Microservices.Customer.Application.SearchCustomers;
 using ReservationSystem.Microservices.Customer.Application.TransferPoints;
 using ReservationSystem.Microservices.Customer.Application.UpdateCustomer;
+using ReservationSystem.Microservices.Customer.Application.AddCustomerOrder;
+using ReservationSystem.Microservices.Customer.Application.GetCustomerOrders;
 using ReservationSystem.Microservices.Customer.Application.GetPreferences;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
 using ReservationSystem.Microservices.Customer.Models.Mappers;
@@ -49,6 +51,8 @@ public sealed class CustomerFunction
     private readonly TransferPointsHandler _transferPointsHandler;
     private readonly GetPreferencesHandler _getPreferencesHandler;
     private readonly UpdatePreferencesHandler _updatePreferencesHandler;
+    private readonly AddCustomerOrderHandler _addCustomerOrderHandler;
+    private readonly GetCustomerOrdersHandler _getCustomerOrdersHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -67,6 +71,8 @@ public sealed class CustomerFunction
         TransferPointsHandler transferPointsHandler,
         GetPreferencesHandler getPreferencesHandler,
         UpdatePreferencesHandler updatePreferencesHandler,
+        AddCustomerOrderHandler addCustomerOrderHandler,
+        GetCustomerOrdersHandler getCustomerOrdersHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -84,6 +90,8 @@ public sealed class CustomerFunction
         _transferPointsHandler = transferPointsHandler;
         _getPreferencesHandler = getPreferencesHandler;
         _updatePreferencesHandler = updatePreferencesHandler;
+        _addCustomerOrderHandler = addCustomerOrderHandler;
+        _getCustomerOrdersHandler = getCustomerOrdersHandler;
         _logger = logger;
     }
 
@@ -555,5 +563,70 @@ public sealed class CustomerFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/customers/{loyaltyNumber}/orders
+    // -------------------------------------------------------------------------
+
+    [Function("AddCustomerOrder")]
+    [OpenApiOperation(operationId: "AddCustomerOrder", tags: new[] { "Orders" }, Summary = "Link a confirmed order to a customer loyalty account")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AddCustomerOrderRequest), Required = true, Description = "Order reference to link")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Linked")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AddCustomerOrderRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request!.OrderId == Guid.Empty || string.IsNullOrWhiteSpace(request.BookingReference))
+            return await req.BadRequestAsync("orderId and bookingReference are required.");
+
+        var command = new AddCustomerOrderCommand(loyaltyNumber, request.OrderId, request.BookingReference);
+        var added = await _addCustomerOrderHandler.HandleAsync(command, cancellationToken);
+
+        if (!added)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/{loyaltyNumber}/orders
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerOrders")]
+    [OpenApiOperation(operationId: "GetCustomerOrders", tags: new[] { "Orders" }, Summary = "Get all order references linked to a customer loyalty account")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerOrdersResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetOrders(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetCustomerOrdersQuery(loyaltyNumber);
+        var orders = await _getCustomerOrdersHandler.HandleAsync(query, cancellationToken);
+
+        if (orders is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var response = new CustomerOrdersResponse
+        {
+            LoyaltyNumber = loyaltyNumber,
+            Orders = orders.Select(o => new CustomerOrderItem
+            {
+                CustomerOrderId = o.CustomerOrderId,
+                OrderId = o.OrderId,
+                BookingReference = o.BookingReference,
+                CreatedAt = o.CreatedAt
+            }).ToList()
+        };
+
+        return await req.OkJsonAsync(response);
     }
 }

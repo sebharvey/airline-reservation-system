@@ -657,11 +657,49 @@
   <!-- Orders tab -->
   @if (customer() && activeTab() === 'orders') {
     <div class="tab-content fade-in">
-      <div class="empty-orders">
-        <div class="empty-orders-icon">&#128230;</div>
-        <h3 class="empty-orders-title">No orders yet</h3>
-        <p class="empty-orders-text">Orders created against this customer account will appear here.</p>
-      </div>
+
+      @if (ordersLoading()) {
+        <div class="loading-state">
+          <span class="spinner"></span>
+          <span>Loading orders…</span>
+        </div>
+      }
+
+      @if (!ordersLoading() && orders().length > 0) {
+        <div class="table-card">
+          <table class="txn-table">
+            <thead>
+              <tr>
+                <th>Booking Ref</th>
+                <th class="hide-mobile">Date Added</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (order of orders(); track order.customerOrderId) {
+                <tr>
+                  <td class="mono">{{ order.bookingReference }}</td>
+                  <td class="hide-mobile muted nowrap">{{ formatDate(order.createdAt) }}</td>
+                  <td class="text-right">
+                    <button class="edit-btn edit-btn-sm" (click)="navigateToOrder(order.bookingReference)">
+                      View Order
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (!ordersLoading() && orders().length === 0) {
+        <div class="empty-orders">
+          <div class="empty-orders-icon">&#128230;</div>
+          <h3 class="empty-orders-title">No orders yet</h3>
+          <p class="empty-orders-text">Orders created against this customer account will appear here.</p>
+        </div>
+      }
+
     </div>
   }
 </div>

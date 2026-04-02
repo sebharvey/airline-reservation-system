@@ -82,6 +82,7 @@ IF OBJECT_ID('[schedule].[FlightSchedule]', 'U') IS NOT NULL DROP TABLE [schedul
 IF OBJECT_ID('[schedule].[ScheduleGroup]',  'U') IS NOT NULL DROP TABLE [schedule].[ScheduleGroup];
 
 -- customer
+IF OBJECT_ID('[customer].[Order]',               'U') IS NOT NULL DROP TABLE [customer].[Order];
 IF OBJECT_ID('[customer].[LoyaltyTransaction]', 'U') IS NOT NULL DROP TABLE [customer].[LoyaltyTransaction];
 IF OBJECT_ID('[customer].[Customer]',            'U') IS NOT NULL DROP TABLE [customer].[Customer];
 IF OBJECT_ID('[customer].[TierConfig]',          'U') IS NOT NULL DROP TABLE [customer].[TierConfig];
@@ -1121,6 +1122,27 @@ BEGIN
             INNER JOIN inserted i ON t.PreferenceId = i.PreferenceId;
     ');
 END
+GO
+
+-- customer.Order -------------------------------------------------------------
+-- Stores a reference linking a confirmed order to a loyalty account.
+-- No FK to order.Order — orders may be purged after the flight has operated.
+IF OBJECT_ID('[customer].[Order]', 'U') IS NULL
+CREATE TABLE [customer].[Order] (
+    CustomerOrderId  UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_CustomerOrder_Id      DEFAULT NEWID(),
+    CustomerId       UNIQUEIDENTIFIER NOT NULL,
+    OrderId          UNIQUEIDENTIFIER NOT NULL,
+    BookingReference CHAR(6)          NOT NULL,
+    CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_CustomerOrder_Created DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_CustomerOrder              PRIMARY KEY (CustomerOrderId),
+    CONSTRAINT UQ_CustomerOrder_OrderId      UNIQUE (OrderId),
+    CONSTRAINT FK_CustomerOrder_Customer     FOREIGN KEY (CustomerId) REFERENCES [customer].[Customer](CustomerId)
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CustomerOrder_CustomerId' AND object_id = OBJECT_ID('[customer].[Order]'))
+    CREATE INDEX IX_CustomerOrder_CustomerId
+        ON [customer].[Order] (CustomerId, CreatedAt DESC);
 GO
 
 -- Incremental column additions (for existing deployments) --------------------

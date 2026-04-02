@@ -63,6 +63,13 @@ export interface AuthSession {
   refreshToken: string;
 }
 
+export interface CustomerOrderItem {
+  customerOrderId: string;
+  orderId: string;
+  bookingReference: string;
+  createdAt: string;
+}
+
 export const TIER_CONFIG: Record<LoyaltyTier, TierInfo> = {
   Blue: {
     tier: 'Blue',

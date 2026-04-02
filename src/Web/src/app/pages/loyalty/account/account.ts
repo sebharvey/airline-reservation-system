@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
-import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType } from '../../../models/loyalty.model';
+import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType, CustomerOrderItem } from '../../../models/loyalty.model';
 import { COUNTRIES } from '../register/register';
 
 export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'flights' | 'preferences';
@@ -150,6 +150,11 @@ export class LoyaltyAccountComponent implements OnInit {
 
   logoutLoading = signal(false);
 
+  // Flights / orders signals
+  flightOrders = signal<CustomerOrderItem[]>([]);
+  flightsLoading = signal(false);
+  flightsLoaded = signal(false);
+
   readonly customer = this.loyaltyState.currentCustomer;
 
   readonly tierInfo = computed(() => {
@@ -238,6 +243,9 @@ export class LoyaltyAccountComponent implements OnInit {
 
   setTab(tab: AccountTab): void {
     this.activeTab.set(tab);
+    if (tab === 'flights' && !this.flightsLoaded()) {
+      this.loadFlights();
+    }
     if (tab === 'profile') {
       this.profileError.set(null);
       this.profileSuccess.set(false);
@@ -418,6 +426,23 @@ export class LoyaltyAccountComponent implements OnInit {
         }
       },
       error: () => { /* silently ignore; defaults remain */ }
+    });
+  }
+
+  loadFlights(): void {
+    const c = this.customer();
+    if (!c) return;
+    this.flightsLoading.set(true);
+    this.loyaltyApi.getCustomerOrders(c.loyaltyNumber).subscribe({
+      next: (orders) => {
+        this.flightOrders.set(orders);
+        this.flightsLoading.set(false);
+        this.flightsLoaded.set(true);
+      },
+      error: () => {
+        this.flightsLoading.set(false);
+        this.flightsLoaded.set(true);
+      }
     });
   }
 

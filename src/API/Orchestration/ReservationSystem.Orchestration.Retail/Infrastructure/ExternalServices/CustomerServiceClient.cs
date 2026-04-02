@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReservationSystem.Shared.Common.Http;
 
@@ -8,9 +9,9 @@ public sealed class CustomerServiceClient
 {
     private readonly HttpClient _httpClient;
 
-    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -38,6 +39,32 @@ public sealed class CustomerServiceClient
         }
         var result = await response.Content.ReadFromJsonAsync<ReinstatePointsResult>(JsonOptions, ct);
         return result?.NewPointsBalance ?? 0;
+    }
+
+    /// <summary>
+    /// Links a confirmed order to a customer loyalty account.
+    /// Silently no-ops when the loyalty number is null or blank.
+    /// </summary>
+    public async Task LinkOrderToCustomerAsync(
+        string loyaltyNumber, Guid orderId, string bookingReference,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(loyaltyNumber))
+            return;
+
+        var payload = new { orderId, bookingReference };
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/customers/{Uri.EscapeDataString(loyaltyNumber)}/orders",
+            payload, JsonOptions, cancellationToken);
+
+        // Non-2xx responses are intentionally swallowed — order linking is
+        // a best-effort operation that must not roll back a confirmed booking.
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            Console.Error.WriteLine(
+                $"[CustomerServiceClient] Failed to link order {bookingReference} to {loyaltyNumber}: {response.StatusCode} — {body}");
+        }
     }
 }
 
