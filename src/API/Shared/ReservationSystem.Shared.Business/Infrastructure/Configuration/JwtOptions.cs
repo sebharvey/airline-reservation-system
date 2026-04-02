@@ -19,10 +19,10 @@ public sealed class JwtOptions
     public string Secret { get; init; } = string.Empty;
 
     /// <summary>Identifies the principal that issued the token.</summary>
-    public string Issuer { get; init; } = string.Empty;
+    public string Issuer { get; init; } = "apex-air-user";
 
     /// <summary>Identifies the recipients that the token is intended for.</summary>
-    public string Audience { get; init; } = string.Empty;
+    public string Audience { get; init; } = "apex-air-reservation";
 
     /// <summary>Access token lifetime in minutes.</summary>
     public int AccessTokenExpiryMinutes { get; init; } = 15;
