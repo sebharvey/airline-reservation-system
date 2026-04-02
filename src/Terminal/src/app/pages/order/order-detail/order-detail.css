@@ -906,48 +906,6 @@
   border-radius: 4px;
 }
 
-.coupon-card {
-  background: var(--bg-light);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.coupon-card:last-child { margin-bottom: 0; }
-
-.coupon-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.coupon-status-badge {
-  background: rgba(139, 149, 162, 0.1);
-  color: var(--text-muted);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.coupon-route {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.coupon-route .airport-code {
-  font-size: 1.4rem;
-}
-
-.coupon-route .route-arrow {
-  flex: 1;
-}
-
 .field-row-full {
   grid-column: 1 / -1;
 }
