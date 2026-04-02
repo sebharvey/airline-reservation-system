@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType, CustomerOrderItem } from '../../../models/loyalty.model';
-import { COUNTRIES } from '../register/register';
+import { COUNTRIES, PRIORITY_COUNTRIES } from '../register/register';
 
 export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'flights' | 'preferences';
 
@@ -87,7 +87,10 @@ export class LoyaltyAccountComponent implements OnInit {
   private readonly loyaltyState = inject(LoyaltyStateService);
   private readonly router = inject(Router);
 
-  readonly countries = COUNTRIES;
+  readonly priorityCountries = PRIORITY_COUNTRIES;
+  readonly otherCountries = COUNTRIES.filter(c => !['GB', 'US'].includes(c.code));
+  readonly priorityLanguages = LANGUAGES.filter(l => ['en-GB', 'en-US'].includes(l.code));
+  readonly otherLanguages = LANGUAGES.filter(l => !['en-GB', 'en-US'].includes(l.code));
   readonly languages = LANGUAGES;
   readonly tierBenefits = TIER_BENEFITS;
   readonly transactionTypeConfig = TRANSACTION_TYPE_CONFIG;

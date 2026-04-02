@@ -108,9 +108,16 @@
                     [name]="'issuingCountry-' + state.passengerId"
                   >
                     <option value="">Select country&hellip;</option>
-                    @for (c of countries; track c.code) {
-                      <option [value]="c.code">{{ c.name }}</option>
-                    }
+                    <optgroup label="Suggested">
+                      @for (c of priorityCountries; track c.code) {
+                        <option [value]="c.code">{{ c.name }}</option>
+                      }
+                    </optgroup>
+                    <optgroup label="All countries">
+                      @for (c of otherCountries; track c.code) {
+                        <option [value]="c.code">{{ c.name }}</option>
+                      }
+                    </optgroup>
                   </select>
                 </div>
                 <div class="field">
@@ -121,9 +128,16 @@
                     [name]="'nationality-' + state.passengerId"
                   >
                     <option value="">Select nationality&hellip;</option>
-                    @for (c of countries; track c.code) {
-                      <option [value]="c.code">{{ c.name }}</option>
-                    }
+                    <optgroup label="Suggested">
+                      @for (c of priorityCountries; track c.code) {
+                        <option [value]="c.code">{{ c.name }}</option>
+                      }
+                    </optgroup>
+                    <optgroup label="All countries">
+                      @for (c of otherCountries; track c.code) {
+                        <option [value]="c.code">{{ c.name }}</option>
+                      }
+                    </optgroup>
                   </select>
                 </div>
               </div>
@@ -136,6 +150,7 @@
                     [ngModel]="state.travelDocument.issueDate"
                     (ngModelChange)="onIssueDateChange(i, $event)"
                     [name]="'issue-' + state.passengerId"
+                    [max]="today"
                   />
                 </div>
                 <div class="field">
@@ -145,6 +160,7 @@
                     [ngModel]="state.travelDocument.expiryDate"
                     (ngModelChange)="updateDocField(i, 'expiryDate', $event)"
                     [name]="'expiry-' + state.passengerId"
+                    [min]="today"
                   />
                 </div>
               </div>
