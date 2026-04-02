@@ -14,4 +14,9 @@ public sealed record UpdateProfileCommand(
     string? City,
     string? StateOrRegion,
     string? PostalCode,
-    string? CountryCode);
+    string? CountryCode,
+    string? PassportNumber,
+    DateOnly? PassportIssueDate,
+    string? PassportIssuer,
+    DateOnly? PassportExpiryDate,
+    string? KnownTravellerNumber);

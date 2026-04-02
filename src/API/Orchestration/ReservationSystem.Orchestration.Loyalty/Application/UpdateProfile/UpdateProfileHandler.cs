@@ -28,7 +28,12 @@ public sealed class UpdateProfileHandler
             command.City,
             command.StateOrRegion,
             command.PostalCode,
-            command.CountryCode
+            command.CountryCode,
+            command.PassportNumber,
+            command.PassportIssueDate,
+            command.PassportIssuer,
+            command.PassportExpiryDate,
+            command.KnownTravellerNumber
         };
 
         return await _customerServiceClient.UpdateCustomerAsync(
