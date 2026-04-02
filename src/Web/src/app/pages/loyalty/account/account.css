@@ -492,6 +492,14 @@
   background: var(--bg-light);
 }
 
+.transactions-table tbody tr.clickable-row {
+  cursor: pointer;
+}
+
+.transactions-table tbody tr.clickable-row:hover {
+  background: var(--bg-hover, #f0f4ff);
+}
+
 .transactions-table td {
   padding: 10px 12px;
   vertical-align: top;
