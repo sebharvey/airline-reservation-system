@@ -349,6 +349,27 @@ export class LoyaltyAccountComponent implements OnInit {
       return;
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const issueDate = this.profilePassportIssueDate();
+    if (issueDate) {
+      const d = new Date(issueDate);
+      if (d >= today) {
+        this.profileError.set('Passport issue date must be in the past.');
+        return;
+      }
+    }
+
+    const expiryDate = this.profilePassportExpiryDate();
+    if (expiryDate) {
+      const d = new Date(expiryDate);
+      if (d <= today) {
+        this.profileError.set('Passport expiry date must be in the future.');
+        return;
+      }
+    }
+
     this.profileLoading.set(true);
     this.loyaltyApi.updateProfile(c.loyaltyNumber, {
       givenName: this.profileGivenName(),

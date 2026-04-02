@@ -45,7 +45,9 @@ public static class CustomerValidator
         string? preferredLanguage,
         string? nationality,
         string? phoneNumber,
-        DateOnly? dateOfBirth)
+        DateOnly? dateOfBirth,
+        DateOnly? passportIssueDate = null,
+        DateOnly? passportExpiryDate = null)
     {
         var errors = new List<string>();
         CommonFieldValidator.ValidateOptionalName(givenName, errors, "givenName");
@@ -54,6 +56,15 @@ public static class CustomerValidator
         CommonFieldValidator.ValidateOptionalCountryCode(nationality, errors);
         CommonFieldValidator.ValidateOptionalPhoneNumber(phoneNumber, errors);
         CommonFieldValidator.ValidateDateOfBirthNotFuture(dateOfBirth, errors);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (passportIssueDate is not null && passportIssueDate >= today)
+            errors.Add("The 'passportIssueDate' must be in the past.");
+
+        if (passportExpiryDate is not null && passportExpiryDate <= today)
+            errors.Add("The 'passportExpiryDate' must be in the future.");
+
         return errors;
     }
 
