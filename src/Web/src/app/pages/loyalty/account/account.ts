@@ -433,11 +433,8 @@ export class LoyaltyAccountComponent implements OnInit {
     const c = this.customer();
     if (!c) return;
     this.router.navigate(['/manage-booking/detail'], {
-      queryParams: {
-        bookingRef: order.bookingReference,
-        givenName: c.givenName,
-        surname: c.surname
-      }
+      queryParams: { bookingRef: order.bookingReference },
+      state: { givenName: c.givenName, surname: c.surname }
     });
   }
 
