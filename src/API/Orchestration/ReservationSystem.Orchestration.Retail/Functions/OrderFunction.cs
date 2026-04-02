@@ -9,6 +9,7 @@ using ReservationSystem.Orchestration.Retail.Application.CancelOrder;
 using ReservationSystem.Orchestration.Retail.Application.AddOrderBags;
 using ReservationSystem.Orchestration.Retail.Application.UpdateOrderSeats;
 using ReservationSystem.Orchestration.Retail.Application.ChangeOrder;
+using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
