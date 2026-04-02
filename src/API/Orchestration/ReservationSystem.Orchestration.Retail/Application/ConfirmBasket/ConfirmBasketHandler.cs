@@ -133,7 +133,7 @@ public sealed class ConfirmBasketHandler
                     if (issuedTickets.Count > 0)
                     {
                         var eTicketsJson = System.Text.Json.JsonSerializer.Serialize(
-                            issuedTickets.Select(t => new { t.PassengerId, t.SegmentId, t.ETicketNumber }));
+                            issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }));
                         await _orderServiceClient.UpdateOrderETicketsAsync(
                             confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
 
@@ -164,7 +164,7 @@ public sealed class ConfirmBasketHandler
             ETickets = issuedTickets.Select(t => new IssuedETicket
             {
                 PassengerId = t.PassengerId,
-                SegmentId = t.SegmentId,
+                SegmentIds = t.SegmentIds,
                 ETicketNumber = t.ETicketNumber
             }).ToList(),
             TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
@@ -241,20 +241,22 @@ public sealed class ConfirmBasketHandler
         foreach (var ticket in tickets)
         {
             passengerMap.TryGetValue(ticket.PassengerId, out var pax);
-            segmentMap.TryGetValue(ticket.SegmentId, out var seg);
-
-            entries.Add(new ManifestEntry
+            foreach (var segmentId in ticket.SegmentIds)
             {
-                TicketId = ticket.TicketId,
-                InventoryId = seg?.InventoryId ?? string.Empty,
-                FlightNumber = seg?.FlightNumber ?? string.Empty,
-                DepartureDate = seg?.DepartureDate ?? string.Empty,
-                ETicketNumber = ticket.ETicketNumber,
-                PassengerId = ticket.PassengerId,
-                GivenName = pax?.GivenName ?? string.Empty,
-                Surname = pax?.Surname ?? string.Empty,
-                CabinCode = seg?.CabinCode ?? string.Empty
-            });
+                segmentMap.TryGetValue(segmentId, out var seg);
+                entries.Add(new ManifestEntry
+                {
+                    TicketId = ticket.TicketId,
+                    InventoryId = seg?.InventoryId ?? string.Empty,
+                    FlightNumber = seg?.FlightNumber ?? string.Empty,
+                    DepartureDate = seg?.DepartureDate ?? string.Empty,
+                    ETicketNumber = ticket.ETicketNumber,
+                    PassengerId = ticket.PassengerId,
+                    GivenName = pax?.GivenName ?? string.Empty,
+                    Surname = pax?.Surname ?? string.Empty,
+                    CabinCode = seg?.CabinCode ?? string.Empty
+                });
+            }
         }
 
         return entries;

@@ -25,52 +25,141 @@ public sealed class IssueTicketsHandler
         var baseSequence = await _ticketRepository.GetTicketCountAsync(cancellationToken);
         var ticketSummaries = new List<TicketSummary>();
         var sequence = baseSequence;
+        var segmentIds = request.Segments.Select(s => s.SegmentId).ToList();
+        var firstSegment = request.Segments[0];
 
-        foreach (var segment in request.Segments)
+        foreach (var passenger in request.Passengers)
         {
-            foreach (var passenger in request.Passengers)
-            {
-                sequence++;
-                var eTicketNumber = $"932-{sequence:D10}";
+            sequence++;
+            var eTicketNumber = $"932-{sequence:D10}";
 
-                // Build TicketData JSON
-                var seatAssignment = segment.SeatAssignments?
-                    .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+            var ticketDataJson = BuildTicketDataJson(passenger, request.Segments);
+            var departureDate = DateTime.Parse(firstSegment.DepartureDate);
 
-                var ssrCodes = segment.SsrCodes?
-                    .Where(s => s.PassengerId == passenger.PassengerId)
-                    .ToList() ?? [];
+            var ticket = Ticket.Create(
+                eTicketNumber, firstSegment.InventoryId, firstSegment.FlightNumber,
+                departureDate, request.BookingReference,
+                passenger.PassengerId, passenger.GivenName, passenger.Surname,
+                firstSegment.CabinCode, firstSegment.FareBasisCode, ticketDataJson);
 
-                var ticketData = new
-                {
-                    seatAssignment = seatAssignment != null ? new
-                    {
-                        seatNumber = seatAssignment.SeatNumber,
-                        positionType = seatAssignment.PositionType,
-                        deckCode = seatAssignment.DeckCode
-                    } : null,
-                    ssrCodes = ssrCodes.Select(s => new { code = s.Code, description = s.Description, segmentRef = s.SegmentRef }),
-                    changeHistory = new[] { new { eventType = "Issued", occurredAt = DateTime.UtcNow.ToString("o"), actor = "RetailAPI", detail = "Initial ticket issuance" } }
-                };
+            await _ticketRepository.CreateAsync(ticket, cancellationToken);
 
-                var ticketDataJson = JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
-                var departureDate = DateTime.Parse(segment.DepartureDate);
+            ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
 
-                var ticket = Ticket.Create(
-                    eTicketNumber, segment.InventoryId, segment.FlightNumber,
-                    departureDate, request.BookingReference,
-                    passenger.PassengerId, passenger.GivenName, passenger.Surname,
-                    segment.CabinCode, segment.FareBasisCode, ticketDataJson);
-
-                await _ticketRepository.CreateAsync(ticket, cancellationToken);
-
-                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segment.SegmentId));
-
-                _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} on {FlightNumber}",
-                    eTicketNumber, passenger.PassengerId, segment.FlightNumber);
-            }
+            _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
+                eTicketNumber, passenger.PassengerId, request.Segments.Count);
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
+    }
+
+    private static string BuildTicketDataJson(PassengerDetail passenger, List<SegmentDetail> segments)
+    {
+        var coupons = segments.Select((segment, index) =>
+        {
+            var seatAssignment = segment.SeatAssignments?
+                .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+
+            var marketingCarrier = ExtractCarrierCode(segment.FlightNumber);
+            var operatingFlightNumber = segment.OperatingFlightNumber ?? segment.FlightNumber;
+            var operatingCarrier = string.IsNullOrWhiteSpace(segment.OperatingFlightNumber)
+                ? marketingCarrier
+                : ExtractCarrierCode(segment.OperatingFlightNumber);
+
+            return (object)new
+            {
+                couponNumber = index + 1,
+                status = "O",
+                marketing = new { carrier = marketingCarrier, flightNumber = segment.FlightNumber },
+                operating = new { carrier = operatingCarrier, flightNumber = operatingFlightNumber },
+                origin = segment.Origin,
+                destination = segment.Destination,
+                departureDate = segment.DepartureDate,
+                departureTime = segment.DepartureTime,
+                classOfService = segment.CabinCode,
+                cabin = segment.CabinName,
+                fareBasisCode = segment.FareBasisCode,
+                notValidBefore = segment.DepartureDate,
+                notValidAfter = (string?)null,
+                stopoverIndicator = segment.StopoverIndicator ?? "O",
+                baggageAllowance = segment.BaggageAllowance != null
+                    ? new { type = segment.BaggageAllowance.Type, quantity = segment.BaggageAllowance.Quantity, weightKg = segment.BaggageAllowance.WeightKg }
+                    : (object?)null,
+                seat = seatAssignment?.SeatNumber,
+                fareComponent = segment.FareComponent != null
+                    ? new { amount = segment.FareComponent.Amount, currency = segment.FareComponent.Currency }
+                    : (object?)null
+            };
+        }).ToList();
+
+        var ssrCodes = segments
+            .SelectMany(s => s.SsrCodes ?? [])
+            .Where(s => s.PassengerId == passenger.PassengerId)
+            .Select(s => new { code = s.Code, description = s.Description, segmentRef = s.SegmentRef })
+            .ToList();
+
+        var ticketData = new
+        {
+            passenger = new
+            {
+                surname = passenger.Surname,
+                givenName = passenger.GivenName,
+                passengerTypeCode = passenger.PassengerTypeCode ?? "ADT",
+                frequentFlyer = passenger.FrequentFlyer != null
+                    ? new { carrier = passenger.FrequentFlyer.Carrier, number = passenger.FrequentFlyer.Number, tier = passenger.FrequentFlyer.Tier }
+                    : (object?)null
+            },
+            fareConstruction = passenger.FareConstruction != null
+                ? new
+                {
+                    pricingCurrency = passenger.FareConstruction.PricingCurrency,
+                    collectingCurrency = passenger.FareConstruction.CollectingCurrency,
+                    baseFare = passenger.FareConstruction.BaseFare,
+                    equivalentFarePaid = passenger.FareConstruction.EquivalentFarePaid,
+                    nucAmount = passenger.FareConstruction.NucAmount,
+                    roeApplied = passenger.FareConstruction.RoeApplied,
+                    fareCalculationLine = passenger.FareConstruction.FareCalculationLine,
+                    taxes = passenger.FareConstruction.Taxes.Select(t => new { code = t.Code, amount = t.Amount, currency = t.Currency, description = t.Description }),
+                    totalTaxes = passenger.FareConstruction.TotalTaxes,
+                    totalAmount = passenger.FareConstruction.TotalAmount
+                }
+                : (object?)null,
+            formOfPayment = passenger.FormOfPayment != null
+                ? new
+                {
+                    type = passenger.FormOfPayment.Type,
+                    cardType = passenger.FormOfPayment.CardType,
+                    maskedPan = passenger.FormOfPayment.MaskedPan,
+                    expiryMmYy = passenger.FormOfPayment.ExpiryMmYy,
+                    approvalCode = passenger.FormOfPayment.ApprovalCode,
+                    amount = passenger.FormOfPayment.Amount,
+                    currency = passenger.FormOfPayment.Currency
+                }
+                : (object?)null,
+            commission = passenger.Commission != null
+                ? new { type = passenger.Commission.Type, rate = passenger.Commission.Rate, amount = passenger.Commission.Amount }
+                : new { type = "PERCENT", rate = 0m, amount = 0m },
+            endorsementsRestrictions = passenger.EndorsementsRestrictions,
+            tourCode = (string?)null,
+            originalIssue = new
+            {
+                ticketNumber = (string?)null,
+                issueDate = (string?)null,
+                issuingLocation = (string?)null,
+                fareAmount = (decimal?)null
+            },
+            coupons,
+            ssrCodes,
+            changeHistory = new[] { new { eventType = "Issued", occurredAt = DateTime.UtcNow.ToString("o"), actor = "RetailAPI", detail = "Initial ticket issuance" } }
+        };
+
+        return JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
+    }
+
+    private static string ExtractCarrierCode(string flightNumber)
+    {
+        var i = 0;
+        while (i < flightNumber.Length && char.IsLetter(flightNumber[i])) i++;
+        return i > 0 ? flightNumber[0..i] : flightNumber;
     }
 }

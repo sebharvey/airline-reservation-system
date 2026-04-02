@@ -71,7 +71,7 @@ public sealed class ReissueTicketsHandler
                     segment.CabinCode, segment.FareBasisCode, ticketDataJson);
 
                 await _ticketRepository.CreateAsync(ticket, cancellationToken);
-                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segment.SegmentId));
+                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
             }
         }
 
