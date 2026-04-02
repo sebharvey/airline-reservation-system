@@ -34,12 +34,14 @@ public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddlewar
         if (!string.IsNullOrEmpty(secret))
         {
             var keyBytes = Convert.FromBase64String(secret);
+            var issuer = configuration["UserMs:JwtIssuer"];
+            var audience = configuration["UserMs:JwtAudience"];
             _tokenValidation = new TokenValidationParameters
             {
-                ValidateIssuer = true,
-                ValidIssuer = configuration["UserMs:JwtIssuer"] ?? "apex-air-user",
-                ValidateAudience = true,
-                ValidAudience = configuration["UserMs:JwtAudience"] ?? "apex-air-reservation",
+                ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
+                ValidIssuer = issuer,
+                ValidateAudience = !string.IsNullOrWhiteSpace(audience),
+                ValidAudience = audience,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
