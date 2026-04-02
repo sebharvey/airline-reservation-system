@@ -21,6 +21,7 @@ import {
   HttpClient
 } from '@angular/common/http';
 import { catchError, switchMap, throwError } from 'rxjs';
+import { Router } from '@angular/router';
 import { LoyaltyStateService } from './loyalty-state.service';
 import { environment } from '../environments/environment';
 
@@ -40,6 +41,7 @@ export const loyaltyAuthInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ) => {
   const loyaltyState = inject(LoyaltyStateService);
+  const router = inject(Router);
 
   // Only intercept requests to the Loyalty API
   if (!req.url.startsWith(environment.loyaltyApiBaseUrl)) {
@@ -58,31 +60,38 @@ export const loyaltyAuthInterceptor: HttpInterceptorFn = (
 
   return next(authedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Attempt token refresh on 401
-      if (error.status === 401 && session?.refreshToken) {
-        // Use HttpBackend directly to bypass this interceptor and avoid loops
-        const backend = inject(HttpBackend);
-        const bypassHttp = new HttpClient(backend);
+      if (error.status === 401) {
+        // Attempt token refresh if we have a refresh token
+        if (session?.refreshToken) {
+          // Use HttpBackend directly to bypass this interceptor and avoid loops
+          const backend = inject(HttpBackend);
+          const bypassHttp = new HttpClient(backend);
 
-        return bypassHttp
-          .post<TokenResponse>(
-            `${environment.loyaltyApiBaseUrl}/api/v1/auth/refresh`,
-            { refreshToken: session.refreshToken }
-          )
-          .pipe(
-            switchMap((tokens: TokenResponse) => {
-              loyaltyState.updateTokens(tokens.accessToken, tokens.refreshToken);
-              const retryReq = req.clone({
-                setHeaders: { Authorization: `Bearer ${tokens.accessToken}` }
-              });
-              return next(retryReq);
-            }),
-            catchError(() => {
-              // Refresh failed – force logout
-              loyaltyState.logout();
-              return throwError(() => error);
-            })
-          );
+          return bypassHttp
+            .post<TokenResponse>(
+              `${environment.loyaltyApiBaseUrl}/api/v1/auth/refresh`,
+              { refreshToken: session.refreshToken }
+            )
+            .pipe(
+              switchMap((tokens: TokenResponse) => {
+                loyaltyState.updateTokens(tokens.accessToken, tokens.refreshToken);
+                const retryReq = req.clone({
+                  setHeaders: { Authorization: `Bearer ${tokens.accessToken}` }
+                });
+                return next(retryReq);
+              }),
+              catchError(() => {
+                // Refresh failed – force logout and return to login
+                loyaltyState.logout();
+                router.navigate(['/loyalty']);
+                return throwError(() => error);
+              })
+            );
+        }
+
+        // No refresh token – force logout and return to login
+        loyaltyState.logout();
+        router.navigate(['/loyalty']);
       }
       return throwError(() => error);
     })
