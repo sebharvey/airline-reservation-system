@@ -750,41 +750,44 @@
         @if (t.ticketData?.coupons?.length) {
           <div class="modal-section">
             <div class="modal-section-title">Coupons</div>
-            @for (coupon of t.ticketData!.coupons; track coupon.couponNumber) {
-              <div class="coupon-card">
-                <div class="coupon-header">
-                  <span class="flight-badge">{{ coupon.marketing?.flightNumber || '—' }}</span>
-                  <span class="cabin-badge">{{ coupon.cabin || coupon.classOfService || '—' }}</span>
-                  <span class="fare-badge">{{ coupon.fareBasisCode || '—' }}</span>
-                  <span class="coupon-status-badge">{{ couponStatusLabel(coupon.status) }}</span>
-                </div>
-                <div class="coupon-route">
-                  <span class="airport-code">{{ coupon.origin }}</span>
-                  <div class="route-arrow"><div class="arrow-line"></div></div>
-                  <span class="airport-code">{{ coupon.destination }}</span>
-                </div>
-                <div class="field-grid">
-                  <div class="field-row">
-                    <span class="field-label">Date</span>
-                    <span class="field-value">{{ coupon.departureDate || '—' }}</span>
-                  </div>
-                  <div class="field-row">
-                    <span class="field-label">Dep. time</span>
-                    <span class="field-value">{{ coupon.departureTime || '—' }}</span>
-                  </div>
-                  <div class="field-row">
-                    <span class="field-label">Seat</span>
-                    <span class="field-value mono">{{ coupon.seat || '—' }}</span>
-                  </div>
-                  @if (coupon.baggageAllowance) {
-                    <div class="field-row">
-                      <span class="field-label">Baggage</span>
-                      <span class="field-value">{{ coupon.baggageAllowance.quantity }}{{ coupon.baggageAllowance.type === 'PIECE' ? 'pc' : '' }}{{ coupon.baggageAllowance.weightKg ? ' / ' + coupon.baggageAllowance.weightKg + 'kg' : '' }}</span>
-                    </div>
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Flight</th>
+                    <th>Route</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Cabin</th>
+                    <th>Fare basis</th>
+                    <th>Seat</th>
+                    <th>Baggage</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (coupon of t.ticketData!.coupons; track coupon.couponNumber) {
+                    <tr>
+                      <td>{{ coupon.couponNumber }}</td>
+                      <td class="mono">{{ coupon.marketing?.flightNumber || '—' }}</td>
+                      <td class="mono">{{ coupon.origin }}–{{ coupon.destination }}</td>
+                      <td>{{ coupon.departureDate || '—' }}</td>
+                      <td>{{ coupon.departureTime || '—' }}</td>
+                      <td>{{ coupon.cabin || coupon.classOfService || '—' }}</td>
+                      <td class="mono">{{ coupon.fareBasisCode || '—' }}</td>
+                      <td class="mono">{{ coupon.seat || '—' }}</td>
+                      <td>
+                        @if (coupon.baggageAllowance) {
+                          {{ coupon.baggageAllowance.quantity }}{{ coupon.baggageAllowance.type === 'PIECE' ? 'pc' : '' }}{{ coupon.baggageAllowance.weightKg ? ' / ' + coupon.baggageAllowance.weightKg + 'kg' : '' }}
+                        } @else { — }
+                      </td>
+                      <td>{{ couponStatusLabel(coupon.status) }}</td>
+                    </tr>
                   }
-                </div>
-              </div>
-            }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
 
@@ -825,17 +828,27 @@
         @if (t.ticketData?.changeHistory?.length) {
           <div class="modal-section">
             <div class="modal-section-title">Change history</div>
-            <div class="history-list">
-              @for (event of t.ticketData!.changeHistory; track event.occurredAt) {
-                <div class="history-event">
-                  <div class="event-dot"></div>
-                  <div class="event-body">
-                    <span class="event-type">{{ event.eventType }}</span>
-                    <span class="event-desc">{{ event.detail }}</span>
-                    <span class="event-time muted">{{ formatDateTime(event.occurredAt) }} · {{ event.actor }}</span>
-                  </div>
-                </div>
-              }
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Event</th>
+                    <th>Actor</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (event of t.ticketData!.changeHistory; track event.occurredAt) {
+                    <tr>
+                      <td class="muted">{{ formatDateTime(event.occurredAt) }}</td>
+                      <td><span class="event-type">{{ event.eventType }}</span></td>
+                      <td class="muted">{{ event.actor }}</td>
+                      <td>{{ event.detail }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
         }
