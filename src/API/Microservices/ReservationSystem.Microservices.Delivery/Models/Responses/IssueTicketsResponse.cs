@@ -13,6 +13,4 @@ public sealed class TicketSummary
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
     [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
     [JsonPropertyName("segmentIds")] public List<string> SegmentIds { get; init; } = [];
-    [JsonPropertyName("flightNumber")] public string FlightNumber { get; init; } = string.Empty;
-    [JsonPropertyName("departureDate")] public string DepartureDate { get; init; } = string.Empty;
 }

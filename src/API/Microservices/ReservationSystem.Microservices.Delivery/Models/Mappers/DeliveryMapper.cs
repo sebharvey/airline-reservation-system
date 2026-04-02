@@ -15,9 +15,7 @@ public static class DeliveryMapper
             TicketId = ticket.TicketId,
             ETicketNumber = ticket.ETicketNumber,
             PassengerId = ticket.PassengerId,
-            SegmentIds = segmentIds,
-            FlightNumber = ticket.FlightNumber,
-            DepartureDate = ticket.DepartureDate.ToString("yyyy-MM-dd")
+            SegmentIds = segmentIds
         };
 
     public static ManifestEntrySummary ToManifestSummary(Manifest manifest) =>

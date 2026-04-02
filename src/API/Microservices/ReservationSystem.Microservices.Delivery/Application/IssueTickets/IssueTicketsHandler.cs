@@ -26,7 +26,6 @@ public sealed class IssueTicketsHandler
         var ticketSummaries = new List<TicketSummary>();
         var sequence = baseSequence;
         var segmentIds = request.Segments.Select(s => s.SegmentId).ToList();
-        var firstSegment = request.Segments[0];
 
         foreach (var passenger in request.Passengers)
         {
@@ -34,13 +33,10 @@ public sealed class IssueTicketsHandler
             var eTicketNumber = $"932-{sequence:D10}";
 
             var ticketDataJson = BuildTicketDataJson(passenger, request.Segments);
-            var departureDate = DateTime.Parse(firstSegment.DepartureDate);
 
             var ticket = Ticket.Create(
-                eTicketNumber, firstSegment.InventoryId, firstSegment.FlightNumber,
-                departureDate, request.BookingReference,
-                passenger.PassengerId, passenger.GivenName, passenger.Surname,
-                firstSegment.CabinCode, firstSegment.FareBasisCode, ticketDataJson);
+                eTicketNumber, request.BookingReference,
+                passenger.PassengerId, ticketDataJson);
 
             await _ticketRepository.CreateAsync(ticket, cancellationToken);
 

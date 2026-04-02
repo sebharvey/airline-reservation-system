@@ -28,15 +28,8 @@ public sealed class DeliveryDbContext : DbContext
             entity.HasKey(t => t.TicketId);
             entity.Property(t => t.TicketId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(t => t.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
-            entity.Property(t => t.InventoryId).HasColumnType("uniqueidentifier").IsRequired();
-            entity.Property(t => t.FlightNumber).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
-            entity.Property(t => t.DepartureDate).HasColumnType("date").IsRequired();
             entity.Property(t => t.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(t => t.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
-            entity.Property(t => t.GivenName).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
-            entity.Property(t => t.Surname).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
-            entity.Property(t => t.CabinCode).HasColumnType("char(1)").HasMaxLength(1).IsRequired();
-            entity.Property(t => t.FareBasisCode).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
             entity.Property(t => t.IsVoided).HasColumnType("bit").IsRequired();
             entity.Property(t => t.VoidedAt).HasColumnType("datetime2").IsRequired(false);
             entity.Property(t => t.TicketData).HasColumnType("nvarchar(max)").IsRequired();
@@ -46,7 +39,6 @@ public sealed class DeliveryDbContext : DbContext
 
             entity.HasIndex(t => t.ETicketNumber).IsUnique();
             entity.HasIndex(t => t.BookingReference);
-            entity.HasIndex(t => new { t.FlightNumber, t.DepartureDate });
         });
 
         // ── Manifest ───────────────────────────────────────────────────────

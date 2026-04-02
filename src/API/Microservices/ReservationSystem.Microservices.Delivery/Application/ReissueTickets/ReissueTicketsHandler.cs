@@ -62,13 +62,10 @@ public sealed class ReissueTicketsHandler
                 };
 
                 var ticketDataJson = JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
-                var departureDate = DateTime.Parse(segment.DepartureDate);
 
                 var ticket = Ticket.Create(
-                    eTicketNumber, segment.InventoryId, segment.FlightNumber,
-                    departureDate, request.BookingReference,
-                    passenger.PassengerId, passenger.GivenName, passenger.Surname,
-                    segment.CabinCode, segment.FareBasisCode, ticketDataJson);
+                    eTicketNumber, request.BookingReference,
+                    passenger.PassengerId, ticketDataJson);
 
                 await _ticketRepository.CreateAsync(ticket, cancellationToken);
                 ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
