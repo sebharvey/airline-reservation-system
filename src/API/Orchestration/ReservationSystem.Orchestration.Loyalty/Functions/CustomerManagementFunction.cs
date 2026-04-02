@@ -211,8 +211,8 @@ public sealed class CustomerManagementFunction
         var (request, error) = await req.TryDeserializeBodyAsync<AdminAddPointsRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (request!.Points <= 0)
-            return await req.BadRequestAsync("Points must be greater than zero.");
+        if (request!.Points == 0)
+            return await req.BadRequestAsync("Points must not be zero.");
 
         if (string.IsNullOrWhiteSpace(request.Description))
             return await req.BadRequestAsync("Description is required.");
