@@ -234,8 +234,8 @@ public sealed class ChangeOrderHandler
                         DepartureDate = newDepDateStr,
                         ETicketNumber = t.ETicketNumber,
                         PassengerId = t.PassengerId,
-                        GivenName = pax?.GivenName ?? "",
-                        Surname = pax?.Surname ?? "",
+                        GivenName = pax.GivenName ?? "",
+                        Surname = pax.Surname ?? "",
                         CabinCode = newCabinCode
                     };
                 }).ToList();
