@@ -214,6 +214,29 @@ export class CustomerDetailComponent implements OnInit {
     this.error.set('');
     this.success.set('');
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const issueDate = this.editPassportIssueDate();
+    if (issueDate) {
+      const d = new Date(issueDate);
+      if (d >= today) {
+        this.error.set('Passport issue date must be in the past.');
+        this.saving.set(false);
+        return;
+      }
+    }
+
+    const expiryDate = this.editPassportExpiryDate();
+    if (expiryDate) {
+      const d = new Date(expiryDate);
+      if (d <= today) {
+        this.error.set('Passport expiry date must be in the future.');
+        this.saving.set(false);
+        return;
+      }
+    }
+
     const data: UpdateCustomerRequest = {
       givenName: this.editGivenName(),
       surname: this.editSurname(),

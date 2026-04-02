@@ -197,12 +197,12 @@
                   <span class="field-value">{{ c.passportIssueDate ?? '—' }}</span>
                 </div>
                 <div class="field-display">
-                  <span class="field-label">Issuing country</span>
-                  <span class="field-value">{{ c.passportIssuer ?? '—' }}</span>
-                </div>
-                <div class="field-display">
                   <span class="field-label">Passport expiry date</span>
                   <span class="field-value">{{ c.passportExpiryDate ?? '—' }}</span>
+                </div>
+                <div class="field-display">
+                  <span class="field-label">Issuing country</span>
+                  <span class="field-value">{{ c.passportIssuer ?? '—' }}</span>
                 </div>
                 <div class="field-display">
                   <span class="field-label">Known traveller number</span>
@@ -507,6 +507,13 @@
                   [disabled]="saving()" />
               </div>
               <div class="field">
+                <label class="field-label">Passport expiry date</label>
+                <input class="field-input" type="date"
+                  [value]="editPassportExpiryDate()"
+                  (input)="setField(editPassportExpiryDate.set.bind(editPassportExpiryDate), $event)"
+                  [disabled]="saving()" />
+              </div>
+              <div class="field">
                 <label class="field-label">Issuing country</label>
                 <select class="field-input"
                   [value]="editPassportIssuer()"
@@ -517,13 +524,6 @@
                     <option [value]="country.code" [selected]="editPassportIssuer() === country.code">{{ country.name }}</option>
                   }
                 </select>
-              </div>
-              <div class="field">
-                <label class="field-label">Passport expiry date</label>
-                <input class="field-input" type="date"
-                  [value]="editPassportExpiryDate()"
-                  (input)="setField(editPassportExpiryDate.set.bind(editPassportExpiryDate), $event)"
-                  [disabled]="saving()" />
               </div>
               <div class="field">
                 <label class="field-label">Known traveller number (KTN)</label>

@@ -211,7 +211,8 @@ public sealed class CustomerFunction
 
         var validationErrors = CustomerValidator.ValidateUpdate(
             request!.GivenName, request.Surname, request.PreferredLanguage,
-            request.Nationality, request.PhoneNumber, request.DateOfBirth);
+            request.Nationality, request.PhoneNumber, request.DateOfBirth,
+            request.PassportIssueDate, request.PassportExpiryDate);
 
         if (validationErrors.Count > 0)
             return await req.BadRequestAsync(string.Join(" ", validationErrors));

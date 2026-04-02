@@ -460,6 +460,16 @@
           </div>
 
           <div class="field">
+            <label for="pPassportExpiry">Passport expiry date</label>
+            <input
+              id="pPassportExpiry"
+              type="date"
+              [value]="profilePassportExpiryDate()"
+              (input)="profilePassportExpiryDate.set($any($event.target).value)"
+            />
+          </div>
+
+          <div class="field">
             <label for="pPassportIssuer">Issuing country</label>
             <select
               id="pPassportIssuer"
@@ -471,16 +481,6 @@
                 <option [value]="country.code" [selected]="country.code === profilePassportIssuer()">{{ country.name }}</option>
               }
             </select>
-          </div>
-
-          <div class="field">
-            <label for="pPassportExpiry">Passport expiry date</label>
-            <input
-              id="pPassportExpiry"
-              type="date"
-              [value]="profilePassportExpiryDate()"
-              (input)="profilePassportExpiryDate.set($any($event.target).value)"
-            />
           </div>
 
           <div class="field">
