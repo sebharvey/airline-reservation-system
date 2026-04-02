@@ -9,13 +9,13 @@ namespace ReservationSystem.Microservices.Delivery.Models.Mappers;
 /// </summary>
 public static class DeliveryMapper
 {
-    public static TicketSummary ToTicketSummary(Ticket ticket, string segmentId) =>
+    public static TicketSummary ToTicketSummary(Ticket ticket, List<string> segmentIds) =>
         new()
         {
             TicketId = ticket.TicketId,
             ETicketNumber = ticket.ETicketNumber,
             PassengerId = ticket.PassengerId,
-            SegmentId = segmentId,
+            SegmentIds = segmentIds,
             FlightNumber = ticket.FlightNumber,
             DepartureDate = ticket.DepartureDate.ToString("yyyy-MM-dd")
         };

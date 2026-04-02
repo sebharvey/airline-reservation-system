@@ -16,6 +16,12 @@ public sealed class PassengerDetail
     [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
     [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
     [JsonPropertyName("dateOfBirth")] public string? DateOfBirth { get; init; }
+    [JsonPropertyName("passengerTypeCode")] public string? PassengerTypeCode { get; init; }
+    [JsonPropertyName("frequentFlyer")] public FrequentFlyerDetail? FrequentFlyer { get; init; }
+    [JsonPropertyName("fareConstruction")] public FareConstructionDetail? FareConstruction { get; init; }
+    [JsonPropertyName("formOfPayment")] public FormOfPaymentDetail? FormOfPayment { get; init; }
+    [JsonPropertyName("commission")] public CommissionDetail? Commission { get; init; }
+    [JsonPropertyName("endorsementsRestrictions")] public string? EndorsementsRestrictions { get; init; }
 }
 
 public sealed class SegmentDetail
@@ -24,10 +30,16 @@ public sealed class SegmentDetail
     [JsonPropertyName("inventoryId")] public Guid InventoryId { get; init; }
     [JsonPropertyName("flightNumber")] public string FlightNumber { get; init; } = string.Empty;
     [JsonPropertyName("departureDate")] public string DepartureDate { get; init; } = string.Empty;
+    [JsonPropertyName("departureTime")] public string? DepartureTime { get; init; }
     [JsonPropertyName("origin")] public string Origin { get; init; } = string.Empty;
     [JsonPropertyName("destination")] public string Destination { get; init; } = string.Empty;
     [JsonPropertyName("cabinCode")] public string CabinCode { get; init; } = string.Empty;
+    [JsonPropertyName("cabinName")] public string? CabinName { get; init; }
     [JsonPropertyName("fareBasisCode")] public string FareBasisCode { get; init; } = string.Empty;
+    [JsonPropertyName("operatingFlightNumber")] public string? OperatingFlightNumber { get; init; }
+    [JsonPropertyName("stopoverIndicator")] public string? StopoverIndicator { get; init; }
+    [JsonPropertyName("baggageAllowance")] public BaggageAllowanceDetail? BaggageAllowance { get; init; }
+    [JsonPropertyName("fareComponent")] public FareComponentDetail? FareComponent { get; init; }
     [JsonPropertyName("seatAssignments")] public List<SeatAssignmentDetail>? SeatAssignments { get; init; }
     [JsonPropertyName("ssrCodes")] public List<SsrCodeDetail>? SsrCodes { get; init; }
 }
@@ -46,4 +58,64 @@ public sealed class SsrCodeDetail
     [JsonPropertyName("code")] public string Code { get; init; } = string.Empty;
     [JsonPropertyName("description")] public string Description { get; init; } = string.Empty;
     [JsonPropertyName("segmentRef")] public string SegmentRef { get; init; } = string.Empty;
+}
+
+public sealed class FrequentFlyerDetail
+{
+    [JsonPropertyName("carrier")] public string Carrier { get; init; } = string.Empty;
+    [JsonPropertyName("number")] public string Number { get; init; } = string.Empty;
+    [JsonPropertyName("tier")] public string? Tier { get; init; }
+}
+
+public sealed class FareConstructionDetail
+{
+    [JsonPropertyName("pricingCurrency")] public string PricingCurrency { get; init; } = string.Empty;
+    [JsonPropertyName("collectingCurrency")] public string CollectingCurrency { get; init; } = string.Empty;
+    [JsonPropertyName("baseFare")] public decimal BaseFare { get; init; }
+    [JsonPropertyName("equivalentFarePaid")] public decimal EquivalentFarePaid { get; init; }
+    [JsonPropertyName("nucAmount")] public decimal NucAmount { get; init; }
+    [JsonPropertyName("roeApplied")] public decimal RoeApplied { get; init; }
+    [JsonPropertyName("fareCalculationLine")] public string? FareCalculationLine { get; init; }
+    [JsonPropertyName("taxes")] public List<TaxDetail> Taxes { get; init; } = [];
+    [JsonPropertyName("totalTaxes")] public decimal TotalTaxes { get; init; }
+    [JsonPropertyName("totalAmount")] public decimal TotalAmount { get; init; }
+}
+
+public sealed class TaxDetail
+{
+    [JsonPropertyName("code")] public string Code { get; init; } = string.Empty;
+    [JsonPropertyName("amount")] public decimal Amount { get; init; }
+    [JsonPropertyName("currency")] public string Currency { get; init; } = string.Empty;
+    [JsonPropertyName("description")] public string? Description { get; init; }
+}
+
+public sealed class FormOfPaymentDetail
+{
+    [JsonPropertyName("type")] public string Type { get; init; } = string.Empty;
+    [JsonPropertyName("cardType")] public string? CardType { get; init; }
+    [JsonPropertyName("maskedPan")] public string? MaskedPan { get; init; }
+    [JsonPropertyName("expiryMmYy")] public string? ExpiryMmYy { get; init; }
+    [JsonPropertyName("approvalCode")] public string? ApprovalCode { get; init; }
+    [JsonPropertyName("amount")] public decimal Amount { get; init; }
+    [JsonPropertyName("currency")] public string Currency { get; init; } = string.Empty;
+}
+
+public sealed class CommissionDetail
+{
+    [JsonPropertyName("type")] public string Type { get; init; } = string.Empty;
+    [JsonPropertyName("rate")] public decimal Rate { get; init; }
+    [JsonPropertyName("amount")] public decimal Amount { get; init; }
+}
+
+public sealed class BaggageAllowanceDetail
+{
+    [JsonPropertyName("type")] public string Type { get; init; } = string.Empty;
+    [JsonPropertyName("quantity")] public int Quantity { get; init; }
+    [JsonPropertyName("weightKg")] public int? WeightKg { get; init; }
+}
+
+public sealed class FareComponentDetail
+{
+    [JsonPropertyName("amount")] public decimal Amount { get; init; }
+    [JsonPropertyName("currency")] public string Currency { get; init; } = string.Empty;
 }

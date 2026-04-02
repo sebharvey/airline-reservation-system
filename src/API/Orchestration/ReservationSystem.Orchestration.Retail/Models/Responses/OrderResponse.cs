@@ -16,7 +16,7 @@ public sealed class OrderResponse
 public sealed class IssuedETicket
 {
     public string PassengerId { get; init; } = string.Empty;
-    public string SegmentId { get; init; } = string.Empty;
+    public List<string> SegmentIds { get; init; } = [];
     public string ETicketNumber { get; init; } = string.Empty;
 }
 

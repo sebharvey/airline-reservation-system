@@ -60,8 +60,8 @@ public sealed class IssuedTicket
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
-    [JsonPropertyName("segmentId")]
-    public string SegmentId { get; init; } = string.Empty;
+    [JsonPropertyName("segmentIds")]
+    public List<string> SegmentIds { get; init; } = [];
 }
 
 public sealed class TicketPassenger
