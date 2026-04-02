@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
+import { CheckInStateService } from '../../services/check-in-state.service';
 
 interface DemoHint {
   ref: string;
@@ -33,6 +34,7 @@ export class CheckInComponent {
 
   constructor(
     private retailApi: RetailApiService,
+    private checkInState: CheckInStateService,
     private router: Router
   ) {}
 
@@ -60,21 +62,17 @@ export class CheckInComponent {
 
     this.loading.set(true);
     this.errorMessage.set('');
+    this.checkInState.clear();
 
-    this.retailApi.retrieveForCheckIn({
+    this.retailApi.retrieveOciOrder({
       bookingReference: this.bookingReference().trim(),
       givenName: this.givenName().trim(),
       surname: this.surname().trim()
     }).subscribe({
-      next: () => {
+      next: (order) => {
         this.loading.set(false);
-        this.router.navigate(['/check-in/details'], {
-          queryParams: {
-            bookingRef: this.bookingReference().trim(),
-            givenName: this.givenName().trim(),
-            surname: this.surname().trim()
-          }
-        });
+        this.checkInState.setCurrentOrder(order);
+        this.router.navigate(['/check-in/details']);
       },
       error: (err: { message?: string }) => {
         this.loading.set(false);

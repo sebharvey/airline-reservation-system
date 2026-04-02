@@ -185,6 +185,40 @@ export interface Basket {
   loyaltyNumber?: string;
 }
 
+// ─── Online Check-In (OCI) response models ───────────────────────────────────
+
+export interface OciSeatAssignment {
+  passengerId: string;
+  seatNumber: string;
+}
+
+export interface OciFlightSegment {
+  segmentRef: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  cabinCode: string;
+  aircraftType: string;
+  seatAssignments: OciSeatAssignment[];
+}
+
+export interface OciPassenger {
+  passengerId: string;
+  type: string;
+  givenName: string;
+  surname: string;
+}
+
+export interface OciOrder {
+  bookingReference: string;
+  orderStatus: string;
+  currencyCode: string;
+  passengers: OciPassenger[];
+  flightSegments: OciFlightSegment[];
+}
+
 export interface BoardingPass {
   bookingReference: string;
   passengerId: string;

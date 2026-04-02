@@ -1,4 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { OciOrder } from '../models/order.model';
 
 export interface CheckInBagSelection {
   passengerId: string;
@@ -19,6 +20,7 @@ export interface CheckInSeatSelection {
 
 @Injectable({ providedIn: 'root' })
 export class CheckInStateService {
+  readonly currentOrder = signal<OciOrder | null>(null);
   readonly bagSelections = signal<CheckInBagSelection[]>([]);
   readonly seatSelections = signal<CheckInSeatSelection[]>([]);
 
@@ -34,6 +36,10 @@ export class CheckInStateService {
     this.totalBagAmount() + this.totalSeatAmount()
   );
 
+  setCurrentOrder(order: OciOrder): void {
+    this.currentOrder.set(order);
+  }
+
   setBagSelections(sels: CheckInBagSelection[]): void {
     this.bagSelections.set(sels);
   }
@@ -43,6 +49,7 @@ export class CheckInStateService {
   }
 
   clear(): void {
+    this.currentOrder.set(null);
     this.bagSelections.set([]);
     this.seatSelections.set([]);
   }

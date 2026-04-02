@@ -1,37 +1,29 @@
 <div class="page fade-in">
   <div class="page-header">
-    <h2>Passenger Details</h2>
-    <p>Confirm your details before checking in</p>
+    <h2>Your Booking</h2>
+    <p>Confirm your details and select passengers to check in</p>
   </div>
 
-  <!-- Loading -->
-  @if (loading()) {
-    <div class="loading-state">
-      <span class="spinner-dark"></span>
-      <span>Loading booking&hellip;</span>
-    </div>
-  }
+  @if (order(); as o) {
 
-  <!-- Error -->
-  @if (errorMessage() && !loading()) {
-    <div class="error-banner">
-      <span>&#9888;</span>
-      {{ errorMessage() }}
+    <!-- Booking reference banner -->
+    <div class="ref-banner">
+      <span class="ref-label">Booking Reference</span>
+      <span class="ref-value">{{ o.bookingReference }}</span>
+      <span class="status-badge status-badge--{{ o.orderStatus.toLowerCase() }}">{{ o.orderStatus }}</span>
     </div>
-    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
-  }
-
-  <!-- Main content -->
-  @if (!loading() && !errorMessage() && order(); as o) {
 
     <!-- Flight summary -->
     <div class="section">
-      <h3 class="section-title">Your Flight</h3>
-      @for (seg of o.flightSegments; track seg.segmentId) {
+      <h3 class="section-title">Flight Details</h3>
+      @for (seg of o.flightSegments; track seg.segmentRef) {
         <div class="card flight-summary">
           <div class="flight-meta">
             <span class="flight-num">{{ seg.flightNumber }}</span>
             <span class="cabin-badge">{{ seg.cabinCode }}</span>
+            @if (seg.aircraftType) {
+              <span class="aircraft-badge">{{ seg.aircraftType }}</span>
+            }
           </div>
           <div class="flight-route">
             <div class="route-point">
@@ -48,12 +40,13 @@
       }
     </div>
 
-    <!-- Passenger forms -->
+    <!-- Passenger selection and travel documents -->
     <div class="section">
       <h3 class="section-title">Select Passengers to Check In</h3>
 
       @for (state of passengerStates(); track state.passengerId; let i = $index) {
         <div class="pax-check-card card" [class.pax-check-card--selected]="state.selected">
+
           <!-- Checkbox header -->
           <div class="pax-check-header" (click)="togglePassenger(i)">
             <div class="checkbox-wrap">
@@ -65,9 +58,18 @@
               <span class="pax-check-name">{{ state.givenName }} {{ state.surname }}</span>
               <span class="pax-check-type">{{ state.passengerType === 'ADT' ? 'Adult' : 'Child' }}</span>
             </div>
+            <!-- Seat assignments for this passenger -->
+            <div class="pax-seats">
+              @for (seg of o.flightSegments; track seg.segmentRef) {
+                @let seat = getSeatNumber(state.passengerId, seg);
+                @if (seat) {
+                  <span class="seat-chip">{{ seg.origin }}&ndash;{{ seg.destination }} &middot; {{ seat }}</span>
+                }
+              }
+            </div>
           </div>
 
-          <!-- Travel document fields -->
+          <!-- Travel document fields (shown when passenger is selected) -->
           @if (state.selected) {
             <div class="doc-fields">
               <div class="doc-fields-title">Travel Document</div>
