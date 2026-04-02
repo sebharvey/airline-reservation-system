@@ -9,7 +9,9 @@
  */
 
 import { inject } from '@angular/core';
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { catchError, throwError } from 'rxjs';
+import { Router } from '@angular/router';
 import { LoyaltyStateService } from './loyalty-state.service';
 import { environment } from '../environments/environment';
 
@@ -18,10 +20,19 @@ export const retailAuthInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const session = inject(LoyaltyStateService).session();
+  const loyaltyState = inject(LoyaltyStateService);
+  const session = loyaltyState.session();
   if (!session?.accessToken) {
     return next(req);
   }
 
-  return next(req.clone({ setHeaders: { Authorization: `Bearer ${session.accessToken}` } }));
+  return next(req.clone({ setHeaders: { Authorization: `Bearer ${session.accessToken}` } })).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401) {
+        loyaltyState.logout();
+        inject(Router).navigate(['/loyalty']);
+      }
+      return throwError(() => error);
+    })
+  );
 };
