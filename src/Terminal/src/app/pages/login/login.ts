@@ -34,7 +34,7 @@ export class LoginComponent {
 
     try {
       await this.#auth.login(this.username(), this.password());
-      this.#router.navigate(['/terminal']);
+      this.#router.navigate(['/offer']);
     } catch (err: any) {
       this.error.set(err?.message ?? 'Login failed. Please try again.');
     } finally {
