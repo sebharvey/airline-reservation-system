@@ -92,7 +92,7 @@ public sealed class GetOrderHandler
                             eTickets.Add(new IssuedETicket
                             {
                                 PassengerId = item.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "",
-                                SegmentId = item.TryGetProperty("segmentId", out var sid) ? sid.GetString() ?? "" : "",
+                                SegmentIds = item.TryGetProperty("segmentId", out var sid) && sid.GetString() is { } sidVal ? [sidVal] : [],
                                 ETicketNumber = eTicket,
                             });
                         }
