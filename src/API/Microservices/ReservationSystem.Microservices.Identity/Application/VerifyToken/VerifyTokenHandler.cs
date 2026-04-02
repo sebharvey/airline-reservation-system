@@ -45,9 +45,9 @@ public sealed class VerifyTokenHandler
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = key,
-                ValidateIssuer = true,
+                ValidateIssuer = !string.IsNullOrWhiteSpace(_jwtOptions.Issuer),
                 ValidIssuer = _jwtOptions.Issuer,
-                ValidateAudience = true,
+                ValidateAudience = !string.IsNullOrWhiteSpace(_jwtOptions.Audience),
                 ValidAudience = _jwtOptions.Audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
