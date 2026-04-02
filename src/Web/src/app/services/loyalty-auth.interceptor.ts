@@ -42,6 +42,7 @@ export const loyaltyAuthInterceptor: HttpInterceptorFn = (
 ) => {
   const loyaltyState = inject(LoyaltyStateService);
   const router = inject(Router);
+  const backend = inject(HttpBackend);
 
   // Only intercept requests to the Loyalty API
   if (!req.url.startsWith(environment.loyaltyApiBaseUrl)) {
@@ -64,7 +65,6 @@ export const loyaltyAuthInterceptor: HttpInterceptorFn = (
         // Attempt token refresh if we have a refresh token
         if (session?.refreshToken) {
           // Use HttpBackend directly to bypass this interceptor and avoid loops
-          const backend = inject(HttpBackend);
           const bypassHttp = new HttpClient(backend);
 
           return bypassHttp
