@@ -324,8 +324,8 @@ export class CustomerDetailComponent implements OnInit {
     const points = this.addPointsAmount();
     const description = this.addPointsDescription().trim();
 
-    if (!points || points <= 0) {
-      this.error.set('Please enter a valid number of points greater than zero.');
+    if (points === null || points === 0) {
+      this.error.set('Please enter a non-zero number of points.');
       return;
     }
     if (!description) {
@@ -340,12 +340,12 @@ export class CustomerDetailComponent implements OnInit {
     try {
       await this.#customerService.addPoints(this.loyaltyNumber, { points, description });
       this.#searchState.dirty.set(true);
-      this.success.set(`Successfully assigned ${points.toLocaleString()} points.`);
+      this.success.set(`Successfully adjusted points by ${points.toLocaleString()}.`);
       this.showAddPointsForm.set(false);
       this.transactionsPage.set(1);
       await Promise.all([this.loadCustomer(), this.loadTransactions()]);
     } catch {
-      this.error.set('Failed to assign points. Please try again.');
+      this.error.set('Failed to adjust points. Please try again.');
     } finally {
       this.addPointsSaving.set(false);
     }
