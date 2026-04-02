@@ -9,7 +9,7 @@ The Delivery microservice is the airline's system of record for issued travel do
 
 ## Three record types
 
-- **Tickets** — the accountable document store; one row per e-ticket (one passenger, one flight segment). This is the financial record of the issued travel entitlement. Each row carries full passenger and flight data as a JSON payload for self-containment.
+- **Tickets** — the accountable document store; one row per e-ticket (one passenger covering all flight segments on the booking). This is the financial record of the issued travel entitlement. Each row carries the full IATA ticket in a self-contained JSON payload including passenger, fare, payment, and per-segment coupon detail.
 - **Manifest** — the operational source of truth on who is on a given flight; one row per passenger per flight segment. Populated when a ticket is issued and updated on check-in, seat changes, SSR updates, and delays. Used by gate staff, ground handling, crew briefings, and IROPS processing.
 - **Documents** — additional accountable document records analogous to Electronic Miscellaneous Documents (EMDs); one row per ancillary sale (seat purchase, bag purchase). Enables the Accounting system to track non-fare revenue items independently of the fare ticket.
 
@@ -43,29 +43,106 @@ Each row represents one issued e-ticket: one passenger on one flight segment. Th
 
 ### `TicketData` JSON structure
 
-Scalar identifiers and status fields that exist as typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the extensible detail: seat assignment, SSR codes, APIS data, and change history.
+`TicketData` holds the full IATA electronic ticket representation. The document is self-contained: it carries all fare, payment, passenger, and coupon detail needed to reconstruct the complete ticket without additional lookups. Typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) remain the authoritative values for those fields; the JSON may duplicate them for self-containment.
+
+One ticket covers one passenger and all of their flight segments. Each segment is represented as a numbered coupon inside the `coupons` array.
 
 ```json
 {
-  "seatAssignment": {
-    "seatNumber": "1A",
-    "positionType": "Window",
-    "deckCode": "M"
+  "passenger": {
+    "surname": "HARVEY",
+    "givenName": "SEBASTIAN MR",
+    "passengerTypeCode": "ADT",
+    "frequentFlyer": {
+      "carrier": "VS",
+      "number": "123456789",
+      "tier": "GOLD"
+    }
   },
-  "ssrCodes": [
-    { "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" },
-    { "code": "WCHR", "description": "Wheelchair to ramp", "segmentRef": "SEG-1" }
+  "fareConstruction": {
+    "pricingCurrency": "GBP",
+    "collectingCurrency": "GBP",
+    "baseFare": 1800.00,
+    "equivalentFarePaid": 1800.00,
+    "nucAmount": 2299.74,
+    "roeApplied": 0.782853,
+    "fareCalculationLine": "LON VS NYC 900.00 VS LON 900.00 NUC 1800.00 END ROE 0.782853",
+    "taxes": [
+      { "code": "GB", "amount": 86.00,  "currency": "GBP", "description": "Air Passenger Duty" },
+      { "code": "UB", "amount": 28.40,  "currency": "GBP", "description": "Passenger Service Charge LHR" },
+      { "code": "US", "amount": 19.80,  "currency": "USD", "description": "US International Departure Tax" },
+      { "code": "YQ", "amount": 410.00, "currency": "GBP", "description": "Carrier-imposed surcharge (fuel)" },
+      { "code": "YR", "amount": 22.00,  "currency": "GBP", "description": "Carrier-imposed surcharge (other)" }
+    ],
+    "totalTaxes": 566.20,
+    "totalAmount": 2366.20
+  },
+  "formOfPayment": {
+    "type": "CC",
+    "cardType": "VI",
+    "maskedPan": "411111XXXXXX1111",
+    "expiryMmYy": "0928",
+    "approvalCode": "A12345",
+    "amount": 2366.20,
+    "currency": "GBP"
+  },
+  "commission": {
+    "type": "PERCENT",
+    "rate": 0.00,
+    "amount": 0.00
+  },
+  "endorsementsRestrictions": "NON-ENDO/NON-REF/PENLTY APPLIES",
+  "tourCode": null,
+  "originalIssue": {
+    "ticketNumber": null,
+    "issueDate": null,
+    "issuingLocation": null,
+    "fareAmount": null
+  },
+  "coupons": [
+    {
+      "couponNumber": 1,
+      "status": "O",
+      "marketing":  { "carrier": "VS", "flightNumber": "VS003" },
+      "operating":  { "carrier": "VS", "flightNumber": "VS003" },
+      "origin": "LHR",
+      "destination": "JFK",
+      "departureDate": "2025-12-01",
+      "departureTime": "11:00",
+      "classOfService": "J",
+      "cabin": "BUSINESS",
+      "fareBasisCode": "JLE6MGBR",
+      "notValidBefore": "2025-12-01",
+      "notValidAfter": null,
+      "stopoverIndicator": "O",
+      "baggageAllowance": { "type": "PIECE", "quantity": 2, "weightKg": 32 },
+      "seat": "11A",
+      "fareComponent": { "amount": 900.00, "currency": "GBP" }
+    },
+    {
+      "couponNumber": 2,
+      "status": "O",
+      "marketing":  { "carrier": "VS", "flightNumber": "VS004" },
+      "operating":  { "carrier": "VS", "flightNumber": "VS004" },
+      "origin": "JFK",
+      "destination": "LHR",
+      "departureDate": "2025-12-15",
+      "departureTime": "22:20",
+      "classOfService": "J",
+      "cabin": "BUSINESS",
+      "fareBasisCode": "JLE6MGBR",
+      "notValidBefore": "2025-12-15",
+      "notValidAfter": null,
+      "stopoverIndicator": "S",
+      "baggageAllowance": { "type": "PIECE", "quantity": 2, "weightKg": 32 },
+      "seat": "12A",
+      "fareComponent": { "amount": 900.00, "currency": "GBP" }
+    }
   ],
-  "apisData": {
-    "documentType": "PASSPORT",
-    "documentNumber": "PA1234567",
-    "issuingCountry": "GBR",
-    "expiryDate": "2030-01-01",
-    "nationality": "GBR",
-    "dateOfBirth": "1985-03-12",
-    "gender": "Male",
-    "residenceCountry": "GBR"
-  },
+  "ssrCodes": [
+    { "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" }
+  ],
+  "apisData": null,
   "changeHistory": [
     {
       "eventType": "Issued",
@@ -74,22 +151,26 @@ Scalar identifiers and status fields that exist as typed columns on `delivery.Ti
       "detail": "Initial ticket issuance"
     },
     {
-      "eventType": "SeatChanged",
-      "occurredAt": "2025-07-10T11:45:00Z",
-      "actor": "RetailAPI",
-      "detail": "Seat changed from 3C to 1A via manage-booking"
-    },
-    {
       "eventType": "IROPSReissued",
       "occurredAt": "2025-08-14T04:22:00Z",
       "actor": "DisruptionAPI",
-      "detail": "Reissued onto AX005 LHR-JFK 2025-08-15 following cancellation of AX003; prior ticket 932-1234567890 voided"
+      "detail": "Reissued onto VS005 LHR-JFK 2025-08-15 following cancellation of VS003; prior ticket 932-1234567890 voided"
     }
   ]
 }
 ```
 
-> `seatAssignment.positionType`: `Window` · `Aisle` · `Middle`. `deckCode`: `M` (main) · `U` (upper). `ssrCodes` is an empty array `[]` when no SSRs are held. `apisData` may be `null` if APIS has not yet been provided by the passenger (collection is triggered at check-in for routes that require it). `changeHistory` is append-only — a new entry is added on every mutation.
+> **`passenger.passengerTypeCode`:** `ADT` · `CHD` · `INF` · `YTH` · `MIL`. Defaults to `ADT` if not supplied.
+> **`passenger.frequentFlyer`:** `null` when no frequent flyer number is held.
+> **`fareConstruction`:** `null` when fare breakdown is not available (e.g. award tickets or manual issuance). `taxes` is an empty array `[]` when no taxes apply. `roeApplied` is the IATA Rate of Exchange used to convert `nucAmount` to `baseFare`.
+> **`formOfPayment.type`:** `CC` (credit card) · `DC` (debit card) · `CASH` · `MPD` · `INV`. `cardType`: `VI` (Visa) · `MC` (Mastercard) · `AX` (Amex) · `DC` (Diners). `maskedPan`: first 6 digits + `X` per masked digit + last 4 digits. `approvalCode` holds the payment service reference.
+> **`commission`:** Defaults to `PERCENT / 0.00 / 0.00` for direct channel bookings with no agency commission.
+> **`originalIssue`:** `null` values on initial issuance; populated on reissuance with the voided ticket's number, issue date, location, and fare amount.
+> **`coupons.status`:** `O` (Open) · `A` (Airport control) · `C` (Checked in) · `B` (Boarded) · `F` (Flown) · `R` (Refunded) · `E` (Exchanged) · `V` (Void) · `S` (Suspended). Initial status is `O`.
+> **`coupons.stopoverIndicator`:** `O` (connection — transit time < 24 h) · `S` (stopover — transit time ≥ 24 h).
+> **`ssrCodes`:** Empty array `[]` when no SSRs are held.
+> **`apisData`:** `null` at booking; populated at check-in for routes requiring Advance Passenger Information. Shape: `{ documentType, documentNumber, issuingCountry, expiryDate, nationality, dateOfBirth, gender, residenceCountry }`.
+> **`changeHistory`:** Append-only. A new entry is added on every mutation (seat change, reissuance, IROPS rebooking). `actor` identifies the system component that made the change.
 
 > **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`. `IX_Ticket_Flight` on `(FlightNumber, DepartureDate)`.
 > **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
