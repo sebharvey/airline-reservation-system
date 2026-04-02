@@ -11,17 +11,20 @@ public sealed class ConfirmBasketHandler
     private readonly OfferServiceClient _offerServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly CustomerServiceClient _customerServiceClient;
 
     public ConfirmBasketHandler(
         OrderServiceClient orderServiceClient,
         OfferServiceClient offerServiceClient,
         PaymentServiceClient paymentServiceClient,
-        DeliveryServiceClient deliveryServiceClient)
+        DeliveryServiceClient deliveryServiceClient,
+        CustomerServiceClient customerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
         _offerServiceClient = offerServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _customerServiceClient = customerServiceClient;
     }
 
     public async Task<OrderResponse> HandleAsync(ConfirmBasketCommand command, CancellationToken cancellationToken)
@@ -167,6 +170,26 @@ public sealed class ConfirmBasketHandler
 
         // 8. Settle payment
         await _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
+
+        // 9. Link order to customer loyalty account (best-effort, non-blocking)
+        try
+        {
+            var loyaltyNumber = basket.BasketData.HasValue
+                ? ParseLoyaltyNumber(basket.BasketData.Value.GetRawText())
+                : null;
+
+            if (!string.IsNullOrWhiteSpace(loyaltyNumber))
+            {
+                await _customerServiceClient.LinkOrderToCustomerAsync(
+                    loyaltyNumber, confirmedOrder.OrderId, confirmedOrder.BookingReference,
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Console.Error.WriteLine(
+                $"[ConfirmBasket] Customer order link failed for {confirmedOrder.BookingReference}: {ex.Message}");
+        }
 
         return new OrderResponse
         {
@@ -332,6 +355,21 @@ public sealed class ConfirmBasketHandler
         }
 
         return entries;
+    }
+
+    private static string? ParseLoyaltyNumber(string basketDataJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            if (doc.RootElement.TryGetProperty("loyaltyNumber", out var el) &&
+                el.ValueKind == JsonValueKind.String)
+            {
+                return el.GetString();
+            }
+        }
+        catch { /* Return null */ }
+        return null;
     }
 
     private static (List<(Guid InventoryId, string CabinCode)> items, int paxCount) ParseBasketDataForInventorySell(

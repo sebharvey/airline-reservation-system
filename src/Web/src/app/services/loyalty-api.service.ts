@@ -15,7 +15,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, switchMap, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyPreferences, LoyaltyTier, TransactionType } from '../models/loyalty.model';
+import { LoyaltyCustomer, AuthSession, LoyaltyTransaction, LoyaltyPreferences, LoyaltyTier, TransactionType, CustomerOrderItem } from '../models/loyalty.model';
 import { environment } from '../environments/environment';
 
 export interface LoginParams {
@@ -384,6 +384,21 @@ export class LoyaltyApiService {
     return this.http
       .post<TransferPointsResult>(`${BASE}/customers/${loyaltyNumber}/points/transfer`, params)
       .pipe(catchError(handleError));
+  }
+
+  /**
+   * GET /customers/{loyaltyNumber}/orders
+   * Returns all order references linked to the loyalty account.
+   */
+  getCustomerOrders(loyaltyNumber: string): Observable<CustomerOrderItem[]> {
+    return this.http
+      .get<{ loyaltyNumber: string; orders: CustomerOrderItem[] }>(
+        `${BASE}/customers/${loyaltyNumber}/orders`
+      )
+      .pipe(
+        map(res => res.orders ?? []),
+        catchError(handleError)
+      );
   }
 
   /**
