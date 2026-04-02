@@ -21,6 +21,7 @@ public sealed record UpdateCustomerCommand(
     string? PassportNumber,
     DateOnly? PassportIssueDate,
     string? PassportIssuer,
+    DateOnly? PassportExpiryDate,
     string? KnownTravellerNumber,
     Guid? IdentityId,
     string? TierCode,

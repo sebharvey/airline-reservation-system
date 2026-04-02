@@ -416,6 +416,7 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 | PassportNumber | VARCHAR(50) | Yes | | | Machine-readable passport document number |
 | PassportIssueDate | DATE | Yes | | | Date the passport was issued |
 | PassportIssuer | CHAR(2) | Yes | | | ISO 3166-1 alpha-2 country code of the issuing country |
+| PassportExpiryDate | DATE | Yes | | | Date the passport expires |
 | KnownTravellerNumber | VARCHAR(50) | Yes | | | TSA/CBP Trusted Traveller Programme number (e.g. TSA PreCheck, Global Entry, NEXUS) |
 | TierCode | VARCHAR(20) | No | `'Blue'` | | FK ref to `customer.TierConfig(TierCode)` enforced at application layer |
 | PointsBalance | INT | No | `0` | | Current redeemable points balance |

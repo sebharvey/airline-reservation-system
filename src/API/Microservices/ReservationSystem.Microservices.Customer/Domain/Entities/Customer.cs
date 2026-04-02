@@ -25,6 +25,7 @@ public sealed class Customer
     public string? PassportNumber { get; private set; }
     public DateOnly? PassportIssueDate { get; private set; }
     public string? PassportIssuer { get; private set; }
+    public DateOnly? PassportExpiryDate { get; private set; }
     public string? KnownTravellerNumber { get; private set; }
     public string TierCode { get; private set; } = string.Empty;
     public int PointsBalance { get; private set; }
@@ -52,6 +53,7 @@ public sealed class Customer
         string? passportNumber = null,
         DateOnly? passportIssueDate = null,
         string? passportIssuer = null,
+        DateOnly? passportExpiryDate = null,
         string? knownTravellerNumber = null,
         string? tierCode = null,
         Guid? identityId = null,
@@ -73,6 +75,7 @@ public sealed class Customer
         if (passportNumber is not null) PassportNumber = passportNumber;
         if (passportIssueDate is not null) PassportIssueDate = passportIssueDate;
         if (passportIssuer is not null) PassportIssuer = passportIssuer;
+        if (passportExpiryDate is not null) PassportExpiryDate = passportExpiryDate;
         if (knownTravellerNumber is not null) KnownTravellerNumber = knownTravellerNumber;
         if (tierCode is not null) TierCode = tierCode;
         if (identityId is not null) IdentityId = identityId;
@@ -157,6 +160,7 @@ public sealed class Customer
         string? passportNumber,
         DateOnly? passportIssueDate,
         string? passportIssuer,
+        DateOnly? passportExpiryDate,
         string? knownTravellerNumber,
         string tierCode,
         int pointsBalance,
@@ -186,6 +190,7 @@ public sealed class Customer
             PassportNumber = passportNumber,
             PassportIssueDate = passportIssueDate,
             PassportIssuer = passportIssuer,
+            PassportExpiryDate = passportExpiryDate,
             KnownTravellerNumber = knownTravellerNumber,
             TierCode = tierCode,
             PointsBalance = pointsBalance,

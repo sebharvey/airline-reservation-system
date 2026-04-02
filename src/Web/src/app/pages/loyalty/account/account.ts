@@ -112,6 +112,7 @@ export class LoyaltyAccountComponent implements OnInit {
   profilePassportNumber = signal('');
   profilePassportIssueDate = signal('');
   profilePassportIssuer = signal('');
+  profilePassportExpiryDate = signal('');
   profileKnownTravellerNumber = signal('');
 
   profileLoading = signal(false);
@@ -231,6 +232,7 @@ export class LoyaltyAccountComponent implements OnInit {
     this.profilePassportNumber.set(c.passportNumber ?? '');
     this.profilePassportIssueDate.set(c.passportIssueDate ?? '');
     this.profilePassportIssuer.set(c.passportIssuer ?? '');
+    this.profilePassportExpiryDate.set(c.passportExpiryDate ?? '');
     this.profileKnownTravellerNumber.set(c.knownTravellerNumber ?? '');
   }
 
@@ -365,6 +367,7 @@ export class LoyaltyAccountComponent implements OnInit {
       passportNumber: this.profilePassportNumber() || undefined,
       passportIssueDate: this.profilePassportIssueDate() || undefined,
       passportIssuer: this.profilePassportIssuer() || undefined,
+      passportExpiryDate: this.profilePassportExpiryDate() || undefined,
       knownTravellerNumber: this.profileKnownTravellerNumber() || undefined,
     }).subscribe({
       next: (updated) => {

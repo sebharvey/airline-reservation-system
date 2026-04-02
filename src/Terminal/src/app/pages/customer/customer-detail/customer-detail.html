@@ -201,6 +201,10 @@
                   <span class="field-value">{{ c.passportIssuer ?? '—' }}</span>
                 </div>
                 <div class="field-display">
+                  <span class="field-label">Passport expiry date</span>
+                  <span class="field-value">{{ c.passportExpiryDate ?? '—' }}</span>
+                </div>
+                <div class="field-display">
                   <span class="field-label">Known traveller number</span>
                   <span class="field-value">{{ c.knownTravellerNumber ?? '—' }}</span>
                 </div>
@@ -513,6 +517,13 @@
                     <option [value]="country.code" [selected]="editPassportIssuer() === country.code">{{ country.name }}</option>
                   }
                 </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Passport expiry date</label>
+                <input class="field-input" type="date"
+                  [value]="editPassportExpiryDate()"
+                  (input)="setField(editPassportExpiryDate.set.bind(editPassportExpiryDate), $event)"
+                  [disabled]="saving()" />
               </div>
               <div class="field">
                 <label class="field-label">Known traveller number (KTN)</label>

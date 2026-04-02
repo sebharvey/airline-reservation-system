@@ -1021,6 +1021,7 @@ CREATE TABLE [customer].[Customer] (
     PassportNumber     VARCHAR(50)          NULL,
     PassportIssueDate  DATE                 NULL,
     PassportIssuer     CHAR(2)              NULL,
+    PassportExpiryDate DATE                 NULL,
     KnownTravellerNumber VARCHAR(50)        NULL,
     TierCode           VARCHAR(20)      NOT NULL CONSTRAINT DF_Customer_Tier     DEFAULT 'Blue',
     PointsBalance      INT              NOT NULL CONSTRAINT DF_Customer_Points   DEFAULT 0,
@@ -1172,6 +1173,10 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PassportIssuer')
     ALTER TABLE [customer].[Customer] ADD PassportIssuer CHAR(2) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'PassportExpiryDate')
+    ALTER TABLE [customer].[Customer] ADD PassportExpiryDate DATE NULL;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'KnownTravellerNumber')

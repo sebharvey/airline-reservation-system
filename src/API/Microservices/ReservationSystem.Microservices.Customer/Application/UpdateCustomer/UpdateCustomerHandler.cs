@@ -61,6 +61,7 @@ public sealed class UpdateCustomerHandler
             passportNumber: command.PassportNumber,
             passportIssueDate: command.PassportIssueDate,
             passportIssuer: command.PassportIssuer,
+            passportExpiryDate: command.PassportExpiryDate,
             knownTravellerNumber: command.KnownTravellerNumber,
             tierCode: command.TierCode,
             identityId: command.IdentityId,
