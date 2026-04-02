@@ -122,10 +122,22 @@ public sealed class ConfirmBasketHandler
                 var (passengers, segments) = ParseBasketDataForTickets(basket.BasketData.Value.GetRawText());
                 if (passengers.Count > 0 && segments.Count > 0)
                 {
+                    var formOfPayment = BuildFormOfPayment(command, paymentId, totalAmount, currency);
+                    var passengersWithPayment = passengers
+                        .Select(p => new TicketPassenger
+                        {
+                            PassengerId = p.PassengerId,
+                            GivenName = p.GivenName,
+                            Surname = p.Surname,
+                            DateOfBirth = p.DateOfBirth,
+                            FormOfPayment = formOfPayment
+                        })
+                        .ToList();
+
                     issuedTickets = await _deliveryServiceClient.IssueTicketsAsync(
                         command.BasketId,
                         confirmedOrder.BookingReference,
-                        passengers,
+                        passengersWithPayment,
                         segments,
                         cancellationToken);
 
@@ -170,6 +182,66 @@ public sealed class ConfirmBasketHandler
             TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
             Currency = confirmedOrder.CurrencyCode,
             BookedAt = DateTime.UtcNow
+        };
+    }
+
+    private static TicketFormOfPayment BuildFormOfPayment(
+        ConfirmBasketCommand command, string paymentId, decimal amount, string currency)
+    {
+        string? maskedPan = null;
+        string? cardType = null;
+        string? expiryMmYy = null;
+
+        if (!string.IsNullOrWhiteSpace(command.CardNumber))
+        {
+            var digits = new string(command.CardNumber.Where(char.IsDigit).ToArray());
+            if (digits.Length >= 10)
+            {
+                maskedPan = digits[..6] + new string('X', digits.Length - 10) + digits[^4..];
+            }
+
+            cardType = digits.FirstOrDefault() switch
+            {
+                '4' => "VI",
+                '5' => "MC",
+                '3' => "AX",
+                '6' => "DC",
+                _ => null
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(command.ExpiryDate))
+        {
+            var parts = command.ExpiryDate.Split('/');
+            if (parts.Length == 2)
+            {
+                var month = parts[0].PadLeft(2, '0');
+                var year = parts[1].Length == 4 ? parts[1][2..] : parts[1].PadLeft(2, '0');
+                expiryMmYy = month + year;
+            }
+            else if (command.ExpiryDate.Length == 4 && command.ExpiryDate.All(char.IsDigit))
+            {
+                expiryMmYy = command.ExpiryDate;
+            }
+        }
+
+        var type = command.PaymentMethod.ToUpperInvariant() switch
+        {
+            "CREDITCARD" or "CC" => "CC",
+            "DEBITCARD" or "DC" => "DC",
+            "CASH" => "CASH",
+            _ => command.PaymentMethod.ToUpperInvariant()
+        };
+
+        return new TicketFormOfPayment
+        {
+            Type = type,
+            CardType = cardType,
+            MaskedPan = maskedPan,
+            ExpiryMmYy = expiryMmYy,
+            ApprovalCode = paymentId,
+            Amount = amount,
+            Currency = currency
         };
     }
 

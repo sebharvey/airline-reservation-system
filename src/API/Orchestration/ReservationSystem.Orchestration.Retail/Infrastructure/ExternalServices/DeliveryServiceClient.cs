@@ -77,6 +77,33 @@ public sealed class TicketPassenger
 
     [JsonPropertyName("dateOfBirth")]
     public string? DateOfBirth { get; init; }
+
+    [JsonPropertyName("formOfPayment")]
+    public TicketFormOfPayment? FormOfPayment { get; init; }
+}
+
+public sealed class TicketFormOfPayment
+{
+    [JsonPropertyName("type")]
+    public string Type { get; init; } = string.Empty;
+
+    [JsonPropertyName("cardType")]
+    public string? CardType { get; init; }
+
+    [JsonPropertyName("maskedPan")]
+    public string? MaskedPan { get; init; }
+
+    [JsonPropertyName("expiryMmYy")]
+    public string? ExpiryMmYy { get; init; }
+
+    [JsonPropertyName("approvalCode")]
+    public string? ApprovalCode { get; init; }
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonPropertyName("currency")]
+    public string Currency { get; init; } = string.Empty;
 }
 
 public sealed class TicketSegment
