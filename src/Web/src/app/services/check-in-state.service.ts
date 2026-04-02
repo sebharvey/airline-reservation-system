@@ -6,6 +6,7 @@ export interface OciTravelDocument {
   type: 'PASSPORT' | 'ID_CARD';
   number: string;
   issuingCountry: string;
+  issueDate: string;
   expiryDate: string;
   nationality: string;
 }

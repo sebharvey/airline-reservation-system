@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CheckInStateService, OciTravelDocument } from '../../../services/check-in-state.service';
+import { RetailApiService } from '../../../services/retail-api.service';
 import { OciOrder, OciFlightSegment } from '../../../models/order.model';
 import { COUNTRIES, Country } from '../../../data/countries';
 
@@ -10,6 +11,7 @@ interface TravelDocumentForm {
   type: 'PASSPORT' | 'ID_CARD';
   number: string;
   issuingCountry: string;
+  issueDate: string;
   expiryDate: string;
   nationality: string;
 }
@@ -51,8 +53,12 @@ export class CheckInDetailsComponent implements OnInit {
     { value: 'ID_CARD', label: 'ID Card' }
   ];
 
+  saving = signal(false);
+  saveError = signal('');
+
   constructor(
     private checkInState: CheckInStateService,
+    private retailApi: RetailApiService,
     private router: Router
   ) {}
 
@@ -69,7 +75,7 @@ export class CheckInDetailsComponent implements OnInit {
       surname: pax.surname,
       passengerType: pax.type,
       selected: true,
-      travelDocument: { type: 'PASSPORT', number: '', issuingCountry: '', expiryDate: '', nationality: '' }
+      travelDocument: { type: 'PASSPORT', number: '', issuingCountry: '', issueDate: '', expiryDate: '', nationality: '' }
     })));
   }
 
@@ -92,13 +98,25 @@ export class CheckInDetailsComponent implements OnInit {
     this.passengerStates.set(states);
   }
 
+  onIssueDateChange(index: number, value: string): void {
+    this.updateDocField(index, 'issueDate', value);
+    if (value) {
+      const issue = new Date(value);
+      const expiry = new Date(issue);
+      expiry.setFullYear(expiry.getFullYear() + 10);
+      this.updateDocField(index, 'expiryDate', expiry.toISOString().substring(0, 10));
+    }
+  }
+
   proceedToSeats(): void {
+    if (this.saving()) return;
     const selected = this.passengerStates().filter(s => s.selected);
     const travelDocs: OciTravelDocument[] = selected.map(s => ({
       passengerId: s.passengerId,
       type: s.travelDocument.type,
       number: s.travelDocument.number,
       issuingCountry: s.travelDocument.issuingCountry,
+      issueDate: s.travelDocument.issueDate,
       expiryDate: s.travelDocument.expiryDate,
       nationality: s.travelDocument.nationality,
     }));
@@ -106,7 +124,21 @@ export class CheckInDetailsComponent implements OnInit {
       selected.map(s => s.passengerId),
       travelDocs
     );
-    this.router.navigate(['/check-in/seats']);
+
+    const order = this.order();
+    if (!order) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    this.retailApi.saveOciPassengerDetails(order.bookingReference, travelDocs).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.router.navigate(['/check-in/seats']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save passenger details. Please try again.');
+      }
+    });
   }
 
   formatDateTime(dt: string): string {

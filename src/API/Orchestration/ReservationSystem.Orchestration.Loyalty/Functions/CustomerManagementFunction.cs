@@ -387,6 +387,38 @@ public sealed class CustomerManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // GET /v1/admin/customers/{loyaltyNumber}/orders
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetCustomerOrders")]
+    [OpenApiOperation(operationId: "AdminGetCustomerOrders", tags: new[] { "Admin Customers" }, Summary = "Get orders linked to a customer loyalty account (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminCustomerOrdersResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetCustomerOrders(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var result = await _customerServiceClient.GetCustomerOrdersAsync(loyaltyNumber, cancellationToken);
+
+        if (result is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(new AdminCustomerOrdersResponse
+        {
+            LoyaltyNumber = result.LoyaltyNumber,
+            Orders = result.Orders.Select(o => new AdminCustomerOrderItem
+            {
+                CustomerOrderId = o.CustomerOrderId,
+                OrderId = o.OrderId,
+                BookingReference = o.BookingReference,
+                CreatedAt = o.CreatedAt,
+            }).ToList()
+        });
+    }
+
+    // -------------------------------------------------------------------------
     // PATCH /v1/admin/customers/{loyaltyNumber}/status
     // -------------------------------------------------------------------------
 
