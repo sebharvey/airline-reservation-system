@@ -159,7 +159,7 @@ One ticket covers one passenger and all of their flight segments. Each segment i
 > **`formOfPayment.type`:** `CC` (credit card) · `DC` (debit card) · `CASH` · `MPD` · `INV`. `cardType`: `VI` (Visa) · `MC` (Mastercard) · `AX` (Amex) · `DC` (Diners). `maskedPan`: first 6 digits + `X` per masked digit + last 4 digits. `approvalCode` holds the payment service reference.
 > **`commission`:** Defaults to `PERCENT / 0.00 / 0.00` for direct channel bookings with no agency commission.
 > **`originalIssue`:** `null` values on initial issuance; populated on reissuance with the voided ticket's number, issue date, location, and fare amount.
-> **`coupons.status`:** `O` (Open) · `A` (Airport control) · `C` (Checked in) · `B` (Boarded) · `F` (Flown) · `R` (Refunded) · `E` (Exchanged) · `V` (Void) · `S` (Suspended). Initial status is `O`.
+> **`coupons.status`:** `O` (Open for use) · `A` (Airport control) · `C` (Checked in) · `B` (Boarded) · `F` (Flown / Used) · `R` (Refunded) · `E` (Exchanged / Reissued) · `V` (Void) · `S` (Suspended) · `L` (Lifted / Used at gate) · `I` (Irregular operations). Initial status is `O`.
 > **`coupons.stopoverIndicator`:** `O` (connection — transit time < 24 h) · `S` (stopover — transit time ≥ 24 h).
 > **`ssrCodes`:** Empty array `[]` when no SSRs are held.
 > **`apisData`:** `null` at booking; populated at check-in for routes requiring Advance Passenger Information. Shape: `{ documentType, documentNumber, issuingCountry, expiryDate, nationality, dateOfBirth, gender, residenceCountry }`.
@@ -170,6 +170,38 @@ One ticket covers one passenger and all of their flight segments. Each segment i
 > **Immutability principle:** Ticket rows are never deleted; voiding sets `IsVoided = 1`. Re-issuance creates a new row with a new `ETicketNumber`; the old row is voided in the same transaction.
 > **Event on creation:** Each new `delivery.Ticket` row triggers a `TicketIssued` event to the Accounting system event bus, carrying the full ticket record for financial accounting.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
+
+## Coupon status
+
+Each flight coupon within `TicketData` carries a **status code** that controls what operations are permitted on it. Status codes are governed by IATA Resolution 722 and interline agreements.
+
+| Status code | Meaning |
+|---|---|
+| `O` | **Open for use** — coupon is valid and available for check-in |
+| `A` | **Airport control** — coupon has been lifted at the gate or check-in desk; DCS has taken control |
+| `C` | **Checked in** — passenger has checked in; set by the Delivery MS when the manifest is updated |
+| `B` | **Boarded** — boarding pass issued |
+| `F` | **Flown / Used** — segment has been operated and coupon consumed |
+| `R` | **Refunded** — coupon has been refunded |
+| `E` | **Exchanged / Reissued** — coupon was used as part of an exchange or reissuance |
+| `V` | **Void** — ticket was voided (typically same day as issuance) |
+| `S` | **Suspended** — coupon placed on hold pending resolution |
+| `L` | **Lifted / Used at gate** — variant of airport control in some PSS implementations |
+| `I` | **Irregular operations** — IROP status in some PSS implementations |
+
+Coupon status transitions follow a strict state machine. In normal operations an `O` coupon advances to `C` at online check-in, then to `A` or `B` at the gate, and finally to `F` once the segment is flown. Reversals and corrections are controlled and auditable via `changeHistory`.
+
+```
+O → C  (checked in — set by Delivery MS on PATCH /v1/manifest/{bookingRef})
+C → B  (boarded — set by Airport API on boarding scan)
+B → F  (flown — set by Airport API on departure)
+O → V  (voided — set on same-day cancellation)
+O → R  (refunded — set on voluntary refund)
+* → E  (exchanged — set on reissuance; prior coupon voided)
+* → S  (suspended — set for IROPS hold)
+```
+
+> **Status is set automatically by the Delivery MS** when a manifest is patched with `checkedIn: true`. The matching coupon (identified by `marketing.flightNumber`, `origin`, and `destination`) is updated from `O` to `C` and a `CouponStatusUpdated` entry is appended to `changeHistory`.
 
 ## Data schema — `delivery.Manifest`
 
