@@ -127,7 +127,12 @@ public sealed class ProfileFunction
             request.City,
             request.StateOrRegion,
             request.PostalCode,
-            request.CountryCode);
+            request.CountryCode,
+            request.PassportNumber,
+            request.PassportIssueDate,
+            request.PassportIssuer,
+            request.PassportExpiryDate,
+            request.KnownTravellerNumber);
 
         bool found;
 
