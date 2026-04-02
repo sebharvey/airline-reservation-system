@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { CheckInStateService, OciTravelDocument } from '../../../services/check-in-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { OciOrder, OciFlightSegment } from '../../../models/order.model';
-import { COUNTRIES, Country } from '../../../data/countries';
+import { COUNTRIES, PRIORITY_COUNTRIES, Country } from '../../../data/countries';
 
 interface TravelDocumentForm {
   type: 'PASSPORT' | 'ID_CARD';
@@ -36,7 +36,8 @@ export class CheckInDetailsComponent implements OnInit {
   order = signal<OciOrder | null>(null);
   passengerStates = signal<PassengerCheckInState[]>([]);
 
-  readonly countries: Country[] = COUNTRIES;
+  readonly priorityCountries: Country[] = PRIORITY_COUNTRIES;
+  readonly otherCountries: Country[] = COUNTRIES.filter(c => !['GBR', 'USA'].includes(c.code));
 
   readonly selectedPassengerIds = computed((): string[] =>
     this.passengerStates()
@@ -47,6 +48,8 @@ export class CheckInDetailsComponent implements OnInit {
   readonly canProceed = computed((): boolean =>
     this.selectedPassengerIds().length > 0
   );
+
+  readonly today = new Date().toISOString().split('T')[0];
 
   readonly documentTypes: { value: string; label: string }[] = [
     { value: 'PASSPORT', label: 'Passport' },
@@ -111,6 +114,26 @@ export class CheckInDetailsComponent implements OnInit {
   proceedToSeats(): void {
     if (this.saving()) return;
     const selected = this.passengerStates().filter(s => s.selected);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (const s of selected) {
+      const doc = s.travelDocument;
+      if (doc.issueDate) {
+        const issueDate = new Date(doc.issueDate);
+        if (issueDate >= today) {
+          this.saveError.set(`Document issue date for ${s.givenName} ${s.surname} must be in the past.`);
+          return;
+        }
+      }
+      if (doc.expiryDate) {
+        const expiryDate = new Date(doc.expiryDate);
+        if (expiryDate <= today) {
+          this.saveError.set(`Document expiry date for ${s.givenName} ${s.surname} must be in the future.`);
+          return;
+        }
+      }
+    }
     const travelDocs: OciTravelDocument[] = selected.map(s => ({
       passengerId: s.passengerId,
       type: s.travelDocument.type,

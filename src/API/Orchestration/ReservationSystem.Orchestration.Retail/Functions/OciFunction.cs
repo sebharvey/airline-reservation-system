@@ -98,6 +98,29 @@ public sealed class OciFunction
         if (body!.Passengers.Count == 0)
             return await req.BadRequestAsync("'passengers' must not be empty.");
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        foreach (var passenger in body.Passengers)
+        {
+            var doc = passenger.TravelDocument;
+            if (doc is null) continue;
+
+            if (!string.IsNullOrEmpty(doc.IssueDate))
+            {
+                if (!DateOnly.TryParse(doc.IssueDate, out var issueDate))
+                    return await req.BadRequestAsync($"'issueDate' is not a valid date for passenger '{passenger.PassengerId}'.");
+                if (issueDate >= today)
+                    return await req.BadRequestAsync($"'issueDate' must be in the past for passenger '{passenger.PassengerId}'.");
+            }
+
+            if (!string.IsNullOrEmpty(doc.ExpiryDate))
+            {
+                if (!DateOnly.TryParse(doc.ExpiryDate, out var expiryDate))
+                    return await req.BadRequestAsync($"'expiryDate' is not a valid date for passenger '{passenger.PassengerId}'.");
+                if (expiryDate <= today)
+                    return await req.BadRequestAsync($"'expiryDate' must be in the future for passenger '{passenger.PassengerId}'.");
+            }
+        }
+
         var command = new OciPassengerDetailsCommand(
             BookingReference: bookingRef.ToUpperInvariant().Trim(),
             Passengers: body.Passengers

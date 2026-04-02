@@ -7,6 +7,11 @@ export interface Country {
   name: string;
 }
 
+export const PRIORITY_COUNTRIES: Country[] = [
+  { code: 'GBR', name: 'United Kingdom' },
+  { code: 'USA', name: 'United States' },
+];
+
 export const COUNTRIES: Country[] = [
   { code: 'AFG', name: 'Afghanistan' },
   { code: 'ALB', name: 'Albania' },

@@ -84,9 +84,16 @@
         (change)="setNationality($any($event.target).value)"
       >
         <option value="" disabled selected>Select your country</option>
-        @for (country of countries; track country.code) {
-          <option [value]="country.code">{{ country.name }}</option>
-        }
+        <optgroup label="Suggested">
+          @for (country of priorityCountries; track country.code) {
+            <option [value]="country.code">{{ country.name }}</option>
+          }
+        </optgroup>
+        <optgroup label="All countries">
+          @for (country of otherCountries; track country.code) {
+            <option [value]="country.code">{{ country.name }}</option>
+          }
+        </optgroup>
       </select>
     </div>
 

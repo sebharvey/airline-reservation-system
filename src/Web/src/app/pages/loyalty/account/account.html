@@ -365,9 +365,16 @@
               (change)="profileNationality.set($any($event.target).value)"
             >
               <option value="" disabled>Select country</option>
-              @for (country of countries; track country.code) {
-                <option [value]="country.code" [selected]="country.code === profileNationality()">{{ country.name }}</option>
-              }
+              <optgroup label="Suggested">
+                @for (country of priorityCountries; track country.code) {
+                  <option [value]="country.code" [selected]="country.code === profileNationality()">{{ country.name }}</option>
+                }
+              </optgroup>
+              <optgroup label="All countries">
+                @for (country of otherCountries; track country.code) {
+                  <option [value]="country.code" [selected]="country.code === profileNationality()">{{ country.name }}</option>
+                }
+              </optgroup>
             </select>
           </div>
 
@@ -378,9 +385,16 @@
               [value]="profileLanguage()"
               (change)="profileLanguage.set($any($event.target).value)"
             >
-              @for (lang of languages; track lang.code) {
-                <option [value]="lang.code" [selected]="lang.code === profileLanguage()">{{ lang.name }}</option>
-              }
+              <optgroup label="Suggested">
+                @for (lang of priorityLanguages; track lang.code) {
+                  <option [value]="lang.code" [selected]="lang.code === profileLanguage()">{{ lang.name }}</option>
+                }
+              </optgroup>
+              <optgroup label="All languages">
+                @for (lang of otherLanguages; track lang.code) {
+                  <option [value]="lang.code" [selected]="lang.code === profileLanguage()">{{ lang.name }}</option>
+                }
+              </optgroup>
             </select>
           </div>
 
@@ -447,9 +461,16 @@
                 (change)="profileCountryCode.set($any($event.target).value)"
               >
                 <option value="">Select country</option>
-                @for (country of countries; track country.code) {
-                  <option [value]="country.code" [selected]="country.code === profileCountryCode()">{{ country.name }}</option>
-                }
+                <optgroup label="Suggested">
+                  @for (country of priorityCountries; track country.code) {
+                    <option [value]="country.code" [selected]="country.code === profileCountryCode()">{{ country.name }}</option>
+                  }
+                </optgroup>
+                <optgroup label="All countries">
+                  @for (country of otherCountries; track country.code) {
+                    <option [value]="country.code" [selected]="country.code === profileCountryCode()">{{ country.name }}</option>
+                  }
+                </optgroup>
               </select>
             </div>
           </div>
@@ -495,9 +516,16 @@
               (change)="profilePassportIssuer.set($any($event.target).value)"
             >
               <option value="">Select country</option>
-              @for (country of countries; track country.code) {
-                <option [value]="country.code" [selected]="country.code === profilePassportIssuer()">{{ country.name }}</option>
-              }
+              <optgroup label="Suggested">
+                @for (country of priorityCountries; track country.code) {
+                  <option [value]="country.code" [selected]="country.code === profilePassportIssuer()">{{ country.name }}</option>
+                }
+              </optgroup>
+              <optgroup label="All countries">
+                @for (country of otherCountries; track country.code) {
+                  <option [value]="country.code" [selected]="country.code === profilePassportIssuer()">{{ country.name }}</option>
+                }
+              </optgroup>
             </select>
           </div>
 

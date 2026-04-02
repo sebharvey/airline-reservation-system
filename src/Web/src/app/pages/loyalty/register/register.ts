@@ -9,6 +9,11 @@ export interface Country {
   name: string;
 }
 
+export const PRIORITY_COUNTRIES: Country[] = [
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'US', name: 'United States' },
+];
+
 export const COUNTRIES: Country[] = [
   { code: 'GB', name: 'United Kingdom' },
   { code: 'US', name: 'United States' },
@@ -62,7 +67,8 @@ export const COUNTRIES: Country[] = [
 export class LoyaltyRegisterComponent {
   private readonly loyaltyApi = inject(LoyaltyApiService);
 
-  readonly countries = COUNTRIES;
+  readonly priorityCountries = PRIORITY_COUNTRIES;
+  readonly otherCountries = COUNTRIES.filter(c => !['GB', 'US'].includes(c.code));
 
   givenName = signal('');
   surname = signal('');
