@@ -69,11 +69,11 @@
     }
 
     <div class="action-buttons">
-      <button type="button" class="btn-primary" (click)="continueToSeats()">
+      <button type="button" class="btn-primary" (click)="continueToPayment()">
         @if (totalBagCost() > 0) {
           Continue &mdash; {{ currency() }} {{ totalBagCost().toFixed(2) }} bags added
         } @else {
-          Continue to Seat Selection
+          Continue to Boarding Pass
         }
       </button>
       <button type="button" class="btn-secondary" (click)="skip()">
@@ -81,6 +81,6 @@
       </button>
     </div>
 
-    <a routerLink="/check-in/details" class="back-link">&#8592; Back to Passenger Details</a>
+    <a routerLink="/check-in/seats" class="back-link">&#8592; Back to Seat Selection</a>
   }
 </div>

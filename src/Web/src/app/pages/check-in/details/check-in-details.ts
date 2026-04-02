@@ -92,7 +92,7 @@ export class CheckInDetailsComponent implements OnInit {
     this.passengerStates.set(states);
   }
 
-  proceedToBags(): void {
+  proceedToSeats(): void {
     const selected = this.passengerStates().filter(s => s.selected);
     const travelDocs: OciTravelDocument[] = selected.map(s => ({
       passengerId: s.passengerId,
@@ -106,7 +106,7 @@ export class CheckInDetailsComponent implements OnInit {
       selected.map(s => s.passengerId),
       travelDocs
     );
-    this.router.navigate(['/check-in/bags']);
+    this.router.navigate(['/check-in/seats']);
   }
 
   formatDateTime(dt: string): string {

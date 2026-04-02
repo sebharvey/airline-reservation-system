@@ -179,9 +179,9 @@ export class CheckInBagsComponent implements OnInit {
     return labels[cabinCode] ?? cabinCode;
   }
 
-  continueToSeats(): void {
+  continueToPayment(): void {
     this.saveBagSelections();
-    this.router.navigate(['/check-in/seats']);
+    this.router.navigate(['/check-in/boarding-pass']);
   }
 
   skip(): void {
