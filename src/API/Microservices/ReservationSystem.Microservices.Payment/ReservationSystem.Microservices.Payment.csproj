@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\ReservationSystem.Shared.Common\ReservationSystem.Shared.Common.csproj" />
+    <ProjectReference Include="..\..\Shared\ReservationSystem.Shared.Business\ReservationSystem.Shared.Business.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
