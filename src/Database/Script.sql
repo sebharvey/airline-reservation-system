@@ -564,15 +564,8 @@ IF OBJECT_ID('[delivery].[Ticket]', 'U') IS NULL
 CREATE TABLE [delivery].[Ticket] (
     TicketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Ticket_Id       DEFAULT NEWID(),
     ETicketNumber    VARCHAR(20)      NOT NULL,
-    InventoryId      UNIQUEIDENTIFIER NOT NULL,
-    FlightNumber     VARCHAR(10)      NOT NULL,
-    DepartureDate    DATE             NOT NULL,
     BookingReference CHAR(6)          NOT NULL,
     PassengerId      VARCHAR(20)      NOT NULL,
-    GivenName        VARCHAR(100)     NOT NULL,
-    Surname          VARCHAR(100)     NOT NULL,
-    CabinCode        CHAR(1)          NOT NULL,
-    FareBasisCode    VARCHAR(20)      NOT NULL,
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided   DEFAULT 0,
     VoidedAt         DATETIME2            NULL,
     TicketData       NVARCHAR(MAX)    NOT NULL,
@@ -581,16 +574,12 @@ CREATE TABLE [delivery].[Ticket] (
     Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version  DEFAULT 1,
     CONSTRAINT PK_Ticket         PRIMARY KEY (TicketId),
     CONSTRAINT UQ_Ticket_ETicket UNIQUE (ETicketNumber),
-    CONSTRAINT CHK_Ticket_Cabin  CHECK (CabinCode IN ('F','J','W','Y')),
     CONSTRAINT CHK_Ticket_Data   CHECK (ISJSON(TicketData) = 1)
 );
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ticket_BookingReference' AND object_id = OBJECT_ID('[delivery].[Ticket]'))
     CREATE INDEX IX_Ticket_BookingReference ON [delivery].[Ticket] (BookingReference);
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Ticket_Flight' AND object_id = OBJECT_ID('[delivery].[Ticket]'))
-    CREATE INDEX IX_Ticket_Flight ON [delivery].[Ticket] (FlightNumber, DepartureDate);
 GO
 
 IF OBJECT_ID('[delivery].[TR_Ticket_UpdatedAt]', 'TR') IS NULL

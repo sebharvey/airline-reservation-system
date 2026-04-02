@@ -25,25 +25,18 @@ Each row represents one issued e-ticket: one passenger on one flight segment. Th
 |---|---|---|---|---|---|
 | TicketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
 | ETicketNumber | VARCHAR(20) | No | | UK | e.g. `932-1234567890`; IATA format, unique per issued ticket |
-| InventoryId | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`; not enforced as DB FK |
-| FlightNumber | VARCHAR(10) | No | | | Denormalised, e.g. `AX003` |
-| DepartureDate | DATE | No | | | Denormalised for query convenience |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
 | PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
-| GivenName | VARCHAR(100) | No | | | Denormalised for document readability |
-| Surname | VARCHAR(100) | No | | | Denormalised for document readability |
-| CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| FareBasisCode | VARCHAR(20) | No | | | Revenue management fare basis code, e.g. `JFLEXGB` |
 | IsVoided | BIT | No | `0` | | Set to `1` on voluntary change, cancellation, or IROPS reissuance |
 | VoidedAt | DATETIME2 | Yes | | | Null until voided |
-| TicketData | NVARCHAR(MAX) | No | | | JSON document containing full ticket detail: SSR codes (as array), APIS data, seat assignment, change history |
+| TicketData | NVARCHAR(MAX) | No | | | JSON document containing full ticket detail: passenger, fare, payment, per-segment coupon detail, SSR codes, APIS data, seat assignment, change history |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
 ### `TicketData` JSON structure
 
-`TicketData` holds the full IATA electronic ticket representation. The document is self-contained: it carries all fare, payment, passenger, and coupon detail needed to reconstruct the complete ticket without additional lookups. Typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) remain the authoritative values for those fields; the JSON may duplicate them for self-containment.
+`TicketData` holds the full IATA electronic ticket representation. The document is self-contained: it carries all fare, payment, passenger, and coupon detail needed to reconstruct the complete ticket without additional lookups. `TicketData` is the authoritative source for passenger name, flight, cabin, and fare basis information. Typed columns on `delivery.Ticket` (`eTicketNumber`, `bookingReference`, `passengerId`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) remain the authoritative values for those fields.
 
 One ticket covers one passenger and all of their flight segments. Each segment is represented as a numbered coupon inside the `coupons` array.
 
@@ -172,11 +165,10 @@ One ticket covers one passenger and all of their flight segments. Each segment i
 > **`apisData`:** `null` at booking; populated at check-in for routes requiring Advance Passenger Information. Shape: `{ documentType, documentNumber, issuingCountry, expiryDate, nationality, dateOfBirth, gender, residenceCountry }`.
 > **`changeHistory`:** Append-only. A new entry is added on every mutation (seat change, reissuance, IROPS rebooking). `actor` identifies the system component that made the change.
 
-> **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`. `IX_Ticket_Flight` on `(FlightNumber, DepartureDate)`.
+> **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`.
 > **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
 > **Immutability principle:** Ticket rows are never deleted; voiding sets `IsVoided = 1`. Re-issuance creates a new row with a new `ETicketNumber`; the old row is voided in the same transaction.
 > **Event on creation:** Each new `delivery.Ticket` row triggers a `TicketIssued` event to the Accounting system event bus, carrying the full ticket record for financial accounting.
-> **Cross-schema integrity:** `InventoryId` references `offer.FlightInventory` but is not declared as a foreign key, as the Delivery and Offer domains are logically separated. Referential integrity is the responsibility of the Retail API orchestration layer.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
 
 ## Data schema — `delivery.Manifest`
