@@ -334,6 +334,28 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/orders/oci/{bookingRef}/passenger-details
+   * Save APIS travel document data for each passenger to the booking.
+   */
+  saveOciPassengerDetails(bookingRef: string, travelDocs: { passengerId: string; type: string; number: string; issuingCountry: string; issueDate: string; expiryDate: string; nationality: string }[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      passengers: travelDocs.map(d => ({
+        passengerId: d.passengerId,
+        travelDocument: {
+          type: d.type,
+          number: d.number,
+          issuingCountry: d.issuingCountry,
+          nationality: d.nationality,
+          issueDate: d.issueDate,
+          expiryDate: d.expiryDate
+        }
+      }))
+    };
+    return this.#http.post<void>(`${base}/api/v1/orders/oci/${encodeURIComponent(bookingRef)}/passenger-details`, body);
+  }
+
+  /**
    * POST /v1/checkin/{bookingRef}
    * Submit check-in and generate boarding cards.
    */

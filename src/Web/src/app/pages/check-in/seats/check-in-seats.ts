@@ -94,9 +94,19 @@ export class CheckInSeatsComponent implements OnInit {
       return;
     }
     this.order.set(order);
+
+    // Skip seat selection entirely if all checked-in passengers already have seats on the order
+    const checkedInIds = this.checkInState.selectedPassengerIds();
     const seg = order.flightSegments[0];
     if (seg) {
-      this.loadSeatmap(seg.inventoryId, seg.flightNumber, seg.cabinCode);
+      const assignedIds = seg.seatAssignments.map(s => s.passengerId);
+      const allSeated = checkedInIds.length > 0 && checkedInIds.every(id => assignedIds.includes(id));
+      if (allSeated) {
+        this.checkInState.setSeatSelections([]);
+        this.router.navigate(['/check-in/bags']);
+        return;
+      }
+      this.loadSeatmap(seg.inventoryId, seg.flightNumber, seg.aircraftType);
     }
   }
 

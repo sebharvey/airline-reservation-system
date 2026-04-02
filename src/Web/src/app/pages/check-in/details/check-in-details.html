@@ -128,14 +128,25 @@
                 </div>
               </div>
 
-              <div class="field">
-                <label>Expiry Date</label>
-                <input
-                  type="date"
-                  [ngModel]="state.travelDocument.expiryDate"
-                  (ngModelChange)="updateDocField(i, 'expiryDate', $event)"
-                  [name]="'expiry-' + state.passengerId"
-                />
+              <div class="field-row">
+                <div class="field">
+                  <label>Issue Date</label>
+                  <input
+                    type="date"
+                    [ngModel]="state.travelDocument.issueDate"
+                    (ngModelChange)="onIssueDateChange(i, $event)"
+                    [name]="'issue-' + state.passengerId"
+                  />
+                </div>
+                <div class="field">
+                  <label>Expiry Date</label>
+                  <input
+                    type="date"
+                    [ngModel]="state.travelDocument.expiryDate"
+                    (ngModelChange)="updateDocField(i, 'expiryDate', $event)"
+                    [name]="'expiry-' + state.passengerId"
+                  />
+                </div>
               </div>
             </div>
           }
@@ -143,15 +154,27 @@
       }
     </div>
 
+    <!-- Save error -->
+    @if (saveError()) {
+      <div class="error-banner">
+        <span>&#9888;</span>
+        {{ saveError() }}
+      </div>
+    }
+
     <!-- Actions -->
     <div class="action-buttons">
       <button
         type="button"
         class="btn-primary"
-        [disabled]="!canProceed()"
+        [disabled]="!canProceed() || saving()"
         (click)="proceedToSeats()"
       >
-        Continue to Seat Selection &#8594;
+        @if (saving()) {
+          <span class="spinner"></span> Saving&hellip;
+        } @else {
+          Continue to Seat Selection &#8594;
+        }
       </button>
     </div>
 

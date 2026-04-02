@@ -183,6 +183,20 @@ public sealed class CustomerServiceClient
         return await response.Content.ReadFromJsonAsync<TransactionsDto>(JsonOptions, cancellationToken);
     }
 
+    public async Task<CustomerOrdersDto?> GetCustomerOrdersAsync(
+        string loyaltyNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/api/v1/customers/{loyaltyNumber}/orders", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CustomerOrdersDto>(JsonOptions, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<CustomerDto>> SearchCustomersAsync(
         string? query = null,
         CancellationToken cancellationToken = default)
