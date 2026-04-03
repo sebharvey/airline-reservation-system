@@ -11,82 +11,74 @@ sequenceDiagram
 
     actor Traveller
     participant Web as Web (Angular)
-    participant OperationsApi as Operations Api
+    participant RetailApi as Retail API
     participant OrderMS as Order [MS]
     participant DeliveryMS as Delivery [MS]
     participant CustomerMS as Customer [MS]
 
-    Traveller ->> Web: Opens online check in journey <br /> Enters lead PAX first name, last name and <br /> departure airport code (e.g. LHR)
- 
-    Note over Traveller, CustomerMS: Passport details
+    Traveller ->> Web: Opens online check-in journey <br /> Enters booking reference, given name and surname
 
-    Web ->> OperationsApi: POST /v1/oci/retrieve <br /> booking referece, lead PAX first name, last name, <br /> departure airport code (e.g. LHR)
-    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead PAX first name, last name <br /> [Existing endpoint]
-    OrderMS ->> OrderMS: Look up order from order.Order
-    OrderMS -->> OperationsApi: Array of PAX on booking and ticket numbers
-    
+    Note over Traveller, CustomerMS: Retrieve booking
+
+    Web ->> RetailApi: POST /v1/checkin/retrieve <br /> bookingReference, givenName, surname
+    RetailApi ->> OrderMS: POST /v1/orders/oci/retrieve <br /> bookingReference, surname
+    OrderMS ->> OrderMS: Look up order from order.Order <br /> Validate surname against a PAX on the order
+    OrderMS -->> RetailApi: Order details including PAX and ticket numbers
+
     opt IsLoggedIn
 
-        OperationsApi ->> CustomerMS: GET /v1/customers/{loyaltyNumber}
-        CustomerMS -->> OperationsApi: Customer profile data
+        RetailApi ->> CustomerMS: GET /v1/customers/{loyaltyNumber}
+        CustomerMS -->> RetailApi: Customer profile data
 
-        OperationsApi ->> OperationsApi: If lead PAX loyalty number matches profile <br /> Update PAX details array with passport <br /> information to pre-fill on the check in form
+        RetailApi ->> RetailApi: If lead PAX loyalty number matches profile <br /> Pre-fill passport information on the check-in form
 
     end
-    
-    OperationsApi -->> Web: Return PAX details (and if appended, passport information)<br /> array on booking and ticket numbers
-    Web ->> Web: Display PAX details (pre-fill passport details if suppled)
-    
-    Traveller ->> Web: Update passport information per PAX
 
-    Web ->> OperationsApi: POST /v1/oci/pax <br /> Booking reference and <br />array of tickets for each PAX details with passport info
-    OperationsApi ->> OperationsApi: Validate passport issue and expiry date
-    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, first name, last name <br /> [Existing endpoint]
-    OrderMS -->> OperationsApi: Order details
-    OperationsApi ->> OperationsApi: Update travel docs on order
-    OperationsApi ->> OrderMS: POST /v1/orders <br /> Save order
-    OrderMS -->> OperationsApi: Updated order
+    RetailApi -->> Web: Order details with checkInEligible flag <br /> and per-PAX checkInStatus; passport pre-filled if logged in
+    Web ->> Web: Display PAX list (pre-fill passport details if supplied)
 
-    OperationsApi -->> Web: Success / failure
+    Traveller ->> Web: Reviews and completes passport/travel document per PAX
 
     Note over Traveller, CustomerMS: Seat selection
 
-    Traveller ->> Web: Clicks to continue to seat selection
+    Traveller ->> Web: Selects seats
 
-    Web ->> OperationsApi: POST /v1/oci/seats <br /> Booking referece, departure airport code
-    Note over OperationsApi: Not implemented at this time
-    OperationsApi -->> Web: Return Success 
+    Web ->> RetailApi: PATCH /v1/checkin/{bookingRef}/seats <br /> seatSelections array (seatOfferId, passengerRef, inventoryId)
+    RetailApi -->> Web: { "bookingReference": "AB1234", "updated": true }
 
     Note over Traveller, CustomerMS: Baggage selection
 
     Traveller ->> Web: Clicks to continue to baggage selection
 
-    Web ->> OperationsApi: POST /v1/oci/bags <br /> Booking referece, departure airport code
-    Note over OperationsApi: Not implemented at this time
-    OperationsApi -->> Web: Return Success 
- 
+    Web ->> RetailApi: POST /v1/checkin/{bookingRef}/bags <br /> Booking reference, departure airport code
+    Note over RetailApi: Not implemented at this time
+    RetailApi -->> Web: Return Success
+
     Note over Traveller, CustomerMS: Hazardous materials confirmation
-    
-    Traveller ->> Web: Clicks to continue to hazardous materials selection
+
+    Traveller ->> Web: Clicks to continue to hazardous materials confirmation
     Web ->> Web: Display hazardous materials page
 
-    Traveller ->> Web: Clicks to continue to submit check in information
+    Traveller ->> Web: Confirms and submits check-in
 
-    Web ->> OperationsApi: POST /v1/oci/pax <br /> Booking reference and <br />array of tickets for each PAX details with passport info
-    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead pax first name, last name <br /> [Existing endpoint]
-    OrderMS -->> OperationsApi: Order details
+    Note over Traveller, CustomerMS: Submit check-in and generate boarding cards
 
-    OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
-    DeliveryMS ->> DeliveryMS: Update coupon status in ticket in DB (delivery.Ticket) on each ticket being checked in (status = C)
-    DeliveryMS -->> OperationsApi: Success / failure
+    Web ->> RetailApi: POST /v1/checkin/{bookingRef} <br /> passengers array with passengerId and travelDocument per PAX
+    RetailApi ->> OrderMS: POST /v1/orders/{bookingRef}/checkin <br /> checkins array with passengerId, travelDocument, segmentIds
+    OrderMS ->> OrderMS: Write APIS data to OrderData <br /> Update passenger check-in status
+    OrderMS -->> RetailApi: { "bookingReference": "AB1234", "checkedInPassengers": 1 }
 
-    Note over Traveller, CustomerMS: Boarding pass generation
+    RetailApi ->> DeliveryMS: PATCH /v1/manifest/{bookingRef} <br /> updates array: inventoryId, passengerId, checkedIn=true, checkedInAt
+    DeliveryMS ->> DeliveryMS: Set CheckedIn = 1, stamp CheckedInAt <br /> on delivery.Manifest rows
+    DeliveryMS -->> RetailApi: { "updated": 1 }
 
-    OperationsApi ->> DeliveryMS: POST /v1/oci/boarding-docs <br /> Ticket numbers and departure airport code
-    DeliveryMS ->> DeliveryMS: Retrieve ticket from DB (delivery.Ticket) <br /> and filter to the segments checked in for the airport code supplied <br /> and generate the BCBP string.
-    DeliveryMS -->> OperationsApi: Array of boarding cards 
+    Note over Traveller, CustomerMS: Boarding card generation
 
-    OperationsApi -->> Web: Array of boarding cards with BCBP string.
+    RetailApi ->> DeliveryMS: POST /v1/boarding-cards <br /> bookingReference, passengers with passengerId and inventoryIds
+    DeliveryMS ->> DeliveryMS: Read delivery.Manifest rows for checked-in PAX <br /> Assemble IATA Resolution 792 BCBP string per segment
+    DeliveryMS -->> RetailApi: boardingCards array with bcbpString per PAX per flight
+
+    RetailApi -->> Web: boardingCards array with BCBP strings
 
     Web ->> Web: Render boarding cards
 ```
@@ -95,34 +87,276 @@ sequenceDiagram
 
 The following APIs and microservices are involved in the online check-in flow.
 
-### Operations API
+### Retail API
 
-| Method | Path | Description | Request example | Response example |
-|--------|------|-------------|-----------------|------------------|
-| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile | | |
-| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order | | |
-| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) | | |
-| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) | | |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/checkin/retrieve` | Retrieve booking for check-in by booking reference and lead PAX name; validates the 24-hour OLCI window; optionally pre-fills passport data from loyalty profile |
+| `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
+| `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers: record APIS data, update manifest, and generate boarding cards |
+| `POST` | `/v1/checkin/{bookingRef}/bags` | Submit baggage selection for the booking (not implemented) |
+
+#### POST /v1/checkin/retrieve
+
+```json
+// Request
+{
+  "bookingReference": "AB1234",
+  "givenName": "Alex",
+  "surname": "Taylor"
+}
+```
+
+```json
+// Response 200 OK — order detail plus check-in eligibility
+{
+  "checkInEligible": true,
+  "passengers": [
+    {
+      "passengerId": "PAX-1",
+      "checkInStatus": "NotCheckedIn"
+    }
+  ],
+  "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "bookingReference": "AB1234",
+  "orderStatus": "Confirmed",
+  "orderData": { }
+}
+```
+
+#### PATCH /v1/checkin/{bookingRef}/seats
+
+```json
+// Request
+{
+  "seatSelections": [
+    {
+      "seatOfferId": "so-3fa85f64-5A-v1",
+      "passengerRef": "PAX-1",
+      "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    }
+  ]
+}
+```
+
+```json
+// Response 200 OK
+{
+  "bookingReference": "AB1234",
+  "updated": true
+}
+```
+
+#### POST /v1/checkin/{bookingRef}
+
+```json
+// Request
+{
+  "passengers": [
+    {
+      "passengerId": "PAX-1",
+      "travelDocument": {
+        "type": "PASSPORT",
+        "number": "PA1234567",
+        "issuingCountry": "GBR",
+        "expiryDate": "2030-01-01",
+        "nationality": "GBR",
+        "dateOfBirth": "1985-03-12",
+        "gender": "Male",
+        "residenceCountry": "GBR"
+      }
+    }
+  ]
+}
+```
+
+```json
+// Response 200 OK
+{
+  "bookingReference": "AB1234",
+  "boardingCards": [
+    {
+      "passengerId": "PAX-1",
+      "flightNumber": "AX001",
+      "departureDate": "2026-08-15",
+      "seatNumber": "1A",
+      "cabinCode": "J",
+      "sequenceNumber": "0001",
+      "bcbpString": "M1TAYLOR/ALEX        EAB1234 LHRJFKAX 0001 228J001A0001 156>518 W6042 AX 2A00000012345678 JAX7KLP2NZR901A",
+      "passengerName": "TAYLOR/ALEX",
+      "origin": "LHR",
+      "destination": "JFK",
+      "eTicketNumber": "932-1234567890"
+    }
+  ]
+}
+```
+
+---
 
 ### Order microservice
 
-| Method | Path | Description | Request example | Response example |
-|--------|------|-------------|-----------------|------------------|
-| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data | | |
-| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record | | |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/orders/oci/retrieve` | Retrieve an existing order by booking reference and surname for the OLCI flow; validates surname against a PAX on the order |
+| `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS travel document data for each passenger; writes APIS fields into `OrderData` |
+
+#### POST /v1/orders/oci/retrieve
+
+```json
+// Request
+{
+  "bookingReference": "AB1234",
+  "surname": "Taylor"
+}
+```
+
+```json
+// Response 200 OK
+{
+  "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "bookingReference": "AB1234",
+  "orderStatus": "Confirmed",
+  "channelCode": "WEB",
+  "currencyCode": "GBP",
+  "totalAmount": 2950.00,
+  "version": 3,
+  "createdAt": "2026-08-01T10:00:00Z",
+  "updatedAt": "2026-08-01T10:05:00Z",
+  "orderData": { }
+}
+```
+
+#### POST /v1/orders/{bookingRef}/checkin
+
+```json
+// Request
+{
+  "checkins": [
+    {
+      "passengerId": "PAX-1",
+      "travelDocument": {
+        "type": "PASSPORT",
+        "number": "PA1234567",
+        "issuingCountry": "GBR",
+        "expiryDate": "2030-01-01",
+        "nationality": "GBR",
+        "dateOfBirth": "1985-03-12",
+        "gender": "Male",
+        "residenceCountry": "GBR"
+      },
+      "segmentIds": ["SEG-1"]
+    }
+  ]
+}
+```
+
+```json
+// Response 200 OK
+{
+  "bookingReference": "AB1234",
+  "checkedInPassengers": 1
+}
+```
+
+---
 
 ### Customer microservice
 
-| Method | Path | Description | Request example | Response example |
-|--------|------|-------------|-----------------|------------------|
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in | | |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in |
+
+#### GET /v1/customers/{loyaltyNumber}
+
+```json
+// Response 200 OK
+{
+  "customerId": "c1a2b3d4-e5f6-7890-abcd-ef1234567890",
+  "loyaltyNumber": "AX12345678",
+  "givenName": "Alex",
+  "surname": "Taylor",
+  "dateOfBirth": "1985-03-12",
+  "nationality": "GBR",
+  "passportNumber": "PA1234567",
+  "passportIssueDate": "2019-06-01",
+  "passportIssuer": "GBR",
+  "passportExpiryDate": "2030-01-01",
+  "tierCode": "Silver",
+  "pointsBalance": 12500,
+  "isActive": true
+}
+```
+
+---
 
 ### Delivery microservice
 
-| Method | Path | Description | Request example | Response example |
-|--------|------|-------------|-----------------|------------------|
-| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` | | |
-| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents (with BCBP) for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | | |
+| Method | Path | Description |
+|--------|------|-------------|
+| `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; sets `CheckedIn = 1` and stamps `CheckedInAt` on each passenger's `delivery.Manifest` row |
+| `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings for all checked-in passengers; assembles the IATA Resolution 792 string from `delivery.Manifest` data |
+
+#### PATCH /v1/manifest/{bookingRef}
+
+```json
+// Request
+{
+  "updates": [
+    {
+      "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "passengerId": "PAX-1",
+      "checkedIn": true,
+      "checkedInAt": "2026-08-14T09:30:00Z",
+      "ssrCodes": ["VGML"],
+      "version": 1
+    }
+  ]
+}
+```
+
+```json
+// Response 200 OK
+{
+  "updated": 1
+}
+```
+
+#### POST /v1/boarding-cards
+
+```json
+// Request
+{
+  "bookingReference": "AB1234",
+  "passengers": [
+    {
+      "passengerId": "PAX-1",
+      "inventoryIds": ["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
+    }
+  ]
+}
+```
+
+```json
+// Response 201 Created
+{
+  "boardingCards": [
+    {
+      "passengerId": "PAX-1",
+      "flightNumber": "AX001",
+      "departureDate": "2026-08-15",
+      "seatNumber": "1A",
+      "cabinCode": "J",
+      "sequenceNumber": "0001",
+      "bcbpString": "M1TAYLOR/ALEX        EAB1234 LHRJFKAX 0001 228J001A0001 156>518 W6042 AX 2A00000012345678 JAX7KLP2NZR901A",
+      "passengerName": "TAYLOR/ALEX",
+      "origin": "LHR",
+      "destination": "JFK",
+      "eTicketNumber": "932-1234567890"
+    }
+  ]
+}
+```
 
 ## Boarding pass barcode string
 
