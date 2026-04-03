@@ -97,205 +97,38 @@ The following APIs and microservices are involved in the online check-in flow.
 
 ### Operations API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile |
-| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order |
-| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) |
-| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) |
-
-#### POST /v1/oci/retrieve
-
-```json
-// Request
-{
-  "bookingReference": "AB1234",
-  "firstName": "Alex",
-  "lastName": "Taylor",
-  "departureAirport": "LHR"
-}
-```
-
-```json
-// Response 200 OK
-{
-  "bookingReference": "AB1234",
-  "checkInEligible": true,
-  "passengers": [
-    {
-      "passengerId": "PAX-1",
-      "ticketNumber": "932-1234567890",
-      "givenName": "Alex",
-      "surname": "Taylor",
-      "passengerTypeCode": "ADT",
-      "travelDocument": null
-    }
-  ]
-}
-```
-
-#### POST /v1/oci/pax
-
-```json
-// Request
-{
-  "bookingReference": "AB1234",
-  "passengers": [
-    {
-      "ticketNumber": "932-1234567890",
-      "travelDocument": {
-        "type": "PASSPORT",
-        "number": "PA1234567",
-        "issuingCountry": "GBR",
-        "nationality": "GBR",
-        "issueDate": "2019-06-01",
-        "expiryDate": "2030-01-01"
-      }
-    }
-  ]
-}
-```
-
-```json
-// Response 200 OK
-{
-  "bookingReference": "AB1234",
-  "success": true
-}
-```
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile | `{`<br>`  "bookingReference": "AB1234",`<br>`  "firstName": "Alex",`<br>`  "lastName": "Taylor",`<br>`  "departureAirport": "LHR"`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "checkInEligible": true,`<br>`  "passengers": [{`<br>`    "passengerId": "PAX-1",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "givenName": "Alex",`<br>`    "surname": "Taylor",`<br>`    "passengerTypeCode": "ADT",`<br>`    "travelDocument": null`<br>`  }]`<br>`}` |
+| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order | `{`<br>`  "bookingReference": "AB1234",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }]`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "success": true`<br>`}` |
+| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) | — | — |
+| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) | — | — |
 
 ---
 
 ### Order microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data |
-| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record |
-
-#### POST /v1/orders/retrieve
-
-```json
-// Request
-{
-  "bookingReference": "AB1234",
-  "surname": "Taylor"
-}
-```
-
-```json
-// Response 200 OK
-{
-  "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "bookingReference": "AB1234",
-  "orderStatus": "Confirmed",
-  "channelCode": "WEB",
-  "currencyCode": "GBP",
-  "totalAmount": 2950.00,
-  "version": 3,
-  "createdAt": "2026-08-01T10:00:00Z",
-  "updatedAt": "2026-08-01T10:05:00Z",
-  "orderData": { }
-}
-```
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data | `{`<br>`  "bookingReference": "AB1234",`<br>`  "surname": "Taylor"`<br>`}` | `{`<br>`  "orderId": "a1b2c3d4-...",`<br>`  "bookingReference": "AB1234",`<br>`  "orderStatus": "Confirmed",`<br>`  "channelCode": "WEB",`<br>`  "currencyCode": "GBP",`<br>`  "totalAmount": 2950.00,`<br>`  "version": 3,`<br>`  "orderData": { }`<br>`}` |
+| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record | Full order object with updated `orderData` | `{`<br>`  "orderId": "a1b2c3d4-...",`<br>`  "bookingReference": "AB1234",`<br>`  "version": 4`<br>`}` |
 
 ---
 
 ### Customer microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in |
-
-#### GET /v1/customers/{loyaltyNumber}
-
-```json
-// Response 200 OK
-{
-  "customerId": "c1a2b3d4-e5f6-7890-abcd-ef1234567890",
-  "loyaltyNumber": "AX12345678",
-  "givenName": "Alex",
-  "surname": "Taylor",
-  "dateOfBirth": "1985-03-12",
-  "nationality": "GBR",
-  "passportNumber": "PA1234567",
-  "passportIssueDate": "2019-06-01",
-  "passportIssuer": "GBR",
-  "passportExpiryDate": "2030-01-01",
-  "tierCode": "Silver",
-  "pointsBalance": 12500,
-  "isActive": true
-}
-```
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in | — | `{`<br>`  "customerId": "c1a2b3d4-...",`<br>`  "loyaltyNumber": "AX12345678",`<br>`  "givenName": "Alex",`<br>`  "surname": "Taylor",`<br>`  "dateOfBirth": "1985-03-12",`<br>`  "nationality": "GBR",`<br>`  "passportNumber": "PA1234567",`<br>`  "passportIssueDate": "2019-06-01",`<br>`  "passportIssuer": "GBR",`<br>`  "passportExpiryDate": "2030-01-01",`<br>`  "tierCode": "Silver",`<br>`  "pointsBalance": 12500,`<br>`  "isActive": true`<br>`}` |
 
 ---
 
 ### Delivery microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` |
-| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents (with BCBP) for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments |
-
-#### POST /v1/oci/checkin
-
-```json
-// Request
-{
-  "departureAirport": "LHR",
-  "tickets": [
-    {
-      "ticketNumber": "932-1234567890",
-      "passengerId": "PAX-1",
-      "givenName": "Alex",
-      "surname": "Taylor"
-    }
-  ]
-}
-```
-
-```json
-// Response 200 OK
-{
-  "checkedIn": 1,
-  "tickets": [
-    {
-      "ticketNumber": "932-1234567890",
-      "status": "C"
-    }
-  ]
-}
-```
-
-#### POST /v1/oci/boarding-docs
-
-```json
-// Request
-{
-  "departureAirport": "LHR",
-  "ticketNumbers": ["932-1234567890"]
-}
-```
-
-```json
-// Response 200 OK
-{
-  "boardingCards": [
-    {
-      "ticketNumber": "932-1234567890",
-      "passengerId": "PAX-1",
-      "flightNumber": "AX003",
-      "departureDate": "2026-08-15",
-      "seatNumber": "1A",
-      "cabinCode": "J",
-      "sequenceNumber": "0001",
-      "origin": "LHR",
-      "destination": "JFK",
-      "bcbpString": "M1TAYLOR/ALEX        EAB1234 LHRJFKAX 0003 228J001A0001 156>518 W6042 AX 2A00000012345678 JAX7KLP2NZR901A"
-    }
-  ]
-}
-```
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` | `{`<br>`  "departureAirport": "LHR",`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "givenName": "Alex",`<br>`    "surname": "Taylor"`<br>`  }]`<br>`}` | `{`<br>`  "checkedIn": 1,`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "C"`<br>`  }]`<br>`}` |
+| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents (with BCBP) for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | `{`<br>`  "departureAirport": "LHR",`<br>`  "ticketNumbers": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` | `{`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
 
 ## Boarding pass barcode string
 
