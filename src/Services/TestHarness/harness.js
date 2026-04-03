@@ -6,7 +6,7 @@
 
     const CONFIGS = [
         { value: 'bookflow',          label: 'Bookflow (Retail API)' },
-        { value: 'online-check-in',   label: 'Online Check-In' },
+        { value: 'oci-1-pax-outbound', label: 'OCI - 1 PAX Outbound' },
         { value: 'payment',           label: 'Payment' },
         { value: 'user',              label: 'User' },
         { value: 'loyalty',           label: 'Loyalty' },
