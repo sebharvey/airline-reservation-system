@@ -21,8 +21,7 @@ public sealed record OciPaxCommand(
 
 public sealed record OciPaxResult(
     string BookingReference,
-    bool Success,
-    IReadOnlyList<OciBoardingCard> BoardingCards);
+    bool Success);
 
 public sealed class OciPaxHandler
 {
@@ -110,25 +109,20 @@ public sealed class OciPaxHandler
         }
 
         // Perform check-in with Delivery MS
-        var boardingCards = new List<OciBoardingCard>();
         if (checkInTickets.Count > 0 && !string.IsNullOrWhiteSpace(command.DepartureAirport))
         {
             try
             {
                 await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct);
-
-                var ticketNumbers = checkInTickets.Select(t => t.TicketNumber).ToList();
-                var boardingDocsResult = await _deliveryServiceClient.GetBoardingDocsAsync(command.DepartureAirport, ticketNumbers, ct);
-                boardingCards.AddRange(boardingDocsResult.BoardingCards);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "OCI check-in or boarding-docs failed for {BookingReference}", command.BookingReference);
-                // Non-fatal: travel docs were saved; return success without boarding cards
+                _logger.LogWarning(ex, "OCI check-in failed for {BookingReference}", command.BookingReference);
+                // Non-fatal: travel docs were saved; return success regardless
             }
         }
 
-        return new OciPaxResult(command.BookingReference, true, boardingCards);
+        return new OciPaxResult(command.BookingReference, true);
     }
 
     private static Dictionary<string, string> BuildTicketToPaxMap(JsonElement? orderData)

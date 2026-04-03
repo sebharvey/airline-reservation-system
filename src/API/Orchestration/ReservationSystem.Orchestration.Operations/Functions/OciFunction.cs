@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Text.Json;
@@ -19,6 +20,7 @@ public sealed class OciFunction
 {
     private readonly OciRetrieveHandler _retrieveHandler;
     private readonly OciPaxHandler _paxHandler;
+    private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<OciFunction> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -30,10 +32,12 @@ public sealed class OciFunction
     public OciFunction(
         OciRetrieveHandler retrieveHandler,
         OciPaxHandler paxHandler,
+        DeliveryServiceClient deliveryServiceClient,
         ILogger<OciFunction> logger)
     {
         _retrieveHandler = retrieveHandler;
         _paxHandler = paxHandler;
+        _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
 
@@ -113,7 +117,7 @@ public sealed class OciFunction
 
     [Function("OciPax")]
     [OpenApiOperation(operationId: "OciPax", tags: new[] { "OCI" },
-        Summary = "Submit passport and travel document details for each PAX; completes check-in on final submission")]
+        Summary = "Submit or update passport details for each PAX and perform check-in")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
         Description = "{ bookingReference, departureAirport, passengers: [{ ticketNumber, travelDocument }] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
@@ -152,7 +156,7 @@ public sealed class OciFunction
             var issueDate = tdEl.TryGetProperty("issueDate", out var idEl) ? idEl.GetString() ?? "" : "";
             var expiryDate = tdEl.TryGetProperty("expiryDate", out var edEl) ? edEl.GetString() ?? "" : "";
 
-            // Validate passport dates
+            // Validate passport expiry
             if (DateOnly.TryParse(expiryDate, out var expiry) && expiry < DateOnly.FromDateTime(DateTime.UtcNow))
                 return await req.BadRequestAsync($"Passport for ticket {ticketNumber} has expired ({expiryDate}).");
 
@@ -178,22 +182,7 @@ public sealed class OciFunction
             return await req.OkJsonAsync(new
             {
                 bookingReference = result.BookingReference,
-                success = result.Success,
-                boardingCards = result.BoardingCards.Select(c => new
-                {
-                    ticketNumber = c.TicketNumber,
-                    passengerId = c.PassengerId,
-                    givenName = c.GivenName,
-                    surname = c.Surname,
-                    flightNumber = c.FlightNumber,
-                    departureDate = c.DepartureDate,
-                    seatNumber = c.SeatNumber,
-                    cabinCode = c.CabinCode,
-                    sequenceNumber = c.SequenceNumber,
-                    origin = c.Origin,
-                    destination = c.Destination,
-                    bcbpString = c.BcbpString
-                })
+                success = result.Success
             });
         }
         catch (Exception ex)
@@ -253,5 +242,70 @@ public sealed class OciFunction
 
         // Baggage selection is not implemented at this time — return success
         return await req.OkJsonAsync(new { bookingReference = bookingReference.ToUpperInvariant().Trim(), success = true });
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/oci/boarding-docs
+    // -------------------------------------------------------------------------
+
+    [Function("OciBoardingDocs")]
+    [OpenApiOperation(operationId: "OciBoardingDocs", tags: new[] { "OCI" },
+        Summary = "Generate boarding documents for checked-in tickets at a departure airport")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
+        Description = "{ departureAirport, ticketNumbers: [\"932-...\"] }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> OciBoardingDocs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/boarding-docs")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, JsonOptions, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("departureAirport", out var airportEl) || string.IsNullOrWhiteSpace(airportEl.GetString()))
+            return await req.BadRequestAsync("'departureAirport' is required.");
+
+        if (!body.TryGetProperty("ticketNumbers", out var ticketsEl) || ticketsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'ticketNumbers' array is required.");
+
+        var departureAirport = airportEl.GetString()!.ToUpperInvariant().Trim();
+        var ticketNumbers = ticketsEl.EnumerateArray()
+            .Select(t => t.GetString())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t!)
+            .ToList();
+
+        if (ticketNumbers.Count == 0)
+            return await req.BadRequestAsync("At least one ticket number is required.");
+
+        try
+        {
+            var result = await _deliveryServiceClient.GetBoardingDocsAsync(departureAirport, ticketNumbers, ct);
+
+            return await req.OkJsonAsync(new
+            {
+                boardingCards = result.BoardingCards.Select(c => new
+                {
+                    ticketNumber = c.TicketNumber,
+                    passengerId = c.PassengerId,
+                    givenName = c.GivenName,
+                    surname = c.Surname,
+                    flightNumber = c.FlightNumber,
+                    departureDate = c.DepartureDate,
+                    seatNumber = c.SeatNumber,
+                    cabinCode = c.CabinCode,
+                    sequenceNumber = c.SequenceNumber,
+                    origin = c.Origin,
+                    destination = c.Destination,
+                    bcbpString = c.BcbpString
+                })
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OCI boarding-docs failed for departure airport {DepartureAirport}", departureAirport);
+            return await req.InternalServerErrorAsync();
+        }
     }
 }
