@@ -30,6 +30,7 @@
 - [Payment Microservice](#payment-microservice--full-api-spec)
 - [Delivery Microservice](#delivery-microservice--full-api-spec)
   - [Tickets](#tickets)
+  - [Manifest](#manifest)
   - [Documents](#documents)
   - [Boarding Cards](#boarding-cards)
 - [Ancillary Microservice](#ancillary-microservice--full-api-spec)
@@ -291,7 +292,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 
 ## Delivery Microservice — [Full API Spec](api-specs/delivery-microservice.md)
 
-The Delivery microservice manages three distinct record types: **Tickets** (financial/accounting documents — the airline's equivalent of an e-ticket or EMD), and **Documents** (ancillary EMD-equivalent records for post-sale purchases such as seats and bags).
+The Delivery microservice manages three distinct record types: **Tickets** (financial/accounting documents — the airline's equivalent of an e-ticket or EMD), **Manifest** (the operational passenger manifest used by ground handling and crew), and **Documents** (ancillary EMD-equivalent records for post-sale purchases such as seats and bags).
 
 ### Tickets
 
@@ -300,6 +301,17 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 | `POST` | `/v1/tickets` | Issue e-tickets (`delivery.Ticket` records) for all passengers and flight segments in a basket; each ticket carries the full fare snapshot and triggers a `TicketIssued` accounting event |
 | `PATCH` | `/v1/tickets/{eTicketNumber}/void` | Void an issued e-ticket (used on flight change, cancellation, or IROPS); triggers a `TicketVoided` accounting event |
 | `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change; voids the original ticket and issues a replacement |
+
+### Manifest
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/manifest` | Write operational manifest entries (`delivery.Manifest` records) at booking confirmation or after rebooking |
+| `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
+| `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; used to record check-in status (OLCI) and to update SSR codes following a self-serve SSR change |
+| `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Disruption API for delays) |
+| `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
+| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking and by DCS for check-in validation) |
 
 ### Documents
 
