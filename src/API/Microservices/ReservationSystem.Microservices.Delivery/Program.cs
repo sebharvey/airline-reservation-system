@@ -51,7 +51,6 @@ var host = new HostBuilder()
         });
         services.AddHttpClient();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
-        services.AddScoped<IManifestRepository, EfManifestRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────

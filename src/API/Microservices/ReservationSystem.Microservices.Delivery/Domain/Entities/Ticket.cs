@@ -2,6 +2,16 @@ using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Microservices.Delivery.Domain.Entities;
 
+/// <summary>Snapshot of a single coupon read from TicketData JSON.</summary>
+public sealed record CouponInfo(
+    string FlightNumber,
+    string Origin,
+    string Destination,
+    string DepartureDate,
+    string ClassOfService,
+    string? SeatNumber,
+    string Status);
+
 /// <summary>
 /// Core domain entity representing an electronic ticket issued for one passenger
 /// on one flight segment. Maps to [delivery].[Ticket].
@@ -71,6 +81,103 @@ public sealed class Ticket
         IsVoided = true;
         VoidedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets status to <paramref name="newStatus"/> on every coupon whose origin matches
+    /// <paramref name="departureAirport"/> and that is not already at that status.
+    /// Returns the number of coupons updated.
+    /// </summary>
+    public int CheckInCouponsForOrigin(string departureAirport, string actor)
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        if (root is null) return 0;
+
+        var coupons = root["coupons"]?.AsArray();
+        if (coupons is null) return 0;
+
+        var history = root["changeHistory"]?.AsArray() ?? new JsonArray();
+        root["changeHistory"] = history;
+
+        var updatedCount = 0;
+        foreach (var node in coupons)
+        {
+            if (node is not JsonObject coupon) continue;
+
+            var origin = coupon["origin"]?.GetValue<string>() ?? "";
+            var status = coupon["status"]?.GetValue<string>() ?? "";
+
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(status, "C", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var flightNumber = coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "";
+            var destination = coupon["destination"]?.GetValue<string>() ?? "";
+
+            coupon["status"] = "C";
+
+            history.Add(new JsonObject
+            {
+                ["eventType"] = "CouponStatusUpdated",
+                ["occurredAt"] = DateTime.UtcNow.ToString("o"),
+                ["actor"] = actor,
+                ["detail"] = $"Coupon status set to C for {flightNumber} {origin}-{destination}"
+            });
+
+            updatedCount++;
+        }
+
+        if (updatedCount > 0)
+        {
+            TicketData = root.ToJsonString();
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        return updatedCount;
+    }
+
+    /// <summary>
+    /// Returns all coupons in <see cref="TicketData"/> that are checked-in (status "C")
+    /// and depart from <paramref name="departureAirport"/>.
+    /// </summary>
+    public IReadOnlyList<CouponInfo> GetCheckedInCouponsForOrigin(string departureAirport)
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        if (root is null) return [];
+
+        var coupons = root["coupons"]?.AsArray();
+        if (coupons is null) return [];
+
+        var result = new List<CouponInfo>();
+        foreach (var node in coupons)
+        {
+            if (node is not JsonObject coupon) continue;
+
+            var origin = coupon["origin"]?.GetValue<string>() ?? "";
+            var status = coupon["status"]?.GetValue<string>() ?? "";
+
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(status, "C", StringComparison.OrdinalIgnoreCase)) continue;
+
+            result.Add(new CouponInfo(
+                FlightNumber: coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "",
+                Origin: origin,
+                Destination: coupon["destination"]?.GetValue<string>() ?? "",
+                DepartureDate: coupon["departureDate"]?.GetValue<string>() ?? "",
+                ClassOfService: coupon["classOfService"]?.GetValue<string>() ?? "Y",
+                SeatNumber: coupon["seat"]?.GetValue<string>(),
+                Status: status));
+        }
+        return result.AsReadOnly();
+    }
+
+    /// <summary>Returns the passenger name stored in TicketData.</summary>
+    public (string GivenName, string Surname) GetPassengerName()
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        var pax = root?["passenger"]?.AsObject();
+        return (
+            pax?["givenName"]?.GetValue<string>() ?? "",
+            pax?["surname"]?.GetValue<string>() ?? "");
     }
 
     /// <summary>
