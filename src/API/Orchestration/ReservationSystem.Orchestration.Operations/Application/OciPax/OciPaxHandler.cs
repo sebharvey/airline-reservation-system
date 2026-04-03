@@ -104,7 +104,7 @@ public sealed class OciPaxHandler
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to update passengers for order {BookingReference}", command.BookingReference);
-                return new OciPaxResult(command.BookingReference, false, []);
+                return new OciPaxResult(command.BookingReference, false);
             }
         }
 
