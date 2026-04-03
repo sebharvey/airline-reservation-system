@@ -78,9 +78,13 @@ sequenceDiagram
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
     DeliveryMS ->> DeliveryMS: Update coupon status in ticket in DB (delivery.Ticket) on each ticket being checked in (status = C)
-    DeliveryMS -->> OperationsApi: Success / failure
+    DeliveryMS -->> OperationsApi: Array of checked in ticket nummbers
+
+    OperationsApi -->> Web: Array of checked in ticket nummbers
 
     Note over Traveller, CustomerMS: Boarding pass generation
+
+    Web ->> OperationsApi: POST /v1/oci/boarding-docs <br /> Ticket numbers and departure airport code
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/boarding-docs <br /> Ticket numbers and departure airport code
     DeliveryMS ->> DeliveryMS: Retrieve ticket from DB (delivery.Ticket) <br /> and filter to the segments checked in for the airport code supplied <br /> and generate the BCBP string.
@@ -103,6 +107,7 @@ The following APIs and microservices are involved in the online check-in flow.
 | `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order | `{`<br>`  "bookingReference": "AB1234",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }]`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "success": true`<br>`}` |
 | `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) | — | — |
 | `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) | — | — |
+| `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings | `{`<br>`  "departureAirport": "LHR",`<br>`  "ticketNumbers": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` | `{`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
 
 ---
 
