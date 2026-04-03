@@ -86,6 +86,11 @@
             <span class="segment-status-badge" [ngClass]="sd.isTicketed ? 'segment-ticketed' : 'segment-pending'">
               {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
             </span>
+            @if (sd.checkedInCount > 0) {
+              <span class="segment-status-badge segment-checked-in">
+                &#10003; {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }} Checked In
+              </span>
+            }
             <span class="aircraft-type">{{ sd.segment.aircraftType }}</span>
           </div>
           <div class="segment-route">
@@ -106,12 +111,16 @@
               <span>Passenger</span>
               <span>Seat</span>
               <span>E-Ticket</span>
+              <span>Check-in</span>
             </div>
             @for (ps of sd.passengerSeats; track ps.passenger.passengerId) {
               <div class="pax-table-row">
                 <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
                 <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
                 <span class="pax-eticket mono">{{ ps.eTicketNumber ?? 'N/A' }}</span>
+                <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
+                  {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
+                </span>
               </div>
             }
           </div>
