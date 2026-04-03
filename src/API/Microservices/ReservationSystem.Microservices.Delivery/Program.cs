@@ -13,6 +13,8 @@ using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking
 using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
+using ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
+using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
@@ -64,6 +66,8 @@ var host = new HostBuilder()
         services.AddScoped<GetDocumentHandler>();
         services.AddScoped<GetDocumentsByBookingHandler>();
         services.AddScoped<VoidDocumentHandler>();
+        services.AddScoped<OciCheckInHandler>();
+        services.AddScoped<OciBoardingDocsHandler>();
     })
     .Build();
 

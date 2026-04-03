@@ -19,4 +19,6 @@ public interface IManifestRepository
     Task UpdateAsync(Manifest manifest, CancellationToken cancellationToken = default);
 
     Task<int> DeleteByBookingAndFlightAsync(string bookingReference, string flightNumber, DateTime departureDate, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Manifest>> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default);
 }

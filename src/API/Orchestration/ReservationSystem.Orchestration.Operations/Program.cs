@@ -11,6 +11,8 @@ using ReservationSystem.Orchestration.Operations.Swagger;
 using ReservationSystem.Orchestration.Operations.Application.GetFlightStatus;
 using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
+using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
+using ReservationSystem.Orchestration.Operations.Application.OciPax;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
 
@@ -55,6 +57,30 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
+        services.AddHttpClient("OrderMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["OrderMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
+        services.AddHttpClient("DeliveryMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["DeliveryMs:BaseUrl"] ?? "https://reservation-system-db-microservice-delivery-ehe2f4c3dybehwat.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["DeliveryMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
+        services.AddHttpClient("CustomerMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"] ?? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["CustomerMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
@@ -62,13 +88,17 @@ var host = new HostBuilder()
         services.AddScoped<ScheduleServiceClient>();
         services.AddScoped<OfferServiceClient>();
         services.AddScoped<SeatServiceClient>();
-
         services.AddScoped<FareRuleServiceClient>();
+        services.AddScoped<OrderServiceClient>();
+        services.AddScoped<DeliveryServiceClient>();
+        services.AddScoped<CustomerServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetFlightStatusHandler>();
         services.AddScoped<ImportSsimHandler>();
         services.AddScoped<ImportSchedulesToInventoryHandler>();
+        services.AddScoped<OciRetrieveHandler>();
+        services.AddScoped<OciPaxHandler>();
     })
     .Build();
 

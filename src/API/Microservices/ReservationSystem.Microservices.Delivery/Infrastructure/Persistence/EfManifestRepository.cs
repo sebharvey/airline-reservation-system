@@ -93,4 +93,13 @@ public sealed class EfManifestRepository : IManifestRepository
 
         return manifests.Count;
     }
+
+    public async Task<IReadOnlyList<Manifest>> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default)
+    {
+        var manifests = await _context.Manifests
+            .Where(m => m.ETicketNumber == eTicketNumber)
+            .OrderBy(m => m.DepartureDate)
+            .ToListAsync(cancellationToken);
+        return manifests.AsReadOnly();
+    }
 }
