@@ -93,11 +93,11 @@ export class ManageBookingDetailComponent implements OnInit {
 
   ngOnInit(): void {
     const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+    const gn = navState?.['givenName'] ?? '';
+    const sn = navState?.['surname'] ?? '';
 
     this.route.queryParams.subscribe(params => {
       const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? navState?.['givenName'] ?? '';
-      const sn = params['surname'] ?? navState?.['surname'] ?? '';
       this.bookingRef.set(ref);
       this.givenName.set(gn);
       this.surname.set(sn);
@@ -144,25 +144,29 @@ export class ManageBookingDetailComponent implements OnInit {
 
   navigateToAddBags(): void {
     this.router.navigate(['/manage-booking/bags'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToSeat(): void {
     this.router.navigate(['/manage-booking/seat'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToChangeFlight(): void {
     this.router.navigate(['/manage-booking/change-flight'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToCancel(): void {
     this.router.navigate(['/manage-booking/cancel'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 

@@ -93,10 +93,12 @@ export class ChangeFlightComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+    const gn = navState?.['givenName'] ?? '';
+    const sn = navState?.['surname'] ?? '';
+
     this.route.queryParams.subscribe(params => {
       const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
       this.bookingRef.set(ref);
       this.givenName.set(gn);
       this.surname.set(sn);
@@ -253,6 +255,10 @@ export class ChangeFlightComponent implements OnInit {
   }
 
   get detailQueryParams() {
-    return { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() };
+    return { bookingRef: this.bookingRef() };
+  }
+
+  get detailState() {
+    return { givenName: this.givenName(), surname: this.surname() };
   }
 }

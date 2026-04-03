@@ -49,11 +49,8 @@ export class ManageBookingComponent {
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/manage-booking/detail'], {
-          queryParams: {
-            bookingRef: this.bookingReference().trim(),
-            givenName: this.givenName().trim(),
-            surname: this.surname().trim()
-          }
+          queryParams: { bookingRef: this.bookingReference().trim() },
+          state: { givenName: this.givenName().trim(), surname: this.surname().trim() }
         });
       },
       error: (err: { message?: string }) => {

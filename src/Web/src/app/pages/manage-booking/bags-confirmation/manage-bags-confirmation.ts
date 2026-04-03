@@ -17,20 +17,19 @@ export class ManageBagsConfirmationComponent implements OnInit {
   constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
+    const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+    this.givenName.set(navState?.['givenName'] ?? '');
+    this.surname.set(navState?.['surname'] ?? '');
+
     this.route.queryParams.subscribe(params => {
       this.bookingRef.set(params['bookingRef'] ?? '');
-      this.givenName.set(params['givenName'] ?? '');
-      this.surname.set(params['surname'] ?? '');
     });
   }
 
   goToBooking(): void {
     this.router.navigate(['/manage-booking/detail'], {
-      queryParams: {
-        bookingRef: this.bookingRef(),
-        givenName: this.givenName(),
-        surname: this.surname()
-      }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 }

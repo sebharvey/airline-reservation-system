@@ -69,10 +69,12 @@ export class ManageBagsPaymentComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+    const gn = navState?.['givenName'] ?? '';
+    const sn = navState?.['surname'] ?? '';
+
     this.route.queryParams.subscribe(params => {
       const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
       this.bookingRef.set(ref);
       this.givenName.set(gn);
       this.surname.set(sn);
@@ -83,7 +85,10 @@ export class ManageBagsPaymentComponent implements OnInit {
       }
 
       if (this.manageBookingState.bagSelections().length === 0) {
-        this.router.navigate(['/manage-booking/bags'], { queryParams: { bookingRef: ref, givenName: gn, surname: sn } });
+        this.router.navigate(['/manage-booking/bags'], {
+          queryParams: { bookingRef: ref },
+          state: { givenName: gn, surname: sn }
+        });
         return;
       }
 
@@ -169,11 +174,8 @@ export class ManageBagsPaymentComponent implements OnInit {
         this.paying.set(false);
         this.manageBookingState.clear();
         this.router.navigate(['/manage-booking/bags-confirmation'], {
-          queryParams: {
-            bookingRef: this.bookingRef(),
-            givenName: this.givenName(),
-            surname: this.surname()
-          }
+          queryParams: { bookingRef: this.bookingRef() },
+          state: { givenName: this.givenName(), surname: this.surname() }
         });
       },
       error: (err: { error?: { message?: string }, message?: string }) => {
@@ -191,7 +193,8 @@ export class ManageBagsPaymentComponent implements OnInit {
 
   onBack(): void {
     this.router.navigate(['/manage-booking/bags'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 }
