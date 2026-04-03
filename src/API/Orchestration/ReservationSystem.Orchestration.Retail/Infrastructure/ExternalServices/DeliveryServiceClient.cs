@@ -47,17 +47,6 @@ public sealed class DeliveryServiceClient
         return result ?? [];
     }
 
-    public async Task CreateManifestAsync(string bookingReference, List<ManifestEntry> entries, CancellationToken ct)
-    {
-        var payload = new { bookingReference, entries };
-        using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.ReadErrorMessageAsync(ct);
-            throw new InvalidOperationException($"Manifest creation failed: {error}");
-        }
-    }
-
     public async Task VoidTicketAsync(string eTicketNumber, CancellationToken ct)
     {
         using var content = new System.Net.Http.StringContent("{}", System.Text.Encoding.UTF8, "application/json");
@@ -66,18 +55,6 @@ public sealed class DeliveryServiceClient
         {
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Ticket void failed for {eTicketNumber}: {error}");
-        }
-    }
-
-    public async Task DeleteManifestAsync(string bookingReference, string flightNumber, string departureDate, CancellationToken ct)
-    {
-        using var response = await _httpClient.DeleteAsync(
-            $"/api/v1/manifest/{Uri.EscapeDataString(bookingReference)}/flight/{Uri.EscapeDataString(flightNumber)}/{Uri.EscapeDataString(departureDate)}", ct);
-        // 404 is acceptable — manifest entry may not exist
-        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
-        {
-            var error = await response.ReadErrorMessageAsync(ct);
-            throw new InvalidOperationException($"Manifest deletion failed: {error}");
         }
     }
 
@@ -239,39 +216,6 @@ public sealed class SeatAssignmentItem
 
     [JsonPropertyName("seatNumber")]
     public string SeatNumber { get; init; } = string.Empty;
-}
-
-public sealed class ManifestEntry
-{
-    [JsonPropertyName("ticketId")]
-    public string TicketId { get; init; } = string.Empty;
-
-    [JsonPropertyName("inventoryId")]
-    public string InventoryId { get; init; } = string.Empty;
-
-    [JsonPropertyName("flightNumber")]
-    public string FlightNumber { get; init; } = string.Empty;
-
-    [JsonPropertyName("departureDate")]
-    public string DepartureDate { get; init; } = string.Empty;
-
-    [JsonPropertyName("eTicketNumber")]
-    public string ETicketNumber { get; init; } = string.Empty;
-
-    [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
-
-    [JsonPropertyName("givenName")]
-    public string GivenName { get; init; } = string.Empty;
-
-    [JsonPropertyName("surname")]
-    public string Surname { get; init; } = string.Empty;
-
-    [JsonPropertyName("seatNumber")]
-    public string? SeatNumber { get; init; }
-
-    [JsonPropertyName("cabinCode")]
-    public string CabinCode { get; init; } = string.Empty;
 }
 
 public sealed class AdminTicketRecord

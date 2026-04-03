@@ -153,19 +153,12 @@ public sealed class ConfirmBasketHandler
                             SharedJsonOptions.CamelCase);
                         await _orderServiceClient.UpdateOrderETicketsAsync(
                             confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
-
-                        // 7. Populate departure manifest
-                        var entries = BuildManifestEntries(issuedTickets, passengers, segments);
-                        await _deliveryServiceClient.CreateManifestAsync(
-                            confirmedOrder.BookingReference,
-                            entries,
-                            cancellationToken);
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Ticket/manifest failure after order confirmation — order is confirmed, tickets need manual issuance
+                // Ticket issuance failure after order confirmation — order is confirmed, tickets need manual issuance
                 System.Console.Error.WriteLine($"[ConfirmBasket] Ticket issuance failed for {confirmedOrder.BookingReference}: {ex.Message}");
             }
         }
@@ -324,39 +317,6 @@ public sealed class ConfirmBasketHandler
         catch { /* Return whatever was parsed */ }
 
         return (passengers, segments);
-    }
-
-    private static List<ManifestEntry> BuildManifestEntries(
-        List<IssuedTicket> tickets,
-        List<TicketPassenger> passengers,
-        List<TicketSegment> segments)
-    {
-        var passengerMap = passengers.ToDictionary(p => p.PassengerId);
-        var segmentMap = segments.ToDictionary(s => s.SegmentId);
-        var entries = new List<ManifestEntry>();
-
-        foreach (var ticket in tickets)
-        {
-            passengerMap.TryGetValue(ticket.PassengerId, out var pax);
-            foreach (var segmentId in ticket.SegmentIds)
-            {
-                segmentMap.TryGetValue(segmentId, out var seg);
-                entries.Add(new ManifestEntry
-                {
-                    TicketId = ticket.TicketId,
-                    InventoryId = seg?.InventoryId ?? string.Empty,
-                    FlightNumber = seg?.FlightNumber ?? string.Empty,
-                    DepartureDate = seg?.DepartureDate ?? string.Empty,
-                    ETicketNumber = ticket.ETicketNumber,
-                    PassengerId = ticket.PassengerId,
-                    GivenName = pax?.GivenName ?? string.Empty,
-                    Surname = pax?.Surname ?? string.Empty,
-                    CabinCode = seg?.CabinCode ?? string.Empty
-                });
-            }
-        }
-
-        return entries;
     }
 
     private static string? ParseLoyaltyNumber(string basketDataJson)
