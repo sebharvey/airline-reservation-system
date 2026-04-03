@@ -13,6 +13,7 @@ interface PassengerSeatInfo {
 interface SegmentDisplay {
   segment: FlightSegment;
   passengerSeats: PassengerSeatInfo[];
+  isTicketed: boolean;
 }
 
 @Component({
@@ -69,7 +70,8 @@ export class ManageBookingDetailComponent implements OnInit {
         }
         return { passenger: pax, seatNumber, eTicketNumber };
       });
-      return { segment: seg, passengerSeats };
+      const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
+      return { segment: seg, passengerSeats, isTicketed };
     });
   });
 
@@ -170,6 +172,17 @@ export class ManageBookingDetailComponent implements OnInit {
       case 'Cancelled': return 'badge-cancelled';
       case 'Changed': return 'badge-changed';
       default: return 'badge-default';
+    }
+  }
+
+  formatPaymentMethod(method: string): string {
+    switch (method) {
+      case 'CreditCard': return 'Credit card';
+      case 'DebitCard': return 'Debit card';
+      case 'ApplePay': return 'Apple Pay';
+      case 'GooglePay': return 'Google Pay';
+      case 'PayPal': return 'PayPal';
+      default: return method;
     }
   }
 

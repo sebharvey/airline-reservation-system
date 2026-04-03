@@ -82,6 +82,10 @@
           <div class="segment-header">
             <span class="flight-number">{{ sd.segment.flightNumber }}</span>
             <span class="cabin-badge">{{ sd.segment.cabinCode }}</span>
+            <span class="booking-class-badge">{{ sd.segment.bookingClass }}</span>
+            <span class="segment-status-badge" [ngClass]="sd.isTicketed ? 'segment-ticketed' : 'segment-pending'">
+              {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
+            </span>
             <span class="aircraft-type">{{ sd.segment.aircraftType }}</span>
           </div>
           <div class="segment-route">
@@ -186,11 +190,28 @@
             <span class="payment-desc">{{ payment.description }}</span>
             <span class="payment-amount">{{ formatCurrency(payment.authorisedAmount, payment.currency) }}</span>
           </div>
+          <div class="payment-ref">Ref: {{ payment.paymentReference }}</div>
           <div class="payment-meta">
-            <span class="payment-method">{{ payment.cardType }} &bull;&bull;&bull;&bull; {{ payment.cardLast4 }}</span>
+            <span class="payment-instrument">
+              <span class="payment-method-type">{{ formatPaymentMethod(payment.method) }}</span>
+              @if (payment.cardLast4) {
+                <span class="payment-card-detail">&nbsp;&middot;&nbsp;{{ payment.cardType }} &bull;&bull;&bull;&bull; {{ payment.cardLast4 }}</span>
+              }
+            </span>
             <span class="payment-status" [ngClass]="'status-' + payment.status.toLowerCase()">{{ payment.status }}</span>
           </div>
-          <div class="payment-date">{{ formatDateTime(payment.authorisedAt) }}</div>
+          <div class="payment-timestamps">
+            <span class="payment-date">Authorised {{ formatDateTime(payment.authorisedAt) }}</span>
+            @if (payment.settledAt) {
+              <span class="payment-date">Settled {{ formatDateTime(payment.settledAt) }}</span>
+            }
+          </div>
+          @if (payment.settledAmount && payment.settledAmount !== payment.authorisedAmount) {
+            <div class="payment-settled-row">
+              <span class="payment-settled-label">Settled amount</span>
+              <span class="payment-settled-amount">{{ formatCurrency(payment.settledAmount, payment.currency) }}</span>
+            </div>
+          }
         </div>
       }
       <div class="total-row">
