@@ -97,32 +97,32 @@ The following APIs and microservices are involved in the online check-in flow.
 
 ### Operations API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile |
-| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order |
-| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) |
-| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) |
+| Method | Path | Description | Request example | Response example |
+|--------|------|-------------|-----------------|------------------|
+| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile | | |
+| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order | | |
+| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) | | |
+| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) | | |
 
 ### Order microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data |
-| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record |
+| Method | Path | Description | Request example | Response example |
+|--------|------|-------------|-----------------|------------------|
+| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data | | |
+| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record | | |
 
 ### Customer microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in |
+| Method | Path | Description | Request example | Response example |
+|--------|------|-------------|-----------------|------------------|
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in | | |
 
 ### Delivery microservice
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` |
-| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments |
+| Method | Path | Description | Request example | Response example |
+|--------|------|-------------|-----------------|------------------|
+| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` | | |
+| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | | |
 
 ## Boarding pass barcode string
 
