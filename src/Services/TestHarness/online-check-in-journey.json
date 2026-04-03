@@ -1,13 +1,18 @@
 {
   "journey": {
-    "name": "Bookflow \u2014 Retail API",
-    "description": "End-to-end booking journey via the Retail API: outbound flight search, return flight search, basket creation, passenger entry, seat selection, bag selection, and payment confirmation.",
-    "domain": "Retail",
+    "name": "Online Check-In",
+    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation.",
+    "domain": "Retail / Operations",
     "baseUrls": [
       {
         "id": "retail",
         "label": "Retail API",
         "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
       }
     ]
   },
@@ -637,6 +642,312 @@
           "status"
         ],
         "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods \u2014 passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
+      },
+      "chainsTo": [
+        {
+          "field": "bookingReference",
+          "as": "bookingReference",
+          "usedInSteps": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Retrieve booking for check-in",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport to open the check-in session. Returns the list of passengers with ticket numbers and, if the passenger is logged in and holds a loyalty profile, pre-populated travel document data. checkInEligible confirms the booking is within the 24-hour check-in window.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 \u2192 response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "checkInEligible": true,
+          "passengers": [
+            {
+              "passengerId": "PAX-1",
+              "ticketNumber": "932-1234567890",
+              "givenName": "Alex",
+              "surname": "Taylor",
+              "passengerTypeCode": "ADT",
+              "travelDocument": null
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 booking retrieved. checkInEligible must be true for the journey to proceed. passengers contains one record per traveller, each with a ticketNumber required for passport submission. travelDocument is null when no passport data is held; it is pre-filled when the passenger is logged in and a loyalty profile match is found.",
+        "keyFields": [
+          "bookingReference",
+          "checkInEligible",
+          "passengers"
+        ],
+        "validationNotes": "checkInEligible is false outside the 24-hour window or when the booking is not in a Confirmed status. ticketNumber format is carrier-prefix \u2013 numeric (e.g. 932-1234567890). passengerTypeCode uses IATA codes: ADT, CHD, INF, YTH."
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "ticketNumber",
+          "usedInSteps": [
+            8,
+            11
+          ]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "passengerId",
+          "usedInSteps": [
+            8,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Submit passport details",
+      "description": "Submit travel document data for each passenger on the booking. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice. This step may be called multiple times before final check-in submission.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ticketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 \u2192 response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ticketNumber",
+            "source": "Step 7 \u2192 passengers[0].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 passport details validated and saved to the order. success: true confirms the travel document passed date validation and was persisted. A 422 is returned if the passport is expired or issueDate is in the future.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "travelDocument.type must be PASSPORT. issuingCountry and nationality use ISO 3166-1 alpha-3 codes. issueDate must be in the past; expiryDate must be in the future at time of travel. ticketNumber must match a ticket on the booking."
+      }
+    },
+    {
+      "step": 9,
+      "name": "Seat selection",
+      "description": "Submit seat selection for the booking during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 \u2192 response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 seat selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any seat changes.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "Not implemented. Response is a stub success. No seat data is processed or stored."
+      }
+    },
+    {
+      "step": 10,
+      "name": "Baggage selection",
+      "description": "Submit baggage selection for the booking during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 \u2192 response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 baggage selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any bag changes.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "Not implemented. Response is a stub success. No baggage data is processed or stored."
+      }
+    },
+    {
+      "step": 11,
+      "name": "Complete check-in and generate boarding cards",
+      "description": "Final check-in submission. The Operations API re-validates travel documents, calls the Delivery microservice to update each ticket coupon status to C (checked in), then requests boarding documents. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ticketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 \u2192 response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ticketNumber",
+            "source": "Step 7 \u2192 passengers[0].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "boardingCards": [
+            {
+              "ticketNumber": "932-1234567890",
+              "passengerId": "PAX-1",
+              "flightNumber": "AX001",
+              "departureDate": "2026-08-15",
+              "seatNumber": "1A",
+              "cabinCode": "J",
+              "sequenceNumber": "0001",
+              "origin": "LHR",
+              "destination": "JFK",
+              "bcbpString": "M1TAYLOR/ALEX        EAX123456LHRJFKAX 0001 228J001A0001 156>518 W6228 AX 2A00000012345678 JAX7KLP2NZR901A"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 check-in complete. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering. The Delivery microservice has updated the ticket coupon status to C for each checked-in ticket.",
+        "keyFields": [
+          "boardingCards",
+          "boardingCards[0].ticketNumber",
+          "boardingCards[0].bcbpString"
+        ],
+        "validationNotes": "boardingCards array contains one entry per flight segment checked in. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in."
       }
     }
   ]
