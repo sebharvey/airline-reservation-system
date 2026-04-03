@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
@@ -20,6 +21,7 @@ public sealed class OciFunction
 {
     private readonly OciRetrieveHandler _retrieveHandler;
     private readonly OciPaxHandler _paxHandler;
+    private readonly OciCheckInHandler _checkInHandler;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<OciFunction> _logger;
 
@@ -32,11 +34,13 @@ public sealed class OciFunction
     public OciFunction(
         OciRetrieveHandler retrieveHandler,
         OciPaxHandler paxHandler,
+        OciCheckInHandler checkInHandler,
         DeliveryServiceClient deliveryServiceClient,
         ILogger<OciFunction> logger)
     {
         _retrieveHandler = retrieveHandler;
         _paxHandler = paxHandler;
+        _checkInHandler = checkInHandler;
         _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
@@ -242,6 +246,56 @@ public sealed class OciFunction
 
         // Baggage selection is not implemented at this time — return success
         return await req.OkJsonAsync(new { bookingReference = bookingReference.ToUpperInvariant().Trim(), success = true });
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/oci/checkin
+    // -------------------------------------------------------------------------
+
+    [Function("OciCheckIn")]
+    [OpenApiOperation(operationId: "OciCheckIn", tags: new[] { "OCI" },
+        Summary = "Complete check-in for all passengers on a booking; calls the Delivery MS to update coupon status to C")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
+        Description = "{ bookingReference, departureAirport }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> OciCheckIn(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/checkin")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, JsonOptions, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("bookingReference", out var brEl) || string.IsNullOrWhiteSpace(brEl.GetString()))
+            return await req.BadRequestAsync("'bookingReference' is required.");
+
+        if (!body.TryGetProperty("departureAirport", out var daEl) || string.IsNullOrWhiteSpace(daEl.GetString()))
+            return await req.BadRequestAsync("'departureAirport' is required.");
+
+        var bookingReference = brEl.GetString()!.ToUpperInvariant().Trim();
+        var departureAirport = daEl.GetString()!.ToUpperInvariant().Trim();
+
+        try
+        {
+            var command = new OciCheckInCommand(bookingReference, departureAirport);
+            var result = await _checkInHandler.HandleAsync(command, ct);
+
+            if (result is null)
+                return req.CreateResponse(HttpStatusCode.NotFound);
+
+            return await req.OkJsonAsync(new
+            {
+                bookingReference = result.BookingReference,
+                checkedIn = result.CheckedIn
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OCI check-in failed for {BookingReference}", bookingReference);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------

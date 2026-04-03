@@ -882,11 +882,11 @@
     {
       "step": 11,
       "name": "Complete check-in",
-      "description": "Final check-in submission. The Operations API re-validates travel documents, calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "description": "Final check-in submission. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/api/v1/oci/pax",
+        "endpoint": "/api/v1/oci/checkin",
         "baseUrlRef": "operations"
       },
       "request": {
@@ -895,36 +895,20 @@
         },
         "body": {
           "bookingReference": "__CHAIN_bookingReference__",
-          "passengers": [
-            {
-              "ticketNumber": "__CHAIN_ticketNumber__",
-              "travelDocument": {
-                "type": "PASSPORT",
-                "number": "PA1234567",
-                "issuingCountry": "GBR",
-                "nationality": "GBR",
-                "issueDate": "2019-06-01",
-                "expiryDate": "2030-01-01"
-              }
-            }
-          ]
+          "departureAirport": "LHR"
         },
         "dataChain": [
           {
             "field": "bookingReference",
             "from": "bookingReference",
             "source": "Step 6 \u2192 response.bookingReference"
-          },
-          {
-            "field": "passengers[0].ticketNumber",
-            "from": "ticketNumber",
-            "source": "Step 7 \u2192 passengers[0].ticketNumber"
           }
         ]
       },
       "response": {
         "statusCode": 200,
         "body": {
+          "bookingReference": "AX123456",
           "checkedIn": [
             "932-1234567890"
           ]
@@ -934,6 +918,7 @@
         "statusCode": 200,
         "description": "200 OK \u2014 check-in complete. checkedIn contains the ticket numbers successfully checked in. The Delivery microservice has updated the ticket coupon status to C for each ticket. The web then calls POST /v1/oci/boarding-docs to retrieve boarding cards.",
         "keyFields": [
+          "bookingReference",
           "checkedIn"
         ],
         "validationNotes": "checkedIn is an array of ticket number strings. One entry per successfully checked-in ticket. Ticket numbers use the carrier-prefix\u2013numeric format (e.g. 932-1234567890)."

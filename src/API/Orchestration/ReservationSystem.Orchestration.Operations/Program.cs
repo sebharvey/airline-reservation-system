@@ -13,6 +13,7 @@ using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
+using ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
 
@@ -99,6 +100,7 @@ var host = new HostBuilder()
         services.AddScoped<ImportSchedulesToInventoryHandler>();
         services.AddScoped<OciRetrieveHandler>();
         services.AddScoped<OciPaxHandler>();
+        services.AddScoped<OciCheckInHandler>();
     })
     .Build();
 
