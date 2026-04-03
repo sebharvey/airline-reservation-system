@@ -366,7 +366,8 @@
             11,
             12,
             13,
-            14
+            14,
+            15
           ]
         }
       ]
@@ -718,7 +719,8 @@
           "as": "ticketNumber",
           "usedInSteps": [
             8,
-            11
+            11,
+            12
           ]
         },
         {
@@ -879,8 +881,8 @@
     },
     {
       "step": 11,
-      "name": "Complete check-in and generate boarding cards",
-      "description": "Final check-in submission. The Operations API re-validates travel documents, calls the Delivery microservice to update each ticket coupon status to C (checked in), then requests boarding documents. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "name": "Complete check-in",
+      "description": "Final check-in submission. The Operations API re-validates travel documents, calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -923,6 +925,51 @@
       "response": {
         "statusCode": 200,
         "body": {
+          "checkedIn": [
+            "932-1234567890"
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 check-in complete. checkedIn contains the ticket numbers successfully checked in. The Delivery microservice has updated the ticket coupon status to C for each ticket. The web then calls POST /v1/oci/boarding-docs to retrieve boarding cards.",
+        "keyFields": [
+          "checkedIn"
+        ],
+        "validationNotes": "checkedIn is an array of ticket number strings. One entry per successfully checked-in ticket. Ticket numbers use the carrier-prefix\u2013numeric format (e.g. 932-1234567890)."
+      }
+    },
+    {
+      "step": 12,
+      "name": "Generate boarding cards",
+      "description": "Request boarding documents for the checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for the supplied departure airport, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "LHR",
+          "ticketNumbers": [
+            "__CHAIN_ticketNumber__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "ticketNumber",
+            "source": "Step 7 \u2192 passengers[0].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
           "boardingCards": [
             {
               "ticketNumber": "932-1234567890",
@@ -941,7 +988,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK \u2014 check-in complete. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering. The Delivery microservice has updated the ticket coupon status to C for each checked-in ticket.",
+        "description": "200 OK \u2014 boarding cards generated. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
         "keyFields": [
           "boardingCards",
           "boardingCards[0].ticketNumber",
