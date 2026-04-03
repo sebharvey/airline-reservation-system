@@ -11,12 +11,10 @@ namespace ReservationSystem.Orchestration.Retail.Application.ChangeOrder;
 /// 2. Validate new offer from Offer MS.
 /// 3. (Revenue, addCollect > 0) Authorise change payment via Payment MS.
 /// 4. Void original e-tickets via Delivery MS.
-/// 5. Delete original manifest entries via Delivery MS.
-/// 6. Release original inventory via Offer MS.
-/// 7. Update Order MS with new segment data (status → Changed).
-/// 8. Reissue e-tickets via Delivery MS (reason=VoluntaryChange).
-/// 9. Create new manifest entries via Delivery MS.
-/// 10. (Revenue, addCollect > 0) Settle change payment.
+/// 5. Release original inventory via Offer MS.
+/// 6. Update Order MS with new segment data (status → Changed).
+/// 7. Reissue e-tickets via Delivery MS (reason=VoluntaryChange).
+/// 8. (Revenue, addCollect > 0) Settle change payment.
 /// </summary>
 public sealed class ChangeOrderHandler
 {
@@ -120,18 +118,7 @@ public sealed class ChangeOrderHandler
             }
         }
 
-        // 5. Delete original manifest entries
-        var segments = ExtractSegments(orderData);
-        foreach (var (flightNumber, departureDate) in segments)
-        {
-            try { await _deliveryServiceClient.DeleteManifestAsync(bookingReference, flightNumber, departureDate, ct); }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[ChangeOrder] Manifest delete failed: {ex.Message}");
-            }
-        }
-
-        // 6. Release original inventory
+        // 5. Release original inventory
         foreach (var (inventoryId, cabinCode) in ExtractInventoryItems(orderData))
         {
             try
@@ -173,7 +160,7 @@ public sealed class ChangeOrderHandler
 
         await _orderServiceClient.ChangeOrderAsync(bookingReference, changeData, ct);
 
-        // 8. Reissue e-tickets
+        // 7. Reissue e-tickets
         List<IssuedTicket> newTickets = [];
         if (passengers.Count > 0)
         {
@@ -217,38 +204,7 @@ public sealed class ChangeOrderHandler
             }
         }
 
-        // 9. Create new manifest entries
-        if (newTickets.Count > 0 && passengers.Count > 0)
-        {
-            try
-            {
-                var passengerMap = passengers.ToDictionary(p => p.PassengerId);
-                var entries = newTickets.Select(t =>
-                {
-                    passengerMap.TryGetValue(t.PassengerId, out var pax);
-                    return new ManifestEntry
-                    {
-                        TicketId = t.TicketId,
-                        InventoryId = newOffer.InventoryId.ToString(),
-                        FlightNumber = newFlightNum,
-                        DepartureDate = newDepDateStr,
-                        ETicketNumber = t.ETicketNumber,
-                        PassengerId = t.PassengerId,
-                        GivenName = pax.GivenName ?? "",
-                        Surname = pax.Surname ?? "",
-                        CabinCode = newCabinCode
-                    };
-                }).ToList();
-
-                await _deliveryServiceClient.CreateManifestAsync(bookingReference, entries, ct);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[ChangeOrder] Manifest creation failed: {ex.Message}");
-            }
-        }
-
-        // 10. Settle change payment
+        // 8. Settle change payment
         if (changePaymentId is not null)
         {
             await _paymentServiceClient.SettleAsync(changePaymentId, totalDue, ct);
@@ -303,23 +259,6 @@ public sealed class ChangeOrderHandler
             {
                 if (et.TryGetProperty("eTicketNumber", out var n) && n.GetString() is { } etNum)
                     result.Add(etNum);
-            }
-        }
-        return result;
-    }
-
-    private static List<(string FlightNumber, string DepartureDate)> ExtractSegments(JsonElement data)
-    {
-        var result = new List<(string, string)>();
-        if (!data.Equals(default) && data.TryGetProperty("orderItems", out var arr) &&
-            arr.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in arr.EnumerateArray())
-            {
-                var fn = item.TryGetProperty("flightNumber", out var f) ? f.GetString() ?? "" : "";
-                var dd = item.TryGetProperty("departureDate", out var d) ? d.GetString() ?? "" : "";
-                if (!string.IsNullOrEmpty(fn))
-                    result.Add((fn, dd));
             }
         }
         return result;

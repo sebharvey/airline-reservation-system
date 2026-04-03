@@ -10,10 +10,9 @@ namespace ReservationSystem.Orchestration.Retail.Application.CancelOrder;
 /// Sequence:
 /// 1. Retrieve order — collect fare conditions, e-tickets, inventory IDs, booking type.
 /// 2. Void each e-ticket via Delivery MS.
-/// 3. Delete manifest entries via Delivery MS per segment.
-/// 4. Release inventory via Offer MS per segment.
-/// 5. (Reward) Reinstate points via Customer MS.
-/// 6. Cancel order in Order MS — publishes OrderCancelled event with refundableAmount.
+/// 3. Release inventory via Offer MS per segment.
+/// 4. (Reward) Reinstate points via Customer MS.
+/// 5. Cancel order in Order MS — publishes OrderCancelled event with refundableAmount.
 /// </summary>
 public sealed class CancelOrderHandler
 {
@@ -49,7 +48,6 @@ public sealed class CancelOrderHandler
         // Parse order data
         var orderData = order.OrderData ?? default;
         var eTickets = ExtractETickets(orderData);
-        var segments = ExtractSegments(orderData);
         var bookingType = ExtractBookingType(orderData);
         var (totalPaid, cancellationFee, isRefundable) = ExtractFareConditions(orderData);
         var loyaltyNumber = ExtractLoyaltyNumber(orderData);
@@ -65,17 +63,7 @@ public sealed class CancelOrderHandler
             }
         }
 
-        // 3. Delete manifest entries per segment
-        foreach (var (flightNumber, departureDate) in segments)
-        {
-            try { await _deliveryServiceClient.DeleteManifestAsync(bookingReference, flightNumber, departureDate, ct); }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[CancelOrder] Manifest delete failed for {flightNumber}/{departureDate}: {ex.Message}");
-            }
-        }
-
-        // 4. Release inventory per segment
+        // 3. Release inventory per segment
         foreach (var (inventoryId, cabinCode) in ExtractInventoryItems(orderData))
         {
             try
@@ -89,7 +77,7 @@ public sealed class CancelOrderHandler
             }
         }
 
-        // 5. (Reward) Reinstate points
+        // 4. (Reward) Reinstate points
         int? pointsReinstated = null;
         if (bookingType == "Reward" && !string.IsNullOrEmpty(loyaltyNumber) && totalPointsAmount > 0)
         {
@@ -105,7 +93,7 @@ public sealed class CancelOrderHandler
             }
         }
 
-        // 6. Cancel order in Order MS
+        // 5. Cancel order in Order MS
         var refundableAmount = isRefundable ? Math.Max(0m, totalPaid - cancellationFee) : 0m;
         await _orderServiceClient.CancelOrderAsync(bookingReference, new
         {
@@ -136,23 +124,6 @@ public sealed class CancelOrderHandler
             {
                 if (et.TryGetProperty("eTicketNumber", out var n) && n.GetString() is { } etNum)
                     result.Add(etNum);
-            }
-        }
-        return result;
-    }
-
-    private static List<(string FlightNumber, string DepartureDate)> ExtractSegments(JsonElement data)
-    {
-        var result = new List<(string, string)>();
-        if (!data.Equals(default) && data.TryGetProperty("orderItems", out var arr) &&
-            arr.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var item in arr.EnumerateArray())
-            {
-                var fn = item.TryGetProperty("flightNumber", out var f) ? f.GetString() ?? "" : "";
-                var dd = item.TryGetProperty("departureDate", out var d) ? d.GetString() ?? "" : "";
-                if (!string.IsNullOrEmpty(fn))
-                    result.Add((fn, dd));
             }
         }
         return result;
