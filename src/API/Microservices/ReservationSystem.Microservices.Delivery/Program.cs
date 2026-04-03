@@ -13,7 +13,6 @@ using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking
 using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
-using ReservationSystem.Microservices.Delivery.Application.CreateManifest;
 using ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
 using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
@@ -52,7 +51,6 @@ var host = new HostBuilder()
         });
         services.AddHttpClient();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
-        services.AddScoped<IManifestRepository, EfManifestRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
@@ -67,7 +65,6 @@ var host = new HostBuilder()
         services.AddScoped<GetDocumentHandler>();
         services.AddScoped<GetDocumentsByBookingHandler>();
         services.AddScoped<VoidDocumentHandler>();
-        services.AddScoped<CreateManifestHandler>();
         services.AddScoped<OciCheckInHandler>();
         services.AddScoped<OciBoardingDocsHandler>();
     })

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
@@ -24,55 +23,57 @@ public sealed record OciBoardingDocsResult(IReadOnlyList<BoardingCard> BoardingC
 
 public sealed class OciBoardingDocsHandler
 {
-    private readonly IManifestRepository _manifestRepository;
+    private readonly ITicketRepository _ticketRepository;
     private readonly ILogger<OciBoardingDocsHandler> _logger;
 
     public OciBoardingDocsHandler(
-        IManifestRepository manifestRepository,
+        ITicketRepository ticketRepository,
         ILogger<OciBoardingDocsHandler> logger)
     {
-        _manifestRepository = manifestRepository;
+        _ticketRepository = ticketRepository;
         _logger = logger;
     }
 
     public async Task<OciBoardingDocsResult> HandleAsync(OciBoardingDocsCommand command, CancellationToken cancellationToken = default)
     {
         var boardingCards = new List<BoardingCard>();
+        var sequenceIndex = 0;
 
-        for (var sequenceIndex = 0; sequenceIndex < command.TicketNumbers.Count; sequenceIndex++)
+        foreach (var ticketNumber in command.TicketNumbers)
         {
-            var ticketNumber = command.TicketNumbers[sequenceIndex];
-            var manifests = await _manifestRepository.GetByETicketNumberAsync(ticketNumber, cancellationToken);
-
-            // Only issue boarding cards for checked-in segments departing from the requested airport
-            var eligibleManifests = manifests
-                .Where(m => string.Equals(m.Origin, command.DepartureAirport, StringComparison.OrdinalIgnoreCase)
-                         && m.CheckedIn)
-                .OrderBy(m => m.DepartureDate)
-                .ToList();
-
-            foreach (var manifest in eligibleManifests)
+            var ticket = await _ticketRepository.GetByETicketNumberAsync(ticketNumber, cancellationToken);
+            if (ticket is null)
             {
-                var sequenceNumber = (sequenceIndex + 1).ToString("D4");
-                var bcbp = BuildBcbpString(manifest, sequenceNumber);
+                _logger.LogWarning("Ticket {TicketNumber} not found for boarding docs", ticketNumber);
+                continue;
+            }
+
+            var (givenName, surname) = ticket.GetPassengerName();
+            var checkedInCoupons = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport);
+
+            foreach (var coupon in checkedInCoupons)
+            {
+                sequenceIndex++;
+                var sequenceNumber = sequenceIndex.ToString("D4");
+                var bcbp = BuildBcbpString(ticket.BookingReference, surname, givenName, coupon, sequenceNumber);
 
                 boardingCards.Add(new BoardingCard(
-                    TicketNumber: manifest.ETicketNumber,
-                    PassengerId: manifest.PassengerId,
-                    GivenName: manifest.GivenName,
-                    Surname: manifest.Surname,
-                    FlightNumber: manifest.FlightNumber,
-                    DepartureDate: manifest.DepartureDate.ToString("yyyy-MM-dd"),
-                    SeatNumber: manifest.SeatNumber,
-                    CabinCode: manifest.CabinCode,
+                    TicketNumber: ticket.ETicketNumber,
+                    PassengerId: ticket.PassengerId,
+                    GivenName: givenName,
+                    Surname: surname,
+                    FlightNumber: coupon.FlightNumber,
+                    DepartureDate: coupon.DepartureDate,
+                    SeatNumber: coupon.SeatNumber ?? "",
+                    CabinCode: coupon.ClassOfService,
                     SequenceNumber: sequenceNumber,
-                    Origin: manifest.Origin,
-                    Destination: manifest.Destination,
+                    Origin: coupon.Origin,
+                    Destination: coupon.Destination,
                     BcbpString: bcbp));
 
                 _logger.LogInformation(
                     "Generated boarding card for ticket {TicketNumber} on {FlightNumber} {Origin}-{Destination}",
-                    ticketNumber, manifest.FlightNumber, manifest.Origin, manifest.Destination);
+                    ticketNumber, coupon.FlightNumber, coupon.Origin, coupon.Destination);
             }
         }
 
@@ -80,37 +81,44 @@ public sealed class OciBoardingDocsHandler
     }
 
     /// <summary>
-    /// Builds an IATA Resolution 792 BCBP string for a single manifest (leg).
+    /// Builds an IATA Resolution 792 BCBP string for a single coupon (leg).
     /// Format: M1{name}{bookingRef}{origin}{destination}{carrier}{flightNum}{julianDate}{cabin}{seat}{seq}{status}
     /// </summary>
-    private static string BuildBcbpString(Manifest manifest, string sequenceNumber)
+    private static string BuildBcbpString(
+        string bookingReference,
+        string surname,
+        string givenName,
+        Domain.Entities.CouponInfo coupon,
+        string sequenceNumber)
     {
         // Passenger name: SURNAME/GIVENNAME padded to 20 chars
-        var rawName = $"{manifest.Surname.ToUpperInvariant()}/{manifest.GivenName.ToUpperInvariant()}";
+        var rawName = $"{surname.ToUpperInvariant()}/{givenName.ToUpperInvariant()}";
         var name = rawName.Length >= 20 ? rawName[..20] : rawName.PadRight(20);
 
         // Booking reference: E + 6-char PNR padded to 7 chars
-        var pnr = manifest.BookingReference.ToUpperInvariant().PadRight(6)[..6];
+        var pnr = bookingReference.ToUpperInvariant().PadRight(6)[..6];
         var bookingRef = $"E{pnr}".PadRight(7)[..7];
 
-        // Origin/Destination/Carrier: each fixed width
-        var origin = manifest.Origin.ToUpperInvariant().PadRight(3)[..3];
-        var destination = manifest.Destination.ToUpperInvariant().PadRight(3)[..3];
+        // Origin/Destination: each 3 chars
+        var origin = coupon.Origin.ToUpperInvariant().PadRight(3)[..3];
+        var destination = coupon.Destination.ToUpperInvariant().PadRight(3)[..3];
 
         // Extract carrier code from flight number (letters before digits)
-        var carrier = ExtractCarrierCode(manifest.FlightNumber).PadRight(2)[..2];
+        var carrier = ExtractCarrierCode(coupon.FlightNumber).PadRight(2)[..2];
 
         // Flight number: numeric part padded to 4 chars
-        var flightNum = ExtractFlightNum(manifest.FlightNumber).PadLeft(4, '0')[..4];
+        var flightNum = ExtractFlightNum(coupon.FlightNumber).PadLeft(4, '0')[..4];
 
-        // Julian date (day of year)
-        var julianDate = manifest.DepartureDate.DayOfYear.ToString("D3");
+        // Julian date (day of year) from departure date string
+        var julianDate = "001";
+        if (DateTime.TryParse(coupon.DepartureDate, out var depDate))
+            julianDate = depDate.DayOfYear.ToString("D3");
 
         // Cabin code: single char
-        var cabin = manifest.CabinCode.Length > 0 ? manifest.CabinCode[..1].ToUpperInvariant() : "Y";
+        var cabin = coupon.ClassOfService.Length > 0 ? coupon.ClassOfService[..1].ToUpperInvariant() : "Y";
 
-        // Seat: padded to 4 chars (e.g. "001A"), use "0000" if unassigned
-        var seatRaw = string.IsNullOrWhiteSpace(manifest.SeatNumber) ? "0000" : manifest.SeatNumber.PadLeft(4, '0');
+        // Seat: padded to 4 chars, "0000" if unassigned
+        var seatRaw = string.IsNullOrWhiteSpace(coupon.SeatNumber) ? "0000" : coupon.SeatNumber.PadLeft(4, '0');
         var seat = seatRaw.Length >= 4 ? seatRaw[..4] : seatRaw.PadLeft(4, '0');
 
         // Sequence number: 4 digits
@@ -119,10 +127,7 @@ public sealed class OciBoardingDocsHandler
         // Passenger status: 1 = checked in
         const string passengerStatus = "1";
 
-        // Mandatory section
-        var mandatory = $"M1{name}{bookingRef}{origin}{destination}{carrier}{flightNum}{julianDate}{cabin}{seat}{seq}{passengerStatus}";
-
-        return mandatory;
+        return $"M1{name}{bookingRef}{origin}{destination}{carrier}{flightNum}{julianDate}{cabin}{seat}{seq}{passengerStatus}";
     }
 
     private static string ExtractCarrierCode(string flightNumber)
