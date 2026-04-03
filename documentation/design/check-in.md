@@ -27,7 +27,7 @@ sequenceDiagram
     
     opt IsLoggedIn
 
-        OperationsApi ->> CustomerMS: GET /v1/customers/{loyaltyNumber}
+        OperationsApi ->> CustomerMS: GET /v1/customers/{loyaltyNumber} <br /> [Existing endpoint]
         CustomerMS -->> OperationsApi: Customer profile data
 
         OperationsApi ->> OperationsApi: If lead PAX loyalty number matches profile <br /> Update PAX details array with passport <br /> information to pre-fill on the check in form
