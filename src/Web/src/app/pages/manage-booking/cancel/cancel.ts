@@ -67,10 +67,12 @@ export class CancelBookingComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
+    const gn = navState?.['givenName'] ?? '';
+    const sn = navState?.['surname'] ?? '';
+
     this.route.queryParams.subscribe(params => {
       const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
       this.bookingRef.set(ref);
       this.givenName.set(gn);
       this.surname.set(sn);
@@ -123,7 +125,8 @@ export class CancelBookingComponent implements OnInit {
 
   keepBooking(): void {
     this.router.navigate(['/manage-booking/detail'], {
-      queryParams: { bookingRef: this.bookingRef(), givenName: this.givenName(), surname: this.surname() }
+      queryParams: { bookingRef: this.bookingRef() },
+      state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
