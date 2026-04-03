@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using ReservationSystem.Shared.Common.Json;
 using System.Linq;
 
 namespace ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
@@ -147,8 +148,9 @@ public sealed class ConfirmBasketHandler
                     // 6. Write e-ticket numbers back into OrderData
                     if (issuedTickets.Count > 0)
                     {
-                        var eTicketsJson = System.Text.Json.JsonSerializer.Serialize(
-                            issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }));
+                        var eTicketsJson = JsonSerializer.Serialize(
+                            issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }),
+                            SharedJsonOptions.CamelCase);
                         await _orderServiceClient.UpdateOrderETicketsAsync(
                             confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
 
