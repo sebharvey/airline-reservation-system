@@ -2,18 +2,20 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { Order, OrderItem, Passenger, FlightSegment } from '../../../models/order.model';
+import { Order, OrderItem, Passenger, FlightSegment, BoardingPass } from '../../../models/order.model';
 
 interface PassengerSeatInfo {
   passenger: Passenger;
   seatNumber: string | null;
   eTicketNumber: string | null;
+  isCheckedIn: boolean;
 }
 
 interface SegmentDisplay {
   segment: FlightSegment;
   passengerSeats: PassengerSeatInfo[];
   isTicketed: boolean;
+  checkedInCount: number;
 }
 
 @Component({
@@ -25,6 +27,7 @@ interface SegmentDisplay {
 })
 export class ManageBookingDetailComponent implements OnInit {
   order = signal<Order | null>(null);
+  boardingPasses = signal<BoardingPass[]>([]);
   loading = signal(true);
   errorMessage = signal('');
 
@@ -55,6 +58,7 @@ export class ManageBookingDetailComponent implements OnInit {
   readonly segmentDisplays = computed((): SegmentDisplay[] => {
     const o = this.order();
     if (!o) return [];
+    const bps = this.boardingPasses();
     return o.flightSegments.map(seg => {
       const flightItems = o.orderItems.filter(
         oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId
@@ -68,10 +72,14 @@ export class ManageBookingDetailComponent implements OnInit {
           const ticket = item.eTickets?.find(t => t.passengerId === pax.passengerId);
           if (ticket) eTicketNumber = ticket.eTicketNumber;
         }
-        return { passenger: pax, seatNumber, eTicketNumber };
+        const isCheckedIn = bps.some(
+          bp => bp.passengerId === pax.passengerId && bp.flightNumber === seg.flightNumber
+        );
+        return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn };
       });
       const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
-      return { segment: seg, passengerSeats, isTicketed };
+      const checkedInCount = passengerSeats.filter(ps => ps.isCheckedIn).length;
+      return { segment: seg, passengerSeats, isTicketed, checkedInCount };
     });
   });
 
@@ -113,10 +121,15 @@ export class ManageBookingDetailComponent implements OnInit {
   private fetchOrder(ref: string, givenName: string, surname: string): void {
     this.loading.set(true);
     this.errorMessage.set('');
+    this.boardingPasses.set([]);
     this.retailApi.retrieveOrder({ bookingReference: ref, givenName, surname }).subscribe({
       next: (order) => {
         this.order.set(order);
         this.loading.set(false);
+        this.retailApi.getOciBoardingPasses(ref).subscribe({
+          next: (bps) => this.boardingPasses.set(bps),
+          error: () => { /* no check-ins yet — suppress */ }
+        });
       },
       error: (err: { message?: string }) => {
         this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
