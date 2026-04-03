@@ -83,10 +83,10 @@ sequenceDiagram
     Note over Traveller, CustomerMS: Boarding pass generation
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/boarding-docs <br /> Ticket numbers and departure airport code
-    DeliveryMS ->> DeliveryMS: Retrieve ticket from DB (delivery.Ticket) <br /> and filter to the segments checked in for the airport code supplied
+    DeliveryMS ->> DeliveryMS: Retrieve ticket from DB (delivery.Ticket) <br /> and filter to the segments checked in for the airport code supplied <br /> and generate the BCBP string.
     DeliveryMS -->> OperationsApi: Array of boarding cards 
 
-    OperationsApi -->> Web: Array of boarding cards
+    OperationsApi -->> Web: Array of boarding cards with BCBP string.
 
     Web ->> Web: Render boarding cards
 ```
@@ -122,7 +122,7 @@ The following APIs and microservices are involved in the online check-in flow.
 | Method | Path | Description | Request example | Response example |
 |--------|------|-------------|-----------------|------------------|
 | `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` | | |
-| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | | |
+| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents (with BCBP) for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | | |
 
 ## Boarding pass barcode string
 
