@@ -533,6 +533,29 @@ body {
     border: 1px solid var(--negative-border);
 }
 
+.assertion-results {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.assertion-row {
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+.assertion-row.pass {
+    background: var(--positive-bg);
+    color: var(--positive);
+    border: 1px solid var(--positive-border);
+}
+.assertion-row.fail {
+    background: var(--negative-bg);
+    color: var(--negative);
+    border: 1px solid var(--negative-border);
+}
+
 .live-url {
     font-family: var(--font-mono);
     font-size: 0.68rem;

@@ -550,9 +550,11 @@
 
         const result = liveResults[idx];
         if (result) {
+            const assertionsPass = !result.assertionResults || result.assertionResults.every(r => r.pass);
+            const overallPass = result.statusMatch && assertionsPass;
             const scClass = result.statusMatch ? 'pass' : 'fail';
             const scLabel = statusLabel(result.liveStatus) || (result.liveError ? 'Network Error' : '');
-            const resBadge = result.statusMatch
+            const resBadge = overallPass
                 ? '<span class="result-badge pass">Pass</span>'
                 : '<span class="result-badge fail">Fail</span>';
 
@@ -575,6 +577,16 @@
                 }
             } else if (!result.liveError) {
                 html += '<div class="no-body">No response body</div>';
+            }
+            if (result.assertionResults && result.assertionResults.length) {
+                html += '<div class="assertion-results">';
+                result.assertionResults.forEach(a => {
+                    const cls = a.pass ? 'pass' : 'fail';
+                    const icon = a.pass ? '✓' : '✗';
+                    const detail = a.pass ? '' : ` (expected ${a.expected}, got ${a.actual})`;
+                    html += `<div class="assertion-row ${cls}">${icon} ${esc(a.description)}${esc(detail)}</div>`;
+                });
+                html += '</div>';
             }
             html += '</div>';
         }
@@ -960,15 +972,30 @@
 
         // Determine pass/fail
         const statusMatch = liveStatus === step.expected.statusCode;
+        const assertionResults = evaluateAssertions(step.expected.assertions, liveBody);
+        const passed = statusMatch && assertionResults.every(r => r.pass);
         row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
-        row.classList.add(statusMatch ? 'result-pass' : 'result-fail');
+        row.classList.add(passed ? 'result-pass' : 'result-fail');
 
         // Update timing cell
         if (ref.tdTime) {
             ref.tdTime.textContent = durationMs !== null ? durationMs + ' ms' : '—';
         }
 
-        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, url, durationMs };
+        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, assertionResults, url, durationMs };
+    }
+
+    function evaluateAssertions(assertions, body) {
+        if (!assertions || !assertions.length) return [];
+        return assertions.map(a => {
+            const value = (a.field || '').split('.').reduce((o, k) => (o != null ? o[k] : undefined), body);
+            if (a.assertion === 'count') {
+                const actual = Array.isArray(value) ? value.length : null;
+                const pass = actual === a.expected;
+                return { pass, description: a.description, expected: a.expected, actual };
+            }
+            return { pass: false, description: a.description, expected: a.expected, actual: undefined };
+        });
     }
 
     function resolvePathParamChains(completedStep, allSteps) {
