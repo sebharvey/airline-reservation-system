@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Online Check-In",
+    "name": "OCI - 1 PAX Outbound",
     "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation.",
     "domain": "Retail / Operations",
     "baseUrls": [
@@ -994,7 +994,15 @@
           "boardingCards[0].ticketNumber",
           "boardingCards[0].bcbpString"
         ],
-        "validationNotes": "boardingCards array contains one entry per flight segment checked in. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in."
+        "validationNotes": "boardingCards array contains one entry per flight segment checked in. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in.",
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": 1,
+            "description": "Exactly 1 boarding card must be generated for the single outbound passenger."
+          }
+        ]
       }
     }
   ]
