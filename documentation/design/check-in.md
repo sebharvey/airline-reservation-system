@@ -110,7 +110,7 @@ The following APIs and microservices are involved in the online check-in flow.
 
 | Method | Path | Description | Request | Response |
 |--------|------|-------------|---------|----------|
-| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data | `{`<br>`  "bookingReference": "AB1234",`<br>`  "surname": "Taylor"`<br>`}` | `{`<br>`  "orderId": "a1b2c3d4-...",`<br>`  "bookingReference": "AB1234",`<br>`  "orderStatus": "Confirmed",`<br>`  "channelCode": "WEB",`<br>`  "currencyCode": "GBP",`<br>`  "totalAmount": 2950.00,`<br>`  "version": 3,`<br>`  "orderData": { }`<br>`}` |
+| `POST` | `/v1/orders/retrieve` | [Existing endpoint] Retrieve an existing order by booking reference and surname; returns full order data | `{`<br>`  "bookingReference": "AB1234",`<br>`  "surname": "Taylor"`<br>`}` | `{`<br>`  "orderId": "a1b2c3d4-...",`<br>`  "bookingReference": "AB1234",`<br>`  "orderStatus": "Confirmed",`<br>`  "channelCode": "WEB",`<br>`  "currencyCode": "GBP",`<br>`  "ticketingTimeLimit": null,`<br>`  "totalAmount": 2950.00,`<br>`  "version": 3,`<br>`  "createdAt": "2026-08-01T10:00:00Z",`<br>`  "updatedAt": "2026-08-01T10:05:00Z",`<br>`  "orderData": { }`<br>`}` |
 | `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record | Full order object with updated `orderData` | `{`<br>`  "orderId": "a1b2c3d4-...",`<br>`  "bookingReference": "AB1234",`<br>`  "version": 4`<br>`}` |
 
 ---
@@ -119,7 +119,7 @@ The following APIs and microservices are involved in the online check-in flow.
 
 | Method | Path | Description | Request | Response |
 |--------|------|-------------|---------|----------|
-| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in | — | `{`<br>`  "customerId": "c1a2b3d4-...",`<br>`  "loyaltyNumber": "AX12345678",`<br>`  "givenName": "Alex",`<br>`  "surname": "Taylor",`<br>`  "dateOfBirth": "1985-03-12",`<br>`  "nationality": "GBR",`<br>`  "passportNumber": "PA1234567",`<br>`  "passportIssueDate": "2019-06-01",`<br>`  "passportIssuer": "GBR",`<br>`  "passportExpiryDate": "2030-01-01",`<br>`  "tierCode": "Silver",`<br>`  "pointsBalance": 12500,`<br>`  "isActive": true`<br>`}` |
+| `GET` | `/v1/customers/{loyaltyNumber}` | [Existing endpoint] Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in | — | `{`<br>`  "customerId": "c1a2b3d4-...",`<br>`  "loyaltyNumber": "AX12345678",`<br>`  "givenName": "Alex",`<br>`  "surname": "Taylor",`<br>`  "dateOfBirth": "1985-03-12",`<br>`  "nationality": "GBR",`<br>`  "passportNumber": "PA1234567",`<br>`  "passportIssueDate": "2019-06-01",`<br>`  "passportIssuer": "GBR",`<br>`  "passportExpiryDate": "2030-01-01",`<br>`  "tierCode": "Silver",`<br>`  "pointsBalance": 12500,`<br>`  "isActive": true`<br>`}` |
 
 ---
 
