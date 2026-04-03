@@ -72,7 +72,7 @@ sequenceDiagram
 
     Traveller ->> Web: Clicks to continue to submit check in information
 
-    Web ->> OperationsApi: POST /v1/oci/pax <br /> Booking reference and <br />array of tickets for each PAX details with passport info
+    Web ->> OperationsApi: POST /v1/oci/checkin <br /> Booking reference and <br />array of tickets for each PAX details with passport info
     OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead pax first name, last name <br /> [Existing endpoint]
     OrderMS -->> OperationsApi: Order details
 
