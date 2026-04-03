@@ -8,81 +8,121 @@ Online check-in (OLCI) opens 24 hours before departure, allowing passengers to s
 
 ```mermaid
 sequenceDiagram
+
     actor Traveller
-    participant Web
-    participant RetailAPI as Retail API
+    participant Web as Web (Angular)
+    participant OperationsApi as Operations Api
     participant OrderMS as Order [MS]
-    participant SeatMS as Seat [MS]
-    participant BagMS as Bag [MS]
-    participant OfferMS as Offer [MS]
-    participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
+    participant CustomerMS as Customer [MS]
 
-    Traveller->>Web: Navigate to online check-in
+    Traveller ->> Web: Opens online check in journey <br /> Enters lead PAX first name, last name and <br /> departure airport code (e.g. LHR)
+ 
+    Note over Traveller, CustomerMS: Passport details
 
-    Web->>RetailAPI: POST /v1/checkin/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    OrderMS-->>RetailAPI: 200 OK — order details (PAX list, flights, cabinCode, seat assignments, bag order items, e-tickets)
-    RetailAPI-->>Web: 200 OK — PAX list, pre-flight details, existing ancillary summary
+    Web ->> OperationsApi: POST /v1/oci/retrieve <br /> booking referece, lead PAX first name, last name, <br /> departure airport code (e.g. LHR)
+    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead PAX first name, last name <br /> [Existing endpoint]
+    OrderMS ->> OrderMS: Look up order from order.Order
+    OrderMS -->> OperationsApi: Array of PAX on booking and ticket numbers
+    
+    opt IsLoggedIn
 
-    opt Traveller has no seat assigned or wishes to change seat at check-in
-        Note over Web, SeatMS: Seat selection at check-in is free of charge — no payment taken
-        Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
-        RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
-        SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
-        RetailAPI->>SeatMS: GET /v1/seat-offers?flightId={flightId}
-        SeatMS-->>RetailAPI: 200 OK — priced seat offers (SeatOfferId, price, seat attributes — prices shown for info only at OLCI)
-        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
-        OfferMS-->>RetailAPI: 200 OK — seat availability status per seat (available|held|sold)
-        RetailAPI-->>Web: 200 OK — seat map with pricing for reference only (not charged at OLCI — merged by Retail API)
-        Traveller->>Web: Select seat(s) for each PAX
-        Web->>RetailAPI: PATCH /v1/checkin/{bookingRef}/seats (seatOfferIds per PAX)
-        RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
-        OfferMS-->>RetailAPI: 200 OK — seats reserved
-        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/seats (PAX seat assignments)
-        OrderMS-->>RetailAPI: 200 OK — order updated
+        OperationsApi ->> CustomerMS: GET /v1/customers/{loyaltyNumber}
+        CustomerMS -->> OperationsApi: Customer profile data
+
+        OperationsApi ->> OperationsApi: If lead PAX loyalty number matches profile <br /> Update PAX details array with passport <br /> information to pre-fill on the check in form
+
     end
+    
+    OperationsApi -->> Web: Return PAX details (and if appended, passport information)<br /> array on booking and ticket numbers
+    Web ->> Web: Display PAX details (pre-fill passport details if suppled)
+    
+    Traveller ->> Web: Update passport information per PAX
 
-    opt Traveller wishes to add or purchase additional bags at check-in
-        Note over Web, BagMS: Free allowance confirmed automatically- payment required for additional bags only
-        RetailAPI->>BagMS: GET /v1/bags/offers?inventoryId={inventoryId}&cabinCode={cabinCode}
-        BagMS-->>RetailAPI: 200 OK — bag policy (freeBagsIncluded, maxWeightKg) + bag offers for additional bags
-        RetailAPI-->>Web: Free allowance and additional bag options
-        Traveller->>Web: Select additional bag(s) if required and provide payment details
-        Web->>RetailAPI: POST /v1/orders/{bookingRef}/bags (bagOfferIds per PAX per segment, paymentDetails)
-        loop For each BagOfferId
-            RetailAPI->>BagMS: GET /v1/bags/offers/{bagOfferId}
-            BagMS-->>RetailAPI: 200 OK — validated (IsConsumed=0, unexpired, price locked)
-        end
-        RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=BagAncillary)
-        PaymentMS-->>RetailAPI: 200 OK — paymentId
-        RetailAPI->>PaymentMS: POST /v1/payment/{paymentId}/settle (settledAmount)
-        PaymentMS-->>RetailAPI: 200 OK — bag payment settled
-        RetailAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/bags (bagOfferIds, passengerRefs, segmentRefs, paymentId)
-        OrderMS-->>RetailAPI: 200 OK — order updated with Bag order items
-    end
+    Web ->> OperationsApi: POST /v1/oci/pax <br /> Booking reference and <br />array of tickets for each PAX details with passport info
+    OperationsApi ->> OperationsApi: Validate passport issue and expiry date
+    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, first name, last name <br /> [Existing endpoint]
+    OrderMS -->> OperationsApi: Order details
+    OperationsApi ->> OperationsApi: Update travel docs on order
+    OperationsApi ->> OrderMS: POST /v1/orders <br /> Save order
+    OrderMS -->> OperationsApi: Updated order
 
-    Traveller->>Web: Confirm / update travel document details for each PAX
+    OperationsApi -->> Web: Success / failure
 
-    Web->>RetailAPI: POST /v1/checkin/{bookingRef} (PAX IDs, travel document details)
+    Note over Traveller, CustomerMS: Seat selection
 
-    RetailAPI->>OrderMS: POST /v1/orders/{bookingRef}/checkin (travel document details)
-    OrderMS-->>RetailAPI: 200 OK — PAX checked in, APIS data recorded
+    Traveller ->> Web: Clicks to continue to seat selection
 
-    RetailAPI->>OfferMS: PATCH /v1/flights/{flightId}/seat-availability (flightId, seatNumbers, status=checked-in)
-    OfferMS-->>RetailAPI: 200 OK — inventory updated
+    Web ->> OperationsApi: POST /v1/oci/seats <br /> Booking referece, departure airport code
+    Note over OperationsApi: Not implemented at this time
+    OperationsApi -->> Web: Return Success 
 
-    RetailAPI->>DeliveryMS: PATCH /v1/manifest/{bookingRef} (PAX IDs, checkedIn=true, checkedInAt=now)
-    DeliveryMS-->>RetailAPI: 200 OK — manifest entries updated
+    Note over Traveller, CustomerMS: Baggage selection
 
-    RetailAPI->>DeliveryMS: POST /v1/boarding-cards (bookingReference, PAX list, seats, flights)
-    DeliveryMS-->>RetailAPI: 201 Created — boarding cards (one per PAX per flight) including BCBP barcode string
+    Traveller ->> Web: Clicks to continue to baggage selection
 
-    RetailAPI-->>Web: 200 OK — check-in confirmed (boarding cards)
-    Web-->>Traveller: Display and offer download of boarding cards
+    Web ->> OperationsApi: POST /v1/oci/bags <br /> Booking referece, departure airport code
+    Note over OperationsApi: Not implemented at this time
+    OperationsApi -->> Web: Return Success 
+ 
+    Note over Traveller, CustomerMS: Hazardous materials confirmation
+    
+    Traveller ->> Web: Clicks to continue to hazardous materials selection
+    Web ->> Web: Display hazardous materials page
+
+    Traveller ->> Web: Clicks to continue to submit check in information
+
+    Web ->> OperationsApi: POST /v1/oci/pax <br /> Booking reference and <br />array of tickets for each PAX details with passport info
+    OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead pax first name, last name <br /> [Existing endpoint]
+    OrderMS -->> OperationsApi: Order details
+
+    OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
+    DeliveryMS ->> DeliveryMS: Update coupon status in ticket in DB (delivery.Ticket) on each ticket being checked in (status = C)
+    DeliveryMS -->> OperationsApi: Success / failure
+
+    Note over Traveller, CustomerMS: Boarding pass generation
+
+    OperationsApi ->> DeliveryMS: POST /v1/oci/boarding-docs <br /> Ticket numbers and departure airport code
+    DeliveryMS ->> DeliveryMS: Retrieve ticket from DB (delivery.Ticket) <br /> and filter to the segments checked in for the airport code supplied
+    DeliveryMS -->> OperationsApi: Array of boarding cards 
+
+    OperationsApi -->> Web: Array of boarding cards
+
+    Web ->> Web: Render boarding cards
 ```
 
-*Ref: delivery - online check-in flow including seat selection, bag addition, and boarding card generation*
+## APIs and microservices
+
+The following APIs and microservices are involved in the online check-in flow.
+
+### Operations API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/oci/retrieve` | Retrieve booking for check-in by booking reference, lead PAX name, and departure airport code; optionally pre-fills passport data from loyalty profile |
+| `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order |
+| `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) |
+| `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) |
+
+### Order microservice
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/orders/retrieve` | Retrieve an existing order by booking reference and lead PAX name; returns PAX details, ticket numbers, and full order data |
+| `POST` | `/v1/orders` | Persist an updated order; used to save travel document changes back to the order record |
+
+### Customer microservice
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/customers/{loyaltyNumber}` | Retrieve a customer profile by loyalty number; used to pre-fill passport information when the traveller is logged in |
+
+### Delivery microservice
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` |
+| `POST` | `/v1/oci/boarding-docs` | Generate boarding documents for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments |
 
 ## Boarding pass barcode string
 
