@@ -174,6 +174,32 @@ public sealed class GetAdminOrderDetailHandler
         else
             orderData["dataLists"] = new JsonObject { ["flightSegments"] = flightSegments };
 
+        // Append seat ancillary items from seatAssignments so the Terminal passengers tab
+        // can display seat numbers via getSeatForPaxSegment (which looks for itemType=Seat).
+        // Seats are stored with segmentId = inventoryId (set by the web app at selection time).
+        var seatAssignmentsNode = orderData["seatAssignments"]?.AsArray();
+        if (seatAssignmentsNode is not null)
+        {
+            foreach (var seatNode in seatAssignmentsNode)
+            {
+                var seat = seatNode?.AsObject();
+                if (seat is null) continue;
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"] = Guid.NewGuid().ToString(),
+                    ["itemType"] = "Seat",
+                    ["passengerId"] = seat["passengerId"]?.GetValue<string>(),
+                    ["segmentId"] = seat["segmentId"]?.GetValue<string>(),
+                    ["status"] = "Confirmed",
+                    ["eTicketNumber"] = null,
+                    ["seatNumber"] = seat["seatNumber"]?.GetValue<string>(),
+                    ["bagWeightKg"] = null,
+                    ["amount"] = seat["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                    ["currency"] = seat["currency"]?.GetValue<string>(),
+                });
+            }
+        }
+
         // Replace orderItems only when we have enriched entries (prevents wiping ancillary items
         // that may have been appended by future post-sale operations)
         if (enrichedItems.Count > 0)

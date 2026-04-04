@@ -289,6 +289,25 @@ public sealed class ConfirmBasketHandler
                 }
             }
 
+            // Build a lookup of seat assignments keyed by inventoryId (which is how the
+            // web app stores the segmentId on each seat selection in the basket).
+            var seatsByInventoryId = new Dictionary<string, List<SeatAssignmentItem>>(StringComparer.OrdinalIgnoreCase);
+            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var seat in seatsEl.EnumerateArray())
+                {
+                    var paxId = seat.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
+                    var segId = seat.TryGetProperty("segmentId", out var ssid) ? ssid.GetString() ?? "" : "";
+                    var seatNum = seat.TryGetProperty("seatNumber", out var sn) ? sn.GetString() ?? "" : "";
+                    if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId) && !string.IsNullOrEmpty(seatNum))
+                    {
+                        if (!seatsByInventoryId.ContainsKey(segId))
+                            seatsByInventoryId[segId] = [];
+                        seatsByInventoryId[segId].Add(new SeatAssignmentItem { PassengerId = paxId, SeatNumber = seatNum });
+                    }
+                }
+            }
+
             if (root.TryGetProperty("flightOffers", out var offersEl) &&
                 offersEl.ValueKind == JsonValueKind.Array)
             {
@@ -299,16 +318,19 @@ public sealed class ConfirmBasketHandler
                         ? bid.GetString() ?? $"SEG-{idx}"
                         : $"SEG-{idx}";
 
+                    var inventoryId = offer.TryGetProperty("inventoryId", out var v) ? v.GetString() ?? string.Empty : string.Empty;
+
                     segments.Add(new TicketSegment
                     {
                         SegmentId = segmentId,
-                        InventoryId = offer.TryGetProperty("inventoryId", out var v) ? v.GetString() ?? string.Empty : string.Empty,
+                        InventoryId = inventoryId,
                         FlightNumber = offer.TryGetProperty("flightNumber", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         DepartureDate = offer.TryGetProperty("departureDate", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         Origin = offer.TryGetProperty("origin", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        FareBasisCode = offer.TryGetProperty("fareBasisCode", out v) ? v.GetString() : null
+                        FareBasisCode = offer.TryGetProperty("fareBasisCode", out v) ? v.GetString() : null,
+                        SeatAssignments = seatsByInventoryId.TryGetValue(inventoryId, out var segSeats) ? segSeats : []
                     });
                     idx++;
                 }

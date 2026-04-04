@@ -186,6 +186,7 @@ public sealed class GetOrderHandler
                         var inventoryId = item.TryGetProperty("inventoryId", out var invId) ? invId.GetString() ?? "" : "";
                         var basketItemId = item.TryGetProperty("basketItemId", out var bid) ? bid.GetString() : null;
                         var segmentId = basketItemId ?? (string.IsNullOrEmpty(inventoryId) ? $"SEG-{itemIndex}" : inventoryId);
+
                         var flightNumber = item.TryGetProperty("flightNumber", out var fn) ? fn.GetString() ?? "" : "";
                         var departureDate = item.TryGetProperty("departureDate", out var dd) ? dd.GetString() ?? "" : "";
                         var departureTime = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
@@ -224,9 +225,13 @@ public sealed class GetOrderHandler
 
                         // e-tickets for this segment
                         eTicketsBySegment.TryGetValue(segmentId, out var segETickets);
-                        var segSeatAssignments = seatsBySegment.TryGetValue(segmentId, out var seats)
-                            ? seats
-                            : new List<ManagedSeatAssignment>();
+                        // Seats are keyed by inventoryId in seatAssignments (the web app stores
+                        // inventoryId as the seat's segmentId). Fall back to inventoryId lookup
+                        // when the basketItemId-based lookup finds nothing.
+                        var segSeatAssignments =
+                            seatsBySegment.TryGetValue(segmentId, out var seats) ? seats :
+                            seatsBySegment.TryGetValue(inventoryId, out seats) ? seats :
+                            new List<ManagedSeatAssignment>();
 
                         // Flight order item
                         orderItems.Add(new ManagedOrderItem
