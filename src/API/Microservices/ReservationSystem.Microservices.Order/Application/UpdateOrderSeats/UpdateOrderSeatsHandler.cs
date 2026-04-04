@@ -44,7 +44,7 @@ public sealed class UpdateOrderSeatsHandler
 
         var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
         var seatsNode = JsonNode.Parse(command.SeatsData);
-        orderJson["seats"] = seatsNode;
+        orderJson["seatAssignments"] = seatsNode;
 
         var updated = Domain.Entities.Order.Reconstitute(
             order.OrderId,
