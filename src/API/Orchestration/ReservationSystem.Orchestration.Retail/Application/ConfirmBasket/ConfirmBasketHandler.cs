@@ -95,7 +95,9 @@ public sealed class ConfirmBasketHandler
             throw;
         }
 
-        // 5. Sell flight inventory — convert held seats to sold in each cabin
+        // 5. Hold then sell flight inventory — ensure seats are held and convert to sold
+        //    HoldInventory is idempotent (no-op if seats were already held during basket creation).
+        //    This guarantees the inventory seat count is decremented when tickets are issued.
         if (basket.BasketData.HasValue)
         {
             try
@@ -103,6 +105,12 @@ public sealed class ConfirmBasketHandler
                 var (inventoryItems, paxCount) = ParseBasketDataForInventorySell(basket.BasketData.Value.GetRawText());
                 if (inventoryItems.Count > 0 && paxCount > 0)
                 {
+                    foreach (var (inventoryId, cabinCode) in inventoryItems)
+                    {
+                        await _offerServiceClient.HoldInventoryAsync(
+                            inventoryId, cabinCode, paxCount, command.BasketId, cancellationToken);
+                    }
+
                     await _offerServiceClient.SellInventoryAsync(
                         command.BasketId, inventoryItems, paxCount, cancellationToken);
                 }

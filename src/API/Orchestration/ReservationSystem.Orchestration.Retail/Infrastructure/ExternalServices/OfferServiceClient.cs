@@ -106,17 +106,16 @@ public sealed class OfferServiceClient
         }
     }
 
-    public async Task<OfferDetailDto?> HoldInventoryAsync(
-        Guid inventoryId, string cabinCode, int paxCount,
+    public async Task HoldInventoryAsync(
+        Guid inventoryId, string cabinCode, int paxCount, Guid basketId,
         CancellationToken cancellationToken = default)
     {
-        var payload = new { inventoryId, cabinCode, paxCount };
+        var payload = new { inventoryId, cabinCode, paxCount, basketId };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", payload, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(cancellationToken);
             throw new InvalidOperationException($"Inventory hold failed: {error}");
         }
-        return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
     }
 }
