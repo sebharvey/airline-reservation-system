@@ -1,0 +1,994 @@
+{
+  "journey": {
+    "name": "OCI - 1 PAX Inbound",
+    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation. Check-in is performed for the inbound (return) flight.",
+    "domain": "Retail / Operations",
+    "baseUrls": [
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Search outbound flights",
+      "description": "Search for available outbound flights from LHR to JFK for a single adult passenger on a Revenue booking. Returns a sessionId and a list of flights with cabin and fare-family offers. The sessionId and a selected outbound offerId are forwarded to the basket creation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
+          "flights": [
+            {
+              "flightNumber": "AX001",
+              "origin": "LHR",
+              "destination": "JFK",
+              "departureTime": "2026-03-31T08:00:00",
+              "arrivalTime": "2026-03-31T11:10:00",
+              "aircraftType": "A351",
+              "cabins": [
+                {
+                  "cabinCode": "J",
+                  "availableSeats": 40,
+                  "fromPrice": 781.5,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    {
+                      "fareFamily": "Flex",
+                      "offer": {
+                        "offerId": "a12d4bf4-7e88-42e6-888e-71a82921b45f",
+                        "fareBasisCode": "JFLEXGB",
+                        "basePrice": 999.0,
+                        "tax": 182.5,
+                        "totalPrice": 1181.5,
+                        "currency": "GBP",
+                        "isRefundable": true,
+                        "isChangeable": true
+                      }
+                    },
+                    {
+                      "fareFamily": "Non-Flex",
+                      "offer": {
+                        "offerId": "db78522f-1d80-4e64-8114-0b33a12f7169",
+                        "fareBasisCode": "JSAVGB",
+                        "basePrice": 599.0,
+                        "tax": 182.5,
+                        "totalPrice": 781.5,
+                        "currency": "GBP",
+                        "isRefundable": false,
+                        "isChangeable": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "cabinCode": "W",
+                  "availableSeats": 63,
+                  "fromPrice": 434.0,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    {
+                      "fareFamily": "Flex",
+                      "offer": {
+                        "offerId": "77b3e12e-3436-4528-b1eb-ab766d089b46",
+                        "fareBasisCode": "WFLEXGB",
+                        "basePrice": 499.0,
+                        "tax": 135.0,
+                        "totalPrice": 634.0,
+                        "currency": "GBP",
+                        "isRefundable": true,
+                        "isChangeable": true
+                      }
+                    },
+                    {
+                      "fareFamily": "Non-Flex",
+                      "offer": {
+                        "offerId": "5c5103ef-fbff-42f5-b376-2265179dbda8",
+                        "fareBasisCode": "WSAVGB",
+                        "basePrice": 299.0,
+                        "tax": 135.0,
+                        "totalPrice": 434.0,
+                        "currency": "GBP",
+                        "isRefundable": false,
+                        "isChangeable": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "cabinCode": "Y",
+                  "availableSeats": 252,
+                  "fromPrice": 186.25,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    {
+                      "fareFamily": "Flex",
+                      "offer": {
+                        "offerId": "23eb2133-9fa8-44d8-820f-b27d92671be6",
+                        "fareBasisCode": "YFLEXGB",
+                        "basePrice": 249.0,
+                        "tax": 97.25,
+                        "totalPrice": 346.25,
+                        "currency": "GBP",
+                        "isRefundable": true,
+                        "isChangeable": true
+                      }
+                    },
+                    {
+                      "fareFamily": "Non-Flex",
+                      "offer": {
+                        "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d",
+                        "fareBasisCode": "YLOWGB",
+                        "basePrice": 89.0,
+                        "tax": 97.25,
+                        "totalPrice": 186.25,
+                        "currency": "GBP",
+                        "isRefundable": false,
+                        "isChangeable": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — search results returned. Contains a sessionId scoped to this search, and a list of available flights each with cabins and fare-family offers. The sessionId must be passed alongside the selected offerId when creating the basket.",
+        "keyFields": [
+          "sessionId",
+          "flights"
+        ],
+        "validationNotes": "sessionId is a GUID unique to this search session. Each offer contains an offerId (GUID), fareBasisCode, basePrice, tax, totalPrice, isRefundable, and isChangeable. Prices use GBP. Multiple flights may be returned; the caller selects one offer from one flight."
+      },
+      "chainsTo": [
+        {
+          "field": "sessionId",
+          "as": "outboundSessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId",
+          "as": "outboundOfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Search return flights",
+      "description": "Search for available return flights from JFK back to LHR for the same passenger on the return date. Returns a second sessionId and flight list. The sessionId and a selected return offerId are forwarded to the basket creation step alongside the outbound selections.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "origin": "JFK",
+          "destination": "LHR",
+          "departureDate": "__RAND_RETURN_DATE__",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854",
+          "flights": [
+            {
+              "flightNumber": "AX010",
+              "origin": "JFK",
+              "destination": "LHR",
+              "departureTime": "2026-04-14T00:30:00",
+              "arrivalTime": "2026-04-15T12:45:00",
+              "aircraftType": "B789",
+              "cabins": [
+                {
+                  "cabinCode": "Y",
+                  "availableSeats": 207,
+                  "fromPrice": 186.25,
+                  "currency": "GBP",
+                  "fareFamilies": [
+                    {
+                      "fareFamily": "Flex",
+                      "offer": {
+                        "offerId": "b6914c3a-749f-477b-bf85-786ac59f32b6",
+                        "fareBasisCode": "YFLEXGB",
+                        "basePrice": 249.0,
+                        "tax": 97.25,
+                        "totalPrice": 346.25,
+                        "currency": "GBP",
+                        "isRefundable": true,
+                        "isChangeable": true
+                      }
+                    },
+                    {
+                      "fareFamily": "Non-Flex",
+                      "offer": {
+                        "offerId": "38689c32-a37a-4ee8-8ab7-4c59b74f8450",
+                        "fareBasisCode": "YLOWGB",
+                        "basePrice": 89.0,
+                        "tax": 97.25,
+                        "totalPrice": 186.25,
+                        "currency": "GBP",
+                        "isRefundable": false,
+                        "isChangeable": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — return search results returned. Contains a second sessionId and the list of available return flights. This sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
+        "keyFields": [
+          "sessionId",
+          "flights"
+        ],
+        "validationNotes": "sessionId is a new GUID, independent from the outbound session. Structure is identical to the outbound search response. Caller selects one return offer and pairs it with this sessionId in the basket segments array."
+      },
+      "chainsTo": [
+        {
+          "field": "sessionId",
+          "as": "returnSessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId",
+          "as": "returnOfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Create basket",
+      "description": "Create a new basket containing the selected outbound and return flight offers. Each segment pairs an offerId with the sessionId from its respective search. The loyalty number is included so points can be accrued on confirmation. Returns a basketId used for all subsequent basket operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "segments": [
+            {
+              "offerId": "bc2f449f-a828-4826-a97c-4378531d7253",
+              "sessionId": "518c85cc-8618-4a20-8874-235461e10e11"
+            },
+            {
+              "offerId": "19714659-fdbe-4593-9037-948ff69178ca",
+              "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854"
+            }
+          ],
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "bookingType": "Revenue",
+          "loyaltyNumber": "AX8564125"
+        },
+        "dataChain": [
+          {
+            "field": "segments[0].offerId",
+            "from": "outboundOfferId",
+            "source": "Step 1 → random offer from search results"
+          },
+          {
+            "field": "segments[0].sessionId",
+            "from": "outboundSessionId",
+            "source": "Step 1 → response.sessionId"
+          },
+          {
+            "field": "segments[1].offerId",
+            "from": "returnOfferId",
+            "source": "Step 2 → random offer from search results"
+          },
+          {
+            "field": "segments[1].sessionId",
+            "from": "returnSessionId",
+            "source": "Step 2 → response.sessionId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — basket created. Returns a basketId (GUID) which is the handle for all subsequent basket operations. Location header contains the basket resource path.",
+        "keyFields": [
+          "basketId"
+        ],
+        "validationNotes": "basketId is a GUID. Each segment offerId must match a valid stored offer from its corresponding search session. The basket expires after 60 minutes of inactivity."
+      },
+      "chainsTo": [
+        {
+          "field": "basketId",
+          "usedInSteps": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Get basket",
+      "description": "Retrieve the basket immediately after creation to verify the initial state. Confirms both flight offers are present as basket items and that the basket status is Active.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "basketStatus": "Active",
+          "totalFareAmount": 0.0,
+          "totalSeatAmount": 0.0,
+          "totalBagAmount": 0.0,
+          "totalAmount": 0.0,
+          "expiresAt": "2026-03-30T07:52:50.2589669",
+          "confirmedOrderId": null,
+          "version": 5,
+          "basketData": {
+            "bookingType": "oneWay",
+            "channelCode": "WEB",
+            "currencyCode": "GBP",
+            "flightOffers": [
+              {
+                "offerId": "bc2f449f-a828-4826-a97c-4378531d7253",
+                "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
+                "basketItemId": "BI-1",
+                "inventoryId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0",
+                "flightNumber": "AX001",
+                "aircraftType": "A351"
+              },
+              {
+                "offerId": "19714659-fdbe-4593-9037-948ff69178ca",
+                "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854",
+                "basketItemId": "BI-2",
+                "inventoryId": "3a5f9c12-b847-4d29-a318-7e1f042d8b56",
+                "flightNumber": "AX010",
+                "aircraftType": "B789"
+              }
+            ],
+            "passengers": [],
+            "seats": [],
+            "bags": []
+          }
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. basketStatus is 'Active'. Both flight offers are present in basketData.flightOffers, each assigned a basketItemId (BI-1, BI-2). passengers, seats, and bags are empty arrays at this point. All amount totals are 0.00 until pricing is resolved.",
+        "keyFields": [
+          "basketId",
+          "basketStatus",
+          "basketData.flightOffers",
+          "expiresAt"
+        ],
+        "validationNotes": "basketStatus must be 'Active'. confirmedOrderId is null until confirmed. version increments on each mutation. expiresAt is 60 minutes from creation."
+      },
+      "chainsTo": [
+        {
+          "path": "basketData.flightOffers[0].inventoryId",
+          "as": "outboundInventoryId",
+          "usedInSteps": [
+            7
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].flightNumber",
+          "as": "outboundFlightNumber",
+          "usedInSteps": [
+            7
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].aircraftType",
+          "as": "outboundAircraftType",
+          "usedInSteps": [
+            7
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].basketItemId",
+          "as": "outboundBasketItemId",
+          "usedInSteps": [
+            9
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].inventoryId",
+          "as": "returnInventoryId",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].flightNumber",
+          "as": "returnFlightNumber",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].aircraftType",
+          "as": "returnAircraftType",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].basketItemId",
+          "as": "returnBasketItemId",
+          "usedInSteps": [
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Add passengers",
+      "description": "Add passenger details to the basket. Each passenger record includes personal details, contact information, and an optional loyalty number for points accrual. The passengerId (PAX-1, PAX-2 …) is assigned by the caller and must be consistent across seats and bags additions.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": "__RAND_LOYALTY_NUMBER__",
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          }
+        ],
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
+          "status": "Active",
+          "flights": [
+            {
+              "offerId": "bc2f449f-a828-4826-a97c-4378531d7253",
+              "flightNumber": "",
+              "origin": "",
+              "destination": "",
+              "cabinCode": "",
+              "fareFamily": null,
+              "totalAmount": 0
+            },
+            {
+              "offerId": "19714659-fdbe-4593-9037-948ff69178ca",
+              "flightNumber": "",
+              "origin": "",
+              "destination": "",
+              "cabinCode": "",
+              "fareFamily": null,
+              "totalAmount": 0
+            }
+          ],
+          "totalFareAmount": 0.0,
+          "totalSeatAmount": 0.0,
+          "totalBagAmount": 0.0,
+          "totalPrice": 0.0,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — passengers saved to the basket. Response is a basket summary. Passenger type must be a valid IATA code: ADT, CHD, INF, or YTH. contacts.email and contacts.phone are required for the primary passenger.",
+        "keyFields": [
+          "basketId",
+          "status",
+          "totalPrice"
+        ],
+        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 …) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocument is null for domestic or when not yet collected."
+      }
+    },
+    {
+      "step": 6,
+      "name": "Confirm and pay — valid card",
+      "description": "Submit payment with a card number that passes the Luhn check to confirm the basket and create the order. The basket transitions to Confirmed and an orderId is returned.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
+          },
+          "loyaltyPointsToRedeem": null
+        },
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "bookingReference": "AX123456",
+          "status": "Confirmed"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — booking confirmed. The basket is marked Confirmed and a new order is created. The response contains the orderId (GUID) and the human-readable bookingReference used for check-in and manage-booking flows.",
+        "keyFields": [
+          "orderId",
+          "bookingReference",
+          "status"
+        ],
+        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
+      },
+      "chainsTo": [
+        {
+          "field": "bookingReference",
+          "as": "bookingReference",
+          "usedInSteps": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Retrieve booking for check-in",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport to open the check-in session. Returns the list of passengers with ticket numbers and, if the passenger is logged in and holds a loyalty profile, pre-populated travel document data. checkInEligible confirms the booking is within the 24-hour check-in window.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "checkInEligible": true,
+          "passengers": [
+            {
+              "passengerId": "PAX-1",
+              "ticketNumber": "932-1234567890",
+              "givenName": "Alex",
+              "surname": "Taylor",
+              "passengerTypeCode": "ADT",
+              "travelDocument": null
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — booking retrieved. checkInEligible must be true for the journey to proceed. passengers contains one record per traveller, each with a ticketNumber required for passport submission. travelDocument is null when no passport data is held; it is pre-filled when the passenger is logged in and a loyalty profile match is found.",
+        "keyFields": [
+          "bookingReference",
+          "checkInEligible",
+          "passengers"
+        ],
+        "validationNotes": "checkInEligible is false outside the 24-hour window or when the booking is not in a Confirmed status. ticketNumber format is carrier-prefix – numeric (e.g. 932-1234567890). passengerTypeCode uses IATA codes: ADT, CHD, INF, YTH."
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "ticketNumber",
+          "usedInSteps": [
+            8,
+            11,
+            12
+          ]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "passengerId",
+          "usedInSteps": [
+            8,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Submit passport details",
+      "description": "Submit travel document data for each passenger on the booking. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice. This step may be called multiple times before final check-in submission.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ticketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 → response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ticketNumber",
+            "source": "Step 7 → passengers[0].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — passport details validated and saved to the order. success: true confirms the travel document passed date validation and was persisted. A 422 is returned if the passport is expired or issueDate is in the future.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "travelDocument.type must be PASSPORT. issuingCountry and nationality use ISO 3166-1 alpha-3 codes. issueDate must be in the past; expiryDate must be in the future at time of travel. ticketNumber must match a ticket on the booking."
+      }
+    },
+    {
+      "step": 9,
+      "name": "Seat selection",
+      "description": "Submit seat selection for the booking during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seat selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any seat changes.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "Not implemented. Response is a stub success. No seat data is processed or stored."
+      }
+    },
+    {
+      "step": 10,
+      "name": "Baggage selection",
+      "description": "Submit baggage selection for the booking during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "success": true
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — baggage selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any bag changes.",
+        "keyFields": [
+          "bookingReference",
+          "success"
+        ],
+        "validationNotes": "Not implemented. Response is a stub success. No baggage data is processed or stored."
+      }
+    },
+    {
+      "step": 11,
+      "name": "Complete check-in",
+      "description": "Final check-in submission. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/checkin",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 6 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "bookingReference": "AX123456",
+          "checkedIn": [
+            "932-1234567890"
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — check-in complete. checkedIn contains the ticket numbers successfully checked in. The Delivery microservice has updated the ticket coupon status to C for each ticket. The web then calls POST /v1/oci/boarding-docs to retrieve boarding cards.",
+        "keyFields": [
+          "bookingReference",
+          "checkedIn"
+        ],
+        "validationNotes": "checkedIn is an array of ticket number strings. One entry per successfully checked-in ticket. Ticket numbers use the carrier-prefix–numeric format (e.g. 932-1234567890)."
+      }
+    },
+    {
+      "step": 12,
+      "name": "Generate boarding cards",
+      "description": "Request boarding documents for the checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for the supplied departure airport, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "JFK",
+          "ticketNumbers": [
+            "__CHAIN_ticketNumber__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "ticketNumber",
+            "source": "Step 7 → passengers[0].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "boardingCards": [
+            {
+              "ticketNumber": "932-1234567890",
+              "passengerId": "PAX-1",
+              "flightNumber": "AX010",
+              "departureDate": "2026-08-15",
+              "seatNumber": "1A",
+              "cabinCode": "J",
+              "sequenceNumber": "0001",
+              "origin": "JFK",
+              "destination": "LHR",
+              "bcbpString": "M1TAYLOR/ALEX        EAX123456JFKLHRAX 0010 228J001A0001 156>518 W6228 AX 2A00000012345678 JAX7KLP2NZR901A"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — boarding cards generated. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
+        "keyFields": [
+          "boardingCards",
+          "boardingCards[0].ticketNumber",
+          "boardingCards[0].bcbpString"
+        ],
+        "validationNotes": "boardingCards array contains one entry per flight segment checked in. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in.",
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": 1,
+            "description": "Exactly 1 boarding card must be generated for the single outbound passenger."
+          }
+        ]
+      }
+    }
+  ]
+}
