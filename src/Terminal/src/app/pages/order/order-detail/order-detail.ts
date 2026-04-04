@@ -55,6 +55,12 @@ export class OrderDetailComponent implements OnInit {
   ticketsError = signal('');
   selectedTicket = signal<Ticket | null>(null);
 
+  // Debug state — TODO: Remove when debug endpoint is removed
+  showDebug = signal(false);
+  debugLoading = signal(false);
+  debugJson = signal('');
+  debugError = signal('');
+
   readonly objectKeys = Object.keys;
 
   passengers = computed<OrderPassenger[]>(() =>
@@ -430,6 +436,26 @@ export class OrderDetailComponent implements OnInit {
 
   updateAddSsrField(field: keyof SsrEditForm, value: string): void {
     this.addSsrForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  // TODO: Remove when debug endpoint is removed
+  async openDebug(): Promise<void> {
+    this.showDebug.set(true);
+    if (this.debugJson()) return;
+    this.debugLoading.set(true);
+    this.debugError.set('');
+    try {
+      const data = await this.#orderService.getOrderDebug(this.bookingRef);
+      this.debugJson.set(JSON.stringify(data, null, 2));
+    } catch {
+      this.debugError.set('Failed to load debug data.');
+    } finally {
+      this.debugLoading.set(false);
+    }
+  }
+
+  closeDebug(): void {
+    this.showDebug.set(false);
   }
 
   getSsrLabel(ssrCode: string | null | undefined): string {

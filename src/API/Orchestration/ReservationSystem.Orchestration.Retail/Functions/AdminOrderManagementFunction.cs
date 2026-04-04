@@ -10,6 +10,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
+using System.Text;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -24,17 +25,20 @@ public sealed class AdminOrderManagementFunction
     private readonly GetAdminOrdersHandler _getAdminOrdersHandler;
     private readonly GetAdminOrderDetailHandler _getAdminOrderDetailHandler;
     private readonly GetAdminOrderTicketsHandler _getAdminOrderTicketsHandler;
+    private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<AdminOrderManagementFunction> _logger;
 
     public AdminOrderManagementFunction(
         GetAdminOrdersHandler getAdminOrdersHandler,
         GetAdminOrderDetailHandler getAdminOrderDetailHandler,
         GetAdminOrderTicketsHandler getAdminOrderTicketsHandler,
+        OrderServiceClient orderServiceClient,
         ILogger<AdminOrderManagementFunction> logger)
     {
         _getAdminOrdersHandler = getAdminOrdersHandler;
         _getAdminOrderDetailHandler = getAdminOrderDetailHandler;
         _getAdminOrderTicketsHandler = getAdminOrderTicketsHandler;
+        _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
 
@@ -100,5 +104,30 @@ public sealed class AdminOrderManagementFunction
             bookingRef.ToUpperInvariant(), cancellationToken);
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/{bookingRef}/debug
+    // TODO: Remove — temporary debug endpoint
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDebugGetOrder")]
+    [OpenApiOperation(operationId: "AdminDebugGetOrder", tags: new[] { "Admin Orders" }, Summary = "[TEMP] Return raw Order database row by booking reference (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Raw Order row as JSON")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DebugGetOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/{bookingRef}/debug")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        var raw = await _orderServiceClient.GetOrderDebugRawAsync(bookingRef.ToUpperInvariant(), cancellationToken);
+        if (raw is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(raw, Encoding.UTF8);
+        return response;
     }
 }

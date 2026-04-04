@@ -272,6 +272,15 @@ public sealed class OrderServiceClient
         }
     }
 
+    // TODO: Remove — temporary debug method
+    public async Task<string?> GetOrderDebugRawAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/debug/orders/{bookingReference}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
     public async Task<OrderMsSsrOptionsResult> GetSsrOptionsAsync(string? cabinCode, string? flightNumbers, CancellationToken ct)
     {
         var url = "/api/v1/ssr/options";

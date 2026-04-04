@@ -38,6 +38,10 @@
         <span class="amount-value">{{ formatAmount(o.totalAmount) }}</span>
         <span class="amount-label">Total</span>
       </div>
+      <!-- TODO: Remove debug button when debug endpoint is removed -->
+      <button class="debug-btn" (click)="openDebug()" title="Show raw order record">
+        Debug
+      </button>
     }
   </div>
 
@@ -871,6 +875,27 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Debug modal — TODO: Remove when debug endpoint is removed -->
+@if (showDebug()) {
+  <div class="debug-overlay" (click)="closeDebug()">
+    <div class="debug-modal" (click)="$event.stopPropagation()">
+      <div class="debug-modal-header">
+        <span class="debug-modal-title">Raw Order Record</span>
+        <button class="debug-modal-close" (click)="closeDebug()">&#x2715;</button>
+      </div>
+      <div class="debug-modal-body">
+        @if (debugLoading()) {
+          <div class="debug-loading">Loading…</div>
+        } @else if (debugError()) {
+          <div class="debug-error">{{ debugError() }}</div>
+        } @else {
+          <pre class="debug-pre">{{ debugJson() }}</pre>
+        }
       </div>
     </div>
   </div>

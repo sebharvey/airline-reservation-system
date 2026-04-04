@@ -499,6 +499,41 @@ public sealed class OrderFunction
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
+    // GET /v1/debug/orders/{bookingRef}
+    // TODO: Remove this endpoint — temporary debug only
+    [Function("DebugGetOrder")]
+    [OpenApiOperation(operationId: "DebugGetOrder", tags: new[] { "Debug" }, Summary = "[TEMP] Return raw Order database row by booking reference")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Raw Order row as JSON")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DebugGetOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/orders/{bookingRef}")] HttpRequestData req,
+        string bookingRef, CancellationToken ct)
+    {
+        var order = await _orderRepository.GetByBookingReferenceAsync(bookingRef.ToUpperInvariant(), ct);
+        if (order is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        JsonElement orderDataElement;
+        try { orderDataElement = JsonSerializer.Deserialize<JsonElement>(order.OrderData); }
+        catch { orderDataElement = JsonSerializer.Deserialize<JsonElement>("{}"); }
+
+        return await req.OkJsonAsync(new
+        {
+            orderId = order.OrderId,
+            bookingReference = order.BookingReference,
+            orderStatus = order.OrderStatus,
+            channelCode = order.ChannelCode,
+            currencyCode = order.CurrencyCode,
+            ticketingTimeLimit = order.TicketingTimeLimit,
+            totalAmount = order.TotalAmount,
+            version = order.Version,
+            createdAt = order.CreatedAt,
+            updatedAt = order.UpdatedAt,
+            orderData = orderDataElement
+        });
+    }
+
     // GET /v1/admin/orders?limit=10
     [Function("GetRecentOrders")]
     [OpenApiOperation(operationId: "GetRecentOrders", tags: new[] { "Admin Orders" }, Summary = "Get the most recently created orders")]
