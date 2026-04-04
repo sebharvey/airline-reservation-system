@@ -26,6 +26,7 @@ public sealed class AdminOrderManagementFunction
     private readonly GetAdminOrderDetailHandler _getAdminOrderDetailHandler;
     private readonly GetAdminOrderTicketsHandler _getAdminOrderTicketsHandler;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<AdminOrderManagementFunction> _logger;
 
     public AdminOrderManagementFunction(
@@ -33,12 +34,14 @@ public sealed class AdminOrderManagementFunction
         GetAdminOrderDetailHandler getAdminOrderDetailHandler,
         GetAdminOrderTicketsHandler getAdminOrderTicketsHandler,
         OrderServiceClient orderServiceClient,
+        DeliveryServiceClient deliveryServiceClient,
         ILogger<AdminOrderManagementFunction> logger)
     {
         _getAdminOrdersHandler = getAdminOrdersHandler;
         _getAdminOrderDetailHandler = getAdminOrderDetailHandler;
         _getAdminOrderTicketsHandler = getAdminOrderTicketsHandler;
         _orderServiceClient = orderServiceClient;
+        _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
 
@@ -128,6 +131,29 @@ public sealed class AdminOrderManagementFunction
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
         await response.WriteStringAsync(raw, Encoding.UTF8);
+        return response;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/{bookingRef}/debug/tickets
+    // TODO: Remove — temporary debug endpoint
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDebugGetTickets")]
+    [OpenApiOperation(operationId: "AdminDebugGetTickets", tags: new[] { "Admin Orders" }, Summary = "[TEMP] Return raw Ticket database rows by booking reference (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Ticket rows as JSON")]
+    public async Task<HttpResponseData> DebugGetTickets(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/{bookingRef}/debug/tickets")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        var raw = await _deliveryServiceClient.GetTicketsDebugRawAsync(
+            bookingRef.ToUpperInvariant(), cancellationToken);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(raw ?? "[]", Encoding.UTF8);
         return response;
     }
 }

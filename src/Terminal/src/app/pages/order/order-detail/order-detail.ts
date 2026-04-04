@@ -55,11 +55,15 @@ export class OrderDetailComponent implements OnInit {
   ticketsError = signal('');
   selectedTicket = signal<Ticket | null>(null);
 
-  // Debug state — TODO: Remove when debug endpoint is removed
+  // Debug state — TODO: Remove when debug endpoints are removed
   showDebug = signal(false);
-  debugLoading = signal(false);
-  debugJson = signal('');
-  debugError = signal('');
+  debugTab = signal<'order' | 'tickets'>('order');
+  debugOrderLoading = signal(false);
+  debugOrderJson = signal('');
+  debugOrderError = signal('');
+  debugTicketsLoading = signal(false);
+  debugTicketsJson = signal('');
+  debugTicketsError = signal('');
 
   readonly objectKeys = Object.keys;
 
@@ -438,19 +442,38 @@ export class OrderDetailComponent implements OnInit {
     this.addSsrForm.update(f => ({ ...f, [field]: value }));
   }
 
-  // TODO: Remove when debug endpoint is removed
+  // TODO: Remove when debug endpoints are removed
   async openDebug(): Promise<void> {
     this.showDebug.set(true);
-    if (this.debugJson()) return;
-    this.debugLoading.set(true);
-    this.debugError.set('');
-    try {
-      const data = await this.#orderService.getOrderDebug(this.bookingRef);
-      this.debugJson.set(JSON.stringify(data, null, 2));
-    } catch {
-      this.debugError.set('Failed to load debug data.');
-    } finally {
-      this.debugLoading.set(false);
+    this.switchDebugTab('order');
+  }
+
+  async switchDebugTab(tab: 'order' | 'tickets'): Promise<void> {
+    this.debugTab.set(tab);
+    if (tab === 'order') {
+      if (this.debugOrderJson()) return;
+      this.debugOrderLoading.set(true);
+      this.debugOrderError.set('');
+      try {
+        const data = await this.#orderService.getOrderDebug(this.bookingRef);
+        this.debugOrderJson.set(JSON.stringify(data, null, 2));
+      } catch {
+        this.debugOrderError.set('Failed to load order debug data.');
+      } finally {
+        this.debugOrderLoading.set(false);
+      }
+    } else {
+      if (this.debugTicketsJson()) return;
+      this.debugTicketsLoading.set(true);
+      this.debugTicketsError.set('');
+      try {
+        const data = await this.#orderService.getOrderDebugTickets(this.bookingRef);
+        this.debugTicketsJson.set(JSON.stringify(data, null, 2));
+      } catch {
+        this.debugTicketsError.set('Failed to load tickets debug data.');
+      } finally {
+        this.debugTicketsLoading.set(false);
+      }
     }
   }
 

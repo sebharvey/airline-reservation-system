@@ -7,9 +7,11 @@ using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
+using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using System.Collections.Generic;
+using System.Text.Json;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -21,6 +23,7 @@ public sealed class TicketFunction
     private readonly IssueTicketsHandler _issueHandler;
     private readonly VoidTicketHandler _voidHandler;
     private readonly ReissueTicketsHandler _reissueHandler;
+    private readonly ITicketRepository _ticketRepository;
     private readonly ILogger<TicketFunction> _logger;
 
     public TicketFunction(
@@ -28,12 +31,14 @@ public sealed class TicketFunction
         IssueTicketsHandler issueHandler,
         VoidTicketHandler voidHandler,
         ReissueTicketsHandler reissueHandler,
+        ITicketRepository ticketRepository,
         ILogger<TicketFunction> logger)
     {
         _getByBookingHandler = getByBookingHandler;
         _issueHandler = issueHandler;
         _voidHandler = voidHandler;
         _reissueHandler = reissueHandler;
+        _ticketRepository = ticketRepository;
         _logger = logger;
     }
 
@@ -157,5 +162,48 @@ public sealed class TicketFunction
             _logger.LogError(ex, "Failed to reissue tickets");
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // GET /v1/debug/tickets?bookingRef={bookingRef}
+    // TODO: Remove this endpoint — temporary debug only
+    [Function("DebugGetTicketsByBooking")]
+    [OpenApiOperation(operationId: "DebugGetTicketsByBooking", tags: new[] { "Debug" }, Summary = "[TEMP] Return raw Ticket database rows by booking reference")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Ticket rows as JSON")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> DebugGetTicketsByBooking(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/tickets")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var queryParams = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var bookingRef = queryParams["bookingRef"]?.Trim().ToUpperInvariant();
+
+        if (string.IsNullOrEmpty(bookingRef))
+            return await req.BadRequestAsync("The 'bookingRef' query parameter is required.");
+
+        var tickets = await _ticketRepository.GetByBookingReferenceAsync(bookingRef, cancellationToken);
+
+        var rows = tickets.Select(t =>
+        {
+            JsonElement ticketDataElement;
+            try { ticketDataElement = JsonSerializer.Deserialize<JsonElement>(t.TicketData); }
+            catch { ticketDataElement = JsonSerializer.Deserialize<JsonElement>("{}"); }
+
+            return (object)new
+            {
+                ticketId = t.TicketId,
+                eTicketNumber = t.ETicketNumber,
+                bookingReference = t.BookingReference,
+                passengerId = t.PassengerId,
+                isVoided = t.IsVoided,
+                voidedAt = t.VoidedAt,
+                version = t.Version,
+                createdAt = t.CreatedAt,
+                updatedAt = t.UpdatedAt,
+                ticketData = ticketDataElement
+            };
+        });
+
+        return await req.OkJsonAsync(rows);
     }
 }
