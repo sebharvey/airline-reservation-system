@@ -256,4 +256,13 @@ export class OrderService {
       )
     );
   }
+
+  // TODO: Remove — temporary debug method
+  async getOrderDebug(bookingRef: string): Promise<unknown> {
+    return firstValueFrom(
+      this.#http.get<unknown>(
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/debug`
+      )
+    );
+  }
 }
