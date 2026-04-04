@@ -229,6 +229,8 @@ public sealed class GetAdminOrderDetailHandler
                         ["currency"] = detail.CurrencyCode,
                         ["status"] = detail.Status,
                         ["paymentMethod"] = detail.Method,
+                        ["cardType"] = detail.CardType,
+                        ["cardLast4"] = detail.CardLast4,
                         ["authorisedAt"] = detail.AuthorisedAt?.ToString("o"),
                         ["settledAt"] = detail.SettledAt?.ToString("o"),
                         ["events"] = eventsNode,

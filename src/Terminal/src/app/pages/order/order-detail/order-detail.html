@@ -354,7 +354,7 @@
                 @for (pay of payments(); track pay.paymentId) {
                   <tr>
                     <td class="mono muted small-mono">{{ pay.paymentId }}</td>
-                    <td>{{ pay.paymentMethod || '—' }}</td>
+                    <td>{{ pay.paymentMethod || '—' }}@if (pay.cardLast4) { <span class="muted"> •••• {{ pay.cardLast4 }}</span> }</td>
                     <td class="amount-cell">{{ formatAmount(pay.amount, pay.currency) }}</td>
                     <td>
                       <span class="pay-status-badge" [class]="paymentStatusClass(pay.status)">

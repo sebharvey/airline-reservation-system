@@ -100,6 +100,8 @@ export interface OrderPayment {
   currency: string;
   status: string;
   paymentMethod: string | null;
+  cardType: string | null;
+  cardLast4: string | null;
   authorisedAt: string | null;
   settledAt: string | null;
   events?: PaymentEvent[];
