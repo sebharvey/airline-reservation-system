@@ -932,7 +932,7 @@
   .ssr-form-grid { grid-template-columns: 1fr; }
 }
 
-/* Debug button & modal — TODO: Remove when debug endpoint is removed */
+/* Debug button & modal — TODO: Remove when debug endpoints are removed */
 .debug-btn {
   margin-left: auto;
   background: #1a1a2e;
@@ -950,70 +950,128 @@
 }
 .debug-btn:hover { background: #00ff88; color: #1a1a2e; }
 
+/* Overlay fills viewport; modal scrolls internally, never overflows screen */
 .debug-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.72);
   z-index: 2000;
   display: flex;
-  align-items: center;
+  align-items: flex-end;       /* bottom-sheet on mobile */
   justify-content: center;
-  padding: 24px;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* On wider screens centre the modal vertically with padding */
+@media (min-width: 600px) {
+  .debug-overlay {
+    align-items: center;
+    padding: 20px;
+  }
 }
 
 .debug-modal {
   background: #0d0d1a;
   border: 1.5px solid #00ff88;
-  border-radius: 10px;
+  border-radius: 12px 12px 0 0;  /* pill top on mobile */
   width: 100%;
-  max-width: 820px;
-  max-height: 85vh;
+  max-width: 860px;
+  /* Cap height so it never goes off screen */
+  height: 92dvh;
+  max-height: 92dvh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 -4px 40px rgba(0,0,0,0.6);
+  overflow: hidden;
 }
 
+@media (min-width: 600px) {
+  .debug-modal {
+    border-radius: 12px;
+    height: auto;
+    max-height: 80dvh;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+}
+
+/* Header is sticky — always visible, close button always reachable */
 .debug-modal-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #1e3a2f;
 }
 
 .debug-modal-title {
   color: #00ff88;
   font-family: monospace;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   letter-spacing: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .debug-modal-close {
+  flex-shrink: 0;
   background: none;
-  border: none;
+  border: 1px solid #1e3a2f;
+  border-radius: 6px;
   color: #00ff88;
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 4px 10px;
+  margin-left: 12px;
+  transition: background 0.12s;
 }
-.debug-modal-close:hover { color: #fff; }
+.debug-modal-close:hover { background: #1e3a2f; }
 
+/* Tab bar */
+.debug-modal-tabs {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #1e3a2f;
+  padding: 0 16px;
+}
+
+.debug-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #5a8a6a;
+  font-family: monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  padding: 10px 14px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.debug-tab:hover { color: #a8ffcc; }
+.debug-tab-active { color: #00ff88; border-bottom-color: #00ff88; }
+
+/* Scrollable content area */
 .debug-modal-body {
-  overflow: auto;
-  padding: 16px 20px;
   flex: 1;
+  overflow: auto;
+  padding: 14px 16px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .debug-pre {
   margin: 0;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #a8ffcc;
   white-space: pre;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-.debug-loading { color: #00ff88; font-family: monospace; font-size: 0.85rem; }
-.debug-error   { color: #ff6b6b; font-family: monospace; font-size: 0.85rem; }
+.debug-loading { color: #00ff88; font-family: monospace; font-size: 0.85rem; padding: 8px 0; }
+.debug-error   { color: #ff6b6b; font-family: monospace; font-size: 0.85rem; padding: 8px 0; }

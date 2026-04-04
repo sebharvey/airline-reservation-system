@@ -880,21 +880,45 @@
   </div>
 }
 
-<!-- Debug modal — TODO: Remove when debug endpoint is removed -->
+<!-- Debug modal — TODO: Remove when debug endpoints are removed -->
 @if (showDebug()) {
   <div class="debug-overlay" (click)="closeDebug()">
     <div class="debug-modal" (click)="$event.stopPropagation()">
       <div class="debug-modal-header">
-        <span class="debug-modal-title">Raw Order Record</span>
-        <button class="debug-modal-close" (click)="closeDebug()">&#x2715;</button>
+        <span class="debug-modal-title">Debug — {{ bookingRef }}</span>
+        <button class="debug-modal-close" (click)="closeDebug()" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="debug-modal-tabs">
+        <button
+          class="debug-tab"
+          [class.debug-tab-active]="debugTab() === 'order'"
+          (click)="switchDebugTab('order')">
+          Order row
+        </button>
+        <button
+          class="debug-tab"
+          [class.debug-tab-active]="debugTab() === 'tickets'"
+          (click)="switchDebugTab('tickets')">
+          Ticket rows
+        </button>
       </div>
       <div class="debug-modal-body">
-        @if (debugLoading()) {
-          <div class="debug-loading">Loading…</div>
-        } @else if (debugError()) {
-          <div class="debug-error">{{ debugError() }}</div>
+        @if (debugTab() === 'order') {
+          @if (debugOrderLoading()) {
+            <div class="debug-loading">Loading…</div>
+          } @else if (debugOrderError()) {
+            <div class="debug-error">{{ debugOrderError() }}</div>
+          } @else {
+            <pre class="debug-pre">{{ debugOrderJson() }}</pre>
+          }
         } @else {
-          <pre class="debug-pre">{{ debugJson() }}</pre>
+          @if (debugTicketsLoading()) {
+            <div class="debug-loading">Loading…</div>
+          } @else if (debugTicketsError()) {
+            <div class="debug-error">{{ debugTicketsError() }}</div>
+          } @else {
+            <pre class="debug-pre">{{ debugTicketsJson() }}</pre>
+          }
         }
       </div>
     </div>

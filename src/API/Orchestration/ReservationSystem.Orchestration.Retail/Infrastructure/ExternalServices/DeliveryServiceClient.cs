@@ -106,6 +106,15 @@ public sealed class DeliveryServiceClient
                ?? throw new InvalidOperationException("Empty response from boarding card retrieval.");
     }
 
+    // TODO: Remove — temporary debug method
+    public async Task<string?> GetTicketsDebugRawAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"/api/v1/debug/tickets?bookingRef={Uri.EscapeDataString(bookingReference)}", ct);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
     public async Task IssueDocumentAsync(
         string bookingReference, string documentType, string passengerId,
         string inventoryId, decimal amount, string currency,
