@@ -1047,13 +1047,15 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — boarding cards generated. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
+        "description": "200 OK — boarding cards generated. boardingCards contains one entry per checked-in passenger. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
         "keyFields": [
           "boardingCards",
           "boardingCards[0].ticketNumber",
-          "boardingCards[0].bcbpString"
+          "boardingCards[0].bcbpString",
+          "boardingCards[1].ticketNumber",
+          "boardingCards[1].bcbpString"
         ],
-        "validationNotes": "boardingCards array contains one entry per flight segment checked in. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in.",
+        "validationNotes": "boardingCards array contains one entry per passenger checked in. Two entries expected for the two passengers. bcbpString begins with M1 (single-leg) or M2+ (multi-leg) followed by passenger name in SURNAME/GIVEN format. sequenceNumber is the check-in sequence number, zero-padded to 4 digits. cabinCode is the booking class code (J, W, Y). seatNumber reflects the seat assigned at time of check-in.",
         "assertions": [
           {
             "field": "boardingCards",
