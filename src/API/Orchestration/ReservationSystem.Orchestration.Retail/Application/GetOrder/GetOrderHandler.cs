@@ -146,9 +146,15 @@ public sealed class GetOrderHandler
                         {
                             PaymentReference = p.TryGetProperty("paymentReference", out var pr) ? pr.GetString() ?? "" : "",
                             Description = p.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "",
-                            Method = p.TryGetProperty("type", out var meth) ? meth.GetString() ?? "" : "",
-                            AuthorisedAmount = p.TryGetProperty("amount", out var amt) ? amt.GetDecimal() : 0m,
-                            Currency = order.CurrencyCode
+                            Method = p.TryGetProperty("method", out var meth) ? meth.GetString() ?? "" : "",
+                            CardLast4 = p.TryGetProperty("cardLast4", out var cl4) ? cl4.GetString() ?? "" : "",
+                            CardType = p.TryGetProperty("cardType", out var ct) ? ct.GetString() ?? "" : "",
+                            AuthorisedAmount = p.TryGetProperty("authorisedAmount", out var amt) ? amt.GetDecimal() : 0m,
+                            SettledAmount = p.TryGetProperty("settledAmount", out var samt) ? samt.GetDecimal() : 0m,
+                            Currency = p.TryGetProperty("currency", out var cur) ? cur.GetString() ?? order.CurrencyCode : order.CurrencyCode,
+                            Status = p.TryGetProperty("status", out var st) ? st.GetString() ?? "" : "",
+                            AuthorisedAt = p.TryGetProperty("authorisedAt", out var aat) ? aat.GetString() : null,
+                            SettledAt = p.TryGetProperty("settledAt", out var sat) ? sat.GetString() : null
                         });
                     }
                 }

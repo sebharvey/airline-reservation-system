@@ -108,6 +108,8 @@ public sealed class ManagedPayment
     public decimal SettledAmount { get; init; }
     public string Currency { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    public string? AuthorisedAt { get; init; }
+    public string? SettledAt { get; init; }
 }
 
 public sealed class ManagedPointsRedemption
