@@ -78,6 +78,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 | `documentation/api-specs/<service>.md` | When implementing a specific service API. Request/response shapes, error codes. |
 | `documentation/api-specs/admin-api.md` | When working on the Admin API. Staff authentication flow, downstream dependencies, configuration. |
 | `documentation/principles/*.md` | Architecture, integration, security, data, infrastructure, and coding rules. |
+| `documentation/test-harness.md` | When working on the test harness. File inventory, journey JSON schema, runtime variable placeholders, harness.js architecture. |
 | `src/Database/Script.sql` | When working with data. Authoritative database schema with all tables, triggers, constraints. |
 | `documentation/design/user.md` | When working on the User domain. Employee user account schema, login flow, account lockout. |
 

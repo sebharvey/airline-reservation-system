@@ -116,6 +116,21 @@
         const phone         = '07' + randDigits(9);
         const loyaltyNumber = 'AX' + randDigits(7);
 
+        // Second passenger (PAX-2) — guaranteed different from PAX-1
+        let pax2GivenName = pick(FIRST_NAMES);
+        while (pax2GivenName === givenName) pax2GivenName = pick(FIRST_NAMES);
+        let pax2Surname = pick(SURNAMES);
+        while (pax2Surname === surname) pax2Surname = pick(SURNAMES);
+        const pax2Gender  = pick(genders);
+        const pax2DobYear  = 1950 + Math.floor(Math.random() * 56);
+        const pax2DobMonth = (1 + Math.floor(Math.random() * 12)).toString().padStart(2, '0');
+        const pax2DobDay   = (1 + Math.floor(Math.random() * 28)).toString().padStart(2, '0');
+        const pax2DateOfBirth = `${pax2DobYear}-${pax2DobMonth}-${pax2DobDay}`;
+        const pax2Email = pax2GivenName.toLowerCase() + '.' +
+                          pax2Surname.toLowerCase() + '.' +
+                          randDigits(6) + '@testmail.example.com';
+        const pax2Phone = '07' + randDigits(9);
+
         const route = pick(ROUTES);
         const today = new Date();
         const outboundOffset = 7 + Math.floor(Math.random() * 28);   // 7–34 days out
@@ -134,6 +149,7 @@
             givenName, surname, password, email,
             recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
             gender, dateOfBirth, phone, loyaltyNumber,
+            pax2GivenName, pax2Surname, pax2Gender, pax2DateOfBirth, pax2Email, pax2Phone,
             outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate
         };
     }
@@ -146,6 +162,12 @@
                 .replace(/__RAND_RECIPIENT_SURNAME__/g,    runtimeVars.recipientSurname)
                 .replace(/__RAND_RECIPIENT_EMAIL__/g,      runtimeVars.recipientEmail)
                 .replace(/__RAND_RECIPIENT_PASSWORD__/g,   runtimeVars.recipientPassword)
+                .replace(/__RAND_GIVEN_NAME_2__/g,   runtimeVars.pax2GivenName)
+                .replace(/__RAND_SURNAME_2__/g,      runtimeVars.pax2Surname)
+                .replace(/__RAND_GENDER_2__/g,       runtimeVars.pax2Gender)
+                .replace(/__RAND_DOB_2__/g,          runtimeVars.pax2DateOfBirth)
+                .replace(/__RAND_EMAIL_2__/g,        runtimeVars.pax2Email)
+                .replace(/__RAND_PHONE_2__/g,        runtimeVars.pax2Phone)
                 .replace(/__RAND_GIVEN_NAME__/g,     runtimeVars.givenName)
                 .replace(/__RAND_SURNAME__/g,        runtimeVars.surname)
                 .replace(/__RAND_EMAIL__/g,          runtimeVars.email)
