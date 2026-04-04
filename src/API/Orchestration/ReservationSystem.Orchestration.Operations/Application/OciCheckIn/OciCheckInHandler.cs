@@ -47,9 +47,54 @@ public sealed class OciCheckInHandler
         }
 
         var result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
-        var checkedIn = result.Tickets.Select(t => t.TicketNumber).ToList();
+        var checkedInSet = result.Tickets.ToDictionary(t => t.TicketNumber, t => t.Status, StringComparer.OrdinalIgnoreCase);
+        var checkedIn = checkedInSet.Keys.ToList();
+
+        // Build per-passenger check-in entries and persist to the order
+        var paxCheckIn = BuildPassengerCheckInEntries(tickets, checkedInSet);
+        var checkedInAt = DateTime.UtcNow.ToString("o");
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderCheckInAsync(
+                command.BookingReference,
+                command.DepartureAirport,
+                checkedInAt,
+                paxCheckIn,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "OCI check-in: failed to persist check-in status on order {BookingReference}",
+                command.BookingReference);
+            // Non-fatal: Delivery MS has already checked in the tickets; log and continue.
+        }
 
         return new OciCheckInResult(command.BookingReference, checkedIn);
+    }
+
+    private static List<OrderCheckInPassenger> BuildPassengerCheckInEntries(
+        List<OciCheckInTicket> tickets,
+        Dictionary<string, string> checkedInSet)
+    {
+        return tickets.Select(t =>
+        {
+            var isCheckedIn = checkedInSet.ContainsKey(t.TicketNumber);
+            var status = isCheckedIn ? "CheckedIn" : "Failed";
+            var name = string.IsNullOrWhiteSpace(t.GivenName) ? t.Surname : $"{t.GivenName} {t.Surname}".Trim();
+            var message = isCheckedIn
+                ? $"Check-in successful for {name}"
+                : $"Check-in failed for {name}";
+
+            return new OrderCheckInPassenger
+            {
+                PassengerId = t.PassengerId,
+                TicketNumber = t.TicketNumber,
+                Status = status,
+                Message = message
+            };
+        }).ToList();
     }
 
     private static List<OciCheckInTicket> BuildCheckInTickets(JsonElement? orderData)

@@ -47,6 +47,28 @@ public sealed class OrderServiceClient
     }
 
     /// <summary>
+    /// Write check-in status onto orderItems for a departure airport via Order MS PATCH /v1/orders/{bookingRef}/checkin.
+    /// </summary>
+    public async Task UpdateOrderCheckInAsync(
+        string bookingReference,
+        string departureAirport,
+        string checkedInAt,
+        IReadOnlyList<OrderCheckInPassenger> passengers,
+        CancellationToken ct)
+    {
+        var payload = new { departureAirport, checkedInAt, passengers };
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/checkin", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order check-in status: {error}");
+        }
+    }
+
+    /// <summary>
     /// Update passenger travel documents on an order via Order MS PATCH /v1/orders/{bookingRef}/passengers.
     /// </summary>
     public async Task UpdateOrderPassengersAsync(string bookingReference, object passengersPayload, CancellationToken ct)
@@ -60,6 +82,21 @@ public sealed class OrderServiceClient
             throw new InvalidOperationException($"Failed to update order passengers: {error}");
         }
     }
+}
+
+public sealed class OrderCheckInPassenger
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("ticketNumber")]
+    public string TicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;
+
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
 }
 
 public sealed class OrderMsOrderResult
