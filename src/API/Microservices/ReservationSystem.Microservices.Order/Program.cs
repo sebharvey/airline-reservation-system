@@ -31,6 +31,7 @@ using ReservationSystem.Microservices.Order.Application.GetSsrOptions;
 using ReservationSystem.Microservices.Order.Application.CreateSsrOption;
 using ReservationSystem.Microservices.Order.Application.UpdateSsrOption;
 using ReservationSystem.Microservices.Order.Application.DeactivateSsrOption;
+using ReservationSystem.Microservices.Order.Application.UpdateOrderCheckIn;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 using ReservationSystem.Microservices.Order.Infrastructure.Persistence;
@@ -91,6 +92,7 @@ var host = new HostBuilder()
         services.AddScoped<UpdateOrderBagsHandler>();
         services.AddScoped<UpdateOrderSsrsHandler>();
         services.AddScoped<UpdateOrderETicketsHandler>();
+        services.AddScoped<UpdateOrderCheckInHandler>();
         services.AddScoped<CancelOrderHandler>();
         services.AddScoped<ChangeOrderHandler>();
         services.AddScoped<RebookOrderHandler>();

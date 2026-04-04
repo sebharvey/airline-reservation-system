@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
+using ReservationSystem.Microservices.Order.Application.UpdateOrderCheckIn;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
@@ -35,6 +36,7 @@ public sealed class OrderFunction
     private readonly UpdateOrderBagsHandler _updateBagsHandler;
     private readonly UpdateOrderSsrsHandler _updateSsrsHandler;
     private readonly UpdateOrderETicketsHandler _updateETicketsHandler;
+    private readonly UpdateOrderCheckInHandler _updateCheckInHandler;
     private readonly CancelOrderHandler _cancelOrderHandler;
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly RebookOrderHandler _rebookOrderHandler;
@@ -50,6 +52,7 @@ public sealed class OrderFunction
         UpdateOrderBagsHandler updateBagsHandler,
         UpdateOrderSsrsHandler updateSsrsHandler,
         UpdateOrderETicketsHandler updateETicketsHandler,
+        UpdateOrderCheckInHandler updateCheckInHandler,
         CancelOrderHandler cancelOrderHandler,
         ChangeOrderHandler changeOrderHandler,
         RebookOrderHandler rebookOrderHandler,
@@ -64,6 +67,7 @@ public sealed class OrderFunction
         _updateBagsHandler = updateBagsHandler;
         _updateSsrsHandler = updateSsrsHandler;
         _updateETicketsHandler = updateETicketsHandler;
+        _updateCheckInHandler = updateCheckInHandler;
         _cancelOrderHandler = cancelOrderHandler;
         _changeOrderHandler = changeOrderHandler;
         _rebookOrderHandler = rebookOrderHandler;
@@ -551,40 +555,56 @@ public sealed class OrderFunction
         return await req.OkJsonAsync(orders.Select(o => OrderMapper.ToResponse(o)));
     }
 
-    // POST /v1/orders/{bookingRef}/checkin
+    // PATCH /v1/orders/{bookingRef}/checkin
     [Function("CheckIn")]
-    [OpenApiOperation(operationId: "CheckIn", tags: new[] { "Orders" }, Summary = "Check in passengers for an order")]
+    [OpenApiOperation(operationId: "CheckIn", tags: new[] { "Orders" }, Summary = "Write check-in status onto the orderItems for a departure airport")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The check-in request")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
+        Description = "{ departureAirport, checkedInAt, passengers: [{ passengerId, ticketNumber, status, message }] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CheckInResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CheckIn(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/{bookingRef}/checkin")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/checkin")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
-        string body;
-        try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
-        catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
-        var command = new ChangeOrderCommand(bookingRef, body);
+        if (!body.TryGetProperty("departureAirport", out var airportEl) || string.IsNullOrWhiteSpace(airportEl.GetString()))
+            return await req.BadRequestAsync("'departureAirport' is required.");
+
+        if (!body.TryGetProperty("passengers", out var paxEl) || paxEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'passengers' array is required.");
+
+        var departureAirport = airportEl.GetString()!.ToUpperInvariant().Trim();
+        var checkedInAt = body.TryGetProperty("checkedInAt", out var tsEl) ? tsEl.GetString() ?? DateTime.UtcNow.ToString("o") : DateTime.UtcNow.ToString("o");
+
+        var passengers = new List<UpdateOrderCheckInPassenger>();
+        foreach (var p in paxEl.EnumerateArray())
+        {
+            var passengerId = p.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() ?? "" : "";
+            var ticketNumber = p.TryGetProperty("ticketNumber", out var tnEl) ? tnEl.GetString() ?? "" : "";
+            var status = p.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "CheckedIn" : "CheckedIn";
+            var message = p.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "";
+            passengers.Add(new UpdateOrderCheckInPassenger(passengerId, ticketNumber, status, message));
+        }
+
+        var command = new UpdateOrderCheckInCommand(
+            bookingRef.ToUpperInvariant().Trim(),
+            departureAirport,
+            checkedInAt,
+            passengers);
+
         try
         {
-            var order = await _changeOrderHandler.HandleAsync(command, ct);
+            var order = await _updateCheckInHandler.HandleAsync(command, ct);
             if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
-
-            var checkinCount = 0;
-            try
-            {
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("checkins", out var checkins))
-                    checkinCount = checkins.GetArrayLength();
-            }
-            catch { }
-
             return await req.OkJsonAsync(new
             {
-                bookingReference = bookingRef,
-                checkedInPassengers = checkinCount
+                bookingReference = order.BookingReference,
+                checkedInPassengers = passengers.Count
             });
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
