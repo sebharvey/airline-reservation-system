@@ -225,13 +225,15 @@ public sealed class GetOrderHandler
 
                         // e-tickets for this segment
                         eTicketsBySegment.TryGetValue(segmentId, out var segETickets);
-                        // Seats are keyed by inventoryId in seatAssignments (the web app stores
-                        // inventoryId as the seat's segmentId). Fall back to inventoryId lookup
-                        // when the basketItemId-based lookup finds nothing.
-                        var segSeatAssignments =
-                            seatsBySegment.TryGetValue(segmentId, out var seats) ? seats :
-                            seatsBySegment.TryGetValue(inventoryId, out seats) ? seats :
-                            new List<ManagedSeatAssignment>();
+                        // Seat assignments are keyed by inventoryId (the web app stores
+                        // inventoryId as the seat's segmentId). The order item's segmentId
+                        // is basketItemId ("BI-1" etc.), so we must fall back to inventoryId.
+                        if (!seatsBySegment.TryGetValue(segmentId, out var seatsFound) &&
+                            !seatsBySegment.TryGetValue(inventoryId, out seatsFound))
+                        {
+                            seatsFound = new List<ManagedSeatAssignment>();
+                        }
+                        var segSeatAssignments = seatsFound ?? new List<ManagedSeatAssignment>();
 
                         // Flight order item
                         orderItems.Add(new ManagedOrderItem
