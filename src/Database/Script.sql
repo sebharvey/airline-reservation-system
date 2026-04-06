@@ -209,13 +209,15 @@ CREATE TABLE [offer].[InventoryHold] (
     HoldId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_InventoryHold_Id      DEFAULT NEWID(),
     InventoryId UNIQUEIDENTIFIER NOT NULL,
     OrderId     UNIQUEIDENTIFIER NOT NULL,
+    CabinCode   CHAR(1)          NOT NULL,
     PaxCount    SMALLINT         NOT NULL,
     Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
     CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
-    CONSTRAINT UQ_InventoryHold_Order       UNIQUE      (InventoryId, OrderId),
+    CONSTRAINT UQ_InventoryHold_Order       UNIQUE      (InventoryId, OrderId, CabinCode),
     CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
-    CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed'))
+    CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed')),
+    CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y'))
 );
 GO
 

@@ -32,7 +32,7 @@ public sealed class SellInventoryHandler
 
             inventory.SellSeats(item.CabinCode, command.PaxCount);
             await _repository.UpdateInventoryAsync(inventory, ct);
-            await _repository.ConfirmHoldAsync(item.InventoryId, command.OrderId, ct);
+            await _repository.ConfirmHoldAsync(item.InventoryId, command.OrderId, item.CabinCode, ct);
             results.Add(inventory);
         }
 

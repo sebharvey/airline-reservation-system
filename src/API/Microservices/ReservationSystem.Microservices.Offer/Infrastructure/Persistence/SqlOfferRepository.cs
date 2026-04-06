@@ -497,30 +497,31 @@ public sealed class SqlOfferRepository : IOfferRepository
     // InventoryHold
     // -------------------------------------------------------------------------
 
-    public async Task<bool> HoldExistsAsync(Guid inventoryId, Guid orderId, CancellationToken ct = default)
+    public async Task<bool> HoldExistsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
     {
         const string sql = """
             SELECT COUNT(1)
             FROM   [offer].[InventoryHold]
             WHERE  InventoryId = @InventoryId
-              AND  OrderId = @OrderId;
+              AND  OrderId = @OrderId
+              AND  CabinCode = @CabinCode;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         var count = await connection.ExecuteScalarAsync<int>(
-            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId },
+            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, CabinCode = cabinCode },
                 commandTimeout: _options.CommandTimeoutSeconds));
 
         return count > 0;
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, int paxCount, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, int paxCount, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, OrderId, PaxCount, Status)
-            VALUES (@HoldId, @InventoryId, @OrderId, @PaxCount, 'Held');
+                   (HoldId, InventoryId, OrderId, CabinCode, PaxCount, Status)
+            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @PaxCount, 'Held');
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -531,28 +532,30 @@ public sealed class SqlOfferRepository : IOfferRepository
                 HoldId = Guid.NewGuid(),
                 InventoryId = inventoryId,
                 OrderId = orderId,
+                CabinCode = cabinCode,
                 PaxCount = paxCount
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}", inventoryId, orderId);
+        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}", inventoryId, orderId, cabinCode);
     }
 
-    public async Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, CancellationToken ct = default)
+    public async Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
     {
         const string sql = """
             UPDATE [offer].[InventoryHold]
             SET    Status = 'Confirmed'
             WHERE  InventoryId = @InventoryId
-              AND  OrderId = @OrderId;
+              AND  OrderId = @OrderId
+              AND  CabinCode = @CabinCode;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         await connection.ExecuteAsync(
-            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId },
+            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, CabinCode = cabinCode },
                 commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Confirmed InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}", inventoryId, orderId);
+        _logger.LogDebug("Confirmed InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}", inventoryId, orderId, cabinCode);
     }
 
     // -------------------------------------------------------------------------
