@@ -102,13 +102,17 @@ public sealed class ConfirmBasketHandler
         {
             try
             {
-                var (inventoryItems, paxCount) = ParseBasketDataForInventorySell(basket.BasketData.Value.GetRawText());
+                var (inventoryItems, paxCount, seatsByInventory) = ParseBasketDataForInventorySell(basket.BasketData.Value.GetRawText());
                 if (inventoryItems.Count > 0 && paxCount > 0)
                 {
                     foreach (var (inventoryId, cabinCode) in inventoryItems)
                     {
+                        // Pass per-pax seat numbers when available; fall back to null-seat entries.
+                        var passengers = seatsByInventory.TryGetValue(inventoryId.ToString(), out var seats) && seats.Count > 0
+                            ? seats
+                            : Enumerable.Repeat<string?>(null, paxCount).ToList();
                         await _offerServiceClient.HoldInventoryAsync(
-                            inventoryId, cabinCode, paxCount, draftOrder.OrderId, cancellationToken);
+                            inventoryId, cabinCode, passengers, draftOrder.OrderId, cancellationToken);
                     }
 
                     await _offerServiceClient.SellInventoryAsync(
@@ -364,11 +368,12 @@ public sealed class ConfirmBasketHandler
         return null;
     }
 
-    private static (List<(Guid InventoryId, string CabinCode)> items, int paxCount) ParseBasketDataForInventorySell(
+    private static (List<(Guid InventoryId, string CabinCode)> items, int paxCount, Dictionary<string, List<string?>> seatsByInventory) ParseBasketDataForInventorySell(
         string basketDataJson)
     {
         var items = new List<(Guid, string)>();
         var paxCount = 0;
+        var seatsByInventory = new Dictionary<string, List<string?>>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -379,6 +384,22 @@ public sealed class ConfirmBasketHandler
                 passengersEl.ValueKind == JsonValueKind.Array)
             {
                 paxCount = passengersEl.GetArrayLength();
+            }
+
+            // seats[].segmentId is the inventoryId — build per-flight seat lists.
+            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var seat in seatsEl.EnumerateArray())
+                {
+                    var segId   = seat.TryGetProperty("segmentId",  out var sid) ? sid.GetString() : null;
+                    var seatNum = seat.TryGetProperty("seatNumber",  out var sn)  ? sn.GetString()  : null;
+                    if (!string.IsNullOrEmpty(segId))
+                    {
+                        if (!seatsByInventory.ContainsKey(segId))
+                            seatsByInventory[segId] = [];
+                        seatsByInventory[segId].Add(string.IsNullOrEmpty(seatNum) ? null : seatNum);
+                    }
+                }
             }
 
             if (root.TryGetProperty("flightOffers", out var offersEl) &&
@@ -398,6 +419,6 @@ public sealed class ConfirmBasketHandler
         }
         catch { /* Return whatever was parsed */ }
 
-        return (items, paxCount);
+        return (items, paxCount, seatsByInventory);
     }
 }

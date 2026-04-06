@@ -199,6 +199,7 @@
             <thead>
               <tr>
                 <th>Booking Ref</th>
+                <th>Passenger</th>
                 <th>Cabin</th>
                 <th>Seat</th>
                 <th>Status</th>
@@ -215,6 +216,7 @@
                       —
                     }
                   </td>
+                  <td>{{ hold.passengerName ?? '—' }}</td>
                   <td class="cabin-col">
                     <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
                   </td>

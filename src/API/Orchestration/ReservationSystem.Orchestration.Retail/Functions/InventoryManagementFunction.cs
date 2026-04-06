@@ -86,11 +86,20 @@ public sealed class InventoryManagementFunction
         var orderIds = holds.Select(h => h.OrderId).Distinct().ToList();
         var bookingRefs = await _orderServiceClient.GetBookingReferencesAsync(orderIds, cancellationToken);
 
+        // Fetch full orders in parallel so we can resolve passenger names per hold.
+        var orderTasks = bookingRefs
+            .Where(kv => kv.Value != null)
+            .Select(async kv => (kv.Key, await _orderServiceClient.GetOrderByRefAsync(kv.Value!, cancellationToken)));
+        var orders = (await Task.WhenAll(orderTasks))
+            .Where(r => r.Item2 != null)
+            .ToDictionary(r => r.Key, r => r.Item2!);
+
         var enriched = holds.Select(h => new FlightInventoryHoldDto
         {
             HoldId           = h.HoldId,
             OrderId          = h.OrderId,
             BookingReference = bookingRefs.GetValueOrDefault(h.OrderId),
+            PassengerName    = ResolvePassengerName(orders.GetValueOrDefault(h.OrderId), inventoryId.ToString(), h.SeatNumber),
             CabinCode        = h.CabinCode,
             SeatNumber       = h.SeatNumber,
             Status           = h.Status,
@@ -98,5 +107,53 @@ public sealed class InventoryManagementFunction
         });
 
         return await req.OkJsonAsync(enriched);
+    }
+
+    /// <summary>
+    /// Resolves the passenger name for a single hold row.
+    /// If the hold has a seat number, returns the name of the passenger assigned to that seat on
+    /// the given inventory. Falls back to all passenger surnames on the booking if unmatched.
+    /// </summary>
+    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber)
+    {
+        if (order?.OrderData is not { } data) return null;
+        try
+        {
+            // Build id → full name map from the passengers array in order data.
+            var paxById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (data.TryGetProperty("passengers", out var passEl) && passEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var p in passEl.EnumerateArray())
+                {
+                    var id      = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
+                    var given   = p.TryGetProperty("givenName",   out var g)   ? g.GetString()   : null;
+                    var surname = p.TryGetProperty("surname",     out var s)   ? s.GetString()   : null;
+                    if (id != null)
+                        paxById[id] = $"{given} {surname}".Trim();
+                }
+            }
+
+            // Match by seat number + inventory (segmentId == inventoryId in basket/order data).
+            if (!string.IsNullOrEmpty(seatNumber) &&
+                data.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var seat in seatsEl.EnumerateArray())
+                {
+                    var segId  = seat.TryGetProperty("segmentId",  out var sid) ? sid.GetString() : null;
+                    var sn     = seat.TryGetProperty("seatNumber", out var s)   ? s.GetString()   : null;
+                    var paxId  = seat.TryGetProperty("passengerId",out var pid) ? pid.GetString() : null;
+                    if (string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(sn, seatNumber, StringComparison.OrdinalIgnoreCase) &&
+                        paxId != null && paxById.TryGetValue(paxId, out var name))
+                    {
+                        return name;
+                    }
+                }
+            }
+
+            // Fallback: all passenger names on the booking.
+            return paxById.Count > 0 ? string.Join(", ", paxById.Values) : null;
+        }
+        catch { return null; }
     }
 }
