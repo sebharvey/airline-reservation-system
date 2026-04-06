@@ -167,6 +167,17 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, string?>> GetBookingReferencesAsync(
+        IReadOnlyList<Guid> orderIds, CancellationToken ct)
+    {
+        if (orderIds.Count == 0) return new Dictionary<Guid, string?>();
+        var payload = new { orderIds };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/admin/orders/booking-references", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode) return new Dictionary<Guid, string?>();
+        var items = await response.Content.ReadFromJsonAsync<List<OrderRefItem>>(JsonOptions, ct) ?? [];
+        return items.ToDictionary(x => x.OrderId, x => x.BookingReference);
+    }
+
     public async Task<List<OrderMsOrderResult>> GetRecentOrdersAsync(int limit, CancellationToken ct)
     {
         using var response = await _httpClient.GetAsync($"/api/v1/admin/orders?limit={limit}", ct);
@@ -459,4 +470,13 @@ public sealed class OrderMsSsrOptionDto
 
     [JsonPropertyName("category")]
     public string Category { get; init; } = string.Empty;
+}
+
+public sealed class OrderRefItem
+{
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
+
+    [JsonPropertyName("bookingReference")]
+    public string? BookingReference { get; init; }
 }
