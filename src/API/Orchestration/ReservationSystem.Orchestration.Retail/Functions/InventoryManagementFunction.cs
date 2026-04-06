@@ -92,7 +92,7 @@ public sealed class InventoryManagementFunction
             OrderId          = h.OrderId,
             BookingReference = bookingRefs.GetValueOrDefault(h.OrderId),
             CabinCode        = h.CabinCode,
-            PaxCount         = h.PaxCount,
+            SeatNumber       = h.SeatNumber,
             Status           = h.Status,
             CreatedAt        = h.CreatedAt
         });
