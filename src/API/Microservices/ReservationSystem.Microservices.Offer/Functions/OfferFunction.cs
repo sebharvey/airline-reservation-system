@@ -857,7 +857,7 @@ public sealed class OfferFunction
             holdId    = h.HoldId,
             orderId   = h.OrderId,
             cabinCode = h.CabinCode,
-            paxCount  = h.PaxCount,
+            seatNumber = h.SeatNumber,
             status    = h.Status,
             createdAt = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
