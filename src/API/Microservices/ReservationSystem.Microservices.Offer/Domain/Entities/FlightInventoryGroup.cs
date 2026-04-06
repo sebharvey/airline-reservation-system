@@ -6,6 +6,7 @@ namespace ReservationSystem.Microservices.Offer.Domain.Entities;
 /// </summary>
 public sealed class FlightInventoryGroup
 {
+    public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public DateOnly DepartureDate { get; init; }
     public TimeOnly DepartureTime { get; init; }

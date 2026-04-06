@@ -84,6 +84,7 @@
             <th>Status</th>
             <th class="load-col">Load</th>
             <th>Ticketing</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -132,12 +133,17 @@
               <td>
                 <span class="badge" [class]="ticketingClass(flight)">{{ flight.ticketingStatus }}</span>
               </td>
+              <td class="action-col">
+                <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
+                  Holds
+                </button>
+              </td>
             </tr>
           }
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="13" class="empty-row">No flights found for this date.</td>
+              <td colspan="14" class="empty-row">No flights found for this date.</td>
             </tr>
           }
         </tbody>
@@ -156,3 +162,72 @@
   }
 
 </div>
+
+<!-- Holds modal -->
+@if (holdsModalFlight()) {
+  <div class="modal-backdrop" (click)="closeHoldsModal()"></div>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h2 class="modal-title">Inventory Holds</h2>
+        <p class="modal-subtitle">
+          {{ holdsModalFlight()!.flightNumber }} &nbsp;·&nbsp;
+          {{ holdsModalFlight()!.origin }} → {{ holdsModalFlight()!.destination }} &nbsp;·&nbsp;
+          {{ holdsModalFlight()!.departureDate }}
+        </p>
+      </div>
+      <button class="modal-close" (click)="closeHoldsModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      @if (holdsError()) {
+        <div class="error-banner" role="alert">
+          <span>&#9888;</span> {{ holdsError() }}
+        </div>
+      }
+
+      @if (holdsLoading()) {
+        <div class="modal-loading">
+          <span class="btn-spinner modal-spinner"></span>
+          <span>Loading holds…</span>
+        </div>
+      } @else if (holds().length === 0 && !holdsError()) {
+        <p class="modal-empty">No holds found for this flight.</p>
+      } @else {
+        <div class="holds-table-wrap">
+          <table class="holds-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Cabin</th>
+                <th>Passengers</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (hold of holds(); track hold.holdId) {
+                <tr>
+                  <td class="mono order-id">{{ hold.orderId }}</td>
+                  <td class="cabin-col">
+                    <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+                  </td>
+                  <td class="num-cell">{{ hold.paxCount }}</td>
+                  <td>
+                    <span class="badge" [class]="holdStatusClass(hold.status)">{{ hold.status }}</span>
+                  </td>
+                  <td class="muted mono">{{ formatHoldDate(hold.createdAt) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="modal-count">{{ holds().length }} hold{{ holds().length !== 1 ? 's' : '' }}</p>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeHoldsModal()">Close</button>
+    </div>
+  </div>
+}

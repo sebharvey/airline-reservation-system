@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { OfferService, FlightInventoryGroup, CabinInventory } from '../../services/offer.service';
+import { OfferService, FlightInventoryGroup, CabinInventory, InventoryHold } from '../../services/offer.service';
 
 @Component({
   selector: 'app-offer',
@@ -78,6 +78,39 @@ export class OfferComponent implements OnInit {
 
   ticketingClass(flight: FlightInventoryGroup): string {
     return flight.ticketingStatus === 'Open' ? 'badge-active' : 'badge-inactive';
+  }
+
+  // Holds modal
+  holdsModalFlight = signal<FlightInventoryGroup | null>(null);
+  holds = signal<InventoryHold[]>([]);
+  holdsLoading = signal(false);
+  holdsError = signal('');
+
+  async openHoldsModal(flight: FlightInventoryGroup): Promise<void> {
+    this.holdsModalFlight.set(flight);
+    this.holds.set([]);
+    this.holdsError.set('');
+    this.holdsLoading.set(true);
+    try {
+      const result = await this.#offerService.getInventoryHolds(flight.inventoryId);
+      this.holds.set(result);
+    } catch {
+      this.holdsError.set('Failed to load holds. Please try again.');
+    } finally {
+      this.holdsLoading.set(false);
+    }
+  }
+
+  closeHoldsModal(): void {
+    this.holdsModalFlight.set(null);
+  }
+
+  holdStatusClass(status: string): string {
+    return status === 'Confirmed' ? 'badge-active' : 'badge-held';
+  }
+
+  formatHoldDate(iso: string): string {
+    return iso.slice(0, 16).replace('T', ' ');
   }
 
   #todayIso(): string {

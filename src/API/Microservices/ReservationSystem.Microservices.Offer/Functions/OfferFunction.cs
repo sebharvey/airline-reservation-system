@@ -18,6 +18,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
+using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -46,6 +47,7 @@ public sealed class OfferFunction
     private readonly GetFlightInventoryHandler _getFlightInventoryByFlightHandler;
     private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
     private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
+    private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -64,6 +66,7 @@ public sealed class OfferFunction
         GetFlightInventoryHandler getFlightInventoryByFlightHandler,
         GetFlightInventoryByDateHandler getFlightInventoryHandler,
         GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
+        GetInventoryHoldsHandler getInventoryHoldsHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -81,6 +84,7 @@ public sealed class OfferFunction
         _getFlightInventoryByFlightHandler = getFlightInventoryByFlightHandler;
         _getFlightInventoryHandler = getFlightInventoryHandler;
         _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
+        _getInventoryHoldsHandler = getInventoryHoldsHandler;
         _logger = logger;
     }
 
@@ -774,6 +778,7 @@ public sealed class OfferFunction
             var g = r.Group;
             return new FlightInventoryGroupResponse
             {
+                InventoryId         = g.InventoryId,
                 FlightNumber        = g.FlightNumber,
                 DepartureDate       = g.DepartureDate.ToString("yyyy-MM-dd"),
                 DepartureTime       = g.DepartureTime.ToString("HH:mm"),
@@ -807,5 +812,29 @@ public sealed class OfferFunction
             SeatsSold = data.SeatsSold,
             SeatsHeld = data.SeatsHeld
         };
+    }
+
+    // GET /v1/inventory/{inventoryId}/holds
+    [Function("GetInventoryHolds")]
+    [OpenApiOperation(operationId: "GetInventoryHolds", tags: new[] { "Inventory" }, Summary = "Get all holds for a specific flight inventory record")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — list of holds")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetInventoryHolds(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/inventory/{inventoryId:guid}/holds")] HttpRequestData req,
+        Guid inventoryId,
+        CancellationToken ct)
+    {
+        var holds = await _getInventoryHoldsHandler.HandleAsync(new GetInventoryHoldsQuery(inventoryId), ct);
+
+        return await req.OkJsonAsync(holds.Select(h => new
+        {
+            holdId    = h.HoldId,
+            orderId   = h.OrderId,
+            cabinCode = h.CabinCode,
+            paxCount  = h.PaxCount,
+            status    = h.Status,
+            createdAt = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        }));
     }
 }

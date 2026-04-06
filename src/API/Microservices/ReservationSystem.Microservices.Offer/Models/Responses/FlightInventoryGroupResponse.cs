@@ -4,6 +4,9 @@ namespace ReservationSystem.Microservices.Offer.Models.Responses;
 
 public sealed class FlightInventoryGroupResponse
 {
+    [JsonPropertyName("inventoryId")]
+    public Guid InventoryId { get; init; }
+
     [JsonPropertyName("flightNumber")]
     public string FlightNumber { get; init; } = string.Empty;
 

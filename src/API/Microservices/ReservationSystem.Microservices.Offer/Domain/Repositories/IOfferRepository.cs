@@ -1,5 +1,13 @@
 namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 
+public sealed record InventoryHoldRecord(
+    Guid HoldId,
+    Guid OrderId,
+    string CabinCode,
+    int PaxCount,
+    string Status,
+    DateTimeOffset CreatedAt);
+
 public interface IOfferRepository
 {
     // FlightInventory
@@ -32,6 +40,7 @@ public interface IOfferRepository
     Task<bool> HoldExistsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, int paxCount, CancellationToken ct = default);
     Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
+    Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
 
     // SeatReservation
     Task<IReadOnlyList<(string SeatNumber, string Status, Guid BasketId)>> GetSeatReservationsAsync(Guid inventoryId, CancellationToken ct = default);
