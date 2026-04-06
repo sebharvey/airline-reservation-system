@@ -43,6 +43,36 @@ public sealed class UpdateBasketSeatsHandler
 
         var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
         var seatsNode = JsonNode.Parse(command.SeatsData);
+
+        // Validate that each seat's cabin matches the booked cabin for its basket item
+        if (seatsNode is JsonArray seatsForValidation)
+        {
+            var offerCabinByItemId = (basketJson["flightOffers"]?.AsArray() ?? [])
+                .OfType<JsonObject>()
+                .Where(o => o["basketItemId"]?.GetValue<string>() is not null)
+                .ToDictionary(
+                    o => o["basketItemId"]!.GetValue<string>(),
+                    o => o["cabinCode"]?.GetValue<string>() ?? string.Empty,
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var seat in seatsForValidation)
+            {
+                var seatCabin = seat?["cabinCode"]?.GetValue<string>();
+                if (string.IsNullOrEmpty(seatCabin)) continue;
+
+                var itemRef = seat?["basketItemRef"]?.GetValue<string>();
+                if (itemRef is null) continue;
+
+                if (offerCabinByItemId.TryGetValue(itemRef, out var bookedCabin) &&
+                    !string.Equals(seatCabin, bookedCabin, StringComparison.OrdinalIgnoreCase))
+                {
+                    var seatNumber = seat?["seatNumber"]?.GetValue<string>() ?? "unknown";
+                    throw new InvalidOperationException(
+                        $"Seat {seatNumber} is in cabin '{seatCabin}' but the booked cabin for basket item '{itemRef}' is '{bookedCabin}'.");
+                }
+            }
+        }
+
         basketJson["seats"] = seatsNode;
 
         // Calculate total seat amount from seat selections

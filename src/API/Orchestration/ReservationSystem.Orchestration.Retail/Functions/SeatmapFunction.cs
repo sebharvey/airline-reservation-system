@@ -35,6 +35,7 @@ public sealed class SeatmapFunction
     [OpenApiParameter(name: "flightId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The flight (inventory) identifier")]
     [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The aircraft type code (e.g. A351)")]
     [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "The flight number for display purposes")]
+    [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "IATA cabin code to filter results (e.g. Y, W, J, F). When provided, only the matching cabin is returned.")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Merged seatmap with layout and pricing")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
@@ -46,6 +47,7 @@ public sealed class SeatmapFunction
         var query = HttpUtility.ParseQueryString(req.Url.Query);
         var aircraftType = query["aircraftType"];
         var flightNumber = query["flightNumber"] ?? string.Empty;
+        var cabinCode = query["cabinCode"];
 
         if (string.IsNullOrWhiteSpace(aircraftType))
             return await req.BadRequestAsync("'aircraftType' query parameter is required.");
@@ -69,7 +71,7 @@ public sealed class SeatmapFunction
         var offersByNumber = (offersResult?.SeatOffers ?? [])
             .ToDictionary(o => o.SeatNumber, o => o, StringComparer.OrdinalIgnoreCase);
 
-        var cabins = BuildCabins(layout.Cabins, offersByNumber);
+        var cabins = BuildCabins(layout.Cabins, offersByNumber, cabinCode);
 
         var response = new
         {
@@ -88,11 +90,16 @@ public sealed class SeatmapFunction
 
     private static List<object> BuildCabins(
         IEnumerable<CabinLayoutDto> cabinLayouts,
-        Dictionary<string, SeatOfferDto> offersByNumber)
+        Dictionary<string, SeatOfferDto> offersByNumber,
+        string? cabinCodeFilter = null)
     {
         var result = new List<object>();
 
-        foreach (var cabin in cabinLayouts)
+        var layouts = string.IsNullOrWhiteSpace(cabinCodeFilter)
+            ? cabinLayouts
+            : cabinLayouts.Where(c => string.Equals(c.CabinCode, cabinCodeFilter, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var cabin in layouts)
         {
             var seats = BuildSeats(cabin, offersByNumber);
 
