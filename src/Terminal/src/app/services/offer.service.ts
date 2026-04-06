@@ -58,7 +58,7 @@ export interface InventoryHold {
   orderId: string;
   bookingReference: string | null;
   cabinCode: string;
-  paxCount: number;
+  seatNumber: string | null;
   status: string;
   createdAt: string;
 }

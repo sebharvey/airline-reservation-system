@@ -21,23 +21,25 @@ public sealed class SellInventoryHandler
 
         foreach (var item in command.Items)
         {
+            var holdCount = await _repository.GetHoldCountAsync(item.InventoryId, command.OrderId, item.CabinCode, ct);
+
             var inventory = await _repository.GetInventoryByIdAsync(item.InventoryId, ct)
                 ?? throw new KeyNotFoundException($"Inventory {item.InventoryId} not found.");
 
             var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == item.CabinCode)
                 ?? throw new ArgumentException($"Cabin {item.CabinCode} not found on inventory {item.InventoryId}.");
 
-            if (cabin.SeatsHeld < command.PaxCount)
-                throw new InvalidOperationException($"Insufficient held seats in cabin {item.CabinCode} on {item.InventoryId}: {cabin.SeatsHeld} held, {command.PaxCount} requested.");
+            if (cabin.SeatsHeld < holdCount)
+                throw new InvalidOperationException($"Insufficient held seats in cabin {item.CabinCode} on {item.InventoryId}: {cabin.SeatsHeld} held, {holdCount} required.");
 
-            inventory.SellSeats(item.CabinCode, command.PaxCount);
+            inventory.SellSeats(item.CabinCode, holdCount);
             await _repository.UpdateInventoryAsync(inventory, ct);
             await _repository.ConfirmHoldAsync(item.InventoryId, command.OrderId, item.CabinCode, ct);
             results.Add(inventory);
         }
 
-        _logger.LogInformation("Sold {PaxCount} seats across {Count} inventories for order {OrderId}",
-            command.PaxCount, command.Items.Count, command.OrderId);
+        _logger.LogInformation("Sold seats across {Count} inventories for order {OrderId}",
+            command.Items.Count, command.OrderId);
 
         return results.AsReadOnly();
     }

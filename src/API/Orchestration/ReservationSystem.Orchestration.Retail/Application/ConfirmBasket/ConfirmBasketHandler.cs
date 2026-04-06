@@ -112,7 +112,7 @@ public sealed class ConfirmBasketHandler
                     }
 
                     await _offerServiceClient.SellInventoryAsync(
-                        draftOrder.OrderId, inventoryItems, paxCount, cancellationToken);
+                        draftOrder.OrderId, inventoryItems, cancellationToken);
                 }
             }
             catch (Exception ex)

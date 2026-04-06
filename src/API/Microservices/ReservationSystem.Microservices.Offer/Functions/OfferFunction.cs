@@ -412,10 +412,16 @@ public sealed class OfferFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
         catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
+        var passengers = body.GetProperty("passengers").EnumerateArray()
+            .Select(p => p.TryGetProperty("seatNumber", out var sn) && sn.ValueKind == JsonValueKind.String
+                ? sn.GetString()
+                : null)
+            .ToList();
+
         var command = new HoldInventoryCommand(
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
             CabinCode: body.GetProperty("cabinCode").GetString()!,
-            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            Passengers: passengers,
             OrderId: body.GetProperty("orderId").GetGuid());
 
         try
@@ -456,7 +462,6 @@ public sealed class OfferFunction
 
         var command = new SellInventoryCommand(
             Items: sellItems,
-            PaxCount: body.GetProperty("paxCount").GetInt32(),
             OrderId: body.GetProperty("orderId").GetGuid());
 
         try
@@ -494,7 +499,7 @@ public sealed class OfferFunction
         var command = new ReleaseInventoryCommand(
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
             CabinCode: body.GetProperty("cabinCode").GetString()!,
-            PaxCount: body.GetProperty("paxCount").GetInt32(),
+            OrderId: body.GetProperty("orderId").GetGuid(),
             ReleaseType: body.GetProperty("releaseType").GetString()!,
             BasketId: body.TryGetProperty("basketId", out var bid) && bid.ValueKind != JsonValueKind.Null ? bid.GetGuid() : null);
 

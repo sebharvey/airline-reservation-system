@@ -17,6 +17,8 @@ public sealed class ReleaseInventoryHandler
 
     public async Task<FlightInventory> HandleAsync(ReleaseInventoryCommand command, CancellationToken ct = default)
     {
+        var holdCount = await _repository.GetHoldCountAsync(command.InventoryId, command.OrderId, command.CabinCode, ct);
+
         var inventory = await _repository.GetInventoryByIdAsync(command.InventoryId, ct)
             ?? throw new KeyNotFoundException($"Inventory {command.InventoryId} not found.");
 
@@ -25,15 +27,15 @@ public sealed class ReleaseInventoryHandler
 
         if (command.ReleaseType == "Held")
         {
-            if (cabin.SeatsHeld < command.PaxCount)
-                throw new InvalidOperationException($"Insufficient held seats in cabin {command.CabinCode}: {cabin.SeatsHeld} held, {command.PaxCount} requested.");
-            inventory.ReleaseHeld(command.CabinCode, command.PaxCount);
+            if (cabin.SeatsHeld < holdCount)
+                throw new InvalidOperationException($"Insufficient held seats in cabin {command.CabinCode}: {cabin.SeatsHeld} held, {holdCount} required.");
+            inventory.ReleaseHeld(command.CabinCode, holdCount);
         }
         else if (command.ReleaseType == "Sold")
         {
-            if (cabin.SeatsSold < command.PaxCount)
-                throw new InvalidOperationException($"Insufficient sold seats in cabin {command.CabinCode}: {cabin.SeatsSold} sold, {command.PaxCount} requested.");
-            inventory.ReleaseSold(command.CabinCode, command.PaxCount);
+            if (cabin.SeatsSold < holdCount)
+                throw new InvalidOperationException($"Insufficient sold seats in cabin {command.CabinCode}: {cabin.SeatsSold} sold, {holdCount} required.");
+            inventory.ReleaseSold(command.CabinCode, holdCount);
         }
         else
         {
@@ -42,8 +44,8 @@ public sealed class ReleaseInventoryHandler
 
         await _repository.UpdateInventoryAsync(inventory, ct);
 
-        _logger.LogInformation("Released {PaxCount} {ReleaseType} seats in cabin {CabinCode} on inventory {InventoryId}",
-            command.PaxCount, command.ReleaseType, command.CabinCode, command.InventoryId);
+        _logger.LogInformation("Released {HoldCount} {ReleaseType} seats in cabin {CabinCode} on inventory {InventoryId} for order {OrderId}",
+            holdCount, command.ReleaseType, command.CabinCode, command.InventoryId, command.OrderId);
 
         return inventory;
     }

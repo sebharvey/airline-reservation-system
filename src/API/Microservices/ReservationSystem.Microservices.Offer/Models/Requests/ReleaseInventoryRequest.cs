@@ -10,8 +10,8 @@ public sealed class ReleaseInventoryRequest
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("paxCount")]
-    public int PaxCount { get; init; }
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
 
     [JsonPropertyName("releaseType")]
     public string ReleaseType { get; init; } = string.Empty;
