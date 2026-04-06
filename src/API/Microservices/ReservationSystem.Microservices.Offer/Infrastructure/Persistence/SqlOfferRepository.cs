@@ -561,10 +561,11 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT HoldId, OrderId, CabinCode, PaxCount, Status, CreatedAt
-            FROM   [offer].[InventoryHold]
-            WHERE  InventoryId = @InventoryId
-            ORDER BY CreatedAt DESC;
+            SELECT h.HoldId, h.OrderId, o.BookingReference, h.CabinCode, h.PaxCount, h.Status, h.CreatedAt
+            FROM   [offer].[InventoryHold] h
+            LEFT JOIN [order].[Order] o ON o.OrderId = h.OrderId
+            WHERE  h.InventoryId = @InventoryId
+            ORDER BY h.CreatedAt DESC;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -573,12 +574,13 @@ public sealed class SqlOfferRepository : IOfferRepository
             new CommandDefinition(sql, new { InventoryId = inventoryId }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(r => new InventoryHoldRecord(
-            HoldId:    (Guid)r.HoldId,
-            OrderId:   (Guid)r.OrderId,
-            CabinCode: (string)r.CabinCode,
-            PaxCount:  (int)r.PaxCount,
-            Status:    (string)r.Status,
-            CreatedAt: new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
+            HoldId:           (Guid)r.HoldId,
+            OrderId:          (Guid)r.OrderId,
+            BookingReference: (string?)r.BookingReference,
+            CabinCode:        (string)r.CabinCode,
+            PaxCount:         (int)r.PaxCount,
+            Status:           (string)r.Status,
+            CreatedAt:        new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
             .ToList().AsReadOnly();
     }
 

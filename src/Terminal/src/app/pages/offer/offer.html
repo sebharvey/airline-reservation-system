@@ -198,7 +198,7 @@
           <table class="holds-table">
             <thead>
               <tr>
-                <th>Order ID</th>
+                <th>Booking Ref</th>
                 <th>Cabin</th>
                 <th>Passengers</th>
                 <th>Status</th>
@@ -208,7 +208,7 @@
             <tbody>
               @for (hold of holds(); track hold.holdId) {
                 <tr>
-                  <td class="mono order-id">{{ hold.orderId }}</td>
+                  <td class="mono booking-ref">{{ hold.bookingReference ?? '—' }}</td>
                   <td class="cabin-col">
                     <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
                   </td>

@@ -827,12 +827,13 @@ public sealed class OfferFunction
 
         return await req.OkJsonAsync(holds.Select(h => new
         {
-            holdId    = h.HoldId,
-            orderId   = h.OrderId,
-            cabinCode = h.CabinCode,
-            paxCount  = h.PaxCount,
-            status    = h.Status,
-            createdAt = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            holdId           = h.HoldId,
+            orderId          = h.OrderId,
+            bookingReference = h.BookingReference,
+            cabinCode        = h.CabinCode,
+            paxCount         = h.PaxCount,
+            status           = h.Status,
+            createdAt        = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
     }
 }

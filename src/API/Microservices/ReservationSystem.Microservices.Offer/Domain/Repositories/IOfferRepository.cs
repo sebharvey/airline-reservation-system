@@ -3,6 +3,7 @@ namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 public sealed record InventoryHoldRecord(
     Guid HoldId,
     Guid OrderId,
+    string? BookingReference,
     string CabinCode,
     int PaxCount,
     string Status,
