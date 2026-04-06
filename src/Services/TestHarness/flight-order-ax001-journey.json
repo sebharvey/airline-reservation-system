@@ -59,11 +59,11 @@
         "statusCode": 200,
         "description": "200 OK — search results returned. AX001 appears in the flights array. sessionId and a selected offerId are chained to Step 2.",
         "keyFields": ["sessionId", "flights"],
-        "validationNotes": "sessionId is a GUID scoped to this search. AX001 must be present in the flights array for 2026-04-07. A random available offer is selected across all cabins and fare families."
+        "validationNotes": "sessionId is a GUID scoped to this search. AX001 must be present in the flights array for 2026-04-07. A random available offer is selected from AX001's cabins and fare families only."
       },
       "chainsTo": [
         { "field": "sessionId", "as": "sessionId", "usedInSteps": [2] },
-        { "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId", "as": "offerId", "usedInSteps": [2] }
+        { "randomArrayPath": "flights[?flightNumber=AX001].cabins[*].fareFamilies[*].offer.offerId", "as": "offerId", "usedInSteps": [2] }
       ]
     },
     {

@@ -785,11 +785,22 @@
         btnNextStep.textContent = '\u23ED Next';
     }
 
-    // Walk a dot-separated path where segments ending with [*] expand arrays.
+    // Walk a dot-separated path where segments ending with [*] expand arrays,
+    // or [?key=value] filter arrays to matching items.
     // e.g. 'flights[*].cabins[*].fareFamilies[*].offer.offerId' collects all offerIds.
+    // e.g. 'flights[?flightNumber=AX001].cabins[*].fareFamilies[*].offer.offerId' collects only from AX001.
     function collectAllValues(obj, pathParts) {
         if (!pathParts.length || obj == null) return [];
         const [head, ...tail] = pathParts;
+        const filterMatch = head.match(/^(\w+)\[\?(\w+)=(.+)\]$/);
+        if (filterMatch) {
+            const [, key, prop, value] = filterMatch;
+            const arr = obj[key];
+            if (!Array.isArray(arr)) return [];
+            const filtered = arr.filter(item => String(item[prop]) === value);
+            if (!tail.length) return filtered;
+            return filtered.flatMap(item => collectAllValues(item, tail));
+        }
         const isWildcard = head.endsWith('[*]');
         const key = isWildcard ? head.slice(0, -3) : head;
         const val = key ? obj[key] : obj;
