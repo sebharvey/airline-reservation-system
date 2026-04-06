@@ -124,7 +124,7 @@ public sealed class ChangeOrderHandler
             try
             {
                 if (Guid.TryParse(inventoryId, out var invGuid))
-                    await _offerServiceClient.ReleaseInventoryAsync(invGuid, cabinCode, "Sold", ct);
+                    await _offerServiceClient.ReleaseInventoryAsync(invGuid, cabinCode, order.OrderId, "Sold", ct);
             }
             catch (Exception ex)
             {

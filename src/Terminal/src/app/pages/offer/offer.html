@@ -200,7 +200,7 @@
               <tr>
                 <th>Booking Ref</th>
                 <th>Cabin</th>
-                <th>Passengers</th>
+                <th>Seat</th>
                 <th>Status</th>
                 <th>Created</th>
               </tr>
@@ -218,7 +218,7 @@
                   <td class="cabin-col">
                     <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
                   </td>
-                  <td class="num-cell">{{ hold.paxCount }}</td>
+                  <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
                   <td>
                     <span class="badge" [class]="holdStatusClass(hold.status)">{{ hold.status }}</span>
                   </td>

@@ -7,9 +7,6 @@ public sealed class SellInventoryRequest
     [JsonPropertyName("items")]
     public IReadOnlyList<SellInventoryItemRequest> Items { get; init; } = [];
 
-    [JsonPropertyName("paxCount")]
-    public int PaxCount { get; init; }
-
     [JsonPropertyName("orderId")]
     public Guid OrderId { get; init; }
 }

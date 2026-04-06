@@ -497,7 +497,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     // InventoryHold
     // -------------------------------------------------------------------------
 
-    public async Task<bool> HoldExistsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
+    public async Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
     {
         const string sql = """
             SELECT COUNT(1)
@@ -509,19 +509,17 @@ public sealed class SqlOfferRepository : IOfferRepository
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
-        var count = await connection.ExecuteScalarAsync<int>(
+        return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, CabinCode = cabinCode },
                 commandTimeout: _options.CommandTimeoutSeconds));
-
-        return count > 0;
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, int paxCount, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, OrderId, CabinCode, PaxCount, Status)
-            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @PaxCount, 'Held');
+                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, Status)
+            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, 'Held');
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -533,10 +531,10 @@ public sealed class SqlOfferRepository : IOfferRepository
                 InventoryId = inventoryId,
                 OrderId = orderId,
                 CabinCode = cabinCode,
-                PaxCount = paxCount
+                SeatNumber = seatNumber
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}", inventoryId, orderId, cabinCode);
+        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}, SeatNumber {SeatNumber}", inventoryId, orderId, cabinCode, seatNumber);
     }
 
     public async Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
@@ -561,7 +559,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT HoldId, OrderId, CabinCode, PaxCount, Status, CreatedAt
+            SELECT HoldId, OrderId, CabinCode, SeatNumber, Status, CreatedAt
             FROM   [offer].[InventoryHold]
             WHERE  InventoryId = @InventoryId
             ORDER BY CreatedAt DESC;
@@ -573,12 +571,12 @@ public sealed class SqlOfferRepository : IOfferRepository
             new CommandDefinition(sql, new { InventoryId = inventoryId }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(r => new InventoryHoldRecord(
-            HoldId:    (Guid)r.HoldId,
-            OrderId:   (Guid)r.OrderId,
-            CabinCode: (string)r.CabinCode,
-            PaxCount:  (int)r.PaxCount,
-            Status:    (string)r.Status,
-            CreatedAt: new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
+            HoldId:     (Guid)r.HoldId,
+            OrderId:    (Guid)r.OrderId,
+            CabinCode:  (string)r.CabinCode,
+            SeatNumber: (string?)r.SeatNumber,
+            Status:     (string)r.Status,
+            CreatedAt:  new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
             .ToList().AsReadOnly();
     }
 

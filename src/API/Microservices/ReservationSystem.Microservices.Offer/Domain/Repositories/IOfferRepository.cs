@@ -4,7 +4,7 @@ public sealed record InventoryHoldRecord(
     Guid HoldId,
     Guid OrderId,
     string CabinCode,
-    int PaxCount,
+    string? SeatNumber,
     string Status,
     DateTimeOffset CreatedAt);
 
@@ -36,9 +36,9 @@ public interface IOfferRepository
     Task<Entities.StoredOffer?> GetStoredOfferBySessionAndOfferIdAsync(Guid sessionId, Guid offerId, CancellationToken ct = default);
     Task CreateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
 
-    // InventoryHold (idempotency)
-    Task<bool> HoldExistsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
-    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, int paxCount, CancellationToken ct = default);
+    // InventoryHold
+    Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
+    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, CancellationToken ct = default);
     Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
 

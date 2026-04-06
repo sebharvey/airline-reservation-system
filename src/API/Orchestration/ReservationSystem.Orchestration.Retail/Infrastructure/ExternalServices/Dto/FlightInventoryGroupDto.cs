@@ -50,7 +50,7 @@ public sealed class FlightInventoryHoldDto
     public Guid OrderId { get; init; }
     public string? BookingReference { get; init; }
     public string CabinCode { get; init; } = string.Empty;
-    public int PaxCount { get; init; }
+    public string? SeatNumber { get; init; }
     public string Status { get; init; } = string.Empty;
     public string CreatedAt { get; init; } = string.Empty;
 }

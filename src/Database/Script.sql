@@ -201,7 +201,7 @@ END
 GO
 
 -- offer.InventoryHold ---------------------------------------------------------
--- Tracks seat holds keyed by order so that HoldInventory is idempotent per order.
+-- One row per passenger per hold. SeatNumber is optional (NULL = seat not yet selected).
 -- Status transitions: 'Held' (during booking flow) → 'Confirmed' (on sell/order confirmation).
 -- Rows are created by HoldInventoryHandler and confirmed by SellInventoryHandler.
 IF OBJECT_ID('[offer].[InventoryHold]', 'U') IS NULL
@@ -210,11 +210,10 @@ CREATE TABLE [offer].[InventoryHold] (
     InventoryId UNIQUEIDENTIFIER NOT NULL,
     OrderId     UNIQUEIDENTIFIER NOT NULL,
     CabinCode   CHAR(1)          NOT NULL,
-    PaxCount    SMALLINT         NOT NULL,
+    SeatNumber  VARCHAR(6)       NULL,
     Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
     CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
-    CONSTRAINT UQ_InventoryHold_Order       UNIQUE      (InventoryId, OrderId, CabinCode),
     CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
     CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed')),
     CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y'))
@@ -223,6 +222,10 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Order' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
     CREATE INDEX IX_InventoryHold_Order ON [offer].[InventoryHold] (OrderId);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_InventoryHold_Seat' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE UNIQUE INDEX UX_InventoryHold_Seat ON [offer].[InventoryHold] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
 GO
 
 -- offer.Fare ------------------------------------------------------------------

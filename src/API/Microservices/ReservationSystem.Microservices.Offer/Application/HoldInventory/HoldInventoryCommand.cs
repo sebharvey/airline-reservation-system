@@ -3,5 +3,5 @@ namespace ReservationSystem.Microservices.Offer.Application.HoldInventory;
 public sealed record HoldInventoryCommand(
     Guid InventoryId,
     string CabinCode,
-    int PaxCount,
+    IReadOnlyList<string?> Passengers,
     Guid OrderId);

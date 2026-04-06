@@ -74,13 +74,11 @@ public sealed class OfferServiceClient
     public async Task SellInventoryAsync(
         Guid orderId,
         IReadOnlyList<(Guid InventoryId, string CabinCode)> items,
-        int paxCount,
         CancellationToken cancellationToken = default)
     {
         var payload = new
         {
             items = items.Select(i => new { inventoryId = i.InventoryId, cabinCode = i.CabinCode }),
-            paxCount,
             orderId
         };
 
@@ -93,10 +91,10 @@ public sealed class OfferServiceClient
     }
 
     public async Task ReleaseInventoryAsync(
-        Guid inventoryId, string cabinCode, string releaseType,
+        Guid inventoryId, string cabinCode, Guid orderId, string releaseType,
         CancellationToken cancellationToken = default)
     {
-        var payload = new { inventoryId, cabinCode, releaseType };
+        var payload = new { inventoryId, cabinCode, orderId, releaseType };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/release", payload, JsonOptions, cancellationToken);
         // Non-fatal — inventory release failure does not prevent cancellation from completing
         if (!response.IsSuccessStatusCode)
@@ -118,10 +116,13 @@ public sealed class OfferServiceClient
     }
 
     public async Task HoldInventoryAsync(
-        Guid inventoryId, string cabinCode, int paxCount, Guid orderId,
+        Guid inventoryId, string cabinCode, int passengerCount, Guid orderId,
         CancellationToken cancellationToken = default)
     {
-        var payload = new { inventoryId, cabinCode, paxCount, orderId };
+        var passengers = Enumerable.Repeat<string?>(null, passengerCount)
+            .Select(s => new { seatNumber = s })
+            .ToList();
+        var payload = new { inventoryId, cabinCode, passengers, orderId };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", payload, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
