@@ -84,6 +84,7 @@ Data integrity is maintained atomically, at the application layer, and as close 
 Microsoft SQL Server is the standard RDBMS, managed as code with connection pooling monitored per service.
 
 - Single SQL Server instance with logical schema separation for this project; architecture treats each schema as an independent database so physical separation is achievable via connection string change alone.
+- **AI AGENTS: Never write SQL queries that JOIN or reference tables across schemas (e.g. `offer.*` joined to `order.*`).** In production, each schema is a separate physical database bound to its own microservice — cross-schema queries will break. All cross-domain data access must go through service APIs or orchestration, not SQL.
 - All DDL changes applied through a reviewed, automated migration pipeline (e.g. Flyway, EF Core); manual schema changes to production are prohibited; migrations idempotent where possible.
 - Connection pool settings tuned per function to concurrency profile; pool exhaustion must generate an alert.
 - Reporting, analytics, and non-operational queries routed to read replicas or read-only endpoints; analytical workloads must not compete with transactional workloads on the primary.
