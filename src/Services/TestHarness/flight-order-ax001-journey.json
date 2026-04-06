@@ -24,7 +24,7 @@
           "origin": "LHR",
           "destination": "JFK",
           "departureDate": "2026-04-07",
-          "paxCount": 1,
+          "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
       },
@@ -121,20 +121,12 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          {
-            "passengerId": "PAX-1",
-            "type": "ADT",
-            "givenName": "__RAND_GIVEN_NAME__",
-            "surname": "__RAND_SURNAME__",
-            "dateOfBirth": "__RAND_DOB__",
-            "gender": "__RAND_GENDER__",
-            "loyaltyNumber": null,
-            "contacts": {
-              "email": "__RAND_EMAIL__",
-              "phone": "__RAND_PHONE__"
-            },
-            "travelDocument": null
-          }
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "type": "ADT", "givenName": "__RAND_GIVEN_NAME__",   "surname": "__RAND_SURNAME__",   "dateOfBirth": "__RAND_DOB__",   "gender": "__RAND_GENDER__",   "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL__",   "phone": "__RAND_PHONE__"   }, "travelDocument": null },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_2__", "surname": "__RAND_SURNAME_2__", "dateOfBirth": "__RAND_DOB_2__", "gender": "__RAND_GENDER_2__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_2__", "phone": "__RAND_PHONE_2__" }, "travelDocument": null },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_3__", "surname": "__RAND_SURNAME_3__", "dateOfBirth": "__RAND_DOB_3__", "gender": "__RAND_GENDER_3__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_3__", "phone": "__RAND_PHONE_3__" }, "travelDocument": null },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_4__", "surname": "__RAND_SURNAME_4__", "dateOfBirth": "__RAND_DOB_4__", "gender": "__RAND_GENDER_4__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_4__", "phone": "__RAND_PHONE_4__" }, "travelDocument": null },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_5__", "surname": "__RAND_SURNAME_5__", "dateOfBirth": "__RAND_DOB_5__", "gender": "__RAND_GENDER_5__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_5__", "phone": "__RAND_PHONE_5__" }, "travelDocument": null },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_6__", "surname": "__RAND_SURNAME_6__", "dateOfBirth": "__RAND_DOB_6__", "gender": "__RAND_GENDER_6__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_6__", "phone": "__RAND_PHONE_6__" }, "travelDocument": null }
         ],
         "dataChain": [
           { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
@@ -156,7 +148,7 @@
         "statusCode": 200,
         "description": "200 OK — PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
         "keyFields": ["basketId", "status"],
-        "validationNotes": "passengerId PAX-1 must be referenced consistently in seat selections. type uses IATA passenger type codes (ADT)."
+        "validationNotes": "One entry per passenger up to the random paxCount for this run (1–6). passengerIds PAX-1…PAX-N must be referenced consistently in seat selections. type uses IATA passenger type codes (ADT)."
       }
     },
     {
@@ -298,25 +290,56 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          {
-            "passengerId": "PAX-1",
-            "segmentId":    "from-chain-inventoryId",
-            "basketItemRef": "from-chain-basketItemId",
-            "seatOfferId":  "from-chain-seatOfferId",
-            "seatNumber":   "from-chain-seatNumber",
-            "seatPosition": "from-chain-seatPosition",
-            "price":        0,
-            "currency":     "GBP"
-          }
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_1", "seatNumber": "from-chain-seatNumber_1", "seatPosition": "from-chain-seatPosition_1", "price": 0, "currency": "GBP" },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_2", "seatNumber": "from-chain-seatNumber_2", "seatPosition": "from-chain-seatPosition_2", "price": 0, "currency": "GBP" },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_3", "seatNumber": "from-chain-seatNumber_3", "seatPosition": "from-chain-seatPosition_3", "price": 0, "currency": "GBP" },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_4", "seatNumber": "from-chain-seatNumber_4", "seatPosition": "from-chain-seatPosition_4", "price": 0, "currency": "GBP" },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_5", "seatNumber": "from-chain-seatNumber_5", "seatPosition": "from-chain-seatPosition_5", "price": 0, "currency": "GBP" },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "from-chain-inventoryId", "basketItemRef": "from-chain-basketItemId", "seatOfferId": "from-chain-seatOfferId_6", "seatNumber": "from-chain-seatNumber_6", "seatPosition": "from-chain-seatPosition_6", "price": 0, "currency": "GBP" }
         ],
         "dataChain": [
-          { "field": "[0].segmentId",    "from": "inventoryId",  "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
-          { "field": "[0].basketItemRef","from": "basketItemId", "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
-          { "field": "[0].seatOfferId",  "from": "seatOfferId",  "source": "Step 5 → random available seat" },
-          { "field": "[0].seatNumber",   "from": "seatNumber",   "source": "Step 5 → random available seat" },
-          { "field": "[0].seatPosition", "from": "seatPosition", "source": "Step 5 → random available seat" },
-          { "field": "[0].price",        "from": "seatPrice",    "source": "Step 5 → random available seat" },
-          { "field": "[0].currency",     "from": "seatCurrency", "source": "Step 5 → random available seat" }
+          { "field": "[0].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[0].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[0].seatOfferId",  "from": "seatOfferId_1", "source": "Step 5 → seat 1 (PAX-1)" },
+          { "field": "[0].seatNumber",   "from": "seatNumber_1",  "source": "Step 5 → seat 1 (PAX-1)" },
+          { "field": "[0].seatPosition", "from": "seatPosition_1","source": "Step 5 → seat 1 (PAX-1)" },
+          { "field": "[0].price",        "from": "seatPrice_1",   "source": "Step 5 → seat 1 (PAX-1)" },
+          { "field": "[0].currency",     "from": "seatCurrency_1","source": "Step 5 → seat 1 (PAX-1)" },
+          { "field": "[1].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[1].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[1].seatOfferId",  "from": "seatOfferId_2", "source": "Step 5 → seat 2 (PAX-2)" },
+          { "field": "[1].seatNumber",   "from": "seatNumber_2",  "source": "Step 5 → seat 2 (PAX-2)" },
+          { "field": "[1].seatPosition", "from": "seatPosition_2","source": "Step 5 → seat 2 (PAX-2)" },
+          { "field": "[1].price",        "from": "seatPrice_2",   "source": "Step 5 → seat 2 (PAX-2)" },
+          { "field": "[1].currency",     "from": "seatCurrency_2","source": "Step 5 → seat 2 (PAX-2)" },
+          { "field": "[2].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[2].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[2].seatOfferId",  "from": "seatOfferId_3", "source": "Step 5 → seat 3 (PAX-3)" },
+          { "field": "[2].seatNumber",   "from": "seatNumber_3",  "source": "Step 5 → seat 3 (PAX-3)" },
+          { "field": "[2].seatPosition", "from": "seatPosition_3","source": "Step 5 → seat 3 (PAX-3)" },
+          { "field": "[2].price",        "from": "seatPrice_3",   "source": "Step 5 → seat 3 (PAX-3)" },
+          { "field": "[2].currency",     "from": "seatCurrency_3","source": "Step 5 → seat 3 (PAX-3)" },
+          { "field": "[3].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[3].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[3].seatOfferId",  "from": "seatOfferId_4", "source": "Step 5 → seat 4 (PAX-4)" },
+          { "field": "[3].seatNumber",   "from": "seatNumber_4",  "source": "Step 5 → seat 4 (PAX-4)" },
+          { "field": "[3].seatPosition", "from": "seatPosition_4","source": "Step 5 → seat 4 (PAX-4)" },
+          { "field": "[3].price",        "from": "seatPrice_4",   "source": "Step 5 → seat 4 (PAX-4)" },
+          { "field": "[3].currency",     "from": "seatCurrency_4","source": "Step 5 → seat 4 (PAX-4)" },
+          { "field": "[4].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[4].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[4].seatOfferId",  "from": "seatOfferId_5", "source": "Step 5 → seat 5 (PAX-5)" },
+          { "field": "[4].seatNumber",   "from": "seatNumber_5",  "source": "Step 5 → seat 5 (PAX-5)" },
+          { "field": "[4].seatPosition", "from": "seatPosition_5","source": "Step 5 → seat 5 (PAX-5)" },
+          { "field": "[4].price",        "from": "seatPrice_5",   "source": "Step 5 → seat 5 (PAX-5)" },
+          { "field": "[4].currency",     "from": "seatCurrency_5","source": "Step 5 → seat 5 (PAX-5)" },
+          { "field": "[5].segmentId",    "from": "inventoryId",   "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "[5].basketItemRef","from": "basketItemId",  "source": "Step 4 → basketData.flightOffers[0].basketItemId" },
+          { "field": "[5].seatOfferId",  "from": "seatOfferId_6", "source": "Step 5 → seat 6 (PAX-6)" },
+          { "field": "[5].seatNumber",   "from": "seatNumber_6",  "source": "Step 5 → seat 6 (PAX-6)" },
+          { "field": "[5].seatPosition", "from": "seatPosition_6","source": "Step 5 → seat 6 (PAX-6)" },
+          { "field": "[5].price",        "from": "seatPrice_6",   "source": "Step 5 → seat 6 (PAX-6)" },
+          { "field": "[5].currency",     "from": "seatCurrency_6","source": "Step 5 → seat 6 (PAX-6)" }
         ]
       },
       "response": {
@@ -333,9 +356,9 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seat saved to the basket for PAX-1. totalSeatAmount reflects the selected seat's price.",
+        "description": "200 OK — seats saved to the basket for all passengers. totalSeatAmount reflects the sum of all selected seat prices.",
         "keyFields": ["basketId", "status", "totalSeatAmount", "totalPrice"],
-        "validationNotes": "segmentId must be the inventoryId of the flight (not the offerId). seatOfferId must match a valid available seat from the seatmap. One seat per passenger per segment."
+        "validationNotes": "segmentId must be the inventoryId of the flight (not the offerId). Each passenger gets a distinct seat picked randomly from the seatmap. seatOfferId must match a valid available seat. One seat per passenger per segment."
       }
     },
     {

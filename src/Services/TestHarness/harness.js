@@ -132,6 +132,23 @@
                           randDigits(6) + '@testmail.example.com';
         const pax2Phone = '07' + randDigits(9);
 
+        // PAX count (1–6) and supplementary passengers (PAX-3 through PAX-6)
+        const paxCount = 1 + Math.floor(Math.random() * 6);
+        function makePax() {
+            let gn = pick(FIRST_NAMES); while (gn === givenName) gn = pick(FIRST_NAMES);
+            let sn = pick(SURNAMES);    while (sn === surname)    sn = pick(SURNAMES);
+            const g  = pick(genders);
+            const dy = 1950 + Math.floor(Math.random() * 56);
+            const dm = (1 + Math.floor(Math.random() * 12)).toString().padStart(2, '0');
+            const dd = (1 + Math.floor(Math.random() * 28)).toString().padStart(2, '0');
+            return { givenName: gn, surname: sn, gender: g,
+                     dateOfBirth: `${dy}-${dm}-${dd}`,
+                     email: `${gn.toLowerCase()}.${sn.toLowerCase()}.${randDigits(6)}@testmail.example.com`,
+                     phone: '07' + randDigits(9) };
+        }
+        const pax3 = makePax(); const pax4 = makePax();
+        const pax5 = makePax(); const pax6 = makePax();
+
         const route = pick(ROUTES);
         const today = new Date();
         const outboundOffset = 7 + Math.floor(Math.random() * 28);   // 7–34 days out
@@ -151,18 +168,54 @@
             recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
             gender, dateOfBirth, phone, loyaltyNumber,
             pax2GivenName, pax2Surname, pax2Gender, pax2DateOfBirth, pax2Email, pax2Phone,
+            paxCount,
+            pax3GivenName: pax3.givenName, pax3Surname: pax3.surname, pax3Gender: pax3.gender,
+            pax3DateOfBirth: pax3.dateOfBirth, pax3Email: pax3.email, pax3Phone: pax3.phone,
+            pax4GivenName: pax4.givenName, pax4Surname: pax4.surname, pax4Gender: pax4.gender,
+            pax4DateOfBirth: pax4.dateOfBirth, pax4Email: pax4.email, pax4Phone: pax4.phone,
+            pax5GivenName: pax5.givenName, pax5Surname: pax5.surname, pax5Gender: pax5.gender,
+            pax5DateOfBirth: pax5.dateOfBirth, pax5Email: pax5.email, pax5Phone: pax5.phone,
+            pax6GivenName: pax6.givenName, pax6Surname: pax6.surname, pax6Gender: pax6.gender,
+            pax6DateOfBirth: pax6.dateOfBirth, pax6Email: pax6.email, pax6Phone: pax6.phone,
             outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate
         };
     }
 
     function applyRuntimeVars(obj) {
         if (obj === null || obj === undefined) return obj;
+        // Exact-match numeric placeholders — return the raw number, not a string
+        if (obj === '__RAND_PAX_COUNT__') return runtimeVars.paxCount;
         if (typeof obj === 'string') {
             return obj
                 .replace(/__RAND_RECIPIENT_GIVEN_NAME__/g, runtimeVars.recipientGivenName)
                 .replace(/__RAND_RECIPIENT_SURNAME__/g,    runtimeVars.recipientSurname)
                 .replace(/__RAND_RECIPIENT_EMAIL__/g,      runtimeVars.recipientEmail)
                 .replace(/__RAND_RECIPIENT_PASSWORD__/g,   runtimeVars.recipientPassword)
+                // PAX 6–3 before PAX 2/1 to avoid partial-match collisions
+                .replace(/__RAND_GIVEN_NAME_6__/g,   runtimeVars.pax6GivenName)
+                .replace(/__RAND_SURNAME_6__/g,      runtimeVars.pax6Surname)
+                .replace(/__RAND_GENDER_6__/g,       runtimeVars.pax6Gender)
+                .replace(/__RAND_DOB_6__/g,          runtimeVars.pax6DateOfBirth)
+                .replace(/__RAND_EMAIL_6__/g,        runtimeVars.pax6Email)
+                .replace(/__RAND_PHONE_6__/g,        runtimeVars.pax6Phone)
+                .replace(/__RAND_GIVEN_NAME_5__/g,   runtimeVars.pax5GivenName)
+                .replace(/__RAND_SURNAME_5__/g,      runtimeVars.pax5Surname)
+                .replace(/__RAND_GENDER_5__/g,       runtimeVars.pax5Gender)
+                .replace(/__RAND_DOB_5__/g,          runtimeVars.pax5DateOfBirth)
+                .replace(/__RAND_EMAIL_5__/g,        runtimeVars.pax5Email)
+                .replace(/__RAND_PHONE_5__/g,        runtimeVars.pax5Phone)
+                .replace(/__RAND_GIVEN_NAME_4__/g,   runtimeVars.pax4GivenName)
+                .replace(/__RAND_SURNAME_4__/g,      runtimeVars.pax4Surname)
+                .replace(/__RAND_GENDER_4__/g,       runtimeVars.pax4Gender)
+                .replace(/__RAND_DOB_4__/g,          runtimeVars.pax4DateOfBirth)
+                .replace(/__RAND_EMAIL_4__/g,        runtimeVars.pax4Email)
+                .replace(/__RAND_PHONE_4__/g,        runtimeVars.pax4Phone)
+                .replace(/__RAND_GIVEN_NAME_3__/g,   runtimeVars.pax3GivenName)
+                .replace(/__RAND_SURNAME_3__/g,      runtimeVars.pax3Surname)
+                .replace(/__RAND_GENDER_3__/g,       runtimeVars.pax3Gender)
+                .replace(/__RAND_DOB_3__/g,          runtimeVars.pax3DateOfBirth)
+                .replace(/__RAND_EMAIL_3__/g,        runtimeVars.pax3Email)
+                .replace(/__RAND_PHONE_3__/g,        runtimeVars.pax3Phone)
                 .replace(/__RAND_GIVEN_NAME_2__/g,   runtimeVars.pax2GivenName)
                 .replace(/__RAND_SURNAME_2__/g,      runtimeVars.pax2Surname)
                 .replace(/__RAND_GENDER_2__/g,       runtimeVars.pax2Gender)
@@ -173,9 +226,9 @@
                 .replace(/__RAND_SURNAME__/g,        runtimeVars.surname)
                 .replace(/__RAND_EMAIL__/g,          runtimeVars.email)
                 .replace(/__RAND_PASSWORD__/g,       runtimeVars.password)
-                .replace(/__RAND_GENDER__/g,            runtimeVars.gender)
-                .replace(/__RAND_DOB__/g,             runtimeVars.dateOfBirth)
-                .replace(/__RAND_PHONE__/g,           runtimeVars.phone)
+                .replace(/__RAND_GENDER__/g,         runtimeVars.gender)
+                .replace(/__RAND_DOB__/g,            runtimeVars.dateOfBirth)
+                .replace(/__RAND_PHONE__/g,          runtimeVars.phone)
                 .replace(/__RAND_LOYALTY_NUMBER__/g,  runtimeVars.loyaltyNumber)
                 .replace(/__RAND_OUTBOUND_ORIGIN__/g, runtimeVars.outboundOrigin)
                 .replace(/__RAND_OUTBOUND_DEST__/g,   runtimeVars.outboundDest)
@@ -184,7 +237,18 @@
                 .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
                 .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate);
         }
-        if (Array.isArray(obj)) return obj.map(applyRuntimeVars);
+        if (Array.isArray(obj)) {
+            // Filter out items whose __PAX_MIN__ exceeds the current paxCount, then strip the marker
+            return obj
+                .filter(item => !item || typeof item !== 'object' || !('__PAX_MIN__' in item) || item.__PAX_MIN__ <= runtimeVars.paxCount)
+                .map(item => {
+                    if (item && typeof item === 'object' && '__PAX_MIN__' in item) {
+                        const { __PAX_MIN__, ...rest } = item;
+                        return applyRuntimeVars(rest);
+                    }
+                    return applyRuntimeVars(item);
+                });
+        }
         if (typeof obj === 'object') {
             const out = {};
             for (const [k, v] of Object.entries(obj)) out[k] = applyRuntimeVars(v);
@@ -660,6 +724,7 @@
         [
             ['route',     runtimeVars.outboundOrigin + ' \u2192 ' + runtimeVars.outboundDest + ' / ' + runtimeVars.returnDate],
             ['departs',   runtimeVars.departDate],
+            ['paxCount',  String(runtimeVars.paxCount)],
             ['givenName', runtimeVars.givenName],
             ['surname',   runtimeVars.surname],
             ['email',     runtimeVars.email],
@@ -974,15 +1039,20 @@
                         liveChain[chain.as] = all[Math.floor(Math.random() * all.length)];
                     }
                 } else if (chain.randomAvailableSeatFrom) {
-                    // Collect all available seats from cabins and pick one at random,
-                    // mapping each seat field to a named chain var via chain.as object
+                    // Collect all available seats from cabins, shuffle, and pick up to paxCount distinct seats.
+                    // Stores un-indexed alias (first seat, for backward compat) and indexed alias_1…alias_N.
                     const cabins = liveBody[chain.randomAvailableSeatFrom];
                     if (!Array.isArray(cabins)) return;
                     const available = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
                     if (!available.length) return;
-                    const seat = available[Math.floor(Math.random() * available.length)];
-                    for (const [srcField, alias] of Object.entries(chain.as)) {
-                        liveChain[alias] = seat[srcField];
+                    const shuffled = [...available].sort(() => Math.random() - 0.5);
+                    const count = Math.min(runtimeVars.paxCount || 1, shuffled.length);
+                    for (let i = 0; i < count; i++) {
+                        const seat = shuffled[i];
+                        for (const [srcField, alias] of Object.entries(chain.as)) {
+                            if (i === 0) liveChain[alias] = seat[srcField]; // un-indexed fallback
+                            liveChain[`${alias}_${i + 1}`] = seat[srcField];
+                        }
                     }
                 } else if (chain.path) {
                     // Navigate a nested path to extract a single value
