@@ -1113,10 +1113,18 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     public async Task<int> DeleteExpiredFlightInventoryAsync(CancellationToken ct = default)
     {
-        // Delete child Fare rows first to satisfy the FK_Fare_Inventory constraint,
-        // then delete the parent FlightInventory rows. Both run in a single transaction.
+        // Delete child rows first to satisfy FK constraints, then delete the parent
+        // FlightInventory rows. All run in a single transaction.
         // A flight is considered expired when its departure datetime (DepartureDate + DepartureTime)
         // is more than 48 hours in the past.
+        const string deleteHolds = """
+            DELETE h
+            FROM   [offer].[InventoryHold] h
+            INNER JOIN [offer].[FlightInventory] i ON i.InventoryId = h.InventoryId
+            WHERE  DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', i.DepartureTime), CAST(i.DepartureDate AS DATETIME2))
+                   < DATEADD(HOUR, -48, SYSUTCDATETIME());
+            """;
+
         const string deleteFares = """
             DELETE f
             FROM   [offer].[Fare] f
@@ -1133,6 +1141,9 @@ public sealed class SqlOfferRepository : IOfferRepository
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
         using var tx = connection.BeginTransaction();
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(deleteHolds, transaction: tx, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
 
         await connection.ExecuteAsync(
             new CommandDefinition(deleteFares, transaction: tx, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
