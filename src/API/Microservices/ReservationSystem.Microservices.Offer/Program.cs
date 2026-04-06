@@ -26,6 +26,7 @@ using ReservationSystem.Microservices.Offer.Application.SearchFareRules;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
+using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
@@ -99,6 +100,7 @@ var host = new HostBuilder()
         services.AddScoped<GetFlightInventoryHandler>();
         services.AddScoped<GetFlightInventoryByDateHandler>();
         services.AddScoped<GetFlightByInventoryIdHandler>();
+        services.AddScoped<GetInventoryHoldsHandler>();
     })
     .Build();
 
