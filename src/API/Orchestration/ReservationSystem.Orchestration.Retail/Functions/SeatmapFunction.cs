@@ -18,11 +18,13 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class SeatmapFunction
 {
     private readonly SeatServiceClient _seatServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly ILogger<SeatmapFunction> _logger;
 
-    public SeatmapFunction(SeatServiceClient seatServiceClient, ILogger<SeatmapFunction> logger)
+    public SeatmapFunction(SeatServiceClient seatServiceClient, OfferServiceClient offerServiceClient, ILogger<SeatmapFunction> logger)
     {
         _seatServiceClient = seatServiceClient;
+        _offerServiceClient = offerServiceClient;
         _logger = logger;
     }
 
@@ -52,14 +54,16 @@ public sealed class SeatmapFunction
         if (string.IsNullOrWhiteSpace(aircraftType))
             return await req.BadRequestAsync("'aircraftType' query parameter is required.");
 
-        // Fetch layout and seat offers from Seat MS in parallel
+        // Fetch layout, seat offers, and inventory holds in parallel
         var layoutTask = _seatServiceClient.GetSeatmapAsync(aircraftType, cancellationToken);
         var offersTask = _seatServiceClient.GetSeatOffersAsync(flightId, aircraftType, cancellationToken);
+        var holdsTask = _offerServiceClient.GetInventoryHoldsAsync(flightId, cancellationToken);
 
-        await Task.WhenAll(layoutTask, offersTask);
+        await Task.WhenAll(layoutTask, offersTask, holdsTask);
 
         var layout = await layoutTask;
         var offersResult = await offersTask;
+        var holds = await holdsTask;
 
         if (layout is null)
         {
@@ -71,7 +75,13 @@ public sealed class SeatmapFunction
         var offersByNumber = (offersResult?.SeatOffers ?? [])
             .ToDictionary(o => o.SeatNumber, o => o, StringComparer.OrdinalIgnoreCase);
 
-        var cabins = BuildCabins(layout.Cabins, offersByNumber, cabinCode);
+        // Build a set of seat numbers that are already held/booked to prevent double-booking
+        var heldSeatNumbers = holds
+            .Where(h => !string.IsNullOrEmpty(h.SeatNumber))
+            .Select(h => h.SeatNumber!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var cabins = BuildCabins(layout.Cabins, offersByNumber, heldSeatNumbers, cabinCode);
 
         var response = new
         {
@@ -91,6 +101,7 @@ public sealed class SeatmapFunction
     private static List<object> BuildCabins(
         IEnumerable<CabinLayoutDto> cabinLayouts,
         Dictionary<string, SeatOfferDto> offersByNumber,
+        HashSet<string> heldSeatNumbers,
         string? cabinCodeFilter = null)
     {
         var result = new List<object>();
@@ -101,7 +112,7 @@ public sealed class SeatmapFunction
 
         foreach (var cabin in layouts)
         {
-            var seats = BuildSeats(cabin, offersByNumber);
+            var seats = BuildSeats(cabin, offersByNumber, heldSeatNumbers);
 
             result.Add(new
             {
@@ -120,7 +131,8 @@ public sealed class SeatmapFunction
 
     private static List<object> BuildSeats(
         CabinLayoutDto cabin,
-        Dictionary<string, SeatOfferDto> offersByNumber)
+        Dictionary<string, SeatOfferDto> offersByNumber,
+        HashSet<string> heldSeatNumbers)
     {
         var seats = new List<object>();
 
@@ -128,7 +140,24 @@ public sealed class SeatmapFunction
         {
             foreach (var seat in row.Seats)
             {
-                if (offersByNumber.TryGetValue(seat.SeatNumber, out var offer))
+                if (heldSeatNumbers.Contains(seat.SeatNumber))
+                {
+                    // Seat is held by an existing booking — block it to prevent double-booking
+                    seats.Add(new
+                    {
+                        seatOfferId = string.Empty,
+                        seatNumber = seat.SeatNumber,
+                        column = seat.Column,
+                        rowNumber = row.RowNumber,
+                        position = seat.Position,
+                        cabinCode = cabin.CabinCode,
+                        price = 0m,
+                        currency = "GBP",
+                        availability = "held",
+                        attributes = seat.Attributes
+                    });
+                }
+                else if (offersByNumber.TryGetValue(seat.SeatNumber, out var offer))
                 {
                     seats.Add(new
                     {
