@@ -57,6 +57,7 @@ export interface InventoryHold {
   holdId: string;
   orderId: string;
   bookingReference: string | null;
+  passengerName: string | null;
   cabinCode: string;
   seatNumber: string | null;
   status: string;
