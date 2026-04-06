@@ -16,6 +16,7 @@ public sealed class FlightInventoryDetailDto
 
 public sealed class FlightInventoryGroupDto
 {
+    public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
     public string DepartureTime { get; init; } = string.Empty;
@@ -41,4 +42,14 @@ public sealed class CabinInventoryDto
     public int SeatsAvailable { get; init; }
     public int SeatsSold { get; init; }
     public int SeatsHeld { get; init; }
+}
+
+public sealed class FlightInventoryHoldDto
+{
+    public Guid HoldId { get; init; }
+    public Guid OrderId { get; init; }
+    public string CabinCode { get; init; } = string.Empty;
+    public int PaxCount { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public string CreatedAt { get; init; } = string.Empty;
 }
