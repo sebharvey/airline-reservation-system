@@ -106,6 +106,17 @@ public sealed class OfferServiceClient
         }
     }
 
+    public async Task<IReadOnlyList<FlightInventoryHoldDto>> GetInventoryHoldsAsync(
+        Guid inventoryId,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/inventory/{inventoryId}/holds", cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return [];
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<IReadOnlyList<FlightInventoryHoldDto>>(JsonOptions, cancellationToken);
+        return result ?? [];
+    }
+
     public async Task HoldInventoryAsync(
         Guid inventoryId, string cabinCode, int paxCount, Guid orderId,
         CancellationToken cancellationToken = default)

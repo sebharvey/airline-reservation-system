@@ -66,7 +66,6 @@ export interface InventoryHold {
 export class OfferService {
   #http = inject(HttpClient);
   #baseUrl = `${environment.retailApiUrl}/api/v1/admin`;
-  #offerMsUrl = `${environment.offerMsUrl}/api/v1`;
 
   async getFlightInventory(departureDate: string): Promise<FlightInventoryGroup[]> {
     return firstValueFrom(
@@ -80,7 +79,7 @@ export class OfferService {
   async getInventoryHolds(inventoryId: string): Promise<InventoryHold[]> {
     return firstValueFrom(
       this.#http.get<InventoryHold[]>(
-        `${this.#offerMsUrl}/inventory/${inventoryId}/holds`
+        `${this.#baseUrl}/inventory/${inventoryId}/holds`
       )
     );
   }

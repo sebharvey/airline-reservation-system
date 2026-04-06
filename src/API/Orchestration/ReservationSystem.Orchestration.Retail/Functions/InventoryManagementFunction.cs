@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
 
@@ -19,13 +20,16 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class InventoryManagementFunction
 {
     private readonly GetFlightInventoryHandler _getFlightInventoryHandler;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly ILogger<InventoryManagementFunction> _logger;
 
     public InventoryManagementFunction(
         GetFlightInventoryHandler getFlightInventoryHandler,
+        OfferServiceClient offerServiceClient,
         ILogger<InventoryManagementFunction> logger)
     {
         _getFlightInventoryHandler = getFlightInventoryHandler;
+        _offerServiceClient = offerServiceClient;
         _logger = logger;
     }
 
@@ -58,5 +62,23 @@ public sealed class InventoryManagementFunction
             new GetFlightInventoryQuery(departureDate), cancellationToken);
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/inventory/{inventoryId}/holds
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetInventoryHolds")]
+    [OpenApiOperation(operationId: "AdminGetInventoryHolds", tags: new[] { "Admin Inventory" }, Summary = "Get all holds for a specific flight inventory record (staff)")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FlightInventoryHoldDto>), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetInventoryHolds(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory/{inventoryId:guid}/holds")] HttpRequestData req,
+        Guid inventoryId,
+        CancellationToken cancellationToken)
+    {
+        var holds = await _offerServiceClient.GetInventoryHoldsAsync(inventoryId, cancellationToken);
+        return await req.OkJsonAsync(holds);
     }
 }
