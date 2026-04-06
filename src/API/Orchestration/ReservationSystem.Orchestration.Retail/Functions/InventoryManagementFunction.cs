@@ -8,6 +8,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
