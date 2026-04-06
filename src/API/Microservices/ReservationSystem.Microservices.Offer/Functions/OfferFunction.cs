@@ -412,17 +412,39 @@ public sealed class OfferFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
         catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
-        var passengers = body.GetProperty("passengers").EnumerateArray()
-            .Select(p => p.TryGetProperty("seatNumber", out var sn) && sn.ValueKind == JsonValueKind.String
-                ? sn.GetString()
-                : null)
-            .ToList();
+        // Accept both the new per-pax passengers array and the legacy paxCount integer so that
+        // the function keeps working while Orchestration.Retail redeploys with the new format.
+        List<string?> passengers;
+        if (body.TryGetProperty("passengers", out var passengersEl) && passengersEl.ValueKind == JsonValueKind.Array)
+        {
+            passengers = passengersEl.EnumerateArray()
+                .Select(p => p.TryGetProperty("seatNumber", out var sn) && sn.ValueKind == JsonValueKind.String
+                    ? sn.GetString()
+                    : null)
+                .ToList();
+        }
+        else if (body.TryGetProperty("paxCount", out var paxCountEl) && paxCountEl.ValueKind == JsonValueKind.Number)
+        {
+            passengers = Enumerable.Repeat<string?>(null, paxCountEl.GetInt32()).ToList();
+        }
+        else
+        {
+            return await req.BadRequestAsync("Either 'passengers' array or 'paxCount' is required.");
+        }
 
-        var command = new HoldInventoryCommand(
-            InventoryId: body.GetProperty("inventoryId").GetGuid(),
-            CabinCode: body.GetProperty("cabinCode").GetString()!,
-            Passengers: passengers,
-            OrderId: body.GetProperty("orderId").GetGuid());
+        HoldInventoryCommand command;
+        try
+        {
+            command = new HoldInventoryCommand(
+                InventoryId: body.GetProperty("inventoryId").GetGuid(),
+                CabinCode: body.GetProperty("cabinCode").GetString()!,
+                Passengers: passengers,
+                OrderId: body.GetProperty("orderId").GetGuid());
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            return await req.BadRequestAsync($"Invalid request body: {ex.Message}");
+        }
 
         try
         {
