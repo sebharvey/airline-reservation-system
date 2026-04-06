@@ -17,7 +17,7 @@ public sealed class HoldInventoryHandler
 
     public async Task<FlightInventory> HandleAsync(HoldInventoryCommand command, CancellationToken ct = default)
     {
-        var holdExists = await _repository.HoldExistsAsync(command.InventoryId, command.BasketId, ct);
+        var holdExists = await _repository.HoldExistsAsync(command.InventoryId, command.OrderId, command.CabinCode, ct);
         if (holdExists)
         {
             var existing = await _repository.GetInventoryByIdAsync(command.InventoryId, ct);
@@ -35,10 +35,10 @@ public sealed class HoldInventoryHandler
 
         inventory.HoldSeats(command.CabinCode, command.PaxCount);
         await _repository.UpdateInventoryAsync(inventory, ct);
-        await _repository.CreateHoldAsync(command.InventoryId, command.BasketId, command.PaxCount, ct);
+        await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, command.PaxCount, ct);
 
-        _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for basket {BasketId}",
-            command.PaxCount, command.InventoryId, command.BasketId);
+        _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for order {OrderId}",
+            command.PaxCount, command.InventoryId, command.OrderId);
 
         return inventory;
     }

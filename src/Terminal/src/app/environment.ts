@@ -3,5 +3,6 @@ export const environment = {
   loyaltyApiUrl: 'https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net',
   operationsApiUrl: 'https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net',
   retailApiUrl: 'https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net',
+  offerMsUrl: 'https://reservation-system-db-microservice-offer-dnfdbebdezemaghp.uksouth-01.azurewebsites.net',
   seatMsUrl: 'https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net',
 };

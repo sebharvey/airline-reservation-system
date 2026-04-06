@@ -13,6 +13,7 @@ export interface CabinInventory {
 
 // Admin inventory view: one entry per flight with fixed F/J/W/Y cabin breakdown.
 export interface FlightInventoryGroup {
+  inventoryId: string;
   flightNumber: string;
   departureDate: string;
   departureTime: string;
@@ -52,16 +53,34 @@ export interface FlightInventoryResponse {
   cabins: CabinInventoryDetail[];
 }
 
+export interface InventoryHold {
+  holdId: string;
+  orderId: string;
+  cabinCode: string;
+  paxCount: number;
+  status: string;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OfferService {
   #http = inject(HttpClient);
   #baseUrl = `${environment.retailApiUrl}/api/v1/admin`;
+  #offerMsUrl = `${environment.offerMsUrl}/api/v1`;
 
   async getFlightInventory(departureDate: string): Promise<FlightInventoryGroup[]> {
     return firstValueFrom(
       this.#http.get<FlightInventoryGroup[]>(
         `${this.#baseUrl}/inventory`,
         { params: { departureDate } }
+      )
+    );
+  }
+
+  async getInventoryHolds(inventoryId: string): Promise<InventoryHold[]> {
+    return firstValueFrom(
+      this.#http.get<InventoryHold[]>(
+        `${this.#offerMsUrl}/inventory/${inventoryId}/holds`
       )
     );
   }

@@ -66,6 +66,7 @@ IF OBJECT_ID('[order].[Basket]',       'U') IS NOT NULL DROP TABLE [order].[Bask
 IF OBJECT_ID('[offer].[StoredOffer]',     'U') IS NOT NULL DROP TABLE [offer].[StoredOffer];
 IF OBJECT_ID('[offer].[FareRule]',        'U') IS NOT NULL DROP TABLE [offer].[FareRule];
 IF OBJECT_ID('[offer].[Fare]',            'U') IS NOT NULL DROP TABLE [offer].[Fare];
+IF OBJECT_ID('[offer].[InventoryHold]',   'U') IS NOT NULL DROP TABLE [offer].[InventoryHold];
 IF OBJECT_ID('[offer].[FlightInventory]', 'U') IS NOT NULL DROP TABLE [offer].[FlightInventory];
 
 -- seat
@@ -197,6 +198,31 @@ BEGIN
             INNER JOIN inserted i ON t.InventoryId = i.InventoryId;
     ');
 END
+GO
+
+-- offer.InventoryHold ---------------------------------------------------------
+-- Tracks seat holds keyed by order so that HoldInventory is idempotent per order.
+-- Status transitions: 'Held' (during booking flow) → 'Confirmed' (on sell/order confirmation).
+-- Rows are created by HoldInventoryHandler and confirmed by SellInventoryHandler.
+IF OBJECT_ID('[offer].[InventoryHold]', 'U') IS NULL
+CREATE TABLE [offer].[InventoryHold] (
+    HoldId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_InventoryHold_Id      DEFAULT NEWID(),
+    InventoryId UNIQUEIDENTIFIER NOT NULL,
+    OrderId     UNIQUEIDENTIFIER NOT NULL,
+    CabinCode   CHAR(1)          NOT NULL,
+    PaxCount    SMALLINT         NOT NULL,
+    Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
+    CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
+    CONSTRAINT UQ_InventoryHold_Order       UNIQUE      (InventoryId, OrderId, CabinCode),
+    CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
+    CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed')),
+    CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y'))
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Order' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE INDEX IX_InventoryHold_Order ON [offer].[InventoryHold] (OrderId);
 GO
 
 -- offer.Fare ------------------------------------------------------------------

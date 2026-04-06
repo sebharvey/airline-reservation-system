@@ -72,7 +72,7 @@ public sealed class OfferServiceClient
     }
 
     public async Task SellInventoryAsync(
-        Guid basketId,
+        Guid orderId,
         IReadOnlyList<(Guid InventoryId, string CabinCode)> items,
         int paxCount,
         CancellationToken cancellationToken = default)
@@ -81,7 +81,7 @@ public sealed class OfferServiceClient
         {
             items = items.Select(i => new { inventoryId = i.InventoryId, cabinCode = i.CabinCode }),
             paxCount,
-            basketId
+            orderId
         };
 
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/sell", payload, JsonOptions, cancellationToken);
@@ -107,10 +107,10 @@ public sealed class OfferServiceClient
     }
 
     public async Task HoldInventoryAsync(
-        Guid inventoryId, string cabinCode, int paxCount, Guid basketId,
+        Guid inventoryId, string cabinCode, int paxCount, Guid orderId,
         CancellationToken cancellationToken = default)
     {
-        var payload = new { inventoryId, cabinCode, paxCount, basketId };
+        var payload = new { inventoryId, cabinCode, paxCount, orderId };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", payload, JsonOptions, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
