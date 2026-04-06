@@ -201,24 +201,26 @@ END
 GO
 
 -- offer.InventoryHold ---------------------------------------------------------
--- Tracks in-flight seat holds so that HoldInventory is idempotent per basket.
--- Rows are created by HoldInventoryHandler and implicitly released when the
--- FlightInventory row is updated by SellInventoryHandler or ReleaseInventoryHandler.
+-- Tracks seat holds keyed by order so that HoldInventory is idempotent per order.
+-- Status transitions: 'Held' (during booking flow) → 'Confirmed' (on sell/order confirmation).
+-- Rows are created by HoldInventoryHandler and confirmed by SellInventoryHandler.
 IF OBJECT_ID('[offer].[InventoryHold]', 'U') IS NULL
 CREATE TABLE [offer].[InventoryHold] (
     HoldId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_InventoryHold_Id      DEFAULT NEWID(),
     InventoryId UNIQUEIDENTIFIER NOT NULL,
-    BasketId    UNIQUEIDENTIFIER NOT NULL,
+    OrderId     UNIQUEIDENTIFIER NOT NULL,
     PaxCount    SMALLINT         NOT NULL,
+    Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
     CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
-    CONSTRAINT UQ_InventoryHold_Basket      UNIQUE      (InventoryId, BasketId),
-    CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId)
+    CONSTRAINT UQ_InventoryHold_Order       UNIQUE      (InventoryId, OrderId),
+    CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
+    CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed'))
 );
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Basket' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
-    CREATE INDEX IX_InventoryHold_Basket ON [offer].[InventoryHold] (BasketId);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Order' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE INDEX IX_InventoryHold_Order ON [offer].[InventoryHold] (OrderId);
 GO
 
 -- offer.Fare ------------------------------------------------------------------

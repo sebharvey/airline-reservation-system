@@ -13,6 +13,6 @@ public sealed class HoldInventoryRequest
     [JsonPropertyName("paxCount")]
     public int PaxCount { get; init; }
 
-    [JsonPropertyName("basketId")]
-    public Guid BasketId { get; init; }
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
 }

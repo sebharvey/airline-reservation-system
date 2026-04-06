@@ -396,8 +396,8 @@ public sealed class OfferFunction
 
     // POST /v1/inventory/hold
     [Function("HoldInventory")]
-    [OpenApiOperation(operationId: "HoldInventory", tags: new[] { "Inventory" }, Summary = "Hold seats in inventory for a basket")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HoldInventoryRequest), Required = true, Description = "Hold request: inventoryId, cabinCode, paxCount, basketId")]
+    [OpenApiOperation(operationId: "HoldInventory", tags: new[] { "Inventory" }, Summary = "Hold seats in inventory for an order")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HoldInventoryRequest), Required = true, Description = "Hold request: inventoryId, cabinCode, paxCount, orderId")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(InventoryStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
@@ -414,7 +414,7 @@ public sealed class OfferFunction
             InventoryId: body.GetProperty("inventoryId").GetGuid(),
             CabinCode: body.GetProperty("cabinCode").GetString()!,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
-            BasketId: body.GetProperty("basketId").GetGuid());
+            OrderId: body.GetProperty("orderId").GetGuid());
 
         try
         {
@@ -434,7 +434,7 @@ public sealed class OfferFunction
     // POST /v1/inventory/sell
     [Function("SellInventory")]
     [OpenApiOperation(operationId: "SellInventory", tags: new[] { "Inventory" }, Summary = "Sell (confirm) held inventory seats")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SellInventoryRequest), Required = true, Description = "Sell request: inventoryIds, paxCount, basketId")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SellInventoryRequest), Required = true, Description = "Sell request: inventoryIds, paxCount, orderId")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SellInventoryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
@@ -455,7 +455,7 @@ public sealed class OfferFunction
         var command = new SellInventoryCommand(
             Items: sellItems,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
-            BasketId: body.GetProperty("basketId").GetGuid());
+            OrderId: body.GetProperty("orderId").GetGuid());
 
         try
         {

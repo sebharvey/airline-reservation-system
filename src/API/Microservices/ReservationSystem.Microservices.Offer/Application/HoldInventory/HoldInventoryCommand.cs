@@ -4,4 +4,4 @@ public sealed record HoldInventoryCommand(
     Guid InventoryId,
     string CabinCode,
     int PaxCount,
-    Guid BasketId);
+    Guid OrderId);

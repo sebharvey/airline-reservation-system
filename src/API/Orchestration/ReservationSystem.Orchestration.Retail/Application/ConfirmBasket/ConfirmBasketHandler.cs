@@ -108,11 +108,11 @@ public sealed class ConfirmBasketHandler
                     foreach (var (inventoryId, cabinCode) in inventoryItems)
                     {
                         await _offerServiceClient.HoldInventoryAsync(
-                            inventoryId, cabinCode, paxCount, command.BasketId, cancellationToken);
+                            inventoryId, cabinCode, paxCount, draftOrder.OrderId, cancellationToken);
                     }
 
                     await _offerServiceClient.SellInventoryAsync(
-                        command.BasketId, inventoryItems, paxCount, cancellationToken);
+                        draftOrder.OrderId, inventoryItems, paxCount, cancellationToken);
                 }
             }
             catch (Exception ex)

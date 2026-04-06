@@ -10,8 +10,8 @@ public sealed class SellInventoryRequest
     [JsonPropertyName("paxCount")]
     public int PaxCount { get; init; }
 
-    [JsonPropertyName("basketId")]
-    public Guid BasketId { get; init; }
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
 }
 
 public sealed class SellInventoryItemRequest

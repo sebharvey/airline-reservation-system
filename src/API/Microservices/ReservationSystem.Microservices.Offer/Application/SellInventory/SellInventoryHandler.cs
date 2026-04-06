@@ -32,11 +32,12 @@ public sealed class SellInventoryHandler
 
             inventory.SellSeats(item.CabinCode, command.PaxCount);
             await _repository.UpdateInventoryAsync(inventory, ct);
+            await _repository.ConfirmHoldAsync(item.InventoryId, command.OrderId, ct);
             results.Add(inventory);
         }
 
-        _logger.LogInformation("Sold {PaxCount} seats across {Count} inventories for basket {BasketId}",
-            command.PaxCount, command.Items.Count, command.BasketId);
+        _logger.LogInformation("Sold {PaxCount} seats across {Count} inventories for order {OrderId}",
+            command.PaxCount, command.Items.Count, command.OrderId);
 
         return results.AsReadOnly();
     }
