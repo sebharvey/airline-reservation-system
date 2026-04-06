@@ -120,9 +120,11 @@ public sealed class InventoryManagementFunction
         if (order?.OrderData is not { } data) return null;
         try
         {
-            // Build id → full name map from the passengers array in order data.
+            // Passengers are stored under dataLists.passengers in the order data.
             var paxById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (data.TryGetProperty("passengers", out var passEl) && passEl.ValueKind == JsonValueKind.Array)
+            if (data.TryGetProperty("dataLists", out var dataLists) &&
+                dataLists.TryGetProperty("passengers", out var passEl) &&
+                passEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var p in passEl.EnumerateArray())
                 {
@@ -134,9 +136,9 @@ public sealed class InventoryManagementFunction
                 }
             }
 
-            // Match by seat number + inventory (segmentId == inventoryId in basket/order data).
+            // Seat assignments are stored under seatAssignments (segmentId == inventoryId).
             if (!string.IsNullOrEmpty(seatNumber) &&
-                data.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+                data.TryGetProperty("seatAssignments", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var seat in seatsEl.EnumerateArray())
                 {
