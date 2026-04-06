@@ -66,6 +66,7 @@ IF OBJECT_ID('[order].[Basket]',       'U') IS NOT NULL DROP TABLE [order].[Bask
 IF OBJECT_ID('[offer].[StoredOffer]',     'U') IS NOT NULL DROP TABLE [offer].[StoredOffer];
 IF OBJECT_ID('[offer].[FareRule]',        'U') IS NOT NULL DROP TABLE [offer].[FareRule];
 IF OBJECT_ID('[offer].[Fare]',            'U') IS NOT NULL DROP TABLE [offer].[Fare];
+IF OBJECT_ID('[offer].[InventoryHold]',   'U') IS NOT NULL DROP TABLE [offer].[InventoryHold];
 IF OBJECT_ID('[offer].[FlightInventory]', 'U') IS NOT NULL DROP TABLE [offer].[FlightInventory];
 
 -- seat
@@ -197,6 +198,27 @@ BEGIN
             INNER JOIN inserted i ON t.InventoryId = i.InventoryId;
     ');
 END
+GO
+
+-- offer.InventoryHold ---------------------------------------------------------
+-- Tracks in-flight seat holds so that HoldInventory is idempotent per basket.
+-- Rows are created by HoldInventoryHandler and implicitly released when the
+-- FlightInventory row is updated by SellInventoryHandler or ReleaseInventoryHandler.
+IF OBJECT_ID('[offer].[InventoryHold]', 'U') IS NULL
+CREATE TABLE [offer].[InventoryHold] (
+    HoldId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_InventoryHold_Id      DEFAULT NEWID(),
+    InventoryId UNIQUEIDENTIFIER NOT NULL,
+    BasketId    UNIQUEIDENTIFIER NOT NULL,
+    PaxCount    SMALLINT         NOT NULL,
+    CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
+    CONSTRAINT UQ_InventoryHold_Basket      UNIQUE      (InventoryId, BasketId),
+    CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId)
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Basket' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE INDEX IX_InventoryHold_Basket ON [offer].[InventoryHold] (BasketId);
 GO
 
 -- offer.Fare ------------------------------------------------------------------
