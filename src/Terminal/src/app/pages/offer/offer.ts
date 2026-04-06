@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { OfferService, FlightInventoryGroup, CabinInventory, InventoryHold } from '../../services/offer.service';
 
@@ -6,7 +7,7 @@ import { OfferService, FlightInventoryGroup, CabinInventory, InventoryHold } fro
   selector: 'app-offer',
   templateUrl: './offer.html',
   styleUrl: './offer.css',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
 })
 export class OfferComponent implements OnInit {
   #offerService = inject(OfferService);
