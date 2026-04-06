@@ -106,7 +106,7 @@
                       [class.seat-selected]="isSeatSelected(seat)"
                       [class.seat-sold]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
                       [class.seat-held]="seat.availability === 'held' && !isSeatSelected(seat)"
-                      [disabled]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
+                      [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat)"
                       [title]="seat.seatNumber + ' — ' + seat.position + (seat.price > 0 ? ' — ' + formatCurrency(seat.price, seat.currency) : ' — Free')"
                       (click)="selectSeat(seat)"
                     >
