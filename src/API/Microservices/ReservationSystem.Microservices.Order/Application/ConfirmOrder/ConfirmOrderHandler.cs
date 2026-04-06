@@ -65,6 +65,36 @@ public sealed class ConfirmOrderHandler
         if (segmentsNode is null || segmentsNode.Count == 0)
             throw new InvalidOperationException("Order cannot be confirmed: no flight segments present in basket.");
 
+        // Validate that stored seat assignments match the booked cabin for each flight offer
+        var seatsNode = basketJson["seats"]?.AsArray();
+        if (seatsNode is not null && seatsNode.Count > 0)
+        {
+            var offerCabinByItemId = segmentsNode
+                .OfType<JsonObject>()
+                .Where(o => o["basketItemId"]?.GetValue<string>() is not null)
+                .ToDictionary(
+                    o => o["basketItemId"]!.GetValue<string>(),
+                    o => o["cabinCode"]?.GetValue<string>() ?? string.Empty,
+                    StringComparer.OrdinalIgnoreCase);
+
+            foreach (var seat in seatsNode)
+            {
+                var seatCabin = seat?["cabinCode"]?.GetValue<string>();
+                if (string.IsNullOrEmpty(seatCabin)) continue;
+
+                var itemRef = seat?["basketItemRef"]?.GetValue<string>();
+                if (itemRef is null) continue;
+
+                if (offerCabinByItemId.TryGetValue(itemRef, out var bookedCabin) &&
+                    !string.Equals(seatCabin, bookedCabin, StringComparison.OrdinalIgnoreCase))
+                {
+                    var seatNumber = seat?["seatNumber"]?.GetValue<string>() ?? "unknown";
+                    throw new InvalidOperationException(
+                        $"Order cannot be confirmed: seat {seatNumber} is in cabin '{seatCabin}' but the booked cabin for basket item '{itemRef}' is '{bookedCabin}'.");
+                }
+            }
+        }
+
         var ticketingCutoff = DateTime.UtcNow.AddHours(1);
         foreach (var offer in segmentsNode)
         {
