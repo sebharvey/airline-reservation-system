@@ -148,6 +148,7 @@ export class SeatsComponent implements OnInit {
 
   selectSeat(seatOffer: SeatOffer, entry: SeatmapEntry): void {
     if (seatOffer.availability !== 'available') return;
+    if (this.isSeatTakenByOther(seatOffer, entry.flightOffer.basketItemId)) return;
     const pax = this.activePassenger();
     if (!pax) return;
 

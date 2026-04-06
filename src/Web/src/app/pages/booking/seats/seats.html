@@ -80,7 +80,7 @@
                 <button
                   [class]="getSeatClass(seat, entry.flightOffer.basketItemId)"
                   [class.aisle-after]="hasAisle(cabin.layout, ci)"
-                  [disabled]="seat.availability !== 'available'"
+                  [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat, entry.flightOffer.basketItemId)"
                   (click)="selectSeat(seat, entry)"
                   [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.currency + ' ' + seat.price : '')">
                   <span class="seat-num">{{ seat.seatNumber }}</span>

@@ -176,7 +176,7 @@ export class ManageSeatComponent implements OnInit {
   }
 
   selectSeat(seat: SeatOffer): void {
-    if (seat.availability === 'sold' || this.isSeatTakenByOther(seat)) return;
+    if (seat.availability !== 'available' || this.isSeatTakenByOther(seat)) return;
     const pax = this.activePassenger();
     const seg = this.order()?.flightSegments[0];
     if (!pax || !seg) return;
