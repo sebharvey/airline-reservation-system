@@ -538,6 +538,33 @@ public sealed class OrderFunction
         });
     }
 
+    // POST /v1/admin/orders/booking-references
+    [Function("GetOrderBookingReferences")]
+    [OpenApiOperation(operationId: "GetOrderBookingReferences", tags: new[] { "Admin Orders" }, Summary = "Batch-resolve booking references for a list of order IDs")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ orderIds: [guid, ...] }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — array of { orderId, bookingReference } pairs")]
+    public async Task<HttpResponseData> GetOrderBookingReferences(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/orders/booking-references")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("orderIds", out var orderIdsEl) || orderIdsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'orderIds' array is required.");
+
+        var orderIds = new List<Guid>();
+        foreach (var el in orderIdsEl.EnumerateArray())
+        {
+            if (!el.TryGetGuid(out var id)) return await req.BadRequestAsync("Each orderId must be a valid GUID.");
+            orderIds.Add(id);
+        }
+
+        var refs = await _orderRepository.GetBookingReferencesByIdsAsync(orderIds, ct);
+        return await req.OkJsonAsync(refs.Select(kvp => new { orderId = kvp.Key, bookingReference = kvp.Value }));
+    }
+
     // GET /v1/admin/orders?limit=10
     [Function("GetRecentOrders")]
     [OpenApiOperation(operationId: "GetRecentOrders", tags: new[] { "Admin Orders" }, Summary = "Get the most recently created orders")]

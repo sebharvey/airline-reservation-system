@@ -25,6 +25,15 @@ public sealed class EfOrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, string?>> GetBookingReferencesByIdsAsync(
+        IReadOnlyList<Guid> orderIds, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders
+            .AsNoTracking()
+            .Where(o => orderIds.Contains(o.OrderId))
+            .ToDictionaryAsync(o => o.OrderId, o => o.BookingReference, cancellationToken);
+    }
+
     public async Task<Domain.Entities.Order?> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
         return await _context.Orders

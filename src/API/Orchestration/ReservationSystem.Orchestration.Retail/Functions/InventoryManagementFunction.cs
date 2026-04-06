@@ -21,15 +21,18 @@ public sealed class InventoryManagementFunction
 {
     private readonly GetFlightInventoryHandler _getFlightInventoryHandler;
     private readonly OfferServiceClient _offerServiceClient;
+    private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<InventoryManagementFunction> _logger;
 
     public InventoryManagementFunction(
         GetFlightInventoryHandler getFlightInventoryHandler,
         OfferServiceClient offerServiceClient,
+        OrderServiceClient orderServiceClient,
         ILogger<InventoryManagementFunction> logger)
     {
         _getFlightInventoryHandler = getFlightInventoryHandler;
         _offerServiceClient = offerServiceClient;
+        _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
 
@@ -79,6 +82,21 @@ public sealed class InventoryManagementFunction
         CancellationToken cancellationToken)
     {
         var holds = await _offerServiceClient.GetInventoryHoldsAsync(inventoryId, cancellationToken);
-        return await req.OkJsonAsync(holds);
+
+        var orderIds = holds.Select(h => h.OrderId).Distinct().ToList();
+        var bookingRefs = await _orderServiceClient.GetBookingReferencesAsync(orderIds, cancellationToken);
+
+        var enriched = holds.Select(h => new FlightInventoryHoldDto
+        {
+            HoldId           = h.HoldId,
+            OrderId          = h.OrderId,
+            BookingReference = bookingRefs.GetValueOrDefault(h.OrderId),
+            CabinCode        = h.CabinCode,
+            PaxCount         = h.PaxCount,
+            Status           = h.Status,
+            CreatedAt        = h.CreatedAt
+        });
+
+        return await req.OkJsonAsync(enriched);
     }
 }

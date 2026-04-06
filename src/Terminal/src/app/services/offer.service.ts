@@ -56,6 +56,7 @@ export interface FlightInventoryResponse {
 export interface InventoryHold {
   holdId: string;
   orderId: string;
+  bookingReference: string | null;
   cabinCode: string;
   paxCount: number;
   status: string;
