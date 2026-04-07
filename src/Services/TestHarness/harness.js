@@ -619,13 +619,17 @@
 
         html += '<div class="modal-section"><div class="modal-section-title">API Call</div>';
         html += buildApiCallCell(step).innerHTML;
+        const previewResult = liveResults[idx];
+        if (previewResult && previewResult.url) {
+            html += `<div class="live-url" style="margin-top:0.4rem">\u2192 ${esc(previewResult.url)}</div>`;
+        }
         html += '</div>';
 
         html += '<div class="modal-section"><div class="modal-section-title">Request</div>';
         html += buildRequestCell(step).innerHTML;
         html += '</div>';
 
-        html += '<div class="modal-section"><div class="modal-section-title">Expected Response</div>';
+        html += '<div class="modal-section"><details class="expected-collapsible"><summary class="modal-section-title">Expected Response</summary>';
         html += buildExpectedCell(step).innerHTML;
         if (step.response) {
             const respTd = buildResponseCell(step);
@@ -636,7 +640,7 @@
                 html += respTd.querySelector('.chain-section') ? respTd.querySelector('.chain-section').outerHTML : '';
             }
         }
-        html += '</div>';
+        html += '</details></div>';
 
         const result = liveResults[idx];
         if (result) {

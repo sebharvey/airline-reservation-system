@@ -564,6 +564,27 @@ body {
     word-break: break-all;
 }
 
+.expected-collapsible {
+    list-style: none;
+}
+.expected-collapsible > summary {
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+}
+.expected-collapsible > summary::-webkit-details-marker { display: none; }
+.expected-collapsible > summary::before {
+    content: '\25B6\00A0';
+    font-size: 0.6rem;
+    vertical-align: middle;
+    opacity: 0.6;
+    display: inline-block;
+    transition: transform 0.15s;
+}
+.expected-collapsible[open] > summary::before {
+    transform: rotate(90deg);
+}
+
 /* Modal */
 .modal-overlay {
     position: fixed;
