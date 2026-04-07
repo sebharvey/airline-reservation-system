@@ -272,9 +272,10 @@ export class RetailApiService {
    * GET /v1/flights/{flightId}/seatmap
    * Retrieve seatmap with pricing and availability for a flight.
    */
-  getFlightSeatmap(flightId: string, flightNumber: string, aircraftType: string): Observable<Seatmap> {
+  getFlightSeatmap(flightId: string, flightNumber: string, aircraftType: string, cabinCode?: string): Observable<Seatmap> {
     const base = environment.retailApiBaseUrl;
-    const params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}`;
+    let params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}`;
+    if (cabinCode) params += `&cabinCode=${encodeURIComponent(cabinCode)}`;
     return this.#http.get<Seatmap>(`${base}/api/v1/flights/${flightId}/seatmap?${params}`);
   }
 
