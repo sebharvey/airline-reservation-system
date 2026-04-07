@@ -163,6 +163,9 @@
         const departDate     = isoDate(outboundDateObj);
         const returnDate     = isoDate(returnDateObj);
 
+        const tomorrowDateObj = new Date(today); tomorrowDateObj.setDate(today.getDate() + 1);
+        const tomorrowDate    = isoDate(tomorrowDateObj);
+
         runtimeVars = {
             givenName, surname, password, email,
             recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
@@ -177,7 +180,8 @@
             pax5DateOfBirth: pax5.dateOfBirth, pax5Email: pax5.email, pax5Phone: pax5.phone,
             pax6GivenName: pax6.givenName, pax6Surname: pax6.surname, pax6Gender: pax6.gender,
             pax6DateOfBirth: pax6.dateOfBirth, pax6Email: pax6.email, pax6Phone: pax6.phone,
-            outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate
+            outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate,
+            tomorrowDate
         };
     }
 
@@ -235,7 +239,8 @@
                 .replace(/__RAND_RETURN_ORIGIN__/g,   runtimeVars.returnOrigin)
                 .replace(/__RAND_RETURN_DEST__/g,     runtimeVars.returnDest)
                 .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
-                .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate);
+                .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate)
+                .replace(/__RAND_TOMORROW_DATE__/g,   runtimeVars.tomorrowDate);
         }
         if (Array.isArray(obj)) {
             // Filter out items whose __PAX_MIN__ exceeds the current paxCount, then strip the marker

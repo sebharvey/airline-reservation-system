@@ -23,7 +23,7 @@
         "body": {
           "origin": "LHR",
           "destination": "JFK",
-          "departureDate": "__RAND_DEPART_DATE__",
+          "departureDate": "__RAND_TOMORROW_DATE__",
           "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
