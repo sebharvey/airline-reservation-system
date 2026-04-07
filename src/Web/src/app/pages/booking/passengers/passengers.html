@@ -7,13 +7,7 @@
     <p class="step-label">Step 1 of 4</p>
   </div>
 
-  <!-- Ticketing Time Limit -->
-  <div class="time-limit-banner" *ngIf="countdown()">
-    <span class="time-icon">&#9201;</span>
-    <span>Reservation held for: <strong>{{ countdown() }}</strong></span>
-  </div>
-
-  <!-- Basket Summary -->
+<!-- Basket Summary -->
   <div class="basket-summary" *ngIf="basket() as b">
     <div class="summary-title">Your Itinerary</div>
     <div class="flight-row" *ngFor="let fo of b.flightOffers">

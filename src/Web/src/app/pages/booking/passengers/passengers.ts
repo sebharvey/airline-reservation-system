@@ -43,14 +43,11 @@ export class PassengersComponent implements OnInit {
 
   forms = signal<PassengerForm[]>([]);
   submitted = signal(false);
-  countdown = signal('');
   saving = signal(false);
   saveError = signal('');
   prefilled = signal(false);
 
-  private countdownInterval: ReturnType<typeof setInterval> | null = null;
-
-  readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: string }> = [
+readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: string }> = [
     { value: 'Male', label: 'Male' },
     { value: 'Female', label: 'Female' },
     { value: 'Other', label: 'Other' }
@@ -83,11 +80,6 @@ export class PassengersComponent implements OnInit {
     }
     this.buildForms();
     this.autofillFromLoyalty();
-    this.startCountdown();
-  }
-
-  ngOnDestroy(): void {
-    if (this.countdownInterval) clearInterval(this.countdownInterval);
   }
 
   private buildForms(): void {
@@ -151,31 +143,7 @@ export class PassengersComponent implements OnInit {
     this.prefilled.set(true);
   }
 
-  private startCountdown(): void {
-    const basket = this.basket();
-    if (!basket?.ticketingTimeLimit) return;
-    const limit = new Date(basket.ticketingTimeLimit).getTime();
-
-    const update = () => {
-      const remaining = limit - Date.now();
-      if (remaining <= 0) {
-        this.countdown.set('Expired');
-        if (this.countdownInterval) clearInterval(this.countdownInterval);
-        return;
-      }
-      const h = Math.floor(remaining / 3600000);
-      const m = Math.floor((remaining % 3600000) / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
-      this.countdown.set(
-        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      );
-    };
-
-    update();
-    this.countdownInterval = setInterval(update, 1000);
-  }
-
-  isFirstAdult(index: number): boolean {
+isFirstAdult(index: number): boolean {
     return index === 0 && this.forms()[index]?.type === 'ADT';
   }
 
