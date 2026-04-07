@@ -117,7 +117,7 @@ export class ManageSeatComponent implements OnInit {
         this.loading.set(false);
         const seg = order.flightSegments[0];
         if (seg) {
-          this.loadSeatmap(seg.segmentId, seg.flightNumber, seg.cabinCode);
+          this.loadSeatmap(seg.segmentId, seg.flightNumber, seg.aircraftType, seg.cabinCode);
         }
         // Pre-populate existing seat selections
         const existing: SeatSelection[] = [];
@@ -141,9 +141,9 @@ export class ManageSeatComponent implements OnInit {
     });
   }
 
-  private loadSeatmap(flightId: string, flightNumber: string, cabinCode: string): void {
+  private loadSeatmap(flightId: string, flightNumber: string, aircraftType: string, cabinCode: string): void {
     this.seatmapLoading.set(true);
-    this.retailApi.getFlightSeatmap(flightId, flightNumber, cabinCode as 'F' | 'J' | 'W' | 'Y').subscribe({
+    this.retailApi.getFlightSeatmap(flightId, flightNumber, aircraftType, cabinCode).subscribe({
       next: (sm) => {
         this.seatmap.set(sm);
         this.seatmapLoading.set(false);
