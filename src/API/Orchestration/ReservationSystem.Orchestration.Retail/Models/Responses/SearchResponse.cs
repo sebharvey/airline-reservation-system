@@ -11,8 +11,10 @@ public sealed class FlightSearchResult
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
-    public DateTime DepartureTime { get; init; }
-    public DateTime ArrivalTime { get; init; }
+    public string DepartureDate { get; init; } = string.Empty;
+    public string DepartureTime { get; init; } = string.Empty;
+    public string ArrivalTime { get; init; } = string.Empty;
+    public int ArrivalDayOffset { get; init; }
     public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
 }
