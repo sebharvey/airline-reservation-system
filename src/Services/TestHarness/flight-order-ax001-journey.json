@@ -11,7 +11,7 @@
     {
       "step": 1,
       "name": "Search AX001 — next day",
-      "description": "Search for available outbound flights from LHR to JFK on 2026-04-07 (next day). Expects AX001 in the results. The sessionId and a selected offerId are chained to the basket creation step.",
+      "description": "Search for available outbound flights from LHR to JFK on a future date. Expects AX001 in the results. The sessionId and a selected offerId are chained to the basket creation step.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -23,7 +23,7 @@
         "body": {
           "origin": "LHR",
           "destination": "JFK",
-          "departureDate": "2026-04-07",
+          "departureDate": "__TOMORROW_DATE__",
           "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
