@@ -42,6 +42,18 @@ export interface CreateBasketResponse {
   basketId: string;
 }
 
+export interface BasketApiFlightOffer {
+  offerId: string;
+  inventoryId: string;
+}
+
+export interface BasketApiResponse {
+  basketId: string;
+  basketData: {
+    flightOffers: BasketApiFlightOffer[];
+  };
+}
+
 export interface IssuedETicket {
   passengerId: string;
   segmentId: string;
@@ -131,7 +143,7 @@ function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceRe
       for (const family of cabin.fareFamilies) {
         offers.push({
           offerId: family.offer.offerId,
-          inventoryId: family.offer.offerId,
+          inventoryId: '',
           flightNumber: flight.flightNumber,
           origin: flight.origin,
           destination: flight.destination,
@@ -168,13 +180,12 @@ export class RetailApiService {
   readonly #http = inject(HttpClient);
 
   /**
-   * DEBUG — GET /v1/basket/{basketId}
-   * Fetch the current basket from the Retail API for debugging the bookflow.
-   * Remove this method along with the basket debug modal feature.
+   * GET /v1/basket/{basketId}
+   * Fetch the current basket from the Retail API.
    */
-  getBasket(basketId: string): Observable<unknown> {
+  getBasket(basketId: string): Observable<BasketApiResponse> {
     const base = environment.retailApiBaseUrl;
-    return this.#http.get<unknown>(`${base}/api/v1/basket/${basketId}`);
+    return this.#http.get<BasketApiResponse>(`${base}/api/v1/basket/${basketId}`);
   }
 
   /**
