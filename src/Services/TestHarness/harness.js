@@ -240,7 +240,7 @@
                 .replace(/__RAND_RETURN_DEST__/g,     runtimeVars.returnDest)
                 .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
                 .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate)
-                .replace(/__RAND_TOMORROW_DATE__/g,   runtimeVars.tomorrowDate);
+                .replace(/__TOMORROW_DATE__/g,         runtimeVars.tomorrowDate);
         }
         if (Array.isArray(obj)) {
             // Filter out items whose __PAX_MIN__ exceeds the current paxCount, then strip the marker
