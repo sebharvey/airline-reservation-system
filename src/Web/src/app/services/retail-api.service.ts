@@ -94,8 +94,10 @@ interface SearchSliceApiFlight {
   flightNumber: string;
   origin: string;
   destination: string;
+  departureDate: string;
   departureTime: string;
   arrivalTime: string;
+  arrivalDayOffset: number;
   aircraftType: string;
   cabins: SearchSliceApiCabin[];
 }
@@ -133,8 +135,12 @@ function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceRe
           flightNumber: flight.flightNumber,
           origin: flight.origin,
           destination: flight.destination,
-          departureDateTime: flight.departureTime,
-          arrivalDateTime: flight.arrivalTime,
+          departureDateTime: `${flight.departureDate}T${flight.departureTime}:00`,
+          arrivalDateTime: (() => {
+            const [y, m, d] = flight.departureDate.split('-').map(Number);
+            const arrival = new Date(Date.UTC(y, m - 1, d + (flight.arrivalDayOffset ?? 0)));
+            return `${arrival.toISOString().slice(0, 10)}T${flight.arrivalTime}:00`;
+          })(),
           aircraftType: flight.aircraftType,
           cabinCode,
           cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
