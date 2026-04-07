@@ -76,9 +76,19 @@
 
         <div class="footer-bottom">
           <span>© 2026 Apex Air. All rights reserved.</span>
-          <!-- DEBUG — basket debug button; remove with basket debug feature -->
-          <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
-          <!-- END DEBUG -->
+          <div class="debug-btn-group">
+            <!-- DEBUG — basket debug button; remove with basket debug feature -->
+            <button class="debug-basket-btn" (click)="openBasketDebug()" title="Debug: view current basket">🧺 Basket</button>
+            <!-- END DEBUG -->
+            <!-- DEBUG — api debug button -->
+            <button class="debug-basket-btn debug-api-btn" (click)="openHttpDebug()" title="Debug: view API requests">
+              🔍 API Debug
+              @if (httpDebug.entries().length > 0) {
+                <span class="debug-api-count">{{ httpDebug.entries().length }}</span>
+              }
+            </button>
+            <!-- END DEBUG -->
+          </div>
         </div>
       </footer>
     }
@@ -99,6 +109,82 @@
             } @else if (basketDebugData()) {
               <pre class="debug-json">{{ basketDebugData() }}</pre>
             }
+          </div>
+        </div>
+      </div>
+    }
+    <!-- END DEBUG -->
+
+    <!-- DEBUG — API debug modal -->
+    @if (httpDebugOpen()) {
+      <div class="debug-modal-backdrop" (click)="closeHttpDebug()" role="dialog" aria-modal="true" aria-label="API debug">
+        <div class="debug-modal-card debug-api-modal fade-in" (click)="$event.stopPropagation()">
+
+          <div class="debug-modal-header">
+            <span class="debug-modal-title">🔍 API Debug <span class="debug-modal-count">{{ httpDebug.entries().length }} request{{ httpDebug.entries().length === 1 ? '' : 's' }}</span></span>
+            <div class="debug-modal-actions">
+              <button class="debug-action-btn" (click)="clearHttpLog()" title="Clear log">Clear</button>
+              <button class="debug-modal-close" (click)="closeHttpDebug()" aria-label="Close">✕</button>
+            </div>
+          </div>
+
+          <div class="debug-api-body">
+
+            <!-- Left: request list -->
+            <div class="debug-api-list">
+              @if (httpDebug.entries().length === 0) {
+                <p class="debug-status debug-empty">No requests yet.</p>
+              }
+              @for (entry of httpDebug.entries(); track entry.id) {
+                <button
+                  class="debug-api-list-item"
+                  [class.is-selected]="httpDebugSelectedId() === entry.id"
+                  [class.is-error]="entry.isError"
+                  (click)="selectHttpEntry(entry.id)"
+                >
+                  <span class="debug-method-badge" [class]="'method-' + entry.method.toLowerCase()">{{ entry.method }}</span>
+                  <span class="debug-list-url">{{ entry.url }}</span>
+                  <span class="debug-list-status" [class.status-ok]="!entry.isError" [class.status-err]="entry.isError">{{ entry.responseStatus }}</span>
+                </button>
+              }
+            </div>
+
+            <!-- Right: detail panel -->
+            <div class="debug-api-detail">
+              @if (httpDebugSelected(); as entry) {
+
+                <div class="debug-detail-meta">
+                  <span class="debug-method-badge" [class]="'method-' + entry.method.toLowerCase()">{{ entry.method }}</span>
+                  <span class="debug-detail-url">{{ entry.url }}</span>
+                  <span class="debug-detail-duration">{{ entry.durationMs }}ms</span>
+                  <span class="debug-list-status" [class.status-ok]="!entry.isError" [class.status-err]="entry.isError">{{ entry.responseStatus }}</span>
+                </div>
+
+                <div class="debug-detail-time">{{ entry.timestamp }}</div>
+
+                <div class="debug-tabs">
+                  <button class="debug-tab" [class.is-active]="httpDebugTab() === 'request'" (click)="httpDebugTab.set('request')">Request</button>
+                  <button class="debug-tab" [class.is-active]="httpDebugTab() === 'response'" (click)="httpDebugTab.set('response')">Response</button>
+                  <button class="debug-copy-btn" (click)="copyHttpEntry()">{{ httpDebugCopied() ? '✓ Copied' : 'Copy to clipboard' }}</button>
+                </div>
+
+                @if (httpDebugTab() === 'request') {
+                  <div class="debug-section-label">Headers</div>
+                  <pre class="debug-json">{{ formatJson(entry.requestHeaders) }}</pre>
+                  <div class="debug-section-label">Body</div>
+                  <pre class="debug-json">{{ formatJson(entry.requestBody) }}</pre>
+                } @else {
+                  <div class="debug-section-label">Headers</div>
+                  <pre class="debug-json">{{ formatJson(entry.responseHeaders) }}</pre>
+                  <div class="debug-section-label">Body</div>
+                  <pre class="debug-json">{{ formatJson(entry.responseBody) }}</pre>
+                }
+
+              } @else {
+                <p class="debug-status debug-empty">Select a request to inspect it.</p>
+              }
+            </div>
+
           </div>
         </div>
       </div>
