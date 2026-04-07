@@ -7,6 +7,7 @@
     const CONFIGS = [
         { value: 'bookflow',          label: 'Bookflow (Retail API)' },
         { value: 'flight-order-ax001', label: 'Flight Order — AX001 Next Day' },
+        { value: 'flight-order-ax001-no-seats', label: 'Flight Order — AX001 Next Day (No Seats)' },
         { value: 'oci-1-pax-outbound', label: 'OCI - 1 PAX Outbound' },
         { value: 'oci-1-pax-inbound', label: 'OCI - 1 PAX Inbound' },
         { value: 'oci-2-pax-outbound', label: 'OCI - 2 PAX Outbound' },
