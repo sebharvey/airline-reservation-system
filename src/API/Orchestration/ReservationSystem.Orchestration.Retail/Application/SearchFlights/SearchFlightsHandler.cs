@@ -24,15 +24,6 @@ public sealed class SearchFlightsHandler
 
         var flights = result.Flights.Select(f =>
         {
-            var departureDateTime = DateTime.Parse(
-                $"{f.DepartureDate}T{f.DepartureTime}:00", null,
-                System.Globalization.DateTimeStyles.RoundtripKind);
-
-            var arrivalDate = DateOnly.Parse(f.DepartureDate).AddDays(f.ArrivalDayOffset);
-            var arrivalDateTime = DateTime.Parse(
-                $"{arrivalDate:yyyy-MM-dd}T{f.ArrivalTime}:00", null,
-                System.Globalization.DateTimeStyles.RoundtripKind);
-
             // Group offers by cabin, then by fare family within each cabin.
             var cabins = f.Offers
                 .GroupBy(o => o.CabinCode)
@@ -80,13 +71,15 @@ public sealed class SearchFlightsHandler
 
             return new FlightSearchResult
             {
-                FlightNumber  = f.FlightNumber,
-                Origin        = f.Origin,
-                Destination   = f.Destination,
-                DepartureTime = departureDateTime,
-                ArrivalTime   = arrivalDateTime,
-                AircraftType  = f.AircraftType,
-                Cabins        = cabins
+                FlightNumber    = f.FlightNumber,
+                Origin          = f.Origin,
+                Destination     = f.Destination,
+                DepartureDate   = f.DepartureDate,
+                DepartureTime   = f.DepartureTime,
+                ArrivalTime     = f.ArrivalTime,
+                ArrivalDayOffset = f.ArrivalDayOffset,
+                AircraftType    = f.AircraftType,
+                Cabins          = cabins
             };
         }).ToList();
 
