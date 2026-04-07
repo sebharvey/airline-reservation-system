@@ -1,17 +1,21 @@
 {
   "journey": {
-    "name": "Admin endpoint authentication guard",
-    "description": "Verifies that every protected Admin API endpoint returns 401 Unauthorized when no Bearer token is supplied. Each step calls a distinct endpoint without an Authorization header — no step chains to another. The login endpoint is public and is excluded from this suite.",
+    "name": "Terminal app endpoint authentication guard",
+    "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all five APIs used by the Terminal: Admin, Loyalty, Operations, Retail, and Seat MS. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another — each step is a standalone 401 assertion.",
     "domain": "Admin",
     "baseUrls": [
-      { "id": "admin", "label": "Admin API", "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" }
+      { "id": "admin",     "label": "Admin API",     "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
+      { "id": "loyalty",   "label": "Loyalty API",   "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
+      { "id": "operations","label": "Operations API","url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net" },
+      { "id": "retail",    "label": "Retail API",    "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" },
+      { "id": "seat",      "label": "Seat MS",       "url": "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net" }
     ]
   },
   "steps": [
     {
       "step": 1,
       "name": "GET /admin/users — no token",
-      "description": "Call the list-all-users endpoint without an Authorization header. The Admin API must reject the request before any downstream call is made.",
+      "description": "List all employee users without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "GET",
@@ -19,19 +23,15 @@
         "baseUrlRef": "admin"
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        }
+        "headers": { "Content-Type": "application/json" }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. The middleware rejects the request before the handler executes.",
+        "description": "401 Unauthorized — no Bearer token. Auth middleware rejects before the handler executes.",
         "keyFields": [],
         "validationNotes": "No user data must be returned. No downstream User MS call should be made."
       },
@@ -40,39 +40,33 @@
     {
       "step": 2,
       "name": "GET /admin/users/{userId} — no token",
-      "description": "Call the get-single-user endpoint with a well-formed userId but no Authorization header. The Auth middleware must short-circuit before the userId is resolved.",
+      "description": "Fetch a single employee user without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "GET",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        }
+        "headers": { "Content-Type": "application/json" }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. The placeholder userId is a valid GUID format so the route matches; the auth guard fires before any lookup occurs.",
+        "description": "401 Unauthorized — no Bearer token. A 404 would indicate auth was bypassed.",
         "keyFields": [],
-        "validationNotes": "Response must be 401, not 404. A 404 would indicate the handler executed, which means auth was bypassed."
+        "validationNotes": "Response must be 401, not 404. Auth guard fires before the userId lookup."
       },
       "chainsTo": []
     },
     {
       "step": 3,
       "name": "POST /admin/users — no token",
-      "description": "Attempt to create a new user account without supplying a Bearer token. The request body is valid so a 400 cannot mask a missing 401.",
+      "description": "Create an employee user without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
@@ -80,9 +74,7 @@
         "baseUrlRef": "admin"
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        },
+        "headers": { "Content-Type": "application/json" },
         "body": {
           "username": "test.user",
           "email": "test.user@apexair.com",
@@ -93,35 +85,29 @@
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. A valid request body is provided so only auth failure can produce this response.",
+        "description": "401 Unauthorized — no Bearer token. No user account must be created.",
         "keyFields": [],
-        "validationNotes": "No user account must be created. No downstream User MS call should be made."
+        "validationNotes": "No downstream User MS call should be made."
       },
       "chainsTo": []
     },
     {
       "step": 4,
       "name": "PATCH /admin/users/{userId} — no token",
-      "description": "Attempt to update user profile fields without a Bearer token. A valid body is supplied so a 400 cannot mask a missing 401.",
+      "description": "Update user profile fields without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "PATCH",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        },
+        "headers": { "Content-Type": "application/json" },
         "body": {
           "firstName": "Updated",
           "lastName": "Name",
@@ -130,48 +116,38 @@
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. No profile fields must be mutated.",
+        "description": "401 Unauthorized — no Bearer token. No profile fields must be mutated.",
         "keyFields": [],
-        "validationNotes": "Response must be 401, not 404 or 400. Auth guard fires before route handler."
+        "validationNotes": "Response must be 401, not 404 or 400."
       },
       "chainsTo": []
     },
     {
       "step": 5,
       "name": "PATCH /admin/users/{userId}/status — no token",
-      "description": "Attempt to change a user's active/inactive status without a Bearer token.",
+      "description": "Change a user's active/inactive status without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "PATCH",
         "endpoint": "/api/v1/admin/users/{userId}/status",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "body": {
-          "isActive": false
-        }
+        "headers": { "Content-Type": "application/json" },
+        "body": { "isActive": false }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. Account status must not change.",
+        "description": "401 Unauthorized — no Bearer token. Account status must not change.",
         "keyFields": [],
         "validationNotes": "Response must be 401, not 404 or 400."
       },
@@ -180,30 +156,24 @@
     {
       "step": 6,
       "name": "POST /admin/users/{userId}/unlock — no token",
-      "description": "Attempt to unlock a locked user account without a Bearer token.",
+      "description": "Unlock a locked user account without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/admin/users/{userId}/unlock",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        }
+        "headers": { "Content-Type": "application/json" }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. No account lockout state must change.",
+        "description": "401 Unauthorized — no Bearer token. No lockout state must change.",
         "keyFields": [],
         "validationNotes": "Response must be 401, not 404."
       },
@@ -212,33 +182,25 @@
     {
       "step": 7,
       "name": "POST /admin/users/{userId}/reset-password — no token",
-      "description": "Attempt to reset a user's password without a Bearer token. A valid new password is supplied so a 400 cannot mask a missing 401.",
+      "description": "Reset a user's password without an Authorization header. A valid new password is supplied so a 400 cannot mask a missing 401.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/admin/users/{userId}/reset-password",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "body": {
-          "newPassword": "NewPassword1!"
-        }
+        "headers": { "Content-Type": "application/json" },
+        "body": { "newPassword": "NewPassword1!" }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. No password hash must be mutated in the User MS.",
+        "description": "401 Unauthorized — no Bearer token. No password hash must be mutated.",
         "keyFields": [],
         "validationNotes": "Response must be 401, not 404 or 400."
       },
@@ -247,32 +209,913 @@
     {
       "step": 8,
       "name": "DELETE /admin/users/{userId} — no token",
-      "description": "Attempt to permanently delete a user account without a Bearer token.",
+      "description": "Delete a user account without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "DELETE",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": {
-          "userId": "00000000-0000-0000-0000-000000000001"
-        }
+        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
       },
       "request": {
-        "headers": {
-          "Content-Type": "application/json"
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No user record must be deleted. A 404 would indicate auth was bypassed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 9,
+      "name": "POST /admin/customers/search — no token",
+      "description": "Search loyalty customers via the Loyalty API without an Authorization header. A valid search body is supplied.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/customers/search",
+        "baseUrlRef": "loyalty"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "surname": "Smith"
         }
       },
       "response": {
         "statusCode": 401,
-        "body": {
-          "error": "Unauthorized"
-        }
+        "body": { "error": "Unauthorized" }
       },
       "expected": {
         "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token present. No user record must be deleted.",
+        "description": "401 Unauthorized — no Bearer token. No customer data must be returned.",
         "keyFields": [],
-        "validationNotes": "Response must be 401, not 404. A 404 would indicate the handler executed, which means auth was bypassed."
+        "validationNotes": "No downstream Customer MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 10,
+      "name": "GET /admin/customers/{loyaltyNumber} — no token",
+      "description": "Fetch a loyalty customer by loyalty number via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. A 404 would indicate auth was bypassed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 11,
+      "name": "PATCH /admin/customers/{loyaltyNumber} — no token",
+      "description": "Update loyalty customer profile fields via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "givenName": "Updated",
+          "surname": "Name"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No customer profile fields must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 12,
+      "name": "GET /admin/customers/{loyaltyNumber}/transactions — no token",
+      "description": "Fetch loyalty point transactions for a customer via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/transactions",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No transaction data must be returned.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 13,
+      "name": "POST /admin/customers/{loyaltyNumber}/points — no token",
+      "description": "Add loyalty points to a customer account via the Loyalty API without an Authorization header. A valid body is provided.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/points",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "points": 100,
+          "reason": "Goodwill adjustment"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No points must be credited.",
+        "keyFields": [],
+        "validationNotes": "No points transaction must be created."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 14,
+      "name": "DELETE /admin/customers/{loyaltyNumber} — no token",
+      "description": "Delete a loyalty customer via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No customer record must be deleted.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 15,
+      "name": "PATCH /admin/customers/{loyaltyNumber}/status — no token",
+      "description": "Set a loyalty customer account status via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/status",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": { "isActive": false }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. Account status must not change.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 16,
+      "name": "PATCH /admin/customers/{loyaltyNumber}/identity — no token",
+      "description": "Update loyalty customer identity fields via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": { "email": "new.email@apexair.com" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No identity fields must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 17,
+      "name": "POST /admin/customers/{loyaltyNumber}/identity/set-password — no token",
+      "description": "Set a loyalty customer's identity password via the Loyalty API without an Authorization header. A valid password is provided so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity/set-password",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": { "newPassword": "NewPassword1!" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No password must be changed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 18,
+      "name": "POST /admin/customers/{loyaltyNumber}/identity/verify-email — no token",
+      "description": "Force-verify a loyalty customer's email via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity/verify-email",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. Email verification state must not change.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 19,
+      "name": "GET /admin/customers/{loyaltyNumber}/orders — no token",
+      "description": "Fetch orders associated with a loyalty customer via the Loyalty API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/orders",
+        "baseUrlRef": "loyalty",
+        "pathParams": { "loyaltyNumber": "AX0000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No order data must be returned.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 20,
+      "name": "POST /admin/fare-rules/search — no token",
+      "description": "Search fare rules via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/fare-rules/search",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {}
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No fare rule data must be returned.",
+        "keyFields": [],
+        "validationNotes": "No downstream Schedule MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 21,
+      "name": "GET /admin/fare-rules/{fareRuleId} — no token",
+      "description": "Fetch a fare rule by ID via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. A 404 would indicate auth was bypassed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 22,
+      "name": "POST /admin/fare-rules — no token",
+      "description": "Create a fare rule via the Operations API without an Authorization header. A minimal valid body is provided so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/fare-rules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "name": "Test Fare Rule",
+          "fareClass": "Y"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No fare rule must be created.",
+        "keyFields": [],
+        "validationNotes": "No downstream call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 23,
+      "name": "PUT /admin/fare-rules/{fareRuleId} — no token",
+      "description": "Replace a fare rule via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "name": "Updated Fare Rule",
+          "fareClass": "Y"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No fare rule must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 24,
+      "name": "DELETE /admin/fare-rules/{fareRuleId} — no token",
+      "description": "Delete a fare rule via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No fare rule must be deleted.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 25,
+      "name": "GET /schedule-groups — no token",
+      "description": "List schedule groups via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/schedule-groups",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No schedule group data must be returned.",
+        "keyFields": [],
+        "validationNotes": "No downstream Schedule MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 26,
+      "name": "POST /schedule-groups — no token",
+      "description": "Create a schedule group via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedule-groups",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "name": "Test Schedule Group"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No schedule group must be created.",
+        "keyFields": [],
+        "validationNotes": "No downstream call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 27,
+      "name": "PUT /schedule-groups/{scheduleGroupId} — no token",
+      "description": "Update a schedule group via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
+        "baseUrlRef": "operations",
+        "pathParams": { "scheduleGroupId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "name": "Updated Schedule Group"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No schedule group must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 28,
+      "name": "DELETE /schedule-groups/{scheduleGroupId} — no token",
+      "description": "Delete a schedule group via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
+        "baseUrlRef": "operations",
+        "pathParams": { "scheduleGroupId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No schedule group must be deleted.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 29,
+      "name": "GET /schedules — no token",
+      "description": "List schedules via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/schedules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No schedule data must be returned.",
+        "keyFields": [],
+        "validationNotes": "No downstream Schedule MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 30,
+      "name": "POST /schedules/import-inventory — no token",
+      "description": "Trigger a schedule-to-inventory import via the Operations API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/schedules/import-inventory",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No inventory must be created or modified.",
+        "keyFields": [],
+        "validationNotes": "No downstream Offer MS or Schedule MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 31,
+      "name": "GET /admin/inventory — no token",
+      "description": "Fetch flight inventory via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/inventory",
+        "baseUrlRef": "retail",
+        "note": "Terminal app passes a departureDate query parameter at runtime"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No inventory data must be returned.",
+        "keyFields": [],
+        "validationNotes": "No downstream Offer MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 32,
+      "name": "GET /admin/inventory/{inventoryId}/holds — no token",
+      "description": "Fetch seat holds for an inventory record via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/inventory/{inventoryId}/holds",
+        "baseUrlRef": "retail",
+        "pathParams": { "inventoryId": "00000000-0000-0000-0000-000000000001" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. A 404 would indicate auth was bypassed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 33,
+      "name": "GET /admin/orders — no token",
+      "description": "Fetch recent orders via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/orders",
+        "baseUrlRef": "retail",
+        "note": "Terminal app passes a limit query parameter at runtime"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No order data must be returned.",
+        "keyFields": [],
+        "validationNotes": "No downstream Order MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 34,
+      "name": "GET /admin/orders/{bookingReference} — no token",
+      "description": "Fetch a specific order by booking reference via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. A 404 would indicate auth was bypassed.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 35,
+      "name": "PATCH /orders/{bookingReference}/passengers — no token",
+      "description": "Update passenger details on an order via the Retail API without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/orders/{bookingReference}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "passengers": []
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No passenger records must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 36,
+      "name": "GET /ssr/options — no token",
+      "description": "Fetch available SSR options via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/ssr/options",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No SSR option data must be returned.",
+        "keyFields": [],
+        "validationNotes": "If this endpoint is intentionally public, it should be removed from this suite and documented as unauthenticated."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 37,
+      "name": "PATCH /orders/{bookingReference}/ssrs — no token",
+      "description": "Update SSRs on an order via the Retail API without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/orders/{bookingReference}/ssrs",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "ssrs": []
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No SSR records must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 38,
+      "name": "GET /admin/orders/{bookingReference}/tickets — no token",
+      "description": "Fetch e-tickets for an order via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}/tickets",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No ticket data must be returned.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 39,
+      "name": "GET /admin/orders/{bookingReference}/debug — no token",
+      "description": "Fetch debug information for an order via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}/debug",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. Debug endpoints must be at least as well protected as their production equivalents.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404. Debug endpoints exposing internal state are high-risk if unauthenticated."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 40,
+      "name": "GET /admin/orders/{bookingReference}/debug/tickets — no token",
+      "description": "Fetch debug ticket data for an order via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}/debug/tickets",
+        "baseUrlRef": "retail",
+        "pathParams": { "bookingReference": "ABCDEF" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. Debug endpoints must be at least as well protected as their production equivalents.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404. Debug endpoints are high-risk if unauthenticated."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 41,
+      "name": "GET /aircraft-types — no token",
+      "description": "Fetch aircraft type definitions from the Seat microservice without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/aircraft-types",
+        "baseUrlRef": "seat"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": { "error": "Unauthorized" }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token. No aircraft type data must be returned.",
+        "keyFields": [],
+        "validationNotes": "If this endpoint is intentionally public (read-only reference data), it should be removed from this suite and documented as unauthenticated."
       },
       "chainsTo": []
     }
