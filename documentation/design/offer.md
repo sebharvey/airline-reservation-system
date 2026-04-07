@@ -109,6 +109,51 @@ Not in scope for initial release. The data model should accommodate future addit
 
 ---
 
+## Continuous pricing
+
+Continuous pricing adjusts the offered fare dynamically at search time based on how full the cabin is. As seats sell, the price rises gradually from the minimum to the maximum fare defined in the fare rule, removing the step-changes of traditional booking class buckets.
+
+### Occupancy ratio
+
+At search time the handler calculates an occupancy ratio for each cabin:
+
+```
+occupancyRatio = (SeatsSold + SeatsHeld) / TotalSeats
+```
+
+- `SeatsSold` — seats confirmed on issued tickets.
+- `SeatsHeld` — seats in active baskets (uncommitted but reserved); counted as demand because they represent confirmed buying intent.
+- The ratio is clamped to `[0.0, 1.0]` to guard against any transient data inconsistency.
+
+### Price interpolation
+
+The offered base fare is interpolated linearly between the fare rule's `MinAmount` and `MaxAmount`:
+
+```
+baseFareAmount = MinAmount + (MaxAmount − MinAmount) × occupancyRatio
+```
+
+| Occupancy | Price |
+|-----------|-------|
+| 0 % (empty cabin) | `MinAmount` |
+| 50 % | Midpoint between `MinAmount` and `MaxAmount` |
+| 100 % (sold out) | `MaxAmount` |
+
+The result is rounded to 2 decimal places (half-up).
+
+For award fares the same interpolation applies to `MinPoints` and `MaxPoints`, rounded to the nearest integer.
+
+### Fallback behaviour
+
+- If `MaxAmount` is absent or not greater than `MinAmount`, the price is set to `MinAmount` unchanged. Existing fare rules that carry only a single price point continue to work without modification.
+- If `TotalSeats` is zero (data guard), the occupancy ratio defaults to `0.0` and the minimum price is used.
+
+### Relationship to stored offer
+
+The interpolated price is calculated once at search time and locked into the `StoredOffer` snapshot. Subsequent steps (basket, order confirmation) retrieve the stored price — they do not re-run the interpolation. This preserves the stored offer guarantee: the price a customer sees at search is the price they pay.
+
+---
+
 ## Data schema
 
 ### `offer.FlightInventory`
