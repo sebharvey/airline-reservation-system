@@ -50,6 +50,18 @@ These four functions run concurrently at midnight UTC every day.
 
 ---
 
+## Every 60 minutes
+
+### `Simulator`
+
+- **Service** — Simulator microservice (`ReservationSystem.Microservices.Simulator`)
+- **Class** — `SimulatorFunction`
+- **Schedule** — `0 0 * * * *`
+- **What it does** — Creates 5 confirmed orders for the next day's AX001 (LHR → JFK) flight. Each order uses a random passenger count (1–6 adults). The full booking journey is executed for each order: search, basket creation, passenger entry, seat selection, and payment confirmation via the Retail API.
+- **External dependency** — Retail API (`RetailApi:BaseUrl`). The Retail API base URL defaults to the live Azure deployment if the config key is absent.
+
+---
+
 ## Execution order dependency
 
 `RollingInventoryImport` is deliberately scheduled one hour after the midnight batch so that expired inventory is removed before new inventory is added.
