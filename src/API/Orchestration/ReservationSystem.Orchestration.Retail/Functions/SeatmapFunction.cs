@@ -54,16 +54,24 @@ public sealed class SeatmapFunction
         if (string.IsNullOrWhiteSpace(aircraftType))
             return await req.BadRequestAsync("'aircraftType' query parameter is required.");
 
-        // Fetch layout, seat offers, and inventory holds in parallel
+        // Fetch layout, seat offers, inventory holds, and validate inventoryId in parallel
         var layoutTask = _seatServiceClient.GetSeatmapAsync(aircraftType, cancellationToken);
         var offersTask = _seatServiceClient.GetSeatOffersAsync(flightId, aircraftType, cancellationToken);
         var holdsTask = _offerServiceClient.GetInventoryHoldsAsync(flightId, cancellationToken);
+        var inventoryTask = _offerServiceClient.GetFlightByInventoryIdAsync(flightId, cancellationToken);
 
-        await Task.WhenAll(layoutTask, offersTask, holdsTask);
+        await Task.WhenAll(layoutTask, offersTask, holdsTask, inventoryTask);
 
         var layout = await layoutTask;
         var offersResult = await offersTask;
         var holds = await holdsTask;
+        var inventory = await inventoryTask;
+
+        if (inventory is null)
+        {
+            _logger.LogWarning("Seatmap requested for unknown inventoryId '{FlightId}'", flightId);
+            return await req.NotFoundAsync($"No flight inventory found for id '{flightId}'.");
+        }
 
         if (layout is null)
         {

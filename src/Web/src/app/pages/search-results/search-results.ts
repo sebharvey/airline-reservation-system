@@ -1,7 +1,8 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RetailApiService, SearchSliceResult, BasketSegment } from '../../services/retail-api.service';
+import { RetailApiService, SearchSliceResult, BasketSegment, BasketApiResponse } from '../../services/retail-api.service';
+import { switchMap, map } from 'rxjs/operators';
 import { BookingStateService } from '../../services/booking-state.service';
 import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { BookingType } from '../../models/order.model';
@@ -255,9 +256,22 @@ export class SearchResultsComponent implements OnInit {
       segments,
       bookingType: this.bookingType(),
       loyaltyNumber
-    }).subscribe({
-      next: (basket) => {
-        this.bookingState.startBasket(outbound, inbound, basket.basketId);
+    }).pipe(
+      switchMap(basket =>
+        this.retailApi.getBasket(basket.basketId).pipe(
+          map((basketData: BasketApiResponse) => ({ basketId: basket.basketId, basketData }))
+        )
+      )
+    ).subscribe({
+      next: ({ basketId, basketData }) => {
+        const inventoryIdByOfferId = new Map(
+          basketData.basketData.flightOffers.map(fo => [fo.offerId, fo.inventoryId])
+        );
+        const outboundWithInventoryId = { ...outbound, inventoryId: inventoryIdByOfferId.get(outbound.offerId) ?? '' };
+        const inboundWithInventoryId = inbound
+          ? { ...inbound, inventoryId: inventoryIdByOfferId.get(inbound.offerId) ?? '' }
+          : null;
+        this.bookingState.startBasket(outboundWithInventoryId, inboundWithInventoryId, basketId);
         this.basketLoading.set(false);
         if (this.isRewardBooking()) {
           this.router.navigate(['/booking/reward-login']);
