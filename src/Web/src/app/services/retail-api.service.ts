@@ -137,9 +137,9 @@ function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceRe
           destination: flight.destination,
           departureDateTime: `${flight.departureDate}T${flight.departureTime}:00`,
           arrivalDateTime: (() => {
-            const d = new Date(flight.departureDate);
-            d.setDate(d.getDate() + (flight.arrivalDayOffset ?? 0));
-            return `${d.toISOString().slice(0, 10)}T${flight.arrivalTime}:00`;
+            const [y, m, d] = flight.departureDate.split('-').map(Number);
+            const arrival = new Date(Date.UTC(y, m - 1, d + (flight.arrivalDayOffset ?? 0)));
+            return `${arrival.toISOString().slice(0, 10)}T${flight.arrivalTime}:00`;
           })(),
           aircraftType: flight.aircraftType,
           cabinCode,
