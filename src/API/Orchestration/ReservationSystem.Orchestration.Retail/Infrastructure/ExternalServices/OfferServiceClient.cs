@@ -116,14 +116,14 @@ public sealed class OfferServiceClient
     }
 
     public async Task HoldInventoryAsync(
-        Guid inventoryId, string cabinCode, IReadOnlyList<string?> passengers, Guid orderId,
+        Guid inventoryId, string cabinCode, IReadOnlyList<(string? SeatNumber, string? PassengerId)> passengers, Guid orderId,
         CancellationToken cancellationToken = default)
     {
         var payload = new
         {
             inventoryId,
             cabinCode,
-            passengers = passengers.Select(s => new { seatNumber = s }).ToList(),
+            passengers = passengers.Select(p => new { seatNumber = p.SeatNumber, passengerId = p.PassengerId }).ToList(),
             orderId
         };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", payload, JsonOptions, cancellationToken);

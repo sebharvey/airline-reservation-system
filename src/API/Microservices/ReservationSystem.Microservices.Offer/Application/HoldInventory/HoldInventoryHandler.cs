@@ -38,8 +38,8 @@ public sealed class HoldInventoryHandler
         inventory.HoldSeats(command.CabinCode, requestedCount);
         await _repository.UpdateInventoryAsync(inventory, ct);
 
-        foreach (var seatNumber in command.Passengers)
-            await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, seatNumber, ct);
+        foreach (var pax in command.Passengers)
+            await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, pax.SeatNumber, pax.PassengerId, ct);
 
         _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for order {OrderId}",
             requestedCount, command.InventoryId, command.OrderId);

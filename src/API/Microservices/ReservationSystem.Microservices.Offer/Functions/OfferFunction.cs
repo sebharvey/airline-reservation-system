@@ -414,18 +414,18 @@ public sealed class OfferFunction
 
         // Accept both the new per-pax passengers array and the legacy paxCount integer so that
         // the function keeps working while Orchestration.Retail redeploys with the new format.
-        List<string?> passengers;
+        List<PaxHold> passengers;
         if (body.TryGetProperty("passengers", out var passengersEl) && passengersEl.ValueKind == JsonValueKind.Array)
         {
             passengers = passengersEl.EnumerateArray()
-                .Select(p => p.TryGetProperty("seatNumber", out var sn) && sn.ValueKind == JsonValueKind.String
-                    ? sn.GetString()
-                    : null)
+                .Select(p => new PaxHold(
+                    SeatNumber:  p.TryGetProperty("seatNumber",  out var sn)  && sn.ValueKind  == JsonValueKind.String ? sn.GetString()  : null,
+                    PassengerId: p.TryGetProperty("passengerId", out var pid) && pid.ValueKind == JsonValueKind.String ? pid.GetString() : null))
                 .ToList();
         }
         else if (body.TryGetProperty("paxCount", out var paxCountEl) && paxCountEl.ValueKind == JsonValueKind.Number)
         {
-            passengers = Enumerable.Repeat<string?>(null, paxCountEl.GetInt32()).ToList();
+            passengers = Enumerable.Repeat(new PaxHold(null, null), paxCountEl.GetInt32()).ToList();
         }
         else
         {
@@ -854,12 +854,13 @@ public sealed class OfferFunction
 
         return await req.OkJsonAsync(holds.Select(h => new
         {
-            holdId    = h.HoldId,
-            orderId   = h.OrderId,
-            cabinCode = h.CabinCode,
-            seatNumber = h.SeatNumber,
-            status    = h.Status,
-            createdAt = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            holdId      = h.HoldId,
+            orderId     = h.OrderId,
+            passengerId = h.PassengerId,
+            cabinCode   = h.CabinCode,
+            seatNumber  = h.SeatNumber,
+            status      = h.Status,
+            createdAt   = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
     }
 }

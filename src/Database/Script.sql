@@ -211,6 +211,7 @@ CREATE TABLE [offer].[InventoryHold] (
     OrderId     UNIQUEIDENTIFIER NOT NULL,
     CabinCode   CHAR(1)          NOT NULL,
     SeatNumber  VARCHAR(6)       NULL,
+    PassengerId VARCHAR(50)      NULL,
     Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
     CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
@@ -218,6 +219,10 @@ CREATE TABLE [offer].[InventoryHold] (
     CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed')),
     CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y'))
 );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'PassengerId')
+    ALTER TABLE [offer].[InventoryHold] ADD PassengerId VARCHAR(50) NULL;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Order' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))

@@ -99,8 +99,9 @@ public sealed class InventoryManagementFunction
         {
             HoldId           = h.HoldId,
             OrderId          = h.OrderId,
+            PassengerId      = h.PassengerId,
             BookingReference = bookingRefs.GetValueOrDefault(h.OrderId),
-            PassengerName    = ResolvePassengerName(orders.GetValueOrDefault(h.OrderId), inventoryId.ToString(), h.SeatNumber),
+            PassengerName    = ResolvePassengerName(orders.GetValueOrDefault(h.OrderId), inventoryId.ToString(), h.SeatNumber, h.PassengerId),
             CabinCode        = h.CabinCode,
             SeatNumber       = h.SeatNumber,
             Status           = h.Status,
@@ -112,15 +113,15 @@ public sealed class InventoryManagementFunction
 
     /// <summary>
     /// Resolves the passenger name for a single hold row.
-    /// If the hold has a seat number, returns the name of the passenger assigned to that seat on
-    /// the given inventory. Falls back to all passenger surnames on the booking if unmatched.
+    /// Uses passengerId stored on the hold when available.
+    /// Falls back to seat-assignment lookup for holds without a stored passengerId.
     /// </summary>
-    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber)
+    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber, string? passengerId)
     {
         if (order?.OrderData is not { } data) return null;
         try
         {
-            // Passengers are stored under dataLists.passengers in the order data.
+            // Build passengerId → full name map from dataLists.passengers.
             var paxById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (data.TryGetProperty("dataLists", out var dataLists) &&
                 dataLists.TryGetProperty("passengers", out var passEl) &&
@@ -136,7 +137,11 @@ public sealed class InventoryManagementFunction
                 }
             }
 
-            // Seat assignments are stored under seatAssignments (segmentId == inventoryId).
+            // Direct lookup via the passengerId stored on the hold (preferred path).
+            if (!string.IsNullOrEmpty(passengerId) && paxById.TryGetValue(passengerId, out var directName))
+                return directName;
+
+            // Seat-assignment lookup for holds created before PassengerId was stored.
             if (!string.IsNullOrEmpty(seatNumber) &&
                 data.TryGetProperty("seatAssignments", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
             {
@@ -154,8 +159,7 @@ public sealed class InventoryManagementFunction
                 }
             }
 
-            // Fallback: all passenger names on the booking.
-            return paxById.Count > 0 ? string.Join(", ", paxById.Values) : null;
+            return null;
         }
         catch { return null; }
     }
