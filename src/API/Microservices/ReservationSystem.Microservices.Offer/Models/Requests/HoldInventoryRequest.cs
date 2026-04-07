@@ -21,4 +21,7 @@ public sealed class PaxHoldItem
 {
     [JsonPropertyName("seatNumber")]
     public string? SeatNumber { get; init; }
+
+    [JsonPropertyName("passengerId")]
+    public string? PassengerId { get; init; }
 }

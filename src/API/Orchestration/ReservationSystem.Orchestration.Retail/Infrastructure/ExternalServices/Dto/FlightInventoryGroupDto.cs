@@ -48,6 +48,7 @@ public sealed class FlightInventoryHoldDto
 {
     public Guid HoldId { get; init; }
     public Guid OrderId { get; init; }
+    public string? PassengerId { get; init; }
     public string? BookingReference { get; init; }
     public string? PassengerName { get; init; }
     public string CabinCode { get; init; } = string.Empty;
