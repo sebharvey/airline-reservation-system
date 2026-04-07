@@ -1,0 +1,280 @@
+{
+  "journey": {
+    "name": "Admin endpoint authentication guard",
+    "description": "Verifies that every protected Admin API endpoint returns 401 Unauthorized when no Bearer token is supplied. Each step calls a distinct endpoint without an Authorization header — no step chains to another. The login endpoint is public and is excluded from this suite.",
+    "domain": "Admin",
+    "baseUrls": [
+      { "id": "admin", "label": "Admin API", "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "GET /admin/users — no token",
+      "description": "Call the list-all-users endpoint without an Authorization header. The Admin API must reject the request before any downstream call is made.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/users",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. The middleware rejects the request before the handler executes.",
+        "keyFields": [],
+        "validationNotes": "No user data must be returned. No downstream User MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 2,
+      "name": "GET /admin/users/{userId} — no token",
+      "description": "Call the get-single-user endpoint with a well-formed userId but no Authorization header. The Auth middleware must short-circuit before the userId is resolved.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/users/{userId}",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. The placeholder userId is a valid GUID format so the route matches; the auth guard fires before any lookup occurs.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404. A 404 would indicate the handler executed, which means auth was bypassed."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 3,
+      "name": "POST /admin/users — no token",
+      "description": "Attempt to create a new user account without supplying a Bearer token. The request body is valid so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/users",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "test.user",
+          "email": "test.user@apexair.com",
+          "password": "TestPassword1!",
+          "firstName": "Test",
+          "lastName": "User"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. A valid request body is provided so only auth failure can produce this response.",
+        "keyFields": [],
+        "validationNotes": "No user account must be created. No downstream User MS call should be made."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "PATCH /admin/users/{userId} — no token",
+      "description": "Attempt to update user profile fields without a Bearer token. A valid body is supplied so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/admin/users/{userId}",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "firstName": "Updated",
+          "lastName": "Name",
+          "email": "updated.name@apexair.com"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. No profile fields must be mutated.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400. Auth guard fires before route handler."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "PATCH /admin/users/{userId}/status — no token",
+      "description": "Attempt to change a user's active/inactive status without a Bearer token.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PATCH",
+        "endpoint": "/api/v1/admin/users/{userId}/status",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "isActive": false
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. Account status must not change.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "POST /admin/users/{userId}/unlock — no token",
+      "description": "Attempt to unlock a locked user account without a Bearer token.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/users/{userId}/unlock",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. No account lockout state must change.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "POST /admin/users/{userId}/reset-password — no token",
+      "description": "Attempt to reset a user's password without a Bearer token. A valid new password is supplied so a 400 cannot mask a missing 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/users/{userId}/reset-password",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "newPassword": "NewPassword1!"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. No password hash must be mutated in the User MS.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404 or 400."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "DELETE /admin/users/{userId} — no token",
+      "description": "Attempt to permanently delete a user account without a Bearer token.",
+      "type": "negative",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/users/{userId}",
+        "baseUrlRef": "admin",
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token present. No user record must be deleted.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404. A 404 would indicate the handler executed, which means auth was bypassed."
+      },
+      "chainsTo": []
+    }
+  ]
+}
