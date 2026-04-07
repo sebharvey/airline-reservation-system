@@ -598,15 +598,15 @@
 /* ── Mobile — debug modal responsive overrides ── */
 @media (max-width: 640px) {
   .debug-modal-backdrop {
-    padding: 0;
+    padding: 56px 0 0;   /* top gap keeps the sheet below the browser chrome */
     align-items: flex-end;
   }
 
   .debug-api-modal {
     width: 100%;
     max-width: 100%;
-    height: 92vh;
-    max-height: 92vh;
+    height: 100%;          /* fills backdrop minus the 56px top gap */
+    max-height: 100%;
     border-radius: 16px 16px 0 0;
   }
 
