@@ -61,6 +61,8 @@ export interface InventoryHold {
   cabinCode: string;
   seatNumber: string | null;
   status: string;
+  holdType: string;
+  standbyPriority: number | null;
   createdAt: string;
 }
 

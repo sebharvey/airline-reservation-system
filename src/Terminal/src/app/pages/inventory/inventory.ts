@@ -86,12 +86,24 @@ export class InventoryComponent implements OnInit {
   holds = signal<InventoryHold[]>([]);
   holdsLoading = signal(false);
   holdsError = signal('');
+  holdsTab = signal<'confirmed' | 'standby'>('confirmed');
+
+  confirmedHolds = computed(() =>
+    this.holds().filter(h => h.holdType === 'Revenue')
+  );
+
+  standbyHolds = computed(() =>
+    this.holds()
+      .filter(h => h.holdType === 'Standby')
+      .sort((a, b) => (b.standbyPriority ?? 0) - (a.standbyPriority ?? 0))
+  );
 
   async openHoldsModal(flight: FlightInventoryGroup): Promise<void> {
     this.holdsModalFlight.set(flight);
     this.holds.set([]);
     this.holdsError.set('');
     this.holdsLoading.set(true);
+    this.holdsTab.set('confirmed');
     try {
       const result = await this.#inventoryService.getInventoryHolds(flight.inventoryId);
       this.holds.set(result);

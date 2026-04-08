@@ -54,5 +54,7 @@ public sealed class FlightInventoryHoldDto
     public string CabinCode { get; init; } = string.Empty;
     public string? SeatNumber { get; init; }
     public string Status { get; init; } = string.Empty;
+    public string HoldType { get; init; } = "Revenue";
+    public short? StandbyPriority { get; init; }
     public string CreatedAt { get; init; } = string.Empty;
 }

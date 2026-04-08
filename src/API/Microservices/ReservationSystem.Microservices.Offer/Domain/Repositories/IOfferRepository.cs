@@ -7,6 +7,8 @@ public sealed record InventoryHoldRecord(
     string CabinCode,
     string? SeatNumber,
     string Status,
+    string HoldType,
+    short? StandbyPriority,
     DateTimeOffset CreatedAt);
 
 public interface IOfferRepository

@@ -191,46 +191,117 @@
           <span class="btn-spinner modal-spinner"></span>
           <span>Loading holds…</span>
         </div>
-      } @else if (holds().length === 0 && !holdsError()) {
-        <p class="modal-empty">No holds found for this flight.</p>
-      } @else {
-        <div class="holds-table-wrap">
-          <table class="holds-table">
-            <thead>
-              <tr>
-                <th>Booking Ref</th>
-                <th>Passenger</th>
-                <th>Cabin</th>
-                <th>Seat</th>
-                <th>Status</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (hold of holds(); track hold.holdId) {
-                <tr>
-                  <td class="mono booking-ref">
-                    @if (hold.bookingReference) {
-                      <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
-                    } @else {
-                      —
-                    }
-                  </td>
-                  <td>{{ hold.passengerName ?? '—' }}</td>
-                  <td class="cabin-col">
-                    <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
-                  </td>
-                  <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
-                  <td>
-                    <span class="badge" [class]="holdStatusClass(hold.status)">{{ hold.status }}</span>
-                  </td>
-                  <td class="muted mono">{{ formatHoldDate(hold.createdAt) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+      } @else if (!holdsError()) {
+        <!-- Tab bar -->
+        <div class="holds-tabs" role="tablist">
+          <button
+            class="holds-tab"
+            [class.holds-tab-active]="holdsTab() === 'confirmed'"
+            role="tab"
+            [attr.aria-selected]="holdsTab() === 'confirmed'"
+            (click)="holdsTab.set('confirmed')">
+            Confirmed
+            <span class="holds-tab-count">{{ confirmedHolds().length }}</span>
+          </button>
+          <button
+            class="holds-tab"
+            [class.holds-tab-active]="holdsTab() === 'standby'"
+            role="tab"
+            [attr.aria-selected]="holdsTab() === 'standby'"
+            (click)="holdsTab.set('standby')">
+            Standby
+            <span class="holds-tab-count">{{ standbyHolds().length }}</span>
+          </button>
         </div>
-        <p class="modal-count">{{ holds().length }} hold{{ holds().length !== 1 ? 's' : '' }}</p>
+
+        <!-- Confirmed tab -->
+        @if (holdsTab() === 'confirmed') {
+          @if (confirmedHolds().length === 0) {
+            <p class="modal-empty">No confirmed holds for this flight.</p>
+          } @else {
+            <div class="holds-table-wrap">
+              <table class="holds-table">
+                <thead>
+                  <tr>
+                    <th>Booking Ref</th>
+                    <th>Passenger</th>
+                    <th>Cabin</th>
+                    <th>Seat</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (hold of confirmedHolds(); track hold.holdId) {
+                    <tr>
+                      <td class="mono booking-ref">
+                        @if (hold.bookingReference) {
+                          <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td>{{ hold.passengerName ?? '—' }}</td>
+                      <td class="cabin-col">
+                        <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+                      </td>
+                      <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
+                      <td>
+                        <span class="badge" [class]="holdStatusClass(hold.status)">{{ hold.status }}</span>
+                      </td>
+                      <td class="muted mono">{{ formatHoldDate(hold.createdAt) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="modal-count">{{ confirmedHolds().length }} passenger{{ confirmedHolds().length !== 1 ? 's' : '' }}</p>
+          }
+        }
+
+        <!-- Standby tab -->
+        @if (holdsTab() === 'standby') {
+          @if (standbyHolds().length === 0) {
+            <p class="modal-empty">No standby passengers listed for this flight.</p>
+          } @else {
+            <div class="holds-table-wrap">
+              <table class="holds-table">
+                <thead>
+                  <tr>
+                    <th class="priority-col">Priority</th>
+                    <th>Booking Ref</th>
+                    <th>Passenger</th>
+                    <th>Cabin</th>
+                    <th>Listed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (hold of standbyHolds(); track hold.holdId; let i = $index) {
+                    <tr>
+                      <td class="priority-col">
+                        <span class="standby-position">{{ i + 1 }}</span>
+                        <span class="standby-priority muted">({{ hold.standbyPriority }})</span>
+                      </td>
+                      <td class="mono booking-ref">
+                        @if (hold.bookingReference) {
+                          <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td>{{ hold.passengerName ?? '—' }}</td>
+                      <td class="cabin-col">
+                        <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+                      </td>
+                      <td class="muted mono">{{ formatHoldDate(hold.createdAt) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="modal-count">{{ standbyHolds().length }} passenger{{ standbyHolds().length !== 1 ? 's' : '' }} · listed by priority then join time</p>
+          }
+        }
       }
     </div>
 
