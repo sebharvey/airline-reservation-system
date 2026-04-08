@@ -181,6 +181,56 @@ public sealed class Ticket
     }
 
     /// <summary>
+    /// Assigns <paramref name="seatNumber"/> to every coupon departing from
+    /// <paramref name="departureAirport"/> that does not already have a seat recorded.
+    /// Returns <c>true</c> if at least one coupon was updated.
+    /// </summary>
+    public bool AssignSeatForOrigin(string departureAirport, string seatNumber, string actor)
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        if (root is null) return false;
+
+        var coupons = root["coupons"]?.AsArray();
+        if (coupons is null) return false;
+
+        var history = root["changeHistory"]?.AsArray() ?? new JsonArray();
+        root["changeHistory"] = history;
+
+        var updated = false;
+        foreach (var node in coupons)
+        {
+            if (node is not JsonObject coupon) continue;
+
+            var origin = coupon["origin"]?.GetValue<string>() ?? "";
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase)) continue;
+
+            var existingSeat = coupon["seat"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(existingSeat)) continue;
+
+            coupon["seat"] = seatNumber;
+            updated = true;
+
+            var flightNumber = coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "";
+            var destination = coupon["destination"]?.GetValue<string>() ?? "";
+            history.Add(new JsonObject
+            {
+                ["eventType"] = "SeatAssigned",
+                ["occurredAt"] = DateTime.UtcNow.ToString("o"),
+                ["actor"] = actor,
+                ["detail"] = $"Seat {seatNumber} auto-assigned at OLCI for {flightNumber} {origin}-{destination}"
+            });
+        }
+
+        if (updated)
+        {
+            TicketData = root.ToJsonString();
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        return updated;
+    }
+
+    /// <summary>
     /// Updates the status of the coupon matching the given flight number, origin, and destination
     /// within <see cref="TicketData"/>, then appends an audit entry to <c>changeHistory</c>.
     /// Returns <c>true</c> if a matching coupon was found and updated.

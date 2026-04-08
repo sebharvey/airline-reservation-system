@@ -15,4 +15,10 @@ public interface ITicketRepository
     Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default);
 
     Task<int> GetTicketCountAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all seat numbers already assigned to passengers on the given flight
+    /// departing from <paramref name="origin"/>. Used to avoid conflicts during OLCI auto-assignment.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(string flightNumber, string origin, CancellationToken cancellationToken = default);
 }

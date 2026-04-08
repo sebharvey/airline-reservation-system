@@ -78,6 +78,7 @@ sequenceDiagram
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
     DeliveryMS ->> DeliveryMS: Update coupon status in ticket in DB (delivery.Ticket) on each ticket being checked in (status = C)
+    DeliveryMS ->> DeliveryMS: For any coupon with no seat assigned, auto-assign a seat from the correct cabin. <br /> Passengers on the same booking are grouped so the allocator seats them in adjacent columns <br /> within the same row where possible. Seat assignment at OLCI is free of charge.
     DeliveryMS -->> OperationsApi: Array of checked in ticket nummbers
 
     OperationsApi -->> Web: Array of checked in ticket nummbers
@@ -133,7 +134,7 @@ The following APIs and microservices are involved in the online check-in flow.
 
 | Method | Path | Description | Request | Response |
 |--------|------|-------------|---------|----------|
-| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket` | `{`<br>`  "departureAirport": "LHR",`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "givenName": "Alex",`<br>`    "surname": "Taylor"`<br>`  }]`<br>`}` | `{`<br>`  "checkedIn": 1,`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "C"`<br>`  }]`<br>`}` |
+| `POST` | `/v1/oci/checkin` | Check in a set of tickets for a departure airport; updates coupon status to `C` on each ticket in `delivery.Ticket`; auto-assigns a seat from the correct cabin for any coupon that has no seat recorded — passengers on the same booking are grouped so the allocator seats them in adjacent columns within the same row where possible | `{`<br>`  "departureAirport": "LHR",`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "givenName": "Alex",`<br>`    "surname": "Taylor"`<br>`  }]`<br>`}` | `{`<br>`  "checkedIn": 1,`<br>`  "tickets": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "C"`<br>`  }]`<br>`}` |
 | `POST` | `/v1/oci/boarding-docs` | Generate boarding documents (with BCBP) for a set of ticket numbers and departure airport; returns an array of boarding cards for the checked-in segments | `{`<br>`  "departureAirport": "LHR",`<br>`  "ticketNumbers": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` | `{`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
 
 ## Boarding pass barcode string
