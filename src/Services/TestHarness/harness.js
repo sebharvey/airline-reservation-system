@@ -16,7 +16,8 @@
         { value: 'loyalty',           label: 'Loyalty' },
         { value: 'admin',             label: 'Admin' },
         { value: 'operations',        label: 'Operations' },
-        { value: 'terminal-customer', label: 'Terminal Customer' }
+        { value: 'terminal-customer', label: 'Terminal Customer' },
+        { value: 'admin-auth-guard',  label: 'Admin Auth Guard (401 checks)' }
     ];
 
     // =====================================================================
