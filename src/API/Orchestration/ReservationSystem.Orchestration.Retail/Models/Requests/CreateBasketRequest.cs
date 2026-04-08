@@ -14,4 +14,5 @@ public sealed class CreateBasketRequest
     public string? BookingType { get; init; }
     public string? LoyaltyNumber { get; init; }
     public string? CustomerId { get; init; }
+    public int PassengerCount { get; init; } = 1;
 }
