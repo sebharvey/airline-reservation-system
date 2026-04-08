@@ -22,6 +22,9 @@ public sealed class ScheduleItem
     public string DepartureTime { get; init; } = string.Empty;
     public string ArrivalTime { get; init; } = string.Empty;
     public int ArrivalDayOffset { get; init; }
+    public string? DepartureTimeUtc { get; init; }
+    public string? ArrivalTimeUtc { get; init; }
+    public int? ArrivalDayOffsetUtc { get; init; }
     public int DaysOfWeek { get; init; }
     public string AircraftType { get; init; } = string.Empty;
     public string ValidFrom { get; init; } = string.Empty;

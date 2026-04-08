@@ -186,6 +186,18 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightInventory_Route'
         WHERE Status = 'Active';
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FlightInventory]') AND name = 'DepartureTimeUtc')
+    ALTER TABLE [offer].[FlightInventory] ADD DepartureTimeUtc TIME NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FlightInventory]') AND name = 'ArrivalTimeUtc')
+    ALTER TABLE [offer].[FlightInventory] ADD ArrivalTimeUtc TIME NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FlightInventory]') AND name = 'ArrivalDayOffsetUtc')
+    ALTER TABLE [offer].[FlightInventory] ADD ArrivalDayOffsetUtc TINYINT NULL;
+GO
+
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('

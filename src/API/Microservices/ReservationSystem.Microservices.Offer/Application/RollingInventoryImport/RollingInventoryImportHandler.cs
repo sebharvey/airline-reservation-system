@@ -122,7 +122,10 @@ public sealed class RollingInventoryImportHandler
                 schedule.Origin,
                 schedule.Destination,
                 schedule.AircraftType,
-                cabinItems));
+                cabinItems,
+                schedule.DepartureTimeUtc,
+                schedule.ArrivalTimeUtc,
+                schedule.ArrivalDayOffsetUtc));
         }
 
         if (flightItems.Count == 0)

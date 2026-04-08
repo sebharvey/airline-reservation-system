@@ -13,4 +13,7 @@ public sealed record BatchFlightItem(
     string Origin,
     string Destination,
     string AircraftType,
-    IReadOnlyList<CabinItem> Cabins);
+    IReadOnlyList<CabinItem> Cabins,
+    string? DepartureTimeUtc = null,
+    string? ArrivalTimeUtc = null,
+    int? ArrivalDayOffsetUtc = null);

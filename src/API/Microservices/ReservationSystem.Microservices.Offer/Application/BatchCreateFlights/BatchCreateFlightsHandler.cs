@@ -26,6 +26,8 @@ public sealed class BatchCreateFlightsHandler
             .Select(item =>
             {
                 var cabins = item.Cabins.Select(c => (c.CabinCode, c.TotalSeats)).ToList().AsReadOnly();
+                var departureTimeUtc = item.DepartureTimeUtc is not null ? TimeOnly.Parse(item.DepartureTimeUtc) : (TimeOnly?)null;
+                var arrivalTimeUtc   = item.ArrivalTimeUtc   is not null ? TimeOnly.Parse(item.ArrivalTimeUtc)   : (TimeOnly?)null;
                 return FlightInventory.Create(
                     item.FlightNumber,
                     DateOnly.Parse(item.DepartureDate),
@@ -33,7 +35,8 @@ public sealed class BatchCreateFlightsHandler
                     TimeOnly.Parse(item.ArrivalTime),
                     item.ArrivalDayOffset,
                     item.Origin, item.Destination,
-                    item.AircraftType, cabins);
+                    item.AircraftType, cabins,
+                    departureTimeUtc, arrivalTimeUtc, item.ArrivalDayOffsetUtc);
             })
             .ToList()
             .AsReadOnly();
