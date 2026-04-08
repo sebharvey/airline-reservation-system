@@ -127,8 +127,10 @@
           <tr>
             <th>Flight</th>
             <th>Route</th>
-            <th class="hide-mobile">Departure</th>
-            <th class="hide-mobile">Arrival</th>
+            <th class="hide-mobile">Dep (local)</th>
+            <th class="hide-mobile">Dep (UTC)</th>
+            <th class="hide-mobile">Arr (local)</th>
+            <th class="hide-mobile">Arr (UTC)</th>
             <th class="hide-mobile">Days</th>
             <th class="hide-mobile">Aircraft</th>
             <th class="hide-mobile">Duration</th>
@@ -151,9 +153,26 @@
               </td>
               <td class="hide-mobile mono">{{ formatTime(schedule.departureTime) }}</td>
               <td class="hide-mobile mono">
+                @if (schedule.departureTimeUtc) {
+                  {{ formatTime(schedule.departureTimeUtc) }}
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td class="hide-mobile mono">
                 {{ formatTime(schedule.arrivalTime) }}
                 @if (schedule.arrivalDayOffset > 0) {
                   <span class="day-offset">+{{ schedule.arrivalDayOffset }}</span>
+                }
+              </td>
+              <td class="hide-mobile mono">
+                @if (schedule.arrivalTimeUtc) {
+                  {{ formatTime(schedule.arrivalTimeUtc) }}
+                  @if (schedule.arrivalDayOffsetUtc && schedule.arrivalDayOffsetUtc > 0) {
+                    <span class="day-offset">+{{ schedule.arrivalDayOffsetUtc }}</span>
+                  }
+                } @else {
+                  <span class="muted">—</span>
                 }
               </td>
               <td class="hide-mobile">
@@ -173,7 +192,7 @@
 
           @if (filtered().length === 0 && loaded()) {
             <tr>
-              <td colspan="8" class="empty-row">
+              <td colspan="10" class="empty-row">
                 @if (filter()) {
                   No schedules match the filter "{{ filter() }}".
                 } @else {

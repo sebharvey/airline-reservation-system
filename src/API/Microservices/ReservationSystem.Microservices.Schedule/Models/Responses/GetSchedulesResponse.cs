@@ -40,6 +40,15 @@ public sealed class ScheduleItemResponse
     [JsonPropertyName("arrivalDayOffset")]
     public int ArrivalDayOffset { get; init; }
 
+    [JsonPropertyName("departureTimeUtc")]
+    public string? DepartureTimeUtc { get; init; }
+
+    [JsonPropertyName("arrivalTimeUtc")]
+    public string? ArrivalTimeUtc { get; init; }
+
+    [JsonPropertyName("arrivalDayOffsetUtc")]
+    public int? ArrivalDayOffsetUtc { get; init; }
+
     [JsonPropertyName("daysOfWeek")]
     public int DaysOfWeek { get; init; }
 

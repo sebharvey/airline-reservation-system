@@ -123,6 +123,21 @@ public sealed class ScheduleDbContext : DbContext
                   .HasColumnType("tinyint")
                   .IsRequired();
 
+            entity.Property(e => e.DepartureTimeUtc)
+                  .HasColumnName("DepartureTimeUtc")
+                  .HasColumnType("time")
+                  .IsRequired(false);
+
+            entity.Property(e => e.ArrivalTimeUtc)
+                  .HasColumnName("ArrivalTimeUtc")
+                  .HasColumnType("time")
+                  .IsRequired(false);
+
+            entity.Property(e => e.ArrivalDayOffsetUtc)
+                  .HasColumnName("ArrivalDayOffsetUtc")
+                  .HasColumnType("tinyint")
+                  .IsRequired(false);
+
             entity.Property(e => e.DaysOfWeek)
                   .HasColumnName("DaysOfWeek")
                   .HasColumnType("tinyint")

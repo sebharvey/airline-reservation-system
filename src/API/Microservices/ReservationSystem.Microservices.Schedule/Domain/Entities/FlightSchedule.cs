@@ -14,6 +14,9 @@ public sealed class FlightSchedule
     public TimeSpan DepartureTime { get; private set; }
     public TimeSpan ArrivalTime { get; private set; }
     public byte ArrivalDayOffset { get; private set; }
+    public TimeSpan? DepartureTimeUtc { get; private set; }
+    public TimeSpan? ArrivalTimeUtc { get; private set; }
+    public byte? ArrivalDayOffsetUtc { get; private set; }
     public byte DaysOfWeek { get; private set; }
     public string AircraftType { get; private set; } = string.Empty;
     public DateTime ValidFrom { get; private set; }
@@ -40,7 +43,10 @@ public sealed class FlightSchedule
         string aircraftType,
         DateTime validFrom,
         DateTime validTo,
-        string createdBy)
+        string createdBy,
+        TimeSpan? departureTimeUtc = null,
+        TimeSpan? arrivalTimeUtc = null,
+        byte? arrivalDayOffsetUtc = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(flightNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(origin);
@@ -69,7 +75,10 @@ public sealed class FlightSchedule
             FlightsCreated = 0,
             CreatedBy = createdBy,
             CreatedAt = now,
-            UpdatedAt = now
+            UpdatedAt = now,
+            DepartureTimeUtc = departureTimeUtc,
+            ArrivalTimeUtc = arrivalTimeUtc,
+            ArrivalDayOffsetUtc = arrivalDayOffsetUtc
         };
     }
 
@@ -92,7 +101,10 @@ public sealed class FlightSchedule
         int flightsCreated,
         string createdBy,
         DateTime createdAt,
-        DateTime updatedAt)
+        DateTime updatedAt,
+        TimeSpan? departureTimeUtc = null,
+        TimeSpan? arrivalTimeUtc = null,
+        byte? arrivalDayOffsetUtc = null)
     {
         return new FlightSchedule
         {
@@ -111,7 +123,10 @@ public sealed class FlightSchedule
             FlightsCreated = flightsCreated,
             CreatedBy = createdBy,
             CreatedAt = createdAt,
-            UpdatedAt = updatedAt
+            UpdatedAt = updatedAt,
+            DepartureTimeUtc = departureTimeUtc,
+            ArrivalTimeUtc = arrivalTimeUtc,
+            ArrivalDayOffsetUtc = arrivalDayOffsetUtc
         };
     }
 

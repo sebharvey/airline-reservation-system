@@ -47,6 +47,9 @@ export interface ScheduleSummary {
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  departureTimeUtc: string | null;
+  arrivalTimeUtc: string | null;
+  arrivalDayOffsetUtc: number | null;
   daysOfWeek: number;
   aircraftType: string;
   validFrom: string;

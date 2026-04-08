@@ -45,7 +45,10 @@ public sealed class ImportSchedulesHandler
                 s.AircraftType,
                 s.ValidFrom,
                 s.ValidTo,
-                s.CreatedBy))
+                s.CreatedBy,
+                s.DepartureTimeUtc,
+                s.ArrivalTimeUtc,
+                s.ArrivalDayOffsetUtc))
             .ToList();
 
         var deleted = await _repository.ReplaceByGroupAsync(command.ScheduleGroupId, newSchedules, cancellationToken);

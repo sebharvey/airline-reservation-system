@@ -80,6 +80,15 @@ public sealed class FlightScheduleRequest
     [JsonPropertyName("arrivalDayOffset")]
     public byte ArrivalDayOffset { get; init; }
 
+    [JsonPropertyName("departureTimeUtc")]
+    public string? DepartureTimeUtc { get; init; }
+
+    [JsonPropertyName("arrivalTimeUtc")]
+    public string? ArrivalTimeUtc { get; init; }
+
+    [JsonPropertyName("arrivalDayOffsetUtc")]
+    public byte? ArrivalDayOffsetUtc { get; init; }
+
     [JsonPropertyName("daysOfWeek")]
     public byte DaysOfWeek { get; init; }
 

@@ -21,4 +21,7 @@ public sealed record ScheduleDefinition(
     string AircraftType,
     DateTime ValidFrom,
     DateTime ValidTo,
-    string CreatedBy);
+    string CreatedBy,
+    TimeSpan? DepartureTimeUtc = null,
+    TimeSpan? ArrivalTimeUtc = null,
+    byte? ArrivalDayOffsetUtc = null);
