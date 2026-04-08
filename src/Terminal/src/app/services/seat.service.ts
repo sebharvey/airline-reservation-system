@@ -26,7 +26,7 @@ export interface GetAircraftTypesResponse {
 @Injectable({ providedIn: 'root' })
 export class SeatService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.seatMsUrl}/api/v1`;
+  #baseUrl = `${environment.operationsApiUrl}/api/v1`;
 
   async getAircraftTypes(): Promise<GetAircraftTypesResponse> {
     return firstValueFrom(

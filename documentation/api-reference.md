@@ -211,6 +211,7 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/oci/bags` | Submit baggage selection during check-in (not implemented — returns success) |
 | `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
+| `GET`  | `/v1/aircraft-types` | List all aircraft types; proxies to the Ancillary MS; returns `aircraftTypes[]` with `aircraftTypeCode`, `manufacturer`, `friendlyName`, `totalSeats`, `cabinCounts[]`, `isActive`, `createdAt`, `updatedAt` |
 
 ---
 
