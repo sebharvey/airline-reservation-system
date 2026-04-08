@@ -228,7 +228,10 @@ public sealed class OfferFunction
                 Origin: f.GetProperty("origin").GetString()!,
                 Destination: f.GetProperty("destination").GetString()!,
                 AircraftType: f.GetProperty("aircraftType").GetString()!,
-                Cabins: flightCabins));
+                Cabins: flightCabins,
+                DepartureTimeUtc: f.TryGetProperty("departureTimeUtc", out var dtu) && dtu.ValueKind != JsonValueKind.Null ? dtu.GetString() : null,
+                ArrivalTimeUtc: f.TryGetProperty("arrivalTimeUtc", out var atu) && atu.ValueKind != JsonValueKind.Null ? atu.GetString() : null,
+                ArrivalDayOffsetUtc: f.TryGetProperty("arrivalDayOffsetUtc", out var adou) && adou.ValueKind != JsonValueKind.Null ? adou.GetInt32() : null));
         }
 
         if (items.Count == 0)
