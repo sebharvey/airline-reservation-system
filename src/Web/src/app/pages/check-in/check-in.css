@@ -66,6 +66,12 @@ h2 {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
+/* ── Field hint ── */
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 /* ── Error ── */
 .error-banner {
   display: flex;

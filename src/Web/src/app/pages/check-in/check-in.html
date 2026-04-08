@@ -46,6 +46,21 @@
       />
     </div>
 
+    <div class="field">
+      <label for="departureAirport">Departure Airport</label>
+      <input
+        id="departureAirport"
+        type="text"
+        placeholder="e.g. LHR"
+        maxlength="3"
+        [ngModel]="departureAirport()"
+        (ngModelChange)="onAirportInput($event)"
+        name="departureAirport"
+        autocomplete="off"
+      />
+      <span class="field-hint">3-letter IATA airport code for your departing flight</span>
+    </div>
+
     @if (errorMessage()) {
       <div class="error-banner">
         <span class="error-icon">&#9888;</span>

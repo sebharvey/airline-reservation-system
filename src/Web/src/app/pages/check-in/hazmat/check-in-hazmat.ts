@@ -37,16 +37,19 @@ export class CheckInHazmatComponent implements OnInit {
       return;
     }
 
-    const passengerIds = this.checkInState.selectedPassengerIds();
-    const inventoryIds = order.flightSegments.map(s => s.inventoryId);
-    const passengers = passengerIds.map(id => ({ passengerId: id, inventoryIds }));
+    const departureAirport = this.checkInState.departureAirport();
+    if (!departureAirport) {
+      this.router.navigate(['/check-in']);
+      return;
+    }
 
     this.submitting.set(true);
     this.errorMessage.set('');
 
-    this.retailApi.submitOciCheckIn(order.bookingReference, passengers).subscribe({
-      next: () => {
+    this.retailApi.submitOciCheckIn(order.bookingReference, departureAirport).subscribe({
+      next: (result) => {
         this.submitting.set(false);
+        this.checkInState.setCheckedInTicketNumbers(result.checkedIn);
         this.router.navigate(['/check-in/boarding-pass'], {
           queryParams: { bookingRef: order.bookingReference }
         });

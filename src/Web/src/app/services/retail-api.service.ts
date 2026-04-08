@@ -73,6 +73,7 @@ export interface RetrieveOrderParams {
   bookingReference: string;
   givenName: string;
   surname: string;
+  departureAirport: string;
 }
 
 // ---- Live API response shape from POST /api/v1/search/slice ----
@@ -331,20 +332,36 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/orders/oci/retrieve
-   * Retrieve a booking for the online check-in journey.
-   * Returns an OCI-specific response with enriched passenger and flight segment data.
+   * POST /v1/oci/retrieve (Operations API)
+   * Retrieve a booking for the online check-in journey, filtered by departure airport.
+   * Returns passengers with ticket numbers and optionally pre-filled passport data.
    */
   retrieveOciOrder(params: RetrieveOrderParams): Observable<OciOrder> {
-    const base = environment.retailApiBaseUrl;
+    const base = environment.operationsApiBaseUrl;
     const body = {
       bookingReference: params.bookingReference.toUpperCase().trim(),
-      surname: params.surname.trim()
+      firstName: params.givenName.trim(),
+      lastName: params.surname.trim(),
+      departureAirport: params.departureAirport.toUpperCase().trim()
     };
-    return this.#http.post<OciOrder>(`${base}/api/v1/orders/oci/retrieve`, body).pipe(
+    return this.#http.post<{ bookingReference: string; checkInEligible: boolean; passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: unknown }[] }>(`${base}/api/v1/oci/retrieve`, body).pipe(
+      map(res => ({
+        bookingReference: res.bookingReference,
+        checkInEligible: res.checkInEligible,
+        orderStatus: 'Confirmed',
+        currencyCode: 'GBP',
+        passengers: res.passengers.map(p => ({
+          passengerId: p.passengerId,
+          ticketNumber: p.ticketNumber,
+          type: p.passengerTypeCode,
+          givenName: p.givenName,
+          surname: p.surname
+        })),
+        flightSegments: []
+      })),
       catchError((err: HttpErrorResponse) => {
         const message = err.status === 404
-          ? 'Booking not found. Please check your reference and surname.'
+          ? 'Booking not found. Please check your details and departure airport.'
           : 'Unable to retrieve booking. Please try again.';
         return throwError(() => ({ status: err.status, message }));
       })
@@ -352,14 +369,16 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/orders/oci/{bookingRef}/passenger-details
+   * POST /v1/oci/pax (Operations API)
    * Save APIS travel document data for each passenger to the booking.
    */
-  saveOciPassengerDetails(bookingRef: string, travelDocs: { passengerId: string; type: string; number: string; issuingCountry: string; issueDate: string; expiryDate: string; nationality: string }[]): Observable<void> {
-    const base = environment.retailApiBaseUrl;
+  saveOciPassengerDetails(bookingRef: string, departureAirport: string, travelDocs: { ticketNumber: string; type: string; number: string; issuingCountry: string; issueDate: string; expiryDate: string; nationality: string }[]): Observable<void> {
+    const base = environment.operationsApiBaseUrl;
     const body = {
+      bookingReference: bookingRef,
+      departureAirport: departureAirport.toUpperCase(),
       passengers: travelDocs.map(d => ({
-        passengerId: d.passengerId,
+        ticketNumber: d.ticketNumber,
         travelDocument: {
           type: d.type,
           number: d.number,
@@ -370,7 +389,7 @@ export class RetailApiService {
         }
       }))
     };
-    return this.#http.post<void>(`${base}/api/v1/orders/oci/${encodeURIComponent(bookingRef)}/passenger-details`, body);
+    return this.#http.post<void>(`${base}/api/v1/oci/pax`, body);
   }
 
   /**
@@ -419,19 +438,19 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/oci/checkin
-   * Complete online check-in: marks passengers as checked-in in the Delivery MS.
-   * Returns a status confirmation — boarding passes are retrieved separately
-   * via POST /v1/oci/boardingpasses.
+   * POST /v1/oci/checkin (Operations API)
+   * Complete online check-in for a departure airport; calls the Delivery MS to update
+   * coupon status to C for all tickets on the booking departing from that airport.
+   * Returns the list of checked-in ticket numbers.
    */
   submitOciCheckIn(
     bookingRef: string,
-    passengers: { passengerId: string; inventoryIds: string[] }[]
-  ): Observable<{ status: string; bookingReference: string; message: string }> {
-    const base = environment.retailApiBaseUrl;
-    const body = { bookingReference: bookingRef, passengers };
+    departureAirport: string
+  ): Observable<{ bookingReference: string; checkedIn: string[] }> {
+    const base = environment.operationsApiBaseUrl;
+    const body = { bookingReference: bookingRef, departureAirport: departureAirport.toUpperCase() };
     return this.#http
-      .post<{ status: string; bookingReference: string; message: string }>(`${base}/api/v1/oci/checkin`, body)
+      .post<{ bookingReference: string; checkedIn: string[] }>(`${base}/api/v1/oci/checkin`, body)
       .pipe(
         catchError((err: HttpErrorResponse) => throwError(() => ({
           status: err.status,
@@ -441,17 +460,33 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/oci/boardingpasses
-   * Retrieve boarding passes for all checked-in passengers on a booking,
-   * reading from the delivery.Ticket and delivery.Manifest database tables.
+   * POST /v1/oci/boarding-docs (Operations API)
+   * Retrieve boarding documents for checked-in tickets at a departure airport.
+   * The Delivery MS generates a BCBP string for each segment checked in at that airport.
    */
-  getOciBoardingPasses(bookingRef: string): Observable<BoardingPass[]> {
-    const base = environment.retailApiBaseUrl;
-    const body = { bookingReference: bookingRef };
+  getOciBoardingPasses(departureAirport: string, ticketNumbers: string[]): Observable<BoardingPass[]> {
+    const base = environment.operationsApiBaseUrl;
+    const body = { departureAirport: departureAirport.toUpperCase(), ticketNumbers };
     return this.#http
-      .post<{ boardingPasses: BoardingPass[] }>(`${base}/api/v1/oci/boardingpasses`, body)
+      .post<{ boardingCards: { ticketNumber: string; passengerId: string; givenName: string; surname: string; flightNumber: string; departureDate: string; seatNumber: string; cabinCode: string; sequenceNumber: string; origin: string; destination: string; bcbpString: string }[] }>(`${base}/api/v1/oci/boarding-docs`, body)
       .pipe(
-        map(res => res.boardingPasses),
+        map(res => res.boardingCards.map(c => ({
+          bookingReference: '',
+          passengerId: c.passengerId,
+          givenName: c.givenName,
+          surname: c.surname,
+          flightNumber: c.flightNumber,
+          origin: c.origin,
+          destination: c.destination,
+          departureDateTime: c.departureDate,
+          seatNumber: c.seatNumber,
+          cabinCode: c.cabinCode as import('../models/order.model').CabinCode,
+          eTicketNumber: c.ticketNumber,
+          sequenceNumber: c.sequenceNumber,
+          bcbpBarcode: c.bcbpString,
+          gate: 'TBC',
+          boardingTime: ''
+        }))),
         catchError((err: HttpErrorResponse) => throwError(() => ({
           status: err.status,
           message: err.error?.message ?? 'Unable to retrieve boarding passes. Please try again.'

@@ -18,6 +18,7 @@ interface TravelDocumentForm {
 
 interface PassengerCheckInState {
   passengerId: string;
+  ticketNumber: string;
   givenName: string;
   surname: string;
   passengerType: string;
@@ -74,6 +75,7 @@ export class CheckInDetailsComponent implements OnInit {
     this.order.set(order);
     this.passengerStates.set(order.passengers.map(pax => ({
       passengerId: pax.passengerId,
+      ticketNumber: pax.ticketNumber,
       givenName: pax.givenName,
       surname: pax.surname,
       passengerType: pax.type,
@@ -134,8 +136,10 @@ export class CheckInDetailsComponent implements OnInit {
         }
       }
     }
+
     const travelDocs: OciTravelDocument[] = selected.map(s => ({
       passengerId: s.passengerId,
+      ticketNumber: s.ticketNumber,
       type: s.travelDocument.type,
       number: s.travelDocument.number,
       issuingCountry: s.travelDocument.issuingCountry,
@@ -150,9 +154,19 @@ export class CheckInDetailsComponent implements OnInit {
 
     const order = this.order();
     if (!order) return;
+    const departureAirport = this.checkInState.departureAirport();
+
     this.saving.set(true);
     this.saveError.set('');
-    this.retailApi.saveOciPassengerDetails(order.bookingReference, travelDocs).subscribe({
+    this.retailApi.saveOciPassengerDetails(order.bookingReference, departureAirport, travelDocs.map(d => ({
+      ticketNumber: d.ticketNumber,
+      type: d.type,
+      number: d.number,
+      issuingCountry: d.issuingCountry,
+      issueDate: d.issueDate,
+      expiryDate: d.expiryDate,
+      nationality: d.nationality
+    }))).subscribe({
       next: () => {
         this.saving.set(false);
         this.router.navigate(['/check-in/seats']);

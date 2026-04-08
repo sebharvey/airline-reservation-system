@@ -3,6 +3,7 @@ import { OciOrder, BoardingPass } from '../models/order.model';
 
 export interface OciTravelDocument {
   passengerId: string;
+  ticketNumber: string;
   type: 'PASSPORT' | 'ID_CARD';
   number: string;
   issuingCountry: string;
@@ -31,11 +32,13 @@ export interface CheckInSeatSelection {
 @Injectable({ providedIn: 'root' })
 export class CheckInStateService {
   readonly currentOrder = signal<OciOrder | null>(null);
+  readonly departureAirport = signal<string>('');
   readonly selectedPassengerIds = signal<string[]>([]);
   readonly travelDocuments = signal<OciTravelDocument[]>([]);
   readonly bagSelections = signal<CheckInBagSelection[]>([]);
   readonly seatSelections = signal<CheckInSeatSelection[]>([]);
   readonly boardingPasses = signal<BoardingPass[]>([]);
+  readonly checkedInTicketNumbers = signal<string[]>([]);
 
   readonly totalBagAmount = computed(() =>
     this.bagSelections().reduce((sum, s) => sum + s.price, 0)
@@ -51,6 +54,10 @@ export class CheckInStateService {
 
   setCurrentOrder(order: OciOrder): void {
     this.currentOrder.set(order);
+  }
+
+  setDepartureAirport(code: string): void {
+    this.departureAirport.set(code.toUpperCase());
   }
 
   setPassengerCheckInData(passengerIds: string[], travelDocs: OciTravelDocument[]): void {
@@ -70,12 +77,18 @@ export class CheckInStateService {
     this.boardingPasses.set(passes);
   }
 
+  setCheckedInTicketNumbers(tickets: string[]): void {
+    this.checkedInTicketNumbers.set(tickets);
+  }
+
   clear(): void {
     this.currentOrder.set(null);
+    this.departureAirport.set('');
     this.selectedPassengerIds.set([]);
     this.travelDocuments.set([]);
     this.bagSelections.set([]);
     this.seatSelections.set([]);
     this.boardingPasses.set([]);
+    this.checkedInTicketNumbers.set([]);
   }
 }

@@ -207,6 +207,7 @@ export interface OciFlightSegment {
 
 export interface OciPassenger {
   passengerId: string;
+  ticketNumber: string;
   type: string;
   givenName: string;
   surname: string;
@@ -214,10 +215,11 @@ export interface OciPassenger {
 
 export interface OciOrder {
   bookingReference: string;
+  checkInEligible?: boolean;
   orderStatus: string;
   currencyCode: string;
   passengers: OciPassenger[];
-  flightSegments: OciFlightSegment[];
+  flightSegments?: OciFlightSegment[];
 }
 
 export interface BoardingPass {
