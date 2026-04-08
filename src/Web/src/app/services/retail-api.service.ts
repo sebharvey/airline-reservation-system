@@ -34,6 +34,7 @@ export interface BasketSegment {
 export interface CreateBasketParams {
   segments: BasketSegment[];
   bookingType: BookingType;
+  passengerCount: number;
   currencyCode?: string;
   loyaltyNumber?: string;
 }
@@ -221,7 +222,8 @@ export class RetailApiService {
       channelCode: 'WEB',
       currencyCode: params.currencyCode ?? 'GBP',
       bookingType: params.bookingType,
-      loyaltyNumber: params.loyaltyNumber ?? null
+      loyaltyNumber: params.loyaltyNumber ?? null,
+      passengerCount: params.passengerCount
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
   }

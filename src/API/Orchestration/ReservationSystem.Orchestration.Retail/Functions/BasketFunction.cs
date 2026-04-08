@@ -60,13 +60,17 @@ public sealed class BasketFunction
         if (string.IsNullOrWhiteSpace(request.ChannelCode))
             return await req.BadRequestAsync("The field 'channelCode' is required.");
 
+        if (request.PassengerCount < 1)
+            return await req.BadRequestAsync("The field 'passengerCount' must be at least 1.");
+
         var command = new CreateBasketCommand(
             request.Segments.Select(s => new BasketSegment(s.OfferId, s.SessionId)).ToList(),
             request.ChannelCode,
             request.CurrencyCode,
             request.BookingType,
             request.LoyaltyNumber,
-            request.CustomerId);
+            request.CustomerId,
+            request.PassengerCount);
 
         var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
         return await req.CreatedAsync($"/v1/basket/{result.BasketId}",

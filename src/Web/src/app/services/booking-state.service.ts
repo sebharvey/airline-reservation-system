@@ -41,13 +41,13 @@ function buildBasketFlightOffer(offer: FlightOffer, passengerRefs: string[]): Ba
     fareBasisCode: offer.fareBasisCode,
     passengerRefs,
     unitPrice: offer.unitPrice,
-    taxes: offer.taxes,
-    totalPrice: offer.totalPrice,
+    taxes: offer.taxes * passengerRefs.length,
+    totalPrice: offer.totalPrice * passengerRefs.length,
     isRefundable: offer.isRefundable,
     isChangeable: offer.isChangeable,
     currency: offer.currency,
-    pointsPrice: offer.pointsPrice,
-    pointsTaxes: offer.pointsTaxes
+    pointsPrice: offer.pointsPrice != null ? offer.pointsPrice * passengerRefs.length : offer.pointsPrice,
+    pointsTaxes: offer.pointsTaxes != null ? offer.pointsTaxes * passengerRefs.length : offer.pointsTaxes
   };
 }
 

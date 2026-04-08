@@ -47,6 +47,7 @@ public sealed class CreateBasketHandler
                 var offerItem = offerDetail.Offers.FirstOrDefault(o => o.OfferId == segment.OfferId)
                     ?? offerDetail.Offers.FirstOrDefault();
 
+                var pax = command.PassengerCount;
                 offerJson = JsonSerializer.Serialize(new
                 {
                     offerId        = segment.OfferId,
@@ -63,13 +64,15 @@ public sealed class CreateBasketHandler
                     cabinCode      = offerItem?.CabinCode,
                     fareBasisCode  = offerItem?.FareBasisCode,
                     fareFamily     = offerItem?.FareFamily,
-                    totalAmount    = offerItem?.TotalAmount ?? 0m,
-                    baseFareAmount = offerItem?.BaseFareAmount ?? 0m,
-                    taxAmount      = offerItem?.TaxAmount ?? 0m,
+                    unitAmount     = offerItem?.TotalAmount ?? 0m,
+                    totalAmount    = (offerItem?.TotalAmount ?? 0m) * pax,
+                    baseFareAmount = (offerItem?.BaseFareAmount ?? 0m) * pax,
+                    taxAmount      = (offerItem?.TaxAmount ?? 0m) * pax,
                     isRefundable   = offerItem?.IsRefundable ?? false,
                     isChangeable   = offerItem?.IsChangeable ?? false,
-                    pointsPrice    = offerItem?.PointsPrice,
-                    pointsTaxes    = offerItem?.PointsTaxes
+                    passengerCount = pax,
+                    pointsPrice    = offerItem?.PointsPrice != null ? offerItem.PointsPrice * pax : (int?)null,
+                    pointsTaxes    = offerItem?.PointsTaxes != null ? offerItem.PointsTaxes * pax : (decimal?)null
                 });
             }
             else

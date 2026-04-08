@@ -255,6 +255,7 @@ export class SearchResultsComponent implements OnInit {
     this.retailApi.createBasket({
       segments,
       bookingType: this.bookingType(),
+      passengerCount: this.bookingState.totalPassengers(),
       loyaltyNumber
     }).pipe(
       switchMap(basket =>
