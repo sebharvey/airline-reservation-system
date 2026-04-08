@@ -73,6 +73,9 @@ export interface RetrieveOrderParams {
   bookingReference: string;
   givenName: string;
   surname: string;
+}
+
+export interface OciRetrieveParams extends RetrieveOrderParams {
   departureAirport: string;
 }
 
@@ -336,7 +339,7 @@ export class RetailApiService {
    * Retrieve a booking for the online check-in journey, filtered by departure airport.
    * Returns passengers with ticket numbers and optionally pre-filled passport data.
    */
-  retrieveOciOrder(params: RetrieveOrderParams): Observable<OciOrder> {
+  retrieveOciOrder(params: OciRetrieveParams): Observable<OciOrder> {
     const base = environment.operationsApiBaseUrl;
     const body = {
       bookingReference: params.bookingReference.toUpperCase().trim(),
@@ -480,7 +483,7 @@ export class RetailApiService {
           destination: c.destination,
           departureDateTime: c.departureDate,
           seatNumber: c.seatNumber,
-          cabinCode: c.cabinCode as import('../models/order.model').CabinCode,
+          cabinCode: c.cabinCode as CabinCode,
           eTicketNumber: c.ticketNumber,
           sequenceNumber: c.sequenceNumber,
           bcbpBarcode: c.bcbpString,
