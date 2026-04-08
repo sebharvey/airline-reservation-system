@@ -9,11 +9,11 @@ namespace ReservationSystem.Microservices.Offer.Application.RollingInventoryImpo
 
 /// <summary>
 /// Extends the rolling inventory window by importing the next day of flights at the
-/// 3-month boundary. Runs daily via a timer trigger so the system always holds exactly
-/// 3 months of forward inventory.
+/// 1-month boundary. Runs daily via a timer trigger so the system always holds exactly
+/// 1 month of forward inventory.
 ///
 /// Flow:
-///   1. Calculate targetDate = today + 3 months.
+///   1. Calculate targetDate = today + 1 month.
 ///   2. Fetch all schedules from Schedule MS (accepted anti-pattern for timer triggers).
 ///   3. Fetch aircraft type configurations from Seat MS.
 ///   4. For each schedule valid on targetDate and matching the days-of-week bitmask,
@@ -46,7 +46,7 @@ public sealed class RollingInventoryImportHandler
 
     public async Task HandleAsync(CancellationToken ct = default)
     {
-        var targetDate = DateTime.UtcNow.Date.AddMonths(3);
+        var targetDate = DateTime.UtcNow.Date.AddMonths(1);
         var targetDateOnly = DateOnly.FromDateTime(targetDate);
 
         _logger.LogInformation(
