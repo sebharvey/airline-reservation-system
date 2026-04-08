@@ -1,16 +1,16 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { OfferService, FlightInventoryGroup, CabinInventory, InventoryHold } from '../../services/offer.service';
+import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold } from '../../services/inventory.service';
 
 @Component({
-  selector: 'app-offer',
-  templateUrl: './offer.html',
-  styleUrl: './offer.css',
+  selector: 'app-inventory',
+  templateUrl: './inventory.html',
+  styleUrl: './inventory.css',
   imports: [FormsModule, RouterLink],
 })
-export class OfferComponent implements OnInit {
-  #offerService = inject(OfferService);
+export class InventoryComponent implements OnInit {
+  #inventoryService = inject(InventoryService);
 
   flights = signal<FlightInventoryGroup[]>([]);
   selectedDate = signal(this.#todayIso());
@@ -38,7 +38,7 @@ export class OfferComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const result = await this.#offerService.getFlightInventory(this.selectedDate());
+      const result = await this.#inventoryService.getFlightInventory(this.selectedDate());
       this.flights.set(result);
       this.loaded.set(true);
     } catch {
@@ -93,7 +93,7 @@ export class OfferComponent implements OnInit {
     this.holdsError.set('');
     this.holdsLoading.set(true);
     try {
-      const result = await this.#offerService.getInventoryHolds(flight.inventoryId);
+      const result = await this.#inventoryService.getInventoryHolds(flight.inventoryId);
       this.holds.set(result);
     } catch {
       this.holdsError.set('Failed to load holds. Please try again.');

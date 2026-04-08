@@ -24,7 +24,7 @@ export class AppShell {
   sidebarOpen = signal(false);
 
   navItems: NavItem[] = [
-    { path: '/offer',    label: 'Offer',    icon: '✈',  description: 'Flight & ancillary offers' },
+    { path: '/inventory', label: 'Inventory', icon: '✈',  description: 'Flight inventory & seat availability' },
     { path: '/order',    label: 'Order',    icon: '📋', description: 'Manage orders & payments' },
     { path: '/customer', label: 'Customer', icon: '👤', description: 'Customer profiles & history' },
     { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },

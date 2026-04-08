@@ -1,4 +1,4 @@
-.offer-page {
+.inventory-page {
   max-width: 1300px;
   padding: 16px;
 }
@@ -293,7 +293,7 @@
 
 /* Mobile */
 @media (max-width: 768px) {
-  .offer-page { padding: 12px; }
+  .inventory-page { padding: 12px; }
   .page-header { flex-direction: column; align-items: flex-start; }
   .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .page-title { font-size: 1.25rem; }
@@ -329,7 +329,7 @@
 }
 
 @media (min-width: 901px) {
-  .offer-page { padding: 0; }
+  .inventory-page { padding: 0; }
 }
 
 /* Holds button */

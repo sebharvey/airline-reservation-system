@@ -65,7 +65,7 @@ export interface InventoryHold {
 }
 
 @Injectable({ providedIn: 'root' })
-export class OfferService {
+export class InventoryService {
   #http = inject(HttpClient);
   #baseUrl = `${environment.retailApiUrl}/api/v1/admin`;
 
