@@ -88,19 +88,35 @@ export class FlightStatusComponent implements OnInit {
     return AIRPORTS.find(ap => ap.code === code)?.city ?? code;
   }
 
+  private getAirportTimezone(code: string): string {
+    return AIRPORTS.find(ap => ap.code === code)?.timezone ?? 'UTC';
+  }
+
   computeDisplayStatus(flight: FlightStatus): DisplayStatusCode {
     if (flight.status === 'Cancelled') return 'Cancelled';
 
-    const now = new Date();
-    const departure = new Date(flight.estimatedDepartureDateTime ?? flight.scheduledDepartureDateTime);
-    const arrival = new Date(flight.estimatedArrivalDateTime ?? flight.scheduledArrivalDateTime);
-    const minutesToDeparture = (departure.getTime() - now.getTime()) / 60000;
+    const nowUtc = Date.now();
+    const departureUtc = new Date(flight.estimatedDepartureDateTime ?? flight.scheduledDepartureDateTime).getTime();
+    const arrivalUtc = new Date(flight.estimatedArrivalDateTime ?? flight.scheduledArrivalDateTime).getTime();
+    const minutesToDeparture = (departureUtc - nowUtc) / 60000;
 
-    if (now >= arrival) return 'Landed';
-    if (now >= departure) return 'InFlight';
+    if (nowUtc >= arrivalUtc) return 'Landed';
+    if (nowUtc >= departureUtc) return 'InFlight';
     if (minutesToDeparture <= 60) return 'Boarding';
 
     return flight.status;
+  }
+
+  /** Returns 0–100 progress along the route based on UTC elapsed time. */
+  getFlightProgress(flight: FlightStatus): number {
+    const nowUtc = Date.now();
+    const departureUtc = new Date(flight.estimatedDepartureDateTime ?? flight.scheduledDepartureDateTime).getTime();
+    const arrivalUtc = new Date(flight.estimatedArrivalDateTime ?? flight.scheduledArrivalDateTime).getTime();
+
+    if (nowUtc <= departureUtc) return 0;
+    if (nowUtc >= arrivalUtc) return 100;
+
+    return ((nowUtc - departureUtc) / (arrivalUtc - departureUtc)) * 100;
   }
 
   getStatusLabel(status: DisplayStatusCode): string {
@@ -111,22 +127,44 @@ export class FlightStatusComponent implements OnInit {
     return STATUS_CONFIG[status]?.cssClass ?? '';
   }
 
-  formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+  /** Format a UTC ISO timestamp as local time for the given airport. */
+  formatLocalTime(iso: string, airportCode: string): string {
+    const tz = this.getAirportTimezone(airportCode);
+    return new Date(iso).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: tz
     });
   }
 
-  formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit'
+  /** Format a UTC ISO timestamp as local date for the given airport. */
+  formatLocalDate(iso: string, airportCode: string): string {
+    const tz = this.getAirportTimezone(airportCode);
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      timeZone: tz
     });
+  }
+
+  /** Format a UTC ISO timestamp as HH:mm UTC. */
+  formatUtcTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'UTC'
+    }) + ' UTC';
+  }
+
+  /** Short timezone label (e.g. "BST", "EDT") for an airport at a given point in time. */
+  formatTzLabel(iso: string, airportCode: string): string {
+    const tz = this.getAirportTimezone(airportCode);
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      timeZoneName: 'short'
+    }).formatToParts(new Date(iso))
+      .find(p => p.type === 'timeZoneName')?.value ?? tz;
   }
 
   isEstimatedDifferent(scheduled: string, estimated: string | null): boolean {
     if (!estimated) return false;
     return new Date(scheduled).getTime() !== new Date(estimated).getTime();
   }
-
 }

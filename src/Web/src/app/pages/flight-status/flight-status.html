@@ -63,16 +63,27 @@
         >{{ getStatusLabel(computeDisplayStatus(flightStatus()!)) }}</span>
       </div>
 
-      <!-- Route -->
+      <!-- Route with aircraft progress -->
       <div class="route-section">
         <div class="route-airport origin">
           <span class="airport-code">{{ flightStatus()!.origin }}</span>
           <span class="airport-name">{{ getAirportCity(flightStatus()!.origin) }}</span>
         </div>
         <div class="route-arrow">
-          <div class="route-line"></div>
-          <span class="route-plane">&#9992;</span>
-          <div class="route-line"></div>
+          <div
+            class="route-track"
+            [style.--progress]="getFlightProgress(flightStatus()!) + '%'"
+          >
+            <div class="route-track-bg"></div>
+            <div
+              class="route-track-fill"
+              [style.width]="getFlightProgress(flightStatus()!) + '%'"
+            ></div>
+            <span
+              class="route-plane"
+              [class.plane-moving]="computeDisplayStatus(flightStatus()!) === 'InFlight'"
+            >&#9992;</span>
+          </div>
         </div>
         <div class="route-airport destination">
           <span class="airport-code">{{ flightStatus()!.destination }}</span>
@@ -84,21 +95,31 @@
       <div class="times-grid">
         <div class="time-block">
           <span class="time-label">Scheduled Departure</span>
-          <span class="time-value">{{ formatTime(flightStatus()!.scheduledDepartureDateTime) }}</span>
-          <span class="time-date">{{ formatDateTime(flightStatus()!.scheduledDepartureDateTime).split(',')[0] }}</span>
+          <span class="time-value">
+            {{ formatLocalTime(flightStatus()!.scheduledDepartureDateTime, flightStatus()!.origin) }}
+            <span class="time-tz">{{ formatTzLabel(flightStatus()!.scheduledDepartureDateTime, flightStatus()!.origin) }}</span>
+          </span>
+          <span class="time-utc">{{ formatUtcTime(flightStatus()!.scheduledDepartureDateTime) }}</span>
+          <span class="time-date">{{ formatLocalDate(flightStatus()!.scheduledDepartureDateTime, flightStatus()!.origin) }}</span>
           @if (isEstimatedDifferent(flightStatus()!.scheduledDepartureDateTime, flightStatus()!.estimatedDepartureDateTime)) {
             <span class="estimated-time">
-              Est. {{ formatTime(flightStatus()!.estimatedDepartureDateTime!) }}
+              Est. {{ formatLocalTime(flightStatus()!.estimatedDepartureDateTime!, flightStatus()!.origin) }}
+              {{ formatTzLabel(flightStatus()!.estimatedDepartureDateTime!, flightStatus()!.origin) }}
             </span>
           }
         </div>
         <div class="time-block">
           <span class="time-label">Scheduled Arrival</span>
-          <span class="time-value">{{ formatTime(flightStatus()!.scheduledArrivalDateTime) }}</span>
-          <span class="time-date">{{ formatDateTime(flightStatus()!.scheduledArrivalDateTime).split(',')[0] }}</span>
+          <span class="time-value">
+            {{ formatLocalTime(flightStatus()!.scheduledArrivalDateTime, flightStatus()!.destination) }}
+            <span class="time-tz">{{ formatTzLabel(flightStatus()!.scheduledArrivalDateTime, flightStatus()!.destination) }}</span>
+          </span>
+          <span class="time-utc">{{ formatUtcTime(flightStatus()!.scheduledArrivalDateTime) }}</span>
+          <span class="time-date">{{ formatLocalDate(flightStatus()!.scheduledArrivalDateTime, flightStatus()!.destination) }}</span>
           @if (isEstimatedDifferent(flightStatus()!.scheduledArrivalDateTime, flightStatus()!.estimatedArrivalDateTime)) {
             <span class="estimated-time">
-              Est. {{ formatTime(flightStatus()!.estimatedArrivalDateTime!) }}
+              Est. {{ formatLocalTime(flightStatus()!.estimatedArrivalDateTime!, flightStatus()!.destination) }}
+              {{ formatTzLabel(flightStatus()!.estimatedArrivalDateTime!, flightStatus()!.destination) }}
             </span>
           }
         </div>
