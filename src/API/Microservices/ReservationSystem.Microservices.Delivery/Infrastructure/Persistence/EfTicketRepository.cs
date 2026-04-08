@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
@@ -58,5 +59,48 @@ public sealed class EfTicketRepository : ITicketRepository
     public async Task<int> GetTicketCountAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Tickets.CountAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(
+        string flightNumber, string origin, CancellationToken cancellationToken = default)
+    {
+        // Broad SQL filter: pull tickets whose JSON data mentions this flight number,
+        // then refine in memory to match origin and extract assigned seats.
+        var candidates = await _context.Tickets
+            .AsNoTracking()
+            .Where(t => !t.IsVoided && t.TicketData.Contains(flightNumber))
+            .ToListAsync(cancellationToken);
+
+        var seats = new List<string>();
+        foreach (var ticket in candidates)
+        {
+            try
+            {
+                var root = JsonNode.Parse(ticket.TicketData)?.AsObject();
+                var coupons = root?["coupons"]?.AsArray();
+                if (coupons is null) continue;
+
+                foreach (var node in coupons)
+                {
+                    if (node is not JsonObject coupon) continue;
+                    var couponOrigin = coupon["origin"]?.GetValue<string>() ?? "";
+                    var couponFlight = coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "";
+                    var seat = coupon["seat"]?.GetValue<string>();
+
+                    if (string.Equals(couponOrigin, origin, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(couponFlight, flightNumber, StringComparison.OrdinalIgnoreCase) &&
+                        !string.IsNullOrWhiteSpace(seat))
+                    {
+                        seats.Add(seat!);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse TicketData for seat allocation on ticket {TicketId}", ticket.TicketId);
+            }
+        }
+
+        return seats.AsReadOnly();
     }
 }

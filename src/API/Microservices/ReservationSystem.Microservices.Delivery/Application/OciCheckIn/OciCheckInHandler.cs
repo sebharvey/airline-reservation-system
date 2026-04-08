@@ -29,6 +29,10 @@ public sealed class OciCheckInHandler
         var checkedInCount = 0;
         var results = new List<OciCheckInTicketResult>();
 
+        // Tickets that were checked in but have no seat yet — collected for group allocation.
+        var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode)>();
+
+        // ── Phase 1: check in coupons ────────────────────────────────────────
         foreach (var ticketRequest in command.Tickets)
         {
             var ticket = await _ticketRepository.GetByETicketNumberAsync(ticketRequest.TicketNumber, cancellationToken);
@@ -43,8 +47,17 @@ public sealed class OciCheckInHandler
 
             if (updated > 0)
             {
-                await _ticketRepository.UpdateAsync(ticket, cancellationToken);
                 checkedInCount++;
+
+                // Check whether the freshly checked-in coupon already has a seat.
+                var unseatedCoupon = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport)
+                    .FirstOrDefault(c => string.IsNullOrWhiteSpace(c.SeatNumber));
+
+                if (unseatedCoupon is not null)
+                    // Defer save until after group seat allocation.
+                    pendingAssignment.Add((ticket, unseatedCoupon.FlightNumber, unseatedCoupon.ClassOfService));
+                else
+                    await _ticketRepository.UpdateAsync(ticket, cancellationToken);
             }
 
             results.Add(new OciCheckInTicketResult(ticketRequest.TicketNumber, updated > 0 ? "C" : "O"));
@@ -52,6 +65,42 @@ public sealed class OciCheckInHandler
             _logger.LogInformation(
                 "Checked in ticket {TicketNumber} for departure from {DepartureAirport} ({Count} coupon(s) updated)",
                 ticketRequest.TicketNumber, command.DepartureAirport, updated);
+        }
+
+        // ── Phase 2: auto-assign seats, grouping by flight ───────────────────
+        // Grouping means passengers on the same flight are allocated together so
+        // that the allocator can seat them in adjacent seats where possible.
+        foreach (var flightGroup in pendingAssignment.GroupBy(t => (t.FlightNumber, t.CabinCode)))
+        {
+            var groupList = flightGroup.ToList();
+
+            var takenSeats = await _ticketRepository.GetAssignedSeatsForFlightAsync(
+                flightGroup.Key.FlightNumber, command.DepartureAirport, cancellationToken);
+
+            var seats = SeatAllocator.AllocateGroupSeats(
+                flightGroup.Key.CabinCode, groupList.Count, takenSeats);
+
+            for (var i = 0; i < groupList.Count; i++)
+            {
+                var ticket = groupList[i].Ticket;
+                var seat = i < seats.Count ? seats[i] : null;
+
+                if (seat is not null)
+                {
+                    ticket.AssignSeatForOrigin(command.DepartureAirport, seat, "OCI");
+                    _logger.LogInformation(
+                        "Auto-assigned seat {Seat} to ticket {TicketNumber} on {FlightNumber}",
+                        seat, ticket.ETicketNumber, flightGroup.Key.FlightNumber);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "No seat available for auto-assignment on {FlightNumber} cabin {CabinCode}",
+                        flightGroup.Key.FlightNumber, flightGroup.Key.CabinCode);
+                }
+
+                await _ticketRepository.UpdateAsync(ticket, cancellationToken);
+            }
         }
 
         return new OciCheckInResult(checkedInCount, results);
