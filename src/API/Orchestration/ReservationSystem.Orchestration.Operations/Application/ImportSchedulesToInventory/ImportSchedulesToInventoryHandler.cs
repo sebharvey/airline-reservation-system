@@ -97,11 +97,11 @@ public sealed class ImportSchedulesToInventoryHandler
         var schedulesWithConfig = new List<ScheduleItemDto>();
         var today = DateTime.UtcNow.Date;
 
-        // Hard cap at 3 months from today. If the caller provides an earlier ToDate, honour it.
-        var threeMonthCap = today.AddMonths(3);
-        var importCeiling = (command.ToDate.HasValue && command.ToDate.Value.Date < threeMonthCap)
+        // Hard cap at 1 month from today. If the caller provides an earlier ToDate, honour it.
+        var oneMonthCap = today.AddMonths(1);
+        var importCeiling = (command.ToDate.HasValue && command.ToDate.Value.Date < oneMonthCap)
             ? command.ToDate.Value.Date
-            : threeMonthCap;
+            : oneMonthCap;
 
         foreach (var schedule in schedulesResult.Schedules)
         {
@@ -118,7 +118,7 @@ public sealed class ImportSchedulesToInventoryHandler
             var validFrom = DateTime.Parse(schedule.ValidFrom);
             var validTo = DateTime.Parse(schedule.ValidTo);
 
-            // Never import beyond the 3-month ceiling.
+            // Never import beyond the 1-month ceiling.
             if (validTo.Date > importCeiling)
                 validTo = importCeiling;
 
