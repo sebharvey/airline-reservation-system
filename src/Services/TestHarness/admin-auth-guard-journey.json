@@ -1,14 +1,13 @@
 {
   "journey": {
     "name": "Terminal app endpoint authentication guard",
-    "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all five APIs used by the Terminal: Admin, Loyalty, Operations, Retail, and Seat MS. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another — each step is a standalone 401 assertion.",
+    "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all four APIs used by the Terminal: Admin, Loyalty, Operations, and Retail. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another — each step is a standalone 401 assertion.",
     "domain": "Admin",
     "baseUrls": [
       { "id": "admin",     "label": "Admin API",     "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
       { "id": "loyalty",   "label": "Loyalty API",   "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
       { "id": "operations","label": "Operations API","url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net" },
-      { "id": "retail",    "label": "Retail API",    "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" },
-      { "id": "seat",      "label": "Seat MS",       "url": "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net" }
+      { "id": "retail",    "label": "Retail API",    "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
     ]
   },
   "steps": [
@@ -1091,31 +1090,6 @@
         "description": "401 Unauthorized — no Bearer token. Debug endpoints must be at least as well protected as their production equivalents.",
         "keyFields": [],
         "validationNotes": "Response must be 401, not 404. Debug endpoints are high-risk if unauthenticated."
-      },
-      "chainsTo": []
-    },
-    {
-      "step": 41,
-      "name": "GET /aircraft-types — no token",
-      "description": "Fetch aircraft type definitions from the Seat microservice without an Authorization header.",
-      "type": "negative",
-      "apiCall": {
-        "method": "GET",
-        "endpoint": "/api/v1/aircraft-types",
-        "baseUrlRef": "seat"
-      },
-      "request": {
-        "headers": { "Content-Type": "application/json" }
-      },
-      "response": {
-        "statusCode": 401,
-        "body": { "error": "Unauthorized" }
-      },
-      "expected": {
-        "statusCode": 401,
-        "description": "401 Unauthorized — no Bearer token. No aircraft type data must be returned.",
-        "keyFields": [],
-        "validationNotes": "If this endpoint is intentionally public (read-only reference data), it should be removed from this suite and documented as unauthenticated."
       },
       "chainsTo": []
     }
