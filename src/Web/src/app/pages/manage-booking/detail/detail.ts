@@ -126,10 +126,6 @@ export class ManageBookingDetailComponent implements OnInit {
       next: (order) => {
         this.order.set(order);
         this.loading.set(false);
-        this.retailApi.getOciBoardingPasses(ref).subscribe({
-          next: (bps) => this.boardingPasses.set(bps),
-          error: () => { /* no check-ins yet — suppress */ }
-        });
       },
       error: (err: { message?: string }) => {
         this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
