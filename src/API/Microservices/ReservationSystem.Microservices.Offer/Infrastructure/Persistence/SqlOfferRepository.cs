@@ -39,7 +39,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                   Origin, Destination, AircraftType,
                    Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  InventoryId = @InventoryId;
@@ -58,7 +59,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                   Origin, Destination, AircraftType,
                    Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
@@ -83,7 +85,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
-                   fi.ArrivalDayOffset, fi.Origin, fi.Destination, fi.AircraftType,
+                   fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
+                   fi.Origin, fi.Destination, fi.AircraftType,
                    fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
             FROM   [offer].[FlightInventory] fi
             CROSS APPLY OPENJSON(fi.Cabins) WITH (
@@ -122,7 +125,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
-                   fi.ArrivalDayOffset, fi.Origin, fi.Destination, fi.AircraftType,
+                   fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
+                   fi.Origin, fi.Destination, fi.AircraftType,
                    fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
             FROM   [offer].[FlightInventory] fi
             WHERE  fi.Origin        = @Origin
@@ -153,7 +157,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                   Origin, Destination, AircraftType,
                    Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
@@ -177,7 +182,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                   ArrivalDayOffset, Origin, Destination, AircraftType,
+                   ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                   Origin, Destination, AircraftType,
                    Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
             FROM  [offer].[FlightInventory]
             WHERE DepartureDate = @DepartureDate
@@ -199,10 +205,12 @@ public sealed class SqlOfferRepository : IOfferRepository
         const string sql = """
             INSERT INTO [offer].[FlightInventory]
                    (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                    ArrivalDayOffset, Origin, Destination, AircraftType,
+                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                    Origin, Destination, AircraftType,
                     Cabins, TotalSeats, SeatsAvailable, Status)
             VALUES (@InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
-                    @ArrivalDayOffset, @Origin, @Destination, @AircraftType,
+                    @ArrivalDayOffset, @DepartureTimeUtc, @ArrivalTimeUtc, @ArrivalDayOffsetUtc,
+                    @Origin, @Destination, @AircraftType,
                     @Cabins, @TotalSeats, @SeatsAvailable, @Status);
             """;
 
@@ -220,10 +228,12 @@ public sealed class SqlOfferRepository : IOfferRepository
         const string sql = """
             INSERT INTO [offer].[FlightInventory]
                    (InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
-                    ArrivalDayOffset, Origin, Destination, AircraftType,
+                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                    Origin, Destination, AircraftType,
                     Cabins, TotalSeats, SeatsAvailable, Status)
             SELECT @InventoryId, @FlightNumber, @DepartureDate, @DepartureTime, @ArrivalTime,
-                   @ArrivalDayOffset, @Origin, @Destination, @AircraftType,
+                   @ArrivalDayOffset, @DepartureTimeUtc, @ArrivalTimeUtc, @ArrivalDayOffsetUtc,
+                   @Origin, @Destination, @AircraftType,
                    @Cabins, @TotalSeats, @SeatsAvailable, @Status
             WHERE NOT EXISTS (
                 SELECT 1 FROM [offer].[FlightInventory]
@@ -970,7 +980,10 @@ public sealed class SqlOfferRepository : IOfferRepository
             seatsAvailable: (int)row.SeatsAvailable,
             status: (string)row.Status,
             createdAt: new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
-            updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
+            updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero),
+            departureTimeUtc: row.DepartureTimeUtc is TimeSpan dtu ? ToTimeOnly(dtu) : null,
+            arrivalTimeUtc: row.ArrivalTimeUtc is TimeSpan atu ? ToTimeOnly(atu) : null,
+            arrivalDayOffsetUtc: (int?)row.ArrivalDayOffsetUtc);
     }
 
     private static Fare MapToFare(dynamic row)
@@ -1015,14 +1028,17 @@ public sealed class SqlOfferRepository : IOfferRepository
         {
             inv.InventoryId,
             inv.FlightNumber,
-            DepartureDate  = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
-            DepartureTime  = inv.DepartureTime.ToTimeSpan(),
-            ArrivalTime    = inv.ArrivalTime.ToTimeSpan(),
+            DepartureDate      = inv.DepartureDate.ToDateTime(TimeOnly.MinValue),
+            DepartureTime      = inv.DepartureTime.ToTimeSpan(),
+            ArrivalTime        = inv.ArrivalTime.ToTimeSpan(),
             inv.ArrivalDayOffset,
+            DepartureTimeUtc   = inv.DepartureTimeUtc?.ToTimeSpan(),
+            ArrivalTimeUtc     = inv.ArrivalTimeUtc?.ToTimeSpan(),
+            inv.ArrivalDayOffsetUtc,
             inv.Origin,
             inv.Destination,
             inv.AircraftType,
-            Cabins         = SerializeCabins(inv),
+            Cabins             = SerializeCabins(inv),
             inv.TotalSeats,
             inv.SeatsAvailable,
             inv.Status

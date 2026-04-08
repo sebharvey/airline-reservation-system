@@ -38,6 +38,9 @@ public sealed class FlightInventory
     public string Origin { get; private set; } = string.Empty;
     public string Destination { get; private set; } = string.Empty;
     public string AircraftType { get; private set; } = string.Empty;
+    public TimeOnly? DepartureTimeUtc { get; private set; }
+    public TimeOnly? ArrivalTimeUtc { get; private set; }
+    public int? ArrivalDayOffsetUtc { get; private set; }
     public IReadOnlyList<CabinInventory> Cabins => _cabins.AsReadOnly();
     public int TotalSeats { get; private set; }
     public int SeatsAvailable { get; private set; }
@@ -50,7 +53,8 @@ public sealed class FlightInventory
     public static FlightInventory Create(
         string flightNumber, DateOnly departureDate, TimeOnly departureTime, TimeOnly arrivalTime,
         int arrivalDayOffset, string origin, string destination, string aircraftType,
-        IReadOnlyList<(string CabinCode, int TotalSeats)> cabins)
+        IReadOnlyList<(string CabinCode, int TotalSeats)> cabins,
+        TimeOnly? departureTimeUtc = null, TimeOnly? arrivalTimeUtc = null, int? arrivalDayOffsetUtc = null)
     {
         var cabinList = cabins.Select(c => CabinInventory.Create(c.CabinCode, c.TotalSeats)).ToList();
         var totalSeats = cabinList.Sum(c => c.TotalSeats);
@@ -67,7 +71,10 @@ public sealed class FlightInventory
             AircraftType = aircraftType,
             TotalSeats = totalSeats,
             SeatsAvailable = totalSeats,
-            Status = InventoryStatus.Active
+            Status = InventoryStatus.Active,
+            DepartureTimeUtc = departureTimeUtc,
+            ArrivalTimeUtc = arrivalTimeUtc,
+            ArrivalDayOffsetUtc = arrivalDayOffsetUtc
         };
         inv._cabins.AddRange(cabinList);
         return inv;
@@ -77,7 +84,8 @@ public sealed class FlightInventory
         Guid inventoryId, string flightNumber, DateOnly departureDate, TimeOnly departureTime,
         TimeOnly arrivalTime, int arrivalDayOffset, string origin, string destination,
         string aircraftType, IReadOnlyList<CabinInventory> cabins,
-        int totalSeats, int seatsAvailable, string status, DateTimeOffset createdAt, DateTimeOffset updatedAt)
+        int totalSeats, int seatsAvailable, string status, DateTimeOffset createdAt, DateTimeOffset updatedAt,
+        TimeOnly? departureTimeUtc = null, TimeOnly? arrivalTimeUtc = null, int? arrivalDayOffsetUtc = null)
     {
         var inv = new FlightInventory
         {
@@ -85,7 +93,8 @@ public sealed class FlightInventory
             DepartureTime = departureTime, ArrivalTime = arrivalTime, ArrivalDayOffset = arrivalDayOffset,
             Origin = origin, Destination = destination, AircraftType = aircraftType,
             TotalSeats = totalSeats, SeatsAvailable = seatsAvailable, Status = status,
-            CreatedAt = createdAt, UpdatedAt = updatedAt
+            CreatedAt = createdAt, UpdatedAt = updatedAt,
+            DepartureTimeUtc = departureTimeUtc, ArrivalTimeUtc = arrivalTimeUtc, ArrivalDayOffsetUtc = arrivalDayOffsetUtc
         };
         inv._cabins.AddRange(cabins);
         return inv;
