@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@ang
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
+import { CheckInStateService } from '../../../services/check-in-state.service';
 import { BoardingPass } from '../../../models/order.model';
 import QRCode from 'qrcode';
 
@@ -36,18 +37,21 @@ export class BoardingPassComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private retailApi: RetailApiService
+    private retailApi: RetailApiService,
+    private checkInState: CheckInStateService
   ) {}
 
   ngOnInit(): void {
-    const bookingRef = this.route.snapshot.queryParamMap.get('bookingRef');
-    if (!bookingRef) {
-      this.errorMessage.set('No booking reference found. Please complete check-in again.');
+    const departureAirport = this.checkInState.departureAirport();
+    const ticketNumbers = this.checkInState.checkedInTicketNumbers();
+
+    if (!departureAirport || ticketNumbers.length === 0) {
+      this.errorMessage.set('Check-in session expired. Please complete check-in again.');
       this.loading.set(false);
       return;
     }
 
-    this.retailApi.getOciBoardingPasses(bookingRef).subscribe({
+    this.retailApi.getOciBoardingPasses(departureAirport, ticketNumbers).subscribe({
       next: (passes) => {
         if (!passes || passes.length === 0) {
           this.errorMessage.set('No boarding passes found. Please complete check-in again.');
@@ -106,13 +110,19 @@ export class BoardingPassComponent implements OnInit {
   }
 
   formatTime(dt: string): string {
-    return new Date(dt).toLocaleTimeString('en-GB', {
+    if (!dt) return '—';
+    const d = new Date(dt);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleTimeString('en-GB', {
       hour: '2-digit', minute: '2-digit', timeZone: 'UTC'
     });
   }
 
   formatDate(dt: string): string {
-    return new Date(dt).toLocaleDateString('en-GB', {
+    if (!dt) return '—';
+    const d = new Date(dt);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-GB', {
       weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
     });
   }

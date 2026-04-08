@@ -14,6 +14,7 @@
     </div>
 
     <!-- Flight summary -->
+    @if (o.flightSegments && o.flightSegments.length > 0) {
     <div class="section">
       <h3 class="section-title">Flight Details</h3>
       @for (seg of o.flightSegments; track seg.segmentRef) {
@@ -39,6 +40,7 @@
         </div>
       }
     </div>
+    }
 
     <!-- Passenger selection and travel documents -->
     <div class="section">
@@ -59,6 +61,7 @@
               <span class="pax-check-type">{{ state.passengerType === 'ADT' ? 'Adult' : 'Child' }}</span>
             </div>
             <!-- Seat assignments for this passenger -->
+            @if (o.flightSegments && o.flightSegments.length > 0) {
             <div class="pax-seats">
               @for (seg of o.flightSegments; track seg.segmentRef) {
                 @let seat = getSeatNumber(state.passengerId, seg);
@@ -67,6 +70,7 @@
                 }
               }
             </div>
+            }
           </div>
 
           <!-- Travel document fields (shown when passenger is selected) -->
