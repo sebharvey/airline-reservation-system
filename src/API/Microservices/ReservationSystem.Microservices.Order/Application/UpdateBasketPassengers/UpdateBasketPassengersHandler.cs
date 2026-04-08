@@ -45,15 +45,51 @@ public sealed class UpdateBasketPassengersHandler
         var passengersNode = JsonNode.Parse(command.PassengersData);
         basketJson["passengers"] = passengersNode;
 
+        // Recalculate fare totals from the stored per-person unit amounts multiplied by the
+        // actual number of passengers being set. This ensures the charged amount is always
+        // authoritative regardless of the passengerCount supplied at basket creation time.
+        var passengerCount = passengersNode is JsonArray paxArray ? paxArray.Count : 0;
+        decimal totalFareAmount = 0m;
+
+        if (passengerCount > 0 && basketJson["flightOffers"] is JsonArray flightOffers)
+        {
+            foreach (var offerNode in flightOffers)
+            {
+                if (offerNode is not JsonObject offer) continue;
+
+                var unitAmount    = offer["unitAmount"]?.GetValue<decimal>() ?? 0m;
+                var unitBaseFare = offer["unitBaseFareAmount"]?.GetValue<decimal>() ?? 0m;
+                var unitTax      = offer["unitTaxAmount"]?.GetValue<decimal>() ?? 0m;
+
+                offer["totalAmount"]    = unitAmount * passengerCount;
+                offer["baseFareAmount"] = unitBaseFare * passengerCount;
+                offer["taxAmount"]      = unitTax * passengerCount;
+                offer["passengerCount"] = passengerCount;
+
+                if (offer["unitPointsPrice"] is JsonNode unitPointsNode)
+                    offer["pointsPrice"] = unitPointsNode.GetValue<int>() * passengerCount;
+                if (offer["unitPointsTaxes"] is JsonNode unitPointsTaxNode)
+                    offer["pointsTaxes"] = unitPointsTaxNode.GetValue<decimal>() * passengerCount;
+
+                totalFareAmount += unitAmount * passengerCount;
+            }
+        }
+        else
+        {
+            totalFareAmount = basket.TotalFareAmount ?? 0m;
+        }
+
+        var totalAmount = totalFareAmount + basket.TotalSeatAmount + basket.TotalBagAmount;
+
         var updated = Basket.Reconstitute(
             basket.BasketId,
             basket.ChannelCode,
             basket.CurrencyCode,
             basket.BasketStatus,
-            basket.TotalFareAmount,
+            totalFareAmount,
             basket.TotalSeatAmount,
             basket.TotalBagAmount,
-            basket.TotalAmount,
+            totalAmount,
             basket.ExpiresAt,
             basket.ConfirmedOrderId,
             basket.Version + 1,
@@ -63,7 +99,8 @@ public sealed class UpdateBasketPassengersHandler
 
         await _repository.UpdateAsync(updated, cancellationToken);
 
-        _logger.LogInformation("Basket {BasketId} passengers updated", command.BasketId);
+        _logger.LogInformation("Basket {BasketId} passengers updated, passengerCount={PassengerCount}, totalFareAmount={TotalFareAmount}",
+            command.BasketId, passengerCount, totalFareAmount);
 
         return updated;
     }
