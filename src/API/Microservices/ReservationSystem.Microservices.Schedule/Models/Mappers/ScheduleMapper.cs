@@ -28,7 +28,10 @@ public static class ScheduleMapper
                 AircraftType: s.AircraftType,
                 ValidFrom: DateTime.Parse(s.ValidFrom),
                 ValidTo: DateTime.Parse(s.ValidTo),
-                CreatedBy: s.CreatedBy))
+                CreatedBy: s.CreatedBy,
+                DepartureTimeUtc: s.DepartureTimeUtc is not null ? TimeSpan.Parse(s.DepartureTimeUtc) : null,
+                ArrivalTimeUtc: s.ArrivalTimeUtc is not null ? TimeSpan.Parse(s.ArrivalTimeUtc) : null,
+                ArrivalDayOffsetUtc: s.ArrivalDayOffsetUtc))
             .ToList()
             .AsReadOnly();
 

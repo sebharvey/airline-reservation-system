@@ -997,6 +997,18 @@ CREATE TABLE [schedule].[FlightSchedule] (
 );
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[schedule].[FlightSchedule]') AND name = 'DepartureTimeUtc')
+    ALTER TABLE [schedule].[FlightSchedule] ADD DepartureTimeUtc TIME NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[schedule].[FlightSchedule]') AND name = 'ArrivalTimeUtc')
+    ALTER TABLE [schedule].[FlightSchedule] ADD ArrivalTimeUtc TIME NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[schedule].[FlightSchedule]') AND name = 'ArrivalDayOffsetUtc')
+    ALTER TABLE [schedule].[FlightSchedule] ADD ArrivalDayOffsetUtc TINYINT NULL;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FlightSchedule_FlightNumber' AND object_id = OBJECT_ID('[schedule].[FlightSchedule]'))
     CREATE INDEX IX_FlightSchedule_FlightNumber
         ON [schedule].[FlightSchedule] (FlightNumber, ValidFrom, ValidTo);

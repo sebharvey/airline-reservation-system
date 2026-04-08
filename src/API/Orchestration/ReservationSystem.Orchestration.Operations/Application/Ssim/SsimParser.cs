@@ -101,6 +101,9 @@ public static class SsimParser
             var arrivalDayOffset = line[53] == '1' ? (byte)1 : (byte)0;
             var aircraftType     = ResolveAircraftType(line.Substring(61, 3).Trim());
 
+            var utcOffset = ParseUtcOffset(line.Substring(46, 3));
+            var (depUtc, arrUtc, arrDayOffsetUtc) = ComputeUtcTimes(departureTime, arrivalTime, arrivalDayOffset, utcOffset);
+
             return new SsimFlightRecord(
                 FlightNumber: flightNum,
                 Origin: origin,
@@ -112,7 +115,10 @@ public static class SsimParser
                 AircraftType: aircraftType,
                 ValidFrom: validFrom.ToString("yyyy-MM-dd"),
                 ValidTo: validTo.ToString("yyyy-MM-dd"),
-                CreatedBy: createdBy);
+                CreatedBy: createdBy,
+                DepartureTimeUtc: depUtc.ToString(@"hh\:mm"),
+                ArrivalTimeUtc: arrUtc.ToString(@"hh\:mm"),
+                ArrivalDayOffsetUtc: arrDayOffsetUtc);
         }
         catch
         {
@@ -143,6 +149,48 @@ public static class SsimParser
 
     private static TimeSpan ParseHhmm(string hhmm) =>
         new(int.Parse(hhmm.Substring(0, 2)), int.Parse(hhmm.Substring(2, 2)), 0);
+
+    /// <summary>
+    /// Parses a 3-character SSIM UTC offset string (e.g. "+00", "-05", "+10") into a TimeSpan.
+    /// Positive offsets are east of UTC (local time is ahead of UTC).
+    /// </summary>
+    private static TimeSpan ParseUtcOffset(string s)
+    {
+        if (s.Length < 3 || (s[0] != '+' && s[0] != '-')) return TimeSpan.Zero;
+        if (!int.TryParse(s.Substring(1, 2), out var hours)) return TimeSpan.Zero;
+        return s[0] == '-' ? TimeSpan.FromHours(-hours) : TimeSpan.FromHours(hours);
+    }
+
+    /// <summary>
+    /// Computes UTC departure and arrival times from local times and the departure UTC offset.
+    /// The arrival UTC time is derived by adding the local flight duration to the UTC departure,
+    /// which is accurate regardless of the destination timezone.
+    /// </summary>
+    private static (TimeSpan DepUtc, TimeSpan ArrUtc, byte ArrDayOffsetUtc) ComputeUtcTimes(
+        TimeSpan departureTime, TimeSpan arrivalTime, byte arrivalDayOffset, TimeSpan utcOffset)
+    {
+        // UTC departure = local departure - UTC offset (e.g. UTC+5: 10:00 local → 05:00 UTC)
+        var depUtcRaw = departureTime - utcOffset;
+
+        // Flight duration from local times; arrivalDayOffset accounts for overnight legs
+        var flightDuration = arrivalTime - departureTime + TimeSpan.FromDays(arrivalDayOffset);
+        if (flightDuration < TimeSpan.Zero) flightDuration += TimeSpan.FromDays(1);
+
+        var arrUtcRaw = depUtcRaw + flightDuration;
+
+        // Determine how many UTC days separate departure and arrival (typically 0 or 1)
+        static int FloorDiv(double a, double b) => (int)Math.Floor(a / b);
+        var arrDayOffsetUtc = (byte)Math.Max(0, FloorDiv(arrUtcRaw.TotalDays, 1) - FloorDiv(depUtcRaw.TotalDays, 1));
+
+        // Normalise both times to [00:00, 23:59]
+        static TimeSpan Normalise(TimeSpan t)
+        {
+            var mins = ((int)t.TotalMinutes % 1440 + 1440) % 1440;
+            return TimeSpan.FromMinutes(mins);
+        }
+
+        return (Normalise(depUtcRaw), Normalise(arrUtcRaw), arrDayOffsetUtc);
+    }
 
     private static string ResolveAircraftType(string ssimCode) => ssimCode switch
     {
@@ -178,4 +226,7 @@ public sealed record SsimFlightRecord(
     string AircraftType,
     string ValidFrom,
     string ValidTo,
-    string CreatedBy);
+    string CreatedBy,
+    string DepartureTimeUtc,
+    string ArrivalTimeUtc,
+    byte ArrivalDayOffsetUtc);
