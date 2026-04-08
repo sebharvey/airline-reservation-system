@@ -510,6 +510,73 @@
 /* Hold status badge */
 .badge-held { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
 
+/* Holds modal tabs */
+.holds-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.holds-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.holds-tab:hover { color: var(--text); }
+
+.holds-tab-active {
+  color: var(--grad-start, #6366f1);
+  border-bottom-color: var(--grad-start, #6366f1);
+}
+
+.holds-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--bg-light);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.holds-tab-active .holds-tab-count {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--grad-start, #6366f1);
+}
+
+/* Standby queue columns */
+.priority-col {
+  width: 90px;
+  white-space: nowrap;
+}
+
+.standby-position {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+
+.standby-priority {
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
 /* Secondary button */
 .btn-secondary {
   padding: 8px 18px;

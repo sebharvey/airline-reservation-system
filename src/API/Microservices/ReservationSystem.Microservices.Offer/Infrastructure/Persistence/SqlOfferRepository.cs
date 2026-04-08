@@ -518,8 +518,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, Status)
-            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, 'Held');
+                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, Status, HoldType, StandbyPriority)
+            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, 'Held', 'Revenue', NULL);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -560,10 +560,13 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT HoldId, OrderId, PassengerId, CabinCode, SeatNumber, Status, CreatedAt
+            SELECT HoldId, OrderId, PassengerId, CabinCode, SeatNumber, Status, HoldType, StandbyPriority, CreatedAt
             FROM   [offer].[InventoryHold]
             WHERE  InventoryId = @InventoryId
-            ORDER BY CreatedAt DESC;
+            ORDER BY
+                CASE HoldType WHEN 'Revenue' THEN 0 ELSE 1 END,
+                StandbyPriority DESC,
+                CreatedAt DESC;
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -572,13 +575,15 @@ public sealed class SqlOfferRepository : IOfferRepository
             new CommandDefinition(sql, new { InventoryId = inventoryId }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(r => new InventoryHoldRecord(
-            HoldId:      (Guid)r.HoldId,
-            OrderId:     (Guid)r.OrderId,
-            PassengerId: (string?)r.PassengerId,
-            CabinCode:   (string)r.CabinCode,
-            SeatNumber:  (string?)r.SeatNumber,
-            Status:      (string)r.Status,
-            CreatedAt:   new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
+            HoldId:          (Guid)r.HoldId,
+            OrderId:         (Guid)r.OrderId,
+            PassengerId:     (string?)r.PassengerId,
+            CabinCode:       (string)r.CabinCode,
+            SeatNumber:      (string?)r.SeatNumber,
+            Status:          (string)r.Status,
+            HoldType:        (string)r.HoldType,
+            StandbyPriority: (short?)r.StandbyPriority,
+            CreatedAt:       new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
             .ToList().AsReadOnly();
     }
 

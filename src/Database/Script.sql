@@ -233,6 +233,42 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_InventoryHold_Seat' AN
     CREATE UNIQUE INDEX UX_InventoryHold_Seat ON [offer].[InventoryHold] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
 GO
 
+-- HoldType: 'Revenue' (default, affects inventory counters) | 'Standby' (listed only, never touches counters)
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'HoldType')
+    ALTER TABLE [offer].[InventoryHold]
+        ADD HoldType VARCHAR(20) NOT NULL CONSTRAINT DF_InventoryHold_HoldType DEFAULT 'Revenue';
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_InventoryHold_HoldType' AND parent_object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    ALTER TABLE [offer].[InventoryHold]
+        ADD CONSTRAINT CHK_InventoryHold_HoldType CHECK (HoldType IN ('Revenue', 'Standby'));
+GO
+
+-- StandbyPriority: higher value = higher priority in the standby queue.
+-- Suggested bands: 100 = disrupted/revenue standby, 50 = staff on-duty, 10 = staff leisure.
+-- Must be populated (> 0) for Standby holds; must be NULL for Revenue holds.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'StandbyPriority')
+    ALTER TABLE [offer].[InventoryHold]
+        ADD StandbyPriority SMALLINT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_InventoryHold_StandbyPriority' AND parent_object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    ALTER TABLE [offer].[InventoryHold]
+        ADD CONSTRAINT CHK_InventoryHold_StandbyPriority
+            CHECK (
+                (HoldType = 'Standby' AND StandbyPriority IS NOT NULL AND StandbyPriority > 0)
+             OR (HoldType = 'Revenue' AND StandbyPriority IS NULL)
+            );
+GO
+
+-- Filtered index supporting the future standby-clearing workflow:
+-- ORDER BY StandbyPriority DESC (highest priority first), then CreatedAt ASC (first-come first-served).
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_StandbyQueue' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE INDEX IX_InventoryHold_StandbyQueue
+        ON [offer].[InventoryHold] (InventoryId, CabinCode, StandbyPriority DESC, CreatedAt ASC)
+        WHERE HoldType = 'Standby';
+GO
+
 -- offer.Fare ------------------------------------------------------------------
 IF OBJECT_ID('[offer].[Fare]', 'U') IS NULL
 CREATE TABLE [offer].[Fare] (

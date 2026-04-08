@@ -105,6 +105,8 @@ public sealed class InventoryManagementFunction
             CabinCode        = h.CabinCode,
             SeatNumber       = h.SeatNumber,
             Status           = h.Status,
+            HoldType         = h.HoldType,
+            StandbyPriority  = h.StandbyPriority,
             CreatedAt        = h.CreatedAt
         });
 
