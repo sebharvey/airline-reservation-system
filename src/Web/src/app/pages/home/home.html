@@ -59,33 +59,12 @@
         <!-- Origin combobox -->
         <div class="field">
           <label for="origin-input">From</label>
-          <div class="airport-combobox" [class.open]="showOriginDropdown">
-            <div class="combobox-input-wrap">
-              <input
-                id="origin-input"
-                type="text"
-                placeholder="City or code"
-                [(ngModel)]="originQuery"
-                name="origin"
-                autocomplete="off"
-                (input)="onOriginInput()"
-                (focus)="showOriginDropdown = true"
-              />
-              <button type="button" class="combobox-toggle" (click)="toggleOriginDropdown()" tabindex="-1" aria-label="Show airports">
-                <span class="chevron" [class.up]="showOriginDropdown">&#x2303;</span>
-              </button>
-            </div>
-            <ul class="combobox-list" *ngIf="showOriginDropdown">
-              <li
-                *ngFor="let airport of originSuggestions"
-                (mousedown)="selectOrigin(airport)"
-                [class.selected]="airport.code === origin">
-                <span class="airport-code">{{ airport.code }}</span>
-                <span class="airport-city">{{ airport.city }}</span>
-              </li>
-              <li *ngIf="originSuggestions.length === 0" class="no-results">No airports found</li>
-            </ul>
-          </div>
+          <app-airport-combobox
+            inputId="origin-input"
+            placeholder="City or code"
+            [(ngModel)]="origin"
+            name="origin">
+          </app-airport-combobox>
         </div>
 
         <div class="swap-icon" title="Swap airports" (click)="swapAirports()" style="cursor:pointer">⇄</div>
@@ -93,33 +72,12 @@
         <!-- Destination combobox -->
         <div class="field">
           <label for="destination-input">To</label>
-          <div class="airport-combobox" [class.open]="showDestinationDropdown">
-            <div class="combobox-input-wrap">
-              <input
-                id="destination-input"
-                type="text"
-                placeholder="City or code"
-                [(ngModel)]="destinationQuery"
-                name="destination"
-                autocomplete="off"
-                (input)="onDestinationInput()"
-                (focus)="showDestinationDropdown = true"
-              />
-              <button type="button" class="combobox-toggle" (click)="toggleDestinationDropdown()" tabindex="-1" aria-label="Show airports">
-                <span class="chevron" [class.up]="showDestinationDropdown">&#x2303;</span>
-              </button>
-            </div>
-            <ul class="combobox-list" *ngIf="showDestinationDropdown">
-              <li
-                *ngFor="let airport of destinationSuggestions"
-                (mousedown)="selectDestination(airport)"
-                [class.selected]="airport.code === destination">
-                <span class="airport-code">{{ airport.code }}</span>
-                <span class="airport-city">{{ airport.city }}</span>
-              </li>
-              <li *ngIf="destinationSuggestions.length === 0" class="no-results">No airports found</li>
-            </ul>
-          </div>
+          <app-airport-combobox
+            inputId="destination-input"
+            placeholder="City or code"
+            [(ngModel)]="destination"
+            name="destination">
+          </app-airport-combobox>
         </div>
 
       </div>

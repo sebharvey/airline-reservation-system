@@ -26,6 +26,8 @@ src/Web/src/app/
 ├── app.ts                   ← root component
 ├── app.routes.ts            ← top-level route definitions
 ├── app.config.ts            ← application-level providers
+├── components/              ← shared reusable UI components
+│   └── airport-combobox/    ← typeahead airport picker (see Shared Components below)
 ├── pages/                   ← one directory per route group
 │   ├── home/
 │   ├── search-results/
@@ -68,6 +70,65 @@ src/Web/src/app/
 │   └── loyalty.model.ts
 └── data/
     └── airports.ts          ← static airport data
+```
+
+---
+
+## Shared Components
+
+Reusable UI components live in `components/`. Import and declare them in the `imports` array of any standalone page component that needs them — do not re-implement the same UI inline.
+
+### `AirportComboboxComponent` — `components/airport-combobox/airport-combobox.ts`
+
+**Use this component any time a form field needs an airport selection.** Do not build a bespoke airport input or dropdown.
+
+The component implements `ControlValueAccessor` so it integrates with Angular's `ngModel` and reactive forms. The bound value is always the 3-letter IATA airport code (e.g. `'LHR'`). Filtering, dropdown state, and click-outside detection are all handled internally.
+
+**Inputs**
+
+| Input | Type | Default | Purpose |
+|-------|------|---------|---------|
+| `inputId` | `string` | `'airport'` | Forwarded to the inner `<input id>` — set this so a parent `<label for="...">` works correctly |
+| `placeholder` | `string` | `'City or code'` | Placeholder text for the search input |
+
+**Usage with a plain property**
+
+```html
+<div class="field">
+  <label for="origin-input">From</label>
+  <app-airport-combobox
+    inputId="origin-input"
+    placeholder="City or code"
+    [(ngModel)]="origin"
+    name="origin">
+  </app-airport-combobox>
+</div>
+```
+
+**Usage with an Angular signal**
+
+```html
+<div class="field">
+  <label for="airport-input">Departure Airport</label>
+  <app-airport-combobox
+    inputId="airport-input"
+    placeholder="City or airport code"
+    [ngModel]="departureAirport()"
+    (ngModelChange)="departureAirport.set($event)"
+    name="departureAirport">
+  </app-airport-combobox>
+</div>
+```
+
+**Import**
+
+```typescript
+import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
+
+@Component({
+  standalone: true,
+  imports: [/* ... */, AirportComboboxComponent],
+})
 ```
 
 ---
