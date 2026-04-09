@@ -220,13 +220,6 @@ export class OrderDetailComponent implements OnInit {
     return { ADT: 'Adult', CHD: 'Child', INF: 'Infant', YTH: 'Youth' }[type] ?? type;
   }
 
-  getETicketForPaxSegment(passengerId: string, segmentId: string): string {
-    const item = this.flightItems().find(
-      i => i.passengerId === passengerId && i.segmentId === segmentId
-    );
-    return item?.eTicketNumber ?? '—';
-  }
-
   getSeatForPaxSegment(passengerId: string, segmentId: string): string {
     const item = this.ancillaryItems().find(
       i => i.itemType === 'Seat' && i.passengerId === passengerId && i.segmentId === segmentId
