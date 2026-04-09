@@ -647,8 +647,8 @@
 
 <!-- ── TICKET DETAIL MODAL ── -->
 @if (selectedTicket(); as t) {
-  <div class="modal-backdrop" (click)="closeTicketModal()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop" (click)="closeTicketModal()"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true">
 
       <div class="modal-header">
         <div class="modal-title-row">
@@ -876,7 +876,6 @@
         </div>
 
       </div>
-    </div>
   </div>
 }
 
