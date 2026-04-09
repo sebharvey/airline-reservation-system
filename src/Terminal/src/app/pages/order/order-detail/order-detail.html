@@ -159,22 +159,6 @@
               </div>
             </div>
 
-            <!-- E-tickets for this segment -->
-            @if (passengers().length > 0) {
-              <div class="segment-tickets">
-                <span class="tickets-label">E-tickets</span>
-                <div class="tickets-list">
-                  @for (pax of passengers(); track pax.passengerId) {
-                    <div class="ticket-row">
-                      <span class="ticket-pax">{{ pax.givenName }} {{ pax.surname }}</span>
-                      <span class="ticket-number mono">
-                        {{ getETicketForPaxSegment(pax.passengerId, seg.segmentId) }}
-                      </span>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
           </div>
         }
       </div>

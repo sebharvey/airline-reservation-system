@@ -321,36 +321,6 @@
   font-weight: 500;
 }
 
-/* E-tickets */
-.segment-tickets {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-}
-
-.tickets-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.tickets-list { display: flex; flex-direction: column; gap: 8px; }
-
-.ticket-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--bg-light);
-  border-radius: 6px;
-  gap: 12px;
-}
-
-.ticket-pax { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-.ticket-number { font-size: 0.8rem; color: var(--text-muted); }
 
 /* Info card (passengers) */
 .info-card {
