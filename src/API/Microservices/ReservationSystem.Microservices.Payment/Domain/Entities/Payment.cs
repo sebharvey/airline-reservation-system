@@ -144,6 +144,7 @@ public sealed class Payment
 
     public void Refund(decimal refundAmount)
     {
+        SettledAmount = (SettledAmount ?? 0m) - refundAmount;
         Status = PaymentStatus.Refunded;
         UpdatedAt = DateTime.UtcNow;
     }

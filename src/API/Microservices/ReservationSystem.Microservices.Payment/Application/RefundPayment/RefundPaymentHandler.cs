@@ -48,10 +48,10 @@ public sealed class RefundPaymentHandler
                 $"Payment '{command.PaymentId}' cannot be refunded — current status is '{payment.Status}'.");
         }
 
-        if (command.Amount > payment.SettledAmount)
+        if (command.Amount > (payment.SettledAmount ?? 0m))
         {
             throw new ArgumentException(
-                $"Refund amount ({command.Amount}) exceeds settled amount ({payment.SettledAmount}).");
+                $"Refund amount ({command.Amount}) exceeds settled amount ({payment.SettledAmount ?? 0m}).");
         }
 
         // TODO: Call payment gateway to process the refund against the original transaction.
