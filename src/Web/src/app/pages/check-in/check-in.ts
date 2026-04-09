@@ -1,9 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
 import { CheckInStateService } from '../../services/check-in-state.service';
+import { Airport, AIRPORTS } from '../../data/airports';
 
 @Component({
   selector: 'app-check-in',
@@ -20,18 +21,51 @@ export class CheckInComponent {
   loading = signal(false);
   errorMessage = signal('');
 
+  airports = AIRPORTS;
+  airportQuery = '';
+  showAirportDropdown = false;
+
   constructor(
     private retailApi: RetailApiService,
     private checkInState: CheckInStateService,
     private router: Router
   ) {}
 
-  onReferenceInput(value: string): void {
-    this.bookingReference.set(value.toUpperCase());
+  get airportSuggestions(): Airport[] {
+    const q = this.airportQuery.trim().toLowerCase();
+    if (!q) return this.airports;
+    return this.airports.filter(a =>
+      a.code.toLowerCase().includes(q) ||
+      a.city.toLowerCase().includes(q) ||
+      a.name.toLowerCase().includes(q)
+    );
   }
 
-  onAirportInput(value: string): void {
-    this.departureAirport.set(value.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3));
+  onAirportQueryInput(): void {
+    this.departureAirport.set('');
+    this.showAirportDropdown = true;
+  }
+
+  selectAirport(airport: Airport): void {
+    this.departureAirport.set(airport.code);
+    this.airportQuery = airport.code;
+    this.showAirportDropdown = false;
+  }
+
+  toggleAirportDropdown(): void {
+    this.showAirportDropdown = !this.showAirportDropdown;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.airport-combobox')) {
+      this.showAirportDropdown = false;
+    }
+  }
+
+  onReferenceInput(value: string): void {
+    this.bookingReference.set(value.toUpperCase());
   }
 
   get isFormValid(): boolean {

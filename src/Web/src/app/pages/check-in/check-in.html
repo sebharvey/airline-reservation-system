@@ -47,18 +47,34 @@
     </div>
 
     <div class="field">
-      <label for="departureAirport">Departure Airport</label>
-      <input
-        id="departureAirport"
-        type="text"
-        placeholder="e.g. LHR"
-        maxlength="3"
-        [ngModel]="departureAirport()"
-        (ngModelChange)="onAirportInput($event)"
-        name="departureAirport"
-        autocomplete="off"
-      />
-      <span class="field-hint">3-letter IATA airport code for your departing flight</span>
+      <label for="airport-input">Departure Airport</label>
+      <div class="airport-combobox" [class.open]="showAirportDropdown">
+        <div class="combobox-input-wrap">
+          <input
+            id="airport-input"
+            type="text"
+            placeholder="City or airport code"
+            [(ngModel)]="airportQuery"
+            name="departureAirport"
+            autocomplete="off"
+            (input)="onAirportQueryInput()"
+            (focus)="showAirportDropdown = true"
+          />
+          <button type="button" class="combobox-toggle" (click)="toggleAirportDropdown()" tabindex="-1" aria-label="Show airports">
+            <span class="chevron" [class.up]="showAirportDropdown">&#x2303;</span>
+          </button>
+        </div>
+        <ul class="combobox-list" *ngIf="showAirportDropdown">
+          <li
+            *ngFor="let airport of airportSuggestions"
+            (mousedown)="selectAirport(airport)"
+            [class.selected]="airport.code === departureAirport()">
+            <span class="airport-code">{{ airport.code }}</span>
+            <span class="airport-city">{{ airport.city }}</span>
+          </li>
+          <li *ngIf="airportSuggestions.length === 0" class="no-results">No airports found</li>
+        </ul>
+      </div>
     </div>
 
     @if (errorMessage()) {
