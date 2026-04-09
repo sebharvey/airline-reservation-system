@@ -816,6 +816,7 @@
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
