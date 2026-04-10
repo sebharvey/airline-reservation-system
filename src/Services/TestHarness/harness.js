@@ -1112,7 +1112,12 @@
         await runStep(rowRefs[stepIdx], nextCurrentSteps);
 
         if (nextStepCursor >= liveStepIndices.length) {
-            // All steps done
+            // All steps done — reflect result on main-page card
+            const allPassed = Object.keys(liveResults).length > 0 &&
+                Object.values(liveResults).every(r =>
+                    r.statusMatch && (!r.assertionResults || r.assertionResults.every(a => a.pass))
+                );
+            updateCardResult(config, allPassed);
             btnNextStep.disabled = true;
             btnNextStep.textContent = '\u23ED Next';
             btnRunAll.disabled = false;
@@ -1164,6 +1169,13 @@
         for (const stepIdx of liveStepIndices) {
             await runStep(rowRefs[stepIdx], currentSteps);
         }
+
+        // Reflect the overall result on the main-page card
+        const allPassed = Object.keys(liveResults).length > 0 &&
+            Object.values(liveResults).every(r =>
+                r.statusMatch && (!r.assertionResults || r.assertionResults.every(a => a.pass))
+            );
+        updateCardResult(config, allPassed);
 
         btnRunAll.disabled = false;
         btnRunAll.textContent = '\u25B6 Run';
@@ -1646,6 +1658,16 @@
     // =====================================================================
     // Journey state helpers — live progress in detail view
     // =====================================================================
+
+    function updateCardResult(configName, passed) {
+        const card      = document.getElementById('card-' + configName);
+        const indicator = document.getElementById('card-indicator-' + configName);
+        if (!card || !indicator) return;
+        card.classList.remove('running', 'result-pass', 'result-fail');
+        card.classList.add(passed ? 'result-pass' : 'result-fail');
+        indicator.innerHTML   = passed ? '\u2713' : '\u2717';
+        indicator.style.color = passed ? 'var(--positive)' : 'var(--negative)';
+    }
 
     function applyJourneyState(configName) {
         const state = journeyStates[configName];
