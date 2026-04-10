@@ -280,7 +280,7 @@
         "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "leg1SeatOfferId", "seatNumber": "leg1SeatNumber", "position": "leg1SeatPosition" }, "usedInSteps": [7] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "leg1SeatOfferId", "seatNumber": "leg1SeatNumber", "position": "leg1SeatPosition", "price": "leg1SeatPrice" }, "usedInSteps": [7] }
       ]
     },
     {
@@ -319,7 +319,7 @@
         "validationNotes": "aircraftType should be A351 (AX003 aircraft type)."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "leg2SeatOfferId", "seatNumber": "leg2SeatNumber", "position": "leg2SeatPosition" }, "usedInSteps": [7] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "leg2SeatOfferId", "seatNumber": "leg2SeatNumber", "position": "leg2SeatPosition", "price": "leg2SeatPrice" }, "usedInSteps": [7] }
       ]
     },
     {
@@ -336,15 +336,17 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg1InventoryId__", "seatNumber": "__CHAIN_leg1SeatNumber__" },
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg2InventoryId__", "seatNumber": "__CHAIN_leg2SeatNumber__" }
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg1InventoryId__", "seatNumber": "__CHAIN_leg1SeatNumber__", "price": "__CHAIN_leg1SeatPrice__" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg2InventoryId__", "seatNumber": "__CHAIN_leg2SeatNumber__", "price": "__CHAIN_leg2SeatPrice__" }
         ],
         "dataChain": [
           { "field": "basketId",        "from": "basketId",        "source": "Step 2 → response.basketId" },
           { "field": "[0].segmentId",   "from": "leg1InventoryId", "source": "Step 3 → basketData.flightOffers[0].inventoryId" },
           { "field": "[1].segmentId",   "from": "leg2InventoryId", "source": "Step 3 → basketData.flightOffers[1].inventoryId" },
           { "field": "[0].seatNumber",  "from": "leg1SeatNumber",  "source": "Step 5 → random available seat on Leg1" },
-          { "field": "[1].seatNumber",  "from": "leg2SeatNumber",  "source": "Step 6 → random available seat on Leg2" }
+          { "field": "[1].seatNumber",  "from": "leg2SeatNumber",  "source": "Step 6 → random available seat on Leg2" },
+          { "field": "[0].price",       "from": "leg1SeatPrice",   "source": "Step 5 → price of selected seat on Leg1" },
+          { "field": "[1].price",       "from": "leg2SeatPrice",   "source": "Step 6 → price of selected seat on Leg2" }
         ]
       },
       "response": {
@@ -352,13 +354,16 @@
         "body": {
           "basketId": "c0ffee00-1234-5678-abcd-000000000001",
           "status": "Active",
-          "totalSeatAmount": 0.00
+          "totalSeatAmount": 100.00
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seat selections stored. One seat assigned per passenger per leg. The basket reflects the updated seat selections.",
-        "keyFields": ["status", "totalSeatAmount"]
+        "description": "200 OK — seat selections stored. One seat assigned per passenger per leg. The basket reflects the updated seat selections with non-zero totalSeatAmount.",
+        "keyFields": ["status", "totalSeatAmount"],
+        "assertions": [
+          { "field": "totalSeatAmount", "assertion": "greaterThan", "expected": 0 }
+        ]
       }
     },
     {
@@ -393,8 +398,7 @@
           "bookingReference": "ABC123",
           "status": "Confirmed",
           "eTickets": [
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-1"], "eTicketNumber": "001 0123456789" },
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-2"], "eTicketNumber": "001 0123456790" }
+            { "passengerId": "PAX-1", "segmentIds": ["BI-1", "BI-2"], "eTicketNumber": "932-0000000001" }
           ],
           "totalPrice": 372.50,
           "currency": "GBP"
@@ -402,11 +406,11 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and e-ticket numbers for each leg. Two e-tickets are issued — one per segment of the connecting itinerary.",
+        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket covering both legs of the connecting itinerary.",
         "keyFields": ["bookingReference", "status", "eTickets"],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain two entries (one per leg). Each e-ticket number follows the format '001 XXXXXXXXXX'.",
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger; segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 2 }
+          { "field": "eTickets", "assertion": "count", "expected": 1 }
         ]
       }
     }
