@@ -997,6 +997,45 @@ body {
     line-height: 1;
 }
 
+.test-card.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.test-card-badge {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Step currently executing in a silent run */
+.harness-table tbody tr.step-running td:first-child {
+    border-left: 3px solid var(--accent);
+}
+.harness-table tbody tr.step-running {
+    background: var(--accent-dim);
+}
+.harness-table tbody tr.step-running:hover {
+    background: rgba(59, 91, 219, 0.13);
+}
+
+/* Inline spinner inside the time cell */
+.step-spinner {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-width: 2px;
+}
+
 /* Spinner */
 @keyframes spin {
     from { transform: rotate(0deg); }
