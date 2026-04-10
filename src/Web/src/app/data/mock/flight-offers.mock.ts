@@ -335,14 +335,18 @@ export function getMockFlightOffers(
   const reverseRoute = [destination.toUpperCase(), origin.toUpperCase()].join('-');
   const offers = ROUTES[route] || ROUTES[reverseRoute] || generateGenericOffers(origin, destination, departDate);
 
-  return offers.map((o, i) => ({
-    ...o,
-    offerId: `offer-${origin}-${destination}-${i + 1}-${Date.now()}`,
-    inventoryId: `inv-${o.flightNumber}-${departDate.slice(0, 10)}-${o.cabinCode}`,
-    totalPrice: o.totalPrice * paxCount,
-    pointsPrice: Math.round(o.unitPrice * 10) * paxCount,
-    pointsTaxes: o.taxes * paxCount
-  }));
+  return offers.map((o, i) => {
+    const offerId = `offer-${origin}-${destination}-${i + 1}-${Date.now()}`;
+    return {
+      ...o,
+      offerId,
+      inventoryId: `inv-${o.flightNumber}-${departDate.slice(0, 10)}-${o.cabinCode}`,
+      segments: [{ offerId, sessionId: '' }],
+      totalPrice: o.totalPrice * paxCount,
+      pointsPrice: Math.round(o.unitPrice * 10) * paxCount,
+      pointsTaxes: o.taxes * paxCount
+    };
+  });
 }
 
 function addDays(dateStr: string, days: number): string {
