@@ -317,7 +317,19 @@
         const statusMatch   = liveStatus === step.expected.statusCode;
         const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
         const passed        = statusMatch && assertResults.every(r => r.pass);
-        return { passed, liveStatus, liveBody, liveError, durationMs, statusMatch, assertionResults: assertResults, url };
+        const logEntry = {
+            step:           step.step,
+            name:           step.name,
+            method:         api.method,
+            url,
+            requestHeaders: { ...fetchOpts.headers },
+            requestBody,
+            status:         liveStatus,
+            responseBody:   liveBody,
+            error:          liveError || null,
+            durationMs,
+        };
+        return { passed, liveStatus, liveBody, liveError, durationMs, statusMatch, assertionResults: assertResults, url, logEntry };
     }
 
     // =====================================================================
@@ -757,9 +769,10 @@
 
     function initJourney() {
         // Page title
-        const journeyTitle = raw.journey.domain || config;
-        document.title = 'Apex Air \u2014 ' + journeyTitle + ' API Test Harness';
-        document.getElementById('journeyTitle').textContent = journeyTitle + ' API';
+        const journeyConfig = CONFIGS.find(c => c.value === config);
+        const journeyTitle = (journeyConfig && journeyConfig.label) || raw.journey.domain || config;
+        document.title = 'Apex Air \u2014 ' + journeyTitle + ' Test Harness';
+        document.getElementById('journeyTitle').textContent = journeyTitle;
 
         // Detect runtime variable substitution
         hasRuntimeVars = JSON.stringify(raw.steps).includes('__RAND_');
@@ -1688,6 +1701,14 @@
                 url:              result.url || null,
                 durationMs:       result.durationMs,
             };
+            // Populate apiLog so Copy/View Logs and Copy Step Log work
+            if (result.logEntry) apiLog.push(result.logEntry);
+        }
+
+        // Enable log buttons if we now have entries
+        if (apiLog.length > 0) {
+            btnCopyLogs.disabled = false;
+            btnViewLogs.disabled = false;
         }
 
         // Show spinner on the step that is currently executing (if not yet in results)
@@ -1716,6 +1737,12 @@
                     url:              result.url || null,
                     durationMs:       result.durationMs,
                 };
+                // Populate apiLog and enable log buttons
+                if (result.logEntry) {
+                    apiLog.push(result.logEntry);
+                    btnCopyLogs.disabled = false;
+                    btnViewLogs.disabled = false;
+                }
             };
         }
     }
