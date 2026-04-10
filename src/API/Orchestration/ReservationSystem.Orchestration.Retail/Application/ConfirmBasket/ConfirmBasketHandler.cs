@@ -116,6 +116,8 @@ public sealed class ConfirmBasketHandler
             BookingReference = confirmedOrder.BookingReference,
             Status = confirmedOrder.OrderStatus,
             CustomerId = string.Empty,
+            Flights = ParseFlightsFromBasketData(basketDataJson),
+            Passengers = ParsePassengersFromBasketData(basketDataJson),
             ETickets = issuedTickets.Select(t => new IssuedETicket
             {
                 PassengerId = t.PassengerId,
@@ -293,6 +295,119 @@ public sealed class ConfirmBasketHandler
             Amount = amount,
             Currency = currency
         };
+    }
+
+    private static List<OrderFlight> ParseFlightsFromBasketData(string? basketDataJson)
+    {
+        var flights = new List<OrderFlight>();
+        if (basketDataJson == null) return flights;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("flightOffers", out var offersEl) &&
+                offersEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var offer in offersEl.EnumerateArray())
+                {
+                    var departureDate = offer.TryGetProperty("departureDate", out var ddv) ? ddv.GetString() ?? "" : "";
+                    var departureTime = offer.TryGetProperty("departureTime", out var dtv) ? dtv.GetString() ?? "00:00" : "00:00";
+                    var arrivalTime   = offer.TryGetProperty("arrivalTime",   out var atv) ? atv.GetString() ?? "00:00" : "00:00";
+
+                    var depDt = DateTime.TryParse($"{departureDate}T{departureTime}", out var d) ? d : default;
+                    var arrDt = DateTime.TryParse($"{departureDate}T{arrivalTime}",   out var a) ? a : default;
+
+                    flights.Add(new OrderFlight
+                    {
+                        FlightNumber   = offer.TryGetProperty("flightNumber", out var v) ? v.GetString() ?? "" : "",
+                        Origin         = offer.TryGetProperty("origin",       out v)     ? v.GetString() ?? "" : "",
+                        Destination    = offer.TryGetProperty("destination",  out v)     ? v.GetString() ?? "" : "",
+                        DepartureTime  = depDt,
+                        ArrivalTime    = arrDt,
+                        CabinClass     = offer.TryGetProperty("cabinCode",    out v)     ? v.GetString() ?? "" : ""
+                    });
+                }
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return flights;
+    }
+
+    private static List<OrderPassenger> ParsePassengersFromBasketData(string? basketDataJson)
+    {
+        var passengers = new List<OrderPassenger>();
+        if (basketDataJson == null) return passengers;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            // Build seat lookup: passengerId -> ordered list of seat numbers across all segments
+            var seatsByPassenger = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var seat in seatsEl.EnumerateArray())
+                {
+                    var paxId   = seat.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
+                    var seatNum = seat.TryGetProperty("seatNumber",  out var sn)   ? sn.GetString()   ?? "" : "";
+                    if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(seatNum))
+                    {
+                        if (!seatsByPassenger.ContainsKey(paxId))
+                            seatsByPassenger[paxId] = [];
+                        seatsByPassenger[paxId].Add(seatNum);
+                    }
+                }
+            }
+
+            // Build bag allowances lookup: passengerId -> list of formatted allowance strings
+            var bagsByPassenger = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            JsonElement bagsSource;
+            var hasBags = root.TryGetProperty("bagItems", out bagsSource) ||
+                          root.TryGetProperty("bags",     out bagsSource);
+            if (hasBags && bagsSource.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var bag in bagsSource.EnumerateArray())
+                {
+                    var paxId   = bag.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
+                    var addBags = bag.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()         : 1;
+                    if (!string.IsNullOrEmpty(paxId))
+                    {
+                        if (!bagsByPassenger.ContainsKey(paxId))
+                            bagsByPassenger[paxId] = [];
+                        bagsByPassenger[paxId].Add($"+{addBags} bag{(addBags == 1 ? "" : "s")}");
+                    }
+                }
+            }
+
+            if (root.TryGetProperty("passengers", out var passengersEl) &&
+                passengersEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var p in passengersEl.EnumerateArray())
+                {
+                    var paxId = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+
+                    seatsByPassenger.TryGetValue(paxId, out var seats);
+                    var seatNumber = seats is { Count: > 0 } ? string.Join(" / ", seats) : null;
+
+                    bagsByPassenger.TryGetValue(paxId, out var bags);
+
+                    passengers.Add(new OrderPassenger
+                    {
+                        FirstName      = p.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
+                        LastName       = p.TryGetProperty("surname",   out var sn) ? sn.GetString() ?? "" : "",
+                        SeatNumber     = seatNumber,
+                        BagAllowances  = bags ?? []
+                    });
+                }
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return passengers;
     }
 
     private static (List<TicketPassenger> passengers, List<TicketSegment> segments) ParseBasketDataForTickets(
