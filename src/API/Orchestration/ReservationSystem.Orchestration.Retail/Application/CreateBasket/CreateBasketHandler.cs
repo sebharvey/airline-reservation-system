@@ -81,12 +81,8 @@ public sealed class CreateBasketHandler
             }
             else
             {
-                // Offer not found — fall back to reference-only (totals will be 0)
-                offerJson = JsonSerializer.Serialize(new
-                {
-                    offerId   = segment.OfferId,
-                    sessionId = segment.SessionId
-                });
+                throw new InvalidOperationException(
+                    $"Offer '{segment.OfferId}' could not be found or has expired. Search for flights and select a current offer before creating a basket.");
             }
 
             await _orderServiceClient.AddOfferAsync(basket.BasketId, offerJson, cancellationToken);
