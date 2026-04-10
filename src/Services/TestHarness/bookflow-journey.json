@@ -31,60 +31,69 @@
       "response": {
         "statusCode": 200,
         "body": {
-          "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
-          "flights": [
+          "itineraries": [
             {
-              "flightNumber": "AX001",
-              "origin": "LHR",
-              "destination": "JFK",
-              "departureTime": "2026-03-31T08:00:00",
-              "arrivalTime": "2026-03-31T11:10:00",
-              "aircraftType": "A351",
-              "cabins": [
+              "legs": [
                 {
-                  "cabinCode": "J",
-                  "availableSeats": 40,
-                  "fromPrice": 781.50,
-                  "currency": "GBP",
-                  "fareFamilies": [
-                    { "fareFamily": "Flex", "offer": { "offerId": "a12d4bf4-7e88-42e6-888e-71a82921b45f", "fareBasisCode": "JFLEXGB", "basePrice": 999.00, "tax": 182.50, "totalPrice": 1181.50, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
-                    { "fareFamily": "Non-Flex", "offer": { "offerId": "db78522f-1d80-4e64-8114-0b33a12f7169", "fareBasisCode": "JSAVGB", "basePrice": 599.00, "tax": 182.50, "totalPrice": 781.50, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
-                  ]
-                },
-                {
-                  "cabinCode": "W",
-                  "availableSeats": 63,
-                  "fromPrice": 434.00,
-                  "currency": "GBP",
-                  "fareFamilies": [
-                    { "fareFamily": "Flex", "offer": { "offerId": "77b3e12e-3436-4528-b1eb-ab766d089b46", "fareBasisCode": "WFLEXGB", "basePrice": 499.00, "tax": 135.00, "totalPrice": 634.00, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
-                    { "fareFamily": "Non-Flex", "offer": { "offerId": "5c5103ef-fbff-42f5-b376-2265179dbda8", "fareBasisCode": "WSAVGB", "basePrice": 299.00, "tax": 135.00, "totalPrice": 434.00, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
-                  ]
-                },
-                {
-                  "cabinCode": "Y",
-                  "availableSeats": 252,
-                  "fromPrice": 186.25,
-                  "currency": "GBP",
-                  "fareFamilies": [
-                    { "fareFamily": "Flex", "offer": { "offerId": "23eb2133-9fa8-44d8-820f-b27d92671be6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
-                    { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                  "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
+                  "flightNumber": "AX001",
+                  "origin": "LHR",
+                  "destination": "JFK",
+                  "departureDate": "2026-03-31",
+                  "departureTime": "08:00",
+                  "arrivalTime": "11:10",
+                  "arrivalDayOffset": 0,
+                  "aircraftType": "A351",
+                  "cabins": [
+                    {
+                      "cabinCode": "J",
+                      "availableSeats": 40,
+                      "fromPrice": 781.50,
+                      "currency": "GBP",
+                      "fareFamilies": [
+                        { "fareFamily": "Flex", "offer": { "offerId": "a12d4bf4-7e88-42e6-888e-71a82921b45f", "fareBasisCode": "JFLEXGB", "basePrice": 999.00, "tax": 182.50, "totalPrice": 1181.50, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                        { "fareFamily": "Non-Flex", "offer": { "offerId": "db78522f-1d80-4e64-8114-0b33a12f7169", "fareBasisCode": "JSAVGB", "basePrice": 599.00, "tax": 182.50, "totalPrice": 781.50, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
+                      ]
+                    },
+                    {
+                      "cabinCode": "W",
+                      "availableSeats": 63,
+                      "fromPrice": 434.00,
+                      "currency": "GBP",
+                      "fareFamilies": [
+                        { "fareFamily": "Flex", "offer": { "offerId": "77b3e12e-3436-4528-b1eb-ab766d089b46", "fareBasisCode": "WFLEXGB", "basePrice": 499.00, "tax": 135.00, "totalPrice": 634.00, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                        { "fareFamily": "Non-Flex", "offer": { "offerId": "5c5103ef-fbff-42f5-b376-2265179dbda8", "fareBasisCode": "WSAVGB", "basePrice": 299.00, "tax": 135.00, "totalPrice": 434.00, "currency": "GBP", "isRefundable": false, "isChangeable": true } }
+                      ]
+                    },
+                    {
+                      "cabinCode": "Y",
+                      "availableSeats": 252,
+                      "fromPrice": 186.25,
+                      "currency": "GBP",
+                      "fareFamilies": [
+                        { "fareFamily": "Flex", "offer": { "offerId": "23eb2133-9fa8-44d8-820f-b27d92671be6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                        { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      ]
+                    }
                   ]
                 }
-              ]
+              ],
+              "connectionDurationMinutes": null,
+              "combinedFromPrice": 186.25,
+              "currency": "GBP"
             }
           ]
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — search results returned. Contains a sessionId scoped to this search, and a list of available flights each with cabins and fare-family offers. The sessionId must be passed alongside the selected offerId when creating the basket.",
-        "keyFields": ["sessionId", "flights"],
-        "validationNotes": "sessionId is a GUID unique to this search session. Each offer contains an offerId (GUID), fareBasisCode, basePrice, tax, totalPrice, isRefundable, and isChangeable. Prices use GBP. Multiple flights may be returned; the caller selects one offer from one flight."
+        "description": "200 OK — search results returned. Contains a list of itineraries, each with one or more legs. Each leg carries its own sessionId and cabin/fare-family offers. The sessionId from the first leg and a selected offerId are forwarded to basket creation.",
+        "keyFields": ["itineraries"],
+        "validationNotes": "Each leg's sessionId is a GUID unique to that search session and must be paired with the offerId from the same leg when creating the basket. Each offer contains an offerId (GUID), fareBasisCode, basePrice, tax, totalPrice, isRefundable, and isChangeable. Prices use GBP. Direct flights return a single-leg itinerary (connectionDurationMinutes is null)."
       },
       "chainsTo": [
-        { "field": "sessionId", "as": "outboundSessionId", "usedInSteps": [3] },
-        { "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId", "as": "outboundOfferId", "usedInSteps": [3] }
+        { "path": "itineraries[0].legs[0].sessionId", "as": "outboundSessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId", "as": "outboundOfferId", "usedInSteps": [3] }
       ]
     },
     {
@@ -110,40 +119,49 @@
       "response": {
         "statusCode": 200,
         "body": {
-          "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854",
-          "flights": [
+          "itineraries": [
             {
-              "flightNumber": "AX010",
-              "origin": "JFK",
-              "destination": "LHR",
-              "departureTime": "2026-04-14T00:30:00",
-              "arrivalTime": "2026-04-15T12:45:00",
-              "aircraftType": "B789",
-              "cabins": [
+              "legs": [
                 {
-                  "cabinCode": "Y",
-                  "availableSeats": 207,
-                  "fromPrice": 186.25,
-                  "currency": "GBP",
-                  "fareFamilies": [
-                    { "fareFamily": "Flex", "offer": { "offerId": "b6914c3a-749f-477b-bf85-786ac59f32b6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
-                    { "fareFamily": "Non-Flex", "offer": { "offerId": "38689c32-a37a-4ee8-8ab7-4c59b74f8450", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                  "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854",
+                  "flightNumber": "AX010",
+                  "origin": "JFK",
+                  "destination": "LHR",
+                  "departureDate": "2026-04-14",
+                  "departureTime": "00:30",
+                  "arrivalTime": "12:45",
+                  "arrivalDayOffset": 1,
+                  "aircraftType": "B789",
+                  "cabins": [
+                    {
+                      "cabinCode": "Y",
+                      "availableSeats": 207,
+                      "fromPrice": 186.25,
+                      "currency": "GBP",
+                      "fareFamilies": [
+                        { "fareFamily": "Flex", "offer": { "offerId": "b6914c3a-749f-477b-bf85-786ac59f32b6", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true, "isChangeable": true } },
+                        { "fareFamily": "Non-Flex", "offer": { "offerId": "38689c32-a37a-4ee8-8ab7-4c59b74f8450", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      ]
+                    }
                   ]
                 }
-              ]
+              ],
+              "connectionDurationMinutes": null,
+              "combinedFromPrice": 186.25,
+              "currency": "GBP"
             }
           ]
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — return search results returned. Contains a second sessionId and the list of available return flights. This sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
-        "keyFields": ["sessionId", "flights"],
-        "validationNotes": "sessionId is a new GUID, independent from the outbound session. Structure is identical to the outbound search response. Caller selects one return offer and pairs it with this sessionId in the basket segments array."
+        "description": "200 OK — return search results returned. Contains a list of itineraries each with one leg. The leg's sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
+        "keyFields": ["itineraries"],
+        "validationNotes": "Structure is identical to the outbound search response. Each leg's sessionId is independent from the outbound session. Caller selects one return offer and pairs it with that leg's sessionId in the basket segments array."
       },
       "chainsTo": [
-        { "field": "sessionId", "as": "returnSessionId", "usedInSteps": [3] },
-        { "randomArrayPath": "flights[*].cabins[*].fareFamilies[*].offer.offerId", "as": "returnOfferId", "usedInSteps": [3] }
+        { "path": "itineraries[0].legs[0].sessionId", "as": "returnSessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId", "as": "returnOfferId", "usedInSteps": [3] }
       ]
     },
     {
