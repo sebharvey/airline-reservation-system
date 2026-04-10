@@ -1,5 +1,55 @@
 namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 
+// ── Connecting search response types ─────────────────────────────────────────
+
+/// <summary>
+/// Response from POST /v1/search/connecting.
+/// Contains paired itinerary options assembled by the Retail API from two independent
+/// Offer MS searches (one per leg), filtered to only include connections that meet
+/// the 60-minute minimum connection time at LHR.
+/// </summary>
+public sealed class ConnectingSearchResponse
+{
+    public IReadOnlyList<ConnectingItinerary> Itineraries { get; init; } = [];
+}
+
+/// <summary>
+/// A single connecting itinerary pairing a first leg (origin → LHR) with a second leg
+/// (LHR → destination). ConnectionDurationMinutes is the layover at LHR.
+/// Pass Leg1.Cabins[*].FareFamilies[*].Offer.OfferId with Leg1.SessionId, and the
+/// equivalent Leg2 fields, as the two segments when creating the basket.
+/// </summary>
+public sealed class ConnectingItinerary
+{
+    public ConnectingLeg Leg1 { get; init; } = new();
+    public ConnectingLeg Leg2 { get; init; } = new();
+    public int ConnectionDurationMinutes { get; init; }
+    public decimal CombinedFromPrice { get; init; }
+    public string Currency { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// One leg of a connecting itinerary.
+/// SessionId identifies the Offer MS search session that produced the offers on this leg;
+/// it must accompany the selected OfferId when adding the segment to the basket.
+/// </summary>
+public sealed class ConnectingLeg
+{
+    public Guid SessionId { get; init; }
+    public string FlightNumber { get; init; } = string.Empty;
+    public string Origin { get; init; } = string.Empty;
+    public string Destination { get; init; } = string.Empty;
+    public string DepartureDate { get; init; } = string.Empty;
+    public string DepartureTime { get; init; } = string.Empty;
+    public string ArrivalTime { get; init; } = string.Empty;
+    public int ArrivalDayOffset { get; init; }
+    public string AircraftType { get; init; } = string.Empty;
+    public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
+}
+
+// ── Slice search response types ───────────────────────────────────────────────
+
+
 public sealed class SearchResponse
 {
     public Guid SessionId { get; init; }

@@ -1,0 +1,400 @@
+{
+  "journey": {
+    "name": "Multi-Segment — One-Way Connecting (DEL → LHR → JFK)",
+    "description": "End-to-end one-way booking for a two-leg connecting itinerary: DEL → LHR (AX412) → JFK via the LHR hub. Uses POST /v1/search/connecting to retrieve paired leg offers in a single call, then creates a basket with both segments, adds passenger details, and confirms with payment.",
+    "domain": "Retail",
+    "baseUrls": [
+      { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Search connecting DEL → JFK",
+      "description": "Search for connecting itinerary options from DEL to JFK via the LHR hub. The Retail API calls the Offer MS twice internally — once for DEL → LHR and once for LHR → JFK on the LHR arrival date — then pairs results that satisfy the 60-minute minimum connection time. Returns a list of itineraries, each carrying a Leg1 and Leg2 with independent SessionIds and cabin/fare-family offers. The selected Leg1 OfferId + SessionId and Leg2 OfferId + SessionId are forwarded to basket creation.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/connecting",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "origin": "DEL",
+          "destination": "JFK",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "itineraries": [
+            {
+              "leg1": {
+                "sessionId": "a1b2c3d4-0001-0001-0001-000000000001",
+                "flightNumber": "AX412",
+                "origin": "DEL",
+                "destination": "LHR",
+                "departureDate": "2026-05-20",
+                "departureTime": "03:30",
+                "arrivalTime": "08:00",
+                "arrivalDayOffset": 0,
+                "aircraftType": "B789",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 207,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-2222-2222-2222-000000000001", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "leg2": {
+                "sessionId": "a1b2c3d4-0002-0002-0002-000000000002",
+                "flightNumber": "AX003",
+                "origin": "LHR",
+                "destination": "JFK",
+                "departureDate": "2026-05-20",
+                "departureTime": "10:30",
+                "arrivalTime": "13:45",
+                "arrivalDayOffset": 0,
+                "aircraftType": "A351",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 252,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-4444-4444-4444-000000000004", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "connectionDurationMinutes": 150,
+              "combinedFromPrice": 372.50,
+              "currency": "GBP"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — one or more connecting itinerary options returned. Each itinerary has a Leg1 (DEL → LHR, AX412) and a Leg2 (LHR → JFK, one of AX003/AX005/AX007/AX009) that satisfies the 60-minute MCT. Itineraries are sorted by connectionDurationMinutes ascending. Leg1 and Leg2 each carry their own SessionId from their independent Offer MS search sessions.",
+        "keyFields": ["itineraries", "itineraries[0].leg1.sessionId", "itineraries[0].leg2.sessionId", "itineraries[0].connectionDurationMinutes"],
+        "validationNotes": "itineraries must be a non-empty array. Every itinerary's connectionDurationMinutes must be >= 60. Each leg's cabins array follows the same structure as a /v1/search/slice response. The Leg1 SessionId is shared across all itineraries (same DEL→LHR search); each distinct Leg2 flight from the same LHR→JFK search shares its own SessionId."
+      },
+      "chainsTo": [
+        { "path": "itineraries[0].leg1.sessionId", "as": "leg1SessionId", "usedInSteps": [2] },
+        { "path": "itineraries[0].leg2.sessionId", "as": "leg2SessionId", "usedInSteps": [2] },
+        { "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId", "as": "leg1OfferId", "usedInSteps": [2] },
+        { "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId", "as": "leg2OfferId", "usedInSteps": [2] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Create basket",
+      "description": "Create a basket with both flight segments from the connecting itinerary. Segment 0 is the first leg (DEL → LHR) and segment 1 is the second leg (LHR → JFK). Each segment pairs its OfferId with the SessionId from its respective Offer MS search. Returns a basketId used for all subsequent basket operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "segments": [
+            { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "sessionId": "a1b2c3d4-0001-0001-0001-000000000001" },
+            { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "sessionId": "a1b2c3d4-0002-0002-0002-000000000002" }
+          ],
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "bookingType": "Revenue",
+          "passengerCount": 1
+        },
+        "dataChain": [
+          { "field": "segments[0].offerId",   "from": "leg1OfferId",   "source": "Step 1 → random Leg1 offer from DEL→LHR search" },
+          { "field": "segments[0].sessionId", "from": "leg1SessionId", "source": "Step 1 → itineraries[0].leg1.sessionId" },
+          { "field": "segments[1].offerId",   "from": "leg2OfferId",   "source": "Step 1 → random Leg2 offer from LHR→JFK search" },
+          { "field": "segments[1].sessionId", "from": "leg2SessionId", "source": "Step 1 → itineraries[0].leg2.sessionId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — basket created with two flight segments. Returns basketId (GUID). The basket now holds both legs of the connecting itinerary as independent flight offers. The basket expires after 60 minutes.",
+        "keyFields": ["basketId"],
+        "validationNotes": "basketId is a GUID. Two segments must be accepted; the Order MS stores each offer independently in BasketData.flightOffers. The basket expiry window (60 min) matches the StoredOffer expiry."
+      },
+      "chainsTo": [
+        { "field": "basketId", "usedInSteps": [3, 4, 5, 6, 7, 8] }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Get basket",
+      "description": "Retrieve the basket to confirm both connecting flight segments are present and the basket is Active. Verifies that BasketData.flightOffers contains exactly two entries — one per leg of the connecting itinerary.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-2" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "flights": [
+            { "flightNumber": "AX412", "origin": "DEL", "destination": "LHR", "cabinCode": "Y", "totalAmount": 186.25 },
+            { "flightNumber": "AX003", "origin": "LHR", "destination": "JFK", "cabinCode": "Y", "totalAmount": 186.25 }
+          ],
+          "totalFareAmount": 372.50,
+          "totalSeatAmount": 0.00,
+          "totalBagAmount": 0.00,
+          "totalPrice": 372.50,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. Status is Active. The flights array contains exactly two entries: Leg1 (DEL → LHR) and Leg2 (LHR → JFK). totalFareAmount reflects the combined price of both legs.",
+        "keyFields": ["status", "flights", "totalFareAmount"],
+        "validationNotes": "flights array must contain two items. status must be 'Active'. totalFareAmount must be the sum of both leg fares.",
+        "assertions": [
+          { "field": "flights", "assertion": "count", "expected": 2 }
+        ]
+      },
+      "chainsTo": [
+        { "path": "flights[0].inventoryId", "as": "leg1InventoryId", "usedInSteps": [5] },
+        { "path": "flights[1].inventoryId", "as": "leg2InventoryId", "usedInSteps": [6] }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Add passenger",
+      "description": "Add passenger details to the basket. The passengerId (PAX-1) is assigned by the caller and is used consistently across seat and bag additions.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-2" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "flights": [],
+          "totalFareAmount": 372.50,
+          "totalSeatAmount": 0.00,
+          "totalBagAmount": 0.00,
+          "totalPrice": 372.50,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — passenger details stored in the basket. The basket remains Active. totalFareAmount is unchanged.",
+        "keyFields": ["status", "totalFareAmount"]
+      }
+    },
+    {
+      "step": 5,
+      "name": "Get Leg1 seatmap (DEL → LHR)",
+      "description": "Retrieve the seat map for the first leg of the connecting itinerary (AX412 DEL → LHR, B789 aircraft) to display available seats to the passenger before selecting.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "leg1InventoryId", "source": "Step 3 → flights[0].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "B789",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for Leg1 (DEL → LHR). Contains cabin layout and seat availability for the B789 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
+      }
+    },
+    {
+      "step": 6,
+      "name": "Get Leg2 seatmap (LHR → JFK)",
+      "description": "Retrieve the seat map for the second leg of the connecting itinerary (LHR → JFK, A351 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "leg2InventoryId", "source": "Step 3 → flights[1].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "A351",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for Leg2 (LHR → JFK). Contains cabin layout and seat availability for the A351 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be A351 (AX003 aircraft type)."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "leg2SeatNumber", "usedInSteps": [7] }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Select seats",
+      "description": "Assign one seat per passenger per leg. Seats must reference each leg's inventoryId as the segmentId. Both seat assignments are submitted together in a single PUT call.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/seats",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-2" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg1InventoryId__", "seatNumber": "12A" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg2InventoryId__", "seatNumber": "__CHAIN_leg2SeatNumber__" }
+        ],
+        "dataChain": [
+          { "field": "basketId",        "from": "basketId",        "source": "Step 2 → response.basketId" },
+          { "field": "[0].segmentId",   "from": "leg1InventoryId", "source": "Step 3 → flights[0].inventoryId" },
+          { "field": "[1].segmentId",   "from": "leg2InventoryId", "source": "Step 3 → flights[1].inventoryId" },
+          { "field": "[1].seatNumber",  "from": "leg2SeatNumber",  "source": "Step 6 → random available seat on Leg2" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "totalSeatAmount": 0.00
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seat selections stored. One seat assigned per passenger per leg. The basket reflects the updated seat selections.",
+        "keyFields": ["status", "totalSeatAmount"]
+      }
+    },
+    {
+      "step": 8,
+      "name": "Confirm basket",
+      "description": "Confirm the basket, triggering payment authorisation, order creation, inventory hold and sell across both flight segments, e-ticket issuance for both legs, and payment settlement. The response contains the booking reference and e-ticket numbers for both legs.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-2" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/28",
+            "cvv": "123",
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
+          }
+        },
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "bookingReference": "ABC123",
+          "status": "Confirmed",
+          "eTickets": [
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-1"], "eTicketNumber": "001 0123456789" },
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-2"], "eTicketNumber": "001 0123456790" }
+          ],
+          "totalPrice": 372.50,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and e-ticket numbers for each leg. Two e-tickets are issued — one per segment of the connecting itinerary.",
+        "keyFields": ["bookingReference", "status", "eTickets"],
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain two entries (one per leg). Each e-ticket number follows the format '001 XXXXXXXXXX'.",
+        "assertions": [
+          { "field": "eTickets", "assertion": "count", "expected": 2 }
+        ]
+      }
+    }
+  ]
+}

@@ -5,6 +5,8 @@
     // =====================================================================
 
     const CONFIGS = [
+        { value: 'multi-segment-oneway', label: 'Multi-Segment — One-Way Connecting (DEL → LHR → JFK)' },
+        { value: 'multi-segment-return', label: 'Multi-Segment — Return Connecting (DEL → LHR → JFK ↔ DEL)' },
         { value: 'bookflow',          label: 'Bookflow (Retail API)' },
         { value: 'flight-order-ax001', label: 'Flight Order — AX001 Next Day' },
         { value: 'flight-order-ax001-no-seats', label: 'Flight Order — AX001 Next Day (No Seats)' },
