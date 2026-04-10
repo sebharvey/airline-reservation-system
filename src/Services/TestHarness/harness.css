@@ -473,6 +473,29 @@ body {
     background: var(--positive-bg);
 }
 
+.btn-view-logs {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.btn-view-logs:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+.btn-view-logs:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .btn-copy-step-log {
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -493,6 +516,21 @@ body {
     border-color: var(--positive);
     color: var(--positive);
     background: var(--positive-bg);
+}
+
+.modal-logs {
+    max-width: 980px;
+}
+
+.logs-modal-content {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.6;
+    tab-size: 2;
 }
 
 /* Live result overlay */

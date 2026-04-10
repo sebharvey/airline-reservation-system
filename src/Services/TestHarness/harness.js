@@ -392,6 +392,10 @@
     // =====================================================================
 
     const btnCopyLogs = document.getElementById('btnCopyLogs');
+    const btnViewLogs = document.getElementById('btnViewLogs');
+    const logsModal = document.getElementById('logsModal');
+    const logsModalContent = document.getElementById('logsModalContent');
+    const logsModalClose = document.getElementById('logsModalClose');
 
     btnCopyLogs.addEventListener('click', async () => {
         const text = formatLogForCopy();
@@ -420,6 +424,19 @@
                 btnCopyLogs.classList.remove('copied');
             }, 2000);
         }
+    });
+
+    btnViewLogs.addEventListener('click', () => {
+        logsModalContent.textContent = formatLogForCopy();
+        logsModal.style.display = 'flex';
+    });
+
+    logsModalClose.addEventListener('click', () => {
+        logsModal.style.display = 'none';
+    });
+
+    logsModal.addEventListener('click', (e) => {
+        if (e.target === logsModal) logsModal.style.display = 'none';
     });
 
     // =====================================================================
@@ -475,6 +492,7 @@
         // Clear logs on journey switch
         apiLog = [];
         btnCopyLogs.disabled = true;
+        btnViewLogs.disabled = true;
 
         // Initial render
         if (hasRuntimeVars) {
@@ -778,6 +796,7 @@
         if (nextCurrentSteps === null) {
             apiLog = [];
             btnCopyLogs.disabled = true;
+            btnViewLogs.disabled = true;
             configSelect.disabled = true;
             btnRunAll.disabled = true;
 
@@ -811,6 +830,7 @@
             btnNextStep.textContent = '\u23ED Next';
             btnRunAll.disabled = false;
             btnCopyLogs.disabled = false;
+            btnViewLogs.disabled = false;
             configSelect.disabled = false;
             nextCurrentSteps = null;
             nextStepCursor = 0;
@@ -828,6 +848,7 @@
         btnRunAll.disabled = true;
         btnRunAll.textContent = '\u23F3 Running\u2026';
         btnCopyLogs.disabled = true;
+        btnViewLogs.disabled = true;
         configSelect.disabled = true;
         btnNextStep.disabled = true;
         nextStepCursor = 0;
@@ -856,6 +877,7 @@
         btnRunAll.disabled = false;
         btnRunAll.textContent = '\u25B6 Run';
         btnCopyLogs.disabled = false;
+        btnViewLogs.disabled = false;
         configSelect.disabled = false;
         btnNextStep.disabled = false;
         btnNextStep.textContent = '\u23ED Next';
