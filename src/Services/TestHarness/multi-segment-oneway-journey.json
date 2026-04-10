@@ -398,8 +398,7 @@
           "bookingReference": "ABC123",
           "status": "Confirmed",
           "eTickets": [
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-1"], "eTicketNumber": "001 0123456789" },
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-2"], "eTicketNumber": "001 0123456790" }
+            { "passengerId": "PAX-1", "segmentIds": ["BI-1", "BI-2"], "eTicketNumber": "932-0000000001" }
           ],
           "totalPrice": 372.50,
           "currency": "GBP"
@@ -407,11 +406,11 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and e-ticket numbers for each leg. Two e-tickets are issued — one per segment of the connecting itinerary.",
+        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket covering both legs of the connecting itinerary.",
         "keyFields": ["bookingReference", "status", "eTickets"],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain two entries (one per leg). Each e-ticket number follows the format '001 XXXXXXXXXX'.",
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger; segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 2 }
+          { "field": "eTickets", "assertion": "count", "expected": 1 }
         ]
       }
     }
