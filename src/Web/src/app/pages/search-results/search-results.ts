@@ -17,6 +17,8 @@ interface FlightRow {
   arrivalDateTime: string;
   aircraftType: string;
   cabinOffers: Partial<Record<CabinCode, FlightOffer[]>>;
+  isConnecting: boolean;
+  connectionDurationMinutes?: number;
 }
 
 @Component({
@@ -63,8 +65,7 @@ export class SearchResultsComponent implements OnInit {
   basketLoading = signal(false);
   basketError = signal('');
 
-  private outboundSessionId = '';
-  private inboundSessionId = '';
+  // sessionIds are now embedded in each FlightOffer.segments — no separate fields needed.
 
   readonly airports = AIRPORTS;
 
@@ -184,7 +185,6 @@ export class SearchResultsComponent implements OnInit {
       bookingType: this.bookingType()
     }).subscribe({
       next: (result: SearchSliceResult) => {
-        this.outboundSessionId = result.sessionId;
         this.outboundOffers.set(result.offers);
         this.outboundLoading.set(false);
       },
@@ -207,7 +207,6 @@ export class SearchResultsComponent implements OnInit {
       bookingType: this.bookingType()
     }).subscribe({
       next: (result: SearchSliceResult) => {
-        this.inboundSessionId = result.sessionId;
         this.returnOffers.set(result.offers);
         this.returnLoading.set(false);
       },
@@ -245,12 +244,12 @@ export class SearchResultsComponent implements OnInit {
 
     const loyaltyNumber = this.loyaltyState.currentCustomer()?.loyaltyNumber;
 
+    // Build basket segments from each selected offer.  Connecting itineraries
+    // carry two segments (one per leg) already encoded in offer.segments.
     const segments: BasketSegment[] = [
-      { offerId: outbound.offerId, sessionId: this.outboundSessionId }
+      ...outbound.segments,
+      ...(inbound ? inbound.segments : [])
     ];
-    if (inbound) {
-      segments.push({ offerId: inbound.offerId, sessionId: this.inboundSessionId });
-    }
 
     this.retailApi.createBasket({
       segments,
@@ -268,12 +267,19 @@ export class SearchResultsComponent implements OnInit {
         const inventoryIdByOfferId = new Map(
           basketData.basketData.flightOffers.map(fo => [fo.offerId, fo.inventoryId])
         );
-        const allOffers = inbound ? [outbound, inbound] : [outbound];
-        const offersWithInventoryIds = allOffers.map(o => ({
-          ...o,
-          inventoryId: inventoryIdByOfferId.get(o.offerId) ?? ''
-        }));
-        this.bookingState.startBasket(offersWithInventoryIds, basketId);
+
+        // Expand each selected offer into its physical leg offers so that
+        // bookingState holds one FlightOffer per flight segment.
+        const expandedOffers = [outbound, ...(inbound ? [inbound] : [])].flatMap(o =>
+          o.allLegs
+            ? o.allLegs.map(leg => ({
+                ...leg,
+                inventoryId: inventoryIdByOfferId.get(leg.offerId) ?? ''
+              }))
+            : [{ ...o, inventoryId: inventoryIdByOfferId.get(o.offerId) ?? '' }]
+        );
+
+        this.bookingState.startBasket(expandedOffers, basketId);
         this.basketLoading.set(false);
         if (this.isRewardBooking()) {
           this.router.navigate(['/booking/reward-login']);
@@ -386,7 +392,9 @@ export class SearchResultsComponent implements OnInit {
           departureDateTime: offer.departureDateTime,
           arrivalDateTime: offer.arrivalDateTime,
           aircraftType: offer.aircraftType,
-          cabinOffers: {}
+          cabinOffers: {},
+          isConnecting: offer.isConnecting ?? false,
+          connectionDurationMinutes: offer.connectionDurationMinutes
         });
       }
       const row = map.get(key)!;

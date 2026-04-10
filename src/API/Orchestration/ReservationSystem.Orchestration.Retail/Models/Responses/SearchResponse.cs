@@ -1,5 +1,56 @@
 namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 
+// ── Unified slice search response types ──────────────────────────────────────
+// Returned by POST /v1/search/slice.
+// Both direct and connecting itineraries use this shape; direct flights have a
+// single entry in Legs while connecting itineraries have two.
+
+/// <summary>
+/// Response from POST /v1/search/slice.
+/// Contains one entry per bookable itinerary.  Direct flights have a single leg;
+/// connecting flights (via LHR) have two.  The web client does not need to know
+/// in advance whether a route is direct or connecting — the backend detects this
+/// automatically and falls back to connecting search when no direct flight exists.
+/// </summary>
+public sealed class SliceSearchResponse
+{
+    public IReadOnlyList<SliceItinerary> Itineraries { get; init; } = [];
+}
+
+/// <summary>
+/// One bookable itinerary — either a direct single-leg flight or a two-leg
+/// connecting option via LHR.
+/// </summary>
+public sealed class SliceItinerary
+{
+    public IReadOnlyList<SliceLeg> Legs { get; init; } = [];
+    /// <summary>
+    /// Null for direct flights; layover minutes at LHR for connecting flights.
+    /// </summary>
+    public int? ConnectionDurationMinutes { get; init; }
+    public decimal CombinedFromPrice { get; init; }
+    public string Currency { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// One flight leg within an itinerary.  Each leg carries its own SessionId because
+/// the Offer MS creates an independent StoredOffer per search; the client must pass
+/// the correct SessionId alongside each OfferId when creating the basket.
+/// </summary>
+public sealed class SliceLeg
+{
+    public Guid SessionId { get; init; }
+    public string FlightNumber { get; init; } = string.Empty;
+    public string Origin { get; init; } = string.Empty;
+    public string Destination { get; init; } = string.Empty;
+    public string DepartureDate { get; init; } = string.Empty;
+    public string DepartureTime { get; init; } = string.Empty;
+    public string ArrivalTime { get; init; } = string.Empty;
+    public int ArrivalDayOffset { get; init; }
+    public string AircraftType { get; init; } = string.Empty;
+    public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
+}
+
 // ── Connecting search response types ─────────────────────────────────────────
 
 /// <summary>

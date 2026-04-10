@@ -284,6 +284,14 @@
   letter-spacing: 0.04em;
 }
 
+.connecting-label {
+  font-size: 0.72rem;
+  color: #e67e22;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .aircraft-label {
   font-size: 0.72rem;
   color: var(--text-muted);
