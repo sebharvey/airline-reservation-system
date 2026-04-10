@@ -1,0 +1,579 @@
+{
+  "journey": {
+    "name": "Multi-Segment — Return Connecting (DEL → LHR → JFK, JFK → LHR → DEL)",
+    "description": "End-to-end return booking for a four-leg connecting itinerary: outbound DEL → LHR (AX412) → JFK and inbound JFK → LHR → DEL (AX411). Two connecting searches are performed — one per direction — and all four segment offer IDs are placed in a single basket. Covers connecting search, basket creation, passenger details, seatmap retrieval for all four legs, seat selection across all segments, and payment confirmation.",
+    "domain": "Retail",
+    "baseUrls": [
+      { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Search outbound connecting (DEL → JFK)",
+      "description": "Search for connecting itinerary options for the outbound journey from DEL to JFK via LHR. Returns paired itineraries with Leg1 (AX412 DEL → LHR) and Leg2 (one of AX003/AX005/AX007/AX009 LHR → JFK) satisfying the 60-minute MCT. The selected Leg1 and Leg2 OfferIds and their SessionIds are forwarded to basket creation.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/connecting",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "origin": "DEL",
+          "destination": "JFK",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "itineraries": [
+            {
+              "leg1": {
+                "sessionId": "a1b2c3d4-0001-0001-0001-000000000001",
+                "flightNumber": "AX412",
+                "origin": "DEL",
+                "destination": "LHR",
+                "departureDate": "2026-05-20",
+                "departureTime": "03:30",
+                "arrivalTime": "08:00",
+                "arrivalDayOffset": 0,
+                "aircraftType": "B789",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 207,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-2222-2222-2222-000000000001", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "leg2": {
+                "sessionId": "a1b2c3d4-0002-0002-0002-000000000002",
+                "flightNumber": "AX003",
+                "origin": "LHR",
+                "destination": "JFK",
+                "departureDate": "2026-05-20",
+                "departureTime": "10:30",
+                "arrivalTime": "13:45",
+                "arrivalDayOffset": 0,
+                "aircraftType": "A351",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 252,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-4444-4444-4444-000000000004", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "connectionDurationMinutes": 150,
+              "combinedFromPrice": 372.50,
+              "currency": "GBP"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — outbound connecting itineraries returned. Each itinerary has Leg1 (DEL → LHR, AX412) and Leg2 (LHR → JFK) satisfying 60-minute MCT. SessionIds for both legs are chained forward for basket creation.",
+        "keyFields": ["itineraries", "itineraries[0].connectionDurationMinutes"],
+        "validationNotes": "At least one itinerary must be returned. connectionDurationMinutes >= 60 for all itineraries. Leg1 should be AX412 (the only daily DEL → LHR service)."
+      },
+      "chainsTo": [
+        { "path": "itineraries[0].leg1.sessionId", "as": "outLeg1SessionId", "usedInSteps": [3] },
+        { "path": "itineraries[0].leg2.sessionId", "as": "outLeg2SessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId", "as": "outLeg1OfferId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId", "as": "outLeg2OfferId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Search inbound connecting (JFK → DEL)",
+      "description": "Search for connecting itinerary options for the inbound (return) journey from JFK to DEL via LHR. Returns itineraries pairing a JFK → LHR leg (one of AX002/AX004/AX006/AX008/AX010) with Leg2 LHR → DEL (AX411, departs 20:30). All JFK → LHR arrivals at LHR are earlier than 20:30, so all satisfy the 60-minute MCT for AX411. The selected OfferIds and SessionIds are forwarded to basket creation.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/connecting",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "origin": "JFK",
+          "destination": "DEL",
+          "departureDate": "__RAND_RETURN_DATE__",
+          "paxCount": 1,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "itineraries": [
+            {
+              "leg1": {
+                "sessionId": "b2c3d4e5-0001-0001-0001-000000000001",
+                "flightNumber": "AX002",
+                "origin": "JFK",
+                "destination": "LHR",
+                "departureDate": "2026-06-03",
+                "departureTime": "13:00",
+                "arrivalTime": "01:15",
+                "arrivalDayOffset": 1,
+                "aircraftType": "A351",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 252,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "b2c3d4e5-1111-1111-1111-000000000001", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "b2c3d4e5-2222-2222-2222-000000000001", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "leg2": {
+                "sessionId": "b2c3d4e5-0002-0002-0002-000000000002",
+                "flightNumber": "AX411",
+                "origin": "LHR",
+                "destination": "DEL",
+                "departureDate": "2026-06-04",
+                "departureTime": "20:30",
+                "arrivalTime": "09:00",
+                "arrivalDayOffset": 1,
+                "aircraftType": "B789",
+                "cabins": [
+                  {
+                    "cabinCode": "Y",
+                    "availableSeats": 207,
+                    "fromPrice": 186.25,
+                    "currency": "GBP",
+                    "fareFamilies": [
+                      { "fareFamily": "Flex",     "offer": { "offerId": "b2c3d4e5-3333-3333-3333-000000000003", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
+                      { "fareFamily": "Non-Flex", "offer": { "offerId": "b2c3d4e5-4444-4444-4444-000000000004", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                    ]
+                  }
+                ]
+              },
+              "connectionDurationMinutes": 1155,
+              "combinedFromPrice": 372.50,
+              "currency": "GBP"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — inbound (return) connecting itineraries returned. Each itinerary has Leg1 (JFK → LHR, overnight with arrivalDayOffset=1) and Leg2 (LHR → DEL, AX411) satisfying 60-minute MCT on the LHR arrival day.",
+        "keyFields": ["itineraries", "itineraries[0].connectionDurationMinutes"],
+        "validationNotes": "itineraries must be non-empty. Leg2 should be AX411 (the only daily LHR → DEL service). Connection time is large because AX411 departs late (20:30) and all JFK→LHR flights arrive much earlier on the same (next) day."
+      },
+      "chainsTo": [
+        { "path": "itineraries[0].leg1.sessionId", "as": "inLeg1SessionId", "usedInSteps": [3] },
+        { "path": "itineraries[0].leg2.sessionId", "as": "inLeg2SessionId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId", "as": "inLeg1OfferId", "usedInSteps": [3] },
+        { "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId", "as": "inLeg2OfferId", "usedInSteps": [3] }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Create basket — 4 segments",
+      "description": "Create a basket containing all four segments: outbound Leg1 (DEL → LHR), outbound Leg2 (LHR → JFK), inbound Leg1 (JFK → LHR), and inbound Leg2 (LHR → DEL). Each segment pairs its OfferId with the SessionId from its respective Offer MS search. The basket holds the complete return itinerary as four independent flight offers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "segments": [
+            { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "sessionId": "a1b2c3d4-0001-0001-0001-000000000001" },
+            { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "sessionId": "a1b2c3d4-0002-0002-0002-000000000002" },
+            { "offerId": "b2c3d4e5-1111-1111-1111-000000000001", "sessionId": "b2c3d4e5-0001-0001-0001-000000000001" },
+            { "offerId": "b2c3d4e5-3333-3333-3333-000000000003", "sessionId": "b2c3d4e5-0002-0002-0002-000000000002" }
+          ],
+          "channelCode": "WEB",
+          "currencyCode": "GBP",
+          "bookingType": "Revenue",
+          "passengerCount": 1
+        },
+        "dataChain": [
+          { "field": "segments[0].offerId",   "from": "outLeg1OfferId",   "source": "Step 1 → outbound Leg1 DEL→LHR offer" },
+          { "field": "segments[0].sessionId", "from": "outLeg1SessionId", "source": "Step 1 → itineraries[0].leg1.sessionId" },
+          { "field": "segments[1].offerId",   "from": "outLeg2OfferId",   "source": "Step 1 → outbound Leg2 LHR→JFK offer" },
+          { "field": "segments[1].sessionId", "from": "outLeg2SessionId", "source": "Step 1 → itineraries[0].leg2.sessionId" },
+          { "field": "segments[2].offerId",   "from": "inLeg1OfferId",    "source": "Step 2 → inbound Leg1 JFK→LHR offer" },
+          { "field": "segments[2].sessionId", "from": "inLeg1SessionId",  "source": "Step 2 → itineraries[0].leg1.sessionId" },
+          { "field": "segments[3].offerId",   "from": "inLeg2OfferId",    "source": "Step 2 → inbound Leg2 LHR→DEL offer" },
+          { "field": "segments[3].sessionId", "from": "inLeg2SessionId",  "source": "Step 2 → itineraries[0].leg2.sessionId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000002"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — basket created with all four flight segments. Returns basketId (GUID). The basket now holds the complete return itinerary — two outbound legs and two inbound legs — as independent flight offers.",
+        "keyFields": ["basketId"],
+        "validationNotes": "basketId is a GUID. All four segments must be accepted. Each offer is independently validated against its stored offer in the Offer MS."
+      },
+      "chainsTo": [
+        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11] }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Get basket — verify 4 flights",
+      "description": "Retrieve the basket to confirm all four connecting flight segments are present and the basket is Active. Chains the inventoryId of each flight for use in the seatmap and seat selection steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000002",
+          "status": "Active",
+          "flights": [
+            { "flightNumber": "AX412", "origin": "DEL", "destination": "LHR", "cabinCode": "Y", "totalAmount": 186.25 },
+            { "flightNumber": "AX003", "origin": "LHR", "destination": "JFK", "cabinCode": "Y", "totalAmount": 186.25 },
+            { "flightNumber": "AX002", "origin": "JFK", "destination": "LHR", "cabinCode": "Y", "totalAmount": 186.25 },
+            { "flightNumber": "AX411", "origin": "LHR", "destination": "DEL", "cabinCode": "Y", "totalAmount": 186.25 }
+          ],
+          "totalFareAmount": 745.00,
+          "totalSeatAmount": 0.00,
+          "totalBagAmount": 0.00,
+          "totalPrice": 745.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — basket retrieved. Status is Active. The flights array contains all four legs in order: outbound Leg1 (DEL→LHR), outbound Leg2 (LHR→JFK), inbound Leg1 (JFK→LHR), inbound Leg2 (LHR→DEL). totalFareAmount is the sum of all four fares.",
+        "keyFields": ["status", "flights", "totalFareAmount"],
+        "validationNotes": "flights array must contain exactly four items. status must be 'Active'. Leg sequence order in the basket is determined by the order segments were submitted in Step 3.",
+        "assertions": [
+          { "field": "flights", "assertion": "count", "expected": 4 }
+        ]
+      },
+      "chainsTo": [
+        { "path": "flights[0].inventoryId", "as": "outLeg1InventoryId", "usedInSteps": [6, 10] },
+        { "path": "flights[1].inventoryId", "as": "outLeg2InventoryId", "usedInSteps": [7, 10] },
+        { "path": "flights[2].inventoryId", "as": "inLeg1InventoryId",  "usedInSteps": [8, 10] },
+        { "path": "flights[3].inventoryId", "as": "inLeg2InventoryId",  "usedInSteps": [9, 10] }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Add passenger",
+      "description": "Add passenger details to the basket. The passengerId (PAX-1) will be referenced consistently across all four seat assignments.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          }
+        ],
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000002",
+          "status": "Active",
+          "totalFareAmount": 745.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — passenger added. The basket remains Active with totalFareAmount unchanged.",
+        "keyFields": ["status"]
+      }
+    },
+    {
+      "step": 6,
+      "name": "Get outbound Leg1 seatmap (DEL → LHR)",
+      "description": "Retrieve the seat map for outbound Leg1 (AX412 DEL → LHR, B789 aircraft) to display available seats to the passenger before selecting.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "B789",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for outbound Leg1 (DEL → LHR). Contains cabin layout and seat availability for the B789 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg1SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Get outbound Leg2 seatmap (LHR → JFK)",
+      "description": "Retrieve the seat map for outbound Leg2 (LHR → JFK, A351 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "A351",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for outbound Leg2 (LHR → JFK). Contains cabin layout and seat availability for the A351 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be A351."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg2SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Get inbound Leg1 seatmap (JFK → LHR)",
+      "description": "Retrieve the seat map for inbound Leg1 (JFK → LHR, A351 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "inLeg1InventoryId", "source": "Step 4 → flights[2].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "A351",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for inbound Leg1 (JFK → LHR). Contains cabin layout and seat availability for the A351 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be A351."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg1SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Get inbound Leg2 seatmap (LHR → DEL)",
+      "description": "Retrieve the seat map for inbound Leg2 (AX411 LHR → DEL, B789 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "inLeg2InventoryId", "source": "Step 4 → flights[3].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "B789",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for inbound Leg2 (LHR → DEL). Contains cabin layout and seat availability for the B789 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be B789 (AX411 aircraft type)."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg2SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 10,
+      "name": "Select seats — all four legs",
+      "description": "Assign one seat per passenger per leg. All four seat assignments are submitted together in a single PUT call. Each assignment references the inventoryId of its respective flight as the segmentId.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/seats",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": [
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber__" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber__" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber__"  },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber__"  }
+        ],
+        "dataChain": [
+          { "field": "basketId",         "from": "basketId",          "source": "Step 3 → response.basketId" },
+          { "field": "[0].segmentId",    "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" },
+          { "field": "[0].seatNumber",   "from": "outLeg1SeatNumber",  "source": "Step 6 → random available seat on outbound Leg1" },
+          { "field": "[1].segmentId",    "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" },
+          { "field": "[1].seatNumber",   "from": "outLeg2SeatNumber",  "source": "Step 7 → random available seat on outbound Leg2" },
+          { "field": "[2].segmentId",    "from": "inLeg1InventoryId",  "source": "Step 4 → flights[2].inventoryId" },
+          { "field": "[2].seatNumber",   "from": "inLeg1SeatNumber",   "source": "Step 8 → random available seat on inbound Leg1" },
+          { "field": "[3].segmentId",    "from": "inLeg2InventoryId",  "source": "Step 4 → flights[3].inventoryId" },
+          { "field": "[3].seatNumber",   "from": "inLeg2SeatNumber",   "source": "Step 9 → random available seat on inbound Leg2" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000002",
+          "status": "Active",
+          "totalSeatAmount": 0.00
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seat selections stored for all four legs. One seat assigned per passenger per leg. The basket reflects the updated seat selections.",
+        "keyFields": ["status", "totalSeatAmount"]
+      }
+    },
+    {
+      "step": 11,
+      "name": "Confirm basket",
+      "description": "Confirm the basket, triggering payment authorisation, order creation, inventory hold and sell across all four flight segments, e-ticket issuance for all four legs, and payment settlement. The response contains the booking reference and four e-tickets — one per segment of the complete return connecting itinerary.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": { "basketId": "from-step-3" }
+      },
+      "request": {
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/28",
+            "cvv": "123",
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
+          }
+        },
+        "dataChain": [
+          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "bookingReference": "XYZ789",
+          "status": "Confirmed",
+          "eTickets": [
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-1"], "eTicketNumber": "001 0123456789" },
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-2"], "eTicketNumber": "001 0123456790" },
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-3"], "eTicketNumber": "001 0123456791" },
+            { "passengerId": "PAX-1", "segmentIds": ["SEG-4"], "eTicketNumber": "001 0123456792" }
+          ],
+          "totalPrice": 745.00,
+          "currency": "GBP"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and four e-ticket numbers — one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
+        "keyFields": ["bookingReference", "status", "eTickets"],
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain four entries — one per segment. All four inventory records are held and sold atomically during confirmation.",
+        "assertions": [
+          { "field": "eTickets", "assertion": "count", "expected": 4 }
+        ]
+      }
+    }
+  ]
+}

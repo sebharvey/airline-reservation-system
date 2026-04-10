@@ -70,10 +70,75 @@ For a direct flight, the Offer MS creates **one `StoredOffer` per search**, with
 
 A connecting itinerary combines two direct flights via LHR — the only valid connection point.
 
-- Each leg is an independent offer — two `StoredOffer` records, each with its own `OfferId`; both placed in the basket together.
-- `POST /v1/search/connecting` calls the Offer MS twice (once per leg), applies a **60-minute MCT** at LHR, and returns the composite itinerary.
+- Each leg is an independent offer — each produces its own `StoredOffer` record with its own `OfferId`; both are placed in the basket together.
+- `POST /v1/search/connecting` calls the Offer MS **twice in parallel** (once per leg), applies a **60-minute MCT** at LHR, and returns the composite itinerary options.
+- The leg2 search date is derived from the leg1 arrival date (`departureDate + leg1.arrivalDayOffset`); the Retail API handles routes where leg1 arrives on the next calendar day (e.g. overnight transatlantic legs).
+- Itinerary results are sorted by `connectionDurationMinutes` ascending so the most efficient connections appear first.
 - Holding seats requires two separate `POST /v1/inventory/hold` calls; if either fails, both must be rolled back.
 - The Offer MS has no concept of multi-segment itineraries; connecting assembly is entirely a Retail API orchestration responsibility.
+
+### Available connecting routes (2026 schedule)
+
+| Route | Leg 1 | Leg 2 via LHR | Notes |
+|-------|-------|---------------|-------|
+| DEL → JFK | AX412 (arr LHR 08:00) | AX003(10:30), AX005(13:00), AX007(16:00), AX009(19:30) | Same-day connections; AX001(08:00) excluded (0 min MCT) |
+| JFK → DEL | AX002/4/6/8/10 (arr LHR next day) | AX411 (20:30) | All JFK→LHR arrivals connect to the 20:30 AX411 next day |
+| BOM → JFK | AX402 (arr LHR same day) | AX001/3/5/7/9 (subject to MCT) | |
+| JFK → BOM | AX002/4/6/8/10 (arr LHR next day) | AX401 (20:30) | |
+
+### Request and response
+
+**Request** (`POST /v1/search/connecting`):
+
+```json
+{
+  "origin": "DEL",
+  "destination": "JFK",
+  "departureDate": "2026-05-20",
+  "paxCount": 1,
+  "bookingType": "Revenue"
+}
+```
+
+**Response** — each `itinerary` carries a `leg1` and `leg2`, each with their own `sessionId` and the same cabin/fare-family offer structure as a slice search response:
+
+```json
+{
+  "itineraries": [
+    {
+      "leg1": {
+        "sessionId": "<guid>",
+        "flightNumber": "AX412",
+        "origin": "DEL",
+        "destination": "LHR",
+        "departureDate": "2026-05-20",
+        "departureTime": "03:30",
+        "arrivalTime": "08:00",
+        "arrivalDayOffset": 0,
+        "aircraftType": "B789",
+        "cabins": [ { "cabinCode": "Y", "availableSeats": 207, "fromPrice": 186.25, "currency": "GBP", "fareFamilies": [ { "fareFamily": "Flex", "offer": { "offerId": "<guid>", "fareBasisCode": "YFLEXGB", "totalPrice": 346.25, ... } } ] } ]
+      },
+      "leg2": {
+        "sessionId": "<guid>",
+        "flightNumber": "AX003",
+        "origin": "LHR",
+        "destination": "JFK",
+        "departureDate": "2026-05-20",
+        "departureTime": "10:30",
+        "arrivalTime": "13:45",
+        "arrivalDayOffset": 0,
+        "aircraftType": "A351",
+        "cabins": [ ... ]
+      },
+      "connectionDurationMinutes": 150,
+      "combinedFromPrice": 372.50,
+      "currency": "GBP"
+    }
+  ]
+}
+```
+
+Pass `leg1.sessionId` + selected `leg1.cabins[*].fareFamilies[*].offer.offerId` as segment 0, and `leg2.sessionId` + selected `leg2.cabins[*].fareFamilies[*].offer.offerId` as segment 1 when creating the basket.
 
 ```mermaid
 sequenceDiagram
@@ -87,14 +152,15 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/search/connecting (origin=DEL, destination=JFK, date, pax)
     RetailAPI->>OfferMS: POST /v1/search (origin=DEL, destination=LHR, date, pax)
     OfferMS->>OfferMS: Persist each result as StoredOffer with unique OfferId (60-min expiry)
-    OfferMS-->>RetailAPI: Inbound leg options with OfferIds (e.g. AX412)
-    RetailAPI->>OfferMS: POST /v1/search (origin=LHR, destination=JFK, connectDate, pax)
+    OfferMS-->>RetailAPI: Leg1 options with OfferIds and session (e.g. AX412)
+    RetailAPI->>OfferMS: POST /v1/search (origin=LHR, destination=JFK, leg1ArrivalDate, pax)
+    Note over RetailAPI: leg1ArrivalDate = departureDate + leg1.arrivalDayOffset
     OfferMS->>OfferMS: Persist each result as StoredOffer with unique OfferId (60-min expiry)
-    OfferMS-->>RetailAPI: Outbound leg options with OfferIds (e.g. AX001)
-    RetailAPI->>RetailAPI: Pair legs, apply 60-min MCT filter, combine prices
-    RetailAPI-->>Web: 200 OK — connecting itinerary options (each with [OfferId-Leg1, OfferId-Leg2], combined price)
+    OfferMS-->>RetailAPI: Leg2 options with OfferIds and session (e.g. AX003, AX005, AX007, AX009)
+    RetailAPI->>RetailAPI: Pair legs, apply 60-min MCT filter, sort by connectionDurationMinutes
+    RetailAPI-->>Web: 200 OK — itineraries[] each with leg1 + leg2 (SessionId, OfferIds, cabins), combinedFromPrice
     Traveller->>Web: Select preferred connecting itinerary
-    Web->>RetailAPI: POST /v1/basket (offerIds: [OfferId-Leg1, OfferId-Leg2], pax details)
+    Web->>RetailAPI: POST /v1/basket (segments: [{offerId: Leg1OfferId, sessionId: Leg1SessionId}, {offerId: Leg2OfferId, sessionId: Leg2SessionId}])
 ```
 
 ### Code share flights (future scope)

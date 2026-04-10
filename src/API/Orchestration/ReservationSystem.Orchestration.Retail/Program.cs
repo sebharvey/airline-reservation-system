@@ -88,6 +88,7 @@ var host = new HostBuilder()
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<SearchFlightsHandler>();
+        services.AddScoped<SearchConnectingFlightsHandler>();
         services.AddScoped<CreateBasketHandler>();
         services.AddScoped<ConfirmBasketHandler>();
         services.AddScoped<GetOrderHandler>();

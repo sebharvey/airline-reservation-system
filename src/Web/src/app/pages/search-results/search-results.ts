@@ -268,11 +268,12 @@ export class SearchResultsComponent implements OnInit {
         const inventoryIdByOfferId = new Map(
           basketData.basketData.flightOffers.map(fo => [fo.offerId, fo.inventoryId])
         );
-        const outboundWithInventoryId = { ...outbound, inventoryId: inventoryIdByOfferId.get(outbound.offerId) ?? '' };
-        const inboundWithInventoryId = inbound
-          ? { ...inbound, inventoryId: inventoryIdByOfferId.get(inbound.offerId) ?? '' }
-          : null;
-        this.bookingState.startBasket(outboundWithInventoryId, inboundWithInventoryId, basketId);
+        const allOffers = inbound ? [outbound, inbound] : [outbound];
+        const offersWithInventoryIds = allOffers.map(o => ({
+          ...o,
+          inventoryId: inventoryIdByOfferId.get(o.offerId) ?? ''
+        }));
+        this.bookingState.startBasket(offersWithInventoryIds, basketId);
         this.basketLoading.set(false);
         if (this.isRewardBooking()) {
           this.router.navigate(['/booking/reward-login']);
