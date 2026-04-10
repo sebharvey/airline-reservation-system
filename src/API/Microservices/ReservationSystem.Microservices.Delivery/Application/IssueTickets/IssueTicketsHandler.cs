@@ -25,25 +25,27 @@ public sealed class IssueTicketsHandler
         var baseSequence = await _ticketRepository.GetTicketCountAsync(cancellationToken);
         var ticketSummaries = new List<TicketSummary>();
         var sequence = baseSequence;
-        var segmentIds = request.Segments.Select(s => s.SegmentId).ToList();
 
         foreach (var passenger in request.Passengers)
         {
-            sequence++;
-            var eTicketNumber = $"932-{sequence:D10}";
+            foreach (var segment in request.Segments)
+            {
+                sequence++;
+                var eTicketNumber = $"932-{sequence:D10}";
 
-            var ticketDataJson = BuildTicketDataJson(passenger, request.Segments);
+                var ticketDataJson = BuildTicketDataJson(passenger, [segment]);
 
-            var ticket = Ticket.Create(
-                eTicketNumber, request.BookingReference,
-                passenger.PassengerId, ticketDataJson);
+                var ticket = Ticket.Create(
+                    eTicketNumber, request.BookingReference,
+                    passenger.PassengerId, ticketDataJson);
 
-            await _ticketRepository.CreateAsync(ticket, cancellationToken);
+                await _ticketRepository.CreateAsync(ticket, cancellationToken);
 
-            ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
+                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
 
-            _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
-                eTicketNumber, passenger.PassengerId, request.Segments.Count);
+                _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} covering segment {SegmentId}",
+                    eTicketNumber, passenger.PassengerId, segment.SegmentId);
+            }
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
