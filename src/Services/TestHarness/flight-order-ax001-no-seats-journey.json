@@ -31,39 +31,48 @@
       "response": {
         "statusCode": 200,
         "body": {
-          "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
-          "flights": [
+          "itineraries": [
             {
-              "flightNumber": "AX001",
-              "origin": "LHR",
-              "destination": "JFK",
-              "departureTime": "2026-04-07T08:00:00",
-              "arrivalTime": "2026-04-07T11:10:00",
-              "aircraftType": "A351",
-              "cabins": [
+              "legs": [
                 {
-                  "cabinCode": "Y",
-                  "availableSeats": 252,
-                  "fromPrice": 186.25,
-                  "currency": "GBP",
-                  "fareFamilies": [
-                    { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                  "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
+                  "flightNumber": "AX001",
+                  "origin": "LHR",
+                  "destination": "JFK",
+                  "departureDate": "2026-04-07",
+                  "departureTime": "08:00",
+                  "arrivalTime": "11:10",
+                  "arrivalDayOffset": 0,
+                  "aircraftType": "A351",
+                  "cabins": [
+                    {
+                      "cabinCode": "Y",
+                      "availableSeats": 252,
+                      "fromPrice": 186.25,
+                      "currency": "GBP",
+                      "fareFamilies": [
+                        { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      ]
+                    }
                   ]
                 }
-              ]
+              ],
+              "connectionDurationMinutes": null,
+              "combinedFromPrice": 186.25,
+              "currency": "GBP"
             }
           ]
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — search results returned. AX001 appears in the flights array. sessionId and a selected offerId are chained to Step 2.",
-        "keyFields": ["sessionId", "flights"],
-        "validationNotes": "sessionId is a GUID scoped to this search. AX001 must be present in the flights array for 2026-04-07. A random available offer is selected from AX001's cabins and fare families only."
+        "description": "200 OK — search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
+        "keyFields": ["itineraries"],
+        "validationNotes": "AX001 must be present for the requested departure date. sessionId is nested in itineraries[0].legs[0]. A random available offer is selected across all cabin fare families."
       },
       "chainsTo": [
-        { "field": "sessionId", "as": "sessionId", "usedInSteps": [2] },
-        { "randomArrayPath": "flights[?flightNumber=AX001].cabins[*].fareFamilies[*].offer.offerId", "as": "offerId", "usedInSteps": [2] }
+        { "path": "itineraries[0].legs[0].sessionId", "as": "sessionId", "usedInSteps": [2] },
+        { "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId", "as": "offerId", "usedInSteps": [2] }
       ]
     },
     {

@@ -262,34 +262,38 @@
         "statusCode": 200,
         "body": {
           "basketId": "c0ffee00-1234-5678-abcd-000000000002",
-          "status": "Active",
-          "flights": [
-            { "flightNumber": "AX412", "origin": "DEL", "destination": "LHR", "cabinCode": "Y", "totalAmount": 186.25 },
-            { "flightNumber": "AX003", "origin": "LHR", "destination": "JFK", "cabinCode": "Y", "totalAmount": 186.25 },
-            { "flightNumber": "AX002", "origin": "JFK", "destination": "LHR", "cabinCode": "Y", "totalAmount": 186.25 },
-            { "flightNumber": "AX411", "origin": "LHR", "destination": "DEL", "cabinCode": "Y", "totalAmount": 186.25 }
-          ],
-          "totalFareAmount": 745.00,
-          "totalSeatAmount": 0.00,
-          "totalBagAmount": 0.00,
-          "totalPrice": 745.00,
-          "currency": "GBP"
+          "basketStatus": "Active",
+          "basketData": {
+            "flightOffers": [
+              { "basketItemId": "BI-1", "flightNumber": "AX412", "origin": "DEL", "destination": "LHR", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000001", "aircraftType": "B789", "totalAmount": 186.25 },
+              { "basketItemId": "BI-2", "flightNumber": "AX003", "origin": "LHR", "destination": "JFK", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000002", "aircraftType": "A351", "totalAmount": 186.25 },
+              { "basketItemId": "BI-3", "flightNumber": "AX002", "origin": "JFK", "destination": "LHR", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000003", "aircraftType": "A351", "totalAmount": 186.25 },
+              { "basketItemId": "BI-4", "flightNumber": "AX411", "origin": "LHR", "destination": "DEL", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000004", "aircraftType": "B789", "totalAmount": 186.25 }
+            ],
+            "passengers": [],
+            "seats": [],
+            "bags": []
+          }
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — basket retrieved. Status is Active. The flights array contains all four legs in order: outbound Leg1 (DEL→LHR), outbound Leg2 (LHR→JFK), inbound Leg1 (JFK→LHR), inbound Leg2 (LHR→DEL). totalFareAmount is the sum of all four fares.",
-        "keyFields": ["status", "flights", "totalFareAmount"],
-        "validationNotes": "flights array must contain exactly four items. status must be 'Active'. Leg sequence order in the basket is determined by the order segments were submitted in Step 3.",
+        "description": "200 OK — basket retrieved. basketStatus is Active. basketData.flightOffers contains all four legs: outbound Leg1 (DEL→LHR), outbound Leg2 (LHR→JFK), inbound Leg1 (JFK→LHR), inbound Leg2 (LHR→DEL). Each entry carries inventoryId and aircraftType used for seatmap retrieval.",
+        "keyFields": ["basketStatus", "basketData.flightOffers"],
+        "validationNotes": "basketData.flightOffers must contain exactly four items. basketStatus must be 'Active'. Leg sequence order is determined by the order segments were submitted in Step 3.",
         "assertions": [
-          { "field": "flights", "assertion": "count", "expected": 4 }
+          { "field": "basketData.flightOffers", "assertion": "count", "expected": 4 }
         ]
       },
       "chainsTo": [
-        { "path": "flights[0].inventoryId", "as": "outLeg1InventoryId", "usedInSteps": [6, 10] },
-        { "path": "flights[1].inventoryId", "as": "outLeg2InventoryId", "usedInSteps": [7, 10] },
-        { "path": "flights[2].inventoryId", "as": "inLeg1InventoryId",  "usedInSteps": [8, 10] },
-        { "path": "flights[3].inventoryId", "as": "inLeg2InventoryId",  "usedInSteps": [9, 10] }
+        { "path": "basketData.flightOffers[0].inventoryId",  "as": "outLeg1InventoryId",  "usedInSteps": [6, 10] },
+        { "path": "basketData.flightOffers[0].aircraftType", "as": "outLeg1AircraftType", "usedInSteps": [6] },
+        { "path": "basketData.flightOffers[1].inventoryId",  "as": "outLeg2InventoryId",  "usedInSteps": [7, 10] },
+        { "path": "basketData.flightOffers[1].aircraftType", "as": "outLeg2AircraftType", "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[2].inventoryId",  "as": "inLeg1InventoryId",   "usedInSteps": [8, 10] },
+        { "path": "basketData.flightOffers[2].aircraftType", "as": "inLeg1AircraftType",  "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[3].inventoryId",  "as": "inLeg2InventoryId",   "usedInSteps": [9, 10] },
+        { "path": "basketData.flightOffers[3].aircraftType", "as": "inLeg2AircraftType",  "usedInSteps": [9] }
       ]
     },
     {
@@ -346,20 +350,21 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId", "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" }
+          { "field": "flightId",    "from": "outLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "aircraftType", "from": "outLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" }
         ]
       },
       "response": {
         "statusCode": 200,
         "body": {
-          "flightId": "00000000-0000-0000-0000-000000000000",
+          "flightId": "00000000-0000-0000-0000-000000000001",
           "aircraftType": "B789",
           "cabins": []
         }
@@ -371,7 +376,7 @@
         "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg1SeatNumber", "usedInSteps": [10] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg1SeatOfferId", "seatNumber": "outLeg1SeatNumber", "position": "outLeg1SeatPosition" }, "usedInSteps": [10] }
       ]
     },
     {
@@ -381,20 +386,21 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId", "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" }
+          { "field": "flightId",    "from": "outLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
+          { "field": "aircraftType", "from": "outLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" }
         ]
       },
       "response": {
         "statusCode": 200,
         "body": {
-          "flightId": "00000000-0000-0000-0000-000000000000",
+          "flightId": "00000000-0000-0000-0000-000000000002",
           "aircraftType": "A351",
           "cabins": []
         }
@@ -406,7 +412,7 @@
         "validationNotes": "aircraftType should be A351."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg2SeatNumber", "usedInSteps": [10] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg2SeatOfferId", "seatNumber": "outLeg2SeatNumber", "position": "outLeg2SeatPosition" }, "usedInSteps": [10] }
       ]
     },
     {
@@ -416,20 +422,21 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId", "from": "inLeg1InventoryId", "source": "Step 4 → flights[2].inventoryId" }
+          { "field": "flightId",    "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId" },
+          { "field": "aircraftType", "from": "inLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[2].aircraftType" }
         ]
       },
       "response": {
         "statusCode": 200,
         "body": {
-          "flightId": "00000000-0000-0000-0000-000000000000",
+          "flightId": "00000000-0000-0000-0000-000000000003",
           "aircraftType": "A351",
           "cabins": []
         }
@@ -441,7 +448,7 @@
         "validationNotes": "aircraftType should be A351."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg1SeatNumber", "usedInSteps": [10] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg1SeatOfferId", "seatNumber": "inLeg1SeatNumber", "position": "inLeg1SeatPosition" }, "usedInSteps": [10] }
       ]
     },
     {
@@ -451,20 +458,21 @@
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId", "from": "inLeg2InventoryId", "source": "Step 4 → flights[3].inventoryId" }
+          { "field": "flightId",    "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId" },
+          { "field": "aircraftType", "from": "inLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[3].aircraftType" }
         ]
       },
       "response": {
         "statusCode": 200,
         "body": {
-          "flightId": "00000000-0000-0000-0000-000000000000",
+          "flightId": "00000000-0000-0000-0000-000000000004",
           "aircraftType": "B789",
           "cabins": []
         }
@@ -476,7 +484,7 @@
         "validationNotes": "aircraftType should be B789 (AX411 aircraft type)."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg2SeatNumber", "usedInSteps": [10] }
+        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg2SeatOfferId", "seatNumber": "inLeg2SeatNumber", "position": "inLeg2SeatPosition" }, "usedInSteps": [10] }
       ]
     },
     {
@@ -500,13 +508,13 @@
         ],
         "dataChain": [
           { "field": "basketId",         "from": "basketId",          "source": "Step 3 → response.basketId" },
-          { "field": "[0].segmentId",    "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" },
+          { "field": "[0].segmentId",    "from": "outLeg1InventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
           { "field": "[0].seatNumber",   "from": "outLeg1SeatNumber",  "source": "Step 6 → random available seat on outbound Leg1" },
-          { "field": "[1].segmentId",    "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" },
+          { "field": "[1].segmentId",    "from": "outLeg2InventoryId", "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
           { "field": "[1].seatNumber",   "from": "outLeg2SeatNumber",  "source": "Step 7 → random available seat on outbound Leg2" },
-          { "field": "[2].segmentId",    "from": "inLeg1InventoryId",  "source": "Step 4 → flights[2].inventoryId" },
+          { "field": "[2].segmentId",    "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId" },
           { "field": "[2].seatNumber",   "from": "inLeg1SeatNumber",   "source": "Step 8 → random available seat on inbound Leg1" },
-          { "field": "[3].segmentId",    "from": "inLeg2InventoryId",  "source": "Step 4 → flights[3].inventoryId" },
+          { "field": "[3].segmentId",    "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId" },
           { "field": "[3].seatNumber",   "from": "inLeg2SeatNumber",   "source": "Step 9 → random available seat on inbound Leg2" }
         ]
       },
