@@ -146,8 +146,8 @@ Used in 2-pax journey files. Guaranteed to differ from PAX-1 values.
 | `__RAND_OUTBOUND_DEST__` | Route destination (e.g. `JFK`) |
 | `__RAND_RETURN_ORIGIN__` | Return origin (same as outbound dest) |
 | `__RAND_RETURN_DEST__` | Return destination (same as outbound origin) |
-| `__RAND_DEPART_DATE__` | 7–34 days from today |
-| `__RAND_RETURN_DATE__` | Depart date + 7–14 days |
+| `__RAND_DEPART_DATE__` | Tomorrow (today + 1 day) |
+| `__RAND_RETURN_DATE__` | Depart date + 7 days |
 
 ---
 
