@@ -769,9 +769,10 @@
 
     function initJourney() {
         // Page title
-        const journeyTitle = raw.journey.domain || config;
-        document.title = 'Apex Air \u2014 ' + journeyTitle + ' API Test Harness';
-        document.getElementById('journeyTitle').textContent = journeyTitle + ' API';
+        const journeyConfig = CONFIGS.find(c => c.value === config);
+        const journeyTitle = (journeyConfig && journeyConfig.label) || raw.journey.domain || config;
+        document.title = 'Apex Air \u2014 ' + journeyTitle + ' Test Harness';
+        document.getElementById('journeyTitle').textContent = journeyTitle;
 
         // Detect runtime variable substitution
         hasRuntimeVars = JSON.stringify(raw.steps).includes('__RAND_');
