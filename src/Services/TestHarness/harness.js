@@ -155,8 +155,8 @@
 
         const route = pick(ROUTES);
         const today = new Date();
-        const outboundOffset = 7 + Math.floor(Math.random() * 28);   // 7–34 days out
-        const returnOffset   = outboundOffset + 7 + Math.floor(Math.random() * 8); // +7–14 days
+        const outboundOffset = 1;        // tomorrow
+        const returnOffset   = outboundOffset + 7; // exactly 1 week after departure
         const outboundDateObj = new Date(today); outboundDateObj.setDate(today.getDate() + outboundOffset);
         const returnDateObj   = new Date(today); returnDateObj.setDate(today.getDate() + returnOffset);
 
