@@ -72,9 +72,16 @@ public sealed class BasketFunction
             request.CustomerId,
             request.PassengerCount);
 
-        var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
-        return await req.CreatedAsync($"/v1/basket/{result.BasketId}",
-            new CreateBasketResponse { BasketId = result.BasketId });
+        try
+        {
+            var result = await _createBasketHandler.HandleAsync(command, cancellationToken);
+            return await req.CreatedAsync($"/v1/basket/{result.BasketId}",
+                new CreateBasketResponse { BasketId = result.BasketId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
     }
 
     // -------------------------------------------------------------------------
