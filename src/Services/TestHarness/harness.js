@@ -18,7 +18,7 @@
         { value: 'user',              label: 'User' },
         { value: 'loyalty',           label: 'Loyalty' },
         { value: 'admin',             label: 'Admin' },
-        { value: 'operations',        label: 'Operations' },
+        { value: 'operations',        label: 'Operations', disabled: true },
         { value: 'terminal-customer', label: 'Terminal Customer' },
         { value: 'admin-auth-guard',  label: 'Admin Auth Guard (401 checks)' }
     ];
@@ -49,7 +49,14 @@
         detailPage.style.display = '';
     }
 
-    btnBack.addEventListener('click', showMainPage);
+    btnBack.addEventListener('click', () => {
+        // Unsubscribe detail view from any in-progress silent run
+        if (config && journeyStates[config]) {
+            journeyStates[config].onStepStart    = null;
+            journeyStates[config].onStepComplete = null;
+        }
+        showMainPage();
+    });
 
     // =====================================================================
     // Main page — test grid
@@ -60,18 +67,30 @@
         grid.innerHTML = '';
         CONFIGS.forEach(c => {
             const card = document.createElement('div');
-            card.className = 'test-card';
             card.id = 'card-' + c.value;
-            card.innerHTML =
-                '<div class="test-card-indicator" id="card-indicator-' + c.value + '"></div>' +
-                '<div class="test-card-body">' +
-                '<div class="test-card-name">' + esc(c.label) + '</div>' +
-                '</div>' +
-                '<div class="test-card-arrow">\u203A</div>';
-            card.addEventListener('click', async () => {
-                await loadJourney(c.value);
-                showDetailPage();
-            });
+
+            if (c.disabled) {
+                card.className = 'test-card disabled';
+                card.innerHTML =
+                    '<div class="test-card-indicator" id="card-indicator-' + c.value + '"></div>' +
+                    '<div class="test-card-body">' +
+                    '<div class="test-card-name">' + esc(c.label) + '</div>' +
+                    '</div>' +
+                    '<span class="test-card-badge">Disabled</span>';
+            } else {
+                card.className = 'test-card';
+                card.innerHTML =
+                    '<div class="test-card-indicator" id="card-indicator-' + c.value + '"></div>' +
+                    '<div class="test-card-body">' +
+                    '<div class="test-card-name">' + esc(c.label) + '</div>' +
+                    '</div>' +
+                    '<div class="test-card-arrow">\u203A</div>';
+                card.addEventListener('click', async () => {
+                    await loadJourney(c.value);
+                    showDetailPage();
+                });
+            }
+
             grid.appendChild(card);
         });
     }
@@ -87,7 +106,8 @@
         btn.disabled = true;
         btn.textContent = '\u23F3 Running\u2026';
 
-        for (const c of CONFIGS) {
+        // Start all non-disabled journeys in parallel; each updates its own card
+        const promises = CONFIGS.filter(c => !c.disabled).map(async (c) => {
             const card      = document.getElementById('card-' + c.value);
             const indicator = document.getElementById('card-indicator-' + c.value);
             card.classList.remove('result-pass', 'result-fail');
@@ -106,7 +126,9 @@
                 indicator.innerHTML = '\u2717';
                 indicator.style.color = 'var(--negative)';
             }
-        }
+        });
+
+        await Promise.all(promises);
 
         btn.disabled = false;
         btn.textContent = '\u25B6 Run All Tests';
@@ -130,18 +152,44 @@
             currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps));
         }
 
-        const localChain = {};
-        let allPassed    = true;
+        // Initialise (or reset) this journey's shared execution state
+        journeyStates[configName] = {
+            status:           'running',
+            stepCount:        currentSteps.length,
+            currentStepIndex: 0,
+            stepResults:      {},
+            onStepStart:      null,
+            onStepComplete:   null,
+        };
+
+        const localChain    = {};
+        const localPaxCount = hasRand ? runtimeVars.paxCount : 1;
+        let allPassed       = true;
 
         for (let idx = 0; idx < currentSteps.length; idx++) {
-            const passed = await runStepSilent(currentSteps[idx], currentSteps, journeyRaw.journey.baseUrls, localChain);
-            if (!passed) allPassed = false;
+            journeyStates[configName].currentStepIndex = idx;
+            if (journeyStates[configName].onStepStart) {
+                journeyStates[configName].onStepStart(idx);
+            }
+
+            const result = await runStepSilent(
+                currentSteps[idx], currentSteps, journeyRaw.journey.baseUrls, localChain, localPaxCount
+            );
+            journeyStates[configName].stepResults[idx] = result;
+
+            if (journeyStates[configName].onStepComplete) {
+                journeyStates[configName].onStepComplete(idx, result);
+            }
+
+            if (!result.passed) allPassed = false;
         }
 
+        journeyStates[configName].status           = 'done';
+        journeyStates[configName].currentStepIndex = -1;
         return allPassed;
     }
 
-    async function runStepSilent(step, allSteps, baseUrlEntries, chain) {
+    async function runStepSilent(step, allSteps, baseUrlEntries, chain, paxCount) {
         const defaultId    = baseUrlEntries[0].id;
         const stepUrlRef   = step.apiCall.baseUrlRef || defaultId;
         const baseUrlEntry = baseUrlEntries.find(e => e.id === stepUrlRef) || baseUrlEntries[0];
@@ -197,18 +245,22 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus = 0, liveBody = null;
+        let liveStatus = 0, liveBody = null, liveError = null, durationMs = null;
         try {
-            const r  = await fetch(url, fetchOpts);
+            const t0   = performance.now();
+            const r    = await fetch(url, fetchOpts);
             liveStatus = r.status;
-            const ct = r.headers.get('content-type') || '';
+            const ct   = r.headers.get('content-type') || '';
             if (ct.includes('application/json')) {
                 liveBody = await r.json();
             } else {
                 const t = await r.text();
                 liveBody = t.length > 0 ? t : null;
             }
-        } catch { /* network error — liveStatus stays 0 */ }
+            durationMs = Math.round(performance.now() - t0);
+        } catch (err) {
+            liveError = err.message;
+        }
 
         if (step.chainsTo && liveBody && typeof liveBody === 'object') {
             step.chainsTo.forEach(cd => {
@@ -221,7 +273,7 @@
                     const avail   = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
                     if (!avail.length) return;
                     const shuffled = [...avail].sort(() => Math.random() - 0.5);
-                    const count    = Math.min(runtimeVars.paxCount || 1, shuffled.length);
+                    const count    = Math.min(paxCount || 1, shuffled.length);
                     for (let i = 0; i < count; i++) {
                         for (const [sf, alias] of Object.entries(cd.as)) {
                             if (i === 0) chain[alias] = shuffled[i][sf];
@@ -264,7 +316,8 @@
 
         const statusMatch   = liveStatus === step.expected.statusCode;
         const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
-        return statusMatch && assertResults.every(r => r.pass);
+        const passed        = statusMatch && assertResults.every(r => r.pass);
+        return { passed, liveStatus, liveError, durationMs };
     }
 
     // =====================================================================
@@ -686,6 +739,9 @@
     // State
     // =====================================================================
 
+    // Per-journey execution state — populated by runJourneySilently, read by detail view
+    const journeyStates = {};
+
     let liveStepIndices, liveChain, liveResults, rowRefs, hasRuntimeVars, defaultBaseUrlId;
     let nextStepCursor = 0;
     let nextCurrentSteps = null;
@@ -733,6 +789,9 @@
             document.getElementById('runtimeDataBanner').style.display = 'none';
             buildTableRows(JSON.parse(JSON.stringify(raw.steps)));
         }
+
+        // Overlay any in-progress or completed silent-run results
+        applyJourneyState(config);
 
         btnRunAll.disabled = false;
         nextStepCursor = 0;
@@ -1032,6 +1091,13 @@
             buildTableRows(nextCurrentSteps);
             liveChain = {};
             liveResults = {};
+
+            // Detach from silent-run callbacks
+            if (journeyStates[config]) {
+                journeyStates[config].onStepStart    = null;
+                journeyStates[config].onStepComplete = null;
+            }
+
             nextStepCursor = 0;
         }
 
@@ -1088,6 +1154,12 @@
         buildTableRows(currentSteps);
         liveChain = {};
         liveResults = {};
+
+        // Detach from silent-run callbacks — this run owns the table now
+        if (journeyStates[config]) {
+            journeyStates[config].onStepStart    = null;
+            journeyStates[config].onStepComplete = null;
+        }
 
         for (const stepIdx of liveStepIndices) {
             await runStep(rowRefs[stepIdx], currentSteps);
@@ -1569,6 +1641,55 @@
                 return match;
             }
         );
+    }
+
+    // =====================================================================
+    // Journey state helpers — live progress in detail view
+    // =====================================================================
+
+    function applyJourneyState(configName) {
+        const state = journeyStates[configName];
+        if (!state) return;
+
+        // Render results for all steps that have already finished
+        for (const [idxStr, result] of Object.entries(state.stepResults)) {
+            const ref = rowRefs[parseInt(idxStr)];
+            if (ref) applyResultToRow(ref, result);
+        }
+
+        // Show spinner on the step that is currently executing (if not yet in results)
+        if (state.status === 'running' && state.currentStepIndex >= 0 &&
+            !(state.currentStepIndex in state.stepResults)) {
+            const ref = rowRefs[state.currentStepIndex];
+            if (ref) showStepRunning(ref);
+        }
+
+        // Subscribe to future step updates while the journey is still running
+        if (state.status === 'running') {
+            state.onStepStart = (idx) => {
+                const ref = rowRefs[idx];
+                if (ref) showStepRunning(ref);
+            };
+            state.onStepComplete = (idx, result) => {
+                const ref = rowRefs[idx];
+                if (ref) applyResultToRow(ref, result);
+            };
+        }
+    }
+
+    function showStepRunning(ref) {
+        ref.row.classList.remove('result-pass', 'result-fail');
+        ref.row.classList.add('step-running');
+        if (ref.tdTime) ref.tdTime.innerHTML = '<span class="spinner step-spinner"></span>';
+    }
+
+    function applyResultToRow(ref, result) {
+        ref.row.classList.remove('step-running', 'result-pass', 'result-fail');
+        ref.row.classList.add(result.passed ? 'result-pass' : 'result-fail');
+        if (ref.tdTime) {
+            ref.tdTime.textContent = result.durationMs !== null && result.durationMs !== undefined
+                ? result.durationMs + ' ms' : '\u2014';
+        }
     }
 
     // =====================================================================
