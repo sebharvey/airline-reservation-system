@@ -317,7 +317,7 @@
         const statusMatch   = liveStatus === step.expected.statusCode;
         const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
         const passed        = statusMatch && assertResults.every(r => r.pass);
-        return { passed, liveStatus, liveError, durationMs };
+        return { passed, liveStatus, liveBody, liveError, durationMs, statusMatch, assertionResults: assertResults, url };
     }
 
     // =====================================================================
@@ -1675,8 +1675,19 @@
 
         // Render results for all steps that have already finished
         for (const [idxStr, result] of Object.entries(state.stepResults)) {
-            const ref = rowRefs[parseInt(idxStr)];
+            const idx = parseInt(idxStr);
+            const ref = rowRefs[idx];
             if (ref) applyResultToRow(ref, result);
+            // Populate liveResults so openStepModal can show the response body
+            liveResults[idx] = {
+                liveStatus:       result.liveStatus,
+                liveBody:         result.liveBody,
+                liveError:        result.liveError,
+                statusMatch:      result.statusMatch,
+                assertionResults: result.assertionResults || [],
+                url:              result.url || null,
+                durationMs:       result.durationMs,
+            };
         }
 
         // Show spinner on the step that is currently executing (if not yet in results)
@@ -1695,6 +1706,16 @@
             state.onStepComplete = (idx, result) => {
                 const ref = rowRefs[idx];
                 if (ref) applyResultToRow(ref, result);
+                // Populate liveResults so clicking the row shows the response
+                liveResults[idx] = {
+                    liveStatus:       result.liveStatus,
+                    liveBody:         result.liveBody,
+                    liveError:        result.liveError,
+                    statusMatch:      result.statusMatch,
+                    assertionResults: result.assertionResults || [],
+                    url:              result.url || null,
+                    durationMs:       result.durationMs,
+                };
             };
         }
     }
