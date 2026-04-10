@@ -2,6 +2,16 @@ export type CabinCode = 'F' | 'J' | 'W' | 'Y';
 export type SeatPosition = 'Window' | 'Aisle' | 'Middle';
 export type AvailabilityStatus = 'available' | 'held' | 'sold';
 
+/** One flight segment within a connecting itinerary, used for display purposes. */
+export interface ConnectingLegInfo {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  aircraftType: string;
+}
+
 export interface FlightOffer {
   offerId: string;
   inventoryId: string;
@@ -25,6 +35,23 @@ export interface FlightOffer {
   seatsAvailable: number;
   pointsPrice?: number;
   pointsTaxes?: number;
+  /**
+   * Basket segments to submit when this offer is selected.
+   * Direct flights have one entry; connecting itineraries have two (one per leg).
+   */
+  segments: { offerId: string; sessionId: string }[];
+  /** True when this offer represents a two-leg connecting itinerary via LHR. */
+  isConnecting?: boolean;
+  /** Layover at LHR in minutes; only present when isConnecting is true. */
+  connectionDurationMinutes?: number;
+  /** Per-leg display detail for connecting itineraries. */
+  connectingLegs?: ConnectingLegInfo[];
+  /**
+   * Per-leg FlightOffer objects used when persisting the basket state.
+   * Each entry corresponds to one physical flight segment.
+   * For direct flights this is undefined; for connecting it has two entries.
+   */
+  allLegs?: FlightOffer[];
 }
 
 export interface SeatOffer {

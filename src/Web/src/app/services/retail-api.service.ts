@@ -81,8 +81,10 @@ export interface OciRetrieveParams extends RetrieveOrderParams {
 }
 
 // ---- Live API response shape from POST /api/v1/search/slice ----
+// The endpoint returns a unified itinerary list.  Direct flights have a single
+// entry in legs[]; connecting itineraries (via LHR) have two.
 
-interface SearchSliceApiOffer {
+interface SliceApiOffer {
   offerId: string;
   fareBasisCode: string;
   basePrice: number;
@@ -93,21 +95,22 @@ interface SearchSliceApiOffer {
   isChangeable: boolean;
 }
 
-interface SearchSliceApiFareFamily {
+interface SliceApiFareFamily {
   fareFamily: string;
-  offer: SearchSliceApiOffer;
+  offer: SliceApiOffer;
 }
 
-interface SearchSliceApiCabin {
+interface SliceApiCabin {
   cabinCode: string;
   availableSeats: number;
   fromPrice: number;
   currency: string;
   fromPoints: number | null;
-  fareFamilies: SearchSliceApiFareFamily[];
+  fareFamilies: SliceApiFareFamily[];
 }
 
-interface SearchSliceApiFlight {
+interface SliceApiLeg {
+  sessionId: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -116,12 +119,18 @@ interface SearchSliceApiFlight {
   arrivalTime: string;
   arrivalDayOffset: number;
   aircraftType: string;
-  cabins: SearchSliceApiCabin[];
+  cabins: SliceApiCabin[];
 }
 
-interface SearchSliceApiResponse {
-  sessionId: string;
-  flights: SearchSliceApiFlight[];
+interface SliceApiItinerary {
+  legs: SliceApiLeg[];
+  connectionDurationMinutes: number | null;
+  combinedFromPrice: number;
+  currency: string;
+}
+
+interface SliceSearchApiResponse {
+  itineraries: SliceApiItinerary[];
 }
 
 // ----------------------------------------------------------------
@@ -136,48 +145,147 @@ const CABIN_NAMES: Record<string, string> = {
 const API_DELAY_MS = 600;
 
 export interface SearchSliceResult {
-  sessionId: string;
   offers: FlightOffer[];
 }
 
-function mapApiResponseToResult(response: SearchSliceApiResponse): SearchSliceResult {
+/** Compute the ISO arrival datetime string for a leg, accounting for arrivalDayOffset. */
+function legArrivalDateTime(leg: SliceApiLeg): string {
+  const [y, m, d] = leg.departureDate.split('-').map(Number);
+  const arrival = new Date(Date.UTC(y, m - 1, d + (leg.arrivalDayOffset ?? 0)));
+  return `${arrival.toISOString().slice(0, 10)}T${leg.arrivalTime}:00`;
+}
+
+/** Build a single-leg FlightOffer for basket-state storage (one physical segment). */
+function buildLegOffer(
+  leg: SliceApiLeg,
+  cabin: SliceApiCabin,
+  family: SliceApiFareFamily
+): FlightOffer {
+  return {
+    offerId: family.offer.offerId,
+    inventoryId: '',
+    segments: [{ offerId: family.offer.offerId, sessionId: leg.sessionId }],
+    flightNumber: leg.flightNumber,
+    origin: leg.origin,
+    destination: leg.destination,
+    departureDateTime: `${leg.departureDate}T${leg.departureTime}:00`,
+    arrivalDateTime: legArrivalDateTime(leg),
+    aircraftType: leg.aircraftType,
+    cabinCode: cabin.cabinCode as CabinCode,
+    cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
+    fareFamily: family.fareFamily,
+    fareBasisCode: family.offer.fareBasisCode,
+    bookingClass: family.offer.fareBasisCode.charAt(0),
+    isRefundable: family.offer.isRefundable,
+    isChangeable: family.offer.isChangeable,
+    unitPrice: family.offer.basePrice,
+    taxes: family.offer.tax,
+    totalPrice: family.offer.totalPrice,
+    currency: family.offer.currency,
+    seatsAvailable: cabin.availableSeats,
+    pointsPrice: cabin.fromPoints ?? undefined,
+    pointsTaxes: undefined
+  };
+}
+
+function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceResult {
   const offers: FlightOffer[] = [];
-  for (const flight of response.flights) {
-    for (const cabin of flight.cabins) {
-      const cabinCode = cabin.cabinCode as CabinCode;
-      for (const family of cabin.fareFamilies) {
-        offers.push({
-          offerId: family.offer.offerId,
-          inventoryId: '',
-          flightNumber: flight.flightNumber,
-          origin: flight.origin,
-          destination: flight.destination,
-          departureDateTime: `${flight.departureDate}T${flight.departureTime}:00`,
-          arrivalDateTime: (() => {
-            const [y, m, d] = flight.departureDate.split('-').map(Number);
-            const arrival = new Date(Date.UTC(y, m - 1, d + (flight.arrivalDayOffset ?? 0)));
-            return `${arrival.toISOString().slice(0, 10)}T${flight.arrivalTime}:00`;
-          })(),
-          aircraftType: flight.aircraftType,
-          cabinCode,
-          cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
-          fareFamily: family.fareFamily,
-          fareBasisCode: family.offer.fareBasisCode,
-          bookingClass: family.offer.fareBasisCode.charAt(0),
-          isRefundable: family.offer.isRefundable,
-          isChangeable: family.offer.isChangeable,
-          unitPrice: family.offer.basePrice,
-          taxes: family.offer.tax,
-          totalPrice: family.offer.totalPrice,
-          currency: family.offer.currency,
-          seatsAvailable: cabin.availableSeats,
-          pointsPrice: cabin.fromPoints ?? undefined,
-          pointsTaxes: undefined
-        });
+
+  for (const itinerary of response.itineraries) {
+    if (itinerary.legs.length === 1) {
+      // ── Direct flight ──────────────────────────────────────────────────────
+      const leg = itinerary.legs[0];
+      for (const cabin of leg.cabins) {
+        for (const family of cabin.fareFamilies) {
+          offers.push({
+            ...buildLegOffer(leg, cabin, family),
+            isConnecting: false
+          });
+        }
+      }
+    } else if (itinerary.legs.length === 2) {
+      // ── Connecting flight (two legs via LHR) ───────────────────────────────
+      const leg1 = itinerary.legs[0];
+      const leg2 = itinerary.legs[1];
+
+      // For each cabin available on leg 1, find the matching cabin on leg 2 and
+      // create one combined FlightOffer per cabin.  Fare families within each cabin
+      // are paired by matching name; unmatched families use the cheapest available.
+      for (const cabin1 of leg1.cabins) {
+        const cabin2 = leg2.cabins.find(c => c.cabinCode === cabin1.cabinCode);
+        if (!cabin2) continue;
+
+        // Pair fare families by name where possible; fall back to cheapest leg-2
+        // fare for any leg-1 family that has no name match on leg 2.
+        const cheapestFamily2 = cabin2.fareFamilies.reduce((min, f) =>
+          f.offer.totalPrice < min.offer.totalPrice ? f : min);
+
+        for (const family1 of cabin1.fareFamilies) {
+          const family2 = cabin2.fareFamilies.find(f => f.fareFamily === family1.fareFamily)
+            ?? cheapestFamily2;
+
+          // Per-leg FlightOffer objects stored in bookingState (one segment each).
+          const legOffer1 = buildLegOffer(leg1, cabin1, family1);
+          const legOffer2 = buildLegOffer(leg2, cabin2, family2);
+
+          offers.push({
+            // Primary identifiers use leg 1 values; segments contains both.
+            offerId: family1.offer.offerId,
+            inventoryId: '',
+            segments: [
+              { offerId: family1.offer.offerId, sessionId: leg1.sessionId },
+              { offerId: family2.offer.offerId, sessionId: leg2.sessionId }
+            ],
+            // Display shows itinerary endpoints.
+            flightNumber: `${leg1.flightNumber} / ${leg2.flightNumber}`,
+            origin: leg1.origin,
+            destination: leg2.destination,
+            departureDateTime: `${leg1.departureDate}T${leg1.departureTime}:00`,
+            arrivalDateTime: legArrivalDateTime(leg2),
+            aircraftType: leg1.aircraftType,
+            cabinCode: cabin1.cabinCode as CabinCode,
+            cabinName: CABIN_NAMES[cabin1.cabinCode] ?? cabin1.cabinCode,
+            fareFamily: family1.fareFamily,
+            fareBasisCode: family1.offer.fareBasisCode,
+            bookingClass: family1.offer.fareBasisCode.charAt(0),
+            isRefundable: family1.offer.isRefundable && family2.offer.isRefundable,
+            isChangeable: family1.offer.isChangeable && family2.offer.isChangeable,
+            unitPrice: family1.offer.basePrice + family2.offer.basePrice,
+            taxes: family1.offer.tax + family2.offer.tax,
+            totalPrice: family1.offer.totalPrice + family2.offer.totalPrice,
+            currency: family1.offer.currency,
+            seatsAvailable: Math.min(cabin1.availableSeats, cabin2.availableSeats),
+            pointsPrice: (cabin1.fromPoints != null && cabin2.fromPoints != null)
+              ? cabin1.fromPoints + cabin2.fromPoints : undefined,
+            pointsTaxes: undefined,
+            isConnecting: true,
+            connectionDurationMinutes: itinerary.connectionDurationMinutes ?? undefined,
+            connectingLegs: [
+              {
+                flightNumber: leg1.flightNumber,
+                origin: leg1.origin,
+                destination: leg1.destination,
+                departureDateTime: `${leg1.departureDate}T${leg1.departureTime}:00`,
+                arrivalDateTime: legArrivalDateTime(leg1),
+                aircraftType: leg1.aircraftType
+              },
+              {
+                flightNumber: leg2.flightNumber,
+                origin: leg2.origin,
+                destination: leg2.destination,
+                departureDateTime: `${leg2.departureDate}T${leg2.departureTime}:00`,
+                arrivalDateTime: legArrivalDateTime(leg2),
+                aircraftType: leg2.aircraftType
+              }
+            ],
+            allLegs: [legOffer1, legOffer2]
+          });
+        }
       }
     }
   }
-  return { sessionId: response.sessionId, offers };
+
+  return { offers };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -207,7 +315,7 @@ export class RetailApiService {
       bookingType: params.bookingType ?? 'Revenue'
     };
     return this.#http
-      .post<SearchSliceApiResponse>(`${base}/api/v1/search/slice`, body)
+      .post<SliceSearchApiResponse>(`${base}/api/v1/search/slice`, body)
       .pipe(map(mapApiResponseToResult));
   }
 

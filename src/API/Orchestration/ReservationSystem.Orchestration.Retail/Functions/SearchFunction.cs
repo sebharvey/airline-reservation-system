@@ -36,9 +36,9 @@ public sealed class SearchFunction
     // -------------------------------------------------------------------------
 
     [Function("SearchFlightsSlice")]
-    [OpenApiOperation(operationId: "SearchFlightsSlice", tags: new[] { "Search" }, Summary = "Search for available flights for a single directional slice")]
+    [OpenApiOperation(operationId: "SearchFlightsSlice", tags: new[] { "Search" }, Summary = "Search for available flights for a single directional slice. Returns connecting itineraries via LHR automatically when no direct flight exists.")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchSliceRequest), Required = true, Description = "Request body")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchResponse), Description = "OK")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SliceSearchResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> SearchSlice(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search/slice")] HttpRequestData req,

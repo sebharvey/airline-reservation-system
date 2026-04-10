@@ -67,7 +67,12 @@
                 <div class="flight-meta">
                   <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
                   <span class="direct-dot">&#8226;</span>
-                  <span class="direct-label">Direct</span>
+                  <ng-container *ngIf="!row.isConnecting">
+                    <span class="direct-label">Direct</span>
+                  </ng-container>
+                  <ng-container *ngIf="row.isConnecting">
+                    <span class="connecting-label">1 stop &middot; LHR &middot; {{ row.connectionDurationMinutes }}min</span>
+                  </ng-container>
                   <span class="direct-dot">&#8226;</span>
                   <span class="aircraft-label">{{ getAircraftName(row.aircraftType) }}</span>
                 </div>
@@ -165,7 +170,12 @@
                 <div class="flight-meta">
                   <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
                   <span class="direct-dot">&#8226;</span>
-                  <span class="direct-label">Direct</span>
+                  <ng-container *ngIf="!row.isConnecting">
+                    <span class="direct-label">Direct</span>
+                  </ng-container>
+                  <ng-container *ngIf="row.isConnecting">
+                    <span class="connecting-label">1 stop &middot; LHR &middot; {{ row.connectionDurationMinutes }}min</span>
+                  </ng-container>
                   <span class="direct-dot">&#8226;</span>
                   <span class="aircraft-label">{{ getAircraftName(row.aircraftType) }}</span>
                 </div>
