@@ -8,54 +8,69 @@
 </head>
 <body>
 
-<div class="header">
-    <h1>Apex Air — <span id="journeyTitle"></span> Test Harness</h1>
+<!-- ===================================================================
+     MAIN PAGE
+     =================================================================== -->
+<div id="mainPage" style="display:none">
+    <div class="header">
+        <h1>Apex Air — Test Harness</h1>
+    </div>
+
+    <div class="main-controls">
+        <button class="btn-run-all-journeys" id="btnRunAllJourneys">&#x25B6; Run All Tests</button>
+    </div>
+
+    <div id="testGrid" class="test-grid"></div>
 </div>
 
-<div class="run-controls">
-    <div class="control-buttons">
-        <div class="config-select-row">
-            <label class="config-label" for="configSelect">Journey</label>
-            <select id="configSelect" class="config-select"></select>
+<!-- ===================================================================
+     DETAIL PAGE
+     =================================================================== -->
+<div id="detailPage" style="display:none">
+    <div class="header detail-header">
+        <button class="btn-back" id="btnBack">&#x2190; Back</button>
+        <h1>Apex Air &#x2014; <span id="journeyTitle"></span> Test Harness</h1>
+    </div>
+
+    <div class="run-controls">
+        <div id="baseUrlList" class="base-url-list"></div>
+        <div class="control-buttons">
+            <button class="btn-run-all" id="btnRunAll" disabled>&#x25B6; Run</button>
+            <button class="btn-next-step" id="btnNextStep" disabled>&#x23ED; Next</button>
+            <button class="btn-copy-logs" id="btnCopyLogs" disabled>&#x1F4CB; Copy Logs</button>
+            <button class="btn-view-logs" id="btnViewLogs" disabled>&#x1F4C4; View Logs</button>
         </div>
     </div>
-</div>
 
-<div class="run-controls">
-    <div id="baseUrlList" class="base-url-list"></div>
-    <div class="control-buttons">
-        <button class="btn-run-all" id="btnRunAll" disabled>▶ Run</button>
-        <button class="btn-next-step" id="btnNextStep" disabled>⏭ Next</button>
-        <button class="btn-copy-logs" id="btnCopyLogs" disabled>📋 Copy Logs</button>
-        <button class="btn-view-logs" id="btnViewLogs" disabled>📄 View Logs</button>
+    <div id="runtimeDataBanner" style="display:none;margin-bottom:1.5rem;padding:0.85rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+        <span style="font-weight:600;color:var(--accent);font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Runtime test data</span>
+        <div id="runtimeDataValues" style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.5rem"></div>
     </div>
+
+    <table class="harness-table">
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Name</th>
+                <th>API Call</th>
+                <th>Expected</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody id="journeyBody"></tbody>
+    </table>
 </div>
 
-<div id="runtimeDataBanner" style="display:none;margin-bottom:1.5rem;padding:0.85rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.8rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
-    <span style="font-weight:600;color:var(--accent);font-family:var(--font-mono);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em">Runtime test data</span>
-    <div id="runtimeDataValues" style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.5rem"></div>
-</div>
-
-<table class="harness-table">
-    <thead>
-        <tr>
-            <th>Step</th>
-            <th>Name</th>
-            <th>API Call</th>
-            <th>Expected</th>
-            <th>Time</th>
-        </tr>
-    </thead>
-    <tbody id="journeyBody"></tbody>
-</table>
-
+<!-- ===================================================================
+     MODALS (shared)
+     =================================================================== -->
 <div id="stepModal" class="modal-overlay" style="display:none">
     <div class="modal">
         <div class="modal-header">
             <div id="modalTitle" class="modal-title"></div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
-                <button class="btn-copy-step-log" id="btnCopyStepLog" style="display:none">📋 Copy Step Log</button>
-                <button class="modal-close" id="modalClose">✕</button>
+                <button class="btn-copy-step-log" id="btnCopyStepLog" style="display:none">&#x1F4CB; Copy Step Log</button>
+                <button class="modal-close" id="modalClose">&#x2715;</button>
             </div>
         </div>
         <div id="modalBody" class="modal-body"></div>
@@ -66,7 +81,7 @@
     <div class="modal modal-logs">
         <div class="modal-header">
             <div class="modal-title">API Log</div>
-            <button class="modal-close" id="logsModalClose">✕</button>
+            <button class="modal-close" id="logsModalClose">&#x2715;</button>
         </div>
         <div class="modal-body">
             <pre id="logsModalContent" class="logs-modal-content"></pre>

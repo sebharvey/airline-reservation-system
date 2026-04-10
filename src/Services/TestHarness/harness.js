@@ -27,17 +27,245 @@
     // Config dropdown — populate and select initial value
     // =====================================================================
 
-    const configSelect = document.getElementById('configSelect');
     const params = new URLSearchParams(window.location.search);
-    let config = params.get('config') || 'payment';
+    let config = params.get('config') || CONFIGS[0].value;
 
-    CONFIGS.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.value;
-        opt.textContent = c.label;
-        if (c.value === config) opt.selected = true;
-        configSelect.appendChild(opt);
-    });
+    // =====================================================================
+    // View management
+    // =====================================================================
+
+    const mainPage   = document.getElementById('mainPage');
+    const detailPage = document.getElementById('detailPage');
+    const btnBack    = document.getElementById('btnBack');
+
+    function showMainPage() {
+        mainPage.style.display   = '';
+        detailPage.style.display = 'none';
+        document.title = 'Apex Air \u2014 Test Harness';
+    }
+
+    function showDetailPage() {
+        mainPage.style.display   = 'none';
+        detailPage.style.display = '';
+    }
+
+    btnBack.addEventListener('click', showMainPage);
+
+    // =====================================================================
+    // Main page — test grid
+    // =====================================================================
+
+    function renderTestGrid() {
+        const grid = document.getElementById('testGrid');
+        grid.innerHTML = '';
+        CONFIGS.forEach(c => {
+            const card = document.createElement('div');
+            card.className = 'test-card';
+            card.id = 'card-' + c.value;
+            card.innerHTML =
+                '<div class="test-card-indicator" id="card-indicator-' + c.value + '"></div>' +
+                '<div class="test-card-body">' +
+                '<div class="test-card-name">' + esc(c.label) + '</div>' +
+                '</div>' +
+                '<div class="test-card-arrow">\u203A</div>';
+            card.addEventListener('click', async () => {
+                await loadJourney(c.value);
+                showDetailPage();
+            });
+            grid.appendChild(card);
+        });
+    }
+
+    // =====================================================================
+    // Run All Journeys (main page)
+    // =====================================================================
+
+    document.getElementById('btnRunAllJourneys').addEventListener('click', runAllJourneys);
+
+    async function runAllJourneys() {
+        const btn = document.getElementById('btnRunAllJourneys');
+        btn.disabled = true;
+        btn.textContent = '\u23F3 Running\u2026';
+
+        for (const c of CONFIGS) {
+            const card      = document.getElementById('card-' + c.value);
+            const indicator = document.getElementById('card-indicator-' + c.value);
+            card.classList.remove('result-pass', 'result-fail');
+            card.classList.add('running');
+            indicator.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const passed = await runJourneySilently(c.value);
+                card.classList.remove('running');
+                card.classList.add(passed ? 'result-pass' : 'result-fail');
+                indicator.innerHTML = passed ? '\u2713' : '\u2717';
+                indicator.style.color = passed ? 'var(--positive)' : 'var(--negative)';
+            } catch {
+                card.classList.remove('running');
+                card.classList.add('result-fail');
+                indicator.innerHTML = '\u2717';
+                indicator.style.color = 'var(--negative)';
+            }
+        }
+
+        btn.disabled = false;
+        btn.textContent = '\u25B6 Run All Tests';
+    }
+
+    async function runJourneySilently(configName) {
+        const res        = await fetch(configName + '-journey.json');
+        const journeyRaw = await res.json();
+
+        const hasRand = JSON.stringify(journeyRaw.steps).includes('__RAND_');
+        let currentSteps;
+        if (hasRand) {
+            generateRuntimeVars();
+            currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps)).map(step => {
+                if (step.request && step.request.body) {
+                    step.request.body = applyRuntimeVars(step.request.body);
+                }
+                return step;
+            });
+        } else {
+            currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps));
+        }
+
+        const localChain = {};
+        let allPassed    = true;
+
+        for (let idx = 0; idx < currentSteps.length; idx++) {
+            const passed = await runStepSilent(currentSteps[idx], currentSteps, journeyRaw.journey.baseUrls, localChain);
+            if (!passed) allPassed = false;
+        }
+
+        return allPassed;
+    }
+
+    async function runStepSilent(step, allSteps, baseUrlEntries, chain) {
+        const defaultId    = baseUrlEntries[0].id;
+        const stepUrlRef   = step.apiCall.baseUrlRef || defaultId;
+        const baseUrlEntry = baseUrlEntries.find(e => e.id === stepUrlRef) || baseUrlEntries[0];
+        const baseUrl      = baseUrlEntry.url.replace(/\/+$/, '');
+        const api          = step.apiCall;
+
+        let endpoint = api.endpoint;
+        if (api.pathParams) {
+            for (const [k, v] of Object.entries(api.pathParams)) {
+                let cv = chain[k];
+                if (cv === undefined && step.request.dataChain) {
+                    const dc = step.request.dataChain.find(c => c.field === k);
+                    if (dc && chain[dc.from] !== undefined) cv = chain[dc.from];
+                }
+                if (cv === undefined && typeof v === 'string') {
+                    const m = v.match(/^from-step-(\d+)$/);
+                    if (m) {
+                        const src = allSteps.find(s => s.step === parseInt(m[1]));
+                        if (src && src.chainsTo) {
+                            const mc = src.chainsTo.find(c => c.field === k || (typeof c.as === 'string' && c.as === k));
+                            if (mc) cv = chain[mc.as || mc.field];
+                        }
+                    }
+                }
+                endpoint = endpoint.replace('{' + k + '}', cv !== undefined ? cv : v);
+            }
+        }
+        const url = baseUrl + endpoint;
+
+        const fetchOpts = { method: api.method, headers: {} };
+        if (step.request.headers) Object.assign(fetchOpts.headers, step.request.headers);
+
+        let requestBody = (step.request.body !== null && step.request.body !== undefined)
+            ? JSON.parse(JSON.stringify(step.request.body)) : null;
+
+        if (step.request.dataChain && requestBody) {
+            step.request.dataChain.forEach(dc => {
+                const fp  = dc.field.replace(/ \(path\)$/, '');
+                const key = dc.from || fp;
+                if (chain[key] === undefined) return;
+                if (fp.includes('.') || fp.includes('[')) setPath(requestBody, fp, chain[key]);
+                else if (fp in requestBody) requestBody[fp] = chain[key];
+            });
+        }
+        if (step.request.dataChain) {
+            step.request.dataChain.forEach(dc => {
+                if (dc.field === 'Authorization' && chain['accessToken']) {
+                    fetchOpts.headers['Authorization'] = 'Bearer ' + chain['accessToken'];
+                }
+            });
+        }
+        if (requestBody !== null && requestBody !== undefined) {
+            fetchOpts.body = JSON.stringify(requestBody);
+        }
+
+        let liveStatus = 0, liveBody = null;
+        try {
+            const r  = await fetch(url, fetchOpts);
+            liveStatus = r.status;
+            const ct = r.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                liveBody = await r.json();
+            } else {
+                const t = await r.text();
+                liveBody = t.length > 0 ? t : null;
+            }
+        } catch { /* network error — liveStatus stays 0 */ }
+
+        if (step.chainsTo && liveBody && typeof liveBody === 'object') {
+            step.chainsTo.forEach(cd => {
+                if (cd.randomArrayPath) {
+                    const all = collectAllValues(liveBody, cd.randomArrayPath.split('.'));
+                    if (all.length) chain[cd.as] = all[Math.floor(Math.random() * all.length)];
+                } else if (cd.randomAvailableSeatFrom) {
+                    const cabins = liveBody[cd.randomAvailableSeatFrom];
+                    if (!Array.isArray(cabins)) return;
+                    const avail   = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
+                    if (!avail.length) return;
+                    const shuffled = [...avail].sort(() => Math.random() - 0.5);
+                    const count    = Math.min(runtimeVars.paxCount || 1, shuffled.length);
+                    for (let i = 0; i < count; i++) {
+                        for (const [sf, alias] of Object.entries(cd.as)) {
+                            if (i === 0) chain[alias] = shuffled[i][sf];
+                            chain[alias + '_' + (i + 1)] = shuffled[i][sf];
+                        }
+                    }
+                } else if (cd.path) {
+                    const val = getPath(liveBody, cd.path);
+                    if (val !== undefined) chain[cd.as] = val;
+                } else {
+                    const am = cd.field.match(/^\[(\d+)\]\.(.+)$/);
+                    if (am && Array.isArray(liveBody)) {
+                        const ai = parseInt(am[1], 10);
+                        if (liveBody[ai] && liveBody[ai][am[2]] !== undefined) {
+                            chain[cd.as || am[2]] = liveBody[ai][am[2]];
+                        }
+                    } else if (liveBody[cd.field] !== undefined) {
+                        chain[cd.as || cd.field] = liveBody[cd.field];
+                    }
+                }
+            });
+        }
+
+        if (step.chainsTo && step.chainsTo.length) {
+            step.chainsTo.forEach(cd => {
+                const alias = cd.as || cd.field;
+                if (typeof alias !== 'string') return;
+                const value = chain[alias];
+                if (value === undefined) return;
+                const fromRef = 'from-step-' + step.step;
+                allSteps.forEach(s => {
+                    if (s.apiCall.pathParams) {
+                        for (const [pn, pv] of Object.entries(s.apiCall.pathParams)) {
+                            if (pv === fromRef && pn === alias) chain[pn] = value;
+                        }
+                    }
+                });
+            });
+        }
+
+        const statusMatch   = liveStatus === step.expected.statusCode;
+        const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
+        return statusMatch && assertResults.every(r => r.pass);
+    }
 
     // =====================================================================
     // Name pools for random test data generation
@@ -514,14 +742,6 @@
     }
 
     // =====================================================================
-    // Config dropdown change handler
-    // =====================================================================
-
-    configSelect.addEventListener('change', () => {
-        loadJourney(configSelect.value);
-    });
-
-    // =====================================================================
     // Base URL inputs & health checks
     // =====================================================================
 
@@ -799,7 +1019,6 @@
             apiLog = [];
             btnCopyLogs.disabled = true;
             btnViewLogs.disabled = true;
-            configSelect.disabled = true;
             btnRunAll.disabled = true;
 
             if (hasRuntimeVars) {
@@ -833,7 +1052,6 @@
             btnRunAll.disabled = false;
             btnCopyLogs.disabled = false;
             btnViewLogs.disabled = false;
-            configSelect.disabled = false;
             nextCurrentSteps = null;
             nextStepCursor = 0;
         } else {
@@ -851,7 +1069,6 @@
         btnRunAll.textContent = '\u23F3 Running\u2026';
         btnCopyLogs.disabled = true;
         btnViewLogs.disabled = true;
-        configSelect.disabled = true;
         btnNextStep.disabled = true;
         nextStepCursor = 0;
         nextCurrentSteps = null;
@@ -880,7 +1097,6 @@
         btnRunAll.textContent = '\u25B6 Run';
         btnCopyLogs.disabled = false;
         btnViewLogs.disabled = false;
-        configSelect.disabled = false;
         btnNextStep.disabled = false;
         btnNextStep.textContent = '\u23ED Next';
     }
@@ -1356,9 +1572,17 @@
     }
 
     // =====================================================================
-    // Boot — load initial journey
+    // Boot
     // =====================================================================
 
-    await loadJourney(config);
+    renderTestGrid();
+
+    const initialConfig = params.get('config');
+    if (initialConfig && CONFIGS.some(c => c.value === initialConfig)) {
+        await loadJourney(initialConfig);
+        showDetailPage();
+    } else {
+        showMainPage();
+    }
 
 })();

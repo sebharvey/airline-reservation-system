@@ -890,3 +890,182 @@ body {
     .step-name { font-size: 0.78rem; }
     .modal { max-height: 92vh; }
 }
+
+/* =====================================================================
+   Main page — test grid
+   ===================================================================== */
+
+.main-controls {
+    margin-bottom: 1.5rem;
+}
+
+.btn-run-all-journeys {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.6rem 1.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--positive);
+    background: var(--positive-bg);
+    color: var(--positive);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-run-all-journeys:hover:not(:disabled) {
+    background: rgba(4, 120, 87, 0.16);
+}
+.btn-run-all-journeys:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.test-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.6rem;
+}
+
+.test-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    user-select: none;
+}
+.test-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(59,91,219,0.12);
+}
+.test-card.running {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+.test-card.result-pass {
+    border-color: var(--positive-border);
+    background: var(--positive-bg);
+    animation: glow-pass 1.2s ease-out forwards;
+}
+.test-card.result-pass:hover {
+    background: rgba(4, 120, 87, 0.13);
+    border-color: var(--positive);
+}
+.test-card.result-fail {
+    border-color: var(--negative-border);
+    background: var(--negative-bg);
+    animation: glow-fail 1.2s ease-out forwards;
+}
+.test-card.result-fail:hover {
+    background: rgba(185, 28, 28, 0.11);
+    border-color: var(--negative);
+}
+
+.test-card-indicator {
+    width: 1.4rem;
+    height: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.test-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.test-card-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+}
+
+.test-card-arrow {
+    color: var(--text-muted);
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* Spinner */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.spinner {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+/* Detail page header — back button + title in a row */
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.detail-header h1 {
+    flex: 1;
+}
+
+.btn-back {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-back:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+@media (max-width: 768px) {
+    .test-grid {
+        grid-template-columns: 1fr;
+    }
+    .test-card-name {
+        font-size: 0.82rem;
+    }
+    .detail-header {
+        flex-wrap: wrap;
+    }
+    .detail-header h1 {
+        width: 100%;
+        order: 1;
+    }
+    .btn-back {
+        order: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .test-card {
+        padding: 0.7rem 0.85rem;
+    }
+    .test-card-name {
+        font-size: 0.78rem;
+    }
+}
