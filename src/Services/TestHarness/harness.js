@@ -963,6 +963,13 @@
         if (api.pathParams) {
             for (const [k, v] of Object.entries(api.pathParams)) {
                 let chainedValue = liveChain[k];
+                // Check request.dataChain for an explicit field→alias mapping for this path param
+                if (chainedValue === undefined && step.request.dataChain) {
+                    const dcEntry = step.request.dataChain.find(c => c.field === k);
+                    if (dcEntry && liveChain[dcEntry.from] !== undefined) {
+                        chainedValue = liveChain[dcEntry.from];
+                    }
+                }
                 // If not found directly, resolve "from-step-N" references by looking up
                 // the source step's chainsTo entry that matches on field name
                 if (chainedValue === undefined && typeof v === 'string') {
