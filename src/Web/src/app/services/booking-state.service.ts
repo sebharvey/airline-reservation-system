@@ -87,21 +87,16 @@ export class BookingStateService {
     });
   }
 
-  /** Start a new basket with the selected outbound (and optional inbound) flight offer.
+  /** Start a new basket with the selected flight offers (one per segment).
    *  @param apiBasketId  The basketId returned by POST /v1/basket on the Retail API.
    *                      Falls back to a locally-generated ID if not provided.
    */
-  startBasket(outboundOffer: FlightOffer, inboundOffer: FlightOffer | null, apiBasketId?: string): void {
+  startBasket(offers: FlightOffer[], apiBasketId?: string): void {
     const paxCount = this._adultCount() + this._childCount();
     const passengerRefs = Array.from({ length: paxCount }, (_, i) => `PAX-${i + 1}`);
     const bookingType = this._bookingType();
 
-    const flightOffers: BasketFlightOffer[] = [
-      buildBasketFlightOffer(outboundOffer, passengerRefs)
-    ];
-    if (inboundOffer) {
-      flightOffers.push(buildBasketFlightOffer(inboundOffer, passengerRefs));
-    }
+    const flightOffers: BasketFlightOffer[] = offers.map(o => buildBasketFlightOffer(o, passengerRefs));
 
     const totalFare = flightOffers.reduce((sum, o) => sum + o.totalPrice, 0);
     const totalPoints = flightOffers.reduce((sum, o) => sum + (o.pointsPrice ?? 0), 0);
@@ -125,7 +120,7 @@ export class BookingStateService {
       totalSeatAmount: 0,
       totalBagAmount: 0,
       totalAmount: bookingType === 'Reward' ? totalTaxes : totalFare,
-      currency: outboundOffer.currency,
+      currency: offers[0].currency,
       ticketingTimeLimit: ttl.toISOString()
     });
     this._confirmedOrder.set(null);

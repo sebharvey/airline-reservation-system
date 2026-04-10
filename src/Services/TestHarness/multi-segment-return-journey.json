@@ -1,7 +1,7 @@
 {
   "journey": {
     "name": "Multi-Segment — Return Connecting (DEL → LHR → JFK, JFK → LHR → DEL)",
-    "description": "End-to-end return booking for a four-leg connecting itinerary: outbound DEL → LHR (AX412) → JFK and inbound JFK → LHR → DEL (AX411). Two connecting searches are performed — one per direction — and all four segment offer IDs are placed in a single basket. Covers connecting search, basket creation, passenger details, seat selection on all four legs, and payment confirmation.",
+    "description": "End-to-end return booking for a four-leg connecting itinerary: outbound DEL → LHR (AX412) → JFK and inbound JFK → LHR → DEL (AX411). Two connecting searches are performed — one per direction — and all four segment offer IDs are placed in a single basket. Covers connecting search, basket creation, passenger details, seatmap retrieval for all four legs, seat selection across all segments, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [
       { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
@@ -238,13 +238,13 @@
         "validationNotes": "basketId is a GUID. All four segments must be accepted. Each offer is independently validated against its stored offer in the Offer MS."
       },
       "chainsTo": [
-        { "field": "basketId", "usedInSteps": [4, 5, 6, 7] }
+        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11] }
       ]
     },
     {
       "step": 4,
       "name": "Get basket — verify 4 flights",
-      "description": "Retrieve the basket to confirm all four connecting flight segments are present and the basket is Active. Verifies that BasketData.flightOffers contains exactly four entries representing the complete return connecting itinerary.",
+      "description": "Retrieve the basket to confirm all four connecting flight segments are present and the basket is Active. Chains the inventoryId of each flight for use in the seatmap and seat selection steps.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
@@ -284,7 +284,13 @@
         "assertions": [
           { "field": "flights", "assertion": "count", "expected": 4 }
         ]
-      }
+      },
+      "chainsTo": [
+        { "path": "flights[0].inventoryId", "as": "outLeg1InventoryId", "usedInSteps": [6, 10] },
+        { "path": "flights[1].inventoryId", "as": "outLeg2InventoryId", "usedInSteps": [7, 10] },
+        { "path": "flights[2].inventoryId", "as": "inLeg1InventoryId",  "usedInSteps": [8, 10] },
+        { "path": "flights[3].inventoryId", "as": "inLeg2InventoryId",  "usedInSteps": [9, 10] }
+      ]
     },
     {
       "step": 5,
@@ -335,39 +341,191 @@
     },
     {
       "step": 6,
-      "name": "Add bags — all four legs",
-      "description": "Add a checked bag for PAX-1 on each of the four legs using bag offer IDs retrieved from the Bag MS. In a real flow this step would be preceded by GET /api/v1/basket/{basketId}/bag-offers to retrieve available bag offers per segment. This step exercises the basket's bag handling across multiple connecting segments.",
+      "name": "Get outbound Leg1 seatmap (DEL → LHR)",
+      "description": "Retrieve the seat map for outbound Leg1 (AX412 DEL → LHR, B789 aircraft) to display available seats to the passenger before selecting.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "B789",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for outbound Leg1 (DEL → LHR). Contains cabin layout and seat availability for the B789 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg1SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 7,
+      "name": "Get outbound Leg2 seatmap (LHR → JFK)",
+      "description": "Retrieve the seat map for outbound Leg2 (LHR → JFK, A351 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "A351",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for outbound Leg2 (LHR → JFK). Contains cabin layout and seat availability for the A351 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be A351."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "outLeg2SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Get inbound Leg1 seatmap (JFK → LHR)",
+      "description": "Retrieve the seat map for inbound Leg1 (JFK → LHR, A351 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "inLeg1InventoryId", "source": "Step 4 → flights[2].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "A351",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for inbound Leg1 (JFK → LHR). Contains cabin layout and seat availability for the A351 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be A351."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg1SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Get inbound Leg2 seatmap (LHR → DEL)",
+      "description": "Retrieve the seat map for inbound Leg2 (AX411 LHR → DEL, B789 aircraft).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap",
+        "baseUrlRef": "retail",
+        "pathParams": { "flightId": "from-step-4" }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          { "field": "flightId", "from": "inLeg2InventoryId", "source": "Step 4 → flights[3].inventoryId" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "flightId": "00000000-0000-0000-0000-000000000000",
+          "aircraftType": "B789",
+          "cabins": []
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — seatmap returned for inbound Leg2 (LHR → DEL). Contains cabin layout and seat availability for the B789 aircraft.",
+        "keyFields": ["aircraftType", "cabins"],
+        "validationNotes": "aircraftType should be B789 (AX411 aircraft type)."
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "inLeg2SeatNumber", "usedInSteps": [10] }
+      ]
+    },
+    {
+      "step": 10,
+      "name": "Select seats — all four legs",
+      "description": "Assign one seat per passenger per leg. All four seat assignments are submitted together in a single PUT call. Each assignment references the inventoryId of its respective flight as the segmentId.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
-        "endpoint": "/api/v1/basket/{basketId}/bags",
+        "endpoint": "/api/v1/basket/{basketId}/seats",
         "baseUrlRef": "retail",
         "pathParams": { "basketId": "from-step-3" }
       },
       "request": {
         "headers": { "Content-Type": "application/json" },
-        "body": [],
-        "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+        "body": [
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber__" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber__" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber__"  },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber__"  }
         ],
-        "note": "Bag selection is optional. Submit an empty array to confirm no checked bags are required, or include bag offer objects per passenger per segment if bags were retrieved from GET /api/v1/basket/{basketId}/bag-offers."
+        "dataChain": [
+          { "field": "basketId",         "from": "basketId",          "source": "Step 3 → response.basketId" },
+          { "field": "[0].segmentId",    "from": "outLeg1InventoryId", "source": "Step 4 → flights[0].inventoryId" },
+          { "field": "[0].seatNumber",   "from": "outLeg1SeatNumber",  "source": "Step 6 → random available seat on outbound Leg1" },
+          { "field": "[1].segmentId",    "from": "outLeg2InventoryId", "source": "Step 4 → flights[1].inventoryId" },
+          { "field": "[1].seatNumber",   "from": "outLeg2SeatNumber",  "source": "Step 7 → random available seat on outbound Leg2" },
+          { "field": "[2].segmentId",    "from": "inLeg1InventoryId",  "source": "Step 4 → flights[2].inventoryId" },
+          { "field": "[2].seatNumber",   "from": "inLeg1SeatNumber",   "source": "Step 8 → random available seat on inbound Leg1" },
+          { "field": "[3].segmentId",    "from": "inLeg2InventoryId",  "source": "Step 4 → flights[3].inventoryId" },
+          { "field": "[3].seatNumber",   "from": "inLeg2SeatNumber",   "source": "Step 9 → random available seat on inbound Leg2" }
+        ]
       },
       "response": {
         "statusCode": 200,
         "body": {
           "basketId": "c0ffee00-1234-5678-abcd-000000000002",
           "status": "Active",
-          "totalBagAmount": 0.00
+          "totalSeatAmount": 0.00
         }
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — bag selections updated (empty in this test — no additional bags). totalBagAmount remains 0.00.",
-        "keyFields": ["status", "totalBagAmount"]
+        "description": "200 OK — seat selections stored for all four legs. One seat assigned per passenger per leg. The basket reflects the updated seat selections.",
+        "keyFields": ["status", "totalSeatAmount"]
       }
     },
     {
-      "step": 7,
+      "step": 11,
       "name": "Confirm basket",
       "description": "Confirm the basket, triggering payment authorisation, order creation, inventory hold and sell across all four flight segments, e-ticket issuance for all four legs, and payment settlement. The response contains the booking reference and four e-tickets — one per segment of the complete return connecting itinerary.",
       "type": "positive",

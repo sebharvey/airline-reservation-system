@@ -272,7 +272,10 @@
         "description": "200 OK — seatmap returned for Leg1 (DEL → LHR). Contains cabin layout and seat availability for the B789 aircraft.",
         "keyFields": ["aircraftType", "cabins"],
         "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
-      }
+      },
+      "chainsTo": [
+        { "randomAvailableSeatFrom": "cabins[0].rows[*].seats[*]", "as": "leg1SeatNumber", "usedInSteps": [7] }
+      ]
     },
     {
       "step": 6,
@@ -323,13 +326,14 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg1InventoryId__", "seatNumber": "12A" },
+          { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg1InventoryId__", "seatNumber": "__CHAIN_leg1SeatNumber__" },
           { "passengerId": "PAX-1", "segmentId": "__CHAIN_leg2InventoryId__", "seatNumber": "__CHAIN_leg2SeatNumber__" }
         ],
         "dataChain": [
           { "field": "basketId",        "from": "basketId",        "source": "Step 2 → response.basketId" },
           { "field": "[0].segmentId",   "from": "leg1InventoryId", "source": "Step 3 → flights[0].inventoryId" },
           { "field": "[1].segmentId",   "from": "leg2InventoryId", "source": "Step 3 → flights[1].inventoryId" },
+          { "field": "[0].seatNumber",  "from": "leg1SeatNumber",  "source": "Step 5 → random available seat on Leg1" },
           { "field": "[1].seatNumber",  "from": "leg2SeatNumber",  "source": "Step 6 → random available seat on Leg2" }
         ]
       },
