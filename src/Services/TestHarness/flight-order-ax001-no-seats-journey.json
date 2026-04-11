@@ -414,7 +414,14 @@
         "body": {
           "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           "bookingReference": "AX123456",
-          "status": "Confirmed"
+          "status": "Confirmed",
+          "eTickets": [
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": ["BI-1"],
+              "eTicketNumber": "932-0000000001"
+            }
+          ]
         }
       },
       "expected": {
@@ -423,7 +430,8 @@
         "keyFields": [
           "orderId",
           "bookingReference",
-          "status"
+          "status",
+          "eTickets"
         ],
         "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card. On success, basketStatus transitions to Confirmed and confirmedOrderId is populated on the basket resource. loyaltyPointsToRedeem is null for a standard card payment.",
         "assertions": [
@@ -436,7 +444,7 @@
           {
             "field": "eTickets[*].eTicketNumber",
             "assertion": "present",
-            "description": "Every e-ticket must carry a non-empty eTicketNumber."
+            "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
         ]
       },

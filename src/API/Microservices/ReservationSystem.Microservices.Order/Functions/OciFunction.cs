@@ -78,6 +78,31 @@ public sealed class OciFunction
             }
             if (!hasMatch)
                 return await req.NotFoundAsync($"No order found for booking reference {bookingRef} and surname {surname}.");
+
+            // Validate all passengers have e-ticket numbers before check-in can proceed
+            var ticketedPaxIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (doc.RootElement.TryGetProperty("eTickets", out var eTickets))
+            {
+                foreach (var et in eTickets.EnumerateArray())
+                {
+                    if (et.TryGetProperty("passengerId", out var ePid) &&
+                        et.TryGetProperty("eTicketNumber", out var eTn) &&
+                        !string.IsNullOrWhiteSpace(eTn.GetString()))
+                        ticketedPaxIds.Add(ePid.GetString()!);
+                }
+            }
+
+            if (doc.RootElement.TryGetProperty("dataLists", out var dl) &&
+                dl.TryGetProperty("passengers", out var paxList))
+            {
+                foreach (var pax in paxList.EnumerateArray())
+                {
+                    if (pax.TryGetProperty("passengerId", out var pPid) &&
+                        !ticketedPaxIds.Contains(pPid.GetString() ?? ""))
+                        return await req.UnprocessableEntityAsync(
+                            $"Booking {bookingRef} has not been fully ticketed. Check-in is unavailable until all passengers have an e-ticket number.");
+                }
+            }
         }
         catch { }
 

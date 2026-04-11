@@ -1441,7 +1441,19 @@
           "error",
           "message"
         ],
-        "validationNotes": "cardNumber 4111111111111234 fails the Luhn check and must be rejected with a 4xx (422) rather than a 500. The basket must not transition to Confirmed. The error body must contain an error code and a human-readable message."
+        "validationNotes": "cardNumber 4111111111111234 fails the Luhn check and must be rejected with a 4xx (422) rather than a 500. The basket must not transition to Confirmed. The error body must contain an error code and a human-readable message.",
+        "assertions": [
+          {
+            "field": "error",
+            "assertion": "present",
+            "description": "error code must be present in the response body."
+          },
+          {
+            "field": "message",
+            "assertion": "present",
+            "description": "Human-readable error message must be present so the consumer can surface it to the user."
+          }
+        ]
       }
     },
     {
@@ -1484,7 +1496,14 @@
         "body": {
           "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           "bookingReference": "AX123456",
-          "status": "Confirmed"
+          "status": "Confirmed",
+          "eTickets": [
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": ["BI-1", "BI-2"],
+              "eTicketNumber": "932-0000000001"
+            }
+          ]
         }
       },
       "expected": {
@@ -1493,7 +1512,8 @@
         "keyFields": [
           "orderId",
           "bookingReference",
-          "status"
+          "status",
+          "eTickets"
         ],
         "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated.",
         "assertions": [
@@ -1506,7 +1526,7 @@
           {
             "field": "eTickets[*].eTicketNumber",
             "assertion": "present",
-            "description": "Every e-ticket must carry a non-empty eTicketNumber."
+            "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
         ]
       }
