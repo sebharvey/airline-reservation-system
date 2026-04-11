@@ -1,10 +1,14 @@
 {
   "journey": {
-    "name": "Multi-Segment — Return Connecting (DEL → LHR → JFK, JFK → LHR → DEL)",
+    "name": "Bookflow — return connecting DEL → LHR → JFK",
     "description": "End-to-end return booking for a four-leg connecting itinerary: outbound DEL → LHR (AX412) → JFK and inbound JFK → LHR → DEL (AX411). Two connecting searches are performed — one per direction — and all four segment offer IDs are placed in a single basket. Covers connecting search, basket creation, passenger details, seatmap retrieval for all four legs, seat selection across all segments, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [
-      { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      }
     ]
   },
   "steps": [
@@ -19,7 +23,9 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "origin": "DEL",
           "destination": "JFK",
@@ -50,8 +56,32 @@
                     "fromPrice": 186.25,
                     "currency": "GBP",
                     "fareFamilies": [
-                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
-                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-2222-2222-2222-000000000001", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      {
+                        "fareFamily": "Flex",
+                        "offer": {
+                          "offerId": "a1b2c3d4-1111-1111-1111-000000000001",
+                          "fareBasisCode": "YFLEXGB",
+                          "basePrice": 249.0,
+                          "tax": 97.25,
+                          "totalPrice": 346.25,
+                          "currency": "GBP",
+                          "isRefundable": true,
+                          "isChangeable": true
+                        }
+                      },
+                      {
+                        "fareFamily": "Non-Flex",
+                        "offer": {
+                          "offerId": "a1b2c3d4-2222-2222-2222-000000000001",
+                          "fareBasisCode": "YLOWGB",
+                          "basePrice": 89.0,
+                          "tax": 97.25,
+                          "totalPrice": 186.25,
+                          "currency": "GBP",
+                          "isRefundable": false,
+                          "isChangeable": false
+                        }
+                      }
                     ]
                   }
                 ]
@@ -73,14 +103,38 @@
                     "fromPrice": 186.25,
                     "currency": "GBP",
                     "fareFamilies": [
-                      { "fareFamily": "Flex",     "offer": { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
-                      { "fareFamily": "Non-Flex", "offer": { "offerId": "a1b2c3d4-4444-4444-4444-000000000004", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      {
+                        "fareFamily": "Flex",
+                        "offer": {
+                          "offerId": "a1b2c3d4-3333-3333-3333-000000000003",
+                          "fareBasisCode": "YFLEXGB",
+                          "basePrice": 249.0,
+                          "tax": 97.25,
+                          "totalPrice": 346.25,
+                          "currency": "GBP",
+                          "isRefundable": true,
+                          "isChangeable": true
+                        }
+                      },
+                      {
+                        "fareFamily": "Non-Flex",
+                        "offer": {
+                          "offerId": "a1b2c3d4-4444-4444-4444-000000000004",
+                          "fareBasisCode": "YLOWGB",
+                          "basePrice": 89.0,
+                          "tax": 97.25,
+                          "totalPrice": 186.25,
+                          "currency": "GBP",
+                          "isRefundable": false,
+                          "isChangeable": false
+                        }
+                      }
                     ]
                   }
                 ]
               },
               "connectionDurationMinutes": 150,
-              "combinedFromPrice": 372.50,
+              "combinedFromPrice": 372.5,
               "currency": "GBP"
             }
           ]
@@ -89,14 +143,41 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — outbound connecting itineraries returned. Each itinerary has Leg1 (DEL → LHR, AX412) and Leg2 (LHR → JFK) satisfying 60-minute MCT. SessionIds for both legs are chained forward for basket creation.",
-        "keyFields": ["itineraries", "itineraries[0].connectionDurationMinutes"],
+        "keyFields": [
+          "itineraries",
+          "itineraries[0].connectionDurationMinutes"
+        ],
         "validationNotes": "At least one itinerary must be returned. connectionDurationMinutes >= 60 for all itineraries. Leg1 should be AX412 (the only daily DEL → LHR service)."
       },
       "chainsTo": [
-        { "path": "itineraries[0].leg1.sessionId", "as": "outLeg1SessionId", "usedInSteps": [3] },
-        { "path": "itineraries[0].leg2.sessionId", "as": "outLeg2SessionId", "usedInSteps": [3] },
-        { "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId", "as": "outLeg1OfferId", "usedInSteps": [3] },
-        { "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId", "as": "outLeg2OfferId", "usedInSteps": [3] }
+        {
+          "path": "itineraries[0].leg1.sessionId",
+          "as": "outLeg1SessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "path": "itineraries[0].leg2.sessionId",
+          "as": "outLeg2SessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId",
+          "as": "outLeg1OfferId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId",
+          "as": "outLeg2OfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
       ]
     },
     {
@@ -110,7 +191,9 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "origin": "JFK",
           "destination": "DEL",
@@ -141,8 +224,32 @@
                     "fromPrice": 186.25,
                     "currency": "GBP",
                     "fareFamilies": [
-                      { "fareFamily": "Flex",     "offer": { "offerId": "b2c3d4e5-1111-1111-1111-000000000001", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
-                      { "fareFamily": "Non-Flex", "offer": { "offerId": "b2c3d4e5-2222-2222-2222-000000000001", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      {
+                        "fareFamily": "Flex",
+                        "offer": {
+                          "offerId": "b2c3d4e5-1111-1111-1111-000000000001",
+                          "fareBasisCode": "YFLEXGB",
+                          "basePrice": 249.0,
+                          "tax": 97.25,
+                          "totalPrice": 346.25,
+                          "currency": "GBP",
+                          "isRefundable": true,
+                          "isChangeable": true
+                        }
+                      },
+                      {
+                        "fareFamily": "Non-Flex",
+                        "offer": {
+                          "offerId": "b2c3d4e5-2222-2222-2222-000000000001",
+                          "fareBasisCode": "YLOWGB",
+                          "basePrice": 89.0,
+                          "tax": 97.25,
+                          "totalPrice": 186.25,
+                          "currency": "GBP",
+                          "isRefundable": false,
+                          "isChangeable": false
+                        }
+                      }
                     ]
                   }
                 ]
@@ -164,14 +271,38 @@
                     "fromPrice": 186.25,
                     "currency": "GBP",
                     "fareFamilies": [
-                      { "fareFamily": "Flex",     "offer": { "offerId": "b2c3d4e5-3333-3333-3333-000000000003", "fareBasisCode": "YFLEXGB", "basePrice": 249.00, "tax": 97.25, "totalPrice": 346.25, "currency": "GBP", "isRefundable": true,  "isChangeable": true  } },
-                      { "fareFamily": "Non-Flex", "offer": { "offerId": "b2c3d4e5-4444-4444-4444-000000000004", "fareBasisCode": "YLOWGB",  "basePrice": 89.00,  "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                      {
+                        "fareFamily": "Flex",
+                        "offer": {
+                          "offerId": "b2c3d4e5-3333-3333-3333-000000000003",
+                          "fareBasisCode": "YFLEXGB",
+                          "basePrice": 249.0,
+                          "tax": 97.25,
+                          "totalPrice": 346.25,
+                          "currency": "GBP",
+                          "isRefundable": true,
+                          "isChangeable": true
+                        }
+                      },
+                      {
+                        "fareFamily": "Non-Flex",
+                        "offer": {
+                          "offerId": "b2c3d4e5-4444-4444-4444-000000000004",
+                          "fareBasisCode": "YLOWGB",
+                          "basePrice": 89.0,
+                          "tax": 97.25,
+                          "totalPrice": 186.25,
+                          "currency": "GBP",
+                          "isRefundable": false,
+                          "isChangeable": false
+                        }
+                      }
                     ]
                   }
                 ]
               },
               "connectionDurationMinutes": 1155,
-              "combinedFromPrice": 372.50,
+              "combinedFromPrice": 372.5,
               "currency": "GBP"
             }
           ]
@@ -180,14 +311,41 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — inbound (return) connecting itineraries returned. Each itinerary has Leg1 (JFK → LHR, overnight with arrivalDayOffset=1) and Leg2 (LHR → DEL, AX411) satisfying 60-minute MCT on the LHR arrival day.",
-        "keyFields": ["itineraries", "itineraries[0].connectionDurationMinutes"],
+        "keyFields": [
+          "itineraries",
+          "itineraries[0].connectionDurationMinutes"
+        ],
         "validationNotes": "itineraries must be non-empty. Leg2 should be AX411 (the only daily LHR → DEL service). Connection time is large because AX411 departs late (20:30) and all JFK→LHR flights arrive much earlier on the same (next) day."
       },
       "chainsTo": [
-        { "path": "itineraries[0].leg1.sessionId", "as": "inLeg1SessionId", "usedInSteps": [3] },
-        { "path": "itineraries[0].leg2.sessionId", "as": "inLeg2SessionId", "usedInSteps": [3] },
-        { "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId", "as": "inLeg1OfferId", "usedInSteps": [3] },
-        { "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId", "as": "inLeg2OfferId", "usedInSteps": [3] }
+        {
+          "path": "itineraries[0].leg1.sessionId",
+          "as": "inLeg1SessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "path": "itineraries[0].leg2.sessionId",
+          "as": "inLeg2SessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].leg1.cabins[*].fareFamilies[*].offer.offerId",
+          "as": "inLeg1OfferId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].leg2.cabins[*].fareFamilies[*].offer.offerId",
+          "as": "inLeg2OfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
       ]
     },
     {
@@ -201,13 +359,27 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "segments": [
-            { "offerId": "a1b2c3d4-1111-1111-1111-000000000001", "sessionId": "a1b2c3d4-0001-0001-0001-000000000001" },
-            { "offerId": "a1b2c3d4-3333-3333-3333-000000000003", "sessionId": "a1b2c3d4-0002-0002-0002-000000000002" },
-            { "offerId": "b2c3d4e5-1111-1111-1111-000000000001", "sessionId": "b2c3d4e5-0001-0001-0001-000000000001" },
-            { "offerId": "b2c3d4e5-3333-3333-3333-000000000003", "sessionId": "b2c3d4e5-0002-0002-0002-000000000002" }
+            {
+              "offerId": "a1b2c3d4-1111-1111-1111-000000000001",
+              "sessionId": "a1b2c3d4-0001-0001-0001-000000000001"
+            },
+            {
+              "offerId": "a1b2c3d4-3333-3333-3333-000000000003",
+              "sessionId": "a1b2c3d4-0002-0002-0002-000000000002"
+            },
+            {
+              "offerId": "b2c3d4e5-1111-1111-1111-000000000001",
+              "sessionId": "b2c3d4e5-0001-0001-0001-000000000001"
+            },
+            {
+              "offerId": "b2c3d4e5-3333-3333-3333-000000000003",
+              "sessionId": "b2c3d4e5-0002-0002-0002-000000000002"
+            }
           ],
           "channelCode": "WEB",
           "currencyCode": "GBP",
@@ -215,14 +387,46 @@
           "passengerCount": "__RAND_PAX_COUNT__"
         },
         "dataChain": [
-          { "field": "segments[0].offerId",   "from": "outLeg1OfferId",   "source": "Step 1 → outbound Leg1 DEL→LHR offer" },
-          { "field": "segments[0].sessionId", "from": "outLeg1SessionId", "source": "Step 1 → itineraries[0].leg1.sessionId" },
-          { "field": "segments[1].offerId",   "from": "outLeg2OfferId",   "source": "Step 1 → outbound Leg2 LHR→JFK offer" },
-          { "field": "segments[1].sessionId", "from": "outLeg2SessionId", "source": "Step 1 → itineraries[0].leg2.sessionId" },
-          { "field": "segments[2].offerId",   "from": "inLeg1OfferId",    "source": "Step 2 → inbound Leg1 JFK→LHR offer" },
-          { "field": "segments[2].sessionId", "from": "inLeg1SessionId",  "source": "Step 2 → itineraries[0].leg1.sessionId" },
-          { "field": "segments[3].offerId",   "from": "inLeg2OfferId",    "source": "Step 2 → inbound Leg2 LHR→DEL offer" },
-          { "field": "segments[3].sessionId", "from": "inLeg2SessionId",  "source": "Step 2 → itineraries[0].leg2.sessionId" }
+          {
+            "field": "segments[0].offerId",
+            "from": "outLeg1OfferId",
+            "source": "Step 1 → outbound Leg1 DEL→LHR offer"
+          },
+          {
+            "field": "segments[0].sessionId",
+            "from": "outLeg1SessionId",
+            "source": "Step 1 → itineraries[0].leg1.sessionId"
+          },
+          {
+            "field": "segments[1].offerId",
+            "from": "outLeg2OfferId",
+            "source": "Step 1 → outbound Leg2 LHR→JFK offer"
+          },
+          {
+            "field": "segments[1].sessionId",
+            "from": "outLeg2SessionId",
+            "source": "Step 1 → itineraries[0].leg2.sessionId"
+          },
+          {
+            "field": "segments[2].offerId",
+            "from": "inLeg1OfferId",
+            "source": "Step 2 → inbound Leg1 JFK→LHR offer"
+          },
+          {
+            "field": "segments[2].sessionId",
+            "from": "inLeg1SessionId",
+            "source": "Step 2 → itineraries[0].leg1.sessionId"
+          },
+          {
+            "field": "segments[3].offerId",
+            "from": "inLeg2OfferId",
+            "source": "Step 2 → inbound Leg2 LHR→DEL offer"
+          },
+          {
+            "field": "segments[3].sessionId",
+            "from": "inLeg2SessionId",
+            "source": "Step 2 → itineraries[0].leg2.sessionId"
+          }
         ]
       },
       "response": {
@@ -234,11 +438,25 @@
       "expected": {
         "statusCode": 201,
         "description": "201 Created — basket created with all four flight segments. Returns basketId (GUID). The basket now holds the complete return itinerary — two outbound legs and two inbound legs — as independent flight offers.",
-        "keyFields": ["basketId"],
+        "keyFields": [
+          "basketId"
+        ],
         "validationNotes": "basketId is a GUID. All four segments must be accepted. Each offer is independently validated against its stored offer in the Offer MS."
       },
       "chainsTo": [
-        { "field": "basketId", "usedInSteps": [4, 5, 6, 7, 8, 9, 10, 11] }
+        {
+          "field": "basketId",
+          "usedInSteps": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        }
       ]
     },
     {
@@ -250,12 +468,18 @@
         "method": "GET",
         "endpoint": "/api/v1/basket/{basketId}",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-3" }
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -265,10 +489,46 @@
           "basketStatus": "Active",
           "basketData": {
             "flightOffers": [
-              { "basketItemId": "BI-1", "flightNumber": "AX412", "origin": "DEL", "destination": "LHR", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000001", "aircraftType": "B789", "totalAmount": 186.25 },
-              { "basketItemId": "BI-2", "flightNumber": "AX003", "origin": "LHR", "destination": "JFK", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000002", "aircraftType": "A351", "totalAmount": 186.25 },
-              { "basketItemId": "BI-3", "flightNumber": "AX002", "origin": "JFK", "destination": "LHR", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000003", "aircraftType": "A351", "totalAmount": 186.25 },
-              { "basketItemId": "BI-4", "flightNumber": "AX411", "origin": "LHR", "destination": "DEL", "cabinCode": "Y", "inventoryId": "00000000-0000-0000-0000-000000000004", "aircraftType": "B789", "totalAmount": 186.25 }
+              {
+                "basketItemId": "BI-1",
+                "flightNumber": "AX412",
+                "origin": "DEL",
+                "destination": "LHR",
+                "cabinCode": "Y",
+                "inventoryId": "00000000-0000-0000-0000-000000000001",
+                "aircraftType": "B789",
+                "totalAmount": 186.25
+              },
+              {
+                "basketItemId": "BI-2",
+                "flightNumber": "AX003",
+                "origin": "LHR",
+                "destination": "JFK",
+                "cabinCode": "Y",
+                "inventoryId": "00000000-0000-0000-0000-000000000002",
+                "aircraftType": "A351",
+                "totalAmount": 186.25
+              },
+              {
+                "basketItemId": "BI-3",
+                "flightNumber": "AX002",
+                "origin": "JFK",
+                "destination": "LHR",
+                "cabinCode": "Y",
+                "inventoryId": "00000000-0000-0000-0000-000000000003",
+                "aircraftType": "A351",
+                "totalAmount": 186.25
+              },
+              {
+                "basketItemId": "BI-4",
+                "flightNumber": "AX411",
+                "origin": "LHR",
+                "destination": "DEL",
+                "cabinCode": "Y",
+                "inventoryId": "00000000-0000-0000-0000-000000000004",
+                "aircraftType": "B789",
+                "totalAmount": 186.25
+              }
             ],
             "passengers": [],
             "seats": [],
@@ -279,25 +539,109 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — basket retrieved. basketStatus is Active. basketData.flightOffers contains all four legs: outbound Leg1 (DEL→LHR), outbound Leg2 (LHR→JFK), inbound Leg1 (JFK→LHR), inbound Leg2 (LHR→DEL). Each entry carries inventoryId and aircraftType used for seatmap retrieval.",
-        "keyFields": ["basketStatus", "basketData.flightOffers"],
+        "keyFields": [
+          "basketStatus",
+          "basketData.flightOffers"
+        ],
         "validationNotes": "basketData.flightOffers must contain exactly four items. basketStatus must be 'Active'. Leg sequence order is determined by the order segments were submitted in Step 3.",
         "assertions": [
-          { "field": "basketData.flightOffers", "assertion": "count", "expected": 4, "description": "Exactly 4 flight offers must be present in the basket — one per leg of the complete connecting return itinerary." }
+          {
+            "field": "basketData.flightOffers",
+            "assertion": "count",
+            "expected": 4,
+            "description": "Exactly 4 flight offers must be present in the basket — one per leg of the complete connecting return itinerary."
+          }
         ]
       },
       "chainsTo": [
-        { "path": "basketData.flightOffers[0].inventoryId",  "as": "outLeg1InventoryId",  "usedInSteps": [6, 10] },
-        { "path": "basketData.flightOffers[0].aircraftType", "as": "outLeg1AircraftType", "usedInSteps": [6] },
-        { "path": "basketData.flightOffers[0].cabinCode",    "as": "outLeg1CabinCode",    "usedInSteps": [6] },
-        { "path": "basketData.flightOffers[1].inventoryId",  "as": "outLeg2InventoryId",  "usedInSteps": [7, 10] },
-        { "path": "basketData.flightOffers[1].aircraftType", "as": "outLeg2AircraftType", "usedInSteps": [7] },
-        { "path": "basketData.flightOffers[1].cabinCode",    "as": "outLeg2CabinCode",    "usedInSteps": [7] },
-        { "path": "basketData.flightOffers[2].inventoryId",  "as": "inLeg1InventoryId",   "usedInSteps": [8, 10] },
-        { "path": "basketData.flightOffers[2].aircraftType", "as": "inLeg1AircraftType",  "usedInSteps": [8] },
-        { "path": "basketData.flightOffers[2].cabinCode",    "as": "inLeg1CabinCode",     "usedInSteps": [8] },
-        { "path": "basketData.flightOffers[3].inventoryId",  "as": "inLeg2InventoryId",   "usedInSteps": [9, 10] },
-        { "path": "basketData.flightOffers[3].aircraftType", "as": "inLeg2AircraftType",  "usedInSteps": [9] },
-        { "path": "basketData.flightOffers[3].cabinCode",    "as": "inLeg2CabinCode",     "usedInSteps": [9] }
+        {
+          "path": "basketData.flightOffers[0].inventoryId",
+          "as": "outLeg1InventoryId",
+          "usedInSteps": [
+            6,
+            10
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].aircraftType",
+          "as": "outLeg1AircraftType",
+          "usedInSteps": [
+            6
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].cabinCode",
+          "as": "outLeg1CabinCode",
+          "usedInSteps": [
+            6
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].inventoryId",
+          "as": "outLeg2InventoryId",
+          "usedInSteps": [
+            7,
+            10
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].aircraftType",
+          "as": "outLeg2AircraftType",
+          "usedInSteps": [
+            7
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].cabinCode",
+          "as": "outLeg2CabinCode",
+          "usedInSteps": [
+            7
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[2].inventoryId",
+          "as": "inLeg1InventoryId",
+          "usedInSteps": [
+            8,
+            10
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[2].aircraftType",
+          "as": "inLeg1AircraftType",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[2].cabinCode",
+          "as": "inLeg1CabinCode",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[3].inventoryId",
+          "as": "inLeg2InventoryId",
+          "usedInSteps": [
+            9,
+            10
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[3].aircraftType",
+          "as": "inLeg2AircraftType",
+          "usedInSteps": [
+            9
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[3].cabinCode",
+          "as": "inLeg2CabinCode",
+          "usedInSteps": [
+            9
+          ]
+        }
       ]
     },
     {
@@ -309,20 +653,112 @@
         "method": "PUT",
         "endpoint": "/api/v1/basket/{basketId}/passengers",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-3" }
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": [
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "type": "ADT", "givenName": "__RAND_GIVEN_NAME__",   "surname": "__RAND_SURNAME__",   "dateOfBirth": "__RAND_DOB__",   "gender": "__RAND_GENDER__",   "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL__",   "phone": "__RAND_PHONE__"   }, "travelDocument": null },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_2__", "surname": "__RAND_SURNAME_2__", "dateOfBirth": "__RAND_DOB_2__", "gender": "__RAND_GENDER_2__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_2__", "phone": "__RAND_PHONE_2__" }, "travelDocument": null },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_3__", "surname": "__RAND_SURNAME_3__", "dateOfBirth": "__RAND_DOB_3__", "gender": "__RAND_GENDER_3__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_3__", "phone": "__RAND_PHONE_3__" }, "travelDocument": null },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_4__", "surname": "__RAND_SURNAME_4__", "dateOfBirth": "__RAND_DOB_4__", "gender": "__RAND_GENDER_4__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_4__", "phone": "__RAND_PHONE_4__" }, "travelDocument": null },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_5__", "surname": "__RAND_SURNAME_5__", "dateOfBirth": "__RAND_DOB_5__", "gender": "__RAND_GENDER_5__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_5__", "phone": "__RAND_PHONE_5__" }, "travelDocument": null },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_6__", "surname": "__RAND_SURNAME_6__", "dateOfBirth": "__RAND_DOB_6__", "gender": "__RAND_GENDER_6__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_6__", "phone": "__RAND_PHONE_6__" }, "travelDocument": null }
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_2__",
+            "surname": "__RAND_SURNAME_2__",
+            "dateOfBirth": "__RAND_DOB_2__",
+            "gender": "__RAND_GENDER_2__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_2__",
+              "phone": "__RAND_PHONE_2__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_3__",
+            "surname": "__RAND_SURNAME_3__",
+            "dateOfBirth": "__RAND_DOB_3__",
+            "gender": "__RAND_GENDER_3__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_3__",
+              "phone": "__RAND_PHONE_3__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_4__",
+            "surname": "__RAND_SURNAME_4__",
+            "dateOfBirth": "__RAND_DOB_4__",
+            "gender": "__RAND_GENDER_4__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_4__",
+              "phone": "__RAND_PHONE_4__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_5__",
+            "surname": "__RAND_SURNAME_5__",
+            "dateOfBirth": "__RAND_DOB_5__",
+            "gender": "__RAND_GENDER_5__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_5__",
+              "phone": "__RAND_PHONE_5__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_6__",
+            "surname": "__RAND_SURNAME_6__",
+            "dateOfBirth": "__RAND_DOB_6__",
+            "gender": "__RAND_GENDER_6__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_6__",
+              "phone": "__RAND_PHONE_6__"
+            },
+            "travelDocument": null
+          }
         ],
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -330,14 +766,16 @@
         "body": {
           "basketId": "c0ffee00-1234-5678-abcd-000000000002",
           "status": "Active",
-          "totalFareAmount": 745.00,
+          "totalFareAmount": 745.0,
           "currency": "GBP"
         }
       },
       "expected": {
         "statusCode": 200,
         "description": "200 OK — passengers added (1–6, determined by __RAND_PAX_COUNT__). The basket remains Active with totalFareAmount unchanged.",
-        "keyFields": ["status"]
+        "keyFields": [
+          "status"
+        ]
       }
     },
     {
@@ -349,14 +787,30 @@
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
+        "pathParams": {
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId",    "from": "outLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
-          { "field": "aircraftType", "from": "outLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" },
-          { "field": "cabinCode",    "from": "outLeg1CabinCode",    "source": "Step 4 → basketData.flightOffers[0].cabinCode" }
+          {
+            "field": "flightId",
+            "from": "outLeg1InventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+          },
+          {
+            "field": "aircraftType",
+            "from": "outLeg1AircraftType",
+            "source": "Step 4 → basketData.flightOffers[0].aircraftType"
+          },
+          {
+            "field": "cabinCode",
+            "from": "outLeg1CabinCode",
+            "source": "Step 4 → basketData.flightOffers[0].cabinCode"
+          }
         ]
       },
       "response": {
@@ -370,11 +824,24 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — seatmap returned for outbound Leg1 (DEL → LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
-        "keyFields": ["aircraftType", "cabins"],
+        "keyFields": [
+          "aircraftType",
+          "cabins"
+        ],
         "validationNotes": "aircraftType should be B789 (AX412 aircraft type). Response contains only the booked cabin."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg1SeatOfferId", "seatNumber": "outLeg1SeatNumber", "position": "outLeg1SeatPosition" }, "usedInSteps": [10] }
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "outLeg1SeatOfferId",
+            "seatNumber": "outLeg1SeatNumber",
+            "position": "outLeg1SeatPosition"
+          },
+          "usedInSteps": [
+            10
+          ]
+        }
       ]
     },
     {
@@ -386,14 +853,30 @@
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
+        "pathParams": {
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId",    "from": "outLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
-          { "field": "aircraftType", "from": "outLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" },
-          { "field": "cabinCode",    "from": "outLeg2CabinCode",    "source": "Step 4 → basketData.flightOffers[1].cabinCode" }
+          {
+            "field": "flightId",
+            "from": "outLeg2InventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId"
+          },
+          {
+            "field": "aircraftType",
+            "from": "outLeg2AircraftType",
+            "source": "Step 4 → basketData.flightOffers[1].aircraftType"
+          },
+          {
+            "field": "cabinCode",
+            "from": "outLeg2CabinCode",
+            "source": "Step 4 → basketData.flightOffers[1].cabinCode"
+          }
         ]
       },
       "response": {
@@ -407,11 +890,24 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — seatmap returned for outbound Leg2 (LHR → JFK) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
-        "keyFields": ["aircraftType", "cabins"],
+        "keyFields": [
+          "aircraftType",
+          "cabins"
+        ],
         "validationNotes": "aircraftType should be A351. Response contains only the booked cabin."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg2SeatOfferId", "seatNumber": "outLeg2SeatNumber", "position": "outLeg2SeatPosition" }, "usedInSteps": [10] }
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "outLeg2SeatOfferId",
+            "seatNumber": "outLeg2SeatNumber",
+            "position": "outLeg2SeatPosition"
+          },
+          "usedInSteps": [
+            10
+          ]
+        }
       ]
     },
     {
@@ -423,14 +919,30 @@
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
+        "pathParams": {
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId",    "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId" },
-          { "field": "aircraftType", "from": "inLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[2].aircraftType" },
-          { "field": "cabinCode",    "from": "inLeg1CabinCode",    "source": "Step 4 → basketData.flightOffers[2].cabinCode" }
+          {
+            "field": "flightId",
+            "from": "inLeg1InventoryId",
+            "source": "Step 4 → basketData.flightOffers[2].inventoryId"
+          },
+          {
+            "field": "aircraftType",
+            "from": "inLeg1AircraftType",
+            "source": "Step 4 → basketData.flightOffers[2].aircraftType"
+          },
+          {
+            "field": "cabinCode",
+            "from": "inLeg1CabinCode",
+            "source": "Step 4 → basketData.flightOffers[2].cabinCode"
+          }
         ]
       },
       "response": {
@@ -444,11 +956,24 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — seatmap returned for inbound Leg1 (JFK → LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
-        "keyFields": ["aircraftType", "cabins"],
+        "keyFields": [
+          "aircraftType",
+          "cabins"
+        ],
         "validationNotes": "aircraftType should be A351. Response contains only the booked cabin."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg1SeatOfferId", "seatNumber": "inLeg1SeatNumber", "position": "inLeg1SeatPosition" }, "usedInSteps": [10] }
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "inLeg1SeatOfferId",
+            "seatNumber": "inLeg1SeatNumber",
+            "position": "inLeg1SeatPosition"
+          },
+          "usedInSteps": [
+            10
+          ]
+        }
       ]
     },
     {
@@ -460,14 +985,30 @@
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
+        "pathParams": {
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "flightId",    "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId" },
-          { "field": "aircraftType", "from": "inLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[3].aircraftType" },
-          { "field": "cabinCode",    "from": "inLeg2CabinCode",    "source": "Step 4 → basketData.flightOffers[3].cabinCode" }
+          {
+            "field": "flightId",
+            "from": "inLeg2InventoryId",
+            "source": "Step 4 → basketData.flightOffers[3].inventoryId"
+          },
+          {
+            "field": "aircraftType",
+            "from": "inLeg2AircraftType",
+            "source": "Step 4 → basketData.flightOffers[3].aircraftType"
+          },
+          {
+            "field": "cabinCode",
+            "from": "inLeg2CabinCode",
+            "source": "Step 4 → basketData.flightOffers[3].cabinCode"
+          }
         ]
       },
       "response": {
@@ -481,11 +1022,24 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — seatmap returned for inbound Leg2 (LHR → DEL) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
-        "keyFields": ["aircraftType", "cabins"],
+        "keyFields": [
+          "aircraftType",
+          "cabins"
+        ],
         "validationNotes": "aircraftType should be B789 (AX411 aircraft type). Response contains only the booked cabin."
       },
       "chainsTo": [
-        { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg2SeatOfferId", "seatNumber": "inLeg2SeatNumber", "position": "inLeg2SeatPosition" }, "usedInSteps": [10] }
+        {
+          "randomAvailableSeatFrom": "cabins",
+          "as": {
+            "seatOfferId": "inLeg2SeatOfferId",
+            "seatNumber": "inLeg2SeatNumber",
+            "position": "inLeg2SeatPosition"
+          },
+          "usedInSteps": [
+            10
+          ]
+        }
       ]
     },
     {
@@ -497,46 +1051,206 @@
         "method": "PUT",
         "endpoint": "/api/v1/basket/{basketId}/seats",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-3" }
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": [
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_1__" },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_2__" },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_3__" },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_4__" },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_5__" },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_6__" },
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_1__" },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_2__" },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_3__" },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_4__" },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_5__" },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_6__" },
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_1__"  },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_2__"  },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_3__"  },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_4__"  },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_5__"  },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_6__"  },
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_1__"  },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_2__"  },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_3__"  },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_4__"  },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_5__"  },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_6__"  }
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_1__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_2__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_3__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_4__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_5__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "__CHAIN_outLeg1InventoryId__",
+            "seatNumber": "__CHAIN_outLeg1SeatNumber_6__"
+          },
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_1__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_2__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_3__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_4__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_5__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "__CHAIN_outLeg2InventoryId__",
+            "seatNumber": "__CHAIN_outLeg2SeatNumber_6__"
+          },
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_1__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_2__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_3__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_4__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_5__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "__CHAIN_inLeg1InventoryId__",
+            "seatNumber": "__CHAIN_inLeg1SeatNumber_6__"
+          },
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_1__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_2__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_3__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_4__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_5__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "__CHAIN_inLeg2InventoryId__",
+            "seatNumber": "__CHAIN_inLeg2SeatNumber_6__"
+          }
         ],
         "dataChain": [
-          { "field": "basketId",           "from": "basketId",           "source": "Step 3 → response.basketId" },
-          { "field": "[PAX-N].segmentId",  "from": "outLeg1InventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId (all PAX-1…6 on outbound Leg1)" },
-          { "field": "[PAX-N].seatNumber", "from": "outLeg1SeatNumber_N","source": "Step 6 → random available seat N on outbound Leg1" },
-          { "field": "[PAX-N].segmentId",  "from": "outLeg2InventoryId", "source": "Step 4 → basketData.flightOffers[1].inventoryId (all PAX-1…6 on outbound Leg2)" },
-          { "field": "[PAX-N].seatNumber", "from": "outLeg2SeatNumber_N","source": "Step 7 → random available seat N on outbound Leg2" },
-          { "field": "[PAX-N].segmentId",  "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId (all PAX-1…6 on inbound Leg1)" },
-          { "field": "[PAX-N].seatNumber", "from": "inLeg1SeatNumber_N", "source": "Step 8 → random available seat N on inbound Leg1" },
-          { "field": "[PAX-N].segmentId",  "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId (all PAX-1…6 on inbound Leg2)" },
-          { "field": "[PAX-N].seatNumber", "from": "inLeg2SeatNumber_N", "source": "Step 9 → random available seat N on inbound Leg2" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          },
+          {
+            "field": "[PAX-N].segmentId",
+            "from": "outLeg1InventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (all PAX-1…6 on outbound Leg1)"
+          },
+          {
+            "field": "[PAX-N].seatNumber",
+            "from": "outLeg1SeatNumber_N",
+            "source": "Step 6 → random available seat N on outbound Leg1"
+          },
+          {
+            "field": "[PAX-N].segmentId",
+            "from": "outLeg2InventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (all PAX-1…6 on outbound Leg2)"
+          },
+          {
+            "field": "[PAX-N].seatNumber",
+            "from": "outLeg2SeatNumber_N",
+            "source": "Step 7 → random available seat N on outbound Leg2"
+          },
+          {
+            "field": "[PAX-N].segmentId",
+            "from": "inLeg1InventoryId",
+            "source": "Step 4 → basketData.flightOffers[2].inventoryId (all PAX-1…6 on inbound Leg1)"
+          },
+          {
+            "field": "[PAX-N].seatNumber",
+            "from": "inLeg1SeatNumber_N",
+            "source": "Step 8 → random available seat N on inbound Leg1"
+          },
+          {
+            "field": "[PAX-N].segmentId",
+            "from": "inLeg2InventoryId",
+            "source": "Step 4 → basketData.flightOffers[3].inventoryId (all PAX-1…6 on inbound Leg2)"
+          },
+          {
+            "field": "[PAX-N].seatNumber",
+            "from": "inLeg2SeatNumber_N",
+            "source": "Step 9 → random available seat N on inbound Leg2"
+          }
         ]
       },
       "response": {
@@ -544,13 +1258,16 @@
         "body": {
           "basketId": "c0ffee00-1234-5678-abcd-000000000002",
           "status": "Active",
-          "totalSeatAmount": 0.00
+          "totalSeatAmount": 0.0
         }
       },
       "expected": {
         "statusCode": 200,
         "description": "200 OK — seat selections stored for all four legs. One seat assigned per passenger per leg. The basket reflects the updated seat selections.",
-        "keyFields": ["status", "totalSeatAmount"]
+        "keyFields": [
+          "status",
+          "totalSeatAmount"
+        ]
       }
     },
     {
@@ -562,10 +1279,14 @@
         "method": "POST",
         "endpoint": "/api/v1/basket/{basketId}/confirm",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-3" }
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "payment": {
             "method": "CreditCard",
@@ -576,7 +1297,11 @@
           }
         },
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -585,22 +1310,55 @@
           "bookingReference": "XYZ789",
           "status": "Confirmed",
           "eTickets": [
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-1"], "eTicketNumber": "001 0123456789" },
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-2"], "eTicketNumber": "001 0123456790" },
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-3"], "eTicketNumber": "001 0123456791" },
-            { "passengerId": "PAX-1", "segmentIds": ["SEG-4"], "eTicketNumber": "001 0123456792" }
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": [
+                "SEG-1"
+              ],
+              "eTicketNumber": "001 0123456789"
+            },
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": [
+                "SEG-2"
+              ],
+              "eTicketNumber": "001 0123456790"
+            },
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": [
+                "SEG-3"
+              ],
+              "eTicketNumber": "001 0123456791"
+            },
+            {
+              "passengerId": "PAX-1",
+              "segmentIds": [
+                "SEG-4"
+              ],
+              "eTicketNumber": "001 0123456792"
+            }
           ],
-          "totalPrice": 745.00,
+          "totalPrice": 745.0,
           "currency": "GBP"
         }
       },
       "expected": {
         "statusCode": 201,
         "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger (1–6) — each ticket carries four flight coupons, one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
-        "keyFields": ["bookingReference", "status", "eTickets"],
+        "keyFields": [
+          "bookingReference",
+          "status",
+          "eTickets"
+        ],
         "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain one entry per passenger (matches __RAND_PAX_COUNT__), each with four segmentIds — one coupon per leg. All four inventory records are held and sold atomically during confirmation.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": "__RAND_PAX_COUNT__", "description": "One e-ticket must be issued per passenger (matches the paxCount for this run). Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)." }
+          {
+            "field": "eTickets",
+            "assertion": "count",
+            "expected": "__RAND_PAX_COUNT__",
+            "description": "One e-ticket must be issued per passenger (matches the paxCount for this run). Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)."
+          }
         ]
       }
     }

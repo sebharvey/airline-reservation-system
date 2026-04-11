@@ -1,13 +1,29 @@
 {
   "journey": {
-    "name": "Terminal Customer Flow",
+    "name": "Terminal — customer search & management",
     "description": "End-to-end journey simulating a contact-centre agent scenario: register a loyalty customer via the Loyalty API, create a staff user via the User MS, authenticate via the Admin API to obtain a staff JWT, search for the customer directly via the Customer MS, search again via the Loyalty API admin search endpoint and validate the result, then delete the customer via the Customer MS.",
     "domain": "Terminal Customer",
     "baseUrls": [
-      { "id": "loyalty", "label": "Loyalty API", "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
-      { "id": "admin", "label": "Admin API", "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
-      { "id": "user", "label": "User MS", "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net" },
-      { "id": "customer", "label": "Customer MS", "url": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net" }
+      {
+        "id": "loyalty",
+        "label": "Loyalty API",
+        "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "user",
+        "label": "User MS",
+        "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "customer",
+        "label": "Customer MS",
+        "url": "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net"
+      }
     ]
   },
   "steps": [
@@ -46,11 +62,24 @@
       "expected": {
         "statusCode": 201,
         "description": "201 Created — loyalty member registered. Response contains the issued loyalty number (AX prefix, 9 characters), the member's given name, initial tier (Blue), and a confirmation message.",
-        "keyFields": ["loyaltyNumber", "givenName", "tierCode", "message"],
+        "keyFields": [
+          "loyaltyNumber",
+          "givenName",
+          "tierCode",
+          "message"
+        ],
         "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. givenName matches the submitted value. Three downstream calls were made: Customer MS create, Identity MS create account, Customer MS patch identity reference."
       },
       "chainsTo": [
-        { "field": "loyaltyNumber", "usedInSteps": [4, 5, 6, 7] }
+        {
+          "field": "loyaltyNumber",
+          "usedInSteps": [
+            4,
+            5,
+            6,
+            7
+          ]
+        }
       ]
     },
     {
@@ -84,11 +113,18 @@
       "expected": {
         "statusCode": 201,
         "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This account provides the credential fixture for the Admin API login in Step 3.",
-        "keyFields": ["userId"],
+        "keyFields": [
+          "userId"
+        ],
         "validationNotes": "userId is a non-empty GUID. Username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
       },
       "chainsTo": [
-        { "field": "userId", "usedInSteps": [3] }
+        {
+          "field": "userId",
+          "usedInSteps": [
+            3
+          ]
+        }
       ]
     },
     {
@@ -110,8 +146,14 @@
           "password": "__RAND_PASSWORD__"
         },
         "dataChain": [
-          { "field": "username", "source": "Step 2 → runtime-generated username" },
-          { "field": "password", "source": "Step 2 → runtime-generated password" }
+          {
+            "field": "username",
+            "source": "Step 2 → runtime-generated username"
+          },
+          {
+            "field": "password",
+            "source": "Step 2 → runtime-generated password"
+          }
         ]
       },
       "response": {
@@ -126,11 +168,21 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL, HMAC-SHA256), the userId matching Step 2, an ISO 8601 expiry timestamp, and tokenType 'Bearer'.",
-        "keyFields": ["accessToken", "userId", "expiresAt", "tokenType"],
+        "keyFields": [
+          "accessToken",
+          "userId",
+          "expiresAt",
+          "tokenType"
+        ],
         "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 2. expiresAt is ISO 8601 UTC, approximately 15 minutes from now. tokenType is always 'Bearer'."
       },
       "chainsTo": [
-        { "field": "accessToken", "usedInSteps": [5] }
+        {
+          "field": "accessToken",
+          "usedInSteps": [
+            5
+          ]
+        }
       ]
     },
     {
@@ -151,7 +203,10 @@
           "query": "__RAND_SURNAME__"
         },
         "dataChain": [
-          { "field": "query", "source": "Step 1 → runtime-generated surname" }
+          {
+            "field": "query",
+            "source": "Step 1 → runtime-generated surname"
+          }
         ]
       },
       "response": {
@@ -171,7 +226,13 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — search returns an array of matching customers. The customer registered in Step 1 must appear in the results. Validates loyalty number, given name, surname, tier code (Blue), and active status.",
-        "keyFields": ["loyaltyNumber", "givenName", "surname", "tierCode", "isActive"],
+        "keyFields": [
+          "loyaltyNumber",
+          "givenName",
+          "surname",
+          "tierCode",
+          "isActive"
+        ],
         "validationNotes": "Response is an array (max 50 results). The customer from Step 1 must be present with loyaltyNumber matching Step 1, givenName and surname matching the runtime-generated values, tierCode 'Blue', and isActive true. Search uses partial name matching and exact loyalty number matching."
       },
       "chainsTo": []
@@ -195,8 +256,14 @@
           "query": "__RAND_SURNAME__"
         },
         "dataChain": [
-          { "field": "Authorization", "source": "Step 3 → response.accessToken" },
-          { "field": "query", "source": "Step 1 → runtime-generated surname" }
+          {
+            "field": "Authorization",
+            "source": "Step 3 → response.accessToken"
+          },
+          {
+            "field": "query",
+            "source": "Step 1 → runtime-generated surname"
+          }
         ]
       },
       "response": {
@@ -216,7 +283,13 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — search returns an array of matching customers. The customer registered in Step 1 must appear in the results. Validates loyalty number, given name, surname, tier code (Blue), and active status.",
-        "keyFields": ["loyaltyNumber", "givenName", "surname", "tierCode", "isActive"],
+        "keyFields": [
+          "loyaltyNumber",
+          "givenName",
+          "surname",
+          "tierCode",
+          "isActive"
+        ],
         "validationNotes": "Response is an array (max 50 results). The customer from Step 1 must be present with loyaltyNumber matching Step 1, givenName and surname matching the runtime-generated values, tierCode 'Blue', and isActive true. Search uses partial name matching and exact loyalty number matching."
       },
       "chainsTo": []
@@ -238,7 +311,10 @@
         "headers": {},
         "body": null,
         "dataChain": [
-          { "field": "loyaltyNumber (path)", "source": "Step 1 → response.loyaltyNumber" }
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 1 → response.loyaltyNumber"
+          }
         ]
       },
       "response": {
@@ -270,7 +346,10 @@
         "headers": {},
         "body": null,
         "dataChain": [
-          { "field": "loyaltyNumber (path)", "source": "Step 1 → response.loyaltyNumber" }
+          {
+            "field": "loyaltyNumber (path)",
+            "source": "Step 1 → response.loyaltyNumber"
+          }
         ]
       },
       "response": {

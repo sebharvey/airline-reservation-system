@@ -1,10 +1,14 @@
 {
   "journey": {
-    "name": "Flight Order — AX001 Next Day (No Seats)",
+    "name": "Bookflow — AX001 without seats",
     "description": "Creates a confirmed one-way order for the next day's AX001 (LHR → JFK) flight without seat selection. Covers outbound search, basket creation, passenger entry, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [
-      { "id": "retail", "label": "Retail API", "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      }
     ]
   },
   "steps": [
@@ -19,7 +23,9 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "origin": "LHR",
           "destination": "JFK",
@@ -51,7 +57,19 @@
                       "fromPrice": 186.25,
                       "currency": "GBP",
                       "fareFamilies": [
-                        { "fareFamily": "Non-Flex", "offer": { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "fareBasisCode": "YLOWGB", "basePrice": 89.00, "tax": 97.25, "totalPrice": 186.25, "currency": "GBP", "isRefundable": false, "isChangeable": false } }
+                        {
+                          "fareFamily": "Non-Flex",
+                          "offer": {
+                            "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d",
+                            "fareBasisCode": "YLOWGB",
+                            "basePrice": 89.0,
+                            "tax": 97.25,
+                            "totalPrice": 186.25,
+                            "currency": "GBP",
+                            "isRefundable": false,
+                            "isChangeable": false
+                          }
+                        }
                       ]
                     }
                   ]
@@ -67,12 +85,26 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
-        "keyFields": ["itineraries"],
+        "keyFields": [
+          "itineraries"
+        ],
         "validationNotes": "AX001 must be present for the requested departure date. sessionId is nested in itineraries[0].legs[0]. A random available offer is selected across all cabin fare families."
       },
       "chainsTo": [
-        { "path": "itineraries[0].legs[0].sessionId", "as": "sessionId", "usedInSteps": [2] },
-        { "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId", "as": "offerId", "usedInSteps": [2] }
+        {
+          "path": "itineraries[0].legs[0].sessionId",
+          "as": "sessionId",
+          "usedInSteps": [
+            2
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "as": "offerId",
+          "usedInSteps": [
+            2
+          ]
+        }
       ]
     },
     {
@@ -86,18 +118,31 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "segments": [
-            { "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11" }
+            {
+              "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d",
+              "sessionId": "518c85cc-8618-4a20-8874-235461e10e11"
+            }
           ],
           "channelCode": "WEB",
           "currencyCode": "GBP",
           "bookingType": "Revenue"
         },
         "dataChain": [
-          { "field": "segments[0].offerId",   "from": "offerId",    "source": "Step 1 → random offer from search results" },
-          { "field": "segments[0].sessionId", "from": "sessionId",  "source": "Step 1 → response.sessionId" }
+          {
+            "field": "segments[0].offerId",
+            "from": "offerId",
+            "source": "Step 1 → random offer from search results"
+          },
+          {
+            "field": "segments[0].sessionId",
+            "from": "sessionId",
+            "source": "Step 1 → response.sessionId"
+          }
         ]
       },
       "response": {
@@ -109,11 +154,20 @@
       "expected": {
         "statusCode": 201,
         "description": "201 Created — basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
-        "keyFields": ["basketId"],
+        "keyFields": [
+          "basketId"
+        ],
         "validationNotes": "basketId is a GUID. The single segment offerId must match a valid stored offer from the search session. The basket expires after 60 minutes of inactivity."
       },
       "chainsTo": [
-        { "field": "basketId", "usedInSteps": [3, 4, 5] }
+        {
+          "field": "basketId",
+          "usedInSteps": [
+            3,
+            4,
+            5
+          ]
+        }
       ]
     },
     {
@@ -125,20 +179,112 @@
         "method": "PUT",
         "endpoint": "/api/v1/basket/{basketId}/passengers",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-2" }
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": [
-          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "type": "ADT", "givenName": "__RAND_GIVEN_NAME__",   "surname": "__RAND_SURNAME__",   "dateOfBirth": "__RAND_DOB__",   "gender": "__RAND_GENDER__",   "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL__",   "phone": "__RAND_PHONE__"   }, "travelDocument": null },
-          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_2__", "surname": "__RAND_SURNAME_2__", "dateOfBirth": "__RAND_DOB_2__", "gender": "__RAND_GENDER_2__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_2__", "phone": "__RAND_PHONE_2__" }, "travelDocument": null },
-          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_3__", "surname": "__RAND_SURNAME_3__", "dateOfBirth": "__RAND_DOB_3__", "gender": "__RAND_GENDER_3__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_3__", "phone": "__RAND_PHONE_3__" }, "travelDocument": null },
-          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_4__", "surname": "__RAND_SURNAME_4__", "dateOfBirth": "__RAND_DOB_4__", "gender": "__RAND_GENDER_4__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_4__", "phone": "__RAND_PHONE_4__" }, "travelDocument": null },
-          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_5__", "surname": "__RAND_SURNAME_5__", "dateOfBirth": "__RAND_DOB_5__", "gender": "__RAND_GENDER_5__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_5__", "phone": "__RAND_PHONE_5__" }, "travelDocument": null },
-          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_6__", "surname": "__RAND_SURNAME_6__", "dateOfBirth": "__RAND_DOB_6__", "gender": "__RAND_GENDER_6__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_6__", "phone": "__RAND_PHONE_6__" }, "travelDocument": null }
+          {
+            "__PAX_MIN__": 1,
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_2__",
+            "surname": "__RAND_SURNAME_2__",
+            "dateOfBirth": "__RAND_DOB_2__",
+            "gender": "__RAND_GENDER_2__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_2__",
+              "phone": "__RAND_PHONE_2__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_3__",
+            "surname": "__RAND_SURNAME_3__",
+            "dateOfBirth": "__RAND_DOB_3__",
+            "gender": "__RAND_GENDER_3__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_3__",
+              "phone": "__RAND_PHONE_3__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_4__",
+            "surname": "__RAND_SURNAME_4__",
+            "dateOfBirth": "__RAND_DOB_4__",
+            "gender": "__RAND_GENDER_4__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_4__",
+              "phone": "__RAND_PHONE_4__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_5__",
+            "surname": "__RAND_SURNAME_5__",
+            "dateOfBirth": "__RAND_DOB_5__",
+            "gender": "__RAND_GENDER_5__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_5__",
+              "phone": "__RAND_PHONE_5__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_6__",
+            "surname": "__RAND_SURNAME_6__",
+            "dateOfBirth": "__RAND_DOB_6__",
+            "gender": "__RAND_GENDER_6__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_6__",
+              "phone": "__RAND_PHONE_6__"
+            },
+            "travelDocument": null
+          }
         ],
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -146,17 +292,20 @@
         "body": {
           "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
           "status": "Active",
-          "totalFareAmount": 0.00,
-          "totalSeatAmount": 0.00,
-          "totalBagAmount": 0.00,
-          "totalPrice": 0.00,
+          "totalFareAmount": 0.0,
+          "totalSeatAmount": 0.0,
+          "totalBagAmount": 0.0,
+          "totalPrice": 0.0,
           "currency": "GBP"
         }
       },
       "expected": {
         "statusCode": 200,
         "description": "200 OK — PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
-        "keyFields": ["basketId", "status"],
+        "keyFields": [
+          "basketId",
+          "status"
+        ],
         "validationNotes": "One entry per passenger up to the random paxCount for this run (1–6). passengerIds PAX-1…PAX-N must be referenced consistently. type uses IATA passenger type codes (ADT)."
       }
     },
@@ -169,12 +318,18 @@
         "method": "GET",
         "endpoint": "/api/v1/basket/{basketId}",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-2" }
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -211,7 +366,11 @@
       "expected": {
         "statusCode": 200,
         "description": "200 OK — basket retrieved. basketStatus is Active. PAX-1 is present in passengers. seats array is empty as seat selection was skipped.",
-        "keyFields": ["basketStatus", "basketData.flightOffers", "basketData.passengers"],
+        "keyFields": [
+          "basketStatus",
+          "basketData.flightOffers",
+          "basketData.passengers"
+        ],
         "validationNotes": "basketStatus must be Active. flightOffers must contain one entry for AX001. passengers must contain PAX-1. seats must be empty."
       }
     },
@@ -224,10 +383,14 @@
         "method": "POST",
         "endpoint": "/api/v1/basket/{basketId}/confirm",
         "baseUrlRef": "retail",
-        "pathParams": { "basketId": "from-step-2" }
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "payment": {
             "method": "CreditCard",
@@ -239,7 +402,11 @@
           "loyaltyPointsToRedeem": null
         },
         "dataChain": [
-          { "field": "basketId", "from": "basketId", "source": "Step 2 → response.basketId" }
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 → response.basketId"
+          }
         ]
       },
       "response": {
@@ -253,12 +420,24 @@
       "expected": {
         "statusCode": 201,
         "description": "201 Created — order created for AX001 on 2026-04-07 without seats. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
-        "keyFields": ["orderId", "bookingReference", "status"],
+        "keyFields": [
+          "orderId",
+          "bookingReference",
+          "status"
+        ],
         "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card. On success, basketStatus transitions to Confirmed and confirmedOrderId is populated on the basket resource. loyaltyPointsToRedeem is null for a standard card payment."
       },
       "chainsTo": [
-        { "field": "orderId",           "as": "orderId",           "usedInSteps": [] },
-        { "field": "bookingReference",  "as": "bookingReference",  "usedInSteps": [] }
+        {
+          "field": "orderId",
+          "as": "orderId",
+          "usedInSteps": []
+        },
+        {
+          "field": "bookingReference",
+          "as": "bookingReference",
+          "usedInSteps": []
+        }
       ]
     }
   ]
