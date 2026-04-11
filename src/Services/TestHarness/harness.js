@@ -945,7 +945,7 @@
         html += '</div>';
 
         html += '<div class="modal-section"><div class="modal-section-title">Request</div>';
-        html += buildRequestCell(step).innerHTML;
+        html += buildModalRequestHtml(step);
         html += '</div>';
 
         html += '<div class="modal-section"><details class="expected-collapsible"><summary class="modal-section-title">Expected Response</summary>';
@@ -1288,6 +1288,62 @@
         else cur[last] = value;
     }
 
+    // Replace __CHAIN_*__ string placeholders with resolved liveChain values.
+    function resolveChainStrings(obj) {
+        if (typeof obj === 'string') {
+            return obj.replace(/__CHAIN_(\w+)__/g, (match, key) =>
+                liveChain[key] !== undefined ? String(liveChain[key]) : match
+            );
+        }
+        if (Array.isArray(obj)) return obj.map(resolveChainStrings);
+        if (typeof obj === 'object' && obj !== null) {
+            const out = {};
+            for (const [k, v] of Object.entries(obj)) out[k] = resolveChainStrings(v);
+            return out;
+        }
+        return obj;
+    }
+
+    // Return a resolved copy of the request body for display in the modal.
+    // Uses the actual logged body when the step has been executed, otherwise
+    // previews by substituting known liveChain and runtimeVars values.
+    function resolveRequestBodyForDisplay(step) {
+        if (step.request.body === null || step.request.body === undefined) return null;
+
+        // Prefer the exact body that was sent, taken from the interaction log
+        for (let i = apiLog.length - 1; i >= 0; i--) {
+            const entry = apiLog[i];
+            if (entry.step === step.step && entry.requestBody !== null && entry.requestBody !== undefined) {
+                return entry.requestBody;
+            }
+        }
+
+        // Preview: substitute whatever is already resolved
+        let body = JSON.parse(JSON.stringify(step.request.body));
+
+        // Only apply runtime vars when they have been generated
+        if (runtimeVars.givenName) {
+            body = applyRuntimeVars(body);
+        }
+
+        // Substitute dataChain fields from liveChain
+        if (step.request.dataChain) {
+            step.request.dataChain.forEach(chain => {
+                const fieldPath = chain.field.replace(/ \(path\)$/, '');
+                const chainKey  = chain.from || fieldPath;
+                if (liveChain[chainKey] === undefined) return;
+                if (fieldPath.includes('.') || fieldPath.includes('[')) {
+                    setPath(body, fieldPath, liveChain[chainKey]);
+                } else if (fieldPath in body) {
+                    body[fieldPath] = liveChain[chainKey];
+                }
+            });
+        }
+
+        // Replace any remaining __CHAIN_*__ string placeholders
+        return resolveChainStrings(body);
+    }
+
     async function runStep(ref, currentSteps) {
         const { row, idx } = ref;
         const step = currentSteps[idx];
@@ -1591,6 +1647,64 @@
 
         td.innerHTML = html;
         return td;
+    }
+
+    // Renders the Request section for the step modal, showing resolved values
+    // instead of raw placeholders, and annotating each chained field with its
+    // actual live value.
+    function buildModalRequestHtml(step) {
+        let html = '';
+        const resolvedBody = resolveRequestBodyForDisplay(step);
+
+        if (step.request.headers && Object.keys(step.request.headers).length) {
+            html += '<div class="headers-block">';
+            for (const [k, v] of Object.entries(step.request.headers)) {
+                const isChainedAuth = step.request.dataChain &&
+                    step.request.dataChain.some(c => c.field === 'Authorization') &&
+                    k === 'Authorization';
+                let displayVal = v;
+                if (isChainedAuth && liveChain['accessToken']) {
+                    displayVal = 'Bearer ' + liveChain['accessToken'];
+                }
+                const val = isChainedAuth
+                    ? `<span style="color:var(--chain-highlight)">${esc(displayVal)}</span>`
+                    : `<span class="header-value">${esc(displayVal)}</span>`;
+                html += `<span class="header-name">${esc(k)}:</span> ${val}<br>`;
+            }
+            html += '</div>';
+        }
+
+        if (resolvedBody !== null && resolvedBody !== undefined) {
+            html += '<div class="json-block">' + syntaxHighlight(resolvedBody, step.request.dataChain) + '</div>';
+        } else {
+            html += '<div class="no-body">No request body</div>';
+        }
+
+        if (step.request.dataChain && step.request.dataChain.length) {
+            html += '<div class="chain-section">';
+            html += '<div class="chain-label">Data chained from:</div>';
+            step.request.dataChain.forEach(c => {
+                const chainKey    = c.from || c.field.replace(/ \(path\)$/, '');
+                const actualValue = liveChain[chainKey];
+                const valueHtml   = actualValue !== undefined
+                    ? ` <span style="color:var(--chain-highlight);font-family:var(--font-mono);font-size:0.7rem">\u201c${esc(String(actualValue))}\u201d</span>`
+                    : '';
+                html += `<span class="chain-tag">${esc(c.field)}</span> \u2190 <span style="font-size:0.7rem;color:var(--text-muted)">${esc(c.source)}</span>${valueHtml}<br>`;
+            });
+            html += '</div>';
+        }
+
+        if (step.request.diff) {
+            html += '<div class="diff-block">';
+            html += '<div class="diff-label">Field changes:</div>';
+            for (const [field, change] of Object.entries(step.request.diff)) {
+                html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
+                html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
+            }
+            html += '</div>';
+        }
+
+        return html;
     }
 
     function buildResponseCell(step) {
