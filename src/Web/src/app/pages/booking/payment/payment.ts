@@ -59,7 +59,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     const eTickets = paxRefs.map(pRef => {
       const pax = basket.passengers.find(p => p.passengerId === pRef);
       const realTicket = issuedETickets?.find(
-        t => t.passengerId === pRef && (t.segmentIds?.includes(fo.basketItemId) ?? false)
+        t => t.passengerId === pRef
       );
       return {
         passengerId: pax?.passengerId ?? pRef,
