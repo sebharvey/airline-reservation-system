@@ -111,6 +111,11 @@ public sealed class OciFunction
                 })
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("OCI retrieve: booking not fully ticketed for {BookingReference} — {Message}", bookingReference, ex.Message);
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OCI retrieve failed for {BookingReference}", bookingReference);

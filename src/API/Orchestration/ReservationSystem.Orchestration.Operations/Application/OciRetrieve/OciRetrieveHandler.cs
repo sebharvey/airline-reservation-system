@@ -100,7 +100,9 @@ public sealed class OciRetrieveHandler
 
                 if (passengerId is null) continue;
 
-                ticketMap.TryGetValue(passengerId, out var ticketNumber);
+                if (!ticketMap.TryGetValue(passengerId, out var ticketNumber))
+                    throw new InvalidOperationException(
+                        $"Booking {query.BookingReference} has no e-ticket number for passenger {passengerId}. Check-in cannot proceed.");
 
                 OciTravelDocument? travelDoc = null;
 
@@ -133,7 +135,7 @@ public sealed class OciRetrieveHandler
 
                 passengers.Add(new OciPassengerResult(
                     PassengerId: passengerId,
-                    TicketNumber: ticketNumber ?? "",
+                    TicketNumber: ticketNumber!,
                     GivenName: givenName,
                     Surname: surname,
                     PassengerTypeCode: paxType,
