@@ -288,12 +288,16 @@
       "chainsTo": [
         { "path": "basketData.flightOffers[0].inventoryId",  "as": "outLeg1InventoryId",  "usedInSteps": [6, 10] },
         { "path": "basketData.flightOffers[0].aircraftType", "as": "outLeg1AircraftType", "usedInSteps": [6] },
+        { "path": "basketData.flightOffers[0].cabinCode",    "as": "outLeg1CabinCode",    "usedInSteps": [6] },
         { "path": "basketData.flightOffers[1].inventoryId",  "as": "outLeg2InventoryId",  "usedInSteps": [7, 10] },
         { "path": "basketData.flightOffers[1].aircraftType", "as": "outLeg2AircraftType", "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[1].cabinCode",    "as": "outLeg2CabinCode",    "usedInSteps": [7] },
         { "path": "basketData.flightOffers[2].inventoryId",  "as": "inLeg1InventoryId",   "usedInSteps": [8, 10] },
         { "path": "basketData.flightOffers[2].aircraftType", "as": "inLeg1AircraftType",  "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[2].cabinCode",    "as": "inLeg1CabinCode",     "usedInSteps": [8] },
         { "path": "basketData.flightOffers[3].inventoryId",  "as": "inLeg2InventoryId",   "usedInSteps": [9, 10] },
-        { "path": "basketData.flightOffers[3].aircraftType", "as": "inLeg2AircraftType",  "usedInSteps": [9] }
+        { "path": "basketData.flightOffers[3].aircraftType", "as": "inLeg2AircraftType",  "usedInSteps": [9] },
+        { "path": "basketData.flightOffers[3].cabinCode",    "as": "inLeg2CabinCode",     "usedInSteps": [9] }
       ]
     },
     {
@@ -339,19 +343,20 @@
     {
       "step": 6,
       "name": "Get outbound Leg1 seatmap (DEL → LHR)",
-      "description": "Retrieve the seat map for outbound Leg1 (AX412 DEL → LHR, B789 aircraft) to display available seats to the passenger before selecting.",
+      "description": "Retrieve the seat map for outbound Leg1 (AX412 DEL → LHR, B789 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
           { "field": "flightId",    "from": "outLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
-          { "field": "aircraftType", "from": "outLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" }
+          { "field": "aircraftType", "from": "outLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" },
+          { "field": "cabinCode",    "from": "outLeg1CabinCode",    "source": "Step 4 → basketData.flightOffers[0].cabinCode" }
         ]
       },
       "response": {
@@ -364,9 +369,9 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for outbound Leg1 (DEL → LHR). Contains cabin layout and seat availability for the B789 aircraft.",
+        "description": "200 OK — seatmap returned for outbound Leg1 (DEL → LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
         "keyFields": ["aircraftType", "cabins"],
-        "validationNotes": "aircraftType should be B789 (AX412 aircraft type)."
+        "validationNotes": "aircraftType should be B789 (AX412 aircraft type). Response contains only the booked cabin."
       },
       "chainsTo": [
         { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg1SeatOfferId", "seatNumber": "outLeg1SeatNumber", "position": "outLeg1SeatPosition" }, "usedInSteps": [10] }
@@ -375,19 +380,20 @@
     {
       "step": 7,
       "name": "Get outbound Leg2 seatmap (LHR → JFK)",
-      "description": "Retrieve the seat map for outbound Leg2 (LHR → JFK, A351 aircraft).",
+      "description": "Retrieve the seat map for outbound Leg2 (LHR → JFK, A351 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
           { "field": "flightId",    "from": "outLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
-          { "field": "aircraftType", "from": "outLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" }
+          { "field": "aircraftType", "from": "outLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" },
+          { "field": "cabinCode",    "from": "outLeg2CabinCode",    "source": "Step 4 → basketData.flightOffers[1].cabinCode" }
         ]
       },
       "response": {
@@ -400,9 +406,9 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for outbound Leg2 (LHR → JFK). Contains cabin layout and seat availability for the A351 aircraft.",
+        "description": "200 OK — seatmap returned for outbound Leg2 (LHR → JFK) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
         "keyFields": ["aircraftType", "cabins"],
-        "validationNotes": "aircraftType should be A351."
+        "validationNotes": "aircraftType should be A351. Response contains only the booked cabin."
       },
       "chainsTo": [
         { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "outLeg2SeatOfferId", "seatNumber": "outLeg2SeatNumber", "position": "outLeg2SeatPosition" }, "usedInSteps": [10] }
@@ -411,19 +417,20 @@
     {
       "step": 8,
       "name": "Get inbound Leg1 seatmap (JFK → LHR)",
-      "description": "Retrieve the seat map for inbound Leg1 (JFK → LHR, A351 aircraft).",
+      "description": "Retrieve the seat map for inbound Leg1 (JFK → LHR, A351 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
           { "field": "flightId",    "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId" },
-          { "field": "aircraftType", "from": "inLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[2].aircraftType" }
+          { "field": "aircraftType", "from": "inLeg1AircraftType", "source": "Step 4 → basketData.flightOffers[2].aircraftType" },
+          { "field": "cabinCode",    "from": "inLeg1CabinCode",    "source": "Step 4 → basketData.flightOffers[2].cabinCode" }
         ]
       },
       "response": {
@@ -436,9 +443,9 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for inbound Leg1 (JFK → LHR). Contains cabin layout and seat availability for the A351 aircraft.",
+        "description": "200 OK — seatmap returned for inbound Leg1 (JFK → LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
         "keyFields": ["aircraftType", "cabins"],
-        "validationNotes": "aircraftType should be A351."
+        "validationNotes": "aircraftType should be A351. Response contains only the booked cabin."
       },
       "chainsTo": [
         { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg1SeatOfferId", "seatNumber": "inLeg1SeatNumber", "position": "inLeg1SeatPosition" }, "usedInSteps": [10] }
@@ -447,19 +454,20 @@
     {
       "step": 9,
       "name": "Get inbound Leg2 seatmap (LHR → DEL)",
-      "description": "Retrieve the seat map for inbound Leg2 (AX411 LHR → DEL, B789 aircraft).",
+      "description": "Retrieve the seat map for inbound Leg2 (AX411 LHR → DEL, B789 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}",
+        "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
-        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4" }
+        "pathParams": { "flightId": "from-step-4", "aircraftType": "from-step-4", "cabinCode": "from-step-4" }
       },
       "request": {
         "headers": {},
         "dataChain": [
           { "field": "flightId",    "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId" },
-          { "field": "aircraftType", "from": "inLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[3].aircraftType" }
+          { "field": "aircraftType", "from": "inLeg2AircraftType", "source": "Step 4 → basketData.flightOffers[3].aircraftType" },
+          { "field": "cabinCode",    "from": "inLeg2CabinCode",    "source": "Step 4 → basketData.flightOffers[3].cabinCode" }
         ]
       },
       "response": {
@@ -472,9 +480,9 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for inbound Leg2 (LHR → DEL). Contains cabin layout and seat availability for the B789 aircraft.",
+        "description": "200 OK — seatmap returned for inbound Leg2 (LHR → DEL) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
         "keyFields": ["aircraftType", "cabins"],
-        "validationNotes": "aircraftType should be B789 (AX411 aircraft type)."
+        "validationNotes": "aircraftType should be B789 (AX411 aircraft type). Response contains only the booked cabin."
       },
       "chainsTo": [
         { "randomAvailableSeatFrom": "cabins", "as": { "seatOfferId": "inLeg2SeatOfferId", "seatNumber": "inLeg2SeatNumber", "position": "inLeg2SeatPosition" }, "usedInSteps": [10] }
