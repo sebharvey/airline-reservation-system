@@ -30,7 +30,7 @@
           "origin": "LHR",
           "destination": "JFK",
           "departureDate": "__RAND_DEPART_DATE__",
-          "paxCount": 1,
+          "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
       },
@@ -206,7 +206,7 @@
           "origin": "JFK",
           "destination": "LHR",
           "departureDate": "__RAND_RETURN_DATE__",
-          "paxCount": 1,
+          "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
       },
@@ -562,6 +562,81 @@
             "contacts": {
               "email": "__RAND_EMAIL__",
               "phone": "__RAND_PHONE__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_2__",
+            "surname": "__RAND_SURNAME_2__",
+            "dateOfBirth": "__RAND_DOB_2__",
+            "gender": "__RAND_GENDER_2__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_2__",
+              "phone": "__RAND_PHONE_2__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_3__",
+            "surname": "__RAND_SURNAME_3__",
+            "dateOfBirth": "__RAND_DOB_3__",
+            "gender": "__RAND_GENDER_3__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_3__",
+              "phone": "__RAND_PHONE_3__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_4__",
+            "surname": "__RAND_SURNAME_4__",
+            "dateOfBirth": "__RAND_DOB_4__",
+            "gender": "__RAND_GENDER_4__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_4__",
+              "phone": "__RAND_PHONE_4__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_5__",
+            "surname": "__RAND_SURNAME_5__",
+            "dateOfBirth": "__RAND_DOB_5__",
+            "gender": "__RAND_GENDER_5__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_5__",
+              "phone": "__RAND_PHONE_5__"
+            },
+            "travelDocument": null
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_6__",
+            "surname": "__RAND_SURNAME_6__",
+            "dateOfBirth": "__RAND_DOB_6__",
+            "gender": "__RAND_GENDER_6__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_6__",
+              "phone": "__RAND_PHONE_6__"
             },
             "travelDocument": null
           }
@@ -1085,6 +1160,116 @@
             "seatPosition": "from-chain-returnSeatPosition",
             "price": 0,
             "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId_2",
+            "seatNumber": "from-chain-outboundSeatNumber_2",
+            "seatPosition": "from-chain-outboundSeatPosition_2",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId_2",
+            "seatNumber": "from-chain-returnSeatNumber_2",
+            "seatPosition": "from-chain-returnSeatPosition_2",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId_3",
+            "seatNumber": "from-chain-outboundSeatNumber_3",
+            "seatPosition": "from-chain-outboundSeatPosition_3",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId_3",
+            "seatNumber": "from-chain-returnSeatNumber_3",
+            "seatPosition": "from-chain-returnSeatPosition_3",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId_4",
+            "seatNumber": "from-chain-outboundSeatNumber_4",
+            "seatPosition": "from-chain-outboundSeatPosition_4",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId_4",
+            "seatNumber": "from-chain-returnSeatNumber_4",
+            "seatPosition": "from-chain-returnSeatPosition_4",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId_5",
+            "seatNumber": "from-chain-outboundSeatNumber_5",
+            "seatPosition": "from-chain-outboundSeatPosition_5",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId_5",
+            "seatNumber": "from-chain-returnSeatNumber_5",
+            "seatPosition": "from-chain-returnSeatPosition_5",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "from-chain-outboundInventoryId",
+            "basketItemRef": "from-chain-outboundBasketItemId",
+            "seatOfferId": "from-chain-outboundSeatOfferId_6",
+            "seatNumber": "from-chain-outboundSeatNumber_6",
+            "seatPosition": "from-chain-outboundSeatPosition_6",
+            "price": 0,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "from-chain-returnInventoryId",
+            "basketItemRef": "from-chain-returnBasketItemId",
+            "seatOfferId": "from-chain-returnSeatOfferId_6",
+            "seatNumber": "from-chain-returnSeatNumber_6",
+            "seatPosition": "from-chain-returnSeatPosition_6",
+            "price": 0,
+            "currency": "GBP"
           }
         ],
         "dataChain": [
@@ -1157,6 +1342,356 @@
             "field": "[1].currency",
             "from": "returnSeatCurrency",
             "source": "Step 8 → random available seat"
+          },
+          {
+            "field": "[2].segmentId",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basket outbound inventoryId (PAX-2)"
+          },
+          {
+            "field": "[2].basketItemRef",
+            "from": "outboundBasketItemId",
+            "source": "Step 4 → basket outbound basketItemId (PAX-2)"
+          },
+          {
+            "field": "[2].seatOfferId",
+            "from": "outboundSeatOfferId_2",
+            "source": "Step 7 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[2].seatNumber",
+            "from": "outboundSeatNumber_2",
+            "source": "Step 7 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[2].seatPosition",
+            "from": "outboundSeatPosition_2",
+            "source": "Step 7 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[2].price",
+            "from": "outboundSeatPrice_2",
+            "source": "Step 7 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[2].currency",
+            "from": "outboundSeatCurrency_2",
+            "source": "Step 7 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[3].segmentId",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basket return inventoryId (PAX-2)"
+          },
+          {
+            "field": "[3].basketItemRef",
+            "from": "returnBasketItemId",
+            "source": "Step 4 → basket return basketItemId (PAX-2)"
+          },
+          {
+            "field": "[3].seatOfferId",
+            "from": "returnSeatOfferId_2",
+            "source": "Step 8 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[3].seatNumber",
+            "from": "returnSeatNumber_2",
+            "source": "Step 8 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[3].seatPosition",
+            "from": "returnSeatPosition_2",
+            "source": "Step 8 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[3].price",
+            "from": "returnSeatPrice_2",
+            "source": "Step 8 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[3].currency",
+            "from": "returnSeatCurrency_2",
+            "source": "Step 8 → random available seat (PAX-2)"
+          },
+          {
+            "field": "[4].segmentId",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basket outbound inventoryId (PAX-3)"
+          },
+          {
+            "field": "[4].basketItemRef",
+            "from": "outboundBasketItemId",
+            "source": "Step 4 → basket outbound basketItemId (PAX-3)"
+          },
+          {
+            "field": "[4].seatOfferId",
+            "from": "outboundSeatOfferId_3",
+            "source": "Step 7 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[4].seatNumber",
+            "from": "outboundSeatNumber_3",
+            "source": "Step 7 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[4].seatPosition",
+            "from": "outboundSeatPosition_3",
+            "source": "Step 7 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[4].price",
+            "from": "outboundSeatPrice_3",
+            "source": "Step 7 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[4].currency",
+            "from": "outboundSeatCurrency_3",
+            "source": "Step 7 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[5].segmentId",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basket return inventoryId (PAX-3)"
+          },
+          {
+            "field": "[5].basketItemRef",
+            "from": "returnBasketItemId",
+            "source": "Step 4 → basket return basketItemId (PAX-3)"
+          },
+          {
+            "field": "[5].seatOfferId",
+            "from": "returnSeatOfferId_3",
+            "source": "Step 8 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[5].seatNumber",
+            "from": "returnSeatNumber_3",
+            "source": "Step 8 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[5].seatPosition",
+            "from": "returnSeatPosition_3",
+            "source": "Step 8 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[5].price",
+            "from": "returnSeatPrice_3",
+            "source": "Step 8 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[5].currency",
+            "from": "returnSeatCurrency_3",
+            "source": "Step 8 → random available seat (PAX-3)"
+          },
+          {
+            "field": "[6].segmentId",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basket outbound inventoryId (PAX-4)"
+          },
+          {
+            "field": "[6].basketItemRef",
+            "from": "outboundBasketItemId",
+            "source": "Step 4 → basket outbound basketItemId (PAX-4)"
+          },
+          {
+            "field": "[6].seatOfferId",
+            "from": "outboundSeatOfferId_4",
+            "source": "Step 7 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[6].seatNumber",
+            "from": "outboundSeatNumber_4",
+            "source": "Step 7 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[6].seatPosition",
+            "from": "outboundSeatPosition_4",
+            "source": "Step 7 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[6].price",
+            "from": "outboundSeatPrice_4",
+            "source": "Step 7 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[6].currency",
+            "from": "outboundSeatCurrency_4",
+            "source": "Step 7 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[7].segmentId",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basket return inventoryId (PAX-4)"
+          },
+          {
+            "field": "[7].basketItemRef",
+            "from": "returnBasketItemId",
+            "source": "Step 4 → basket return basketItemId (PAX-4)"
+          },
+          {
+            "field": "[7].seatOfferId",
+            "from": "returnSeatOfferId_4",
+            "source": "Step 8 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[7].seatNumber",
+            "from": "returnSeatNumber_4",
+            "source": "Step 8 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[7].seatPosition",
+            "from": "returnSeatPosition_4",
+            "source": "Step 8 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[7].price",
+            "from": "returnSeatPrice_4",
+            "source": "Step 8 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[7].currency",
+            "from": "returnSeatCurrency_4",
+            "source": "Step 8 → random available seat (PAX-4)"
+          },
+          {
+            "field": "[8].segmentId",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basket outbound inventoryId (PAX-5)"
+          },
+          {
+            "field": "[8].basketItemRef",
+            "from": "outboundBasketItemId",
+            "source": "Step 4 → basket outbound basketItemId (PAX-5)"
+          },
+          {
+            "field": "[8].seatOfferId",
+            "from": "outboundSeatOfferId_5",
+            "source": "Step 7 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[8].seatNumber",
+            "from": "outboundSeatNumber_5",
+            "source": "Step 7 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[8].seatPosition",
+            "from": "outboundSeatPosition_5",
+            "source": "Step 7 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[8].price",
+            "from": "outboundSeatPrice_5",
+            "source": "Step 7 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[8].currency",
+            "from": "outboundSeatCurrency_5",
+            "source": "Step 7 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[9].segmentId",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basket return inventoryId (PAX-5)"
+          },
+          {
+            "field": "[9].basketItemRef",
+            "from": "returnBasketItemId",
+            "source": "Step 4 → basket return basketItemId (PAX-5)"
+          },
+          {
+            "field": "[9].seatOfferId",
+            "from": "returnSeatOfferId_5",
+            "source": "Step 8 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[9].seatNumber",
+            "from": "returnSeatNumber_5",
+            "source": "Step 8 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[9].seatPosition",
+            "from": "returnSeatPosition_5",
+            "source": "Step 8 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[9].price",
+            "from": "returnSeatPrice_5",
+            "source": "Step 8 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[9].currency",
+            "from": "returnSeatCurrency_5",
+            "source": "Step 8 → random available seat (PAX-5)"
+          },
+          {
+            "field": "[10].segmentId",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basket outbound inventoryId (PAX-6)"
+          },
+          {
+            "field": "[10].basketItemRef",
+            "from": "outboundBasketItemId",
+            "source": "Step 4 → basket outbound basketItemId (PAX-6)"
+          },
+          {
+            "field": "[10].seatOfferId",
+            "from": "outboundSeatOfferId_6",
+            "source": "Step 7 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[10].seatNumber",
+            "from": "outboundSeatNumber_6",
+            "source": "Step 7 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[10].seatPosition",
+            "from": "outboundSeatPosition_6",
+            "source": "Step 7 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[10].price",
+            "from": "outboundSeatPrice_6",
+            "source": "Step 7 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[10].currency",
+            "from": "outboundSeatCurrency_6",
+            "source": "Step 7 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[11].segmentId",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basket return inventoryId (PAX-6)"
+          },
+          {
+            "field": "[11].basketItemRef",
+            "from": "returnBasketItemId",
+            "source": "Step 4 → basket return basketItemId (PAX-6)"
+          },
+          {
+            "field": "[11].seatOfferId",
+            "from": "returnSeatOfferId_6",
+            "source": "Step 8 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[11].seatNumber",
+            "from": "returnSeatNumber_6",
+            "source": "Step 8 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[11].seatPosition",
+            "from": "returnSeatPosition_6",
+            "source": "Step 8 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[11].price",
+            "from": "returnSeatPrice_6",
+            "source": "Step 8 → random available seat (PAX-6)"
+          },
+          {
+            "field": "[11].currency",
+            "from": "returnSeatCurrency_6",
+            "source": "Step 8 → random available seat (PAX-6)"
           }
         ]
       },
@@ -1292,6 +1827,106 @@
             "additionalBags": 3,
             "price": 180,
             "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "passengerId": "PAX-2",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "passengerId": "PAX-3",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "passengerId": "PAX-4",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "passengerId": "PAX-5",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "BI-y19a",
+            "basketItemRef": "BI-y19a",
+            "bagOfferId": "bag-W-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "passengerId": "PAX-6",
+            "segmentId": "BI-blya",
+            "basketItemRef": "BI-blya",
+            "bagOfferId": "bag-Y-1-1774853618313",
+            "additionalBags": 3,
+            "price": 180,
+            "currency": "GBP"
           }
         ],
         "dataChain": [
@@ -1353,6 +1988,66 @@
             "ssrCode": "WCHR",
             "passengerRef": "PAX-1",
             "segmentRef": "__RETURN_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-2",
+            "segmentRef": "__OUTBOUND_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 2,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-2",
+            "segmentRef": "__RETURN_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-3",
+            "segmentRef": "__OUTBOUND_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 3,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-3",
+            "segmentRef": "__RETURN_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-4",
+            "segmentRef": "__OUTBOUND_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 4,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-4",
+            "segmentRef": "__RETURN_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-5",
+            "segmentRef": "__OUTBOUND_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 5,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-5",
+            "segmentRef": "__RETURN_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-6",
+            "segmentRef": "__OUTBOUND_INVENTORY_ID__"
+          },
+          {
+            "__PAX_MIN__": 6,
+            "ssrCode": "WCHR",
+            "passengerRef": "PAX-6",
+            "segmentRef": "__RETURN_INVENTORY_ID__"
           }
         ],
         "dataChain": [
@@ -1370,6 +2065,56 @@
             "field": "[1].segmentRef",
             "from": "returnInventoryId",
             "source": "Step 4 → basketData.flightOffers[1].inventoryId"
+          },
+          {
+            "field": "[2].segmentRef",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (PAX-2)"
+          },
+          {
+            "field": "[3].segmentRef",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (PAX-2)"
+          },
+          {
+            "field": "[4].segmentRef",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (PAX-3)"
+          },
+          {
+            "field": "[5].segmentRef",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (PAX-3)"
+          },
+          {
+            "field": "[6].segmentRef",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (PAX-4)"
+          },
+          {
+            "field": "[7].segmentRef",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (PAX-4)"
+          },
+          {
+            "field": "[8].segmentRef",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (PAX-5)"
+          },
+          {
+            "field": "[9].segmentRef",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (PAX-5)"
+          },
+          {
+            "field": "[10].segmentRef",
+            "from": "outboundInventoryId",
+            "source": "Step 4 → basketData.flightOffers[0].inventoryId (PAX-6)"
+          },
+          {
+            "field": "[11].segmentRef",
+            "from": "returnInventoryId",
+            "source": "Step 4 → basketData.flightOffers[1].inventoryId (PAX-6)"
           }
         ]
       },
