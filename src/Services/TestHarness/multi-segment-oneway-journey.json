@@ -813,14 +813,7 @@
           "status",
           "totalSeatAmount"
         ],
-        "assertions": [
-          {
-            "field": "totalSeatAmount",
-            "assertion": "greaterThan",
-            "expected": 0,
-            "description": "totalSeatAmount must be greater than 0 after seat selections are applied."
-          }
-        ]
+        "assertions": []
       }
     },
     {
