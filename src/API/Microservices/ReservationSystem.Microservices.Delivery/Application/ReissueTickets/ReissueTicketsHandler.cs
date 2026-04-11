@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
-using ReservationSystem.Microservices.Delivery.Domain.Exceptions;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Mappers;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
@@ -59,24 +58,11 @@ public sealed class ReissueTicketsHandler
 
                 var ticketDataJson = JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
 
-                const int maxAttempts = 5;
-                for (var attempt = 1; attempt <= maxAttempts; attempt++)
-                {
-                    var maxSeq = await _ticketRepository.GetMaxTicketSequenceAsync(cancellationToken);
-                    var eTicketNumber = $"932-{maxSeq + 1:D10}";
-                    var ticket = Ticket.Create(eTicketNumber, request.BookingReference, passenger.PassengerId, ticketDataJson);
-                    try
-                    {
-                        await _ticketRepository.CreateAsync(ticket, cancellationToken);
-                        ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
-                        break;
-                    }
-                    catch (TicketNumberConflictException) when (attempt < maxAttempts)
-                    {
-                        _logger.LogWarning("Ticket number {ETicketNumber} already taken, retrying ({Attempt}/{Max})",
-                            eTicketNumber, attempt, maxAttempts);
-                    }
-                }
+                var seq = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
+                var eTicketNumber = $"932-{seq:D10}";
+                var ticket = Ticket.Create(eTicketNumber, request.BookingReference, passenger.PassengerId, ticketDataJson);
+                await _ticketRepository.CreateAsync(ticket, cancellationToken);
+                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
             }
         }
 

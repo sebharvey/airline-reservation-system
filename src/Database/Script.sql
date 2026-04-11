@@ -680,6 +680,17 @@ BEGIN
 END
 GO
 
+-- delivery.TicketSequence — atomic sequence for e-ticket number generation ----
+-- Seed data occupies 1000000001–1000000005; production starts at 1000000006.
+IF OBJECT_ID('[delivery].[TicketSequence]', 'SO') IS NULL
+    CREATE SEQUENCE [delivery].[TicketSequence]
+        AS BIGINT
+        START WITH 1000000006
+        INCREMENT BY 1
+        NO CYCLE
+        NO CACHE;
+GO
+
 -- delivery.Manifest -----------------------------------------------------------
 IF OBJECT_ID('[delivery].[Manifest]', 'U') IS NULL
 CREATE TABLE [delivery].[Manifest] (
