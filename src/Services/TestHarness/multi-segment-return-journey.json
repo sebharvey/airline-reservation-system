@@ -575,11 +575,11 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and four e-ticket numbers — one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
+        "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger — each ticket carries four flight coupons, one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
         "keyFields": ["bookingReference", "status", "eTickets"],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain four entries — one per segment. All four inventory records are held and sold atomically during confirmation.",
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain one entry per passenger, each with four segmentIds — one coupon per leg. All four inventory records are held and sold atomically during confirmation.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 4, "description": "Exactly 4 e-tickets must be issued — one per leg of the complete connecting return itinerary." }
+          { "field": "eTickets", "assertion": "count", "expected": 1, "description": "Exactly 1 e-ticket must be issued per passenger. Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)." }
         ]
       }
     }
