@@ -946,7 +946,20 @@
           "bookingReference",
           "status"
         ],
-        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card. On success, basketStatus transitions to Confirmed and confirmedOrderId is populated on the basket resource. loyaltyPointsToRedeem is null for a standard card payment."
+        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card. On success, basketStatus transitions to Confirmed and confirmedOrderId is populated on the basket resource. loyaltyPointsToRedeem is null for a standard card payment.",
+        "assertions": [
+          {
+            "field": "eTickets",
+            "assertion": "count",
+            "expected": "__RAND_PAX_COUNT__",
+            "description": "One e-ticket must be issued per passenger (matches the paxCount for this run)."
+          },
+          {
+            "field": "eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every e-ticket must carry a non-empty eTicketNumber."
+          }
+        ]
       },
       "chainsTo": [
         {

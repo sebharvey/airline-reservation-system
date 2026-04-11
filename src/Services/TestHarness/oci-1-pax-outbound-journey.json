@@ -642,7 +642,20 @@
           "bookingReference",
           "status"
         ],
-        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated."
+        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated.",
+        "assertions": [
+          {
+            "field": "eTickets",
+            "assertion": "count",
+            "expected": 1,
+            "description": "Exactly one e-ticket must be issued for the single passenger."
+          },
+          {
+            "field": "eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every e-ticket must carry a non-empty eTicketNumber."
+          }
+        ]
       },
       "chainsTo": [
         {
