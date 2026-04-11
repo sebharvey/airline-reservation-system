@@ -44,7 +44,7 @@
         "validationNotes": "userId is a non-empty GUID. username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
       },
       "chainsTo": [
-        { "field": "userId", "usedInSteps": [2] }
+        { "field": "userId", "usedInSteps": [2, 6] }
       ]
     },
     {
@@ -188,6 +188,38 @@
         "description": "400 Bad Request — password field is missing. The Admin API validates required fields at the orchestration boundary and short-circuits before calling the User MS.",
         "keyFields": ["error"],
         "validationNotes": "Validation happens in the Admin API, not the User MS. No downstream call is made. The same 400 is returned whether username, password, or both fields are absent."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Delete employee account",
+      "description": "Delete the employee account created in Step 1 to clean up test data. Confirms that the User MS DELETE endpoint permanently removes the account and returns 204 No Content.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/users/{userId}",
+        "baseUrlRef": "user",
+        "pathParams": {
+          "userId": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "userId", "source": "Step 1 → userId" }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — the account created in Step 1 has been permanently deleted via the User MS. No response body is returned. Subsequent requests to retrieve this userId return 404.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty. The userId from Step 1 is injected into the path. Deleting a non-existent user returns 404."
       },
       "chainsTo": []
     }

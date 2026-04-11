@@ -43,7 +43,7 @@
         "validationNotes": "userId is a non-empty GUID. username and email must be unique — attempting to create another account with the same values returns 409 Conflict (see Step 2). Name and email are runtime-generated values unique to this test run."
       },
       "chainsTo": [
-        { "field": "userId", "usedInSteps": [4] }
+        { "field": "userId", "usedInSteps": [4, 6] }
       ]
     },
     {
@@ -201,6 +201,38 @@
         "description": "401 Unauthorized — password does not match the stored hash. FailedLoginAttempts is incremented. After 5 consecutive failures the account is locked and further attempts return 403 Forbidden.",
         "keyFields": ["error"],
         "validationNotes": "The error message must not reveal whether the username exists (generic 'Invalid credentials' only). The account is not locked after a single failure — only after 5 consecutive failures."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Delete user",
+      "description": "Delete the employee account created in Step 1 to clean up test data. Confirms that the DELETE endpoint permanently removes the account and returns 204 No Content.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/users/{userId}",
+        "baseUrlRef": "user",
+        "pathParams": {
+          "userId": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          { "field": "userId", "source": "Step 1 → userId" }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — the account created in Step 1 has been permanently deleted. No response body is returned. Subsequent requests to retrieve this userId return 404.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty. The userId from Step 1 is injected into the path. Deleting a non-existent user returns 404."
       },
       "chainsTo": []
     }
