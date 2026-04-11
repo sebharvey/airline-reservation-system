@@ -24,7 +24,7 @@
           "origin": "DEL",
           "destination": "JFK",
           "departureDate": "__RAND_DEPART_DATE__",
-          "paxCount": 1,
+          "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
       },
@@ -115,7 +115,7 @@
           "origin": "JFK",
           "destination": "DEL",
           "departureDate": "__RAND_RETURN_DATE__",
-          "paxCount": 1,
+          "paxCount": "__RAND_PAX_COUNT__",
           "bookingType": "Revenue"
         }
       },
@@ -212,7 +212,7 @@
           "channelCode": "WEB",
           "currencyCode": "GBP",
           "bookingType": "Revenue",
-          "passengerCount": 1
+          "passengerCount": "__RAND_PAX_COUNT__"
         },
         "dataChain": [
           { "field": "segments[0].offerId",   "from": "outLeg1OfferId",   "source": "Step 1 → outbound Leg1 DEL→LHR offer" },
@@ -299,7 +299,7 @@
     {
       "step": 5,
       "name": "Add passenger",
-      "description": "Add passenger details to the basket. The passengerId (PAX-1) will be referenced consistently across all four seat assignments.",
+      "description": "Add passenger details to the basket. Up to six passengers are supported; the actual count is determined at runtime by __RAND_PAX_COUNT__. Each passengerId (PAX-1…PAX-N) will be referenced consistently across all four seat assignments.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -310,19 +310,12 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          {
-            "passengerId": "PAX-1",
-            "type": "ADT",
-            "givenName": "__RAND_GIVEN_NAME__",
-            "surname": "__RAND_SURNAME__",
-            "dateOfBirth": "__RAND_DOB__",
-            "gender": "__RAND_GENDER__",
-            "contacts": {
-              "email": "__RAND_EMAIL__",
-              "phone": "__RAND_PHONE__"
-            },
-            "travelDocument": null
-          }
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "type": "ADT", "givenName": "__RAND_GIVEN_NAME__",   "surname": "__RAND_SURNAME__",   "dateOfBirth": "__RAND_DOB__",   "gender": "__RAND_GENDER__",   "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL__",   "phone": "__RAND_PHONE__"   }, "travelDocument": null },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_2__", "surname": "__RAND_SURNAME_2__", "dateOfBirth": "__RAND_DOB_2__", "gender": "__RAND_GENDER_2__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_2__", "phone": "__RAND_PHONE_2__" }, "travelDocument": null },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_3__", "surname": "__RAND_SURNAME_3__", "dateOfBirth": "__RAND_DOB_3__", "gender": "__RAND_GENDER_3__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_3__", "phone": "__RAND_PHONE_3__" }, "travelDocument": null },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_4__", "surname": "__RAND_SURNAME_4__", "dateOfBirth": "__RAND_DOB_4__", "gender": "__RAND_GENDER_4__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_4__", "phone": "__RAND_PHONE_4__" }, "travelDocument": null },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_5__", "surname": "__RAND_SURNAME_5__", "dateOfBirth": "__RAND_DOB_5__", "gender": "__RAND_GENDER_5__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_5__", "phone": "__RAND_PHONE_5__" }, "travelDocument": null },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "type": "ADT", "givenName": "__RAND_GIVEN_NAME_6__", "surname": "__RAND_SURNAME_6__", "dateOfBirth": "__RAND_DOB_6__", "gender": "__RAND_GENDER_6__", "loyaltyNumber": null, "contacts": { "email": "__RAND_EMAIL_6__", "phone": "__RAND_PHONE_6__" }, "travelDocument": null }
         ],
         "dataChain": [
           { "field": "basketId", "from": "basketId", "source": "Step 3 → response.basketId" }
@@ -339,7 +332,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — passenger added. The basket remains Active with totalFareAmount unchanged.",
+        "description": "200 OK — passengers added (1–6, determined by __RAND_PAX_COUNT__). The basket remains Active with totalFareAmount unchanged.",
         "keyFields": ["status"]
       }
     },
@@ -490,7 +483,7 @@
     {
       "step": 10,
       "name": "Select seats — all four legs",
-      "description": "Assign one seat per passenger per leg. All four seat assignments are submitted together in a single PUT call. Each assignment references the inventoryId of its respective flight as the segmentId.",
+      "description": "Assign one seat per passenger per leg. All seat assignments (one per passenger per leg, up to 6 passengers × 4 legs) are submitted together in a single PUT call. Each assignment references the inventoryId of its respective flight as the segmentId.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -501,21 +494,41 @@
       "request": {
         "headers": { "Content-Type": "application/json" },
         "body": [
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber__" },
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber__" },
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber__"  },
-          { "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber__"  }
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_1__" },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_2__" },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_3__" },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_4__" },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_5__" },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_outLeg1InventoryId__", "seatNumber": "__CHAIN_outLeg1SeatNumber_6__" },
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_1__" },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_2__" },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_3__" },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_4__" },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_5__" },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_outLeg2InventoryId__", "seatNumber": "__CHAIN_outLeg2SeatNumber_6__" },
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_1__"  },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_2__"  },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_3__"  },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_4__"  },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_5__"  },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_inLeg1InventoryId__",  "seatNumber": "__CHAIN_inLeg1SeatNumber_6__"  },
+          { "__PAX_MIN__": 1, "passengerId": "PAX-1", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_1__"  },
+          { "__PAX_MIN__": 2, "passengerId": "PAX-2", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_2__"  },
+          { "__PAX_MIN__": 3, "passengerId": "PAX-3", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_3__"  },
+          { "__PAX_MIN__": 4, "passengerId": "PAX-4", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_4__"  },
+          { "__PAX_MIN__": 5, "passengerId": "PAX-5", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_5__"  },
+          { "__PAX_MIN__": 6, "passengerId": "PAX-6", "segmentId": "__CHAIN_inLeg2InventoryId__",  "seatNumber": "__CHAIN_inLeg2SeatNumber_6__"  }
         ],
         "dataChain": [
-          { "field": "basketId",         "from": "basketId",          "source": "Step 3 → response.basketId" },
-          { "field": "[0].segmentId",    "from": "outLeg1InventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
-          { "field": "[0].seatNumber",   "from": "outLeg1SeatNumber",  "source": "Step 6 → random available seat on outbound Leg1" },
-          { "field": "[1].segmentId",    "from": "outLeg2InventoryId", "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
-          { "field": "[1].seatNumber",   "from": "outLeg2SeatNumber",  "source": "Step 7 → random available seat on outbound Leg2" },
-          { "field": "[2].segmentId",    "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId" },
-          { "field": "[2].seatNumber",   "from": "inLeg1SeatNumber",   "source": "Step 8 → random available seat on inbound Leg1" },
-          { "field": "[3].segmentId",    "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId" },
-          { "field": "[3].seatNumber",   "from": "inLeg2SeatNumber",   "source": "Step 9 → random available seat on inbound Leg2" }
+          { "field": "basketId",           "from": "basketId",           "source": "Step 3 → response.basketId" },
+          { "field": "[PAX-N].segmentId",  "from": "outLeg1InventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId (all PAX-1…6 on outbound Leg1)" },
+          { "field": "[PAX-N].seatNumber", "from": "outLeg1SeatNumber_N","source": "Step 6 → random available seat N on outbound Leg1" },
+          { "field": "[PAX-N].segmentId",  "from": "outLeg2InventoryId", "source": "Step 4 → basketData.flightOffers[1].inventoryId (all PAX-1…6 on outbound Leg2)" },
+          { "field": "[PAX-N].seatNumber", "from": "outLeg2SeatNumber_N","source": "Step 7 → random available seat N on outbound Leg2" },
+          { "field": "[PAX-N].segmentId",  "from": "inLeg1InventoryId",  "source": "Step 4 → basketData.flightOffers[2].inventoryId (all PAX-1…6 on inbound Leg1)" },
+          { "field": "[PAX-N].seatNumber", "from": "inLeg1SeatNumber_N", "source": "Step 8 → random available seat N on inbound Leg1" },
+          { "field": "[PAX-N].segmentId",  "from": "inLeg2InventoryId",  "source": "Step 4 → basketData.flightOffers[3].inventoryId (all PAX-1…6 on inbound Leg2)" },
+          { "field": "[PAX-N].seatNumber", "from": "inLeg2SeatNumber_N", "source": "Step 9 → random available seat N on inbound Leg2" }
         ]
       },
       "response": {
@@ -575,11 +588,11 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger — each ticket carries four flight coupons, one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
+        "description": "201 Created — return booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger (1–6) — each ticket carries four flight coupons, one per leg of the complete connecting return itinerary (DEL→LHR, LHR→JFK, JFK→LHR, LHR→DEL).",
         "keyFields": ["bookingReference", "status", "eTickets"],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain one entry per passenger, each with four segmentIds — one coupon per leg. All four inventory records are held and sold atomically during confirmation.",
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain one entry per passenger (matches __RAND_PAX_COUNT__), each with four segmentIds — one coupon per leg. All four inventory records are held and sold atomically during confirmation.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 1, "description": "Exactly 1 e-ticket must be issued per passenger. Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)." }
+          { "field": "eTickets", "assertion": "count", "expected": "__RAND_PAX_COUNT__", "description": "One e-ticket must be issued per passenger (matches the paxCount for this run). Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)." }
         ]
       }
     }
