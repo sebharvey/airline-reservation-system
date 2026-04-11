@@ -65,7 +65,11 @@
     function renderTestGrid() {
         const grid = document.getElementById('testGrid');
         grid.innerHTML = '';
-        CONFIGS.forEach(c => {
+        const sortedConfigs = [
+            ...CONFIGS.filter(c => !c.disabled).sort((a, b) => a.label.localeCompare(b.label)),
+            ...CONFIGS.filter(c =>  c.disabled).sort((a, b) => a.label.localeCompare(b.label))
+        ];
+        sortedConfigs.forEach(c => {
             const card = document.createElement('div');
             card.id = 'card-' + c.value;
 
