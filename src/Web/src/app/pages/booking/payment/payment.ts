@@ -24,7 +24,14 @@ function generateOrderId(): string {
   return 'ORD-' + randomNum(8);
 }
 
-function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string, issuedETickets?: IssuedETicket[], bookedAt?: string): Order {
+function maskCardNumber(cardNumber: string): string {
+  const digits = cardNumber.replace(/\D/g, '');
+  const last4 = digits.slice(-4);
+  if (digits.length === 15) return `**** ****** *${last4}`;
+  return `**** **** **** ${last4}`;
+}
+
+function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string, issuedETickets?: IssuedETicket[], bookedAt?: string, maskedCardNumber?: string, cardholderName?: string): Order {
   const now = bookedAt ?? new Date().toISOString();
   const orderId = generateOrderId();
   const payRef = 'PAY-' + randomNum(8);
@@ -136,6 +143,8 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     method: 'CreditCard',
     cardLast4,
     cardType,
+    cardholderName,
+    maskedCardNumber,
     authorisedAmount: basket.totalAmount,
     settledAmount: basket.totalAmount,
     currency: basket.currency,
@@ -290,7 +299,11 @@ export class PaymentComponent implements OnInit {
       loyaltyPointsToRedeem
     ).subscribe({
       next: (result) => {
-        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber, result.eTickets, result.bookedAt);
+        const rawCardNumber = this.cardNumber().replace(/\D/g, '');
+        const resolvedMaskedCard = result.maskedCardNumber ?? maskCardNumber(rawCardNumber);
+        const resolvedCardType = result.cardType ?? this.detectCardType();
+        const resolvedCardholderName = result.cardholderName ?? this.cardholderName().trim();
+        const order = buildOrderFromBasket(basket, this.cardLast4(), resolvedCardType, result.bookingReference, loyaltyNumber, result.eTickets, result.bookedAt, resolvedMaskedCard, resolvedCardholderName);
         this.bookingState.confirmOrder(order);
         this.paying.set(false);
         this.router.navigate(['/booking/confirmation']);

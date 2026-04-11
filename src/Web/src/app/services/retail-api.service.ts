@@ -68,6 +68,9 @@ export interface ConfirmBasketResponse {
   currency: string;
   bookedAt: string;
   eTickets: IssuedETicket[];
+  maskedCardNumber?: string;
+  cardType?: string;
+  cardholderName?: string;
 }
 
 export interface RetrieveOrderParams {

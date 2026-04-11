@@ -138,7 +138,11 @@
     <h2>{{ isRewardBooking ? 'Taxes & Fees Payment' : 'Payment' }}</h2>
     <div class="payment-row" *ngFor="let pay of order.payments">
       <span class="pay-desc">
-        {{ pay.cardType }} &middot;&middot;&middot;&middot; {{ pay.cardLast4 }}
+        <span class="pay-card-line">
+          <span class="pay-card-type">{{ pay.cardType }}</span>
+          <span class="pay-masked-num">{{ pay.maskedCardNumber || ('&middot;&middot;&middot;&middot; ' + pay.cardLast4) }}</span>
+        </span>
+        <span *ngIf="pay.cardholderName" class="pay-cardholder">{{ pay.cardholderName }}</span>
         <span class="pay-ref">{{ pay.paymentReference }}</span>
         <span class="pay-date">{{ formatDate(pay.settledAt) }}</span>
       </span>

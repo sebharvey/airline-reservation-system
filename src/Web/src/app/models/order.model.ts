@@ -80,6 +80,8 @@ export interface Payment {
   method: string;
   cardLast4: string;
   cardType: string;
+  cardholderName?: string;
+  maskedCardNumber?: string;
   authorisedAmount: number;
   settledAmount: number;
   currency: string;
