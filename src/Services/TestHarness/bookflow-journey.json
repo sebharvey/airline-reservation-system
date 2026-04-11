@@ -1430,8 +1430,8 @@
       "response": {
         "statusCode": 422,
         "body": {
-          "error": "InvalidCardDetails",
-          "message": "The card number provided is invalid."
+          "error": "Card number is invalid.",
+          "errorCode": "UNPROCESSABLE"
         }
       },
       "expected": {
@@ -1439,19 +1439,19 @@
         "description": "422 Unprocessable Entity — card number fails Luhn validation. The Payment service rejects the card before authorisation is attempted. The basket remains Active and the consumer receives a structured error that can be displayed to the user.",
         "keyFields": [
           "error",
-          "message"
+          "errorCode"
         ],
-        "validationNotes": "cardNumber 4111111111111234 fails the Luhn check and must be rejected with a 4xx (422) rather than a 500. The basket must not transition to Confirmed. The error body must contain an error code and a human-readable message.",
+        "validationNotes": "cardNumber 4111111111111234 fails the Luhn check and must be rejected with a 4xx (422) rather than a 500. The basket must not transition to Confirmed. The error body must contain a human-readable error message and a machine-readable error code.",
         "assertions": [
           {
             "field": "error",
             "assertion": "present",
-            "description": "error code must be present in the response body."
+            "description": "Human-readable error message must be present so the consumer can surface it to the user."
           },
           {
-            "field": "message",
+            "field": "errorCode",
             "assertion": "present",
-            "description": "Human-readable error message must be present so the consumer can surface it to the user."
+            "description": "Machine-readable error code must be present in the response body."
           }
         ]
       }
