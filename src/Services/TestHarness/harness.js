@@ -141,7 +141,7 @@
         const hasRand = JSON.stringify(journeyRaw.steps).includes('__RAND_');
         let currentSteps;
         if (hasRand) {
-            generateRuntimeVars();
+            generateRuntimeVars(configName);
             currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps)).map(step => {
                 if (step.request && step.request.body) {
                     step.request.body = applyRuntimeVars(step.request.body);
@@ -391,8 +391,9 @@
     function isoDate(d) { return d.toISOString().split('T')[0]; }
 
     let runtimeVars = {};
+    const journeyRuntimeVars = {};
 
-    function generateRuntimeVars() {
+    function generateRuntimeVars(forConfig) {
         const givenName = pick(FIRST_NAMES);
         const surname   = pick(SURNAMES);
         const password  = 'Apex@ir2026!';
@@ -484,6 +485,7 @@
             outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate,
             tomorrowDate
         };
+        journeyRuntimeVars[forConfig !== undefined ? forConfig : config] = runtimeVars;
     }
 
     function applyRuntimeVars(obj) {
@@ -798,11 +800,16 @@
         btnCopyLogs.disabled = true;
         btnViewLogs.disabled = true;
 
-        // Initial render
+        // Initial render — restore previous run's data if available; never generate new data here
         if (hasRuntimeVars) {
-            generateRuntimeVars();
-            buildTableRows(buildStepsWithVars());
-            updateRuntimeBanner();
+            if (journeyRuntimeVars[config]) {
+                runtimeVars = journeyRuntimeVars[config];
+                buildTableRows(buildStepsWithVars());
+                updateRuntimeBanner();
+            } else {
+                document.getElementById('runtimeDataBanner').style.display = 'none';
+                buildTableRows(JSON.parse(JSON.stringify(raw.steps)));
+            }
         } else {
             document.getElementById('runtimeDataBanner').style.display = 'none';
             buildTableRows(JSON.parse(JSON.stringify(raw.steps)));
