@@ -66,15 +66,14 @@ public sealed class EfTicketRepository : ITicketRepository
             _logger.LogWarning("UpdateAsync found no row for Ticket {TicketId}", ticket.TicketId);
     }
 
-    public async Task<long> GetMaxTicketSequenceAsync(CancellationToken cancellationToken = default)
+    public async Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default)
     {
-        // ETicketNumber format: "932-XXXXXXXXXX" — extract the 10-digit numeric suffix.
-        // Returns 0 when the table is empty so the first ticket gets sequence 1.
+        // NEXT VALUE FOR is atomic — the database SEQUENCE object guarantees each
+        // call returns a unique value with no gaps due to concurrent reads.
         // SqlQueryRaw<T> for primitives requires the column to be aliased as "Value".
         return await _context.Database
             .SqlQueryRaw<long>(
-                "SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(ETicketNumber, 5, 10) AS BIGINT)), 0) AS Value " +
-                "FROM [delivery].[Ticket]")
+                "SELECT NEXT VALUE FOR [delivery].[TicketSequence] AS Value")
             .FirstAsync(cancellationToken);
     }
 
