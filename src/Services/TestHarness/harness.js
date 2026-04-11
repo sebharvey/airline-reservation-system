@@ -997,7 +997,8 @@
                     const cls = a.pass ? 'pass' : 'fail';
                     const icon = a.pass ? '✓' : '✗';
                     const detail = a.pass ? '' : ` (expected ${a.expected}, got ${a.actual})`;
-                    html += `<div class="assertion-row ${cls}">${icon} ${esc(a.description)}${esc(detail)}</div>`;
+                    const copyBtn = a.pass ? '' : `<button class="assertion-copy-btn" data-text="${esc(`✗ ${a.description}${detail}`)}" title="Copy to clipboard">&#x1F4CB;</button>`;
+                    html += `<div class="assertion-row ${cls}">${icon} ${esc(a.description)}${esc(detail)}${copyBtn}</div>`;
                 });
                 html += '</div>';
             }
@@ -1005,6 +1006,31 @@
         }
 
         modalBody.innerHTML = html;
+
+        modalBody.querySelectorAll('.assertion-copy-btn').forEach(btn => {
+            btn.addEventListener('click', async e => {
+                e.stopPropagation();
+                const text = btn.dataset.text;
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                btn.textContent = '\u2713';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '\uD83D\uDCCB';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        });
 
         const hasLog = apiLog.some(e => e.step === step.step);
         btnCopyStepLog.style.display = hasLog ? '' : 'none';
