@@ -1354,10 +1354,26 @@
         "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain one entry per passenger (matches __RAND_PAX_COUNT__), each with four segmentIds — one coupon per leg. All four inventory records are held and sold atomically during confirmation.",
         "assertions": [
           {
+            "field": "bookingReference",
+            "assertion": "present",
+            "description": "bookingReference must be present — the human-readable PNR used for check-in and manage-booking flows."
+          },
+          {
+            "field": "status",
+            "assertion": "equals",
+            "expected": "Confirmed",
+            "description": "status must be 'Confirmed' after successful payment."
+          },
+          {
             "field": "eTickets",
             "assertion": "count",
             "expected": "__RAND_PAX_COUNT__",
             "description": "One e-ticket must be issued per passenger (matches the paxCount for this run). Each ticket contains one coupon per leg of the itinerary (4 segmentIds for this 4-leg connecting return)."
+          },
+          {
+            "field": "eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
         ]
       }
