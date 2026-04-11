@@ -15,13 +15,6 @@ public interface ITicketRepository
     Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Atomically reserves and returns the next e-ticket sequence number from the
-    /// database SEQUENCE object. Each call is guaranteed to return a unique value
-    /// even under concurrent load, so no retry is needed by the caller.
-    /// </summary>
-    Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Returns all seat numbers already assigned to passengers on the given flight
     /// departing from <paramref name="origin"/>. Used to avoid conflicts during OLCI auto-assignment.
     /// </summary>

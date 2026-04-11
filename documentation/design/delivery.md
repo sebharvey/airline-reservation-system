@@ -24,7 +24,7 @@ Each row represents one issued e-ticket: one passenger on one flight segment. Th
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | TicketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ETicketNumber | VARCHAR(20) | No | | UK | e.g. `932-1234567890`; IATA format, unique per issued ticket |
+| TicketNumber | BIGINT | No | IDENTITY(1000000001,1) | UK | Database-generated auto-increment; the numeric second part of the IATA e-ticket number. The full formatted string (e.g. `932-1000000001`) is assembled at the API layer by prepending the airline accounting code. |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
 | PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
 | IsVoided | BIT | No | `0` | | Set to `1` on voluntary change, cancellation, or IROPS reissuance |
@@ -165,7 +165,7 @@ One ticket covers one passenger and all of their flight segments. Each segment i
 > **`apisData`:** `null` at booking; populated at check-in for routes requiring Advance Passenger Information. Shape: `{ documentType, documentNumber, issuingCountry, expiryDate, nationality, dateOfBirth, gender, residenceCountry }`.
 > **`changeHistory`:** Append-only. A new entry is added on every mutation (seat change, reissuance, IROPS rebooking). `actor` identifies the system component that made the change.
 
-> **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`.
+> **Indexes:** `UQ_Ticket_Number` (unique) on `(TicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`.
 > **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
 > **Immutability principle:** Ticket rows are never deleted; voiding sets `IsVoided = 1`. Re-issuance creates a new row with a new `ETicketNumber`; the old row is voided in the same transaction.
 > **Event on creation:** Each new `delivery.Ticket` row triggers a `TicketIssued` event to the Accounting system event bus, carrying the full ticket record for financial accounting.

@@ -27,9 +27,21 @@ public sealed class EfTicketRepository : ITicketRepository
 
     public async Task<Ticket?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default)
     {
+        // eTicketNumber is the full formatted string, e.g. "932-1000000001".
+        // Parse out the numeric part and look up by the IDENTITY column.
+        var ticketNumber = ParseTicketNumber(eTicketNumber);
+        if (ticketNumber is null) return null;
+
         return await _context.Tickets
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.ETicketNumber == eTicketNumber, cancellationToken);
+            .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber.Value, cancellationToken);
+    }
+
+    private static long? ParseTicketNumber(string eTicketNumber)
+    {
+        var dashIndex = eTicketNumber.IndexOf('-');
+        if (dashIndex < 0) return null;
+        return long.TryParse(eTicketNumber[(dashIndex + 1)..], out var num) ? num : null;
     }
 
     public async Task<IReadOnlyList<Ticket>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
@@ -53,9 +65,9 @@ public sealed class EfTicketRepository : ITicketRepository
             when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
         {
             _context.Entry(ticket).State = EntityState.Detached;
-            throw new TicketNumberConflictException(ticket.ETicketNumber);
+            throw new TicketNumberConflictException(ticket.TicketNumber);
         }
-        _logger.LogDebug("Inserted Ticket {TicketId} ({ETicketNumber})", ticket.TicketId, ticket.ETicketNumber);
+        _logger.LogDebug("Inserted Ticket {TicketId} ({TicketNumber})", ticket.TicketId, ticket.TicketNumber);
     }
 
     public async Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default)
@@ -64,17 +76,6 @@ public sealed class EfTicketRepository : ITicketRepository
         var rowsAffected = await _context.SaveChangesAsync(cancellationToken);
         if (rowsAffected == 0)
             _logger.LogWarning("UpdateAsync found no row for Ticket {TicketId}", ticket.TicketId);
-    }
-
-    public async Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default)
-    {
-        // NEXT VALUE FOR is atomic — the database SEQUENCE object guarantees each
-        // call returns a unique value with no gaps due to concurrent reads.
-        // SqlQueryRaw<T> for primitives requires the column to be aliased as "Value".
-        return await _context.Database
-            .SqlQueryRaw<long>(
-                "SELECT NEXT VALUE FOR [delivery].[TicketSequence] AS Value")
-            .FirstAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(

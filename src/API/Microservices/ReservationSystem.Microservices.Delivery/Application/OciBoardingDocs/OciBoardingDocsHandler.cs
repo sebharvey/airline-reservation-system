@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
+using ReservationSystem.Microservices.Delivery.Models.Mappers;
 
 namespace ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
 
@@ -58,7 +59,7 @@ public sealed class OciBoardingDocsHandler
                 var bcbp = BuildBcbpString(ticket.BookingReference, surname, givenName, coupon, sequenceNumber);
 
                 boardingCards.Add(new BoardingCard(
-                    TicketNumber: ticket.ETicketNumber,
+                    TicketNumber: DeliveryMapper.FormatETicketNumber(ticket.TicketNumber),
                     PassengerId: ticket.PassengerId,
                     GivenName: givenName,
                     Surname: surname,

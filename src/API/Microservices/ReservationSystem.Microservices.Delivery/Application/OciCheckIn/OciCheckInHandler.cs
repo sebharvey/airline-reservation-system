@@ -90,7 +90,7 @@ public sealed class OciCheckInHandler
                     ticket.AssignSeatForOrigin(command.DepartureAirport, seat, "OCI");
                     _logger.LogInformation(
                         "Auto-assigned seat {Seat} to ticket {TicketNumber} on {FlightNumber}",
-                        seat, ticket.ETicketNumber, flightGroup.Key.FlightNumber);
+                        seat, ticket.TicketNumber, flightGroup.Key.FlightNumber);
                 }
                 else
                 {
