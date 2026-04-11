@@ -234,6 +234,7 @@
             });
         }
         if (requestBody !== null && requestBody !== undefined) {
+            requestBody = resolveChainStrings(requestBody, chain);
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
@@ -1112,17 +1113,18 @@
         else cur[last] = value;
     }
 
-    // Replace __CHAIN_*__ string placeholders with resolved liveChain values.
-    function resolveChainStrings(obj) {
+    // Replace __CHAIN_*__ string placeholders with resolved chain values.
+    // Accepts an explicit chain map; defaults to liveChain for the interactive runner.
+    function resolveChainStrings(obj, chain = liveChain) {
         if (typeof obj === 'string') {
             return obj.replace(/__CHAIN_(\w+)__/g, (match, key) =>
-                liveChain[key] !== undefined ? String(liveChain[key]) : match
+                chain[key] !== undefined ? String(chain[key]) : match
             );
         }
-        if (Array.isArray(obj)) return obj.map(resolveChainStrings);
+        if (Array.isArray(obj)) return obj.map(item => resolveChainStrings(item, chain));
         if (typeof obj === 'object' && obj !== null) {
             const out = {};
-            for (const [k, v] of Object.entries(obj)) out[k] = resolveChainStrings(v);
+            for (const [k, v] of Object.entries(obj)) out[k] = resolveChainStrings(v, chain);
             return out;
         }
         return obj;
