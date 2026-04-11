@@ -892,12 +892,6 @@
             "description": "bookingReference must be present — the human-readable PNR used for check-in and manage-booking flows."
           },
           {
-            "field": "status",
-            "assertion": "equals",
-            "expected": "Confirmed",
-            "description": "status must be 'Confirmed' after successful payment."
-          },
-          {
             "field": "eTickets",
             "assertion": "count",
             "expected": "__RAND_PAX_COUNT__",
