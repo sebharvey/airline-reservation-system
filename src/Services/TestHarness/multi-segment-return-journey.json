@@ -282,7 +282,7 @@
         "keyFields": ["basketStatus", "basketData.flightOffers"],
         "validationNotes": "basketData.flightOffers must contain exactly four items. basketStatus must be 'Active'. Leg sequence order is determined by the order segments were submitted in Step 3.",
         "assertions": [
-          { "field": "basketData.flightOffers", "assertion": "count", "expected": 4 }
+          { "field": "basketData.flightOffers", "assertion": "count", "expected": 4, "description": "Exactly 4 flight offers must be present in the basket — one per leg of the complete connecting return itinerary." }
         ]
       },
       "chainsTo": [
@@ -579,7 +579,7 @@
         "keyFields": ["bookingReference", "status", "eTickets"],
         "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets must contain four entries — one per segment. All four inventory records are held and sold atomically during confirmation.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 4 }
+          { "field": "eTickets", "assertion": "count", "expected": 4, "description": "Exactly 4 e-tickets must be issued — one per leg of the complete connecting return itinerary." }
         ]
       }
     }
