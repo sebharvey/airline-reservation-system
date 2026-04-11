@@ -236,7 +236,16 @@
                 @if (pax.loyaltyNumber) {
                   <div class="field-row">
                     <span class="field-label">Loyalty no.</span>
-                    <span class="field-value mono">{{ pax.loyaltyNumber }}</span>
+                    <span class="field-value mono loyalty-copy-wrap">
+                      {{ pax.loyaltyNumber }}
+                      <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyText(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
+                        @if (copiedText() === pax.loyaltyNumber) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        }
+                      </button>
+                    </span>
                   </div>
                 }
                 @if (pax.travelDocument?.number) {
@@ -583,7 +592,18 @@
                 <tbody>
                   @for (ticket of activeTickets(); track ticket.ticketId) {
                     <tr class="ticket-list-row" (click)="openTicketModal(ticket)">
-                      <td class="mono">{{ ticket.eTicketNumber }}</td>
+                      <td class="mono">
+                        <span class="loyalty-copy-wrap">
+                          {{ ticket.eTicketNumber }}
+                          <button class="copy-btn" [class.copied]="copiedText() === ticket.eTicketNumber" (click)="copyText(ticket.eTicketNumber, $event)" [title]="copiedText() === ticket.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
+                            @if (copiedText() === ticket.eTicketNumber) {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            }
+                          </button>
+                        </span>
+                      </td>
                       <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
@@ -610,7 +630,18 @@
                 <tbody>
                   @for (ticket of voidedTickets(); track ticket.ticketId) {
                     <tr class="ticket-list-row ticket-voided-row" (click)="openTicketModal(ticket)">
-                      <td class="mono muted">{{ ticket.eTicketNumber }}</td>
+                      <td class="mono muted">
+                        <span class="pnr-copy-wrap">
+                          {{ ticket.eTicketNumber }}
+                          <button class="copy-btn" [class.copied]="copiedText() === ticket.eTicketNumber" (click)="copyText(ticket.eTicketNumber, $event)" [title]="copiedText() === ticket.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
+                            @if (copiedText() === ticket.eTicketNumber) {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            }
+                          </button>
+                        </span>
+                      </td>
                       <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
@@ -636,7 +667,16 @@
 
       <div class="modal-header">
         <div class="modal-title-row">
-          <span class="modal-title mono">{{ t.eTicketNumber }}</span>
+          <span class="modal-title mono loyalty-copy-wrap">
+            {{ t.eTicketNumber }}
+            <button class="copy-btn" [class.copied]="copiedText() === t.eTicketNumber" (click)="copyText(t.eTicketNumber)" [title]="copiedText() === t.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
+              @if (copiedText() === t.eTicketNumber) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              }
+            </button>
+          </span>
           @if (t.isVoided) {
             <span class="status-badge badge-cancelled">Voided</span>
           } @else {

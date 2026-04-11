@@ -19,6 +19,14 @@ export class BoardingPassComponent implements OnInit {
   errorMessage = signal('');
   qrCodeUrls = signal<Map<string, string>>(new Map());
   activeIndex = signal(0);
+  copiedText = signal<string | null>(null);
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
+    });
+  }
 
   @ViewChild('carouselTrack') carouselTrack?: ElementRef<HTMLElement>;
 

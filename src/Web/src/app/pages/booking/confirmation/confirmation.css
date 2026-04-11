@@ -48,11 +48,31 @@
   margin-bottom: 4px;
 }
 
+.ref-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .ref-value {
   font-size: 2.4rem;
   font-weight: 700;
   letter-spacing: 6px;
   font-variant-numeric: tabular-nums;
+}
+
+.copy-btn--light {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.copy-btn--light:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.copy-btn--light.copied {
+  color: rgba(255, 255, 255, 1);
 }
 
 .booking-meta {
@@ -268,6 +288,9 @@
 .loyalty-badge {
   background: rgba(102, 126, 234, 0.1);
   color: var(--grad-start);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── Ancillary Rows ── */

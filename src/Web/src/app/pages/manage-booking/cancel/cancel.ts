@@ -20,6 +20,14 @@ export class CancelBookingComponent implements OnInit {
   cancellationRef = signal('');
   refundAmount = signal(0);
   refundCurrency = signal('GBP');
+  copiedText = signal<string | null>(null);
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
+    });
+  }
 
   bookingRef = signal('');
   givenName = signal('');

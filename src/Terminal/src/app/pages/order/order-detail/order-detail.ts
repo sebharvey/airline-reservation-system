@@ -32,6 +32,7 @@ export class OrderDetailComponent implements OnInit {
   order = signal<OrderDetail | null>(null);
   activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('itinerary');
   copied = signal(false);
+  copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
   editForm = signal<EditForm>({ givenName: '', surname: '', dateOfBirth: null, email: null, phone: null });
   editSaving = signal(false);
@@ -140,6 +141,14 @@ export class OrderDetailComponent implements OnInit {
     navigator.clipboard.writeText(text).then(() => {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
+    });
+  }
+
+  copyText(text: string, event?: Event): void {
+    event?.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
     });
   }
 

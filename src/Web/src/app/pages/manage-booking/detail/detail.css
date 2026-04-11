@@ -362,6 +362,18 @@ h3 {
   color: var(--text-muted);
 }
 
+.pax-eticket-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ref-heading-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .pax-checkin {
   font-size: 0.75rem;
   font-weight: 600;
