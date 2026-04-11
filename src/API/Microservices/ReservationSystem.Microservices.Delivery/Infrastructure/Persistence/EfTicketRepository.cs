@@ -58,8 +58,10 @@ public sealed class EfTicketRepository : ITicketRepository
 
     public async Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default)
     {
+        // EF Core's SqlQueryRaw<T> for primitives requires the column to be named "Value".
+        // NEXT VALUE FOR returns an unnamed column, so the alias is required.
         return await _context.Database
-            .SqlQueryRaw<long>("SELECT NEXT VALUE FOR [delivery].[TicketNumberSeq]")
+            .SqlQueryRaw<long>("SELECT NEXT VALUE FOR [delivery].[TicketNumberSeq] AS Value")
             .FirstAsync(cancellationToken);
     }
 
