@@ -59,6 +59,14 @@ export class CheckInDetailsComponent implements OnInit {
 
   saving = signal(false);
   saveError = signal('');
+  copiedText = signal<string | null>(null);
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
+    });
+  }
 
   constructor(
     private checkInState: CheckInStateService,

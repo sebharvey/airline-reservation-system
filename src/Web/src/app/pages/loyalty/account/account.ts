@@ -158,6 +158,15 @@ export class LoyaltyAccountComponent implements OnInit {
   flightsLoading = signal(false);
   flightsLoaded = signal(false);
 
+  copiedText = signal<string | null>(null);
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
+    });
+  }
+
   readonly customer = this.loyaltyState.currentCustomer;
 
   readonly tierInfo = computed(() => {

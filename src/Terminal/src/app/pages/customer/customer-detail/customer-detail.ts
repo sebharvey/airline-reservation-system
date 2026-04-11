@@ -95,6 +95,7 @@ export class CustomerDetailComponent implements OnInit {
   error = signal('');
   success = signal('');
   copied = signal(false);
+  copiedOrderRef = signal<string | null>(null);
 
   customer = signal<CustomerDetail | null>(null);
   editing = signal(false);
@@ -430,6 +431,14 @@ export class CustomerDetailComponent implements OnInit {
     navigator.clipboard.writeText(text).then(() => {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
+    });
+  }
+
+  copyOrderRef(text: string, event: Event): void {
+    event.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedOrderRef.set(text);
+      setTimeout(() => this.copiedOrderRef.set(null), 2000);
     });
   }
 

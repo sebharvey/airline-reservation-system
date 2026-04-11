@@ -3,6 +3,12 @@
   padding: 16px;
 }
 
+.loyalty-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Header */
 .detail-header {
   display: flex;

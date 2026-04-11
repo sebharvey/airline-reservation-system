@@ -80,6 +80,22 @@
   margin: 0;
   font-family: monospace;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loyalty-number .copy-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loyalty-number .copy-btn:hover {
+  color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.loyalty-number .copy-btn.copied {
+  color: rgba(255, 255, 255, 1);
 }
 
 .member-since {

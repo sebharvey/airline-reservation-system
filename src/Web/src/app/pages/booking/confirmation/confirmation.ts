@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
@@ -25,6 +25,14 @@ export class ConfirmationComponent implements OnInit {
   private bookingState = inject(BookingStateService);
 
   order: Order | null = null;
+  copiedText = signal<string | null>(null);
+
+  copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedText.set(text);
+      setTimeout(() => this.copiedText.set(null), 2000);
+    });
+  }
 
   get isRewardBooking(): boolean {
     return this.order?.bookingType === 'Reward';

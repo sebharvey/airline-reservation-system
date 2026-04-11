@@ -23,7 +23,16 @@
     <div class="page-header">
       <div class="header-row">
         <div>
-          <h2>Booking {{ o.bookingReference }}</h2>
+          <div class="ref-heading-wrap">
+            <h2>Booking {{ o.bookingReference }}</h2>
+            <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
+              @if (copiedText() === o.bookingReference) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              }
+            </button>
+          </div>
           <p class="created-at">Booked {{ formatDate(o.createdAt) }}</p>
         </div>
         <span class="status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
@@ -117,7 +126,18 @@
               <div class="pax-table-row">
                 <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
                 <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
-                <span class="pax-eticket mono">{{ ps.eTicketNumber ?? 'N/A' }}</span>
+                <span class="pax-eticket-cell">
+                  <span class="pax-eticket mono">{{ ps.eTicketNumber ?? 'N/A' }}</span>
+                  @if (ps.eTicketNumber) {
+                    <button class="copy-btn" [class.copied]="copiedText() === ps.eTicketNumber" (click)="copyToClipboard(ps.eTicketNumber)" [title]="copiedText() === ps.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
+                      @if (copiedText() === ps.eTicketNumber) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      }
+                    </button>
+                  }
+                </span>
                 <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
                   {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
                 </span>
@@ -145,7 +165,16 @@
             @if (pax.loyaltyNumber) {
               <div class="pax-detail-row">
                 <span class="pax-detail-label">Loyalty Number</span>
-                <span class="mono">{{ pax.loyaltyNumber }}</span>
+                <span class="copy-wrap mono">
+                  {{ pax.loyaltyNumber }}
+                  <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyToClipboard(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
+                    @if (copiedText() === pax.loyaltyNumber) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    }
+                  </button>
+                </span>
               </div>
             }
             @if (pax.travelDocument) {
