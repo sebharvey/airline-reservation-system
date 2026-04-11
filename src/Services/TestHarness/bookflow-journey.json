@@ -245,8 +245,8 @@
             "channelCode": "WEB",
             "currencyCode": "GBP",
             "flightOffers": [
-              { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11", "basketItemId": "BI-1", "inventoryId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0", "flightNumber": "AX001", "aircraftType": "A351" },
-              { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854", "basketItemId": "BI-2", "inventoryId": "3a5f9c12-b847-4d29-a318-7e1f042d8b56", "flightNumber": "AX010", "aircraftType": "B789" }
+              { "offerId": "bc2f449f-a828-4826-a97c-4378531d7253", "sessionId": "518c85cc-8618-4a20-8874-235461e10e11", "basketItemId": "BI-1", "inventoryId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0", "flightNumber": "AX001", "aircraftType": "A351", "cabinCode": "Y" },
+              { "offerId": "19714659-fdbe-4593-9037-948ff69178ca", "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854", "basketItemId": "BI-2", "inventoryId": "3a5f9c12-b847-4d29-a318-7e1f042d8b56", "flightNumber": "AX010", "aircraftType": "B789", "cabinCode": "Y" }
             ],
             "passengers": [],
             "seats": [],
@@ -264,10 +264,12 @@
         { "path": "basketData.flightOffers[0].inventoryId",  "as": "outboundInventoryId",  "usedInSteps": [7] },
         { "path": "basketData.flightOffers[0].flightNumber", "as": "outboundFlightNumber", "usedInSteps": [7] },
         { "path": "basketData.flightOffers[0].aircraftType", "as": "outboundAircraftType", "usedInSteps": [7] },
+        { "path": "basketData.flightOffers[0].cabinCode",    "as": "outboundCabinCode",    "usedInSteps": [7] },
         { "path": "basketData.flightOffers[0].basketItemId", "as": "outboundBasketItemId", "usedInSteps": [9] },
         { "path": "basketData.flightOffers[1].inventoryId",  "as": "returnInventoryId",    "usedInSteps": [8] },
         { "path": "basketData.flightOffers[1].flightNumber", "as": "returnFlightNumber",   "usedInSteps": [8] },
         { "path": "basketData.flightOffers[1].aircraftType", "as": "returnAircraftType",   "usedInSteps": [8] },
+        { "path": "basketData.flightOffers[1].cabinCode",    "as": "returnCabinCode",      "usedInSteps": [8] },
         { "path": "basketData.flightOffers[1].basketItemId", "as": "returnBasketItemId",   "usedInSteps": [9] }
       ]
     },
@@ -381,24 +383,26 @@
     {
       "step": 7,
       "name": "Get outbound seatmap",
-      "description": "Retrieve the seat map for the outbound flight using the inventoryId, flightNumber, and aircraftType chained from the basket. Returns a cabin-structured map of priced seat offers with availability status. A random available seat is selected from the response and its details chained to the add-seats step.",
+      "description": "Retrieve the seat map for the outbound flight using the inventoryId, flightNumber, aircraftType, and cabinCode chained from the basket. Passing cabinCode restricts the response to the booked cabin only. Returns a cabin-structured map of priced seat offers with availability status. A random available seat is selected from the response and its details chained to the add-seats step.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{outboundInventoryId}/seatmap?aircraftType={outboundAircraftType}&flightNumber={outboundFlightNumber}",
+        "endpoint": "/api/v1/flights/{outboundInventoryId}/seatmap?aircraftType={outboundAircraftType}&flightNumber={outboundFlightNumber}&cabinCode={outboundCabinCode}",
         "baseUrlRef": "retail",
         "pathParams": {
           "outboundInventoryId": "from-step-4",
           "outboundAircraftType": "from-step-4",
-          "outboundFlightNumber": "from-step-4"
+          "outboundFlightNumber": "from-step-4",
+          "outboundCabinCode":    "from-step-4"
         }
       },
       "request": {
         "headers": {},
         "dataChain": [
-          { "field": "outboundInventoryId", "from": "outboundInventoryId", "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
+          { "field": "outboundInventoryId",  "from": "outboundInventoryId",  "source": "Step 4 → basketData.flightOffers[0].inventoryId" },
           { "field": "outboundFlightNumber", "from": "outboundFlightNumber", "source": "Step 4 → basketData.flightOffers[0].flightNumber" },
-          { "field": "outboundAircraftType", "from": "outboundAircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" }
+          { "field": "outboundAircraftType", "from": "outboundAircraftType", "source": "Step 4 → basketData.flightOffers[0].aircraftType" },
+          { "field": "outboundCabinCode",    "from": "outboundCabinCode",    "source": "Step 4 → basketData.flightOffers[0].cabinCode" }
         ]
       },
       "response": {
@@ -441,7 +445,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned. Contains cabins each with a seats array. Each seat has a seatOfferId, seatNumber, position, price, currency, and availability status. Only seats with availability 'available' can be selected. A random available seat is picked and chained to Step 9.",
+        "description": "200 OK — seatmap returned filtered to the booked cabin. Contains cabins each with a seats array. Each seat has a seatOfferId, seatNumber, position, price, currency, and availability status. Only seats with availability 'available' can be selected. A random available seat is picked and chained to Step 9.",
         "keyFields": ["flightId", "cabins"],
         "validationNotes": "availability values: 'available', 'held', 'sold'. Seats with status other than 'available' must not be selected. price reflects the surcharge for that seat position; Business/First class seats carry no surcharge."
       },
@@ -462,16 +466,17 @@
     {
       "step": 8,
       "name": "Get return seatmap",
-      "description": "Retrieve the seat map for the return flight using details chained from the basket. A random available seat is selected and chained to the add-seats step.",
+      "description": "Retrieve the seat map for the return flight using the inventoryId, flightNumber, aircraftType, and cabinCode chained from the basket. Passing cabinCode restricts the response to the booked cabin only. A random available seat is selected and chained to the add-seats step.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/flights/{returnInventoryId}/seatmap?aircraftType={returnAircraftType}&flightNumber={returnFlightNumber}",
+        "endpoint": "/api/v1/flights/{returnInventoryId}/seatmap?aircraftType={returnAircraftType}&flightNumber={returnFlightNumber}&cabinCode={returnCabinCode}",
         "baseUrlRef": "retail",
         "pathParams": {
           "returnInventoryId":  "from-step-4",
           "returnAircraftType": "from-step-4",
-          "returnFlightNumber": "from-step-4"
+          "returnFlightNumber": "from-step-4",
+          "returnCabinCode":    "from-step-4"
         }
       },
       "request": {
@@ -479,7 +484,8 @@
         "dataChain": [
           { "field": "returnInventoryId",  "from": "returnInventoryId",  "source": "Step 4 → basketData.flightOffers[1].inventoryId" },
           { "field": "returnFlightNumber", "from": "returnFlightNumber", "source": "Step 4 → basketData.flightOffers[1].flightNumber" },
-          { "field": "returnAircraftType", "from": "returnAircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" }
+          { "field": "returnAircraftType", "from": "returnAircraftType", "source": "Step 4 → basketData.flightOffers[1].aircraftType" },
+          { "field": "returnCabinCode",    "from": "returnCabinCode",    "source": "Step 4 → basketData.flightOffers[1].cabinCode" }
         ]
       },
       "response": {
@@ -509,7 +515,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — return flight seatmap returned. Structure identical to the outbound seatmap response. A random available seat is picked and chained to Step 9.",
+        "description": "200 OK — return flight seatmap returned filtered to the booked cabin. Structure identical to the outbound seatmap response. A random available seat is picked and chained to Step 9.",
         "keyFields": ["flightId", "cabins"],
         "validationNotes": "Same seat selection rules apply as Step 7. The picked seat's seatOfferId, seatNumber, position, price, and currency are chained for use in Step 9."
       },
