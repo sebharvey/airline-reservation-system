@@ -620,7 +620,8 @@
         const lines = [];
         lines.push('='.repeat(80));
         lines.push('Apex Air Test Harness — API Log');
-        lines.push('Journey: ' + (raw ? (raw.journey.domain || config) : config));
+        lines.push('Test:      ' + (raw ? (raw.journey.name || config) : config));
+        lines.push('Journey:   ' + (raw ? (raw.journey.domain || config) : config));
         lines.push('Timestamp: ' + new Date().toISOString());
         lines.push('='.repeat(80));
 
