@@ -22,14 +22,12 @@ public sealed class IssueTicketsHandler
 
     public async Task<IssueTicketsResponse> HandleAsync(IssueTicketsRequest request, CancellationToken cancellationToken = default)
     {
-        var baseSequence = await _ticketRepository.GetTicketCountAsync(cancellationToken);
         var ticketSummaries = new List<TicketSummary>();
-        var sequence = baseSequence;
         var segmentIds = request.Segments.Select(s => s.SegmentId).ToList();
 
         foreach (var passenger in request.Passengers)
         {
-            sequence++;
+            var sequence = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
             var eTicketNumber = $"932-{sequence:D10}";
 
             var ticketDataJson = BuildTicketDataJson(passenger, request.Segments);

@@ -14,7 +14,7 @@ public interface ITicketRepository
 
     Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default);
 
-    Task<int> GetTicketCountAsync(CancellationToken cancellationToken = default);
+    Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all seat numbers already assigned to passengers on the given flight

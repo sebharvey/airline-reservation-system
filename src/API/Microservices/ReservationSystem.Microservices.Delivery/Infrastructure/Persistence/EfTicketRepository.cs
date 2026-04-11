@@ -56,9 +56,11 @@ public sealed class EfTicketRepository : ITicketRepository
             _logger.LogWarning("UpdateAsync found no row for Ticket {TicketId}", ticket.TicketId);
     }
 
-    public async Task<int> GetTicketCountAsync(CancellationToken cancellationToken = default)
+    public async Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Tickets.CountAsync(cancellationToken);
+        return await _context.Database
+            .SqlQueryRaw<long>("SELECT NEXT VALUE FOR [delivery].[TicketNumberSeq]")
+            .FirstAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(
