@@ -727,17 +727,21 @@ public sealed class SqlOfferRepository : IOfferRepository
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  (@Query IS NULL OR @Query = ''
-                    OR FareBasisCode LIKE '%' + @Query + '%'
-                    OR FareFamily LIKE '%' + @Query + '%'
-                    OR FlightNumber LIKE '%' + @Query + '%'
+                    OR FareBasisCode LIKE '%' + @EscapedQuery + '%' ESCAPE '\'
+                    OR FareFamily LIKE '%' + @EscapedQuery + '%' ESCAPE '\'
+                    OR FlightNumber LIKE '%' + @EscapedQuery + '%' ESCAPE '\'
                     OR CabinCode = @Query)
             ORDER BY FareBasisCode, CabinCode;
             """;
 
+        var escapedQuery = string.IsNullOrEmpty(query)
+            ? string.Empty
+            : query.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_");
+
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
 
         var rows = await connection.QueryAsync<dynamic>(
-            new CommandDefinition(sql, new { Query = query ?? string.Empty }, commandTimeout: _options.CommandTimeoutSeconds));
+            new CommandDefinition(sql, new { Query = query ?? string.Empty, EscapedQuery = escapedQuery }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(MapToFareRule).ToList().AsReadOnly();
     }
