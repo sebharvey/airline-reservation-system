@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
-import { Order, FlightSegment, Passenger, OrderItem } from '../../../models/order.model';
+import { Order, FlightSegment, Passenger, OrderItem, ETicket } from '../../../models/order.model';
 
 export interface ItinerarySegment {
   segment: FlightSegment;
@@ -98,6 +98,19 @@ export class ConfirmationComponent implements OnInit {
   getPassengerName(passengerId: string): string {
     const pax = this.order?.passengers.find(p => p.passengerId === passengerId);
     return pax ? `${pax.givenName} ${pax.surname}` : passengerId;
+  }
+
+  getPassengerETickets(passengerId: string): ETicket[] {
+    if (!this.order) return [];
+    const seen = new Set<string>();
+    return this.order.orderItems
+      .filter(oi => oi.type === 'Flight')
+      .flatMap(oi => oi.eTickets?.filter(et => et.passengerId === passengerId) ?? [])
+      .filter(et => {
+        if (seen.has(et.eTicketNumber)) return false;
+        seen.add(et.eTicketNumber);
+        return true;
+      });
   }
 
   getSegment(segmentId: string): FlightSegment | undefined {
