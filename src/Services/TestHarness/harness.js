@@ -146,15 +146,7 @@
         let currentSteps;
         if (hasRand) {
             generateRuntimeVars(configName);
-            currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps)).map(step => {
-                if (step.request && step.request.body) {
-                    step.request.body = applyRuntimeVars(step.request.body);
-                }
-                if (step.expected && step.expected.assertions) {
-                    step.expected.assertions = applyRuntimeVars(step.expected.assertions);
-                }
-                return step;
-            });
+            currentSteps = buildStepsWithVars(journeyRaw.steps);
         } else {
             currentSteps = JSON.parse(JSON.stringify(journeyRaw.steps));
         }
@@ -232,15 +224,8 @@
         let requestBody = (step.request.body !== null && step.request.body !== undefined)
             ? JSON.parse(JSON.stringify(step.request.body)) : null;
 
-        if (step.request.dataChain && requestBody) {
-            step.request.dataChain.forEach(dc => {
-                const fp  = dc.field.replace(/ \(path\)$/, '');
-                const key = dc.from || fp;
-                if (chain[key] === undefined) return;
-                if (fp.includes('.') || fp.includes('[')) setPath(requestBody, fp, chain[key]);
-                else if (fp in requestBody) requestBody[fp] = chain[key];
-            });
-        }
+        applyDataChainToBody(step.request.dataChain, requestBody, chain);
+
         if (step.request.dataChain) {
             step.request.dataChain.forEach(dc => {
                 if (dc.field === 'Authorization' && chain['accessToken']) {
@@ -252,75 +237,10 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus = 0, liveBody = null, liveError = null, durationMs = null, responseSizeBytes = null;
-        try {
-            const t0   = performance.now();
-            const r    = await fetch(url, fetchOpts);
-            liveStatus = r.status;
-            const ct   = r.headers.get('content-type') || '';
-            const text = await r.text();
-            responseSizeBytes = new TextEncoder().encode(text).byteLength;
-            if (ct.includes('application/json')) {
-                try { liveBody = JSON.parse(text); } catch { liveBody = text.length > 0 ? text : null; }
-            } else {
-                liveBody = text.length > 0 ? text : null;
-            }
-            durationMs = Math.round(performance.now() - t0);
-        } catch (err) {
-            liveError = err.message;
-        }
+        const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
 
-        if (step.chainsTo && liveBody && typeof liveBody === 'object') {
-            step.chainsTo.forEach(cd => {
-                if (cd.randomArrayPath) {
-                    const all = collectAllValues(liveBody, cd.randomArrayPath.split('.'));
-                    if (all.length) chain[cd.as] = all[Math.floor(Math.random() * all.length)];
-                } else if (cd.randomAvailableSeatFrom) {
-                    const cabins = liveBody[cd.randomAvailableSeatFrom];
-                    if (!Array.isArray(cabins)) return;
-                    const avail   = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
-                    if (!avail.length) return;
-                    const shuffled = [...avail].sort(() => Math.random() - 0.5);
-                    const count    = Math.min(paxCount || 1, shuffled.length);
-                    for (let i = 0; i < count; i++) {
-                        for (const [sf, alias] of Object.entries(cd.as)) {
-                            if (i === 0) chain[alias] = shuffled[i][sf];
-                            chain[alias + '_' + (i + 1)] = shuffled[i][sf];
-                        }
-                    }
-                } else if (cd.path) {
-                    const val = getPath(liveBody, cd.path);
-                    if (val !== undefined) chain[cd.as] = val;
-                } else {
-                    const am = cd.field.match(/^\[(\d+)\]\.(.+)$/);
-                    if (am && Array.isArray(liveBody)) {
-                        const ai = parseInt(am[1], 10);
-                        if (liveBody[ai] && liveBody[ai][am[2]] !== undefined) {
-                            chain[cd.as || am[2]] = liveBody[ai][am[2]];
-                        }
-                    } else if (liveBody[cd.field] !== undefined) {
-                        chain[cd.as || cd.field] = liveBody[cd.field];
-                    }
-                }
-            });
-        }
-
-        if (step.chainsTo && step.chainsTo.length) {
-            step.chainsTo.forEach(cd => {
-                const alias = cd.as || cd.field;
-                if (typeof alias !== 'string') return;
-                const value = chain[alias];
-                if (value === undefined) return;
-                const fromRef = 'from-step-' + step.step;
-                allSteps.forEach(s => {
-                    if (s.apiCall.pathParams) {
-                        for (const [pn, pv] of Object.entries(s.apiCall.pathParams)) {
-                            if (pv === fromRef && pn === alias) chain[pn] = value;
-                        }
-                    }
-                });
-            });
-        }
+        extractChainsFromResponse(step.chainsTo, liveBody, chain, paxCount);
+        resolvePathParamChains(step, allSteps, chain);
 
         const statusMatch   = liveStatus === step.expected.statusCode;
         const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
@@ -582,46 +502,7 @@
     function formatStepLogForCopy(stepNumber) {
         const entry = apiLog.find(e => e.step === stepNumber);
         if (!entry) return 'No log entry for step ' + stepNumber + '.';
-
-        const lines = [];
-        lines.push('-'.repeat(80));
-        lines.push('Step ' + entry.step + ': ' + entry.name);
-        lines.push('-'.repeat(80));
-        lines.push('');
-        lines.push('REQUEST');
-        lines.push('  ' + entry.method + ' ' + entry.url);
-        lines.push('');
-        if (entry.requestHeaders && Object.keys(entry.requestHeaders).length) {
-            lines.push('  Headers:');
-            for (const [k, v] of Object.entries(entry.requestHeaders)) {
-                lines.push('    ' + k + ': ' + v);
-            }
-            lines.push('');
-        }
-        if (entry.requestBody !== null && entry.requestBody !== undefined) {
-            lines.push('  Body:');
-            lines.push(indent(formatBody(entry.requestBody), '    '));
-        } else {
-            lines.push('  Body: (none)');
-        }
-        lines.push('');
-        lines.push('RESPONSE');
-        if (entry.error) {
-            lines.push('  Error: ' + entry.error);
-        } else {
-            lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
-            if (entry.durationMs !== null && entry.durationMs !== undefined) {
-                lines.push('  Time:   ' + entry.durationMs + ' ms');
-            }
-            lines.push('');
-            if (entry.responseBody !== null && entry.responseBody !== undefined) {
-                lines.push('  Body:');
-                lines.push(indent(formatBody(entry.responseBody), '    '));
-            } else {
-                lines.push('  Body: (none)');
-            }
-        }
-        return lines.join('\n');
+        return formatLogEntry(entry);
     }
 
     function formatLogForCopy() {
@@ -635,45 +516,9 @@
         lines.push('Timestamp: ' + new Date().toISOString());
         lines.push('='.repeat(80));
 
-        apiLog.forEach((entry, i) => {
+        apiLog.forEach(entry => {
             lines.push('');
-            lines.push('-'.repeat(80));
-            lines.push('Step ' + entry.step + ': ' + entry.name);
-            lines.push('-'.repeat(80));
-            lines.push('');
-            lines.push('REQUEST');
-            lines.push('  ' + entry.method + ' ' + entry.url);
-            lines.push('');
-            if (entry.requestHeaders && Object.keys(entry.requestHeaders).length) {
-                lines.push('  Headers:');
-                for (const [k, v] of Object.entries(entry.requestHeaders)) {
-                    lines.push('    ' + k + ': ' + v);
-                }
-                lines.push('');
-            }
-            if (entry.requestBody !== null && entry.requestBody !== undefined) {
-                lines.push('  Body:');
-                lines.push(indent(formatBody(entry.requestBody), '    '));
-            } else {
-                lines.push('  Body: (none)');
-            }
-            lines.push('');
-            lines.push('RESPONSE');
-            if (entry.error) {
-                lines.push('  Error: ' + entry.error);
-            } else {
-                lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
-                if (entry.durationMs !== null && entry.durationMs !== undefined) {
-                    lines.push('  Time:   ' + entry.durationMs + ' ms');
-                }
-                lines.push('');
-                if (entry.responseBody !== null && entry.responseBody !== undefined) {
-                    lines.push('  Body:');
-                    lines.push(indent(formatBody(entry.responseBody), '    '));
-                } else {
-                    lines.push('  Body: (none)');
-                }
-            }
+            lines.push(formatLogEntry(entry));
         });
 
         lines.push('');
@@ -704,32 +549,13 @@
     const logsModalClose = document.getElementById('logsModalClose');
 
     btnCopyLogs.addEventListener('click', async () => {
-        const text = formatLogForCopy();
-        try {
-            await navigator.clipboard.writeText(text);
-            btnCopyLogs.textContent = '\u2713 Copied';
-            btnCopyLogs.classList.add('copied');
-            setTimeout(() => {
-                btnCopyLogs.textContent = '\uD83D\uDCCB Copy Logs';
-                btnCopyLogs.classList.remove('copied');
-            }, 2000);
-        } catch {
-            // Fallback for non-secure contexts
-            const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            btnCopyLogs.textContent = '\u2713 Copied';
-            btnCopyLogs.classList.add('copied');
-            setTimeout(() => {
-                btnCopyLogs.textContent = '\uD83D\uDCCB Copy Logs';
-                btnCopyLogs.classList.remove('copied');
-            }, 2000);
-        }
+        await copyToClipboard(formatLogForCopy());
+        btnCopyLogs.textContent = '\u2713 Copied';
+        btnCopyLogs.classList.add('copied');
+        setTimeout(() => {
+            btnCopyLogs.textContent = '\uD83D\uDCCB Copy Logs';
+            btnCopyLogs.classList.remove('copied');
+        }, 2000);
     });
 
     btnViewLogs.addEventListener('click', () => {
@@ -1029,19 +855,7 @@
         modalBody.querySelectorAll('.assertion-copy-btn').forEach(btn => {
             btn.addEventListener('click', async e => {
                 e.stopPropagation();
-                const text = btn.dataset.text;
-                try {
-                    await navigator.clipboard.writeText(text);
-                } catch {
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                }
+                await copyToClipboard(btn.dataset.text);
                 btn.textContent = '\u2713';
                 btn.classList.add('copied');
                 setTimeout(() => {
@@ -1056,19 +870,7 @@
         btnCopyStepLog.textContent = '\uD83D\uDCCB Copy Step Log';
         btnCopyStepLog.classList.remove('copied');
         btnCopyStepLog.onclick = async () => {
-            const text = formatStepLogForCopy(step.step);
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch {
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-            }
+            await copyToClipboard(formatStepLogForCopy(step.step));
             btnCopyStepLog.textContent = '\u2713 Copied';
             btnCopyStepLog.classList.add('copied');
             setTimeout(() => {
@@ -1109,8 +911,8 @@
     // Step data helpers
     // =====================================================================
 
-    function buildStepsWithVars() {
-        return JSON.parse(JSON.stringify(raw.steps)).map(step => {
+    function buildStepsWithVars(steps = raw.steps) {
+        return JSON.parse(JSON.stringify(steps)).map(step => {
             if (step.request && step.request.body) {
                 step.request.body = applyRuntimeVars(step.request.body);
             }
@@ -1349,18 +1151,7 @@
         }
 
         // Substitute dataChain fields from liveChain
-        if (step.request.dataChain) {
-            step.request.dataChain.forEach(chain => {
-                const fieldPath = chain.field.replace(/ \(path\)$/, '');
-                const chainKey  = chain.from || fieldPath;
-                if (liveChain[chainKey] === undefined) return;
-                if (fieldPath.includes('.') || fieldPath.includes('[')) {
-                    setPath(body, fieldPath, liveChain[chainKey]);
-                } else if (fieldPath in body) {
-                    body[fieldPath] = liveChain[chainKey];
-                }
-            });
-        }
+        applyDataChainToBody(step.request.dataChain, body, liveChain);
 
         // Replace any remaining __CHAIN_*__ string placeholders
         return resolveChainStrings(body);
@@ -1424,24 +1215,12 @@
             ? JSON.parse(JSON.stringify(step.request.body))
             : null;
 
-        // Substitute chained values into request body fields (supports dot/index paths)
-        if (step.request.dataChain && requestBody) {
-            step.request.dataChain.forEach(chain => {
-                const fieldPath = chain.field.replace(/ \(path\)$/, '');
-                const chainKey  = chain.from || fieldPath;
-                if (liveChain[chainKey] === undefined) return;
-                if (fieldPath.includes('.') || fieldPath.includes('[')) {
-                    setPath(requestBody, fieldPath, liveChain[chainKey]);
-                } else if (fieldPath in requestBody) {
-                    requestBody[fieldPath] = liveChain[chainKey];
-                }
-            });
-        }
+        // Substitute chained values into request body fields and Authorization header
+        applyDataChainToBody(step.request.dataChain, requestBody, liveChain);
 
-        // Substitute chained Authorization header
         if (step.request.dataChain) {
-            step.request.dataChain.forEach(chain => {
-                if (chain.field === 'Authorization' && liveChain['accessToken']) {
+            step.request.dataChain.forEach(entry => {
+                if (entry.field === 'Authorization' && liveChain['accessToken']) {
                     fetchOpts.headers['Authorization'] = 'Bearer ' + liveChain['accessToken'];
                 }
             });
@@ -1456,29 +1235,7 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus, liveBody, liveError, durationMs, responseSizeBytes;
-
-        try {
-            const t0 = performance.now();
-            const response = await fetch(url, fetchOpts);
-            liveStatus = response.status;
-
-            const contentType = response.headers.get('content-type') || '';
-            const text = await response.text();
-            responseSizeBytes = new TextEncoder().encode(text).byteLength;
-            if (contentType.includes('application/json')) {
-                try { liveBody = JSON.parse(text); } catch { liveBody = text.length > 0 ? text : null; }
-            } else {
-                liveBody = text.length > 0 ? text : null;
-            }
-            durationMs = Math.round(performance.now() - t0);
-        } catch (err) {
-            liveError = err.message;
-            liveStatus = 0;
-            liveBody = null;
-            durationMs = null;
-            responseSizeBytes = null;
-        }
+        const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
 
         // Log this interaction
         logInteraction({
@@ -1495,53 +1252,10 @@
         });
 
         // Store chained values from response
-        if (step.chainsTo && liveBody && typeof liveBody === 'object') {
-            step.chainsTo.forEach(chain => {
-                if (chain.randomArrayPath) {
-                    // Collect all values at the wildcard path and pick one at random
-                    const parts = chain.randomArrayPath.split('.');
-                    const all = collectAllValues(liveBody, parts);
-                    if (all.length > 0) {
-                        liveChain[chain.as] = all[Math.floor(Math.random() * all.length)];
-                    }
-                } else if (chain.randomAvailableSeatFrom) {
-                    // Collect all available seats from cabins, shuffle, and pick up to paxCount distinct seats.
-                    // Stores un-indexed alias (first seat, for backward compat) and indexed alias_1…alias_N.
-                    const cabins = liveBody[chain.randomAvailableSeatFrom];
-                    if (!Array.isArray(cabins)) return;
-                    const available = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
-                    if (!available.length) return;
-                    const shuffled = [...available].sort(() => Math.random() - 0.5);
-                    const count = Math.min(runtimeVars.paxCount || 1, shuffled.length);
-                    for (let i = 0; i < count; i++) {
-                        const seat = shuffled[i];
-                        for (const [srcField, alias] of Object.entries(chain.as)) {
-                            if (i === 0) liveChain[alias] = seat[srcField]; // un-indexed fallback
-                            liveChain[`${alias}_${i + 1}`] = seat[srcField];
-                        }
-                    }
-                } else if (chain.path) {
-                    // Navigate a nested path to extract a single value
-                    const val = getPath(liveBody, chain.path);
-                    if (val !== undefined) liveChain[chain.as] = val;
-                } else {
-                    const field = chain.field;
-                    const arrayMatch = field.match(/^\[(\d+)\]\.(.+)$/);
-                    if (arrayMatch && Array.isArray(liveBody)) {
-                        const arrIdx = parseInt(arrayMatch[1], 10);
-                        const prop = arrayMatch[2];
-                        if (liveBody[arrIdx] && liveBody[arrIdx][prop] !== undefined) {
-                            liveChain[chain.as || prop] = liveBody[arrIdx][prop];
-                        }
-                    } else if (liveBody[field] !== undefined) {
-                        liveChain[chain.as || field] = liveBody[field];
-                    }
-                }
-            });
-        }
+        extractChainsFromResponse(step.chainsTo, liveBody, liveChain, runtimeVars.paxCount);
 
         // Resolve path parameter chains for subsequent steps
-        resolvePathParamChains(step, currentSteps);
+        resolvePathParamChains(step, currentSteps, liveChain);
 
         // Determine pass/fail
         const statusMatch = liveStatus === step.expected.statusCode;
@@ -1592,14 +1306,14 @@
         });
     }
 
-    function resolvePathParamChains(completedStep, allSteps) {
+    function resolvePathParamChains(completedStep, allSteps, chain) {
         if (!completedStep.chainsTo || !completedStep.chainsTo.length) return;
 
-        completedStep.chainsTo.forEach(chain => {
-            const alias = chain.as || chain.field;
+        completedStep.chainsTo.forEach(cd => {
+            const alias = cd.as || cd.field;
             // randomAvailableSeatFrom uses an object for 'as' — skip, nothing to resolve here
             if (typeof alias !== 'string') return;
-            const value = liveChain[alias];
+            const value = chain[alias];
             if (value === undefined) return;
 
             const fromRef = 'from-step-' + completedStep.step;
@@ -1609,7 +1323,7 @@
                         // Only update the param whose name matches this chain's alias,
                         // preventing one chain from overwriting unrelated params.
                         if (paramVal === fromRef && paramName === alias) {
-                            liveChain[paramName] = value;
+                            chain[paramName] = value;
                         }
                     }
                 }
@@ -1680,15 +1394,7 @@
             html += '</div>';
         }
 
-        if (step.request.diff) {
-            html += '<div class="diff-block">';
-            html += '<div class="diff-label">Field changes:</div>';
-            for (const [field, change] of Object.entries(step.request.diff)) {
-                html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
-                html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
-            }
-            html += '</div>';
-        }
+        html += buildDiffHtml(step.request.diff);
 
         td.innerHTML = html;
         return td;
@@ -1739,15 +1445,7 @@
             html += '</div>';
         }
 
-        if (step.request.diff) {
-            html += '<div class="diff-block">';
-            html += '<div class="diff-label">Field changes:</div>';
-            for (const [field, change] of Object.entries(step.request.diff)) {
-                html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
-                html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
-            }
-            html += '</div>';
-        }
+        html += buildDiffHtml(step.request.diff);
 
         return html;
     }
@@ -1856,6 +1554,145 @@
                 return match;
             }
         );
+    }
+
+    // =====================================================================
+    // Shared execution helpers
+    // =====================================================================
+
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+    }
+
+    async function fetchAndParse(url, fetchOpts) {
+        try {
+            const t0 = performance.now();
+            const response = await fetch(url, fetchOpts);
+            const status = response.status;
+            const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            const sizeBytes = new TextEncoder().encode(text).byteLength;
+            let body;
+            if (contentType.includes('application/json')) {
+                try { body = JSON.parse(text); } catch { body = text.length > 0 ? text : null; }
+            } else {
+                body = text.length > 0 ? text : null;
+            }
+            return { liveStatus: status, liveBody: body, liveError: null, durationMs: Math.round(performance.now() - t0), responseSizeBytes: sizeBytes };
+        } catch (err) {
+            return { liveStatus: 0, liveBody: null, liveError: err.message, durationMs: null, responseSizeBytes: null };
+        }
+    }
+
+    function applyDataChainToBody(dataChain, body, chain) {
+        if (!dataChain || !body) return;
+        dataChain.forEach(entry => {
+            const fieldPath = entry.field.replace(/ \(path\)$/, '');
+            const chainKey  = entry.from || fieldPath;
+            if (chain[chainKey] === undefined) return;
+            if (fieldPath.includes('.') || fieldPath.includes('[')) setPath(body, fieldPath, chain[chainKey]);
+            else if (fieldPath in body) body[fieldPath] = chain[chainKey];
+        });
+    }
+
+    function extractChainsFromResponse(chainsTo, body, chain, paxCount) {
+        if (!chainsTo || !body || typeof body !== 'object') return;
+        chainsTo.forEach(cd => {
+            if (cd.randomArrayPath) {
+                const all = collectAllValues(body, cd.randomArrayPath.split('.'));
+                if (all.length) chain[cd.as] = all[Math.floor(Math.random() * all.length)];
+            } else if (cd.randomAvailableSeatFrom) {
+                const cabins = body[cd.randomAvailableSeatFrom];
+                if (!Array.isArray(cabins)) return;
+                const available = cabins.flatMap(c => c.seats || []).filter(s => s.availability === 'available');
+                if (!available.length) return;
+                const shuffled = [...available].sort(() => Math.random() - 0.5);
+                const count = Math.min(paxCount || 1, shuffled.length);
+                for (let i = 0; i < count; i++) {
+                    for (const [srcField, alias] of Object.entries(cd.as)) {
+                        if (i === 0) chain[alias] = shuffled[i][srcField];
+                        chain[`${alias}_${i + 1}`] = shuffled[i][srcField];
+                    }
+                }
+            } else if (cd.path) {
+                const val = getPath(body, cd.path);
+                if (val !== undefined) chain[cd.as] = val;
+            } else {
+                const arrayMatch = cd.field.match(/^\[(\d+)\]\.(.+)$/);
+                if (arrayMatch && Array.isArray(body)) {
+                    const arrIdx = parseInt(arrayMatch[1], 10);
+                    const prop   = arrayMatch[2];
+                    if (body[arrIdx] && body[arrIdx][prop] !== undefined) {
+                        chain[cd.as || prop] = body[arrIdx][prop];
+                    }
+                } else if (body[cd.field] !== undefined) {
+                    chain[cd.as || cd.field] = body[cd.field];
+                }
+            }
+        });
+    }
+
+    function formatLogEntry(entry) {
+        const lines = [];
+        lines.push('-'.repeat(80));
+        lines.push('Step ' + entry.step + ': ' + entry.name);
+        lines.push('-'.repeat(80));
+        lines.push('');
+        lines.push('REQUEST');
+        lines.push('  ' + entry.method + ' ' + entry.url);
+        lines.push('');
+        if (entry.requestHeaders && Object.keys(entry.requestHeaders).length) {
+            lines.push('  Headers:');
+            for (const [k, v] of Object.entries(entry.requestHeaders)) {
+                lines.push('    ' + k + ': ' + v);
+            }
+            lines.push('');
+        }
+        if (entry.requestBody !== null && entry.requestBody !== undefined) {
+            lines.push('  Body:');
+            lines.push(indent(formatBody(entry.requestBody), '    '));
+        } else {
+            lines.push('  Body: (none)');
+        }
+        lines.push('');
+        lines.push('RESPONSE');
+        if (entry.error) {
+            lines.push('  Error: ' + entry.error);
+        } else {
+            lines.push('  Status: ' + entry.status + ' ' + (statusLabel(entry.status) || ''));
+            if (entry.durationMs !== null && entry.durationMs !== undefined) {
+                lines.push('  Time:   ' + entry.durationMs + ' ms');
+            }
+            lines.push('');
+            if (entry.responseBody !== null && entry.responseBody !== undefined) {
+                lines.push('  Body:');
+                lines.push(indent(formatBody(entry.responseBody), '    '));
+            } else {
+                lines.push('  Body: (none)');
+            }
+        }
+        return lines.join('\n');
+    }
+
+    function buildDiffHtml(diff) {
+        if (!diff) return '';
+        let html = '<div class="diff-block"><div class="diff-label">Field changes:</div>';
+        for (const [field, change] of Object.entries(diff)) {
+            html += `<div class="diff-line diff-from">- ${esc(field)}: ${esc(String(change.from))}</div>`;
+            html += `<div class="diff-line diff-to">+ ${esc(field)}: ${esc(String(change.to))}</div>`;
+        }
+        return html + '</div>';
     }
 
     // =====================================================================
