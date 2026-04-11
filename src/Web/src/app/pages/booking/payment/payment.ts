@@ -24,8 +24,8 @@ function generateOrderId(): string {
   return 'ORD-' + randomNum(8);
 }
 
-function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string, issuedETickets?: IssuedETicket[]): Order {
-  const now = new Date().toISOString();
+function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: string, bookingRef: string, loyaltyNumber?: string, issuedETickets?: IssuedETicket[], bookedAt?: string): Order {
+  const now = bookedAt ?? new Date().toISOString();
   const orderId = generateOrderId();
   const payRef = 'PAY-' + randomNum(8);
 
@@ -290,7 +290,7 @@ export class PaymentComponent implements OnInit {
       loyaltyPointsToRedeem
     ).subscribe({
       next: (result) => {
-        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber, result.eTickets);
+        const order = buildOrderFromBasket(basket, this.cardLast4(), this.detectCardType(), result.bookingReference, loyaltyNumber, result.eTickets, result.bookedAt);
         this.bookingState.confirmOrder(order);
         this.paying.set(false);
         this.router.navigate(['/booking/confirmation']);

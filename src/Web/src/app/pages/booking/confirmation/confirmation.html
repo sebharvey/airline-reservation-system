@@ -31,6 +31,7 @@
           <div class="route-line">
             <span class="flight-num">{{ seg.flightNumber }}</span>
             <div class="line"></div>
+            <span class="duration">{{ getDuration(seg.departureDateTime, seg.arrivalDateTime) }}</span>
             <span class="cabin">{{ cabinLabel(seg.cabinCode) }}</span>
           </div>
           <div class="route-point">
@@ -41,6 +42,13 @@
         <div class="flight-meta">
           <span>{{ formatDateTime(seg.departureDateTime) }}</span>
           <span>{{ seg.aircraftType }}</span>
+        </div>
+        <div class="fare-info">
+          <span *ngIf="item.fareFamily" class="fare-family-tag">{{ item.fareFamily }}</span>
+          <span *ngIf="item.isRefundable === true" class="fare-tag fare-ok">Refundable</span>
+          <span *ngIf="item.isRefundable === false" class="fare-tag fare-no">Non-refundable</span>
+          <span *ngIf="item.isChangeable === true" class="fare-tag fare-ok">Changeable</span>
+          <span *ngIf="item.isChangeable === false" class="fare-tag fare-no">Non-changeable</span>
         </div>
         <div class="seat-info" *ngIf="item.seatAssignments && item.seatAssignments.length > 0">
           <strong>Seats:</strong>
@@ -62,10 +70,34 @@
   <!-- Passengers -->
   <div class="section-card">
     <h2>Passengers</h2>
-    <div class="passenger-row" *ngFor="let pax of order.passengers">
-      <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
-      <span class="badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
-      <span *ngIf="pax.loyaltyNumber" class="loyalty-badge">&#11088; {{ pax.loyaltyNumber }}</span>
+    <div class="passenger-card" *ngFor="let pax of order.passengers">
+      <div class="pax-header">
+        <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+        <div class="pax-badges">
+          <span class="badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
+          <span *ngIf="pax.loyaltyNumber" class="loyalty-badge">&#11088; {{ pax.loyaltyNumber }}</span>
+        </div>
+      </div>
+      <dl class="pax-details">
+        <div class="detail-row" *ngIf="pax.dateOfBirth">
+          <dt>Date of birth</dt>
+          <dd>{{ formatDate(pax.dateOfBirth) }}</dd>
+        </div>
+        <div class="detail-row" *ngIf="pax.gender">
+          <dt>Gender</dt>
+          <dd>{{ pax.gender }}</dd>
+        </div>
+        <ng-container *ngIf="pax.contacts">
+          <div class="detail-row" *ngIf="pax.contacts.email">
+            <dt>Email</dt>
+            <dd>{{ pax.contacts.email }}</dd>
+          </div>
+          <div class="detail-row" *ngIf="pax.contacts.phone">
+            <dt>Phone</dt>
+            <dd>{{ pax.contacts.phone }}</dd>
+          </div>
+        </ng-container>
+      </dl>
     </div>
   </div>
 
@@ -108,6 +140,7 @@
       <span class="pay-desc">
         {{ pay.cardType }} &middot;&middot;&middot;&middot; {{ pay.cardLast4 }}
         <span class="pay-ref">{{ pay.paymentReference }}</span>
+        <span class="pay-date">{{ formatDate(pay.settledAt) }}</span>
       </span>
       <span class="amount pay-status-chip">{{ pay.status }}</span>
     </div>

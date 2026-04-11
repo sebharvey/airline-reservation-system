@@ -129,6 +129,7 @@
 
 .flight-num { font-size: 0.78rem; color: var(--text-muted); }
 .line { width: 100%; height: 1px; background: var(--border); }
+.duration { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
 .cabin { font-size: 0.75rem; color: var(--grad-start); font-weight: 600; }
 
 .flight-meta {
@@ -137,7 +138,39 @@
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Fare tags ── */
+.fare-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
   margin-bottom: 0.5rem;
+}
+
+.fare-family-tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fare-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 99px;
+}
+
+.fare-ok {
+  background: rgba(39, 174, 96, 0.1);
+  color: #1a8a4a;
+}
+
+.fare-no {
+  background: var(--bg-light);
+  color: var(--text-muted);
 }
 
 .seat-info,
@@ -173,18 +206,54 @@
 }
 
 /* ── Passengers ── */
-.passenger-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0;
+.passenger-card {
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
 }
 
-.passenger-row:last-child { border-bottom: none; }
+.passenger-card:last-child { border-bottom: none; }
 
-.pax-name { font-weight: 600; flex: 1; color: var(--text); }
+.pax-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.pax-name { font-weight: 600; color: var(--text); font-size: 0.95rem; flex: 1; }
+
+.pax-badges {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Passenger detail grid ── */
+.pax-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 1rem;
+  margin: 0;
+}
+
+.detail-row { display: contents; }
+
+.pax-details dt {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.pax-details dd {
+  font-size: 0.82rem;
+  color: var(--text);
+  margin: 0;
+  align-self: center;
+}
 
 .badge,
 .loyalty-badge {
@@ -240,6 +309,11 @@
 .pay-ref {
   font-size: 0.75rem;
   font-family: monospace;
+  color: var(--text-muted);
+}
+
+.pay-date {
+  font-size: 0.72rem;
   color: var(--text-muted);
 }
 
