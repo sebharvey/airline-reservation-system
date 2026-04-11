@@ -21,7 +21,8 @@ public sealed record OciPaxCommand(
 
 public sealed record OciPaxResult(
     string BookingReference,
-    bool Success);
+    bool Success,
+    string? ErrorMessage = null);
 
 public sealed class OciPaxHandler
 {
@@ -57,8 +58,8 @@ public sealed class OciPaxHandler
         {
             if (!ticketToPax.TryGetValue(paxRequest.TicketNumber, out var passengerId))
             {
-                _logger.LogWarning("OCI pax: no passengerId found for ticket {TicketNumber}", paxRequest.TicketNumber);
-                continue;
+                _logger.LogWarning("OCI pax: ticket {TicketNumber} not found on booking {BookingReference}", paxRequest.TicketNumber, command.BookingReference);
+                return new OciPaxResult(command.BookingReference, false, $"Ticket number '{paxRequest.TicketNumber}' was not found on booking '{command.BookingReference}'.");
             }
 
             passengerUpdates.Add(new
