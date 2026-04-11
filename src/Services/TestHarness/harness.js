@@ -245,17 +245,18 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus = 0, liveBody = null, liveError = null, durationMs = null;
+        let liveStatus = 0, liveBody = null, liveError = null, durationMs = null, responseSizeBytes = null;
         try {
             const t0   = performance.now();
             const r    = await fetch(url, fetchOpts);
             liveStatus = r.status;
             const ct   = r.headers.get('content-type') || '';
+            const text = await r.text();
+            responseSizeBytes = new TextEncoder().encode(text).byteLength;
             if (ct.includes('application/json')) {
-                liveBody = await r.json();
+                try { liveBody = JSON.parse(text); } catch { liveBody = text.length > 0 ? text : null; }
             } else {
-                const t = await r.text();
-                liveBody = t.length > 0 ? t : null;
+                liveBody = text.length > 0 ? text : null;
             }
             durationMs = Math.round(performance.now() - t0);
         } catch (err) {
@@ -329,7 +330,7 @@
             error:          liveError || null,
             durationMs,
         };
-        return { passed, liveStatus, liveBody, liveError, durationMs, statusMatch, assertionResults: assertResults, url, logEntry };
+        return { passed, liveStatus, liveBody, liveError, durationMs, responseSizeBytes, statusMatch, assertionResults: assertResults, url, logEntry };
     }
 
     // =====================================================================
@@ -976,7 +977,10 @@
             const durationLabel = result.durationMs !== null && result.durationMs !== undefined
                 ? `<span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);margin-left:0.6rem">${result.durationMs} ms</span>`
                 : '';
-            html += `<div class="live-result-label">Live Response ${resBadge}${durationLabel}</div>`;
+            const sizeLabel = result.responseSizeBytes !== null && result.responseSizeBytes !== undefined
+                ? `<span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);margin-left:0.6rem">${(result.responseSizeBytes / 1024).toFixed(1)} kb</span>`
+                : '';
+            html += `<div class="live-result-label">Live Response ${resBadge}${durationLabel}${sizeLabel}</div>`;
             if (result.url) html += `<div class="live-url">\u2192 ${esc(result.url)}</div>`;
             if (result.liveError) {
                 html += `<div class="status-code fail">Error: ${esc(result.liveError)}</div>`;
@@ -1435,7 +1439,7 @@
             fetchOpts.body = JSON.stringify(requestBody);
         }
 
-        let liveStatus, liveBody, liveError, durationMs;
+        let liveStatus, liveBody, liveError, durationMs, responseSizeBytes;
 
         try {
             const t0 = performance.now();
@@ -1443,10 +1447,11 @@
             liveStatus = response.status;
 
             const contentType = response.headers.get('content-type') || '';
+            const text = await response.text();
+            responseSizeBytes = new TextEncoder().encode(text).byteLength;
             if (contentType.includes('application/json')) {
-                liveBody = await response.json();
+                try { liveBody = JSON.parse(text); } catch { liveBody = text.length > 0 ? text : null; }
             } else {
-                const text = await response.text();
                 liveBody = text.length > 0 ? text : null;
             }
             durationMs = Math.round(performance.now() - t0);
@@ -1455,6 +1460,7 @@
             liveStatus = 0;
             liveBody = null;
             durationMs = null;
+            responseSizeBytes = null;
         }
 
         // Log this interaction
@@ -1532,7 +1538,7 @@
             ref.tdTime.textContent = durationMs !== null ? durationMs + ' ms' : '—';
         }
 
-        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, assertionResults, url, durationMs };
+        liveResults[idx] = { liveStatus, liveBody, liveError, statusMatch, assertionResults, url, durationMs, responseSizeBytes };
     }
 
     function evaluateAssertions(assertions, body) {
@@ -1844,13 +1850,14 @@
             if (ref) applyResultToRow(ref, result);
             // Populate liveResults so openStepModal can show the response body
             liveResults[idx] = {
-                liveStatus:       result.liveStatus,
-                liveBody:         result.liveBody,
-                liveError:        result.liveError,
-                statusMatch:      result.statusMatch,
-                assertionResults: result.assertionResults || [],
-                url:              result.url || null,
-                durationMs:       result.durationMs,
+                liveStatus:        result.liveStatus,
+                liveBody:          result.liveBody,
+                liveError:         result.liveError,
+                statusMatch:       result.statusMatch,
+                assertionResults:  result.assertionResults || [],
+                url:               result.url || null,
+                durationMs:        result.durationMs,
+                responseSizeBytes: result.responseSizeBytes,
             };
             // Populate apiLog so Copy/View Logs and Copy Step Log work
             if (result.logEntry) apiLog.push(result.logEntry);
@@ -1880,13 +1887,14 @@
                 if (ref) applyResultToRow(ref, result);
                 // Populate liveResults so clicking the row shows the response
                 liveResults[idx] = {
-                    liveStatus:       result.liveStatus,
-                    liveBody:         result.liveBody,
-                    liveError:        result.liveError,
-                    statusMatch:      result.statusMatch,
-                    assertionResults: result.assertionResults || [],
-                    url:              result.url || null,
-                    durationMs:       result.durationMs,
+                    liveStatus:        result.liveStatus,
+                    liveBody:          result.liveBody,
+                    liveError:         result.liveError,
+                    statusMatch:       result.statusMatch,
+                    assertionResults:  result.assertionResults || [],
+                    url:               result.url || null,
+                    durationMs:        result.durationMs,
+                    responseSizeBytes: result.responseSizeBytes,
                 };
                 // Populate apiLog and enable log buttons
                 if (result.logEntry) {
