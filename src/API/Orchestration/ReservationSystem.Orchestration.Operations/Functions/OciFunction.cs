@@ -10,6 +10,7 @@ using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace ReservationSystem.Orchestration.Operations.Functions;
 
@@ -31,6 +32,10 @@ public sealed class OciFunction
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    // IATA e-ticket format: 3-digit airline code, hyphen, 10-digit sequential number
+    private static readonly Regex TicketNumberRegex =
+        new(@"^\d{3}-\d{10}$", RegexOptions.Compiled);
 
     public OciFunction(
         OciRetrieveHandler retrieveHandler,
@@ -158,6 +163,9 @@ public sealed class OciFunction
             var ticketNumber = p.TryGetProperty("ticketNumber", out var tnEl) ? tnEl.GetString() : null;
             if (string.IsNullOrWhiteSpace(ticketNumber)) continue;
 
+            if (!TicketNumberRegex.IsMatch(ticketNumber))
+                return await req.BadRequestAsync($"Ticket number '{ticketNumber}' is not a valid format. Expected: NNN-NNNNNNNNNN (e.g. 932-0000000001).");
+
             if (!p.TryGetProperty("travelDocument", out var tdEl) || tdEl.ValueKind != JsonValueKind.Object)
                 continue;
 
@@ -189,7 +197,11 @@ public sealed class OciFunction
                 return req.CreateResponse(HttpStatusCode.NotFound);
 
             if (!result.Success)
+            {
+                if (result.ErrorMessage is not null)
+                    return await req.BadRequestAsync(result.ErrorMessage);
                 return await req.InternalServerErrorAsync();
+            }
 
             return await req.OkJsonAsync(new
             {
