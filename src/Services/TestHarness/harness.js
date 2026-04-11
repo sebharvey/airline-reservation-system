@@ -1561,7 +1561,23 @@
     function evaluateAssertions(assertions, body) {
         if (!assertions || !assertions.length) return [];
         return assertions.map(a => {
-            const value = (a.field || '').split('.').reduce((o, k) => (o != null ? o[k] : undefined), body);
+            const fieldPath = a.field || '';
+            const isWildcardPath = fieldPath.includes('[*]');
+            const pathParts = fieldPath.split('.');
+            const value = isWildcardPath
+                ? collectAllValues(body, pathParts)
+                : pathParts.reduce((o, k) => (o != null ? o[k] : undefined), body);
+
+            if (a.assertion === 'present') {
+                if (isWildcardPath) {
+                    const values = value;
+                    const allPresent = Array.isArray(values) && values.length > 0 &&
+                        values.every(v => v !== null && v !== undefined && v !== '');
+                    return { pass: allPresent, description: a.description, expected: 'non-empty value for all items', actual: allPresent ? 'all present' : JSON.stringify(values) };
+                }
+                const pass = value !== null && value !== undefined && value !== '';
+                return { pass, description: a.description, expected: 'non-empty value', actual: value };
+            }
             if (a.assertion === 'count') {
                 const actual = Array.isArray(value) ? value.length : null;
                 const pass = actual === a.expected;
