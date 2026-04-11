@@ -41,7 +41,7 @@ public sealed class ScheduleFunction
     // GET /v1/schedules
     // -------------------------------------------------------------------------
 
-    [Function("GetSchedules")]
+    [Function("AdminGetSchedules")]
     [OpenApiOperation(operationId: "GetSchedules", tags: new[] { "Schedules" }, Summary = "Retrieve all stored flight schedules, optionally filtered by schedule group")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Filter schedules by schedule group")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedules")]
@@ -95,7 +95,7 @@ public sealed class ScheduleFunction
     // POST /v1/schedules/ssim
     // -------------------------------------------------------------------------
 
-    [Function("ImportSsim")]
+    [Function("AdminImportSsim")]
     [OpenApiOperation(operationId: "ImportSsim", tags: new[] { "Schedules" }, Summary = "Import schedules from an IATA SSIM Chapter 7 file into a schedule group")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Query, Required = true, Type = typeof(Guid), Description = "Target schedule group for the import")]
     [OpenApiParameter(name: "createdBy", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Identity of the user performing the import (defaults to 'ssim-import')")]
@@ -145,7 +145,7 @@ public sealed class ScheduleFunction
     // POST /v1/schedules/import-inventory
     // -------------------------------------------------------------------------
 
-    [Function("ImportSchedulesToInventory")]
+    [Function("AdminImportSchedulesToInventory")]
     [OpenApiOperation(operationId: "ImportSchedulesToInventory", tags: new[] { "Schedules" }, Summary = "Import schedules from the Schedule MS into offer inventory, optionally scoped to a schedule group")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryRequest), Required = false, Description = "Optional schedule group filter. Aircraft cabin configuration is resolved automatically from the Seat MS.")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryResponse), Description = "OK — returns counts of schedules processed, inventories created/skipped, and fares created")]

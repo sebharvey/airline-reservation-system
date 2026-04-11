@@ -31,7 +31,7 @@ public sealed class ScheduleGroupFunction
     // GET /v1/schedule-groups
     // -------------------------------------------------------------------------
 
-    [Function("GetScheduleGroups")]
+    [Function("AdminGetScheduleGroups")]
     [OpenApiOperation(operationId: "GetScheduleGroups", tags: new[] { "ScheduleGroups" }, Summary = "Retrieve all schedule groups")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetScheduleGroupsResponse), Description = "OK — returns all schedule groups")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
@@ -72,7 +72,7 @@ public sealed class ScheduleGroupFunction
     // POST /v1/schedule-groups
     // -------------------------------------------------------------------------
 
-    [Function("CreateScheduleGroup")]
+    [Function("AdminCreateScheduleGroup")]
     [OpenApiOperation(operationId: "CreateScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Create a new schedule group")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateScheduleGroupRequest), Required = true)]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ScheduleGroupSummary), Description = "OK — returns the created schedule group")]
@@ -131,7 +131,7 @@ public sealed class ScheduleGroupFunction
     // PUT /v1/schedule-groups/{scheduleGroupId}
     // -------------------------------------------------------------------------
 
-    [Function("UpdateScheduleGroup")]
+    [Function("AdminUpdateScheduleGroup")]
     [OpenApiOperation(operationId: "UpdateScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Update an existing schedule group")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateScheduleGroupRequest), Required = true)]
@@ -192,7 +192,7 @@ public sealed class ScheduleGroupFunction
     // DELETE /v1/schedule-groups/{scheduleGroupId}
     // -------------------------------------------------------------------------
 
-    [Function("DeleteScheduleGroup")]
+    [Function("AdminDeleteScheduleGroup")]
     [OpenApiOperation(operationId: "DeleteScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Delete a schedule group and all its schedules")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
