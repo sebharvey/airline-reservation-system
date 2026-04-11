@@ -19,7 +19,14 @@ public sealed record CouponInfo(
 public sealed class Ticket
 {
     public Guid TicketId { get; private set; }
-    public string ETicketNumber { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Database-generated IDENTITY value — the numeric second part of the IATA e-ticket number.
+    /// The full formatted number (e.g. <c>932-1000000001</c>) is assembled at the API layer
+    /// by prepending the airline accounting code prefix.
+    /// </summary>
+    public long TicketNumber { get; private set; }
+
     public string BookingReference { get; private set; } = string.Empty;
     public string PassengerId { get; private set; } = string.Empty;
     public bool IsVoided { get; private set; }
@@ -32,19 +39,17 @@ public sealed class Ticket
     private Ticket() { }
 
     public static Ticket Create(
-        string eTicketNumber,
         string bookingReference,
         string passengerId,
         string ticketData = "{}")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eTicketNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
 
         var now = DateTime.UtcNow;
         return new Ticket
         {
             TicketId = Guid.NewGuid(),
-            ETicketNumber = eTicketNumber,
+            TicketNumber = 0, // assigned by the database IDENTITY on INSERT; EF Core reads it back via SCOPE_IDENTITY()
             BookingReference = bookingReference,
             PassengerId = passengerId,
             IsVoided = false,
@@ -57,14 +62,14 @@ public sealed class Ticket
     }
 
     public static Ticket Reconstitute(
-        Guid ticketId, string eTicketNumber, string bookingReference,
+        Guid ticketId, long ticketNumber, string bookingReference,
         string passengerId, bool isVoided, DateTime? voidedAt,
         string ticketData, DateTime createdAt, DateTime updatedAt, int version)
     {
         return new Ticket
         {
             TicketId = ticketId,
-            ETicketNumber = eTicketNumber,
+            TicketNumber = ticketNumber,
             BookingReference = bookingReference,
             PassengerId = passengerId,
             IsVoided = isVoided,

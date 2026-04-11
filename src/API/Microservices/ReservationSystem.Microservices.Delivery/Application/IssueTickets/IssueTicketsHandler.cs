@@ -29,8 +29,8 @@ public sealed class IssueTicketsHandler
         {
             var ticket = await IssueTicketAsync(request.BookingReference, passenger, request.Segments, cancellationToken);
             ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
-            _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
-                ticket.ETicketNumber, passenger.PassengerId, request.Segments.Count);
+            _logger.LogInformation("Issued ticket {TicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
+                ticket.TicketNumber, passenger.PassengerId, request.Segments.Count);
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
@@ -42,10 +42,10 @@ public sealed class IssueTicketsHandler
         List<SegmentDetail> segments,
         CancellationToken cancellationToken)
     {
-        var seq = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
-        var eTicketNumber = $"932-{seq:D10}";
         var ticketDataJson = BuildTicketDataJson(passenger, segments);
-        var ticket = Ticket.Create(eTicketNumber, bookingReference, passenger.PassengerId, ticketDataJson);
+        // TicketNumber is assigned by the database IDENTITY on INSERT;
+        // EF Core reads it back automatically via SCOPE_IDENTITY().
+        var ticket = Ticket.Create(bookingReference, passenger.PassengerId, ticketDataJson);
         await _ticketRepository.CreateAsync(ticket, cancellationToken);
         return ticket;
     }

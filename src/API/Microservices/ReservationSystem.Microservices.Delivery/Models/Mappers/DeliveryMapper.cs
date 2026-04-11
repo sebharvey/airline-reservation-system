@@ -9,11 +9,20 @@ namespace ReservationSystem.Microservices.Delivery.Models.Mappers;
 /// </summary>
 public static class DeliveryMapper
 {
+    /// <summary>
+    /// IATA airline accounting code prefix prepended to the numeric <see cref="Ticket.TicketNumber"/>
+    /// to form the full e-ticket number (e.g. <c>932-1000000001</c>).
+    /// </summary>
+    private const string AirlinePrefix = "932-";
+
+    /// <summary>Formats a raw ticket number as the full IATA e-ticket string.</summary>
+    public static string FormatETicketNumber(long ticketNumber) => $"{AirlinePrefix}{ticketNumber:D10}";
+
     public static TicketSummary ToTicketSummary(Ticket ticket, List<string> segmentIds) =>
         new()
         {
             TicketId = ticket.TicketId,
-            ETicketNumber = ticket.ETicketNumber,
+            ETicketNumber = FormatETicketNumber(ticket.TicketNumber),
             PassengerId = ticket.PassengerId,
             SegmentIds = segmentIds
         };
@@ -39,7 +48,7 @@ public static class DeliveryMapper
         return new GetTicketResponse
         {
             TicketId = ticket.TicketId,
-            ETicketNumber = ticket.ETicketNumber,
+            ETicketNumber = FormatETicketNumber(ticket.TicketNumber),
             BookingReference = ticket.BookingReference,
             PassengerId = ticket.PassengerId,
             IsVoided = ticket.IsVoided,

@@ -26,7 +26,7 @@ public sealed class DeliveryDbContext : DbContext
             });
             entity.HasKey(t => t.TicketId);
             entity.Property(t => t.TicketId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
-            entity.Property(t => t.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(t => t.TicketNumber).HasColumnType("bigint").ValueGeneratedOnAdd();
             entity.Property(t => t.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(t => t.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
             entity.Property(t => t.IsVoided).HasColumnType("bit").IsRequired();
@@ -36,7 +36,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(t => t.UpdatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(t => t.Version).HasColumnType("int").IsRequired();
 
-            entity.HasIndex(t => t.ETicketNumber).IsUnique();
+            entity.HasIndex(t => t.TicketNumber).IsUnique();
             entity.HasIndex(t => t.BookingReference);
         });
 

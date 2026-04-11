@@ -192,7 +192,7 @@ public sealed class TicketFunction
             return (object)new
             {
                 ticketId = t.TicketId,
-                eTicketNumber = t.ETicketNumber,
+                ticketNumber = t.TicketNumber,
                 bookingReference = t.BookingReference,
                 passengerId = t.PassengerId,
                 isVoided = t.IsVoided,

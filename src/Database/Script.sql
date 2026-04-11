@@ -646,7 +646,7 @@ GO
 IF OBJECT_ID('[delivery].[Ticket]', 'U') IS NULL
 CREATE TABLE [delivery].[Ticket] (
     TicketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Ticket_Id       DEFAULT NEWID(),
-    ETicketNumber    VARCHAR(20)      NOT NULL,
+    TicketNumber     BIGINT           NOT NULL IDENTITY(1000000001, 1),
     BookingReference CHAR(6)          NOT NULL,
     PassengerId      VARCHAR(20)      NOT NULL,
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided   DEFAULT 0,
@@ -656,7 +656,7 @@ CREATE TABLE [delivery].[Ticket] (
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Updated  DEFAULT SYSUTCDATETIME(),
     Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version  DEFAULT 1,
     CONSTRAINT PK_Ticket         PRIMARY KEY (TicketId),
-    CONSTRAINT UQ_Ticket_ETicket UNIQUE (ETicketNumber),
+    CONSTRAINT UQ_Ticket_Number  UNIQUE (TicketNumber),
     CONSTRAINT CHK_Ticket_Data   CHECK (ISJSON(TicketData) = 1)
 );
 GO
@@ -678,17 +678,6 @@ BEGIN
             INNER JOIN inserted i ON t.TicketId = i.TicketId;
     ');
 END
-GO
-
--- delivery.TicketSequence — atomic sequence for e-ticket number generation ----
--- Seed data occupies 1000000001–1000000005; production starts at 1000000006.
-IF OBJECT_ID('[delivery].[TicketSequence]', 'SO') IS NULL
-    CREATE SEQUENCE [delivery].[TicketSequence]
-        AS BIGINT
-        START WITH 1000000006
-        INCREMENT BY 1
-        NO CYCLE
-        NO CACHE;
 GO
 
 -- delivery.Manifest -----------------------------------------------------------
@@ -1731,20 +1720,23 @@ BEGIN TRY
     DECLARE @TktId4 UNIQUEIDENTIFIER = NEWID();
     DECLARE @TktId5 UNIQUEIDENTIFIER = NEWID();
 
+    -- TicketNumber is an IDENTITY column; use IDENTITY_INSERT to set seed values explicitly.
+    -- Seed rows occupy 1000000001–1000000005; production inserts start at 1000000006.
+    SET IDENTITY_INSERT [delivery].[Ticket] ON;
     INSERT INTO [delivery].[Ticket]
-        (TicketId, ETicketNumber, InventoryId, FlightNumber, DepartureDate,
-         BookingReference, PassengerId, GivenName, Surname, CabinCode, FareBasisCode, TicketData)
+        (TicketId, TicketNumber, BookingReference, PassengerId, TicketData)
     VALUES
-    (@TktId1,'932-1000000001',@InvId_AX001,'AX001','2026-08-15','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
+    (@TktId1, 1000000001, 'AB1234', 'PAX-1',
      N'{"seatAssignment":{"seatNumber":"1A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId2,'932-1000000002',@InvId_AX001,'AX001','2026-08-15','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
+    (@TktId2, 1000000002, 'AB1234', 'PAX-2',
      N'{"seatAssignment":{"seatNumber":"1K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId3,'932-1000000003',@InvId_AX002,'AX002','2026-08-25','AB1234','PAX-1','Amara', 'Okafor','J','JFLEXGB',
+    (@TktId3, 1000000003, 'AB1234', 'PAX-1',
      N'{"seatAssignment":{"seatNumber":"2A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId4,'932-1000000004',@InvId_AX002,'AX002','2026-08-25','AB1234','PAX-2','Jordan','Taylor','J','JFLEXGB',
+    (@TktId4, 1000000004, 'AB1234', 'PAX-2',
      N'{"seatAssignment":{"seatNumber":"2K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId5,'932-1000000005',@InvId_AX411,'AX411','2026-09-10','JC0005','PAX-1','James', 'Chen',  'Y','YLOWUK',
+    (@TktId5, 1000000005, 'JC0005', 'PAX-1',
      N'{"seatAssignment":{"seatNumber":"22A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}');
+    SET IDENTITY_INSERT [delivery].[Ticket] OFF;
 
     -- delivery.Manifest -------------------------------------------------------
     INSERT INTO [delivery].[Manifest]

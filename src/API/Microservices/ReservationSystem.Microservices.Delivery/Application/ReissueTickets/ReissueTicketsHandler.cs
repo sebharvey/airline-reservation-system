@@ -58,9 +58,9 @@ public sealed class ReissueTicketsHandler
 
                 var ticketDataJson = JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
 
-                var seq = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
-                var eTicketNumber = $"932-{seq:D10}";
-                var ticket = Ticket.Create(eTicketNumber, request.BookingReference, passenger.PassengerId, ticketDataJson);
+                // TicketNumber is assigned by the database IDENTITY on INSERT;
+                // EF Core reads it back automatically via SCOPE_IDENTITY().
+                var ticket = Ticket.Create(request.BookingReference, passenger.PassengerId, ticketDataJson);
                 await _ticketRepository.CreateAsync(ticket, cancellationToken);
                 ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
             }

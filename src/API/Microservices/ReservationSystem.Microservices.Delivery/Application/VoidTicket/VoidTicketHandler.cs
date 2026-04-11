@@ -40,7 +40,7 @@ public sealed class VoidTicketHandler
 
         return new VoidTicketResponse
         {
-            ETicketNumber = ticket.ETicketNumber,
+            ETicketNumber = eTicketNumber,
             IsVoided = true,
             VoidedAt = ticket.VoidedAt
         };
