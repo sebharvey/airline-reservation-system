@@ -183,7 +183,7 @@
         "keyFields": ["basketStatus", "basketData.flightOffers"],
         "validationNotes": "basketData.flightOffers must contain two items. basketStatus must be 'Active'.",
         "assertions": [
-          { "field": "basketData.flightOffers", "assertion": "count", "expected": 2 }
+          { "field": "basketData.flightOffers", "assertion": "count", "expected": 2, "description": "Exactly 2 flight offers must be present in the basket — one per leg of the one-way connecting itinerary." }
         ]
       },
       "chainsTo": [
@@ -362,7 +362,7 @@
         "description": "200 OK — seat selections stored. One seat assigned per passenger per leg. The basket reflects the updated seat selections with non-zero totalSeatAmount.",
         "keyFields": ["status", "totalSeatAmount"],
         "assertions": [
-          { "field": "totalSeatAmount", "assertion": "greaterThan", "expected": 0 }
+          { "field": "totalSeatAmount", "assertion": "greaterThan", "expected": 0, "description": "totalSeatAmount must be greater than 0 after seat selections are applied." }
         ]
       }
     },
@@ -410,7 +410,7 @@
         "keyFields": ["bookingReference", "status", "eTickets"],
         "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger; segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
         "assertions": [
-          { "field": "eTickets", "assertion": "count", "expected": 1 }
+          { "field": "eTickets", "assertion": "count", "expected": 1, "description": "Exactly 1 e-ticket must be issued for the single passenger." }
         ]
       }
     }
