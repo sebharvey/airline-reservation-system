@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Multi-segment — one-way connecting DEL → LHR → JFK",
+    "name": "Bookflow — one-way connecting DEL → LHR → JFK",
     "description": "End-to-end one-way booking for a two-leg connecting itinerary: DEL → LHR (AX412) → JFK via the LHR hub. Uses POST /v1/search/connecting to retrieve paired leg offers in a single call, then creates a basket with both segments, adds passenger details, and confirms with payment.",
     "domain": "Retail",
     "baseUrls": [

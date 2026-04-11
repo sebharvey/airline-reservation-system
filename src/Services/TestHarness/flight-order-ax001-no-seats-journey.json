@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Flight order — AX001 without seats",
+    "name": "Bookflow — AX001 without seats",
     "description": "Creates a confirmed one-way order for the next day's AX001 (LHR → JFK) flight without seat selection. Covers outbound search, basket creation, passenger entry, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [

@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Multi-segment — return connecting DEL → LHR → JFK",
+    "name": "Bookflow — return connecting DEL → LHR → JFK",
     "description": "End-to-end return booking for a four-leg connecting itinerary: outbound DEL → LHR (AX412) → JFK and inbound JFK → LHR → DEL (AX411). Two connecting searches are performed — one per direction — and all four segment offer IDs are placed in a single basket. Covers connecting search, basket creation, passenger details, seatmap retrieval for all four legs, seat selection across all segments, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [

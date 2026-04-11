@@ -21,12 +21,12 @@ The test harness is a single-page web application that drives end-to-end API jou
 |------|----------|
 | `admin-journey.json` | Admin — user management |
 | `admin-auth-guard-journey.json` | Admin — auth guard 401 checks |
+| `flight-order-ax001-journey.json` | Bookflow — AX001 with seat selection |
+| `flight-order-ax001-no-seats-journey.json` | Bookflow — AX001 without seats |
+| `multi-segment-oneway-journey.json` | Bookflow — one-way connecting DEL → LHR → JFK |
+| `multi-segment-return-journey.json` | Bookflow — return connecting DEL → LHR → JFK |
 | `bookflow-journey.json` | Bookflow — search, basket, seats, bags & SSR |
-| `flight-order-ax001-journey.json` | Flight order — AX001 with seat selection |
-| `flight-order-ax001-no-seats-journey.json` | Flight order — AX001 without seats |
 | `loyalty-journey.json` | Loyalty — registration, points & profile |
-| `multi-segment-oneway-journey.json` | Multi-segment — one-way connecting DEL → LHR → JFK |
-| `multi-segment-return-journey.json` | Multi-segment — return connecting DEL → LHR → JFK |
 | `oci-1-pax-inbound-journey.json` | OCI — 1 pax inbound check-in |
 | `oci-1-pax-outbound-journey.json` | OCI — 1 pax outbound check-in |
 | `oci-2-pax-inbound-journey.json` | OCI — 2 pax inbound check-in |
