@@ -81,7 +81,15 @@ public sealed class UpdateBasketSeatsHandler
         {
             foreach (var seat in seatsArray)
             {
-                var price = seat?["price"]?.GetValue<decimal>() ?? 0m;
+                var priceNode = seat?["price"];
+                decimal price = 0m;
+                if (priceNode is not null)
+                {
+                    if (priceNode.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                        decimal.TryParse(priceNode.GetValue<string>(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out price);
+                    else
+                        price = priceNode.GetValue<decimal>();
+                }
                 totalSeatAmount += price;
             }
         }
