@@ -35,15 +35,13 @@ public sealed class ReissueTicketsHandler
         }
 
         // Issue new tickets
-        var baseSequence = await _ticketRepository.GetTicketCountAsync(cancellationToken);
         var ticketSummaries = new List<TicketSummary>();
-        var sequence = baseSequence;
 
         foreach (var segment in request.Segments)
         {
             foreach (var passenger in request.Passengers)
             {
-                sequence++;
+                var sequence = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
                 var eTicketNumber = $"932-{sequence:D10}";
 
                 var seatAssignment = segment.SeatAssignments?
