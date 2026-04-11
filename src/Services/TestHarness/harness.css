@@ -592,6 +592,29 @@ body {
     background: var(--negative-bg);
     color: var(--negative);
     border: 1px solid var(--negative-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.assertion-copy-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--negative);
+    opacity: 0.5;
+    padding: 0 0.15rem;
+    line-height: 1;
+    transition: opacity 0.15s;
+}
+.assertion-copy-btn:hover {
+    opacity: 1;
+}
+.assertion-copy-btn.copied {
+    opacity: 1;
+    color: var(--positive);
 }
 
 .live-url {
