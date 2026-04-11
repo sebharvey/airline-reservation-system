@@ -146,6 +146,9 @@
                 if (step.request && step.request.body) {
                     step.request.body = applyRuntimeVars(step.request.body);
                 }
+                if (step.expected && step.expected.assertions) {
+                    step.expected.assertions = applyRuntimeVars(step.expected.assertions);
+                }
                 return step;
             });
         } else {
@@ -1099,6 +1102,9 @@
         return JSON.parse(JSON.stringify(raw.steps)).map(step => {
             if (step.request && step.request.body) {
                 step.request.body = applyRuntimeVars(step.request.body);
+            }
+            if (step.expected && step.expected.assertions) {
+                step.expected.assertions = applyRuntimeVars(step.expected.assertions);
             }
             return step;
         });
