@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "OCI - 2 PAX Outbound",
+    "name": "OCI — 2 pax outbound check-in",
     "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation.",
     "domain": "Retail / Operations",
     "baseUrls": [

@@ -19,17 +19,22 @@ The test harness is a single-page web application that drives end-to-end API jou
 
 | File | Scenario |
 |------|----------|
-| `bookflow-journey.json` | Full booking flow via Retail API |
-| `oci-1-pax-outbound-journey.json` | OCI — 1 passenger, outbound check-in |
-| `oci-1-pax-inbound-journey.json` | OCI — 1 passenger, inbound check-in |
-| `oci-2-pax-outbound-journey.json` | OCI — 2 passengers, outbound check-in |
-| `oci-2-pax-inbound-journey.json` | OCI — 2 passengers, inbound check-in |
-| `payment-journey.json` | Payment processing flow |
-| `loyalty-journey.json` | Loyalty programme flow |
-| `user-journey.json` | User management flow |
-| `admin-journey.json` | Admin API flow |
-| `operations-journey.json` | Operations API flow |
-| `terminal-customer-journey.json` | Terminal (contact centre) customer flow |
+| `admin-journey.json` | Admin — user management |
+| `admin-auth-guard-journey.json` | Admin — auth guard 401 checks |
+| `bookflow-journey.json` | Bookflow — search, basket, seats, bags & SSR |
+| `flight-order-ax001-journey.json` | Flight order — AX001 with seat selection |
+| `flight-order-ax001-no-seats-journey.json` | Flight order — AX001 without seats |
+| `loyalty-journey.json` | Loyalty — registration, points & profile |
+| `multi-segment-oneway-journey.json` | Multi-segment — one-way connecting DEL → LHR → JFK |
+| `multi-segment-return-journey.json` | Multi-segment — return connecting DEL → LHR → JFK |
+| `oci-1-pax-inbound-journey.json` | OCI — 1 pax inbound check-in |
+| `oci-1-pax-outbound-journey.json` | OCI — 1 pax outbound check-in |
+| `oci-2-pax-inbound-journey.json` | OCI — 2 pax inbound check-in |
+| `oci-2-pax-outbound-journey.json` | OCI — 2 pax outbound check-in |
+| `payment-journey.json` | Payment — authorise, settle, void & refund |
+| `terminal-customer-journey.json` | Terminal — customer search & management |
+| `user-journey.json` | User — account creation & authentication |
+| `operations-journey.json` | Operations — SSIM import & inventory *(disabled)* |
 
 ---
 

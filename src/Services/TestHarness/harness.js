@@ -5,22 +5,22 @@
     // =====================================================================
 
     const CONFIGS = [
-        { value: 'multi-segment-oneway', label: 'Multi-Segment — One-Way Connecting (DEL → LHR → JFK)' },
-        { value: 'multi-segment-return', label: 'Multi-Segment — Return Connecting (DEL → LHR → JFK ↔ DEL)' },
-        { value: 'bookflow',          label: 'Bookflow (Retail API)' },
-        { value: 'flight-order-ax001', label: 'Flight Order — AX001 Next Day' },
-        { value: 'flight-order-ax001-no-seats', label: 'Flight Order — AX001 Next Day (No Seats)' },
-        { value: 'oci-1-pax-outbound', label: 'OCI - 1 PAX Outbound' },
-        { value: 'oci-1-pax-inbound', label: 'OCI - 1 PAX Inbound' },
-        { value: 'oci-2-pax-outbound', label: 'OCI - 2 PAX Outbound' },
-        { value: 'oci-2-pax-inbound', label: 'OCI - 2 PAX Inbound' },
-        { value: 'payment',           label: 'Payment' },
-        { value: 'user',              label: 'User' },
-        { value: 'loyalty',           label: 'Loyalty' },
-        { value: 'admin',             label: 'Admin' },
-        { value: 'operations',        label: 'Operations', disabled: true },
-        { value: 'terminal-customer', label: 'Terminal Customer' },
-        { value: 'admin-auth-guard',  label: 'Admin Auth Guard (401 checks)' }
+        { value: 'admin',                      label: 'admin - user management' },
+        { value: 'admin-auth-guard',            label: 'admin - auth guard 401 checks' },
+        { value: 'bookflow',                    label: 'bookflow - search, basket, seats, bags & SSR' },
+        { value: 'flight-order-ax001',          label: 'flight order - AX001 with seat selection' },
+        { value: 'flight-order-ax001-no-seats', label: 'flight order - AX001 without seats' },
+        { value: 'loyalty',                     label: 'loyalty - registration, points & profile' },
+        { value: 'multi-segment-oneway',        label: 'multi-segment - one-way connecting DEL → LHR → JFK' },
+        { value: 'multi-segment-return',        label: 'multi-segment - return connecting DEL → LHR → JFK' },
+        { value: 'oci-1-pax-inbound',           label: 'OCI - 1 pax inbound check-in' },
+        { value: 'oci-1-pax-outbound',          label: 'OCI - 1 pax outbound check-in' },
+        { value: 'oci-2-pax-inbound',           label: 'OCI - 2 pax inbound check-in' },
+        { value: 'oci-2-pax-outbound',          label: 'OCI - 2 pax outbound check-in' },
+        { value: 'payment',                     label: 'payment - authorise, settle, void & refund' },
+        { value: 'terminal-customer',           label: 'terminal - customer search & management' },
+        { value: 'user',                        label: 'user - account creation & authentication' },
+        { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
 
     // =====================================================================

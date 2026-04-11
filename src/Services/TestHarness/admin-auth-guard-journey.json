@@ -1,13 +1,29 @@
 {
   "journey": {
-    "name": "Terminal app endpoint authentication guard",
+    "name": "Admin — auth guard 401 checks",
     "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all four APIs used by the Terminal: Admin, Loyalty, Operations, and Retail. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another — each step is a standalone 401 assertion.",
     "domain": "Admin",
     "baseUrls": [
-      { "id": "admin",     "label": "Admin API",     "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net" },
-      { "id": "loyalty",   "label": "Loyalty API",   "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net" },
-      { "id": "operations","label": "Operations API","url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net" },
-      { "id": "retail",    "label": "Retail API",    "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net" }
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "loyalty",
+        "label": "Loyalty API",
+        "url": "https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      }
     ]
   },
   "steps": [
@@ -22,11 +38,15 @@
         "baseUrlRef": "admin"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -45,14 +65,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -73,7 +99,9 @@
         "baseUrlRef": "admin"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "username": "test.user",
           "email": "test.user@apexair.com",
@@ -84,7 +112,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -103,10 +133,14 @@
         "method": "PATCH",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "firstName": "Updated",
           "lastName": "Name",
@@ -115,7 +149,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -134,15 +170,23 @@
         "method": "PATCH",
         "endpoint": "/api/v1/admin/users/{userId}/status",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
-        "body": { "isActive": false }
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "isActive": false
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -161,14 +205,20 @@
         "method": "POST",
         "endpoint": "/api/v1/admin/users/{userId}/unlock",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -187,15 +237,23 @@
         "method": "POST",
         "endpoint": "/api/v1/admin/users/{userId}/reset-password",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
-        "body": { "newPassword": "NewPassword1!" }
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "newPassword": "NewPassword1!"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -214,14 +272,20 @@
         "method": "DELETE",
         "endpoint": "/api/v1/admin/users/{userId}",
         "baseUrlRef": "admin",
-        "pathParams": { "userId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -242,14 +306,18 @@
         "baseUrlRef": "loyalty"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "surname": "Smith"
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -268,14 +336,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -294,10 +368,14 @@
         "method": "PATCH",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "givenName": "Updated",
           "surname": "Name"
@@ -305,7 +383,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -324,14 +404,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/transactions",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -350,10 +436,14 @@
         "method": "POST",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/points",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "points": 100,
           "reason": "Goodwill adjustment"
@@ -361,7 +451,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -380,14 +472,20 @@
         "method": "DELETE",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -406,15 +504,23 @@
         "method": "PATCH",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/status",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
-        "body": { "isActive": false }
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "isActive": false
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -433,15 +539,23 @@
         "method": "PATCH",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
-        "body": { "email": "new.email@apexair.com" }
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "new.email@apexair.com"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -460,15 +574,23 @@
         "method": "POST",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity/set-password",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
-        "body": { "newPassword": "NewPassword1!" }
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "newPassword": "NewPassword1!"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -487,14 +609,20 @@
         "method": "POST",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/identity/verify-email",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -513,14 +641,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/customers/{loyaltyNumber}/orders",
         "baseUrlRef": "loyalty",
-        "pathParams": { "loyaltyNumber": "AX0000001" }
+        "pathParams": {
+          "loyaltyNumber": "AX0000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -541,12 +675,16 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {}
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -565,14 +703,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
-        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "fareRuleId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -593,7 +737,9 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "name": "Test Fare Rule",
           "fareClass": "Y"
@@ -601,7 +747,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -620,10 +768,14 @@
         "method": "PUT",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
-        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "fareRuleId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "name": "Updated Fare Rule",
           "fareClass": "Y"
@@ -631,7 +783,9 @@
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -650,14 +804,20 @@
         "method": "DELETE",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
-        "pathParams": { "fareRuleId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "fareRuleId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -678,11 +838,15 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -703,14 +867,18 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "name": "Test Schedule Group"
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -729,17 +897,23 @@
         "method": "PUT",
         "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
         "baseUrlRef": "operations",
-        "pathParams": { "scheduleGroupId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "name": "Updated Schedule Group"
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -758,14 +932,20 @@
         "method": "DELETE",
         "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
         "baseUrlRef": "operations",
-        "pathParams": { "scheduleGroupId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -786,11 +966,15 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -811,14 +995,18 @@
         "baseUrlRef": "operations"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -840,11 +1028,15 @@
         "note": "Terminal app passes a departureDate query parameter at runtime"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -863,14 +1055,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/inventory/{inventoryId}/holds",
         "baseUrlRef": "retail",
-        "pathParams": { "inventoryId": "00000000-0000-0000-0000-000000000001" }
+        "pathParams": {
+          "inventoryId": "00000000-0000-0000-0000-000000000001"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -892,11 +1090,15 @@
         "note": "Terminal app passes a limit query parameter at runtime"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -915,14 +1117,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/orders/{bookingReference}",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -941,17 +1149,23 @@
         "method": "PATCH",
         "endpoint": "/api/v1/orders/{bookingReference}/passengers",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "passengers": []
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -972,11 +1186,15 @@
         "baseUrlRef": "retail"
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -995,17 +1213,23 @@
         "method": "PATCH",
         "endpoint": "/api/v1/orders/{bookingReference}/ssrs",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" },
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "body": {
           "ssrs": []
         }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -1024,14 +1248,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/orders/{bookingReference}/tickets",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -1050,14 +1280,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/orders/{bookingReference}/debug",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
@@ -1076,14 +1312,20 @@
         "method": "GET",
         "endpoint": "/api/v1/admin/orders/{bookingReference}/debug/tickets",
         "baseUrlRef": "retail",
-        "pathParams": { "bookingReference": "ABCDEF" }
+        "pathParams": {
+          "bookingReference": "ABCDEF"
+        }
       },
       "request": {
-        "headers": { "Content-Type": "application/json" }
+        "headers": {
+          "Content-Type": "application/json"
+        }
       },
       "response": {
         "statusCode": 401,
-        "body": { "error": "Unauthorized" }
+        "body": {
+          "error": "Unauthorized"
+        }
       },
       "expected": {
         "statusCode": 401,
