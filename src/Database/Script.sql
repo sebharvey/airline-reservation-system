@@ -52,8 +52,6 @@ PRINT 'Triggers dropped.';
 IF OBJECT_ID('[delivery].[Document]',  'U') IS NOT NULL DROP TABLE [delivery].[Document];
 IF OBJECT_ID('[delivery].[Manifest]',  'U') IS NOT NULL DROP TABLE [delivery].[Manifest];
 IF OBJECT_ID('[delivery].[Ticket]',    'U') IS NOT NULL DROP TABLE [delivery].[Ticket];
-IF EXISTS (SELECT 1 FROM sys.sequences WHERE schema_id = SCHEMA_ID('delivery') AND name = 'TicketNumberSeq')
-    DROP SEQUENCE [delivery].[TicketNumberSeq];
 
 -- payment
 IF OBJECT_ID('[payment].[PaymentEvent]', 'U') IS NOT NULL DROP TABLE [payment].[PaymentEvent];
@@ -643,14 +641,6 @@ GO
 -- =============================================================================
 -- DELIVERY DOMAIN
 -- =============================================================================
-
--- delivery.TicketNumberSeq ---------------------------------------------------
--- Atomic sequence for e-ticket number generation. Using a SQL SEQUENCE ensures
--- concurrent requests never read the same base value, eliminating the race
--- condition that occurred when GetTicketCountAsync was used as a counter.
-IF NOT EXISTS (SELECT 1 FROM sys.sequences WHERE schema_id = SCHEMA_ID('delivery') AND name = 'TicketNumberSeq')
-    CREATE SEQUENCE [delivery].[TicketNumberSeq] AS BIGINT START WITH 1 INCREMENT BY 1 NO CYCLE NO CACHE;
-GO
 
 -- delivery.Ticket -------------------------------------------------------------
 IF OBJECT_ID('[delivery].[Ticket]', 'U') IS NULL
