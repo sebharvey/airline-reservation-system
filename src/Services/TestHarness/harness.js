@@ -1425,6 +1425,11 @@
             });
         }
 
+        // Resolve any remaining __CHAIN_*__ string placeholders in the body
+        if (requestBody !== null && requestBody !== undefined) {
+            requestBody = resolveChainStrings(requestBody);
+        }
+
         if (requestBody !== null && requestBody !== undefined) {
             fetchOpts.body = JSON.stringify(requestBody);
         }
