@@ -138,6 +138,15 @@ public sealed class PaymentFunction
         if (!IsValidLuhn(cardNumber))
             return await req.BadRequestAsync("Card number is invalid.");
 
+        if (!IsValidExpiryDate(request.CardDetails.ExpiryDate))
+            return await req.BadRequestAsync("Card expiry date is invalid or in the past.");
+
+        var isAmex = cardNumber.Length >= 2 && cardNumber[0] == '3' && (cardNumber[1] == '4' || cardNumber[1] == '7');
+        var expectedCvvLength = isAmex ? 4 : 3;
+        var cvv = request.CardDetails.Cvv;
+        if (cvv.Length != expectedCvvLength || !cvv.All(char.IsDigit))
+            return await req.BadRequestAsync($"Security code must be {expectedCvvLength} digits.");
+
         if (request.Amount.HasValue && request.Amount.Value <= 0)
             return await req.BadRequestAsync("The 'amount' must be greater than zero when provided.");
 
@@ -441,5 +450,33 @@ public sealed class PaymentFunction
         }
 
         return sum % 10 == 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Expiry date — validates MM/YY format and that the card has not expired
+    // -------------------------------------------------------------------------
+
+    private static bool IsValidExpiryDate(string expiryDate)
+    {
+        if (string.IsNullOrWhiteSpace(expiryDate))
+            return false;
+
+        var parts = expiryDate.Split('/');
+        if (parts.Length != 2)
+            return false;
+
+        if (!int.TryParse(parts[0], out var month) || !int.TryParse(parts[1], out var year))
+            return false;
+
+        if (month < 1 || month > 12)
+            return false;
+
+        if (year < 100)
+            year += 2000;
+
+        var now = DateTime.UtcNow;
+
+        // Card is valid through the end of the expiry month
+        return year > now.Year || (year == now.Year && month >= now.Month);
     }
 }
