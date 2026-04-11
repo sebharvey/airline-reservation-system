@@ -23,6 +23,7 @@ public sealed class OciFunction
     private readonly OciPaxHandler _paxHandler;
     private readonly OciCheckInHandler _checkInHandler;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<OciFunction> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -36,12 +37,14 @@ public sealed class OciFunction
         OciPaxHandler paxHandler,
         OciCheckInHandler checkInHandler,
         DeliveryServiceClient deliveryServiceClient,
+        OrderServiceClient orderServiceClient,
         ILogger<OciFunction> logger)
     {
         _retrieveHandler = retrieveHandler;
         _paxHandler = paxHandler;
         _checkInHandler = checkInHandler;
         _deliveryServiceClient = deliveryServiceClient;
+        _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
 
@@ -218,8 +221,13 @@ public sealed class OciFunction
         if (string.IsNullOrWhiteSpace(bookingReference))
             return await req.BadRequestAsync("'bookingReference' is required.");
 
+        var ref1 = bookingReference.ToUpperInvariant().Trim();
+        var docError1 = await GetTravelDocumentErrorAsync(ref1, ct);
+        if (docError1 is not null)
+            return await req.BadRequestAsync(docError1);
+
         // Seat selection is not implemented at this time — return success
-        return await req.OkJsonAsync(new { bookingReference = bookingReference.ToUpperInvariant().Trim(), success = true });
+        return await req.OkJsonAsync(new { bookingReference = ref1, success = true });
     }
 
     // -------------------------------------------------------------------------
@@ -244,8 +252,13 @@ public sealed class OciFunction
         if (string.IsNullOrWhiteSpace(bookingReference))
             return await req.BadRequestAsync("'bookingReference' is required.");
 
+        var ref2 = bookingReference.ToUpperInvariant().Trim();
+        var docError2 = await GetTravelDocumentErrorAsync(ref2, ct);
+        if (docError2 is not null)
+            return await req.BadRequestAsync(docError2);
+
         // Baggage selection is not implemented at this time — return success
-        return await req.OkJsonAsync(new { bookingReference = bookingReference.ToUpperInvariant().Trim(), success = true });
+        return await req.OkJsonAsync(new { bookingReference = ref2, success = true });
     }
 
     // -------------------------------------------------------------------------
@@ -276,6 +289,10 @@ public sealed class OciFunction
 
         var bookingReference = brEl.GetString()!.ToUpperInvariant().Trim();
         var departureAirport = daEl.GetString()!.ToUpperInvariant().Trim();
+
+        var docError = await GetTravelDocumentErrorAsync(bookingReference, ct);
+        if (docError is not null)
+            return await req.BadRequestAsync(docError);
 
         try
         {
@@ -361,5 +378,37 @@ public sealed class OciFunction
             _logger.LogError(ex, "OCI boarding-docs failed for departure airport {DepartureAirport}", departureAirport);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared guard — verifies all passengers on an order have travel documents.
+    // Returns an error message if validation fails, null if all documents present.
+    // -------------------------------------------------------------------------
+
+    private async Task<string?> GetTravelDocumentErrorAsync(string bookingReference, CancellationToken ct)
+    {
+        var order = await _orderServiceClient.GetOrderAsync(bookingReference, ct);
+        if (order is null)
+            return "Booking not found.";
+
+        if (order.OrderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return "Passenger travel documents have not been submitted.";
+
+        if (!el.TryGetProperty("dataLists", out var dl) ||
+            !dl.TryGetProperty("passengers", out var paxArr) ||
+            paxArr.ValueKind != JsonValueKind.Array)
+            return "Passenger travel documents have not been submitted.";
+
+        foreach (var pax in paxArr.EnumerateArray())
+        {
+            var hasDoc = pax.TryGetProperty("travelDocument", out var td) &&
+                         td.ValueKind == JsonValueKind.Object &&
+                         td.TryGetProperty("number", out var num) &&
+                         !string.IsNullOrWhiteSpace(num.GetString());
+            if (!hasDoc)
+                return "Passenger travel documents have not been submitted.";
+        }
+
+        return null;
     }
 }
