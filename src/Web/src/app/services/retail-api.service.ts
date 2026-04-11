@@ -57,7 +57,7 @@ export interface BasketApiResponse {
 
 export interface IssuedETicket {
   passengerId: string;
-  segmentId: string;
+  segmentIds: string[];
   eTicketNumber: string;
 }
 

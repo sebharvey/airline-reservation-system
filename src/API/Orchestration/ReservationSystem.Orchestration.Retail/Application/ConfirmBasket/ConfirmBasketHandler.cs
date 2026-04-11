@@ -397,6 +397,7 @@ public sealed class ConfirmBasketHandler
 
                     passengers.Add(new OrderPassenger
                     {
+                        PaxId          = paxId,
                         FirstName      = p.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
                         LastName       = p.TryGetProperty("surname",   out var sn) ? sn.GetString() ?? "" : "",
                         SeatNumber     = seatNumber,
