@@ -1456,6 +1456,11 @@
                 const pass = actual === a.expected;
                 return { pass, description: a.description, expected: a.expected, actual };
             }
+            if (a.assertion === 'greaterThan') {
+                const actual = typeof value === 'number' ? value : null;
+                const pass = actual !== null && actual > a.expected;
+                return { pass, description: a.description, expected: `> ${a.expected}`, actual };
+            }
             return { pass: false, description: a.description, expected: a.expected, actual: undefined };
         });
     }
