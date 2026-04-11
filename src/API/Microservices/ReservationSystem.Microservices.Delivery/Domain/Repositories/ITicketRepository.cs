@@ -14,7 +14,13 @@ public interface ITicketRepository
 
     Task UpdateAsync(Ticket ticket, CancellationToken cancellationToken = default);
 
-    Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Returns the highest numeric sequence already issued (the trailing digits of ETicketNumber).
+    /// Returns 0 when no tickets exist. Used by handlers to derive the next candidate number;
+    /// callers must retry on <see cref="Exceptions.TicketNumberConflictException"/> in case of
+    /// a concurrent insert.
+    /// </summary>
+    Task<long> GetMaxTicketSequenceAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns all seat numbers already assigned to passengers on the given flight

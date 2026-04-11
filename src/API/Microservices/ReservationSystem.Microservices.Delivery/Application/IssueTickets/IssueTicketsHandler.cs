@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
+using ReservationSystem.Microservices.Delivery.Domain.Exceptions;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Mappers;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
@@ -27,24 +28,42 @@ public sealed class IssueTicketsHandler
 
         foreach (var passenger in request.Passengers)
         {
-            var sequence = await _ticketRepository.GetNextTicketSequenceAsync(cancellationToken);
-            var eTicketNumber = $"932-{sequence:D10}";
-
-            var ticketDataJson = BuildTicketDataJson(passenger, request.Segments);
-
-            var ticket = Ticket.Create(
-                eTicketNumber, request.BookingReference,
-                passenger.PassengerId, ticketDataJson);
-
-            await _ticketRepository.CreateAsync(ticket, cancellationToken);
-
+            var ticket = await IssueWithRetryAsync(request.BookingReference, passenger, request.Segments, cancellationToken);
             ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
-
             _logger.LogInformation("Issued ticket {ETicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
-                eTicketNumber, passenger.PassengerId, request.Segments.Count);
+                ticket.ETicketNumber, passenger.PassengerId, request.Segments.Count);
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
+    }
+
+    private async Task<Ticket> IssueWithRetryAsync(
+        string bookingReference,
+        PassengerDetail passenger,
+        List<SegmentDetail> segments,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 5;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var maxSeq = await _ticketRepository.GetMaxTicketSequenceAsync(cancellationToken);
+            var eTicketNumber = $"932-{maxSeq + 1:D10}";
+            var ticketDataJson = BuildTicketDataJson(passenger, segments);
+            var ticket = Ticket.Create(eTicketNumber, bookingReference, passenger.PassengerId, ticketDataJson);
+            try
+            {
+                await _ticketRepository.CreateAsync(ticket, cancellationToken);
+                return ticket;
+            }
+            catch (TicketNumberConflictException) when (attempt < maxAttempts)
+            {
+                _logger.LogWarning(
+                    "Ticket number {ETicketNumber} already taken (concurrent insert), retrying ({Attempt}/{Max})",
+                    eTicketNumber, attempt, maxAttempts);
+            }
+        }
+        throw new InvalidOperationException(
+            $"Failed to generate a unique ticket number for passenger {passenger.PassengerId} after {maxAttempts} attempts.");
     }
 
     private static string BuildTicketDataJson(PassengerDetail passenger, List<SegmentDetail> segments)

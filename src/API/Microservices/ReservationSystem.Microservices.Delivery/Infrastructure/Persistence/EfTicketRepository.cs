@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
+using ReservationSystem.Microservices.Delivery.Domain.Exceptions;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
@@ -44,7 +45,16 @@ public sealed class EfTicketRepository : ITicketRepository
     public async Task CreateAsync(Ticket ticket, CancellationToken cancellationToken = default)
     {
         _context.Tickets.Add(ticket);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+        {
+            _context.Entry(ticket).State = EntityState.Detached;
+            throw new TicketNumberConflictException(ticket.ETicketNumber);
+        }
         _logger.LogDebug("Inserted Ticket {TicketId} ({ETicketNumber})", ticket.TicketId, ticket.ETicketNumber);
     }
 
@@ -56,12 +66,15 @@ public sealed class EfTicketRepository : ITicketRepository
             _logger.LogWarning("UpdateAsync found no row for Ticket {TicketId}", ticket.TicketId);
     }
 
-    public async Task<long> GetNextTicketSequenceAsync(CancellationToken cancellationToken = default)
+    public async Task<long> GetMaxTicketSequenceAsync(CancellationToken cancellationToken = default)
     {
-        // EF Core's SqlQueryRaw<T> for primitives requires the column to be named "Value".
-        // NEXT VALUE FOR returns an unnamed column, so the alias is required.
+        // ETicketNumber format: "932-XXXXXXXXXX" — extract the 10-digit numeric suffix.
+        // Returns 0 when the table is empty so the first ticket gets sequence 1.
+        // SqlQueryRaw<T> for primitives requires the column to be aliased as "Value".
         return await _context.Database
-            .SqlQueryRaw<long>("SELECT NEXT VALUE FOR [delivery].[TicketNumberSeq] AS Value")
+            .SqlQueryRaw<long>(
+                "SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(ETicketNumber, 5, 10) AS BIGINT)), 0) AS Value " +
+                "FROM [delivery].[Ticket]")
             .FirstAsync(cancellationToken);
     }
 
