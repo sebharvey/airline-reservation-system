@@ -850,6 +850,7 @@ body {
     .modal {
         max-width: 100%;
         max-height: 88vh;
+        max-height: calc(100dvh - env(safe-area-inset-top, 44px));
         border-radius: 12px 12px 0 0;
     }
     .modal::before {
@@ -888,7 +889,7 @@ body {
     .harness-table tbody td:nth-child(5) { padding: 0.5rem 0.45rem; font-size: 0.68rem; }
     .step-number { font-size: 0.75rem; }
     .step-name { font-size: 0.78rem; }
-    .modal { max-height: 92vh; }
+    .modal { max-height: 92vh; max-height: calc(100dvh - env(safe-area-inset-top, 44px)); }
 }
 
 /* =====================================================================
