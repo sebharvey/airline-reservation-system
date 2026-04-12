@@ -837,12 +837,12 @@ public sealed class SqlOfferRepository : IOfferRepository
         const string sql = """
             INSERT INTO [offer].[FareRule]
                    (FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                    CurrencyCode, MinAmount, MaxAmount, TaxAmount,
+                    CurrencyCode, MinAmount, MaxAmount,
                     MinPoints, MaxPoints, PointsTaxes, TaxLines,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                     ValidFrom, ValidTo)
             VALUES (@FareRuleId, @RuleType, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
-                    @CurrencyCode, @MinAmount, @MaxAmount, @TaxAmount,
+                    @CurrencyCode, @MinAmount, @MaxAmount,
                     @MinPoints, @MaxPoints, @PointsTaxes, @TaxLines,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
                     @ValidFrom, @ValidTo);
@@ -869,7 +869,6 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode          = @CurrencyCode,
                    MinAmount             = @MinAmount,
                    MaxAmount             = @MaxAmount,
-                   TaxAmount             = @TaxAmount,
                    MinPoints             = @MinPoints,
                    MaxPoints             = @MaxPoints,
                    PointsTaxes           = @PointsTaxes,
@@ -1092,7 +1091,6 @@ public sealed class SqlOfferRepository : IOfferRepository
             currencyCode: (string?)row.CurrencyCode,
             minAmount: (decimal?)row.MinAmount,
             maxAmount: (decimal?)row.MaxAmount,
-            taxAmount: (decimal?)row.TaxAmount,
             minPoints: (int?)row.MinPoints,
             maxPoints: (int?)row.MaxPoints,
             pointsTaxes: (decimal?)row.PointsTaxes,
@@ -1121,7 +1119,6 @@ public sealed class SqlOfferRepository : IOfferRepository
             fareRule.CurrencyCode,
             fareRule.MinAmount,
             fareRule.MaxAmount,
-            fareRule.TaxAmount,
             fareRule.MinPoints,
             fareRule.MaxPoints,
             fareRule.PointsTaxes,

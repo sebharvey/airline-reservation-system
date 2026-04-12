@@ -11,7 +11,6 @@ public sealed record UpdateFareRuleCommand(
     string? CurrencyCode,
     decimal? MinAmount,
     decimal? MaxAmount,
-    decimal? TaxAmount,
     int? MinPoints,
     int? MaxPoints,
     decimal? PointsTaxes,

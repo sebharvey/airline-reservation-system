@@ -10,7 +10,6 @@ public sealed record CreateFareRuleCommand(
     string? CurrencyCode,
     decimal? MinAmount,
     decimal? MaxAmount,
-    decimal? TaxAmount,
     int? MinPoints,
     int? MaxPoints,
     decimal? PointsTaxes,

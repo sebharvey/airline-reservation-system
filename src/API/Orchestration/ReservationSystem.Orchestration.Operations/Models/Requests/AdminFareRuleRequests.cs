@@ -16,7 +16,6 @@ public sealed class AdminCreateFareRuleRequest
     public string? CurrencyCode { get; init; }
     public decimal? MinAmount { get; init; }
     public decimal? MaxAmount { get; init; }
-    public decimal? TaxAmount { get; init; }
     public int? MinPoints { get; init; }
     public int? MaxPoints { get; init; }
     public decimal? PointsTaxes { get; init; }
@@ -40,7 +39,6 @@ public sealed class AdminUpdateFareRuleRequest
     public string? CurrencyCode { get; init; }
     public decimal? MinAmount { get; init; }
     public decimal? MaxAmount { get; init; }
-    public decimal? TaxAmount { get; init; }
     public int? MinPoints { get; init; }
     public int? MaxPoints { get; init; }
     public decimal? PointsTaxes { get; init; }

@@ -20,7 +20,7 @@ public sealed class CreateFareRuleHandler
         var fareRule = FareRule.Create(
             command.RuleType, command.FlightNumber, command.FareBasisCode, command.FareFamily,
             command.CabinCode, command.BookingClass, command.CurrencyCode,
-            command.MinAmount, command.MaxAmount, command.TaxAmount,
+            command.MinAmount, command.MaxAmount,
             command.MinPoints, command.MaxPoints, command.PointsTaxes,
             command.TaxLines,
             command.IsRefundable, command.IsChangeable,

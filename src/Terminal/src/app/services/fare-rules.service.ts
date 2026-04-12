@@ -21,7 +21,6 @@ export interface FareRule {
   currencyCode: string | null;
   minAmount: number | null;
   maxAmount: number | null;
-  taxAmount: number | null;
   minPoints: number | null;
   maxPoints: number | null;
   pointsTaxes: number | null;
@@ -46,7 +45,6 @@ export interface CreateFareRuleRequest {
   currencyCode?: string | null;
   minAmount?: number | null;
   maxAmount?: number | null;
-  taxAmount?: number | null;
   minPoints?: number | null;
   maxPoints?: number | null;
   pointsTaxes?: number | null;

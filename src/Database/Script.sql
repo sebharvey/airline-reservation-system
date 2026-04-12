@@ -341,7 +341,6 @@ CREATE TABLE [offer].[FareRule] (
     CurrencyCode          CHAR(3)              NULL CONSTRAINT DF_FareRule_Currency    DEFAULT 'GBP',
     MinAmount             DECIMAL(10,2)        NULL,
     MaxAmount             DECIMAL(10,2)        NULL,
-    TaxAmount             DECIMAL(10,2)        NULL,
     MinPoints             INT                  NULL,
     MaxPoints             INT                  NULL,
     PointsTaxes           DECIMAL(10,2)        NULL,
@@ -362,6 +361,9 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'TaxLines')
     ALTER TABLE [offer].[FareRule] ADD TaxLines NVARCHAR(MAX) NULL;
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'TaxAmount')
+    ALTER TABLE [offer].[FareRule] DROP COLUMN TaxAmount;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FareRule_FareBasisCode' AND object_id = OBJECT_ID('[offer].[FareRule]'))
@@ -376,7 +378,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FareRule_CabinCode' AN
     CREATE INDEX IX_FareRule_CabinCode
         ON [offer].[FareRule] (CabinCode, FlightNumber)
         INCLUDE (FareBasisCode, FareFamily, BookingClass, RuleType, CurrencyCode,
-                 MinAmount, MaxAmount, TaxAmount, MinPoints, MaxPoints, PointsTaxes,
+                 MinAmount, MaxAmount, MinPoints, MaxPoints, PointsTaxes,
                  IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                  ValidFrom, ValidTo);
 GO

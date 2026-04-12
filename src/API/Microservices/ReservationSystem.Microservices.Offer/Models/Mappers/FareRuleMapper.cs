@@ -20,7 +20,6 @@ public static class FareRuleMapper
             currencyCode = r.CurrencyCode,
             minAmount = r.MinAmount,
             maxAmount = r.MaxAmount,
-            taxAmount = r.TaxAmount,
             minPoints = r.MinPoints,
             maxPoints = r.MaxPoints,
             pointsTaxes = r.PointsTaxes,
