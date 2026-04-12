@@ -568,8 +568,8 @@
   align-items: center;
 }
 
-.tax-code-input {
-  width: 90px;
+.tax-code-select {
+  width: 260px;
   flex-shrink: 0;
 }
 

@@ -139,14 +139,45 @@
             <div class="tax-lines-list">
               @for (line of form().taxLines!; track $index) {
                 <div class="tax-line-row">
-                  <input
-                    type="text"
-                    class="tax-code-input uppercase-input"
-                    placeholder="Code (e.g. YQ)"
-                    maxlength="4"
+                  <select
+                    class="tax-code-select"
                     [ngModel]="line.code"
                     (ngModelChange)="updateTaxLineCode($index, $event)"
-                  />
+                  >
+                    <option value="" disabled>Code</option>
+                    <optgroup label="Carrier Surcharges">
+                      <option value="YQ">YQ — Carrier surcharge (fuel)</option>
+                      <option value="YR">YR — Carrier surcharge (misc)</option>
+                    </optgroup>
+                    <optgroup label="UK">
+                      <option value="GB">GB — Air Passenger Duty</option>
+                      <option value="UB">UB — Passenger Service Charge</option>
+                    </optgroup>
+                    <optgroup label="USA">
+                      <option value="US">US — Federal Transportation Tax</option>
+                      <option value="XF">XF — Passenger Facility Charge</option>
+                      <option value="ZP">ZP — Flight Segment Tax</option>
+                      <option value="AY">AY — Security Service Fee</option>
+                    </optgroup>
+                    <optgroup label="Europe">
+                      <option value="E7">E7 — EU Emissions Trading</option>
+                      <option value="F6">F6 — France Solidarity Tax</option>
+                      <option value="TK">TK — Turkey VAT</option>
+                    </optgroup>
+                    <optgroup label="Asia-Pacific">
+                      <option value="JD">JD — Japan Consumption Tax</option>
+                      <option value="SQ">SQ — Singapore Departure Tax</option>
+                      <option value="WY">WY — Oman Airport Tax</option>
+                    </optgroup>
+                    <optgroup label="Middle East &amp; Africa">
+                      <option value="DU">DU — Dubai Tourism Dirham</option>
+                      <option value="OY">OY — Security Surcharge</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="IZ">IZ — Israel Departure Tax</option>
+                      <option value="RA">RA — IATA Levy</option>
+                    </optgroup>
+                  </select>
                   <input
                     type="number"
                     class="tax-amount-input"
