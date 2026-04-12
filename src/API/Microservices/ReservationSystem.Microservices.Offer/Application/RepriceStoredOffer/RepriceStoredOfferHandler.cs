@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
+using ReservationSystem.Microservices.Offer.Domain.Services;
 
 namespace ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 
@@ -86,18 +87,18 @@ public sealed class RepriceStoredOfferHandler
             if (fareRule is not null)
             {
                 var cabin = inventory?.Cabins.FirstOrDefault(c => c.CabinCode == item.CabinCode);
-                var occupancyRatio = cabin is not null && cabin.TotalSeats > 0
-                    ? Math.Clamp((double)(cabin.SeatsSold + cabin.SeatsHeld) / cabin.TotalSeats, 0.0, 1.0)
+                var occupancyRatio = cabin is not null
+                    ? FarePricer.ComputeOccupancyRatio(cabin)
                     : 0.0;
 
-                baseFareAmount        = ComputeDynamicPrice(fareRule.MinAmount, fareRule.MaxAmount, occupancyRatio);
+                baseFareAmount        = FarePricer.ComputeDynamicPrice(fareRule.MinAmount, fareRule.MaxAmount, occupancyRatio);
                 taxAmount             = fareRule.GetTotalTaxAmount();
                 totalAmount           = baseFareAmount + taxAmount;
                 isRefundable          = fareRule.IsRefundable;
                 isChangeable          = fareRule.IsChangeable;
                 changeFeeAmount       = fareRule.ChangeFeeAmount;
                 cancellationFeeAmount = fareRule.CancellationFeeAmount;
-                pointsPrice           = ComputeDynamicPoints(fareRule.MinPoints, fareRule.MaxPoints, occupancyRatio);
+                pointsPrice           = FarePricer.ComputeDynamicPoints(fareRule.MinPoints, fareRule.MaxPoints, occupancyRatio);
                 pointsTaxes           = fareRule.PointsTaxes;
 
                 if (!string.IsNullOrEmpty(fareRule.TaxLines))
@@ -176,24 +177,4 @@ public sealed class RepriceStoredOfferHandler
             Offers: repricedItems);
     }
 
-    /// <summary>
-    /// Linearly interpolates between min and max at the given occupancy ratio.
-    /// Returns min when max is absent, rounded to 2 decimal places.
-    /// </summary>
-    private static decimal ComputeDynamicPrice(decimal? min, decimal? max, double occupancyRatio)
-    {
-        var minVal = min ?? 0m;
-        if (max is null || max <= minVal) return minVal;
-        return Math.Round(minVal + (max.Value - minVal) * (decimal)occupancyRatio, 2, MidpointRounding.AwayFromZero);
-    }
-
-    /// <summary>
-    /// Same interpolation as ComputeDynamicPrice but for integer points values.
-    /// </summary>
-    private static int? ComputeDynamicPoints(int? min, int? max, double occupancyRatio)
-    {
-        if (min is null) return null;
-        if (max is null || max <= min) return min;
-        return (int)Math.Round(min.Value + (max.Value - min.Value) * occupancyRatio, MidpointRounding.AwayFromZero);
-    }
 }

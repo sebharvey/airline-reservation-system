@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
+using ReservationSystem.Microservices.Offer.Domain.Services;
 
 namespace ReservationSystem.Microservices.Offer.Application.SearchOffers;
 
@@ -138,10 +139,7 @@ public sealed class SearchOffersHandler
 
     /// <summary>
     /// Builds a <see cref="Fare"/> snapshot from a resolved <see cref="FareRule"/>.
-    /// The base fare is dynamically priced between MinAmount and MaxAmount (and MinPoints to
-    /// MaxPoints for award fares) based on how full the cabin is: an empty cabin yields the
-    /// minimum price and a sold-out cabin yields the maximum price.  When MaxAmount/MaxPoints
-    /// is not set the minimum price is used unchanged.
+    /// Delegates dynamic price interpolation to <see cref="FarePricer"/>.
     /// ValidFrom/ValidTo default to a wide open window when the rule carries no date bounds.
     /// </summary>
     private static Fare BuildFareFromRule(Guid inventoryId, FareRule rule, CabinInventory cabin)
@@ -149,13 +147,9 @@ public sealed class SearchOffersHandler
         var validFrom = rule.ValidFrom ?? new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var validTo   = rule.ValidTo   ?? new DateTimeOffset(2099, 12, 31, 23, 59, 59, TimeSpan.Zero);
 
-        // Occupancy ratio: proportion of total seats that are sold or held (0 = empty, 1 = full).
-        var occupancyRatio = cabin.TotalSeats > 0
-            ? Math.Clamp((double)(cabin.SeatsSold + cabin.SeatsHeld) / cabin.TotalSeats, 0.0, 1.0)
-            : 0.0;
-
-        var baseFareAmount = ComputeDynamicPrice(rule.MinAmount, rule.MaxAmount, occupancyRatio);
-        var pointsPrice    = ComputeDynamicPoints(rule.MinPoints, rule.MaxPoints, occupancyRatio);
+        var occupancyRatio = FarePricer.ComputeOccupancyRatio(cabin);
+        var baseFareAmount = FarePricer.ComputeDynamicPrice(rule.MinAmount, rule.MaxAmount, occupancyRatio);
+        var pointsPrice    = FarePricer.ComputeDynamicPoints(rule.MinPoints, rule.MaxPoints, occupancyRatio);
 
         return Fare.Create(
             inventoryId:           inventoryId,
@@ -174,32 +168,5 @@ public sealed class SearchOffersHandler
             pointsTaxes:           rule.PointsTaxes,
             validFrom:             validFrom,
             validTo:               validTo);
-    }
-
-    /// <summary>
-    /// Linearly interpolates between <paramref name="min"/> and <paramref name="max"/> at the
-    /// given <paramref name="occupancyRatio"/>.  Returns <paramref name="min"/> when
-    /// <paramref name="max"/> is absent, rounded to 2 decimal places.
-    /// </summary>
-    private static decimal ComputeDynamicPrice(decimal? min, decimal? max, double occupancyRatio)
-    {
-        var minVal = min ?? 0m;
-        if (max is null || max <= minVal)
-            return minVal;
-
-        return Math.Round(minVal + (max.Value - minVal) * (decimal)occupancyRatio, 2, MidpointRounding.AwayFromZero);
-    }
-
-    /// <summary>
-    /// Same interpolation as <see cref="ComputeDynamicPrice"/> but for integer points values.
-    /// </summary>
-    private static int? ComputeDynamicPoints(int? min, int? max, double occupancyRatio)
-    {
-        if (min is null)
-            return null;
-        if (max is null || max <= min)
-            return min;
-
-        return (int)Math.Round(min.Value + (max.Value - min.Value) * occupancyRatio, MidpointRounding.AwayFromZero);
     }
 }
