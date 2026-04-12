@@ -198,7 +198,9 @@ public sealed class ImportSchedulesToInventoryHandler
                     {
                         var currencyCode = rule.CurrencyCode ?? "GBP";
                         var baseFareAmount = rule.MinAmount ?? 0m;
-                        var taxAmount = rule.TaxAmount ?? 0m;
+                        var taxAmount = rule.TaxLines?
+                            .OfType<System.Text.Json.JsonElement>()
+                            .Sum(e => e.TryGetProperty("amount", out var a) ? a.GetDecimal() : 0m) ?? 0m;
                         var pointsPrice = rule.RuleType == "Points" ? rule.MinPoints : null;
                         var pointsTaxes = rule.RuleType == "Points" ? rule.PointsTaxes : null;
 
