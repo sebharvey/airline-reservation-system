@@ -1,5 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { SlicePipe } from '@angular/common';
 import {
   ProductService,
   Product,
@@ -14,7 +15,7 @@ import { SsrCatalogueService, SsrCatalogueEntry } from '../../services/ssr-catal
 
 @Component({
   selector: 'app-products',
-  imports: [FormsModule],
+  imports: [FormsModule, SlicePipe],
   templateUrl: './products.html',
   styleUrl: './products.css',
 })
