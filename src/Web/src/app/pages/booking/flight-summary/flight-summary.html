@@ -22,7 +22,7 @@
   <!-- Summary content -->
   <ng-container *ngIf="!loading() && !error() && summary() as s">
 
-    <!-- Flight cards -->
+    <!-- Flight cards — itinerary only, no per-flight pricing -->
     <div class="flight-card" *ngFor="let flight of s.flights">
 
       <div class="flight-card-header">
@@ -49,50 +49,34 @@
         </div>
       </div>
 
-      <div class="fare-breakdown">
-        <div class="breakdown-title">Fare Breakdown</div>
-
-        <div class="breakdown-row">
-          <span class="breakdown-label">Base fare</span>
-          <span class="breakdown-amount">{{ formatCurrency(flight.baseFareAmount, s.currency) }}</span>
-        </div>
-
-        <ng-container *ngIf="flight.taxLines && flight.taxLines.length > 0">
-          <div class="breakdown-row tax-row" *ngFor="let tax of flight.taxLines">
-            <span class="breakdown-label tax-label">
-              {{ tax.code }}<ng-container *ngIf="tax.description"> — {{ tax.description }}</ng-container>
-            </span>
-            <span class="breakdown-amount">{{ formatCurrency(tax.amount, s.currency) }}</span>
-          </div>
-        </ng-container>
-
-        <div class="breakdown-row tax-total" *ngIf="!flight.taxLines || flight.taxLines.length === 0">
-          <span class="breakdown-label">Taxes &amp; charges</span>
-          <span class="breakdown-amount">{{ formatCurrency(flight.taxAmount, s.currency) }}</span>
-        </div>
-
-        <div class="breakdown-row flight-total">
-          <span class="breakdown-label">Flight total</span>
-          <span class="breakdown-amount total-amount">{{ formatCurrency(flight.totalAmount, s.currency) }}</span>
-        </div>
-      </div>
-
     </div>
 
-    <!-- Grand total -->
-    <div class="grand-total-card">
-      <div class="grand-total-row" *ngIf="s.totalSeatAmount > 0">
-        <span>Seats</span>
-        <span>{{ formatCurrency(s.totalSeatAmount, s.currency) }}</span>
+    <!-- Pricing summary -->
+    <div class="pricing-card">
+
+      <button class="pricing-row tax-row" (click)="openTaxModal()">
+        <span class="pricing-label">
+          Taxes &amp; charges
+          <span class="tax-info-icon">&#9432;</span>
+        </span>
+        <span class="pricing-amount">{{ formatCurrency(totalTaxAmount(), s.currency) }}</span>
+      </button>
+
+      <div class="pricing-row seats-row" *ngIf="s.totalSeatAmount > 0">
+        <span class="pricing-label">Seats</span>
+        <span class="pricing-amount">{{ formatCurrency(s.totalSeatAmount, s.currency) }}</span>
       </div>
-      <div class="grand-total-row" *ngIf="s.totalBagAmount > 0">
-        <span>Bags</span>
-        <span>{{ formatCurrency(s.totalBagAmount, s.currency) }}</span>
+
+      <div class="pricing-row bags-row" *ngIf="s.totalBagAmount > 0">
+        <span class="pricing-label">Bags</span>
+        <span class="pricing-amount">{{ formatCurrency(s.totalBagAmount, s.currency) }}</span>
       </div>
-      <div class="grand-total-row total">
-        <span>Total to pay</span>
-        <strong>{{ formatCurrency(s.totalPrice, s.currency) }}</strong>
+
+      <div class="pricing-row total-row">
+        <span class="pricing-label total-label">Total to pay</span>
+        <strong class="pricing-total">{{ formatCurrency(s.totalPrice, s.currency) }}</strong>
       </div>
+
     </div>
 
     <!-- Actions -->
@@ -105,4 +89,36 @@
 
   </ng-container>
 
+</div>
+
+<!-- Tax breakdown modal -->
+<div class="modal-backdrop" *ngIf="taxModalOpen()" (click)="closeTaxModal()">
+  <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="tax-modal-title">
+
+    <div class="modal-header">
+      <h2 id="tax-modal-title">Taxes &amp; Charges</h2>
+      <button class="modal-close" (click)="closeTaxModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body" *ngIf="summary() as s">
+
+      <ng-container *ngFor="let line of allTaxLines(); let last = last">
+        <div class="tax-line" [class.tax-line-last]="last">
+          <div class="tax-line-left">
+            <span class="tax-code">{{ line.code }}</span>
+            <span class="tax-flight">{{ line.flightNumber }}</span>
+            <span class="tax-desc" *ngIf="line.description">{{ line.description }}</span>
+          </div>
+          <span class="tax-amount">{{ formatCurrency(line.amount, s.currency) }}</span>
+        </div>
+      </ng-container>
+
+      <div class="tax-modal-total">
+        <span>Total taxes &amp; charges</span>
+        <strong>{{ formatCurrency(allTaxLinesTotal(), summary()!.currency) }}</strong>
+      </div>
+
+    </div>
+
+  </div>
 </div>

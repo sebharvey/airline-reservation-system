@@ -148,7 +148,6 @@
   align-items: center;
   gap: 16px;
   padding: 16px 18px;
-  border-bottom: 1.5px solid var(--border);
 }
 
 .time-block {
@@ -184,98 +183,84 @@
   text-align: center;
 }
 
-/* ── Fare Breakdown ── */
-.fare-breakdown {
-  padding: 16px 18px;
-}
-
-.breakdown-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.breakdown-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  font-size: 0.88rem;
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
-}
-
-.breakdown-row:last-child {
-  border-bottom: none;
-}
-
-.breakdown-label {
-  color: var(--text-muted);
-}
-
-.tax-label {
-  padding-left: 12px;
-  font-size: 0.82rem;
-}
-
-.breakdown-row.tax-total .breakdown-label {
-  color: var(--text-muted);
-}
-
-.breakdown-amount {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.breakdown-row.flight-total {
-  padding-top: 10px;
-  margin-top: 4px;
-  border-top: 1.5px solid var(--border);
-  border-bottom: none;
-}
-
-.total-amount {
-  font-size: 1rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Grand Total ── */
-.grand-total-card {
+/* ── Pricing summary card ── */
+.pricing-card {
   width: 100%;
   background: var(--white);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
 }
 
-.grand-total-row {
+.pricing-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  padding: 14px 18px;
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  text-align: left;
 }
 
-.grand-total-row.total {
-  padding-top: 10px;
-  border-top: 1.5px solid var(--border);
-  font-size: 1rem;
+.pricing-row:last-child {
+  border-bottom: none;
+}
+
+.pricing-label {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pricing-amount {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Tax row — styled as an interactive button */
+.tax-row {
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.tax-row:hover {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.tax-row .pricing-label {
+  color: var(--grad-start);
+  font-weight: 500;
+}
+
+.tax-row .pricing-amount {
+  color: var(--grad-start);
+}
+
+.tax-info-icon {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* Total row */
+.total-row {
+  border-bottom: none;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.total-label {
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
 }
 
-.grand-total-row.total strong {
-  font-size: 1.25rem;
+.pricing-total {
+  font-size: 1.3rem;
   font-weight: 700;
   background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
   -webkit-background-clip: text;
@@ -329,6 +314,133 @@
   color: var(--text);
 }
 
+/* ── Tax breakdown modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  animation: modal-in 0.18s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 16px;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-close:hover {
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 8px 0 0;
+}
+
+.tax-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.tax-line-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tax-code {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: monospace;
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.tax-flight {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tax-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.tax-amount {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tax-modal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px 18px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tax-modal-total strong {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Responsive ── */
 @media (max-width: 520px) {
   .flight-card-header {
     flex-direction: column;
@@ -348,5 +460,21 @@
   .btn-secondary {
     width: 100%;
     text-align: center;
+  }
+
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    max-width: 100%;
+    animation: modal-slide-up 0.2s ease-out;
+  }
+
+  @keyframes modal-slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
   }
 }
