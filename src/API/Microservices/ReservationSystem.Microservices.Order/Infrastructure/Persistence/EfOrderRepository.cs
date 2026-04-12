@@ -105,6 +105,22 @@ public sealed class EfOrderRepository : IOrderRepository
         _logger.LogDebug("Updated Order {OrderId} in [order].[Order]", order.OrderId);
     }
 
+    public async Task<bool> DeleteDraftOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var order = await _context.Orders
+            .FirstOrDefaultAsync(o => o.OrderId == orderId && o.OrderStatus == "Draft", cancellationToken);
+
+        if (order is null)
+            return false;
+
+        _context.Orders.Remove(order);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted draft order {OrderId} from [order].[Order]", orderId);
+
+        return true;
+    }
+
     public async Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default)
     {
         var cutoff = DateTime.UtcNow.AddHours(-24);

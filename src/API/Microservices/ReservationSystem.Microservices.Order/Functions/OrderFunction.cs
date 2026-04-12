@@ -7,6 +7,7 @@ using ReservationSystem.Microservices.Order.Application.CancelOrder;
 using ReservationSystem.Microservices.Order.Application.ChangeOrder;
 using ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
+using ReservationSystem.Microservices.Order.Application.DeleteDraftOrder;
 using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
@@ -40,6 +41,7 @@ public sealed class OrderFunction
     private readonly CancelOrderHandler _cancelOrderHandler;
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly RebookOrderHandler _rebookOrderHandler;
+    private readonly DeleteDraftOrderHandler _deleteDraftOrderHandler;
     private readonly IOrderRepository _orderRepository;
     private readonly ILogger<OrderFunction> _logger;
 
@@ -56,6 +58,7 @@ public sealed class OrderFunction
         CancelOrderHandler cancelOrderHandler,
         ChangeOrderHandler changeOrderHandler,
         RebookOrderHandler rebookOrderHandler,
+        DeleteDraftOrderHandler deleteDraftOrderHandler,
         IOrderRepository orderRepository,
         ILogger<OrderFunction> logger)
     {
@@ -71,6 +74,7 @@ public sealed class OrderFunction
         _cancelOrderHandler = cancelOrderHandler;
         _changeOrderHandler = changeOrderHandler;
         _rebookOrderHandler = rebookOrderHandler;
+        _deleteDraftOrderHandler = deleteDraftOrderHandler;
         _orderRepository = orderRepository;
         _logger = logger;
     }
@@ -635,5 +639,26 @@ public sealed class OrderFunction
             });
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // DELETE /v1/orders/{orderId}
+    [Function("DeleteDraftOrder")]
+    [OpenApiOperation(operationId: "DeleteDraftOrder", tags: new[] { "Orders" }, Summary = "Delete a draft order by ID — only Draft orders may be deleted")]
+    [OpenApiParameter(name: "orderId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The draft order ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — order deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — order does not exist or is not in Draft status")]
+    public async Task<HttpResponseData> DeleteDraftOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/orders/{orderId}")] HttpRequestData req,
+        string orderId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(orderId, out var orderGuid))
+            return await req.BadRequestAsync("'orderId' must be a valid GUID.");
+
+        var command = new DeleteDraftOrderCommand(orderGuid);
+        var deleted = await _deleteDraftOrderHandler.HandleAsync(command, ct);
+
+        return deleted
+            ? req.CreateResponse(HttpStatusCode.NoContent)
+            : req.CreateResponse(HttpStatusCode.NotFound);
     }
 }

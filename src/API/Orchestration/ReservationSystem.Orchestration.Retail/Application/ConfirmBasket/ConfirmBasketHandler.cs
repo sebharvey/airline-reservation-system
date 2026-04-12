@@ -74,6 +74,7 @@ public sealed class ConfirmBasketHandler
         catch
         {
             await _paymentServiceClient.VoidAsync(paymentId, "PaymentAuthorisationFailure", cancellationToken);
+            await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
 
@@ -96,6 +97,7 @@ public sealed class ConfirmBasketHandler
         catch
         {
             await _paymentServiceClient.VoidAsync(paymentId, "OrderConfirmationFailure", cancellationToken);
+            await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
 

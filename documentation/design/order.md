@@ -515,6 +515,8 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
 
 > **Basket deletion on sale:** The Order microservice hard-deletes the basket row as part of the order confirmation transaction (`POST /v1/orders`). The confirmed `OrderData` JSON is the authoritative post-sale record; the basket is no longer needed. The Retail API does not issue a separate delete call.
 
+> **Draft order deletion on payment failure:** If payment authorisation fails (or order confirmation fails after authorisation), the Retail API hard-deletes the `Draft` order immediately via `DELETE /v1/orders/{orderId}` after voiding the payment, preventing orphaned draft rows. A background timer (`DeleteExpiredDraftOrders`) provides a safety net by purging any `Draft` orders older than 24 hours that were not cleaned up synchronously.
+
 #### Order
 
 The `Order` table is written once the basket is confirmed — payment taken, inventory settled, and e-tickets issued — following the IATA ONE Order model.
