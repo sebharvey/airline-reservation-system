@@ -21,7 +21,7 @@ public sealed class UpdateBagPricingHandler
         if (existing is null) return null;
 
         var updated = BagPricing.Reconstitute(
-            command.PricingId, existing.BagSequence, existing.CurrencyCode, command.Price,
+            command.PricingId, command.BagSequence, command.CurrencyCode, command.Price,
             command.IsActive, command.ValidFrom, command.ValidTo,
             existing.CreatedAt, DateTime.UtcNow);
 

@@ -124,6 +124,12 @@ public sealed class BagPricingFunction
         var (request, error) = await req.TryDeserializeBodyAsync<UpdateBagPricingRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
+        if (request.BagSequence is not (1 or 2 or 99))
+            return await req.BadRequestAsync("bagSequence must be 1, 2, or 99.");
+
+        if (string.IsNullOrWhiteSpace(request.CurrencyCode))
+            return await req.BadRequestAsync("currencyCode is required.");
+
         if (request.Price <= 0)
             return await req.BadRequestAsync("price must be > 0.");
 

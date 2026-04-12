@@ -55,6 +55,8 @@ public static class BagMapper
     public static UpdateBagPricingCommand ToCommand(Guid pricingId, UpdateBagPricingRequest request) =>
         new(
             PricingId: pricingId,
+            BagSequence: request.BagSequence,
+            CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             ValidFrom: request.ValidFrom,
             ValidTo: request.ValidTo,

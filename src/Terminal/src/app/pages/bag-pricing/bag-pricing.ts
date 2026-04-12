@@ -31,6 +31,8 @@ export class BagPricingComponent implements OnInit {
   });
 
   updateForm = signal<UpdateBagPricingRequest>({
+    bagSequence: 1,
+    currencyCode: 'GBP',
     price: 60.00,
     isActive: true,
     validFrom: '',
@@ -74,6 +76,8 @@ export class BagPricingComponent implements OnInit {
   openEditForm(rule: BagPricing): void {
     this.editing.set(rule);
     this.updateForm.set({
+      bagSequence: rule.bagSequence,
+      currencyCode: rule.currencyCode,
       price: rule.price,
       isActive: rule.isActive,
       validFrom: rule.validFrom ? rule.validFrom.substring(0, 10) : '',
