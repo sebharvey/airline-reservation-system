@@ -1,13 +1,13 @@
-using ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
 
 public interface IProductRepository
 {
-    Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Product>> GetByGroupAsync(Guid productGroupId, CancellationToken cancellationToken = default);
-    Task<Product> CreateAsync(Product product, CancellationToken cancellationToken = default);
-    Task<Product?> UpdateAsync(Product product, CancellationToken cancellationToken = default);
+    Task<ProductEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductEntity>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductEntity>> GetByGroupAsync(Guid productGroupId, CancellationToken cancellationToken = default);
+    Task<ProductEntity> CreateAsync(ProductEntity product, CancellationToken cancellationToken = default);
+    Task<ProductEntity?> UpdateAsync(ProductEntity product, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

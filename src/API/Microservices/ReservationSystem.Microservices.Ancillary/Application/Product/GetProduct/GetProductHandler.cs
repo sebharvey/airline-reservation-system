@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Application.Product.GetProduct;
 
@@ -14,7 +15,7 @@ public sealed class GetProductHandler
         _logger = logger;
     }
 
-    public async Task<Entities.Product.Product?> HandleAsync(GetProductQuery query, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity?> HandleAsync(GetProductQuery query, CancellationToken cancellationToken = default)
     {
         return await _repository.GetByIdAsync(query.ProductId, cancellationToken);
     }
