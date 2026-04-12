@@ -1,9 +1,9 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { BasketSummary, SummaryFlight } from '../../../models/order.model';
+import { BasketSummary, SummaryFlight, SummaryTaxLine } from '../../../models/order.model';
 
 const CABIN_NAMES: Record<string, string> = {
   F: 'First Class',
@@ -11,6 +11,13 @@ const CABIN_NAMES: Record<string, string> = {
   W: 'Premium Economy',
   Y: 'Economy'
 };
+
+export interface TaxLineEntry {
+  flightNumber: string;
+  code: string;
+  description: string | null;
+  amount: number;
+}
 
 @Component({
   selector: 'app-flight-summary',
@@ -30,6 +37,33 @@ export class FlightSummaryComponent implements OnInit {
   loading = signal(true);
   error = signal('');
   summary = signal<BasketSummary | null>(null);
+  taxModalOpen = signal(false);
+
+  readonly totalTaxAmount = computed(() => {
+    const s = this.summary();
+    if (!s) return 0;
+    return s.flights.reduce((sum, f) => sum + f.taxAmount, 0);
+  });
+
+  readonly allTaxLines = computed((): TaxLineEntry[] => {
+    const s = this.summary();
+    if (!s) return [];
+    const lines: TaxLineEntry[] = [];
+    for (const flight of s.flights) {
+      if (flight.taxLines && flight.taxLines.length > 0) {
+        for (const tl of flight.taxLines) {
+          lines.push({ flightNumber: flight.flightNumber, code: tl.code, description: tl.description, amount: tl.amount });
+        }
+      } else if (flight.taxAmount > 0) {
+        lines.push({ flightNumber: flight.flightNumber, code: 'TAX', description: 'Taxes & charges', amount: flight.taxAmount });
+      }
+    }
+    return lines;
+  });
+
+  readonly allTaxLinesTotal = computed(() =>
+    this.allTaxLines().reduce((sum, t) => sum + t.amount, 0)
+  );
 
   ngOnInit(): void {
     const basket = this.basket();
@@ -61,6 +95,14 @@ export class FlightSummaryComponent implements OnInit {
 
   onContinue(): void {
     this.router.navigate(['/booking/passengers']);
+  }
+
+  openTaxModal(): void {
+    this.taxModalOpen.set(true);
+  }
+
+  closeTaxModal(): void {
+    this.taxModalOpen.set(false);
   }
 
   getCabinName(code: string): string {
