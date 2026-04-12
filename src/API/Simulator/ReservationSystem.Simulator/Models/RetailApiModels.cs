@@ -48,7 +48,7 @@ internal sealed record PassengerRequest(
     string Type,
     string GivenName,
     string Surname,
-    string DateOfBirth,
+    string Dob,
     string Gender,
     string? LoyaltyNumber,
     PassengerContacts Contacts,

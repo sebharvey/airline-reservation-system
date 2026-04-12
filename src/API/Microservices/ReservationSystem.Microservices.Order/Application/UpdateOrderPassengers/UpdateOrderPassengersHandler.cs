@@ -68,7 +68,7 @@ public sealed class UpdateOrderPassengersHandler
                 if (pax is null) continue;
                 if (pax["passengerId"]?.GetValue<string>() != passengerId) continue;
 
-                foreach (var field in new[] { "givenName", "surname", "dateOfBirth" })
+                foreach (var field in new[] { "givenName", "surname", "dob" })
                 {
                     if (update[field] is JsonNode val)
                         pax[field] = val.DeepClone();

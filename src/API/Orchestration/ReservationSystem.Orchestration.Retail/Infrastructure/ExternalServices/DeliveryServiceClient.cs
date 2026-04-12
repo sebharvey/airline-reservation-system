@@ -157,8 +157,8 @@ public sealed class TicketPassenger
     [JsonPropertyName("surname")]
     public string Surname { get; init; } = string.Empty;
 
-    [JsonPropertyName("dateOfBirth")]
-    public string? DateOfBirth { get; init; }
+    [JsonPropertyName("dob")]
+    public string? Dob { get; init; }
 
     [JsonPropertyName("formOfPayment")]
     public TicketFormOfPayment? FormOfPayment { get; init; }

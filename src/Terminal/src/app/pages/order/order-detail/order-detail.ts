@@ -5,7 +5,7 @@ import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, Or
 interface EditForm {
   givenName: string;
   surname: string;
-  dateOfBirth: string | null;
+  dob: string | null;
   email: string | null;
   phone: string | null;
 }
@@ -34,7 +34,7 @@ export class OrderDetailComponent implements OnInit {
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
-  editForm = signal<EditForm>({ givenName: '', surname: '', dateOfBirth: null, email: null, phone: null });
+  editForm = signal<EditForm>({ givenName: '', surname: '', dob: null, email: null, phone: null });
   editSaving = signal(false);
   editError = signal('');
 
@@ -158,7 +158,7 @@ export class OrderDetailComponent implements OnInit {
     this.editForm.set({
       givenName: pax.givenName,
       surname: pax.surname,
-      dateOfBirth: pax.dateOfBirth,
+      dob: pax.dob,
       email: pax.contacts?.email ?? null,
       phone: pax.contacts?.phone ?? null,
     });
@@ -181,7 +181,7 @@ export class OrderDetailComponent implements OnInit {
       ...pax,
       givenName: form.givenName,
       surname: form.surname,
-      dateOfBirth: form.dateOfBirth,
+      dob: form.dob,
       contacts: { email: form.email, phone: form.phone },
     };
     const updatedPassengers = this.passengers().map(p =>

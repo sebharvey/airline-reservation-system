@@ -15,7 +15,7 @@ public sealed class PassengerDetail
     [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
     [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
     [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
-    [JsonPropertyName("dateOfBirth")] public string? DateOfBirth { get; init; }
+    [JsonPropertyName("dob")] public string? Dob { get; init; }
     [JsonPropertyName("passengerTypeCode")] public string? PassengerTypeCode { get; init; }
     [JsonPropertyName("frequentFlyer")] public FrequentFlyerDetail? FrequentFlyer { get; init; }
     [JsonPropertyName("fareConstruction")] public FareConstructionDetail? FareConstruction { get; init; }

@@ -28,7 +28,7 @@ public sealed class ManagedPassenger
     public string Type { get; init; } = string.Empty;
     public string GivenName { get; init; } = string.Empty;
     public string Surname { get; init; } = string.Empty;
-    public string DateOfBirth { get; init; } = string.Empty;
+    public string Dob { get; init; } = string.Empty;
     public string Gender { get; init; } = string.Empty;
     public string? LoyaltyNumber { get; init; }
     public ManagedPassengerContacts? Contacts { get; init; }

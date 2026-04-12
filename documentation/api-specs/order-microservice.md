@@ -349,7 +349,7 @@ Add or update passenger details on a basket. Replaces the full passengers array 
       "type": "ADT",
       "givenName": "Alex",
       "surname": "Taylor",
-      "dateOfBirth": "1985-03-12",
+      "dob": "1985-03-12",
       "gender": "Male",
       "loyaltyNumber": "AX9876543",
       "contacts": {
@@ -378,7 +378,7 @@ Add or update passenger details on a basket. Replaces the full passengers array 
 | `passengers[].type` | string | Yes | IATA passenger type: `ADT`, `CHD`, `INF`, or `YTH` |
 | `passengers[].givenName` | string | Yes | Given (first) name |
 | `passengers[].surname` | string | Yes | Surname |
-| `passengers[].dateOfBirth` | string (date) | No | ISO 8601 date |
+| `passengers[].dob` | string (date) | No | ISO 8601 date |
 | `passengers[].gender` | string | No | `Male` or `Female` |
 | `passengers[].loyaltyNumber` | string | No | Loyalty number if the passenger is a member |
 | `passengers[].contacts` | object | No | Contact information — `email` and/or `phone`. At least one contact required for the lead passenger |

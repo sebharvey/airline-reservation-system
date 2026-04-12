@@ -41,12 +41,12 @@
       </div>
 
       <!-- Date of Birth -->
-      <div class="field" [class.error]="submitted() && !form.dateOfBirth">
+      <div class="field" [class.error]="submitted() && !form.dob">
         <label>Date of Birth *</label>
-        <input type="date" [(ngModel)]="form.dateOfBirth" [name]="'dob' + i"
+        <input type="date" [(ngModel)]="form.dob" [name]="'dob' + i"
                [max]="form.type === 'ADT' ? maxAdultDob() : maxChildDob()"
                [min]="form.type === 'ADT' ? minAdultDob() : ''" />
-        <span class="field-error" *ngIf="submitted() && !form.dateOfBirth">Required</span>
+        <span class="field-error" *ngIf="submitted() && !form.dob">Required</span>
       </div>
 
       <!-- Gender -->

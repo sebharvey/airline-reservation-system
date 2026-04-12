@@ -15,7 +15,7 @@ interface PassengerForm {
   label: string;
   givenName: string;
   surname: string;
-  dateOfBirth: string;
+  dob: string;
   gender: 'Male' | 'Female' | 'Other' | '';
   loyaltyNumber: string;
   email: string;
@@ -94,7 +94,7 @@ readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: strin
         label: adults === 1 ? 'Adult' : `Adult ${i + 1}`,
         givenName: '',
         surname: '',
-        dateOfBirth: '',
+        dob: '',
         gender: '',
         loyaltyNumber: '',
         email: '',
@@ -110,7 +110,7 @@ readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: strin
         label: children === 1 ? 'Child' : `Child ${i + 1}`,
         givenName: '',
         surname: '',
-        dateOfBirth: '',
+        dob: '',
         gender: '',
         loyaltyNumber: '',
         email: '',
@@ -134,7 +134,7 @@ readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: strin
     const leadPax = forms[0];
     leadPax.givenName = customer.givenName;
     leadPax.surname = customer.surname;
-    leadPax.dateOfBirth = customer.dateOfBirth;
+    leadPax.dob = customer.dateOfBirth;
     leadPax.gender = (customer.gender as 'Male' | 'Female' | 'Other') || '';
     leadPax.email = customer.email;
     leadPax.phone = customer.phone;
@@ -149,7 +149,7 @@ isFirstAdult(index: number): boolean {
 
   isFormValid(): boolean {
     return this.forms().every(f => {
-      const base = f.givenName.trim() && f.surname.trim() && f.dateOfBirth && f.gender;
+      const base = f.givenName.trim() && f.surname.trim() && f.dob && f.gender;
       if (!base) return false;
       if (this.isFirstAdult(this.forms().indexOf(f))) {
         return !!(f.email.trim() && f.phone.trim());
@@ -167,7 +167,7 @@ isFirstAdult(index: number): boolean {
       type: f.type,
       givenName: f.givenName.trim(),
       surname: f.surname.trim(),
-      dateOfBirth: f.dateOfBirth,
+      dob: f.dob,
       gender: f.gender,
       loyaltyNumber: f.loyaltyNumber.trim() || null,
       contacts: this.isFirstAdult(i)
