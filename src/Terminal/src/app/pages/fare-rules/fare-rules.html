@@ -206,7 +206,7 @@
               }
               <div class="tax-lines-total">
                 <span>Total tax</span>
-                <span class="tax-total-amount">{{ formatAmount(taxLinesTotal(), form().currencyCode) }}</span>
+                <span class="tax-total-amount">{{ formatAmount(taxLinesTotal(), form().currencyCode ?? null) }}</span>
               </div>
             </div>
           } @else {
