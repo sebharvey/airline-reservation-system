@@ -62,6 +62,10 @@ export class FareRulesComponent implements OnInit {
     );
   });
 
+  taxLinesTotal = computed(() =>
+    (this.form().taxLines ?? []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+  );
+
   stats = computed(() => {
     const all = this.rules();
     const cabins = new Set(all.map(r => r.cabinCode));
