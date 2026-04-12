@@ -204,7 +204,23 @@ public sealed class ConfirmOrderHandler
 
         // Only include optional arrays when non-empty; downstream handlers create the key when needed.
         if (basketJson["seats"]?.AsArray() is { Count: > 0 } seats)
-            orderData["seatAssignments"] = seats.DeepClone();
+        {
+            // Strip basket-lifecycle fields (basketItemRef, cabinCode) that have no meaning
+            // after confirmation; cabinCode is already present on the matching order item.
+            var seatAssignments = new JsonArray();
+            foreach (var seat in seats)
+            {
+                if (seat is not JsonObject seatObj) continue;
+                var stripped = new JsonObject();
+                foreach (var prop in seatObj)
+                {
+                    if (prop.Key is "basketItemRef" or "cabinCode") continue;
+                    stripped[prop.Key] = prop.Value?.DeepClone();
+                }
+                seatAssignments.Add(stripped);
+            }
+            orderData["seatAssignments"] = seatAssignments;
+        }
         if (basketJson["bags"]?.AsArray() is { Count: > 0 } bags)
             orderData["bagItems"] = bags.DeepClone();
         if (basketJson["ssrSelections"]?.AsArray() is { Count: > 0 } ssrs)
