@@ -27,7 +27,7 @@
   <ng-container *ngIf="!loading() && !error() && productGroups().length > 0">
     <div class="product-group" *ngFor="let group of productGroups()">
 
-      <h2 class="group-title" *ngIf="group.name">{{ group.name }}</h2>
+      <h2 class="group-title" *ngIf="group.productGroupName">{{ group.productGroupName }}</h2>
 
       <div class="product-grid">
         <div class="product-tile" *ngFor="let product of group.products">

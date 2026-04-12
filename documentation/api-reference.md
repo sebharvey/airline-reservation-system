@@ -89,7 +89,7 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/products` | Retrieve all active retail products from the Ancillary MS, each with its product group name and per-currency prices; channel filters by basket currency and groups by `productGroupId` for display during the booking flow |
+| `GET` | `/v1/products` | Retrieve the active retail product catalogue from the Ancillary MS, pre-grouped as `productGroups[] → products[]`; each product carries all per-currency prices so the channel can filter by basket currency without further transformation |
 
 ### Flights & Seatmaps
 
