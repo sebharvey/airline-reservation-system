@@ -7,7 +7,7 @@ export interface OrderSummary {
   bookingReference: string;
   orderStatus: string;
   channelCode: string;
-  currencyCode: string;
+  currency: string;
   totalAmount: number | null;
   createdAt: string;
   leadPassengerName: string;
@@ -195,7 +195,7 @@ export interface OrderDetail {
   bookingReference: string;
   orderStatus: string;
   channelCode: string;
-  currencyCode: string;
+  currency: string;
   totalAmount: number | null;
   ticketingTimeLimit: string | null;
   createdAt: string;

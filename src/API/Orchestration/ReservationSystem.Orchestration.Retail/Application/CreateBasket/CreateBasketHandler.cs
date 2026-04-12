@@ -24,7 +24,7 @@ public sealed class CreateBasketHandler
 
         var basket = await _orderServiceClient.CreateBasketAsync(
             channelCode: command.ChannelCode,
-            currencyCode: command.CurrencyCode ?? "GBP",
+            currency: command.Currency ?? "GBP",
             bookingType: bookingType,
             loyaltyNumber: command.LoyaltyNumber,
             totalPointsAmount: null,

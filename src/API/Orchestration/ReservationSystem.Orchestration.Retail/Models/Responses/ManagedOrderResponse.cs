@@ -11,7 +11,7 @@ public sealed class ManagedOrderResponse
     public string OrderStatus { get; init; } = string.Empty;
     public string BookingType { get; init; } = string.Empty;
     public string ChannelCode { get; init; } = string.Empty;
-    public string CurrencyCode { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
     public decimal TotalAmount { get; init; }
     public int? TotalPointsAmount { get; init; }
     public DateTime CreatedAt { get; init; }

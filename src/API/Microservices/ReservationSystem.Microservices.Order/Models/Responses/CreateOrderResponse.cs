@@ -16,6 +16,6 @@ public sealed class CreateOrderResponse
     [JsonPropertyName("totalAmount")]
     public decimal? TotalAmount { get; init; }
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 }

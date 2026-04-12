@@ -179,7 +179,7 @@ public sealed class ConfirmOrderHandler
 
         var orderData = new JsonObject
         {
-            ["currencyCode"] = basket.CurrencyCode,
+            ["currency"] = basket.CurrencyCode,
             ["dataLists"] = new JsonObject
             {
                 ["passengers"] = passengersNode.DeepClone()

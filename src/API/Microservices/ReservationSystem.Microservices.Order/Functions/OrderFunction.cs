@@ -532,7 +532,7 @@ public sealed class OrderFunction
             bookingReference = order.BookingReference,
             orderStatus = order.OrderStatus,
             channelCode = order.ChannelCode,
-            currencyCode = order.CurrencyCode,
+            currency = order.CurrencyCode,
             ticketingTimeLimit = order.TicketingTimeLimit,
             totalAmount = order.TotalAmount,
             version = order.Version,

@@ -171,7 +171,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     orderStatus: 'Confirmed',
     bookingType: basket.bookingType,
     channelCode: 'WEB',
-    currencyCode: basket.currency,
+    currency: basket.currency,
     totalAmount: basket.totalAmount,
     totalPointsAmount: isReward ? basket.totalPointsAmount : undefined,
     createdAt: now,

@@ -212,7 +212,7 @@
               @if (item.additionalBags) {
                 <span class="ancillary-detail">+{{ item.additionalBags }} bag(s)</span>
               }
-              <span class="ancillary-price">{{ formatCurrency(item.totalPrice, o.currencyCode) }}</span>
+              <span class="ancillary-price">{{ formatCurrency(item.totalPrice, o.currency) }}</span>
             </div>
           }
         </div>
@@ -254,7 +254,7 @@
       }
       <div class="total-row">
         <span class="total-label">Total</span>
-        <span class="total-amount">{{ formatCurrency(o.totalAmount, o.currencyCode) }}</span>
+        <span class="total-amount">{{ formatCurrency(o.totalAmount, o.currency) }}</span>
       </div>
     </div>
 

@@ -23,11 +23,11 @@ public sealed class OrderServiceClient
     }
 
     public async Task<OrderMsCreateBasketResult> CreateBasketAsync(
-        string channelCode, string currencyCode, string bookingType,
+        string channelCode, string currency, string bookingType,
         string? loyaltyNumber, int? totalPointsAmount,
         CancellationToken ct)
     {
-        var payload = new { channelCode, currencyCode, bookingType, loyaltyNumber, totalPointsAmount };
+        var payload = new { channelCode, currency, bookingType, loyaltyNumber, totalPointsAmount };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/basket", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -333,7 +333,7 @@ public sealed class OrderMsCreateBasketResult
     [JsonPropertyName("totalAmount")]
     public decimal TotalAmount { get; init; }
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 }
 
@@ -345,7 +345,7 @@ public sealed class OrderMsBasketResult
     [JsonPropertyName("channelCode")]
     public string ChannelCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("basketStatus")]
@@ -408,7 +408,7 @@ public sealed class OrderMsOrderResult
     [JsonPropertyName("channelCode")]
     public string ChannelCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("ticketingTimeLimit")]
@@ -444,7 +444,7 @@ public sealed class OrderMsCreateOrderResult
     [JsonPropertyName("totalAmount")]
     public decimal? TotalAmount { get; init; }
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 }
 
@@ -462,7 +462,7 @@ public sealed class OrderMsConfirmOrderResult
     [JsonPropertyName("totalAmount")]
     public decimal? TotalAmount { get; init; }
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("orderItems")]

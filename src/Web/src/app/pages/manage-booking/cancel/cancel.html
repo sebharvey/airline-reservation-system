@@ -83,7 +83,7 @@
         }
         <div class="summary-row summary-row--total">
           <span class="summary-label">Total Paid</span>
-          <span class="summary-value total-paid">{{ formatCurrency(o.totalAmount, o.currencyCode) }}</span>
+          <span class="summary-value total-paid">{{ formatCurrency(o.totalAmount, o.currency) }}</span>
         </div>
       </div>
     </div>
@@ -99,12 +99,12 @@
           </div>
           <div class="refund-detail-row">
             <span>Refundable fare & services</span>
-            <span class="refund-pos">{{ formatCurrency(refundableAmount(), o.currencyCode) }}</span>
+            <span class="refund-pos">{{ formatCurrency(refundableAmount(), o.currency) }}</span>
           </div>
           @if (nonRefundableAmount() > 0) {
             <div class="refund-detail-row">
               <span>Non-refundable items</span>
-              <span class="refund-neg">{{ formatCurrency(nonRefundableAmount(), o.currencyCode) }}</span>
+              <span class="refund-neg">{{ formatCurrency(nonRefundableAmount(), o.currency) }}</span>
             </div>
           }
           <p class="refund-disclaimer">

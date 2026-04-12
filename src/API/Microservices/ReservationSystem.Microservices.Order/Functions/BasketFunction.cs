@@ -112,7 +112,7 @@ public sealed class BasketFunction
         {
             basketId = basket.BasketId,
             channelCode = basket.ChannelCode,
-            currencyCode = basket.CurrencyCode,
+            currency = basket.CurrencyCode,
             basketStatus = basket.BasketStatus,
             totalFareAmount = basket.TotalFareAmount,
             totalSeatAmount = basket.TotalSeatAmount,

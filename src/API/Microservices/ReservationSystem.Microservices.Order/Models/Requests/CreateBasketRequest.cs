@@ -7,7 +7,7 @@ public sealed class CreateBasketRequest
     [JsonPropertyName("channelCode")]
     public string ChannelCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("currencyCode")]
+    [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 
     [JsonPropertyName("bookingType")]

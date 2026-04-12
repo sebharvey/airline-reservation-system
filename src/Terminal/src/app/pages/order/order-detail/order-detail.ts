@@ -240,7 +240,7 @@ export class OrderDetailComponent implements OnInit {
     if (amount == null) return '—';
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: currency || this.order()?.currencyCode || 'GBP',
+      currency: currency || this.order()?.currency || 'GBP',
     }).format(amount);
   }
 

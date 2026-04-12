@@ -125,7 +125,7 @@ public sealed class GetAdminOrdersHandler
             BookingReference = order.BookingReference ?? string.Empty,
             OrderStatus = order.OrderStatus,
             ChannelCode = order.ChannelCode,
-            CurrencyCode = order.CurrencyCode,
+            Currency = order.CurrencyCode,
             TotalAmount = order.TotalAmount,
             CreatedAt = order.CreatedAt,
             LeadPassengerName = leadName,

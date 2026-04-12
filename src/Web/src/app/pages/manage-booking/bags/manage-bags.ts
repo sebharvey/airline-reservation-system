@@ -60,7 +60,7 @@ export class ManageBagsComponent implements OnInit {
     return total;
   });
 
-  readonly currency = computed(() => this.order()?.currencyCode ?? 'GBP');
+  readonly currency = computed(() => this.order()?.currency ?? 'GBP');
 
   readonly hasAnySelection = computed(() =>
     this.passengerBagStates().some(s => s.selectedAdditional > 0)
@@ -117,7 +117,7 @@ export class ManageBagsComponent implements OnInit {
       policy: null,
       offers: [],
       loading: true,
-      currency: order.currencyCode
+      currency: order.currency
     }));
     this.segmentBagData.set(segData);
 
