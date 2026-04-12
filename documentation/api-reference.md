@@ -266,6 +266,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; updates `TotalBagAmount` |
 | `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update SSR selections on a basket during the bookflow; no charge — basket total is unchanged |
 | `POST` | `/v1/orders` | Create a draft order record from a basket; sets `OrderStatus = Draft`; basket remains active to allow PATCH operations before confirmation |
+| `DELETE` | `/v1/orders/{orderId}` | Delete a draft order by ID; only orders in `Draft` status may be deleted; returns `204` on success, `404` if not found or not in Draft status |
 | `POST` | `/v1/orders/confirm` | Confirm a draft order: validates required data (passengers, segments), writes payment references into OrderData, assigns a booking reference (PNR), transitions `OrderStatus` to `Confirmed`, and deletes the basket |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
 | `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |

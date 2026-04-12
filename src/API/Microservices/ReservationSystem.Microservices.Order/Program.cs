@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Order.Application.ConfirmOrder;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.DeleteExpiredBaskets;
 using ReservationSystem.Microservices.Order.Application.DeleteExpiredDraftOrders;
+using ReservationSystem.Microservices.Order.Application.DeleteDraftOrder;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Application.ExpireBasket;
 using ReservationSystem.Microservices.Order.Application.GetBasket;
@@ -76,6 +77,7 @@ var host = new HostBuilder()
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<DeleteExpiredBasketsHandler>();
         services.AddScoped<DeleteExpiredDraftOrdersHandler>();
+        services.AddScoped<DeleteDraftOrderHandler>();
         services.AddScoped<CreateBasketHandler>();
         services.AddScoped<GetBasketHandler>();
         services.AddScoped<UpdateBasketFlightsHandler>();

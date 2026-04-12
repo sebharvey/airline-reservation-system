@@ -126,6 +126,17 @@ public sealed class OrderServiceClient
             ?? throw new InvalidOperationException("Empty response creating order.");
     }
 
+    public async Task DeleteDraftOrderAsync(Guid orderId, CancellationToken ct)
+    {
+        using var response = await _httpClient.DeleteAsync($"/api/v1/orders/{orderId}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return; // Already gone — treat as success
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to delete draft order: {error}");
+        }
+    }
+
     public async Task<OrderMsConfirmOrderResult> ConfirmOrderAsync(
         Guid orderId, Guid basketId, List<object> paymentReferences,
         CancellationToken ct)
