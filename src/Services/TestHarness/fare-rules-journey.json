@@ -1,13 +1,18 @@
 {
   "journey": {
     "name": "Admin — fare rules",
-    "description": "End-to-end journey covering fare rule lifecycle management via the Operations API. Registers an employee account, creates a fare rule with tax lines, updates the rule and tax lines, verifies the saved changes by reading the record back, deletes the fare rule, then removes the employee account.",
+    "description": "End-to-end journey covering fare rule lifecycle management via the Operations API. Registers an employee account, authenticates via the Admin API to obtain a JWT, creates a fare rule with tax lines, updates the rule and tax lines, verifies the saved changes by reading the record back, deletes the fare rule, then removes the employee account.",
     "domain": "Operations",
     "baseUrls": [
       {
         "id": "operations",
         "label": "Operations API",
         "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
       },
       {
         "id": "user",
@@ -20,7 +25,7 @@
     {
       "step": 1,
       "name": "Create employee account",
-      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username. This account is used as the authenticated principal for all subsequent Operations API calls in this journey.",
+      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username. This account is used as the credential fixture for the Admin API login step that follows.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -47,7 +52,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This userId is carried forward to the cleanup step.",
+        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This account is used as the credential fixture for the Admin API login step that follows.",
         "keyFields": [
           "userId"
         ],
@@ -56,14 +61,70 @@
       "chainsTo": [
         {
           "field": "userId",
-          "usedInSteps": [6]
+          "usedInSteps": [7]
         }
       ]
     },
     {
       "step": 2,
+      "name": "Login — obtain access token",
+      "description": "Authenticate the employee account created in Step 1 via the Admin API using the runtime-generated username and password. Validates that the Admin API orchestrates the User MS correctly and returns a signed JWT. The accessToken is carried forward as the Bearer credential for all Operations API calls in this journey.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          {
+            "field": "username",
+            "source": "Step 1 → runtime-generated username"
+          },
+          {
+            "field": "password",
+            "source": "Step 1 → runtime-generated password"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-04-12T10:15:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL). The accessToken is injected as the Authorization header on all subsequent Operations API requests.",
+        "keyFields": [
+          "accessToken",
+          "userId",
+          "expiresAt",
+          "tokenType"
+        ],
+        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match Step 1. expiresAt is ISO 8601 UTC approximately 15 minutes from now. tokenType is always 'Bearer'."
+      },
+      "chainsTo": [
+        {
+          "field": "accessToken",
+          "usedInSteps": [3, 4, 5, 6]
+        }
+      ]
+    },
+    {
+      "step": 3,
       "name": "Create fare rule",
-      "description": "Create a new Economy Standard fare rule (cabin Y, fare basis YSTDGB) via the Operations API. The rule is a money-type rule with minimum and maximum amounts enabling continuous pricing. Two tax lines are included: UK Air Passenger Duty (GB) and a fuel surcharge (YQ).",
+      "description": "Create a new Economy Standard fare rule (cabin Y, fare basis YSTDGB) via the Operations API using the JWT from Step 2. The rule is a money-type rule with minimum and maximum amounts enabling continuous pricing. Two tax lines are included: UK Air Passenger Duty (GB, £13) and a fuel surcharge (YQ, £45).",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -97,7 +158,14 @@
           "cancellationFeeAmount": 0.00,
           "validFrom": "2026-01-01T00:00:00Z",
           "validTo": "2026-12-31T23:59:59Z"
-        }
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          }
+        ]
       },
       "response": {
         "statusCode": 201,
@@ -140,26 +208,26 @@
           "maxAmount",
           "taxLines"
         ],
-        "validationNotes": "fareRuleId is a non-empty GUID. taxLines array must contain exactly 2 entries: GB (APD) and YQ (fuel surcharge). minAmount and maxAmount define the continuous pricing range for cabin Y."
+        "validationNotes": "fareRuleId is a non-empty GUID. taxLines array must contain exactly 2 entries: GB (APD, £13) and YQ (fuel surcharge, £45). minAmount and maxAmount define the continuous pricing range for cabin Y."
       },
       "chainsTo": [
         {
           "field": "fareRuleId",
-          "usedInSteps": [3, 4, 5]
+          "usedInSteps": [4, 5, 6]
         }
       ]
     },
     {
-      "step": 3,
+      "step": 4,
       "name": "Edit fare rule and tax lines",
-      "description": "Update the fare rule created in Step 2 via a full PUT. The fare family is promoted from 'Economy Light' to 'Economy Standard', the pricing band is widened (minAmount 150 → 175, maxAmount 350 → 400), and both tax line amounts are revised upward (GB APD 13 → 15, YQ fuel surcharge 45 → 50).",
+      "description": "Update the fare rule created in Step 3 via a full PUT using the JWT from Step 2. The fare family is promoted from 'Economy Light' to 'Economy Standard', the pricing band is widened (minAmount 150 → 175, maxAmount 350 → 400), and both tax line amounts are revised upward (GB APD 13 → 15, YQ fuel surcharge 45 → 50).",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
         "pathParams": {
-          "fareRuleId": "from-step-2"
+          "fareRuleId": "from-step-3"
         }
       },
       "request": {
@@ -192,17 +260,22 @@
         },
         "dataChain": [
           {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
             "field": "fareRuleId",
             "from": "fareRuleId",
-            "source": "Step 2 → fareRuleId (injected into path)"
+            "source": "Step 3 → fareRuleId (injected into path)"
           }
         ],
         "diff": {
-          "fareFamily":         { "from": "Economy Light",   "to": "Economy Standard" },
-          "minAmount":          { "from": 150.00,            "to": 175.00 },
-          "maxAmount":          { "from": 350.00,            "to": 400.00 },
-          "taxLines[0].amount": { "from": 13.00,             "to": 15.00 },
-          "taxLines[1].amount": { "from": 45.00,             "to": 50.00 }
+          "fareFamily":         { "from": "Economy Light", "to": "Economy Standard" },
+          "minAmount":          { "from": 150.00,          "to": 175.00 },
+          "maxAmount":          { "from": 350.00,          "to": 400.00 },
+          "taxLines[0].amount": { "from": 13.00,           "to": 15.00 },
+          "taxLines[1].amount": { "from": 45.00,           "to": 50.00 }
         }
       },
       "response": {
@@ -245,21 +318,21 @@
           "maxAmount",
           "taxLines"
         ],
-        "validationNotes": "fareRuleId must match Step 2. fareFamily must be 'Economy Standard'. minAmount 175.00, maxAmount 400.00. taxLines must contain GB=15.00 and YQ=50.00. updatedAt must be a later timestamp than createdAt."
+        "validationNotes": "fareRuleId must match Step 3. fareFamily must be 'Economy Standard'. minAmount 175.00, maxAmount 400.00. taxLines must contain GB=15.00 and YQ=50.00. updatedAt must be a later timestamp than createdAt."
       },
       "chainsTo": []
     },
     {
-      "step": 4,
+      "step": 5,
       "name": "Get fare rule — verify save",
-      "description": "Read the fare rule back by its ID using GET to independently confirm the update in Step 3 was durably saved. This step validates that the database reflects the revised fareFamily, pricing band, and tax line amounts.",
+      "description": "Read the fare rule back by its ID using GET to independently confirm the update in Step 4 was durably saved. This step validates that the database reflects the revised fareFamily, pricing band, and tax line amounts.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
         "pathParams": {
-          "fareRuleId": "from-step-2"
+          "fareRuleId": "from-step-3"
         }
       },
       "request": {
@@ -267,9 +340,14 @@
         "body": null,
         "dataChain": [
           {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
             "field": "fareRuleId",
             "from": "fareRuleId",
-            "source": "Step 2 → fareRuleId (injected into path)"
+            "source": "Step 3 → fareRuleId (injected into path)"
           }
         ]
       },
@@ -305,7 +383,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — durable read of the updated fare rule. All values must match the state set by Step 3: fareFamily 'Economy Standard', minAmount 175.00, maxAmount 400.00, taxLines GB=15.00 and YQ=50.00.",
+        "description": "200 OK — durable read of the updated fare rule. All values must match the state set by Step 4: fareFamily 'Economy Standard', minAmount 175.00, maxAmount 400.00, taxLines GB=15.00 and YQ=50.00.",
         "keyFields": [
           "fareRuleId",
           "fareFamily",
@@ -314,7 +392,7 @@
           "taxLines",
           "updatedAt"
         ],
-        "validationNotes": "This is an independent read — the response comes directly from the database, not from a cached value. fareFamily, minAmount, maxAmount, and both taxLine amounts must reflect Step 3 edits. updatedAt must be later than createdAt.",
+        "validationNotes": "This is an independent read — the response comes directly from the database, not from a cached value. fareFamily, minAmount, maxAmount, and both taxLine amounts must reflect Step 4 edits. updatedAt must be later than createdAt.",
         "assertions": [
           {
             "field": "taxLines",
@@ -326,16 +404,16 @@
       "chainsTo": []
     },
     {
-      "step": 5,
+      "step": 6,
       "name": "Delete fare rule",
-      "description": "Permanently delete the fare rule created in Step 2. Confirms that the Operations API DELETE endpoint removes the record and returns 204 No Content. A subsequent GET for this fareRuleId would return 404.",
+      "description": "Permanently delete the fare rule created in Step 3 using the JWT from Step 2. Confirms that the Operations API DELETE endpoint removes the record and returns 204 No Content. A subsequent GET for this fareRuleId would return 404.",
       "type": "positive",
       "apiCall": {
         "method": "DELETE",
         "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
         "baseUrlRef": "operations",
         "pathParams": {
-          "fareRuleId": "from-step-2"
+          "fareRuleId": "from-step-3"
         }
       },
       "request": {
@@ -343,9 +421,14 @@
         "body": null,
         "dataChain": [
           {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
             "field": "fareRuleId",
             "from": "fareRuleId",
-            "source": "Step 2 → fareRuleId (injected into path)"
+            "source": "Step 3 → fareRuleId (injected into path)"
           }
         ]
       },
@@ -357,12 +440,12 @@
         "statusCode": 204,
         "description": "204 No Content — fare rule deleted. No response body is returned. Subsequent GET requests for this fareRuleId will return 404 Not Found.",
         "keyFields": [],
-        "validationNotes": "Response body must be empty. The fareRuleId from Step 2 is injected into the path. Attempting to delete a non-existent rule returns 404."
+        "validationNotes": "Response body must be empty. The fareRuleId from Step 3 is injected into the path. Attempting to delete a non-existent rule returns 404."
       },
       "chainsTo": []
     },
     {
-      "step": 6,
+      "step": 7,
       "name": "Delete employee account",
       "description": "Delete the employee account created in Step 1 to clean up test data. Confirms that the User MS DELETE endpoint permanently removes the account and returns 204 No Content.",
       "type": "positive",
