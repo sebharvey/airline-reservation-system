@@ -7,10 +7,12 @@
       <p class="page-subtitle">Manage Special Service Request codes</p>
     </div>
     <div class="header-actions">
-      <button class="btn-secondary" (click)="loadOptions()">Refresh</button>
-      <button class="add-btn" (click)="showAddForm.update(v => !v)">
-        {{ showAddForm() ? 'Cancel' : '+ New SSR' }}
-      </button>
+      @if (!showForm()) {
+        <button class="btn-secondary" (click)="loadOptions()">Refresh</button>
+        <button class="add-btn" (click)="showAddForm.update(v => !v)">
+          {{ showAddForm() ? 'Cancel' : '+ New SSR' }}
+        </button>
+      }
     </div>
   </div>
 
@@ -22,192 +24,180 @@
     <div class="msg msg-success">{{ success() }}</div>
   }
 
-  <!-- ── Stats row ── -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <span class="stat-value">{{ stats().total }}</span>
-      <span class="stat-label">Total active</span>
-    </div>
-    <div class="stat-card stat-meal">
-      <span class="stat-value">{{ stats().meal }}</span>
-      <span class="stat-label">Meal</span>
-    </div>
-    <div class="stat-card stat-mobility">
-      <span class="stat-value">{{ stats().mobility }}</span>
-      <span class="stat-label">Mobility</span>
-    </div>
-    <div class="stat-card stat-accessibility">
-      <span class="stat-value">{{ stats().accessibility }}</span>
-      <span class="stat-label">Accessibility</span>
-    </div>
-  </div>
+  <!-- ── Edit form card ── -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">Edit SSR Option</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
 
-  <!-- ── Add form ── -->
-  @if (showAddForm()) {
-    <div class="add-form-card">
-      <h3 class="form-title">New SSR Option</h3>
-      <div class="form-grid">
-        <div class="field">
-          <label class="field-label">SSR Code</label>
-          <input class="field-input mono" type="text" maxlength="4" placeholder="e.g. VGML"
-            [value]="newSsr().ssrCode"
-            (input)="setNewSsr('ssrCode', $any($event.target).value)" />
-        </div>
-        <div class="field">
-          <label class="field-label">Label</label>
-          <input class="field-input" type="text" placeholder="e.g. Vegetarian meal"
-            [value]="newSsr().label"
-            (input)="setNewSsr('label', $any($event.target).value)" />
-        </div>
-        <div class="field">
-          <label class="field-label">Category</label>
-          <select class="field-input"
-            [value]="newSsr().category"
-            (change)="setNewSsr('category', $any($event.target).value)">
-            @for (cat of categories; track cat) {
-              <option [value]="cat">{{ cat }}</option>
-            }
-          </select>
+      <div class="form-sections">
+        <div class="form-section">
+          <h3 class="section-heading">Details</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>SSR Code</label>
+              <input type="text" class="field-input mono" [value]="editing()!.ssrCode" disabled />
+            </div>
+            <div class="form-group">
+              <label>Label</label>
+              <input type="text" class="field-input"
+                [value]="editForm().label"
+                (input)="updateEditField('label', $any($event.target).value)" />
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select class="field-input"
+                [value]="editForm().category"
+                (change)="updateEditField('category', $any($event.target).value)">
+                @for (cat of categories; track cat) {
+                  <option [value]="cat">{{ cat }}</option>
+                }
+              </select>
+            </div>
+          </div>
         </div>
       </div>
+
       <div class="form-actions">
-        <button class="btn-secondary" (click)="showAddForm.set(false)">Cancel</button>
-        <button class="btn-primary"
-          [disabled]="!newSsr().ssrCode || !newSsr().label"
-          (click)="addSsr()">Create SSR</button>
+        <button class="btn-secondary" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button class="btn-primary" (click)="saveEdit()" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save Changes' }}
+        </button>
       </div>
     </div>
   }
 
-  <!-- ── Filters ── -->
-  <div class="filters-row">
-    <div class="search-field">
-      <span class="search-icon">&#128269;</span>
-      <input
-        class="search-input"
-        type="search"
-        placeholder="Search by code, label or category..."
-        [value]="search()"
-        (input)="setSearch($any($event.target).value)"
-      />
-    </div>
-    <div class="filter-pills">
-      <select class="filter-select"
-        [value]="categoryFilter()"
-        (change)="setCategoryFilter($any($event.target).value)">
-        <option value="all">All categories</option>
-        @for (cat of categories; track cat) {
-          <option [value]="cat">{{ cat }}</option>
-        }
-      </select>
-    </div>
-  </div>
+  <!-- ── Content shown when not editing ── -->
+  @if (!showForm()) {
 
-  <!-- ── Loading ── -->
-  @if (loading()) {
-    <div class="loading-bar">Loading SSR catalogue...</div>
-  }
+    <!-- ── Stats row ── -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Total active</span>
+      </div>
+      <div class="stat-card stat-meal">
+        <span class="stat-value">{{ stats().meal }}</span>
+        <span class="stat-label">Meal</span>
+      </div>
+      <div class="stat-card stat-mobility">
+        <span class="stat-value">{{ stats().mobility }}</span>
+        <span class="stat-label">Mobility</span>
+      </div>
+      <div class="stat-card stat-accessibility">
+        <span class="stat-value">{{ stats().accessibility }}</span>
+        <span class="stat-label">Accessibility</span>
+      </div>
+    </div>
 
-  <!-- ── SSR table ── -->
-  <div class="table-card">
-    <table class="ssr-table">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Label</th>
-          <th>Category</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (ssr of filteredOptions(); track ssr.ssrCode) {
-          <tr
-            class="ssr-row"
-            [class.selected]="selectedSsr()?.ssrCode === ssr.ssrCode"
-            (click)="selectSsr(ssr)"
-          >
-            <td><span class="code-badge mono">{{ ssr.ssrCode }}</span></td>
-            <td class="label-cell">{{ ssr.label }}</td>
-            <td>
-              <span class="badge" [class]="categoryBadgeClass(ssr.category)">{{ ssr.category }}</span>
-            </td>
-            <td>
-              <button class="action-btn" (click)="$event.stopPropagation(); selectSsr(ssr)">&#8943;</button>
-            </td>
+    <!-- ── Add form ── -->
+    @if (showAddForm()) {
+      <div class="add-form-card">
+        <h3 class="form-title">New SSR Option</h3>
+        <div class="form-grid add-form-grid">
+          <div class="field">
+            <label class="field-label">SSR Code</label>
+            <input class="field-input mono" type="text" maxlength="4" placeholder="e.g. VGML"
+              [value]="newSsr().ssrCode"
+              (input)="setNewSsr('ssrCode', $any($event.target).value)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Label</label>
+            <input class="field-input" type="text" placeholder="e.g. Vegetarian meal"
+              [value]="newSsr().label"
+              (input)="setNewSsr('label', $any($event.target).value)" />
+          </div>
+          <div class="field">
+            <label class="field-label">Category</label>
+            <select class="field-input"
+              [value]="newSsr().category"
+              (change)="setNewSsr('category', $any($event.target).value)">
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-secondary" (click)="showAddForm.set(false)">Cancel</button>
+          <button class="btn-primary"
+            [disabled]="!newSsr().ssrCode || !newSsr().label"
+            (click)="addSsr()">Create SSR</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Filters ── -->
+    <div class="filters-row">
+      <div class="search-field">
+        <span class="search-icon">&#128269;</span>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search by code, label or category..."
+          [value]="search()"
+          (input)="setSearch($any($event.target).value)"
+        />
+      </div>
+      <div class="filter-pills">
+        <select class="filter-select"
+          [value]="categoryFilter()"
+          (change)="setCategoryFilter($any($event.target).value)">
+          <option value="all">All categories</option>
+          @for (cat of categories; track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- ── Loading ── -->
+    @if (loading()) {
+      <div class="loading-bar">Loading SSR catalogue...</div>
+    }
+
+    <!-- ── SSR table ── -->
+    <div class="table-card">
+      <table class="ssr-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Label</th>
+            <th>Category</th>
+            <th>Actions</th>
           </tr>
-
-          <!-- Inline expanded row -->
-          @if (selectedSsr()?.ssrCode === ssr.ssrCode) {
-            <tr class="detail-row">
-              <td colspan="4">
-                <div class="detail-panel">
-
-                  <!-- View mode -->
-                  @if (!editingSsr() || editingSsr()?.ssrCode !== ssr.ssrCode) {
-                    <div class="detail-info">
-                      <div class="detail-field">
-                        <span class="detail-label">SSR Code</span>
-                        <span class="detail-value mono">{{ ssr.ssrCode }}</span>
-                      </div>
-                      <div class="detail-field">
-                        <span class="detail-label">Label</span>
-                        <span class="detail-value">{{ ssr.label }}</span>
-                      </div>
-                      <div class="detail-field">
-                        <span class="detail-label">Category</span>
-                        <span class="detail-value">{{ ssr.category }}</span>
-                      </div>
-                    </div>
-                    <div class="detail-actions">
-                      <button class="btn-secondary" (click)="$event.stopPropagation(); startEdit(ssr)">Edit</button>
-                      <button class="btn-delete" (click)="$event.stopPropagation(); deactivateSsr(ssr)">Deactivate</button>
-                    </div>
-                  }
-
-                  <!-- Edit mode -->
-                  @if (editingSsr()?.ssrCode === ssr.ssrCode) {
-                    <div class="edit-form">
-                      <div class="edit-grid">
-                        <div class="field">
-                          <label class="field-label">Label</label>
-                          <input class="field-input" type="text"
-                            [value]="editLabel()"
-                            (input)="editLabel.set($any($event.target).value)" />
-                        </div>
-                        <div class="field">
-                          <label class="field-label">Category</label>
-                          <select class="field-input"
-                            [value]="editCategory()"
-                            (change)="editCategory.set($any($event.target).value)">
-                            @for (cat of categories; track cat) {
-                              <option [value]="cat">{{ cat }}</option>
-                            }
-                          </select>
-                        </div>
-                      </div>
-                      <div class="detail-actions">
-                        <button class="btn-secondary" (click)="$event.stopPropagation(); cancelEdit()">Cancel</button>
-                        <button class="btn-primary" (click)="$event.stopPropagation(); saveEdit()">Save</button>
-                      </div>
-                    </div>
-                  }
-
+        </thead>
+        <tbody>
+          @for (ssr of filteredOptions(); track ssr.ssrCode) {
+            <tr class="ssr-row">
+              <td><span class="code-badge mono">{{ ssr.ssrCode }}</span></td>
+              <td class="label-cell">{{ ssr.label }}</td>
+              <td>
+                <span class="badge" [class]="categoryBadgeClass(ssr.category)">{{ ssr.category }}</span>
+              </td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(ssr)">Edit</button>
+                  <button class="action-btn delete-btn" (click)="deactivateSsr(ssr)">Deactivate</button>
                 </div>
               </td>
             </tr>
           }
-        }
 
-        @if (filteredOptions().length === 0 && !loading()) {
-          <tr>
-            <td colspan="4" class="empty-row">No SSR options match your search.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+          @if (filteredOptions().length === 0 && !loading()) {
+            <tr>
+              <td colspan="4" class="empty-row">No SSR options match your search.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
-  <p class="results-count">
-    Showing {{ filteredOptions().length }} of {{ ssrOptions().length }} SSR codes
-  </p>
+    <p class="results-count">
+      Showing {{ filteredOptions().length }} of {{ ssrOptions().length }} SSR codes
+    </p>
+
+  }
 </div>

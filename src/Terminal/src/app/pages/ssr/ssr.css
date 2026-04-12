@@ -98,7 +98,7 @@
   color: var(--text);
 }
 
-.form-grid {
+.add-form-grid {
   display: grid;
   grid-template-columns: 160px 1fr 160px;
   gap: 16px;
@@ -239,16 +239,11 @@
 }
 
 .ssr-row {
-  cursor: pointer;
   transition: background var(--transition);
 }
 
 .ssr-row:hover {
   background: var(--bg-light);
-}
-
-.ssr-row.selected {
-  background: rgba(102, 126, 234, 0.06);
 }
 
 .ssr-row:last-child td {
@@ -289,68 +284,108 @@
 .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .muted { color: var(--text-muted); }
 
-/* ── Action button ── */
-.action-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background var(--transition), color var(--transition);
+/* ── Action buttons ── */
+.action-btns {
+  display: flex;
+  gap: 8px;
 }
 
-.action-btn:hover {
+.action-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity var(--transition), background var(--transition);
+  border: none;
+}
+
+.edit-btn {
   background: var(--bg-light);
   color: var(--text);
+  border: 1.5px solid var(--border);
 }
 
-/* ── Detail/expanded row ── */
-.detail-row td {
-  padding: 0;
+.edit-btn:hover {
+  background: var(--border);
+}
+
+.delete-btn {
+  background: rgba(248, 81, 73, 0.08);
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.2);
+}
+
+.delete-btn:hover {
+  background: rgba(248, 81, 73, 0.18);
+}
+
+/* ── Edit form card ── */
+.form-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 24px;
+  animation: slideIn 0.25s ease;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
 }
 
-.detail-panel {
-  padding: 16px 20px;
-  background: var(--bg-light);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  animation: slideIn 0.2s ease;
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color var(--transition);
 }
 
-.detail-info {
-  display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
+.close-btn:hover { color: var(--text); }
+
+.form-sections {
+  padding: 20px 24px;
 }
 
-.detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.form-section {
+  margin-bottom: 20px;
 }
 
-.detail-label {
-  font-size: 0.7rem;
-  font-weight: 600;
+.section-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 14px;
 }
 
-.detail-value {
-  font-size: 0.875rem;
-  color: var(--text);
+.form-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  gap: 16px;
 }
 
-.detail-actions {
+.form-group {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 /* ── Buttons ── */
@@ -397,19 +432,6 @@
 
 .btn-delete:hover {
   background: rgba(248, 81, 73, 0.2);
-}
-
-/* ── Edit form ── */
-.edit-form {
-  width: 100%;
-  animation: slideIn 0.2s ease;
-}
-
-.edit-grid {
-  display: grid;
-  grid-template-columns: 1fr 160px;
-  gap: 12px;
-  margin-bottom: 12px;
 }
 
 /* ── Empty / count ── */
@@ -469,11 +491,8 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .add-form-grid,
   .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .edit-grid {
     grid-template-columns: 1fr;
   }
 }
