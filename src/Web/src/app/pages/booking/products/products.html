@@ -36,7 +36,7 @@
           <div class="tile-image-wrap">
             <img
               *ngIf="product.imageBase64"
-              [src]="'data:image/jpeg;base64,' + product.imageBase64"
+              [src]="getImageSrc(product.imageBase64)"
               [alt]="product.name"
               class="tile-image" />
             <div class="tile-image-placeholder" *ngIf="!product.imageBase64">
@@ -48,8 +48,11 @@
           <div class="tile-body">
             <h3 class="tile-name">{{ product.name }}</h3>
             <p class="tile-description">{{ product.description }}</p>
-            <div class="tile-price" *ngIf="getPriceForCurrency(product) !== null">
-              {{ currency() }} {{ getPriceForCurrency(product) | number:'1.2-2' }}
+            <div class="tile-footer">
+              <div class="tile-price" *ngIf="getPriceForCurrency(product) !== null">
+                {{ currency() }} {{ getPriceForCurrency(product) | number:'1.2-2' }}
+              </div>
+              <button class="btn-add" (click)="onAdd(product)">+ Add</button>
             </div>
           </div>
 

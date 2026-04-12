@@ -71,6 +71,32 @@ export class ProductsComponent implements OnInit {
     return match ? match.price : null;
   }
 
+  /**
+   * Build a data URI src for an imageBase64 value.
+   * Handles strings that already carry a data: prefix, and detects PNG / WebP /
+   * GIF from their well-known base64 header bytes — everything else is treated
+   * as JPEG.
+   */
+  getImageSrc(imageBase64: string): string {
+    if (imageBase64.startsWith('data:')) {
+      return imageBase64;
+    }
+    if (imageBase64.startsWith('iVBORw0KGgo')) {
+      return `data:image/png;base64,${imageBase64}`;
+    }
+    if (imageBase64.startsWith('UklGR')) {
+      return `data:image/webp;base64,${imageBase64}`;
+    }
+    if (imageBase64.startsWith('R0lGOD')) {
+      return `data:image/gif;base64,${imageBase64}`;
+    }
+    return `data:image/jpeg;base64,${imageBase64}`;
+  }
+
+  onAdd(_product: Product): void {
+    // Wired up in a future iteration
+  }
+
   onContinue(): void {
     this.router.navigate(['/booking/payment']);
   }
