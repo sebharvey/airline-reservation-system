@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
@@ -119,6 +120,10 @@ public sealed class ConfirmOrderHandler
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
 
+        // Parse enriched offer data (fare amounts + tax lines from the Offer MS reprice)
+        // keyed by offerId+cabinCode so we can overlay onto each flight item.
+        var enrichedByKey = ParseEnrichedOffers(command.EnrichedOffersJson);
+
         // Build flight order items — persist all fare/pricing and flight detail fields so that
         // prices are locked at confirmation time and never re-fetched or re-calculated.
         var flightOrderItems = new JsonArray();
@@ -140,6 +145,35 @@ public sealed class ConfirmOrderHandler
                 if (offerObj[prop] is JsonNode val)
                     item[prop] = val.DeepClone();
             }
+
+            // Overlay the repriced fare amounts and tax lines if available.
+            var offerId    = offerObj["offerId"]?.GetValue<string>() ?? "";
+            var cabinCode  = offerObj["cabinCode"]?.GetValue<string>() ?? "";
+            var lookupKey  = $"{offerId}:{cabinCode}";
+            if (enrichedByKey.TryGetValue(lookupKey, out var enriched))
+            {
+                item["baseFareAmount"] = enriched.BaseFareAmount;
+                item["taxAmount"]      = enriched.TaxAmount;
+                item["totalAmount"]    = enriched.TotalAmount;
+
+                if (enriched.TaxLines is { Count: > 0 })
+                {
+                    var taxLinesArray = new JsonArray();
+                    foreach (var tl in enriched.TaxLines)
+                    {
+                        var tlNode = new JsonObject
+                        {
+                            ["code"]   = tl.Code,
+                            ["amount"] = tl.Amount
+                        };
+                        if (tl.Description is not null)
+                            tlNode["description"] = tl.Description;
+                        taxLinesArray.Add(tlNode);
+                    }
+                    item["taxLines"] = taxLinesArray;
+                }
+            }
+
             flightOrderItems.Add(item);
         }
 
@@ -221,5 +255,69 @@ public sealed class ConfirmOrderHandler
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         return RandomNumberGenerator.GetString(chars, 6);
+    }
+
+    /// <summary>
+    /// Parses the enriched offers JSON (produced by the Retail API from the Offer MS reprice)
+    /// into a lookup keyed by "offerId:cabinCode".
+    /// </summary>
+    private static Dictionary<string, EnrichedOfferEntry> ParseEnrichedOffers(string? enrichedOffersJson)
+    {
+        var map = new Dictionary<string, EnrichedOfferEntry>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(enrichedOffersJson)) return map;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(enrichedOffersJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return map;
+
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var offerIdStr = item.TryGetProperty("offerId",   out var oi) ? oi.GetString() ?? "" : "";
+                var cabinCode  = item.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
+                var key        = $"{offerIdStr}:{cabinCode}";
+
+                List<TaxLineEntry>? taxLines = null;
+                if (item.TryGetProperty("taxLines", out var tlEl) && tlEl.ValueKind == JsonValueKind.Array)
+                {
+                    taxLines = new List<TaxLineEntry>();
+                    foreach (var tl in tlEl.EnumerateArray())
+                    {
+                        taxLines.Add(new TaxLineEntry
+                        {
+                            Code        = tl.TryGetProperty("code",        out var c) ? c.GetString() ?? "" : "",
+                            Amount      = tl.TryGetProperty("amount",      out var a) ? a.GetDecimal()      : 0m,
+                            Description = tl.TryGetProperty("description", out var d) && d.ValueKind != JsonValueKind.Null ? d.GetString() : null
+                        });
+                    }
+                }
+
+                map[key] = new EnrichedOfferEntry
+                {
+                    BaseFareAmount = item.TryGetProperty("baseFareAmount", out var bf) ? bf.GetDecimal() : 0m,
+                    TaxAmount      = item.TryGetProperty("taxAmount",      out var ta) ? ta.GetDecimal() : 0m,
+                    TotalAmount    = item.TryGetProperty("totalAmount",    out var tot) ? tot.GetDecimal() : 0m,
+                    TaxLines       = taxLines
+                };
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return map;
+    }
+
+    private sealed class EnrichedOfferEntry
+    {
+        public decimal BaseFareAmount { get; init; }
+        public decimal TaxAmount { get; init; }
+        public decimal TotalAmount { get; init; }
+        public List<TaxLineEntry>? TaxLines { get; init; }
+    }
+
+    private sealed class TaxLineEntry
+    {
+        public string Code { get; init; } = string.Empty;
+        public decimal Amount { get; init; }
+        public string? Description { get; init; }
     }
 }

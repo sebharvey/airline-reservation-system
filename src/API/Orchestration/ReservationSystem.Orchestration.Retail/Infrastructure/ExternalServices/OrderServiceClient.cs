@@ -139,9 +139,10 @@ public sealed class OrderServiceClient
 
     public async Task<OrderMsConfirmOrderResult> ConfirmOrderAsync(
         Guid orderId, Guid basketId, List<object> paymentReferences,
-        CancellationToken ct)
+        CancellationToken ct,
+        object? enrichedOffers = null)
     {
-        var payload = new { orderId, basketId, paymentReferences };
+        var payload = new { orderId, basketId, paymentReferences, enrichedOffers };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders/confirm", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -463,6 +464,66 @@ public sealed class OrderMsConfirmOrderResult
 
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("orderItems")]
+    public List<ConfirmedOrderItemResult> OrderItems { get; init; } = [];
+}
+
+public sealed class ConfirmedOrderItemResult
+{
+    [JsonPropertyName("offerId")]
+    public Guid OfferId { get; init; }
+
+    [JsonPropertyName("flightNumber")]
+    public string FlightNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("origin")]
+    public string Origin { get; init; } = string.Empty;
+
+    [JsonPropertyName("destination")]
+    public string Destination { get; init; } = string.Empty;
+
+    [JsonPropertyName("departureDate")]
+    public string DepartureDate { get; init; } = string.Empty;
+
+    [JsonPropertyName("departureTime")]
+    public string DepartureTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("arrivalTime")]
+    public string ArrivalTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("fareFamily")]
+    public string? FareFamily { get; init; }
+
+    [JsonPropertyName("fareBasisCode")]
+    public string? FareBasisCode { get; init; }
+
+    [JsonPropertyName("baseFareAmount")]
+    public decimal BaseFareAmount { get; init; }
+
+    [JsonPropertyName("taxAmount")]
+    public decimal TaxAmount { get; init; }
+
+    [JsonPropertyName("totalAmount")]
+    public decimal TotalAmount { get; init; }
+
+    [JsonPropertyName("taxLines")]
+    public List<ConfirmedTaxLineResult>? TaxLines { get; init; }
+}
+
+public sealed class ConfirmedTaxLineResult
+{
+    [JsonPropertyName("code")]
+    public string Code { get; init; } = string.Empty;
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
 }
 
 public sealed class OrderMsSsrOptionsResult

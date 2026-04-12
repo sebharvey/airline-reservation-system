@@ -5,6 +5,7 @@ using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Models.Requests;
 using ReservationSystem.Microservices.Order.Models.Responses;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace ReservationSystem.Microservices.Order.Models.Mappers;
 
@@ -30,7 +31,10 @@ public static class OrderMapper
             BasketId: request.BasketId,
             PaymentReferencesJson: request.PaymentReferences is not null
                 ? JsonSerializer.Serialize(request.PaymentReferences)
-                : "[]");
+                : "[]",
+            EnrichedOffersJson: request.EnrichedOffers is not null
+                ? JsonSerializer.Serialize(request.EnrichedOffers)
+                : null);
 
     public static BasketResponse ToResponse(Basket basket) =>
         new()
@@ -96,13 +100,67 @@ public static class OrderMapper
             CurrencyCode = order.CurrencyCode
         };
 
-    public static ConfirmOrderResponse ToConfirmResponse(Domain.Entities.Order order) =>
-        new()
+    public static ConfirmOrderResponse ToConfirmResponse(Domain.Entities.Order order)
+    {
+        var orderItems = new List<ConfirmedOrderItem>();
+        if (!string.IsNullOrWhiteSpace(order.OrderData) && order.OrderData != "{}")
         {
-            OrderId = order.OrderId,
+            try
+            {
+                using var doc = JsonDocument.Parse(order.OrderData);
+                if (doc.RootElement.TryGetProperty("orderItems", out var itemsEl) &&
+                    itemsEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in itemsEl.EnumerateArray())
+                    {
+                        List<ConfirmedTaxLine>? taxLines = null;
+                        if (item.TryGetProperty("taxLines", out var tlEl) &&
+                            tlEl.ValueKind == JsonValueKind.Array)
+                        {
+                            taxLines = new List<ConfirmedTaxLine>();
+                            foreach (var tl in tlEl.EnumerateArray())
+                            {
+                                taxLines.Add(new ConfirmedTaxLine
+                                {
+                                    Code        = tl.TryGetProperty("code",        out var c) ? c.GetString() ?? "" : "",
+                                    Amount      = tl.TryGetProperty("amount",      out var a) ? a.GetDecimal()      : 0m,
+                                    Description = tl.TryGetProperty("description", out var d) && d.ValueKind != JsonValueKind.Null ? d.GetString() : null
+                                });
+                            }
+                        }
+
+                        _ = item.TryGetProperty("offerId", out var oIdEl) && oIdEl.TryGetGuid(out var oId);
+                        orderItems.Add(new ConfirmedOrderItem
+                        {
+                            OfferId        = oId,
+                            FlightNumber   = item.TryGetProperty("flightNumber",   out var v) ? v.GetString() ?? "" : "",
+                            Origin         = item.TryGetProperty("origin",         out v) ? v.GetString() ?? "" : "",
+                            Destination    = item.TryGetProperty("destination",    out v) ? v.GetString() ?? "" : "",
+                            DepartureDate  = item.TryGetProperty("departureDate",  out v) ? v.GetString() ?? "" : "",
+                            DepartureTime  = item.TryGetProperty("departureTime",  out v) ? v.GetString() ?? "" : "",
+                            ArrivalTime    = item.TryGetProperty("arrivalTime",    out v) ? v.GetString() ?? "" : "",
+                            CabinCode      = item.TryGetProperty("cabinCode",      out v) ? v.GetString() ?? "" : "",
+                            FareFamily     = item.TryGetProperty("fareFamily",     out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
+                            FareBasisCode  = item.TryGetProperty("fareBasisCode",  out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
+                            BaseFareAmount = item.TryGetProperty("baseFareAmount", out v) ? v.GetDecimal() : 0m,
+                            TaxAmount      = item.TryGetProperty("taxAmount",      out v) ? v.GetDecimal() : 0m,
+                            TotalAmount    = item.TryGetProperty("totalAmount",    out v) ? v.GetDecimal() : 0m,
+                            TaxLines       = taxLines
+                        });
+                    }
+                }
+            }
+            catch { /* Return without order items if parse fails */ }
+        }
+
+        return new()
+        {
+            OrderId        = order.OrderId,
             BookingReference = order.BookingReference ?? string.Empty,
-            OrderStatus = order.OrderStatus,
-            TotalAmount = order.TotalAmount,
-            CurrencyCode = order.CurrencyCode
+            OrderStatus    = order.OrderStatus,
+            TotalAmount    = order.TotalAmount,
+            CurrencyCode   = order.CurrencyCode,
+            OrderItems     = orderItems
         };
+    }
 }
