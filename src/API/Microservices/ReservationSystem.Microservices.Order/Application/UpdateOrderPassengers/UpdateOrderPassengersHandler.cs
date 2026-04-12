@@ -77,8 +77,8 @@ public sealed class UpdateOrderPassengersHandler
                 if (update["contacts"] is JsonNode contacts)
                     pax["contacts"] = contacts.DeepClone();
 
-                if (update["travelDocument"] is JsonNode doc)
-                    pax["travelDocument"] = doc.DeepClone();
+                if (update["travelDocuments"] is JsonNode docs)
+                    pax["travelDocuments"] = docs.DeepClone();
 
                 break;
             }

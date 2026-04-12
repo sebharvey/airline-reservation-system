@@ -106,9 +106,12 @@ public sealed class OciRetrieveHandler
 
                 OciTravelDocument? travelDoc = null;
 
-                // Try to get existing travel doc from order
-                if (pax.TryGetProperty("travelDocument", out var tdEl) && tdEl.ValueKind == JsonValueKind.Object)
+                // Try to get existing travel doc from order (use first document in array)
+                if (pax.TryGetProperty("travelDocuments", out var tdsEl) &&
+                    tdsEl.ValueKind == JsonValueKind.Array &&
+                    tdsEl.GetArrayLength() > 0)
                 {
+                    var tdEl = tdsEl[0];
                     travelDoc = new OciTravelDocument(
                         Type: tdEl.TryGetProperty("type", out var tyEl) ? tyEl.GetString() : null,
                         Number: tdEl.TryGetProperty("number", out var numEl) ? numEl.GetString() : null,

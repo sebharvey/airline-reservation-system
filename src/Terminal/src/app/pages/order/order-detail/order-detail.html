@@ -248,18 +248,18 @@
                     </span>
                   </div>
                 }
-                @if (pax.travelDocument?.number) {
+                @for (doc of pax.travelDocuments; track doc.number) {
                   <div class="field-row">
                     <span class="field-label">Document</span>
-                    <span class="field-value">{{ pax.travelDocument?.type }} {{ pax.travelDocument?.number }}</span>
+                    <span class="field-value">{{ doc.type }} {{ doc.number }}</span>
                   </div>
                   <div class="field-row">
                     <span class="field-label">Expiry</span>
-                    <span class="field-value">{{ formatDate(pax.travelDocument?.expiryDate) }}</span>
+                    <span class="field-value">{{ formatDate(doc.expiryDate) }}</span>
                   </div>
                   <div class="field-row">
                     <span class="field-label">Nationality</span>
-                    <span class="field-value">{{ pax.travelDocument?.nationality || '—' }}</span>
+                    <span class="field-value">{{ doc.nationality || '—' }}</span>
                   </div>
                 }
 

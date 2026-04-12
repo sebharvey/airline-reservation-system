@@ -730,7 +730,7 @@
               "email": "__RAND_EMAIL__",
               "phone": "__RAND_PHONE__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           },
           {
             "__PAX_MIN__": 2,
@@ -745,7 +745,7 @@
               "email": "__RAND_EMAIL_2__",
               "phone": "__RAND_PHONE_2__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           },
           {
             "__PAX_MIN__": 3,
@@ -760,7 +760,7 @@
               "email": "__RAND_EMAIL_3__",
               "phone": "__RAND_PHONE_3__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           },
           {
             "__PAX_MIN__": 4,
@@ -775,7 +775,7 @@
               "email": "__RAND_EMAIL_4__",
               "phone": "__RAND_PHONE_4__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           },
           {
             "__PAX_MIN__": 5,
@@ -790,7 +790,7 @@
               "email": "__RAND_EMAIL_5__",
               "phone": "__RAND_PHONE_5__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           },
           {
             "__PAX_MIN__": 6,
@@ -805,7 +805,7 @@
               "email": "__RAND_EMAIL_6__",
               "phone": "__RAND_PHONE_6__"
             },
-            "travelDocument": null
+            "travelDocuments": []
           }
         ],
         "dataChain": [
