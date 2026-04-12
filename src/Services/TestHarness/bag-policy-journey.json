@@ -1,0 +1,382 @@
+{
+  "journey": {
+    "name": "Admin — bag policy",
+    "description": "End-to-end journey covering bag policy lifecycle management via the Operations API. Registers an employee account, authenticates via the Admin API to obtain a JWT, creates a bag policy for cabin F, updates the allowance and weight, verifies the saved changes by reading the record back, deletes the policy, then removes the employee account.",
+    "domain": "Operations",
+    "baseUrls": [
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "user",
+        "label": "User MS",
+        "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create employee account",
+      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username. This account is used as the credential fixture for the Admin API login step that follows.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID.",
+        "keyFields": ["userId"],
+        "validationNotes": "userId is a non-empty GUID. username and email are runtime-generated and unique to this test run."
+      },
+      "chainsTo": [
+        {
+          "field": "userId",
+          "usedInSteps": [8]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Login — obtain access token",
+      "description": "Authenticate the employee account created in Step 1 via the Admin API. The accessToken is carried forward as the Bearer credential for all Operations API calls.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-04-12T10:15:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — signed JWT returned. The accessToken is injected as the Authorization header on all subsequent Operations API requests.",
+        "keyFields": ["accessToken", "userId", "expiresAt", "tokenType"],
+        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). tokenType is always 'Bearer'."
+      },
+      "chainsTo": [
+        {
+          "field": "accessToken",
+          "usedInSteps": [3, 4, 5, 6, 7]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "List all bag policies",
+      "description": "Retrieve all bag policies via GET. Confirms the endpoint is reachable and returns the current configuration. Note: requires cabin F to have no existing policy for the create step (Step 4) to succeed.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/bag-policies",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": []
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns the current list of bag policies. Array may be empty or contain up to 4 entries (one per cabin class).",
+        "keyFields": [],
+        "validationNotes": "Response is a JSON array. Each item has policyId, cabinCode, freeBagsIncluded, maxWeightKgPerBag, isActive."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Create bag policy — First Class",
+      "description": "Create a new bag policy for cabin F (First Class) with 2 free bags at 32 kg each. This step requires no existing policy for cabin F. If cabin F is already seeded, delete it first.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/bag-policies",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabinCode": "F",
+          "freeBagsIncluded": 2,
+          "maxWeightKgPerBag": 32
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "policyId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "cabinCode": "F",
+          "freeBagsIncluded": 2,
+          "maxWeightKgPerBag": 32,
+          "isActive": true,
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — bag policy persisted. Response echoes all supplied fields plus the server-assigned policyId and timestamps.",
+        "keyFields": ["policyId", "cabinCode", "freeBagsIncluded", "maxWeightKgPerBag", "isActive"],
+        "validationNotes": "policyId is a non-empty GUID. cabinCode must be 'F'. isActive defaults to true. createdAt and updatedAt are database-generated."
+      },
+      "chainsTo": [
+        {
+          "field": "policyId",
+          "usedInSteps": [5, 6, 7]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Update bag policy — increase allowance",
+      "description": "Update the First Class bag policy created in Step 4. Increase freeBagsIncluded from 2 to 3 and reduce maxWeightKgPerBag from 32 to 30 kg.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/admin/bag-policies/{policyId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "policyId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "freeBagsIncluded": 3,
+          "maxWeightKgPerBag": 30,
+          "isActive": true
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "policyId",
+            "from": "policyId",
+            "source": "Step 4 → policyId (injected into path)"
+          }
+        ],
+        "diff": {
+          "freeBagsIncluded": { "from": 2, "to": 3 },
+          "maxWeightKgPerBag": { "from": 32, "to": 30 }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "policyId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "cabinCode": "F",
+          "freeBagsIncluded": 3,
+          "maxWeightKgPerBag": 30,
+          "isActive": true,
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — bag policy updated. freeBagsIncluded is now 3, maxWeightKgPerBag is now 30. updatedAt is later than createdAt.",
+        "keyFields": ["policyId", "freeBagsIncluded", "maxWeightKgPerBag", "updatedAt"],
+        "validationNotes": "policyId must match Step 4. cabinCode must remain 'F' (immutable). freeBagsIncluded 3, maxWeightKgPerBag 30. updatedAt must be later than createdAt."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Get bag policy — verify save",
+      "description": "Read the bag policy back by its ID to confirm the update in Step 5 was durably saved.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/bag-policies/{policyId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "policyId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "policyId",
+            "from": "policyId",
+            "source": "Step 4 → policyId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "policyId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "cabinCode": "F",
+          "freeBagsIncluded": 3,
+          "maxWeightKgPerBag": 30,
+          "isActive": true,
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — durable read. freeBagsIncluded must be 3 and maxWeightKgPerBag must be 30 as set in Step 5.",
+        "keyFields": ["policyId", "freeBagsIncluded", "maxWeightKgPerBag", "updatedAt"],
+        "validationNotes": "This is an independent read from the database. All values must reflect the Step 5 update."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Delete bag policy",
+      "description": "Permanently delete the bag policy created in Step 4. Returns 204 No Content.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/bag-policies/{policyId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "policyId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "policyId",
+            "from": "policyId",
+            "source": "Step 4 → policyId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — bag policy deleted. No response body. A subsequent GET for this policyId will return 404.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "Delete employee account",
+      "description": "Delete the employee account created in Step 1 to clean up test data.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/users/{userId}",
+        "baseUrlRef": "user",
+        "pathParams": {
+          "userId": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "userId",
+            "from": "userId",
+            "source": "Step 1 → userId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — employee account deleted.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty."
+      },
+      "chainsTo": []
+    }
+  ]
+}

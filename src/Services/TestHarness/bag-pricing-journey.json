@@ -1,0 +1,391 @@
+{
+  "journey": {
+    "name": "Admin — bag pricing",
+    "description": "End-to-end journey covering bag pricing lifecycle management via the Operations API. Registers an employee account, authenticates via the Admin API to obtain a JWT, creates a bag pricing rule for sequence 1 in USD (avoiding conflict with seeded GBP rules), updates the price and sets a validity end date, verifies the saved changes by reading the record back, deletes the rule, then removes the employee account.",
+    "domain": "Operations",
+    "baseUrls": [
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "user",
+        "label": "User MS",
+        "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create employee account",
+      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created on the User MS.",
+        "keyFields": ["userId"],
+        "validationNotes": "userId is a non-empty GUID."
+      },
+      "chainsTo": [
+        {
+          "field": "userId",
+          "usedInSteps": [8]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Login — obtain access token",
+      "description": "Authenticate the employee account created in Step 1 via the Admin API.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          { "field": "username", "source": "Step 1 → runtime-generated username" },
+          { "field": "password", "source": "Step 1 → runtime-generated password" }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "expiresAt": "2026-04-12T10:15:00Z",
+          "tokenType": "Bearer"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — signed JWT returned.",
+        "keyFields": ["accessToken", "userId", "expiresAt", "tokenType"],
+        "validationNotes": "accessToken is a signed JWT. tokenType is always 'Bearer'."
+      },
+      "chainsTo": [
+        {
+          "field": "accessToken",
+          "usedInSteps": [3, 4, 5, 6, 7]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "List all bag pricing rules",
+      "description": "Retrieve all bag pricing rules via GET. Confirms the seeded GBP rules are present (sequences 1, 2, 99).",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/bag-pricing",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": []
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — returns the current list of bag pricing rules ordered by bagSequence.",
+        "keyFields": [],
+        "validationNotes": "Response is a JSON array. Each item has pricingId, bagSequence, currencyCode, price, isActive, validFrom, validTo."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Create bag pricing rule — sequence 1 USD",
+      "description": "Create a new pricing rule for the 1st additional bag in USD at $55.00, valid from 2026-01-01 with no end date. USD is used to avoid conflicting with the seeded GBP rules.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/bag-pricing",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bagSequence": 1,
+          "currencyCode": "USD",
+          "price": 55.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": null
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "pricingId": "d4e5f6a7-b8c9-0123-def0-234567890123",
+          "bagSequence": 1,
+          "currencyCode": "USD",
+          "price": 55.00,
+          "isActive": true,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": null,
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — pricing rule persisted. pricingId is server-assigned. validTo is null (open-ended).",
+        "keyFields": ["pricingId", "bagSequence", "currencyCode", "price", "isActive", "validFrom", "validTo"],
+        "validationNotes": "pricingId is a non-empty GUID. bagSequence must be 1. price must be 55.00. isActive defaults to true. validTo must be null."
+      },
+      "chainsTo": [
+        {
+          "field": "pricingId",
+          "usedInSteps": [5, 6, 7]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Update bag pricing rule — increase price and set expiry",
+      "description": "Update the pricing rule created in Step 4. Increase price from $55 to $65 and set a validity end date of 2026-12-31.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/admin/bag-pricing/{pricingId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "pricingId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "price": 65.00,
+          "isActive": true,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z"
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "pricingId",
+            "from": "pricingId",
+            "source": "Step 4 → pricingId (injected into path)"
+          }
+        ],
+        "diff": {
+          "price":   { "from": 55.00,                      "to": 65.00 },
+          "validTo": { "from": null, "to": "2026-12-31T23:59:59Z" }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "pricingId": "d4e5f6a7-b8c9-0123-def0-234567890123",
+          "bagSequence": 1,
+          "currencyCode": "USD",
+          "price": 65.00,
+          "isActive": true,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z",
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — pricing rule updated. price is now $65.00 and validTo is set to 2026-12-31. updatedAt is later than createdAt.",
+        "keyFields": ["pricingId", "price", "validTo", "updatedAt"],
+        "validationNotes": "pricingId must match Step 4. bagSequence and currencyCode are immutable. price 65.00. validTo '2026-12-31T23:59:59Z'. updatedAt later than createdAt."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Get bag pricing rule — verify save",
+      "description": "Read the pricing rule back by its ID to confirm the update in Step 5 was durably saved.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/bag-pricing/{pricingId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "pricingId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "pricingId",
+            "from": "pricingId",
+            "source": "Step 4 → pricingId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "pricingId": "d4e5f6a7-b8c9-0123-def0-234567890123",
+          "bagSequence": 1,
+          "currencyCode": "USD",
+          "price": 65.00,
+          "isActive": true,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z",
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — durable read. price must be 65.00 and validTo must be set as per Step 5.",
+        "keyFields": ["pricingId", "price", "validTo", "updatedAt"],
+        "validationNotes": "This is an independent database read. price 65.00, validTo '2026-12-31T23:59:59Z'. updatedAt later than createdAt."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Delete bag pricing rule",
+      "description": "Permanently delete the pricing rule created in Step 4. Returns 204 No Content.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/bag-pricing/{pricingId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "pricingId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "from": "accessToken",
+            "source": "Step 2 → accessToken (injected as Bearer token)"
+          },
+          {
+            "field": "pricingId",
+            "from": "pricingId",
+            "source": "Step 4 → pricingId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — pricing rule deleted. A subsequent GET for this pricingId will return 404.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "Delete employee account",
+      "description": "Delete the employee account created in Step 1 to clean up test data.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/users/{userId}",
+        "baseUrlRef": "user",
+        "pathParams": {
+          "userId": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "userId",
+            "from": "userId",
+            "source": "Step 1 → userId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — employee account deleted.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty."
+      },
+      "chainsTo": []
+    }
+  ]
+}

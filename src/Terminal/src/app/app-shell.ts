@@ -29,6 +29,8 @@ export class AppShell {
     { path: '/customer', label: 'Customer', icon: '👤', description: 'Customer profiles & history' },
     { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
     { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
+    { path: '/bag-policy', label: 'Bag Policy', icon: '🧳', description: 'Free bag allowances by cabin' },
+    { path: '/bag-pricing', label: 'Bag Pricing', icon: '💼', description: 'Additional bag prices' },
     { path: '/seating', label: 'Seating', icon: '💺', description: 'Seat pricing rules' },
     { path: '/terminal', label: 'Terminal', icon: '⌨',  description: 'Cryptic command terminal' },
   ];

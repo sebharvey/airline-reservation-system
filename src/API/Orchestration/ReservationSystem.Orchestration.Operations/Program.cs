@@ -90,6 +90,7 @@ var host = new HostBuilder()
         services.AddScoped<OfferServiceClient>();
         services.AddScoped<SeatServiceClient>();
         services.AddScoped<FareRuleServiceClient>();
+        services.AddScoped<BagServiceClient>();
         services.AddScoped<OrderServiceClient>();
         services.AddScoped<DeliveryServiceClient>();
         services.AddScoped<CustomerServiceClient>();
