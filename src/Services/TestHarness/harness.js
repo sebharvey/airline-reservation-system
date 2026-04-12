@@ -21,6 +21,7 @@
         { value: 'terminal-customer',           label: 'terminal - customer search & management' },
         { value: 'user',                        label: 'user - account creation & authentication' },
         { value: 'fare-rules',                  label: 'admin - fare rules' },
+        { value: 'seat-pricing',                label: 'admin - seat pricing' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
 
