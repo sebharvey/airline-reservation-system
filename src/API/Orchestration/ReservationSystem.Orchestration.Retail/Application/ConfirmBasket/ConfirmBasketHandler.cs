@@ -143,7 +143,7 @@ public sealed class ConfirmBasketHandler
             if (offer is null)
                 throw new InvalidOperationException($"Offer {offerId} could not be found or has expired. Customer must re-search.");
             if (!offer.Validated)
-                throw new InvalidOperationException($"Offer {offerId} has not been validated and cannot be confirmed.");
+                throw new InvalidOperationException($"Offer {offerId} needs to be priced before it can be confirmed.");
         }
     }
 
