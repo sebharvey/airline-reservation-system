@@ -79,6 +79,7 @@ public sealed class SearchFlightsHandler
                 Legs = [new SliceLeg
                 {
                     SessionId        = result.SessionId,
+                    InventoryId      = f.InventoryId,
                     FlightNumber     = f.FlightNumber,
                     Origin           = f.Origin,
                     Destination      = f.Destination,
@@ -170,6 +171,7 @@ public sealed class SearchFlightsHandler
                         new SliceLeg
                         {
                             SessionId        = leg1Result.SessionId,
+                            InventoryId      = leg1Flight.InventoryId,
                             FlightNumber     = leg1Flight.FlightNumber,
                             Origin           = leg1Flight.Origin,
                             Destination      = leg1Flight.Destination,
@@ -185,6 +187,7 @@ public sealed class SearchFlightsHandler
                         new SliceLeg
                         {
                             SessionId        = leg2Search.SessionId,
+                            InventoryId      = leg2Flight.InventoryId,
                             FlightNumber     = leg2Flight.FlightNumber,
                             Origin           = leg2Flight.Origin,
                             Destination      = leg2Flight.Destination,
