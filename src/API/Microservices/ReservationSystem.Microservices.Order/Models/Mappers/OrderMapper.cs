@@ -129,7 +129,9 @@ public static class OrderMapper
                             }
                         }
 
-                        _ = item.TryGetProperty("offerId", out var oIdEl) && oIdEl.TryGetGuid(out var oId);
+                        var oId = Guid.Empty;
+                        if (item.TryGetProperty("offerId", out var oIdEl))
+                            oIdEl.TryGetGuid(out oId);
                         orderItems.Add(new ConfirmedOrderItem
                         {
                             OfferId        = oId,
