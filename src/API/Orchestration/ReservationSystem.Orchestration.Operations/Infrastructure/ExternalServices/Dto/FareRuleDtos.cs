@@ -24,4 +24,17 @@ public sealed class FareRuleDto
     public string? ValidTo { get; init; }
     public string CreatedAt { get; init; } = string.Empty;
     public string UpdatedAt { get; init; } = string.Empty;
+
+    /// <summary>Sums all tax line amounts. TaxLines elements are JsonElement at runtime.</summary>
+    public decimal GetTotalTaxAmount()
+    {
+        if (TaxLines is null || TaxLines.Length == 0) return 0m;
+        try
+        {
+            return TaxLines
+                .OfType<System.Text.Json.JsonElement>()
+                .Sum(e => e.TryGetProperty("amount", out var a) ? a.GetDecimal() : 0m);
+        }
+        catch { return 0m; }
+    }
 }
