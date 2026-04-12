@@ -1,6 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Ancillary.Swagger;
@@ -35,6 +36,7 @@ using ReservationSystem.Microservices.Ancillary.Application.Bag.GetBagPricing;
 using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPolicy;
 using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPricing;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Bag;
+using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Bag;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
@@ -59,8 +61,18 @@ var host = new HostBuilder()
         services.AddScoped<IAircraftTypeRepository, SqlAircraftTypeRepository>();
         services.AddScoped<ISeatmapRepository, SqlSeatmapRepository>();
         services.AddScoped<ISeatPricingRepository, SqlSeatPricingRepository>();
-        services.AddScoped<IBagPolicyRepository, SqlBagPolicyRepository>();
-        services.AddScoped<IBagPricingRepository, SqlBagPricingRepository>();
+        services.AddDbContext<AncillaryDbContext>((provider, options) =>
+        {
+            var dbOptions = provider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>()
+                .Value;
+            options.UseSqlServer(dbOptions.ConnectionString, sqlOptions =>
+            {
+                sqlOptions.CommandTimeout(dbOptions.CommandTimeoutSeconds);
+            });
+        });
+        services.AddScoped<IBagPolicyRepository, EfBagPolicyRepository>();
+        services.AddScoped<IBagPricingRepository, EfBagPricingRepository>();
 
         // ── Health check ────────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
