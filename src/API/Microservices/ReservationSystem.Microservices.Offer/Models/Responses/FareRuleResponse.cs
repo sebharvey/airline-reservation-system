@@ -34,8 +34,8 @@ public sealed class FareRuleResponse
     [JsonPropertyName("maxAmount")]
     public decimal? MaxAmount { get; init; }
 
-    [JsonPropertyName("taxAmount")]
-    public decimal? TaxAmount { get; init; }
+    [JsonPropertyName("taxLines")]
+    public object[]? TaxLines { get; init; }
 
     [JsonPropertyName("minPoints")]
     public int? MinPoints { get; init; }

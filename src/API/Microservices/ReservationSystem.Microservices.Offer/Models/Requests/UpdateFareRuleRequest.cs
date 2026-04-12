@@ -31,8 +31,8 @@ public sealed class UpdateFareRuleRequest
     [JsonPropertyName("maxAmount")]
     public decimal? MaxAmount { get; init; }
 
-    [JsonPropertyName("taxAmount")]
-    public decimal? TaxAmount { get; init; }
+    [JsonPropertyName("taxLines")]
+    public string? TaxLines { get; init; }
 
     [JsonPropertyName("minPoints")]
     public int? MinPoints { get; init; }
