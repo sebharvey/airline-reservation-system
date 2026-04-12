@@ -681,8 +681,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                   MinPoints, MaxPoints, PointsTaxes,
+                   CurrencyCode, MinAmount, MaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
@@ -701,8 +701,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                   MinPoints, MaxPoints, PointsTaxes,
+                   CurrencyCode, MinAmount, MaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
@@ -721,8 +721,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                   MinPoints, MaxPoints, PointsTaxes,
+                   CurrencyCode, MinAmount, MaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
@@ -756,8 +756,8 @@ public sealed class SqlOfferRepository : IOfferRepository
         //   Tier 2 — flight + window  (FlightNumber matches,  date within ValidFrom..ValidTo)
         const string sql = """
             SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                   MinPoints, MaxPoints, PointsTaxes,
+                   CurrencyCode, MinAmount, MaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
@@ -798,8 +798,8 @@ public sealed class SqlOfferRepository : IOfferRepository
         // least-to-most-specific so callers can apply the last-wins cascade per pair.
         const string sql = """
             SELECT FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-                   CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                   MinPoints, MaxPoints, PointsTaxes,
+                   CurrencyCode, MinAmount, MaxAmount,
+                   MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                    ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
