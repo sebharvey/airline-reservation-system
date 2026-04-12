@@ -292,6 +292,10 @@ public sealed class BasketFunction
             var result = await _confirmBasketHandler.HandleAsync(command, cancellationToken);
             return await req.CreatedAsync($"/v1/basket/{basketId}/confirm", result);
         }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
         catch (PaymentValidationException ex)
         {
             return await req.UnprocessableEntityAsync(ex.Message);
