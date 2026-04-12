@@ -116,13 +116,13 @@ public sealed class BasketSummaryHandler
                     sessionId = sid;
 
                 Guid? inventoryId = null;
-                if (offer.TryGetProperty("invId", out var invEl) &&
+                if (offer.TryGetProperty("inventoryId", out var invEl) &&
                     invEl.TryGetGuid(out var inv))
                     inventoryId = inv;
 
                 // Pricing comes from the basket data (locked at basket creation)
-                var baseFareAmount = offer.TryGetProperty("unitBaseFare", out var bf) ? bf.GetDecimal() : 0m;
-                var taxAmount      = offer.TryGetProperty("unitTax",      out var ta) ? ta.GetDecimal() : 0m;
+                var baseFareAmount = offer.TryGetProperty("unitBaseFareAmount", out var bf) ? bf.GetDecimal() : 0m;
+                var taxAmount      = offer.TryGetProperty("unitTaxAmount",      out var ta) ? ta.GetDecimal() : 0m;
                 var totalAmount    = offer.TryGetProperty("unitAmount",          out var tot) ? tot.GetDecimal() : 0m;
 
                 // Tax lines + validated come from the reprice result
@@ -146,13 +146,13 @@ public sealed class BasketSummaryHandler
                     OfferId        = offerId,
                     SessionId      = sessionId,
                     InventoryId    = inventoryId,
-                    FlightNumber   = offer.TryGetProperty("flight",   out var fn)  ? fn.GetString()  ?? "" : "",
-                    Origin         = offer.TryGetProperty("origin",   out var or)  ? or.GetString()  ?? "" : "",
-                    Destination    = offer.TryGetProperty("dest",     out var dst) ? dst.GetString() ?? "" : "",
-                    DepartureDate  = offer.TryGetProperty("depDate",  out var dd)  ? dd.GetString()  ?? "" : "",
-                    DepartureTime  = offer.TryGetProperty("depTime",  out var dt)  ? dt.GetString()  ?? "" : "",
-                    ArrivalTime    = offer.TryGetProperty("arrTime",  out var at)  ? at.GetString()  ?? "" : "",
-                    CabinCode      = offer.TryGetProperty("cabin",    out var cc)  ? cc.GetString()  ?? "" : "",
+                    FlightNumber   = offer.TryGetProperty("flightNumber",  out var fn)  ? fn.GetString()  ?? "" : "",
+                    Origin         = offer.TryGetProperty("origin",        out var or)  ? or.GetString()  ?? "" : "",
+                    Destination    = offer.TryGetProperty("destination",   out var dst) ? dst.GetString() ?? "" : "",
+                    DepartureDate  = offer.TryGetProperty("departureDate", out var dd)  ? dd.GetString()  ?? "" : "",
+                    DepartureTime  = offer.TryGetProperty("departureTime", out var dt)  ? dt.GetString()  ?? "" : "",
+                    ArrivalTime    = offer.TryGetProperty("arrivalTime",   out var at)  ? at.GetString()  ?? "" : "",
+                    CabinCode      = offer.TryGetProperty("cabinCode",     out var cc)  ? cc.GetString()  ?? "" : "",
                     FareFamily     = offer.TryGetProperty("fareFamily",    out var ff)  ? ff.GetString()       : null,
                     Validated      = validated,
                     BaseFareAmount = baseFareAmount,

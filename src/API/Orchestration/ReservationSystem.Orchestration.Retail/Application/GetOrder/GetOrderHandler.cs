@@ -42,7 +42,7 @@ public sealed class GetOrderHandler
                 var data = order.OrderData.Value;
 
                 // ── Passengers ────────────────────────────────────────────────
-                if (data.TryGetProperty("data", out var dataLists) &&
+                if (data.TryGetProperty("dataLists", out var dataLists) &&
                     dataLists.TryGetProperty("passengers", out var paxArray))
                 {
                     foreach (var pax in paxArray.EnumerateArray())
@@ -180,31 +180,31 @@ public sealed class GetOrderHandler
                 // ── Order items → flight segments + order items ───────────────
                 var paxIds = passengers.Select(p => p.PassengerId).ToList();
 
-                if (data.TryGetProperty("items", out var itemsArray) &&
+                if (data.TryGetProperty("orderItems", out var itemsArray) &&
                     itemsArray.ValueKind == JsonValueKind.Array)
                 {
                     var itemIndex = 1;
                     foreach (var item in itemsArray.EnumerateArray())
                     {
-                        var inventoryId = item.TryGetProperty("invId", out var invId) ? invId.GetString() ?? "" : "";
+                        var inventoryId = item.TryGetProperty("inventoryId", out var invId) ? invId.GetString() ?? "" : "";
                         var basketItemId = item.TryGetProperty("basketItemId", out var bid) ? bid.GetString() : null;
                         var segmentId = basketItemId ?? (string.IsNullOrEmpty(inventoryId) ? $"SEG-{itemIndex}" : inventoryId);
 
-                        var flightNumber = item.TryGetProperty("flight",   out var fn)  ? fn.GetString()  ?? "" : "";
-                        var departureDate = item.TryGetProperty("depDate", out var dd)  ? dd.GetString()  ?? "" : "";
-                        var departureTime = item.TryGetProperty("depTime", out var dt)  ? dt.GetString()  ?? "00:00" : "00:00";
-                        var arrivalTime = item.TryGetProperty("arrTime",   out var at)  ? at.GetString()  ?? "00:00" : "00:00";
-                        var origin = item.TryGetProperty("origin",         out var orig) ? orig.GetString() ?? "" : "";
-                        var destination = item.TryGetProperty("dest",      out var dest) ? dest.GetString() ?? "" : "";
-                        var aircraftType = item.TryGetProperty("acType",   out var act) ? act.GetString()  ?? "" : "";
-                        var cabinCode = item.TryGetProperty("cabin",       out var cc)  ? cc.GetString()  ?? "Y" : "Y";
-                        var fareBasisCode = item.TryGetProperty("fareBasis", out var fbc) ? fbc.GetString() : null;
-                        var fareFamily = item.TryGetProperty("fareFamily", out var ff)  ? ff.GetString()       : null;
-                        var totalAmount = item.TryGetProperty("total",     out var ta)  ? ta.GetDecimal()      : 0m;
-                        var baseFare = item.TryGetProperty("baseFare",     out var bf)  ? bf.GetDecimal()      : totalAmount;
-                        var taxAmount = item.TryGetProperty("tax",         out var tax) ? tax.GetDecimal()     : 0m;
-                        var isRefundable = item.TryGetProperty("refundable", out var ir) && ir.GetBoolean();
-                        var isChangeable = item.TryGetProperty("changeable", out var ic) && ic.GetBoolean();
+                        var flightNumber = item.TryGetProperty("flightNumber", out var fn) ? fn.GetString() ?? "" : "";
+                        var departureDate = item.TryGetProperty("departureDate", out var dd) ? dd.GetString() ?? "" : "";
+                        var departureTime = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                        var arrivalTime = item.TryGetProperty("arrivalTime", out var at) ? at.GetString() ?? "00:00" : "00:00";
+                        var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() ?? "" : "";
+                        var destination = item.TryGetProperty("destination", out var dest) ? dest.GetString() ?? "" : "";
+                        var aircraftType = item.TryGetProperty("aircraftType", out var act) ? act.GetString() ?? "" : "";
+                        var cabinCode = item.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "Y" : "Y";
+                        var fareBasisCode = item.TryGetProperty("fareBasisCode", out var fbc) ? fbc.GetString() : null;
+                        var fareFamily = item.TryGetProperty("fareFamily", out var ff) ? ff.GetString() : null;
+                        var totalAmount = item.TryGetProperty("totalAmount", out var ta) ? ta.GetDecimal() : 0m;
+                        var baseFare = item.TryGetProperty("baseFareAmount", out var bf) ? bf.GetDecimal() : totalAmount;
+                        var taxAmount = item.TryGetProperty("taxAmount", out var tax) ? tax.GetDecimal() : 0m;
+                        var isRefundable = item.TryGetProperty("isRefundable", out var ir) && ir.GetBoolean();
+                        var isChangeable = item.TryGetProperty("isChangeable", out var ic) && ic.GetBoolean();
 
                         // Build ISO 8601 departure/arrival datetime strings
                         var depDateTime = BuildDateTime(departureDate, departureTime);
@@ -321,7 +321,7 @@ public sealed class GetOrderHandler
         try
         {
             var data = order.OrderData.Value;
-            if (data.TryGetProperty("bkgType", out var bt) || data.TryGetProperty("bookingType", out bt))
+            if (data.TryGetProperty("bookingType", out var bt))
                 return bt.GetString() ?? "Revenue";
         }
         catch { }

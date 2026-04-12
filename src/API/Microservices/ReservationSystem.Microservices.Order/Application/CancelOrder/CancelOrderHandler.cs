@@ -73,7 +73,7 @@ public sealed class CancelOrderHandler
         history.Add(new JsonObject
         {
             ["event"] = "OrderCancelled",
-            ["ts"] = DateTime.UtcNow.ToString("o")
+            ["timestamp"] = DateTime.UtcNow.ToString("o")
         });
         orderJson["history"] = history;
 

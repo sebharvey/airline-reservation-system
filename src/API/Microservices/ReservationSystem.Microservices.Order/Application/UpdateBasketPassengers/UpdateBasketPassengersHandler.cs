@@ -57,13 +57,13 @@ public sealed class UpdateBasketPassengersHandler
             {
                 if (offerNode is not JsonObject offer) continue;
 
-                var unitAmount   = offer["unitAmount"]?.GetValue<decimal>() ?? 0m;
-                var unitBaseFare = offer["unitBaseFare"]?.GetValue<decimal>() ?? 0m;
-                var unitTax      = offer["unitTax"]?.GetValue<decimal>() ?? 0m;
+                var unitAmount    = offer["unitAmount"]?.GetValue<decimal>() ?? 0m;
+                var unitBaseFare = offer["unitBaseFareAmount"]?.GetValue<decimal>() ?? 0m;
+                var unitTax      = offer["unitTaxAmount"]?.GetValue<decimal>() ?? 0m;
 
-                offer["total"]    = unitAmount * passengerCount;
-                offer["baseFare"] = unitBaseFare * passengerCount;
-                offer["tax"]      = unitTax * passengerCount;
+                offer["totalAmount"]    = unitAmount * passengerCount;
+                offer["baseFareAmount"] = unitBaseFare * passengerCount;
+                offer["taxAmount"]      = unitTax * passengerCount;
                 offer["passengerCount"] = passengerCount;
 
                 if (offer["unitPointsPrice"] is JsonNode unitPointsNode)

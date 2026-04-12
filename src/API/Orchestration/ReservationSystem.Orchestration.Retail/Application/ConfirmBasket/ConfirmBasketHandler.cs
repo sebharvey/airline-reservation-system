@@ -199,7 +199,7 @@ public sealed class ConfirmBasketHandler
                     !offerIdEl.TryGetGuid(out var offerId))
                     continue;
 
-                var cabinCode = offer.TryGetProperty("cabin", out var cc) ? cc.GetString() ?? "" : "";
+                var cabinCode = offer.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
 
                 if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
 
@@ -481,21 +481,21 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var offer in offersEl.EnumerateArray())
                 {
-                    var departureDate = offer.TryGetProperty("depDate", out var ddv) ? ddv.GetString() ?? "" : "";
-                    var departureTime = offer.TryGetProperty("depTime", out var dtv) ? dtv.GetString() ?? "00:00" : "00:00";
-                    var arrivalTime   = offer.TryGetProperty("arrTime", out var atv) ? atv.GetString() ?? "00:00" : "00:00";
+                    var departureDate = offer.TryGetProperty("departureDate", out var ddv) ? ddv.GetString() ?? "" : "";
+                    var departureTime = offer.TryGetProperty("departureTime", out var dtv) ? dtv.GetString() ?? "00:00" : "00:00";
+                    var arrivalTime   = offer.TryGetProperty("arrivalTime",   out var atv) ? atv.GetString() ?? "00:00" : "00:00";
 
                     var depDt = DateTime.TryParse($"{departureDate}T{departureTime}", out var d) ? d : default;
                     var arrDt = DateTime.TryParse($"{departureDate}T{arrivalTime}",   out var a) ? a : default;
 
                     flights.Add(new OrderFlight
                     {
-                        FlightNumber   = offer.TryGetProperty("flight",  out var v) ? v.GetString() ?? "" : "",
-                        Origin         = offer.TryGetProperty("origin",  out v)     ? v.GetString() ?? "" : "",
-                        Destination    = offer.TryGetProperty("dest",    out v)     ? v.GetString() ?? "" : "",
+                        FlightNumber   = offer.TryGetProperty("flightNumber", out var v) ? v.GetString() ?? "" : "",
+                        Origin         = offer.TryGetProperty("origin",       out v)     ? v.GetString() ?? "" : "",
+                        Destination    = offer.TryGetProperty("destination",  out v)     ? v.GetString() ?? "" : "",
                         DepartureTime  = depDt,
                         ArrivalTime    = arrDt,
-                        CabinClass     = offer.TryGetProperty("cabin",   out v)     ? v.GetString() ?? "" : ""
+                        CabinClass     = offer.TryGetProperty("cabinCode",    out v)     ? v.GetString() ?? "" : ""
                     });
                 }
             }
@@ -635,18 +635,18 @@ public sealed class ConfirmBasketHandler
                         ? bid.GetString() ?? $"SEG-{idx}"
                         : $"SEG-{idx}";
 
-                    var inventoryId = offer.TryGetProperty("invId", out var v) ? v.GetString() ?? string.Empty : string.Empty;
+                    var inventoryId = offer.TryGetProperty("inventoryId", out var v) ? v.GetString() ?? string.Empty : string.Empty;
 
                     segments.Add(new TicketSegment
                     {
                         SegmentId = segmentId,
                         InventoryId = inventoryId,
-                        FlightNumber = offer.TryGetProperty("flight",    out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        DepartureDate = offer.TryGetProperty("depDate",  out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        Origin = offer.TryGetProperty("origin",          out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        Destination = offer.TryGetProperty("dest",       out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        CabinCode = offer.TryGetProperty("cabin",        out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        FareBasisCode = offer.TryGetProperty("fareBasis", out v) ? v.GetString() : null,
+                        FlightNumber = offer.TryGetProperty("flightNumber", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        DepartureDate = offer.TryGetProperty("departureDate", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        Origin = offer.TryGetProperty("origin", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        FareBasisCode = offer.TryGetProperty("fareBasisCode", out v) ? v.GetString() : null,
                         SeatAssignments = seatsByInventoryId.TryGetValue(inventoryId, out var segSeats) ? segSeats : []
                     });
                     idx++;
@@ -721,9 +721,9 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var offer in offersEl.EnumerateArray())
                 {
-                    if (offer.TryGetProperty("invId", out var invIdEl) &&
+                    if (offer.TryGetProperty("inventoryId", out var invIdEl) &&
                         invIdEl.TryGetGuid(out var inventoryId) &&
-                        offer.TryGetProperty("cabin", out var cabinEl))
+                        offer.TryGetProperty("cabinCode", out var cabinEl))
                     {
                         var cabinCode = cabinEl.GetString() ?? "Y";
                         items.Add((inventoryId, cabinCode));

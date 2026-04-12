@@ -108,7 +108,7 @@ public static class OrderMapper
             try
             {
                 using var doc = JsonDocument.Parse(order.OrderData);
-                if (doc.RootElement.TryGetProperty("items", out var itemsEl) &&
+                if (doc.RootElement.TryGetProperty("orderItems", out var itemsEl) &&
                     itemsEl.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var item in itemsEl.EnumerateArray())
@@ -135,18 +135,18 @@ public static class OrderMapper
                         orderItems.Add(new ConfirmedOrderItem
                         {
                             OfferId        = oId,
-                            FlightNumber   = item.TryGetProperty("flight",    out var v) ? v.GetString() ?? "" : "",
-                            Origin         = item.TryGetProperty("origin",    out v) ? v.GetString() ?? "" : "",
-                            Destination    = item.TryGetProperty("dest",      out v) ? v.GetString() ?? "" : "",
-                            DepartureDate  = item.TryGetProperty("depDate",   out v) ? v.GetString() ?? "" : "",
-                            DepartureTime  = item.TryGetProperty("depTime",   out v) ? v.GetString() ?? "" : "",
-                            ArrivalTime    = item.TryGetProperty("arrTime",   out v) ? v.GetString() ?? "" : "",
-                            CabinCode      = item.TryGetProperty("cabin",     out v) ? v.GetString() ?? "" : "",
-                            FareFamily     = item.TryGetProperty("fareFamily",  out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
-                            FareBasisCode  = item.TryGetProperty("fareBasis",   out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
-                            BaseFareAmount = item.TryGetProperty("baseFare",    out v) ? v.GetDecimal() : 0m,
-                            TaxAmount      = item.TryGetProperty("tax",         out v) ? v.GetDecimal() : 0m,
-                            TotalAmount    = item.TryGetProperty("total",       out v) ? v.GetDecimal() : 0m,
+                            FlightNumber   = item.TryGetProperty("flightNumber",   out var v) ? v.GetString() ?? "" : "",
+                            Origin         = item.TryGetProperty("origin",         out v) ? v.GetString() ?? "" : "",
+                            Destination    = item.TryGetProperty("destination",    out v) ? v.GetString() ?? "" : "",
+                            DepartureDate  = item.TryGetProperty("departureDate",  out v) ? v.GetString() ?? "" : "",
+                            DepartureTime  = item.TryGetProperty("departureTime",  out v) ? v.GetString() ?? "" : "",
+                            ArrivalTime    = item.TryGetProperty("arrivalTime",    out v) ? v.GetString() ?? "" : "",
+                            CabinCode      = item.TryGetProperty("cabinCode",      out v) ? v.GetString() ?? "" : "",
+                            FareFamily     = item.TryGetProperty("fareFamily",     out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
+                            FareBasisCode  = item.TryGetProperty("fareBasisCode",  out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
+                            BaseFareAmount = item.TryGetProperty("baseFareAmount", out v) ? v.GetDecimal() : 0m,
+                            TaxAmount      = item.TryGetProperty("taxAmount",      out v) ? v.GetDecimal() : 0m,
+                            TotalAmount    = item.TryGetProperty("totalAmount",    out v) ? v.GetDecimal() : 0m,
                             TaxLines       = taxLines
                         });
                     }
