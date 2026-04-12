@@ -187,6 +187,45 @@ export interface Basket {
   loyaltyNumber?: string;
 }
 
+// ─── Basket summary models ────────────────────────────────────────────────────
+
+export interface SummaryTaxLine {
+  code: string;
+  amount: number;
+  description: string | null;
+}
+
+export interface SummaryFlight {
+  offerId: string;
+  sessionId: string | null;
+  inventoryId: string | null;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDate: string;
+  departureTime: string;
+  arrivalTime: string;
+  cabinCode: string;
+  fareFamily: string;
+  validated: boolean;
+  baseFareAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  taxLines: SummaryTaxLine[] | null;
+}
+
+export interface BasketSummary {
+  basketId: string;
+  status: string;
+  currency: string;
+  expiresAt: string | null;
+  flights: SummaryFlight[];
+  totalFareAmount: number;
+  totalSeatAmount: number;
+  totalBagAmount: number;
+  totalPrice: number;
+}
+
 // ─── Online Check-In (OCI) response models ───────────────────────────────────
 
 export interface OciSeatAssignment {

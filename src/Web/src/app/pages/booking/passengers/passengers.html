@@ -4,36 +4,7 @@
   <div class="page-header">
     <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
     <h1>Passenger Details</h1>
-    <p class="step-label">Step 1 of 4</p>
-  </div>
-
-<!-- Basket Summary -->
-  <div class="basket-summary" *ngIf="basket() as b">
-    <div class="summary-title">Your Itinerary</div>
-    <div class="flight-row" *ngFor="let fo of b.flightOffers">
-      <div class="flight-row-left">
-        <span class="flight-num">{{ fo.flightNumber }}</span>
-        <span class="flight-route">{{ fo.origin }} &#8594; {{ fo.destination }}</span>
-        <span class="flight-cabin">{{ fo.cabinName }}</span>
-      </div>
-      <div class="flight-row-right">
-        <span class="flight-time">{{ formatDateTime(fo.departureDateTime) }}</span>
-        <span class="flight-price" *ngIf="!isRewardBooking()">{{ fo.currency }} {{ fo.totalPrice | number:'1.2-2' }}</span>
-      <span class="flight-price points-color" *ngIf="isRewardBooking()">{{ fo.pointsPrice | number:'1.0-0' }} pts</span>
-      </div>
-    </div>
-    <div class="summary-total" *ngIf="!isRewardBooking()">
-      <span>Total Fare</span>
-      <strong>{{ formatPrice(b.totalFareAmount, b.currency) }}</strong>
-    </div>
-    <div class="summary-total" *ngIf="isRewardBooking()">
-      <span>Total Points</span>
-      <strong class="points-color">{{ b.totalPointsAmount | number:'1.0-0' }} pts</strong>
-    </div>
-    <div class="summary-total" *ngIf="isRewardBooking()">
-      <span>Taxes (paid by card)</span>
-      <strong>{{ formatPrice(b.totalTaxesAmount, b.currency) }}</strong>
-    </div>
+    <p class="step-label">Step 2 of 5</p>
   </div>
 
   <!-- Prefill notice -->

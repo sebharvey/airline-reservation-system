@@ -14,7 +14,7 @@
 
 import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
-import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, Passenger, Order, BookingType } from '../models/order.model';
+import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, Passenger, Order, BookingType, BasketSummary } from '../models/order.model';
 
 const BASKET_ID_KEY = 'apex_basket_id';
 
@@ -54,6 +54,7 @@ function buildBasketFlightOffer(offer: FlightOffer, passengerRefs: string[]): Ba
 @Injectable({ providedIn: 'root' })
 export class BookingStateService {
   private readonly _basket = signal<Basket | null>(null);
+  private readonly _basketSummary = signal<BasketSummary | null>(null);
   private readonly _confirmedOrder = signal<Order | null>(null);
   private readonly _adultCount = signal<number>(1);
   private readonly _childCount = signal<number>(0);
@@ -61,6 +62,7 @@ export class BookingStateService {
   private readonly _bookingType = signal<BookingType>('Revenue');
 
   readonly basket = this._basket.asReadonly();
+  readonly basketSummary = this._basketSummary.asReadonly();
   readonly confirmedOrder = this._confirmedOrder.asReadonly();
   readonly adultCount = this._adultCount.asReadonly();
   readonly childCount = this._childCount.asReadonly();
@@ -126,6 +128,11 @@ export class BookingStateService {
     this._confirmedOrder.set(null);
   }
 
+  /** Cache the basket summary returned by the summary endpoint. */
+  setBasketSummary(summary: BasketSummary): void {
+    this._basketSummary.set(summary);
+  }
+
   /** Save passenger details to the basket. */
   setPassengers(passengers: Passenger[]): void {
     this._basket.update(b => b ? { ...b, passengers } : b);
@@ -180,11 +187,13 @@ export class BookingStateService {
 
   clearBasket(): void {
     this._basket.set(null);
+    this._basketSummary.set(null);
     localStorage.removeItem(BASKET_ID_KEY);
   }
 
   clearAll(): void {
     this._basket.set(null);
+    this._basketSummary.set(null);
     this._confirmedOrder.set(null);
     this._bookingType.set('Revenue');
     localStorage.removeItem(BASKET_ID_KEY);

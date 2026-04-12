@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode } from '../models/flight.model';
-import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketSummary } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 
 
@@ -337,6 +337,15 @@ export class RetailApiService {
       passengerCount: params.passengerCount
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
+  }
+
+  /**
+   * GET /v1/basket/{basketId}/summary
+   * Reprice all offers and return a pricing summary with tax line breakdowns.
+   */
+  getBasketSummary(basketId: string): Observable<BasketSummary> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.get<BasketSummary>(`${base}/api/v1/basket/${basketId}/summary`);
   }
 
   /**

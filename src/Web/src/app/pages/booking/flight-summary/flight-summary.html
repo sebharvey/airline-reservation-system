@@ -1,0 +1,108 @@
+<div class="page fade-in">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
+    <h1>Your Flight Summary</h1>
+    <p class="step-label">Step 1 of 5</p>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-card" *ngIf="loading()">
+    <div class="spinner"></div>
+    <p>Confirming your fares&hellip;</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" *ngIf="!loading() && error()">
+    <p>{{ error() }}</p>
+    <button class="btn-primary" (click)="ngOnInit()">Try Again</button>
+  </div>
+
+  <!-- Summary content -->
+  <ng-container *ngIf="!loading() && !error() && summary() as s">
+
+    <!-- Flight cards -->
+    <div class="flight-card" *ngFor="let flight of s.flights">
+
+      <div class="flight-card-header">
+        <div class="flight-header-left">
+          <span class="flight-num">{{ flight.flightNumber }}</span>
+          <span class="flight-route">{{ flight.origin }} &#8594; {{ flight.destination }}</span>
+        </div>
+        <div class="flight-header-right">
+          <span class="cabin-badge">{{ getCabinName(flight.cabinCode) }}</span>
+          <span class="fare-family-badge">{{ flight.fareFamily }}</span>
+        </div>
+      </div>
+
+      <div class="flight-times">
+        <div class="time-block">
+          <span class="time-label">Departs</span>
+          <span class="time-value">{{ flight.departureTime }}</span>
+          <span class="time-date">{{ formatDepartureDate(flight) }}</span>
+        </div>
+        <div class="time-divider">&#8594;</div>
+        <div class="time-block">
+          <span class="time-label">Arrives</span>
+          <span class="time-value">{{ flight.arrivalTime }}</span>
+        </div>
+      </div>
+
+      <div class="fare-breakdown">
+        <div class="breakdown-title">Fare Breakdown</div>
+
+        <div class="breakdown-row">
+          <span class="breakdown-label">Base fare</span>
+          <span class="breakdown-amount">{{ formatCurrency(flight.baseFareAmount, s.currency) }}</span>
+        </div>
+
+        <ng-container *ngIf="flight.taxLines && flight.taxLines.length > 0">
+          <div class="breakdown-row tax-row" *ngFor="let tax of flight.taxLines">
+            <span class="breakdown-label tax-label">
+              {{ tax.code }}<ng-container *ngIf="tax.description"> — {{ tax.description }}</ng-container>
+            </span>
+            <span class="breakdown-amount">{{ formatCurrency(tax.amount, s.currency) }}</span>
+          </div>
+        </ng-container>
+
+        <div class="breakdown-row tax-total" *ngIf="!flight.taxLines || flight.taxLines.length === 0">
+          <span class="breakdown-label">Taxes &amp; charges</span>
+          <span class="breakdown-amount">{{ formatCurrency(flight.taxAmount, s.currency) }}</span>
+        </div>
+
+        <div class="breakdown-row flight-total">
+          <span class="breakdown-label">Flight total</span>
+          <span class="breakdown-amount total-amount">{{ formatCurrency(flight.totalAmount, s.currency) }}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Grand total -->
+    <div class="grand-total-card">
+      <div class="grand-total-row" *ngIf="s.totalSeatAmount > 0">
+        <span>Seats</span>
+        <span>{{ formatCurrency(s.totalSeatAmount, s.currency) }}</span>
+      </div>
+      <div class="grand-total-row" *ngIf="s.totalBagAmount > 0">
+        <span>Bags</span>
+        <span>{{ formatCurrency(s.totalBagAmount, s.currency) }}</span>
+      </div>
+      <div class="grand-total-row total">
+        <span>Total to pay</span>
+        <strong>{{ formatCurrency(s.totalPrice, s.currency) }}</strong>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <a routerLink="/search" class="btn-secondary">Cancel</a>
+      <button class="btn-primary" (click)="onContinue()">
+        Continue to Passenger Details &#8250;
+      </button>
+    </div>
+
+  </ng-container>
+
+</div>
