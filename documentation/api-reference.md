@@ -12,6 +12,7 @@
   - [Search & Basket](#search--basket)
   - [Orders](#orders)
   - [SSR](#ssr)
+  - [Products](#products)
   - [Flights & Seatmaps](#flights--seatmaps)
   - [Check-in](#check-in)
   - [Admin Inventory Management](#admin-inventory-management)
@@ -83,6 +84,12 @@
 | `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); admin endpoint — not channel-facing |
 | `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; admin endpoint |
 | `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; admin endpoint |
+
+### Products
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/products` | Retrieve all active retail products from the Ancillary MS, each with its product group name and per-currency prices; channel filters by basket currency and groups by `productGroupId` for display during the booking flow |
 
 ### Flights & Seatmaps
 

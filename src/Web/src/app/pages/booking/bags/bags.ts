@@ -172,7 +172,7 @@ export class BagsComponent implements OnInit {
       next: () => {
         this.bookingState.setBagSelections([]);
         this.saving.set(false);
-        this.router.navigate(['/booking/payment']);
+        this.router.navigate(['/booking/products']);
       },
       error: () => {
         this.saving.set(false);
@@ -207,7 +207,7 @@ export class BagsComponent implements OnInit {
       next: () => {
         this.bookingState.setBagSelections(selectionsList);
         this.saving.set(false);
-        this.router.navigate(['/booking/payment']);
+        this.router.navigate(['/booking/products']);
       },
       error: () => {
         this.saving.set(false);

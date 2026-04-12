@@ -84,6 +84,7 @@ var host = new HostBuilder()
         services.AddScoped<PaymentServiceClient>();
         services.AddScoped<SeatServiceClient>();
         services.AddScoped<BagServiceClient>();
+        services.AddScoped<ProductServiceClient>();
         services.AddScoped<DeliveryServiceClient>();
         services.AddScoped<CustomerServiceClient>();
 
