@@ -4,6 +4,12 @@ namespace ReservationSystem.Microservices.Ancillary.Models.Bag.Requests;
 
 public sealed class UpdateBagPricingRequest
 {
+    [JsonPropertyName("bagSequence")]
+    public int BagSequence { get; init; }
+
+    [JsonPropertyName("currencyCode")]
+    public string CurrencyCode { get; init; } = string.Empty;
+
     [JsonPropertyName("price")]
     public decimal Price { get; init; }
 
