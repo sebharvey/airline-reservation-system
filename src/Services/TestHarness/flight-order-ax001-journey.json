@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "Bookflow — AX001 with seat selection",
-    "description": "Creates a confirmed one-way order for the next day's AX001 (LHR → JFK) flight. Covers outbound search, basket creation, passenger entry, seat selection, and payment confirmation.",
+    "name": "Bookflow \u2014 AX001 with seat selection",
+    "description": "Creates a confirmed one-way order for the next day's AX001 (LHR \u2192 JFK) flight. Covers outbound search, basket creation, passenger entry, seat selection, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -14,7 +14,7 @@
   "steps": [
     {
       "step": 1,
-      "name": "Search AX001 — next day",
+      "name": "Search AX001 \u2014 next day",
       "description": "Search for available outbound flights from LHR to JFK on a future date. Expects AX001 in the results. The sessionId and a selected offerId are chained to the basket creation step.",
       "type": "positive",
       "apiCall": {
@@ -84,7 +84,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
+        "description": "200 OK \u2014 search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
         "keyFields": [
           "itineraries"
         ],
@@ -136,12 +136,12 @@
           {
             "field": "segments[0].offerId",
             "from": "offerId",
-            "source": "Step 1 → random offer from search results"
+            "source": "Step 1 \u2192 random offer from search results"
           },
           {
             "field": "segments[0].sessionId",
             "from": "sessionId",
-            "source": "Step 1 → response.sessionId"
+            "source": "Step 1 \u2192 response.sessionId"
           }
         ]
       },
@@ -153,7 +153,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
+        "description": "201 Created \u2014 basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
         "keyFields": [
           "basketId"
         ],
@@ -163,17 +163,72 @@
         {
           "field": "basketId",
           "usedInSteps": [
-            3,
             4,
             5,
             6,
-            7
+            7,
+            8
           ]
         }
       ]
     },
     {
       "step": 3,
+      "name": "Get basket summary",
+      "description": "Reprice all offers in the basket and retrieve a pricing summary with tax line breakdowns. This call triggers the Offer MS to refresh fare amounts from live cabin occupancy and FareRule data, copies tax lines into the stored offer, and sets validated = true on each inventory entry \u2014 unblocking the confirmation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 \u2192 response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "currency": "GBP",
+          "flights": [
+            {
+              "validated": true,
+              "taxLines": []
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 4,
       "name": "Add passenger",
       "description": "Add a single adult passenger to the basket. Includes personal details and contact information required for ticketing.",
       "type": "positive",
@@ -285,7 +340,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -303,17 +358,17 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
+        "description": "200 OK \u2014 PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
         "keyFields": [
           "basketId",
           "status"
         ],
-        "validationNotes": "One entry per passenger up to the random paxCount for this run (1–6). passengerIds PAX-1…PAX-N must be referenced consistently in seat selections. type uses IATA passenger type codes (ADT)."
+        "validationNotes": "One entry per passenger up to the random paxCount for this run (1\u20136). passengerIds PAX-1\u2026PAX-N must be referenced consistently in seat selections. type uses IATA passenger type codes (ADT)."
       }
     },
     {
-      "step": 4,
-      "name": "Get basket — verify state",
+      "step": 5,
+      "name": "Get basket \u2014 verify state",
       "description": "Retrieve the basket to confirm the passenger is saved and to extract the inventoryId, flightNumber, aircraftType, and basketItemId needed for the seatmap and seat selection steps.",
       "type": "positive",
       "apiCall": {
@@ -330,7 +385,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -367,7 +422,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — basket retrieved. basketStatus is Active. PAX-1 is present in passengers. The single flightOffer carries the inventoryId, flightNumber, aircraftType, and basketItemId chained to subsequent steps.",
+        "description": "200 OK \u2014 basket retrieved. basketStatus is Active. PAX-1 is present in passengers. The single flightOffer carries the inventoryId, flightNumber, aircraftType, and basketItemId chained to subsequent steps.",
         "keyFields": [
           "basketStatus",
           "basketData.flightOffers",
@@ -380,44 +435,44 @@
           "path": "basketData.flightOffers[0].inventoryId",
           "as": "inventoryId",
           "usedInSteps": [
-            5,
-            6
+            6,
+            7
           ]
         },
         {
           "path": "basketData.flightOffers[0].flightNumber",
           "as": "flightNumber",
           "usedInSteps": [
-            5
+            6
           ]
         },
         {
           "path": "basketData.flightOffers[0].aircraftType",
           "as": "aircraftType",
           "usedInSteps": [
-            5
+            6
           ]
         },
         {
           "path": "basketData.flightOffers[0].cabinCode",
           "as": "cabinCode",
           "usedInSteps": [
-            5,
-            6
+            6,
+            7
           ]
         },
         {
           "path": "basketData.flightOffers[0].basketItemId",
           "as": "basketItemId",
           "usedInSteps": [
-            6
+            7
           ]
         }
       ]
     },
     {
-      "step": 5,
-      "name": "Get seatmap — AX001",
+      "step": 6,
+      "name": "Get seatmap \u2014 AX001",
       "description": "Retrieve the seat map for AX001 using the inventoryId, flightNumber, aircraftType, and cabinCode chained from the basket. Passing cabinCode restricts the response to the booked cabin only. A random available seat from that cabin is selected and chained to the add-seat step.",
       "type": "positive",
       "apiCall": {
@@ -425,10 +480,10 @@
         "endpoint": "/api/v1/flights/{inventoryId}/seatmap?aircraftType={aircraftType}&flightNumber={flightNumber}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
         "pathParams": {
-          "inventoryId": "from-step-4",
-          "aircraftType": "from-step-4",
-          "flightNumber": "from-step-4",
-          "cabinCode": "from-step-4"
+          "inventoryId": "from-step-5",
+          "aircraftType": "from-step-5",
+          "flightNumber": "from-step-5",
+          "cabinCode": "from-step-5"
         }
       },
       "request": {
@@ -437,22 +492,22 @@
           {
             "field": "inventoryId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "flightNumber",
             "from": "flightNumber",
-            "source": "Step 4 → basketData.flightOffers[0].flightNumber"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].flightNumber"
           },
           {
             "field": "aircraftType",
             "from": "aircraftType",
-            "source": "Step 4 → basketData.flightOffers[0].aircraftType"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].aircraftType"
           },
           {
             "field": "cabinCode",
             "from": "cabinCode",
-            "source": "Step 4 → basketData.flightOffers[0].cabinCode"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].cabinCode"
           }
         ]
       },
@@ -513,7 +568,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for AX001 filtered to the booked cabin. A random available seat is picked and chained to Step 6.",
+        "description": "200 OK \u2014 seatmap returned for AX001 filtered to the booked cabin. A random available seat is picked and chained to Step 7.",
         "keyFields": [
           "flightId",
           "cabins"
@@ -532,15 +587,15 @@
             "currency": "seatCurrency"
           },
           "usedInSteps": [
-            6
+            7
           ]
         }
       ]
     },
     {
-      "step": 6,
+      "step": 7,
       "name": "Add seat",
-      "description": "Add the randomly selected seat to the basket for PAX-1 on the AX001 segment. Uses the inventoryId as segmentId and the basketItemId as basketItemRef, both chained from Step 4.",
+      "description": "Add the randomly selected seat to the basket for PAX-1 on the AX001 segment. Uses the inventoryId as segmentId and the basketItemId as basketItemRef, both chained from Step 5.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -632,242 +687,242 @@
           {
             "field": "[0].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[0].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[0].seatOfferId",
             "from": "seatOfferId_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[0].seatNumber",
             "from": "seatNumber_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[0].seatPosition",
             "from": "seatPosition_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[0].cabinCode",
             "from": "seatCabinCode_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[0].price",
             "from": "seatPrice_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[0].currency",
             "from": "seatCurrency_1",
-            "source": "Step 5 → seat 1 (PAX-1)"
+            "source": "Step 6 \u2192 seat 1 (PAX-1)"
           },
           {
             "field": "[1].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[1].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[1].seatOfferId",
             "from": "seatOfferId_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[1].seatNumber",
             "from": "seatNumber_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[1].seatPosition",
             "from": "seatPosition_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[1].cabinCode",
             "from": "seatCabinCode_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[1].price",
             "from": "seatPrice_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[1].currency",
             "from": "seatCurrency_2",
-            "source": "Step 5 → seat 2 (PAX-2)"
+            "source": "Step 6 \u2192 seat 2 (PAX-2)"
           },
           {
             "field": "[2].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[2].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[2].seatOfferId",
             "from": "seatOfferId_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[2].seatNumber",
             "from": "seatNumber_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[2].seatPosition",
             "from": "seatPosition_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[2].cabinCode",
             "from": "seatCabinCode_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[2].price",
             "from": "seatPrice_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[2].currency",
             "from": "seatCurrency_3",
-            "source": "Step 5 → seat 3 (PAX-3)"
+            "source": "Step 6 \u2192 seat 3 (PAX-3)"
           },
           {
             "field": "[3].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[3].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[3].seatOfferId",
             "from": "seatOfferId_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[3].seatNumber",
             "from": "seatNumber_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[3].seatPosition",
             "from": "seatPosition_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[3].cabinCode",
             "from": "seatCabinCode_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[3].price",
             "from": "seatPrice_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[3].currency",
             "from": "seatCurrency_4",
-            "source": "Step 5 → seat 4 (PAX-4)"
+            "source": "Step 6 \u2192 seat 4 (PAX-4)"
           },
           {
             "field": "[4].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[4].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[4].seatOfferId",
             "from": "seatOfferId_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[4].seatNumber",
             "from": "seatNumber_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[4].seatPosition",
             "from": "seatPosition_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[4].cabinCode",
             "from": "seatCabinCode_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[4].price",
             "from": "seatPrice_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[4].currency",
             "from": "seatCurrency_5",
-            "source": "Step 5 → seat 5 (PAX-5)"
+            "source": "Step 6 \u2192 seat 5 (PAX-5)"
           },
           {
             "field": "[5].segmentId",
             "from": "inventoryId",
-            "source": "Step 4 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "[5].basketItemRef",
             "from": "basketItemId",
-            "source": "Step 4 → basketData.flightOffers[0].basketItemId"
+            "source": "Step 5 \u2192 basketData.flightOffers[0].basketItemId"
           },
           {
             "field": "[5].seatOfferId",
             "from": "seatOfferId_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           },
           {
             "field": "[5].seatNumber",
             "from": "seatNumber_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           },
           {
             "field": "[5].seatPosition",
             "from": "seatPosition_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           },
           {
             "field": "[5].cabinCode",
             "from": "seatCabinCode_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           },
           {
             "field": "[5].price",
             "from": "seatPrice_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           },
           {
             "field": "[5].currency",
             "from": "seatCurrency_6",
-            "source": "Step 5 → seat 6 (PAX-6)"
+            "source": "Step 6 \u2192 seat 6 (PAX-6)"
           }
         ]
       },
@@ -885,7 +940,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seats saved to the basket for all passengers. totalSeatAmount reflects the sum of all selected seat prices.",
+        "description": "200 OK \u2014 seats saved to the basket for all passengers. totalSeatAmount reflects the sum of all selected seat prices.",
         "keyFields": [
           "basketId",
           "status",
@@ -896,7 +951,7 @@
       }
     },
     {
-      "step": 7,
+      "step": 8,
       "name": "Confirm and pay",
       "description": "Submit payment with a Luhn-valid test card to confirm the basket and create the order. The basket transitions to Confirmed and an orderId and bookingReference are returned.",
       "type": "positive",
@@ -926,7 +981,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -939,7 +994,9 @@
           "eTickets": [
             {
               "passengerId": "PAX-1",
-              "segmentIds": ["BI-1"],
+              "segmentIds": [
+                "BI-1"
+              ],
               "eTicketNumber": "932-0000000001"
             }
           ]
@@ -947,7 +1004,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — order created for AX001 on 2026-04-07. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
+        "description": "201 Created \u2014 order created for AX001 on 2026-04-07. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
         "keyFields": [
           "orderId",
           "bookingReference",

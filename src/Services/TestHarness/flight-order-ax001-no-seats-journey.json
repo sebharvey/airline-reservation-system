@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "Bookflow — AX001 without seats",
-    "description": "Creates a confirmed one-way order for the next day's AX001 (LHR → JFK) flight without seat selection. Covers outbound search, basket creation, passenger entry, and payment confirmation.",
+    "name": "Bookflow \u2014 AX001 without seats",
+    "description": "Creates a confirmed one-way order for the next day's AX001 (LHR \u2192 JFK) flight without seat selection. Covers outbound search, basket creation, passenger entry, and payment confirmation.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -14,7 +14,7 @@
   "steps": [
     {
       "step": 1,
-      "name": "Search AX001 — next day",
+      "name": "Search AX001 \u2014 next day",
       "description": "Search for available outbound flights from LHR to JFK on a future date. Expects AX001 in the results. The sessionId and a selected offerId are chained to the basket creation step.",
       "type": "positive",
       "apiCall": {
@@ -84,7 +84,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
+        "description": "200 OK \u2014 search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
         "keyFields": [
           "itineraries"
         ],
@@ -136,12 +136,12 @@
           {
             "field": "segments[0].offerId",
             "from": "offerId",
-            "source": "Step 1 → random offer from search results"
+            "source": "Step 1 \u2192 random offer from search results"
           },
           {
             "field": "segments[0].sessionId",
             "from": "sessionId",
-            "source": "Step 1 → response.sessionId"
+            "source": "Step 1 \u2192 response.sessionId"
           }
         ]
       },
@@ -153,7 +153,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
+        "description": "201 Created \u2014 basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
         "keyFields": [
           "basketId"
         ],
@@ -163,15 +163,70 @@
         {
           "field": "basketId",
           "usedInSteps": [
-            3,
             4,
-            5
+            5,
+            6
           ]
         }
       ]
     },
     {
       "step": 3,
+      "name": "Get basket summary",
+      "description": "Reprice all offers in the basket and retrieve a pricing summary with tax line breakdowns. This call triggers the Offer MS to refresh fare amounts from live cabin occupancy and FareRule data, copies tax lines into the stored offer, and sets validated = true on each inventory entry \u2014 unblocking the confirmation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 \u2192 response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "currency": "GBP",
+          "flights": [
+            {
+              "validated": true,
+              "taxLines": []
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 4,
       "name": "Add passenger",
       "description": "Add a single adult passenger to the basket. Includes personal details and contact information required for ticketing.",
       "type": "positive",
@@ -283,7 +338,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -301,17 +356,17 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
+        "description": "200 OK \u2014 PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
         "keyFields": [
           "basketId",
           "status"
         ],
-        "validationNotes": "One entry per passenger up to the random paxCount for this run (1–6). passengerIds PAX-1…PAX-N must be referenced consistently. type uses IATA passenger type codes (ADT)."
+        "validationNotes": "One entry per passenger up to the random paxCount for this run (1\u20136). passengerIds PAX-1\u2026PAX-N must be referenced consistently. type uses IATA passenger type codes (ADT)."
       }
     },
     {
-      "step": 4,
-      "name": "Get basket — verify state",
+      "step": 5,
+      "name": "Get basket \u2014 verify state",
       "description": "Retrieve the basket to confirm the passenger is saved and the basket is active before payment.",
       "type": "positive",
       "apiCall": {
@@ -328,7 +383,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -365,7 +420,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — basket retrieved. basketStatus is Active. PAX-1 is present in passengers. seats array is empty as seat selection was skipped.",
+        "description": "200 OK \u2014 basket retrieved. basketStatus is Active. PAX-1 is present in passengers. seats array is empty as seat selection was skipped.",
         "keyFields": [
           "basketStatus",
           "basketData.flightOffers",
@@ -375,7 +430,7 @@
       }
     },
     {
-      "step": 5,
+      "step": 6,
       "name": "Confirm and pay",
       "description": "Submit payment with a Luhn-valid test card to confirm the basket and create the order. The basket transitions to Confirmed and an orderId and bookingReference are returned.",
       "type": "positive",
@@ -405,7 +460,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -418,7 +473,9 @@
           "eTickets": [
             {
               "passengerId": "PAX-1",
-              "segmentIds": ["BI-1"],
+              "segmentIds": [
+                "BI-1"
+              ],
               "eTicketNumber": "932-0000000001"
             }
           ]
@@ -426,7 +483,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — order created for AX001 on 2026-04-07 without seats. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
+        "description": "201 Created \u2014 order created for AX001 on 2026-04-07 without seats. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
         "keyFields": [
           "orderId",
           "bookingReference",
