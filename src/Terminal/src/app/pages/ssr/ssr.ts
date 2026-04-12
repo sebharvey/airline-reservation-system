@@ -15,15 +15,15 @@ export class SsrComponent implements OnInit {
 
   search = signal('');
   categoryFilter = signal<CategoryFilter>('all');
-  selectedSsr = signal<SsrOption | null>(null);
   showAddForm = signal(false);
   loading = signal(false);
   error = signal('');
   success = signal('');
 
-  editingSsr = signal<SsrOption | null>(null);
-  editLabel = signal('');
-  editCategory = signal('');
+  showForm = signal(false);
+  editing = signal<SsrOption | null>(null);
+  editForm = signal({ label: '', category: 'Meal' });
+  saving = signal(false);
 
   newSsr = signal({ ssrCode: '', label: '', category: 'Meal' });
 
@@ -71,44 +71,45 @@ export class SsrComponent implements OnInit {
   setSearch(v: string): void { this.search.set(v); }
   setCategoryFilter(v: string): void { this.categoryFilter.set(v as CategoryFilter); }
 
-  selectSsr(s: SsrOption): void {
-    if (this.selectedSsr()?.ssrCode === s.ssrCode) {
-      this.selectedSsr.set(null);
-      this.editingSsr.set(null);
-    } else {
-      this.selectedSsr.set(s);
-      this.editingSsr.set(null);
-    }
+  openEditForm(s: SsrOption): void {
+    this.editing.set(s);
+    this.editForm.set({ label: s.label, category: s.category });
+    this.showForm.set(true);
+    this.error.set('');
+    this.success.set('');
   }
 
-  startEdit(s: SsrOption): void {
-    this.editingSsr.set(s);
-    this.editLabel.set(s.label);
-    this.editCategory.set(s.category);
+  cancelForm(): void {
+    this.showForm.set(false);
+    this.editing.set(null);
   }
 
-  cancelEdit(): void {
-    this.editingSsr.set(null);
+  updateEditField(field: 'label' | 'category', value: string): void {
+    this.editForm.update(f => ({ ...f, [field]: value }));
   }
 
   async saveEdit(): Promise<void> {
-    const s = this.editingSsr();
+    const s = this.editing();
     if (!s) return;
 
+    this.saving.set(true);
     this.error.set('');
     this.success.set('');
 
     try {
       await this.#ssrService.updateSsrOption(s.ssrCode, {
-        label: this.editLabel(),
-        category: this.editCategory(),
+        label: this.editForm().label,
+        category: this.editForm().category,
       });
       this.success.set('SSR option updated successfully.');
-      this.editingSsr.set(null);
+      this.showForm.set(false);
+      this.editing.set(null);
       await this.loadOptions();
       this.clearMessages();
     } catch {
       this.error.set('Failed to update SSR option.');
+    } finally {
+      this.saving.set(false);
     }
   }
 
@@ -144,7 +145,8 @@ export class SsrComponent implements OnInit {
     try {
       await this.#ssrService.deactivateSsrOption(s.ssrCode);
       this.success.set(`SSR code ${s.ssrCode} deactivated.`);
-      this.selectedSsr.set(null);
+      this.showForm.set(false);
+      this.editing.set(null);
       await this.loadOptions();
       this.clearMessages();
     } catch {
