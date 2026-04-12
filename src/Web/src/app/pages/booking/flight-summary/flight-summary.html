@@ -54,6 +54,11 @@
     <!-- Pricing summary -->
     <div class="pricing-card">
 
+      <div class="pricing-row fare-row">
+        <span class="pricing-label">Fare</span>
+        <span class="pricing-amount">{{ formatCurrency(s.totalFareAmount, s.currency) }}</span>
+      </div>
+
       <button class="pricing-row tax-row" (click)="openTaxModal()">
         <span class="pricing-label">
           Taxes &amp; charges
@@ -102,15 +107,26 @@
 
     <div class="modal-body" *ngIf="summary() as s">
 
-      <ng-container *ngFor="let line of allTaxLines(); let last = last">
-        <div class="tax-line" [class.tax-line-last]="last">
+      <ng-container *ngFor="let group of taxLinesByFlight()">
+
+        <div class="tax-segment-header">
+          <span class="tax-segment-flight">{{ group.flightNumber }}</span>
+          <span class="tax-segment-route">{{ group.origin }} &#8594; {{ group.destination }}</span>
+        </div>
+
+        <div class="tax-line" *ngFor="let line of group.lines">
           <div class="tax-line-left">
             <span class="tax-code">{{ line.code }}</span>
-            <span class="tax-flight">{{ line.flightNumber }}</span>
             <span class="tax-desc" *ngIf="line.description">{{ line.description }}</span>
           </div>
           <span class="tax-amount">{{ formatCurrency(line.amount, s.currency) }}</span>
         </div>
+
+        <div class="tax-segment-subtotal" *ngIf="taxLinesByFlight().length > 1">
+          <span>Segment subtotal</span>
+          <span>{{ formatCurrency(group.subtotal, s.currency) }}</span>
+        </div>
+
       </ng-container>
 
       <div class="tax-modal-total">
