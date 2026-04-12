@@ -5,8 +5,9 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 namespace ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 
 /// <summary>
-/// Reads the FareRule.TaxLines for each offer item in the matching inventory entry,
-/// writes them into the stored FaresInfo JSON, and marks the entry as validated.
+/// Re-prices a stored offer inventory entry against the current FareRule and live
+/// cabin occupancy, copies TaxLines from the FareRule into each StoredOfferItem,
+/// and marks the entry as validated.
 /// </summary>
 public sealed record RepriceStoredOfferResult(
     Guid StoredOfferId,
@@ -61,24 +62,65 @@ public sealed class RepriceStoredOfferHandler
             return null;
         }
 
-        // 3. Fetch FareRule for each offer item and copy in the tax lines
+        // 3. Fetch the live FlightInventory to get current cabin occupancy for dynamic pricing
+        var inventory = await _repository.GetInventoryByIdAsync(entry.InventoryId, ct);
+
+        // 4. Re-price each offer item against its FareRule and current occupancy
         var repricedItems = new List<StoredOfferItem>();
         foreach (var item in entry.Offers)
         {
-            IReadOnlyList<TaxLineItem>? taxLines = null;
-
             var fareRule = await _repository.GetFareRuleByIdAsync(item.FareRuleId, ct);
-            if (fareRule is not null && !string.IsNullOrEmpty(fareRule.TaxLines))
+
+            // Derive updated fare amounts from the current FareRule + live cabin occupancy
+            decimal baseFareAmount        = item.BaseFareAmount;
+            decimal taxAmount             = item.TaxAmount;
+            decimal totalAmount           = item.TotalAmount;
+            bool isRefundable             = item.IsRefundable;
+            bool isChangeable             = item.IsChangeable;
+            decimal changeFeeAmount       = item.ChangeFeeAmount;
+            decimal cancellationFeeAmount = item.CancellationFeeAmount;
+            int? pointsPrice              = item.PointsPrice;
+            decimal? pointsTaxes          = item.PointsTaxes;
+            IReadOnlyList<TaxLineItem>? taxLines = item.TaxLines;
+
+            if (fareRule is not null)
             {
-                try
+                var cabin = inventory?.Cabins.FirstOrDefault(c => c.CabinCode == item.CabinCode);
+                var occupancyRatio = cabin is not null && cabin.TotalSeats > 0
+                    ? Math.Clamp((double)(cabin.SeatsSold + cabin.SeatsHeld) / cabin.TotalSeats, 0.0, 1.0)
+                    : 0.0;
+
+                baseFareAmount        = ComputeDynamicPrice(fareRule.MinAmount, fareRule.MaxAmount, occupancyRatio);
+                taxAmount             = fareRule.GetTotalTaxAmount();
+                totalAmount           = baseFareAmount + taxAmount;
+                isRefundable          = fareRule.IsRefundable;
+                isChangeable          = fareRule.IsChangeable;
+                changeFeeAmount       = fareRule.ChangeFeeAmount;
+                cancellationFeeAmount = fareRule.CancellationFeeAmount;
+                pointsPrice           = ComputeDynamicPoints(fareRule.MinPoints, fareRule.MaxPoints, occupancyRatio);
+                pointsTaxes           = fareRule.PointsTaxes;
+
+                if (!string.IsNullOrEmpty(fareRule.TaxLines))
                 {
-                    taxLines = System.Text.Json.JsonSerializer.Deserialize<List<TaxLineItem>>(
-                        fareRule.TaxLines, JsonOpts);
+                    try
+                    {
+                        taxLines = System.Text.Json.JsonSerializer.Deserialize<List<TaxLineItem>>(
+                            fareRule.TaxLines, JsonOpts);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Reprice: Failed to deserialise TaxLines for FareRule {FareRuleId}", item.FareRuleId);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Reprice: Failed to deserialise TaxLines for FareRule {FareRuleId}", item.FareRuleId);
-                }
+
+                _logger.LogDebug(
+                    "Reprice: OfferId {OfferId} CabinCode {CabinCode} — occupancy {Ratio:P0}, baseFare {Old} → {New}",
+                    item.OfferId, item.CabinCode, occupancyRatio, item.BaseFareAmount, baseFareAmount);
+            }
+            else
+            {
+                _logger.LogWarning("Reprice: FareRule {FareRuleId} not found for OfferId {OfferId} — retaining stored amounts",
+                    item.FareRuleId, item.OfferId);
             }
 
             repricedItems.Add(new StoredOfferItem
@@ -89,23 +131,22 @@ public sealed class RepriceStoredOfferHandler
                 FareBasisCode         = item.FareBasisCode,
                 FareFamily            = item.FareFamily,
                 CurrencyCode          = item.CurrencyCode,
-                BaseFareAmount        = item.BaseFareAmount,
-                TaxAmount             = item.TaxAmount,
-                TotalAmount           = item.TotalAmount,
-                IsRefundable          = item.IsRefundable,
-                IsChangeable          = item.IsChangeable,
-                ChangeFeeAmount       = item.ChangeFeeAmount,
-                CancellationFeeAmount = item.CancellationFeeAmount,
-                PointsPrice           = item.PointsPrice,
-                PointsTaxes           = item.PointsTaxes,
+                BaseFareAmount        = baseFareAmount,
+                TaxAmount             = taxAmount,
+                TotalAmount           = totalAmount,
+                IsRefundable          = isRefundable,
+                IsChangeable          = isChangeable,
+                ChangeFeeAmount       = changeFeeAmount,
+                CancellationFeeAmount = cancellationFeeAmount,
+                PointsPrice           = pointsPrice,
+                PointsTaxes           = pointsTaxes,
                 SeatsAvailable        = item.SeatsAvailable,
                 BookingType           = item.BookingType,
                 TaxLines              = taxLines
             });
         }
 
-        // 4. Rebuild the FaresInfo: replace the matched entry (set Validated = true),
-        //    leave all other inventory entries untouched.
+        // 5. Rebuild FaresInfo: replace the matched entry (Validated = true), leave others untouched
         var repricedEntry = new StoredOfferInventoryEntry
         {
             InventoryId = entry.InventoryId,
@@ -120,7 +161,7 @@ public sealed class RepriceStoredOfferHandler
         var updatedFaresInfo = new StoredOfferFaresInfo { Inventories = updatedInventories };
         var updatedJson = System.Text.Json.JsonSerializer.Serialize(updatedFaresInfo, JsonOpts);
 
-        // 5. Persist the updated FaresInfo
+        // 6. Persist the updated FaresInfo
         await _repository.UpdateStoredOfferFaresInfoAsync(offer.StoredOfferId, updatedJson, ct);
 
         _logger.LogInformation(
@@ -133,5 +174,26 @@ public sealed class RepriceStoredOfferHandler
             entry.InventoryId,
             Validated: true,
             Offers: repricedItems);
+    }
+
+    /// <summary>
+    /// Linearly interpolates between min and max at the given occupancy ratio.
+    /// Returns min when max is absent, rounded to 2 decimal places.
+    /// </summary>
+    private static decimal ComputeDynamicPrice(decimal? min, decimal? max, double occupancyRatio)
+    {
+        var minVal = min ?? 0m;
+        if (max is null || max <= minVal) return minVal;
+        return Math.Round(minVal + (max.Value - minVal) * (decimal)occupancyRatio, 2, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Same interpolation as ComputeDynamicPrice but for integer points values.
+    /// </summary>
+    private static int? ComputeDynamicPoints(int? min, int? max, double occupancyRatio)
+    {
+        if (min is null) return null;
+        if (max is null || max <= min) return min;
+        return (int)Math.Round(min.Value + (max.Value - min.Value) * occupancyRatio, MidpointRounding.AwayFromZero);
     }
 }
