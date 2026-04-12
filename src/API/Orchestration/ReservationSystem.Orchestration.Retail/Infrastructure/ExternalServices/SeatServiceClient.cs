@@ -35,4 +35,54 @@ public sealed class SeatServiceClient
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<SeatOffersDto>(JsonOptions, cancellationToken);
     }
+
+    // ── Admin CRUD ────────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<SeatPricingDto>> GetAllSeatPricingsAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync("/api/v1/seat-pricing", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var wrapper = await response.Content.ReadFromJsonAsync<SeatPricingListWrapper>(JsonOptions, cancellationToken);
+        return wrapper?.Pricing ?? Array.Empty<SeatPricingDto>();
+    }
+
+    public async Task<SeatPricingDto?> GetSeatPricingByIdAsync(Guid seatPricingId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/seat-pricing/{seatPricingId}", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<SeatPricingDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task<(SeatPricingDto? Result, HttpStatusCode Status, string? ErrorBody)> CreateSeatPricingAsync(
+        CreateSeatPricingRequestDto request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/seat-pricing", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return (null, response.StatusCode, body);
+        }
+        var created = await response.Content.ReadFromJsonAsync<SeatPricingDto>(JsonOptions, cancellationToken);
+        return (created, response.StatusCode, null);
+    }
+
+    public async Task<(SeatPricingDto? Result, HttpStatusCode Status, string? ErrorBody)> UpdateSeatPricingAsync(
+        Guid seatPricingId, UpdateSeatPricingRequestDto request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PutAsJsonAsync($"/api/v1/seat-pricing/{seatPricingId}", request, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return (null, response.StatusCode, body);
+        }
+        var updated = await response.Content.ReadFromJsonAsync<SeatPricingDto>(JsonOptions, cancellationToken);
+        return (updated, response.StatusCode, null);
+    }
+
+    public async Task<HttpStatusCode> DeleteSeatPricingAsync(Guid seatPricingId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"/api/v1/seat-pricing/{seatPricingId}", cancellationToken);
+        return response.StatusCode;
+    }
 }

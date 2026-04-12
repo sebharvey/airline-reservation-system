@@ -1,0 +1,265 @@
+<div class="seating-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Seating</h1>
+      <p class="page-subtitle">Manage seat pricing rules by cabin and position</p>
+    </div>
+    <div class="header-actions">
+      @if (loaded() && !showForm()) {
+        <button class="load-btn secondary-btn" (click)="loadPricings()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+        <button class="load-btn" (click)="openCreateForm()">
+          + New Rule
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Success -->
+  @if (success()) {
+    <div class="success-banner" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">{{ editing() ? 'Edit Pricing Rule' : 'Create Pricing Rule' }}</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
+
+      <div class="form-sections">
+
+        <!-- Seat Identity -->
+        <div class="form-section">
+          <h3 class="section-heading">Seat Identity</h3>
+          <div class="form-grid grid-3">
+            <div class="form-group">
+              <label>Cabin Code *</label>
+              <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
+                <option value="Y">Y — Economy</option>
+                <option value="W">W — Premium Economy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Seat Position *</label>
+              <select [ngModel]="form().seatPosition" (ngModelChange)="updateField('seatPosition', $event)">
+                <option value="Window">Window</option>
+                <option value="Aisle">Aisle</option>
+                <option value="Middle">Middle</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Currency *</label>
+              <input
+                type="text"
+                [ngModel]="form().currencyCode"
+                (ngModelChange)="updateField('currencyCode', $event.toUpperCase())"
+                maxlength="3"
+                placeholder="GBP"
+                class="uppercase-input"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="form-section">
+          <h3 class="section-heading">Pricing</h3>
+          <div class="form-grid grid-2">
+            <div class="form-group">
+              <label>Price *</label>
+              <div class="price-input-wrap">
+                <span class="currency-prefix">{{ form().currencyCode || 'GBP' }}</span>
+                <input
+                  type="number"
+                  class="price-input"
+                  [ngModel]="form().price"
+                  (ngModelChange)="updateField('price', $event)"
+                  min="0.01"
+                  step="0.01"
+                  required
+                />
+              </div>
+            </div>
+            @if (editing()) {
+              <div class="form-group">
+                <label>Status</label>
+                <div class="toggle-wrap">
+                  <label class="toggle-label">
+                    <input type="checkbox" [ngModel]="formIsActive()" (ngModelChange)="formIsActive.set($event)" />
+                    <span class="toggle-text">{{ formIsActive() ? 'Active' : 'Inactive' }}</span>
+                  </label>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Validity -->
+        <div class="form-section">
+          <h3 class="section-heading">Validity</h3>
+          <div class="form-grid grid-2">
+            <div class="form-group">
+              <label>Valid From *</label>
+              <input type="date" [ngModel]="form().validFrom" (ngModelChange)="updateField('validFrom', $event)" required />
+            </div>
+            <div class="form-group">
+              <label>Valid To <span class="optional">(optional)</span></label>
+              <input type="date" [ngModel]="form().validTo" (ngModelChange)="updateField('validTo', $event || null)" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button
+          class="save-btn"
+          (click)="savePricing()"
+          [disabled]="saving() || !form().cabinCode || !form().seatPosition || !form().currencyCode || !form().price"
+        >
+          @if (saving()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editing() ? 'Update Rule' : 'Create Rule' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats row -->
+  @if (loaded() && !showForm()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Rules</span>
+      </div>
+      <div class="stat-card stat-active">
+        <span class="stat-value">{{ stats().active }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+      <div class="stat-card stat-cabins">
+        <span class="stat-value">{{ stats().cabins }}</span>
+        <span class="stat-label">Cabin Classes</span>
+      </div>
+    </div>
+  }
+
+  <!-- Filter row -->
+  @if (loaded() && pricings().length > 0 && !showForm()) {
+    <div class="filter-row">
+      <div class="search-field">
+        <span class="search-icon">&#128269;</span>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Filter by cabin, position, currency…"
+          [value]="filter()"
+          (input)="setFilter($any($event.target).value)"
+        />
+      </div>
+    </div>
+  }
+
+  <!-- Pricing table -->
+  @if (loaded() && !showForm()) {
+    <div class="table-card">
+      <table class="pricing-table">
+        <thead>
+          <tr>
+            <th>Cabin</th>
+            <th>Position</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th class="hide-mobile">Valid From</th>
+            <th class="hide-mobile">Valid To</th>
+            <th class="hide-tablet">Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pricing of filtered(); track pricing.seatPricingId) {
+            <tr class="pricing-row">
+              <td>
+                <span class="badge badge-cabin">{{ pricing.cabinCode }}</span>
+                <span class="cabin-label">{{ cabinLabel(pricing.cabinCode) }}</span>
+              </td>
+              <td>{{ pricing.seatPosition }}</td>
+              <td class="mono">{{ formatPrice(pricing.price, pricing.currencyCode) }}</td>
+              <td>
+                <span class="badge" [class.badge-active]="pricing.isActive" [class.badge-inactive]="!pricing.isActive">
+                  {{ pricing.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="hide-mobile muted">{{ formatDate(pricing.validFrom) }}</td>
+              <td class="hide-mobile muted">{{ formatDate(pricing.validTo) }}</td>
+              <td class="hide-tablet muted">{{ formatDate(pricing.updatedAt) }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(pricing)" title="Edit">Edit</button>
+                  <button
+                    class="action-btn delete-btn"
+                    (click)="deletePricing(pricing.seatPricingId)"
+                    [disabled]="deleting() === pricing.seatPricingId"
+                    title="Delete"
+                  >
+                    @if (deleting() === pricing.seatPricingId) {
+                      …
+                    } @else {
+                      Del
+                    }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (filtered().length === 0 && loaded()) {
+            <tr>
+              <td colspan="8" class="empty-row">
+                @if (filter()) {
+                  No pricing rules match "{{ filter() }}".
+                } @else {
+                  No pricing rules found. Click "+ New Rule" to create one.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">
+      Showing {{ filtered().length }} of {{ pricings().length }} rules
+    </p>
+  }
+
+  <!-- Loading state -->
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading seat pricing rules…</p>
+    </div>
+  }
+
+</div>
