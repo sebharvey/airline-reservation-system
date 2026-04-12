@@ -874,7 +874,7 @@ CREATE TABLE [seat].[SeatPricing] (
     UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_SeatPricing_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_SeatPricing           PRIMARY KEY (SeatPricingId),
     CONSTRAINT UQ_SeatPricing_CabinPos  UNIQUE (CabinCode, SeatPosition, CurrencyCode),
-    CONSTRAINT CHK_SeatPricing_Cabin    CHECK (CabinCode    IN ('W','Y')),
+    CONSTRAINT CHK_SeatPricing_Cabin    CHECK (CabinCode    IN ('F','J','W','Y')),
     CONSTRAINT CHK_SeatPricing_Position CHECK (SeatPosition IN ('Window','Aisle','Middle'))
 );
 GO
@@ -1507,7 +1507,7 @@ BEGIN TRY
     ('B789','Boeing','Boeing 787-9',    293,N'[{"cabin":"J","count":30},{"cabin":"W","count":56},{"cabin":"Y","count":207}]'),
     ('A339','Airbus','Airbus A330-900', 326,N'[{"cabin":"J","count":40},{"cabin":"W","count":56},{"cabin":"Y","count":230}]');
 
-    -- seat.SeatPricing (W & Y only — J/F seat selection included in fare) -----
+    -- seat.SeatPricing (all cabins: F, J, W, Y) --------------------------------
     INSERT INTO [seat].[SeatPricing] (CabinCode, SeatPosition, CurrencyCode, Price, ValidFrom) VALUES
     ('W','Window','GBP',70.00,'2025-01-01'),
     ('W','Aisle', 'GBP',50.00,'2025-01-01'),

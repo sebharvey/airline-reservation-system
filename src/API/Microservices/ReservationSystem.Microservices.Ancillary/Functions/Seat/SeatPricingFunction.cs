@@ -65,8 +65,8 @@ public sealed class SeatPricingFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatPricingRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request.CabinCode) || request.CabinCode is not ("W" or "Y"))
-            return await req.BadRequestAsync("cabinCode must be 'W' or 'Y'. Business (J) and First (F) carry no ancillary charge.");
+        if (string.IsNullOrWhiteSpace(request.CabinCode) || request.CabinCode is not ("F" or "J" or "W" or "Y"))
+            return await req.BadRequestAsync("cabinCode must be 'F', 'J', 'W', or 'Y'.");
 
         if (string.IsNullOrWhiteSpace(request.SeatPosition) || request.SeatPosition is not ("Window" or "Aisle" or "Middle"))
             return await req.BadRequestAsync("seatPosition must be 'Window', 'Aisle', or 'Middle'.");
