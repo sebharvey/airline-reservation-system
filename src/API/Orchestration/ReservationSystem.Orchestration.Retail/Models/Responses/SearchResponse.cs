@@ -40,6 +40,7 @@ public sealed class SliceItinerary
 public sealed class SliceLeg
 {
     public Guid SessionId { get; init; }
+    public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;

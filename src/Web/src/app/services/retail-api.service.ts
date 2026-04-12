@@ -114,6 +114,7 @@ interface SliceApiCabin {
 
 interface SliceApiLeg {
   sessionId: string;
+  inventoryId: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -166,7 +167,7 @@ function buildLegOffer(
 ): FlightOffer {
   return {
     offerId: family.offer.offerId,
-    inventoryId: '',
+    inventoryId: leg.inventoryId,
     segments: [{ offerId: family.offer.offerId, sessionId: leg.sessionId }],
     flightNumber: leg.flightNumber,
     origin: leg.origin,
@@ -234,7 +235,7 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
           offers.push({
             // Primary identifiers use leg 1 values; segments contains both.
             offerId: family1.offer.offerId,
-            inventoryId: '',
+            inventoryId: leg1.inventoryId,
             segments: [
               { offerId: family1.offer.offerId, sessionId: leg1.sessionId },
               { offerId: family2.offer.offerId, sessionId: leg2.sessionId }
