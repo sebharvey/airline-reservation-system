@@ -129,14 +129,18 @@ public sealed class ProductGroupFunction
     [OpenApiParameter(name: "groupId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict — product group has associated products")]
     public async Task<HttpResponseData> Delete(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
         Guid groupId,
         CancellationToken cancellationToken)
     {
-        var deleted = await _deleteHandler.HandleAsync(new DeleteProductGroupCommand(groupId), cancellationToken);
-        return deleted
-            ? req.NoContent()
-            : await req.NotFoundAsync($"No product group found for ID '{groupId}'.");
+        var result = await _deleteHandler.HandleAsync(new DeleteProductGroupCommand(groupId), cancellationToken);
+        return result switch
+        {
+            DeleteProductGroupResult.Deleted => req.NoContent(),
+            DeleteProductGroupResult.HasProducts => await req.ConflictAsync($"Product group '{groupId}' cannot be deleted because it has products assigned to it."),
+            _ => await req.NotFoundAsync($"No product group found for ID '{groupId}'.")
+        };
     }
 }

@@ -1,5 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   ProductGroupService,
   ProductGroup,
@@ -114,8 +115,12 @@ export class ProductGroupsComponent implements OnInit {
       await this.#service.delete(groupId);
       this.success.set('Product group deleted successfully.');
       await this.loadGroups();
-    } catch {
-      this.error.set('Failed to delete product group. It may still have products assigned to it.');
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 409) {
+        this.error.set('This product group cannot be deleted because it has products assigned to it.');
+      } else {
+        this.error.set('Failed to delete product group. Please try again.');
+      }
     } finally {
       this.deleting.set(null);
     }
