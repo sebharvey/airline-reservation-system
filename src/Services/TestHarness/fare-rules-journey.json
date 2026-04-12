@@ -1,0 +1,401 @@
+{
+  "journey": {
+    "name": "Admin — fare rules",
+    "description": "End-to-end journey covering fare rule lifecycle management via the Operations API. Registers an employee account, creates a fare rule with tax lines, updates the rule and tax lines, verifies the saved changes by reading the record back, deletes the fare rule, then removes the employee account.",
+    "domain": "Operations",
+    "baseUrls": [
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "user",
+        "label": "User MS",
+        "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create employee account",
+      "description": "Create a new Apex Air employee user account via the User MS using a randomly generated name, email, and username. This account is used as the authenticated principal for all subsequent Operations API calls in this journey.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This userId is carried forward to the cleanup step.",
+        "keyFields": [
+          "userId"
+        ],
+        "validationNotes": "userId is a non-empty GUID. username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
+      },
+      "chainsTo": [
+        {
+          "field": "userId",
+          "usedInSteps": [6]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Create fare rule",
+      "description": "Create a new Economy Standard fare rule (cabin Y, fare basis YSTDGB) via the Operations API. The rule is a money-type rule with minimum and maximum amounts enabling continuous pricing. Two tax lines are included: UK Air Passenger Duty (GB) and a fuel surcharge (YQ).",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/fare-rules",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ruleType": "Money",
+          "flightNumber": null,
+          "fareBasisCode": "YSTDGB",
+          "fareFamily": "Economy Light",
+          "cabinCode": "Y",
+          "bookingClass": "Y",
+          "currencyCode": "GBP",
+          "minAmount": 150.00,
+          "maxAmount": 350.00,
+          "minPoints": null,
+          "maxPoints": null,
+          "pointsTaxes": null,
+          "taxLines": [
+            { "code": "GB", "amount": 13.00 },
+            { "code": "YQ", "amount": 45.00 }
+          ],
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z"
+        }
+      },
+      "response": {
+        "statusCode": 201,
+        "body": {
+          "fareRuleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "ruleType": "Money",
+          "flightNumber": null,
+          "fareBasisCode": "YSTDGB",
+          "fareFamily": "Economy Light",
+          "cabinCode": "Y",
+          "bookingClass": "Y",
+          "currencyCode": "GBP",
+          "minAmount": 150.00,
+          "maxAmount": 350.00,
+          "minPoints": null,
+          "maxPoints": null,
+          "pointsTaxes": null,
+          "taxLines": [
+            { "code": "GB", "amount": 13.00 },
+            { "code": "YQ", "amount": 45.00 }
+          ],
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z",
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:00:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "201 Created — fare rule persisted. Response echoes all supplied fields plus the server-assigned fareRuleId and database-generated createdAt/updatedAt timestamps.",
+        "keyFields": [
+          "fareRuleId",
+          "fareBasisCode",
+          "cabinCode",
+          "minAmount",
+          "maxAmount",
+          "taxLines"
+        ],
+        "validationNotes": "fareRuleId is a non-empty GUID. taxLines array must contain exactly 2 entries: GB (APD) and YQ (fuel surcharge). minAmount and maxAmount define the continuous pricing range for cabin Y."
+      },
+      "chainsTo": [
+        {
+          "field": "fareRuleId",
+          "usedInSteps": [3, 4, 5]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Edit fare rule and tax lines",
+      "description": "Update the fare rule created in Step 2 via a full PUT. The fare family is promoted from 'Economy Light' to 'Economy Standard', the pricing band is widened (minAmount 150 → 175, maxAmount 350 → 400), and both tax line amounts are revised upward (GB APD 13 → 15, YQ fuel surcharge 45 → 50).",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "fareRuleId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ruleType": "Money",
+          "flightNumber": null,
+          "fareBasisCode": "YSTDGB",
+          "fareFamily": "Economy Standard",
+          "cabinCode": "Y",
+          "bookingClass": "Y",
+          "currencyCode": "GBP",
+          "minAmount": 175.00,
+          "maxAmount": 400.00,
+          "minPoints": null,
+          "maxPoints": null,
+          "pointsTaxes": null,
+          "taxLines": [
+            { "code": "GB", "amount": 15.00 },
+            { "code": "YQ", "amount": 50.00 }
+          ],
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z"
+        },
+        "dataChain": [
+          {
+            "field": "fareRuleId",
+            "from": "fareRuleId",
+            "source": "Step 2 → fareRuleId (injected into path)"
+          }
+        ],
+        "diff": {
+          "fareFamily":         { "from": "Economy Light",   "to": "Economy Standard" },
+          "minAmount":          { "from": 150.00,            "to": 175.00 },
+          "maxAmount":          { "from": 350.00,            "to": 400.00 },
+          "taxLines[0].amount": { "from": 13.00,             "to": 15.00 },
+          "taxLines[1].amount": { "from": 45.00,             "to": 50.00 }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "fareRuleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "ruleType": "Money",
+          "flightNumber": null,
+          "fareBasisCode": "YSTDGB",
+          "fareFamily": "Economy Standard",
+          "cabinCode": "Y",
+          "bookingClass": "Y",
+          "currencyCode": "GBP",
+          "minAmount": 175.00,
+          "maxAmount": 400.00,
+          "minPoints": null,
+          "maxPoints": null,
+          "pointsTaxes": null,
+          "taxLines": [
+            { "code": "GB", "amount": 15.00 },
+            { "code": "YQ", "amount": 50.00 }
+          ],
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z",
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — fare rule updated. Response reflects all revised values. updatedAt is later than createdAt, confirming the record was persisted to the database.",
+        "keyFields": [
+          "fareRuleId",
+          "fareFamily",
+          "minAmount",
+          "maxAmount",
+          "taxLines"
+        ],
+        "validationNotes": "fareRuleId must match Step 2. fareFamily must be 'Economy Standard'. minAmount 175.00, maxAmount 400.00. taxLines must contain GB=15.00 and YQ=50.00. updatedAt must be a later timestamp than createdAt."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Get fare rule — verify save",
+      "description": "Read the fare rule back by its ID using GET to independently confirm the update in Step 3 was durably saved. This step validates that the database reflects the revised fareFamily, pricing band, and tax line amounts.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "fareRuleId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "fareRuleId",
+            "from": "fareRuleId",
+            "source": "Step 2 → fareRuleId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "fareRuleId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "ruleType": "Money",
+          "flightNumber": null,
+          "fareBasisCode": "YSTDGB",
+          "fareFamily": "Economy Standard",
+          "cabinCode": "Y",
+          "bookingClass": "Y",
+          "currencyCode": "GBP",
+          "minAmount": 175.00,
+          "maxAmount": 400.00,
+          "minPoints": null,
+          "maxPoints": null,
+          "pointsTaxes": null,
+          "taxLines": [
+            { "code": "GB", "amount": 15.00 },
+            { "code": "YQ", "amount": 50.00 }
+          ],
+          "isRefundable": false,
+          "isChangeable": false,
+          "changeFeeAmount": 0.00,
+          "cancellationFeeAmount": 0.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": "2026-12-31T23:59:59Z",
+          "createdAt": "2026-04-12T10:00:00Z",
+          "updatedAt": "2026-04-12T10:05:00Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — durable read of the updated fare rule. All values must match the state set by Step 3: fareFamily 'Economy Standard', minAmount 175.00, maxAmount 400.00, taxLines GB=15.00 and YQ=50.00.",
+        "keyFields": [
+          "fareRuleId",
+          "fareFamily",
+          "minAmount",
+          "maxAmount",
+          "taxLines",
+          "updatedAt"
+        ],
+        "validationNotes": "This is an independent read — the response comes directly from the database, not from a cached value. fareFamily, minAmount, maxAmount, and both taxLine amounts must reflect Step 3 edits. updatedAt must be later than createdAt.",
+        "assertions": [
+          {
+            "field": "taxLines",
+            "assertion": "count",
+            "expected": 2
+          }
+        ]
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "Delete fare rule",
+      "description": "Permanently delete the fare rule created in Step 2. Confirms that the Operations API DELETE endpoint removes the record and returns 204 No Content. A subsequent GET for this fareRuleId would return 404.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/fare-rules/{fareRuleId}",
+        "baseUrlRef": "operations",
+        "pathParams": {
+          "fareRuleId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "fareRuleId",
+            "from": "fareRuleId",
+            "source": "Step 2 → fareRuleId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — fare rule deleted. No response body is returned. Subsequent GET requests for this fareRuleId will return 404 Not Found.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty. The fareRuleId from Step 2 is injected into the path. Attempting to delete a non-existent rule returns 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "Delete employee account",
+      "description": "Delete the employee account created in Step 1 to clean up test data. Confirms that the User MS DELETE endpoint permanently removes the account and returns 204 No Content.",
+      "type": "positive",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/users/{userId}",
+        "baseUrlRef": "user",
+        "pathParams": {
+          "userId": "from-step-1"
+        }
+      },
+      "request": {
+        "headers": {},
+        "body": null,
+        "dataChain": [
+          {
+            "field": "userId",
+            "from": "userId",
+            "source": "Step 1 → userId (injected into path)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 204,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 204,
+        "description": "204 No Content — the employee account created in Step 1 has been permanently deleted via the User MS. No response body is returned.",
+        "keyFields": [],
+        "validationNotes": "Response body must be empty. The userId from Step 1 is injected into the path. Deleting a non-existent user returns 404."
+      },
+      "chainsTo": []
+    }
+  ]
+}

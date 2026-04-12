@@ -34,6 +34,7 @@ The test harness is a single-page web application that drives end-to-end API jou
 | `payment-journey.json` | Payment — authorise, settle, void & refund |
 | `terminal-customer-journey.json` | Terminal — customer search & management |
 | `user-journey.json` | User — account creation & authentication |
+| `fare-rules-journey.json` | Fare rules — create, edit & remove |
 | `operations-journey.json` | Operations — SSIM import & inventory *(disabled)* |
 
 ---

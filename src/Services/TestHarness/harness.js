@@ -20,6 +20,7 @@
         { value: 'payment',                     label: 'payment - authorise, settle, void & refund' },
         { value: 'terminal-customer',           label: 'terminal - customer search & management' },
         { value: 'user',                        label: 'user - account creation & authentication' },
+        { value: 'fare-rules',                  label: 'admin - fare rules' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
 
