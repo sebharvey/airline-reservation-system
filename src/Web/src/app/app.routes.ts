@@ -20,6 +20,7 @@ export const routes: Routes = [
       { path: 'passengers', loadComponent: () => import('./pages/booking/passengers/passengers').then(m => m.PassengersComponent) },
       { path: 'seats', loadComponent: () => import('./pages/booking/seats/seats').then(m => m.SeatsComponent) },
       { path: 'bags', loadComponent: () => import('./pages/booking/bags/bags').then(m => m.BagsComponent) },
+      { path: 'products', loadComponent: () => import('./pages/booking/products/products').then(m => m.ProductsComponent) },
       { path: 'payment', loadComponent: () => import('./pages/booking/payment/payment').then(m => m.PaymentComponent) },
       { path: 'confirmation', loadComponent: () => import('./pages/booking/confirmation/confirmation').then(m => m.ConfirmationComponent) },
     ]

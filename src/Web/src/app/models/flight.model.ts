@@ -119,6 +119,36 @@ export interface ScheduledFlightNumber {
   arrivalTime: string;
 }
 
+export interface ProductPrice {
+  priceId: string;
+  offerId: string;
+  currencyCode: string;
+  price: number;
+  tax: number;
+}
+
+export interface Product {
+  productId: string;
+  productGroupId: string;
+  productGroupName: string;
+  name: string;
+  description: string;
+  imageBase64: string | null;
+  ssrCode: string | null;
+  isSegmentSpecific: boolean;
+  prices: ProductPrice[];
+}
+
+export interface ProductGroup {
+  productGroupId: string;
+  name: string;
+  products: Product[];
+}
+
+export interface ProductsResponse {
+  products: Product[];
+}
+
 export interface FlightStatus {
   flightNumber: string;
   origin: string;

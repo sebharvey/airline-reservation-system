@@ -1,0 +1,68 @@
+<div class="page fade-in">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <a routerLink="/booking/bags" class="back-link">&#8249; Back</a>
+    <h1>Add to Your Journey</h1>
+    <p class="step-label">Step 4 of 5 &nbsp;&middot;&nbsp; Optional</p>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-wrap" *ngIf="loading()">
+    <div class="spinner"></div>
+    <p>Loading products&hellip;</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" *ngIf="error()">{{ error() }}</div>
+
+  <!-- No products available -->
+  <div class="empty-state" *ngIf="!loading() && !error() && productGroups().length === 0">
+    <div class="empty-icon">&#128466;</div>
+    <p class="empty-title">No products available</p>
+    <p class="empty-sub">There are no products available for your booking at this time.</p>
+  </div>
+
+  <!-- Product Groups -->
+  <ng-container *ngIf="!loading() && !error() && productGroups().length > 0">
+    <div class="product-group" *ngFor="let group of productGroups()">
+
+      <h2 class="group-title" *ngIf="group.name">{{ group.name }}</h2>
+
+      <div class="product-grid">
+        <div class="product-tile" *ngFor="let product of group.products">
+
+          <!-- Product image -->
+          <div class="tile-image-wrap">
+            <img
+              *ngIf="product.imageBase64"
+              [src]="'data:image/jpeg;base64,' + product.imageBase64"
+              [alt]="product.name"
+              class="tile-image" />
+            <div class="tile-image-placeholder" *ngIf="!product.imageBase64">
+              <span>&#128466;</span>
+            </div>
+          </div>
+
+          <!-- Product details -->
+          <div class="tile-body">
+            <h3 class="tile-name">{{ product.name }}</h3>
+            <p class="tile-description">{{ product.description }}</p>
+            <div class="tile-price" *ngIf="getPriceForCurrency(product) !== null">
+              {{ currency() }} {{ getPriceForCurrency(product) | number:'1.2-2' }}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-secondary" (click)="onContinue()">Skip</button>
+    <button class="btn-primary" (click)="onContinue()">Continue to Payment ›</button>
+  </div>
+
+</div>

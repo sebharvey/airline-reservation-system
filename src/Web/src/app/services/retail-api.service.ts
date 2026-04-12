@@ -12,7 +12,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode } from '../models/flight.model';
+import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
 import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketSummary } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 
@@ -415,6 +415,15 @@ export class RetailApiService {
     let params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}`;
     if (cabinCode) params += `&cabinCode=${encodeURIComponent(cabinCode)}`;
     return this.#http.get<Seatmap>(`${base}/api/v1/flights/${flightId}/seatmap?${params}`);
+  }
+
+  /**
+   * GET /v1/products
+   * Retrieve all active retail products with prices from the Ancillary MS via the Retail API.
+   */
+  getProducts(): Observable<ProductsResponse> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.get<ProductsResponse>(`${base}/api/v1/products`);
   }
 
   /**
