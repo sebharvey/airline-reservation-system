@@ -284,7 +284,7 @@ export class SearchResultsComponent implements OnInit {
         if (this.isRewardBooking()) {
           this.router.navigate(['/booking/reward-login']);
         } else {
-          this.router.navigate(['/booking/passengers']);
+          this.router.navigate(['/booking/flight-summary']);
         }
       },
       error: () => {

@@ -80,7 +80,7 @@ export class RewardLoginComponent implements OnInit {
 
     // Set loyalty number on basket and proceed
     this.bookingState.setLoyaltyNumber(customer.loyaltyNumber);
-    this.router.navigate(['/booking/passengers']);
+    this.router.navigate(['/booking/flight-summary']);
   }
 
   get requiredPoints(): number {
