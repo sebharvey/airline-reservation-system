@@ -81,6 +81,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/terminal/terminal').then(m => m.TerminalComponent),
       },
       {
+        path: 'ssr',
+        loadComponent: () => import('./pages/ssr/ssr').then(m => m.SsrComponent),
+      },
+      {
         path: 'users',
         loadComponent: () => import('./pages/users/user').then(m => m.UserComponent),
         children: [

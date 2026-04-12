@@ -38,6 +38,7 @@ export class AppShell {
   ];
 
   secondaryNavItems: NavItem[] = [
+    { path: '/ssr',   label: 'SSR Catalogue', icon: '♿', description: 'Special Service Request catalogue' },
     { path: '/users', label: 'Users', icon: '👥', description: 'User & agent management' },
   ];
 

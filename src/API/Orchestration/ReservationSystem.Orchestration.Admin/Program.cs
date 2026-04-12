@@ -37,11 +37,20 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
+        services.AddHttpClient("OrderMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["OrderMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<UserServiceClient>();
+        services.AddScoped<OrderServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<LoginHandler>();
