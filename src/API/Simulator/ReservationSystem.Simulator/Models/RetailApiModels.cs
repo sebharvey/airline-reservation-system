@@ -1,4 +1,4 @@
-namespace ReservationSystem.Microservices.Simulator.Models;
+namespace ReservationSystem.Simulator.Models;
 
 // ── Search ─────────────────────────────────────────────────────────────────────
 

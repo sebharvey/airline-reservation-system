@@ -1,10 +1,10 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ReservationSystem.Microservices.Simulator.Domain.ExternalServices;
-using ReservationSystem.Microservices.Simulator.Models;
+using ReservationSystem.Simulator.Domain.ExternalServices;
+using ReservationSystem.Simulator.Models;
 
-namespace ReservationSystem.Microservices.Simulator.Infrastructure.ExternalServices;
+namespace ReservationSystem.Simulator.Infrastructure.ExternalServices;
 
 internal sealed class RetailApiClient : IRetailApiClient
 {
