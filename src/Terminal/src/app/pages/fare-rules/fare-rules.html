@@ -133,10 +133,17 @@
         <div class="form-section">
           <div class="section-heading-row">
             <h3 class="section-heading">Tax Lines</h3>
-            <button type="button" class="add-tax-btn" (click)="addTaxLine()">+ Add Tax</button>
+            <button type="button" class="add-tax-btn" (click)="addTaxLine()">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Add tax
+            </button>
           </div>
           @if (form().taxLines && form().taxLines!.length > 0) {
-            <div class="tax-lines-list">
+            <div class="tax-lines-table">
+              <div class="tax-lines-col-headers">
+                <span>Tax code</span>
+                <span>Amount ({{ form().currencyCode || 'GBP' }})</span>
+              </div>
               @for (line of form().taxLines!; track $index) {
                 <div class="tax-line-row">
                   <select
@@ -144,7 +151,7 @@
                     [ngModel]="line.code"
                     (ngModelChange)="updateTaxLineCode($index, $event)"
                   >
-                    <option value="" disabled>Code</option>
+                    <option value="" disabled>Select code…</option>
                     <optgroup label="Carrier Surcharges">
                       <option value="YQ">YQ — Carrier surcharge (fuel)</option>
                       <option value="YR">YR — Carrier surcharge (misc)</option>
@@ -178,21 +185,35 @@
                       <option value="RA">RA — IATA Levy</option>
                     </optgroup>
                   </select>
-                  <input
-                    type="number"
-                    class="tax-amount-input"
-                    placeholder="Amount"
-                    min="0"
-                    step="0.01"
-                    [ngModel]="line.amount"
-                    (ngModelChange)="updateTaxLineAmount($index, $event)"
-                  />
-                  <button type="button" class="remove-tax-btn" (click)="removeTaxLine($index)" title="Remove">&times;</button>
+                  <div class="tax-amount-wrap">
+                    <span class="tax-currency-prefix">{{ form().currencyCode || 'GBP' }}</span>
+                    <input
+                      type="number"
+                      class="tax-amount-input"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="line.amount"
+                      (ngModelChange)="updateTaxLineAmount($index, $event)"
+                    />
+                  </div>
+                  <button type="button" class="remove-tax-btn" (click)="removeTaxLine($index)" title="Remove tax line">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                    </svg>
+                  </button>
                 </div>
               }
+              <div class="tax-lines-total">
+                <span>Total tax</span>
+                <span class="tax-total-amount">{{ formatAmount(taxLinesTotal(), form().currencyCode) }}</span>
+              </div>
             </div>
           } @else {
-            <p class="tax-lines-empty">No tax lines defined. Click "+ Add Tax" to add one.</p>
+            <div class="tax-lines-empty">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="5" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 5V4a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <p>No tax lines yet. Click <strong>+ Add tax</strong> to define tax components for this rule.</p>
+            </div>
           }
         </div>
 
