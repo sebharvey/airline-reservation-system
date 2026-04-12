@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "Bookflow — one-way connecting DEL → LHR → JFK",
-    "description": "End-to-end one-way booking for a two-leg connecting itinerary: DEL → LHR (AX412) → JFK via the LHR hub. Uses POST /v1/search/connecting to retrieve paired leg offers in a single call, then creates a basket with both segments, adds passenger details, and confirms with payment.",
+    "name": "Bookflow \u2014 one-way connecting DEL \u2192 LHR \u2192 JFK",
+    "description": "End-to-end one-way booking for a two-leg connecting itinerary: DEL \u2192 LHR (AX412) \u2192 JFK via the LHR hub. Uses POST /v1/search/connecting to retrieve paired leg offers in a single call, then creates a basket with both segments, adds passenger details, and confirms with payment.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -14,8 +14,8 @@
   "steps": [
     {
       "step": 1,
-      "name": "Search connecting DEL → JFK",
-      "description": "Search for connecting itinerary options from DEL to JFK via the LHR hub. The Retail API calls the Offer MS twice internally — once for DEL → LHR and once for LHR → JFK on the LHR arrival date — then pairs results that satisfy the 60-minute minimum connection time. Returns a list of itineraries, each carrying a Leg1 and Leg2 with independent SessionIds and cabin/fare-family offers. The selected Leg1 OfferId + SessionId and Leg2 OfferId + SessionId are forwarded to basket creation.",
+      "name": "Search connecting DEL \u2192 JFK",
+      "description": "Search for connecting itinerary options from DEL to JFK via the LHR hub. The Retail API calls the Offer MS twice internally \u2014 once for DEL \u2192 LHR and once for LHR \u2192 JFK on the LHR arrival date \u2014 then pairs results that satisfy the 60-minute minimum connection time. Returns a list of itineraries, each carrying a Leg1 and Leg2 with independent SessionIds and cabin/fare-family offers. The selected Leg1 OfferId + SessionId and Leg2 OfferId + SessionId are forwarded to basket creation.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -142,14 +142,14 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — one or more connecting itinerary options returned. Each itinerary has a Leg1 (DEL → LHR, AX412) and a Leg2 (LHR → JFK, one of AX003/AX005/AX007/AX009) that satisfies the 60-minute MCT. Itineraries are sorted by connectionDurationMinutes ascending. Leg1 and Leg2 each carry their own SessionId from their independent Offer MS search sessions.",
+        "description": "200 OK \u2014 one or more connecting itinerary options returned. Each itinerary has a Leg1 (DEL \u2192 LHR, AX412) and a Leg2 (LHR \u2192 JFK, one of AX003/AX005/AX007/AX009) that satisfies the 60-minute MCT. Itineraries are sorted by connectionDurationMinutes ascending. Leg1 and Leg2 each carry their own SessionId from their independent Offer MS search sessions.",
         "keyFields": [
           "itineraries",
           "itineraries[0].leg1.sessionId",
           "itineraries[0].leg2.sessionId",
           "itineraries[0].connectionDurationMinutes"
         ],
-        "validationNotes": "itineraries must be a non-empty array. Every itinerary's connectionDurationMinutes must be >= 60. Each leg's cabins array follows the same structure as a /v1/search/slice response. The Leg1 SessionId is shared across all itineraries (same DEL→LHR search); each distinct Leg2 flight from the same LHR→JFK search shares its own SessionId."
+        "validationNotes": "itineraries must be a non-empty array. Every itinerary's connectionDurationMinutes must be >= 60. Each leg's cabins array follows the same structure as a /v1/search/slice response. The Leg1 SessionId is shared across all itineraries (same DEL\u2192LHR search); each distinct Leg2 flight from the same LHR\u2192JFK search shares its own SessionId."
       },
       "chainsTo": [
         {
@@ -185,7 +185,7 @@
     {
       "step": 2,
       "name": "Create basket",
-      "description": "Create a basket with both flight segments from the connecting itinerary. Segment 0 is the first leg (DEL → LHR) and segment 1 is the second leg (LHR → JFK). Each segment pairs its OfferId with the SessionId from its respective Offer MS search. Returns a basketId used for all subsequent basket operations.",
+      "description": "Create a basket with both flight segments from the connecting itinerary. Segment 0 is the first leg (DEL \u2192 LHR) and segment 1 is the second leg (LHR \u2192 JFK). Each segment pairs its OfferId with the SessionId from its respective Offer MS search. Returns a basketId used for all subsequent basket operations.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -216,22 +216,22 @@
           {
             "field": "segments[0].offerId",
             "from": "leg1OfferId",
-            "source": "Step 1 → random Leg1 offer from DEL→LHR search"
+            "source": "Step 1 \u2192 random Leg1 offer from DEL\u2192LHR search"
           },
           {
             "field": "segments[0].sessionId",
             "from": "leg1SessionId",
-            "source": "Step 1 → itineraries[0].leg1.sessionId"
+            "source": "Step 1 \u2192 itineraries[0].leg1.sessionId"
           },
           {
             "field": "segments[1].offerId",
             "from": "leg2OfferId",
-            "source": "Step 1 → random Leg2 offer from LHR→JFK search"
+            "source": "Step 1 \u2192 random Leg2 offer from LHR\u2192JFK search"
           },
           {
             "field": "segments[1].sessionId",
             "from": "leg2SessionId",
-            "source": "Step 1 → itineraries[0].leg2.sessionId"
+            "source": "Step 1 \u2192 itineraries[0].leg2.sessionId"
           }
         ]
       },
@@ -243,7 +243,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — basket created with two flight segments. Returns basketId (GUID). The basket now holds both legs of the connecting itinerary as independent flight offers. The basket expires after 60 minutes.",
+        "description": "201 Created \u2014 basket created with two flight segments. Returns basketId (GUID). The basket now holds both legs of the connecting itinerary as independent flight offers. The basket expires after 60 minutes.",
         "keyFields": [
           "basketId"
         ],
@@ -253,20 +253,75 @@
         {
           "field": "basketId",
           "usedInSteps": [
-            3,
             4,
             5,
             6,
             7,
-            8
+            8,
+            9
           ]
         }
       ]
     },
     {
       "step": 3,
+      "name": "Get basket summary",
+      "description": "Reprice all offers in the basket and retrieve a pricing summary with tax line breakdowns. This call triggers the Offer MS to refresh fare amounts from live cabin occupancy and FareRule data, copies tax lines into the stored offer, and sets validated = true on each inventory entry \u2014 unblocking the confirmation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-2"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 2 \u2192 response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "currency": "GBP",
+          "flights": [
+            {
+              "validated": true,
+              "taxLines": []
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 4,
       "name": "Get basket",
-      "description": "Retrieve the basket to confirm both connecting flight segments are present and the basket is Active. Verifies that BasketData.flightOffers contains exactly two entries — one per leg of the connecting itinerary.",
+      "description": "Retrieve the basket to confirm both connecting flight segments are present and the basket is Active. Verifies that BasketData.flightOffers contains exactly two entries \u2014 one per leg of the connecting itinerary.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
@@ -282,7 +337,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -322,7 +377,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — basket retrieved. basketStatus is Active. basketData.flightOffers contains exactly two entries: Leg1 (DEL → LHR) and Leg2 (LHR → JFK), each carrying inventoryId and aircraftType used for seatmap retrieval.",
+        "description": "200 OK \u2014 basket retrieved. basketStatus is Active. basketData.flightOffers contains exactly two entries: Leg1 (DEL \u2192 LHR) and Leg2 (LHR \u2192 JFK), each carrying inventoryId and aircraftType used for seatmap retrieval.",
         "keyFields": [
           "basketStatus",
           "basketData.flightOffers"
@@ -333,7 +388,7 @@
             "field": "basketData.flightOffers",
             "assertion": "count",
             "expected": 2,
-            "description": "Exactly 2 flight offers must be present in the basket — one per leg of the one-way connecting itinerary."
+            "description": "Exactly 2 flight offers must be present in the basket \u2014 one per leg of the one-way connecting itinerary."
           }
         ]
       },
@@ -342,52 +397,52 @@
           "path": "basketData.flightOffers[0].inventoryId",
           "as": "leg1InventoryId",
           "usedInSteps": [
-            5,
-            7
+            6,
+            8
           ]
         },
         {
           "path": "basketData.flightOffers[0].aircraftType",
           "as": "leg1AircraftType",
           "usedInSteps": [
-            5
+            6
           ]
         },
         {
           "path": "basketData.flightOffers[0].cabinCode",
           "as": "leg1CabinCode",
           "usedInSteps": [
-            5
+            6
           ]
         },
         {
           "path": "basketData.flightOffers[1].inventoryId",
           "as": "leg2InventoryId",
           "usedInSteps": [
-            6,
-            7
+            7,
+            8
           ]
         },
         {
           "path": "basketData.flightOffers[1].aircraftType",
           "as": "leg2AircraftType",
           "usedInSteps": [
-            6
+            7
           ]
         },
         {
           "path": "basketData.flightOffers[1].cabinCode",
           "as": "leg2CabinCode",
           "usedInSteps": [
-            6
+            7
           ]
         }
       ]
     },
     {
-      "step": 4,
+      "step": 5,
       "name": "Add passenger",
-      "description": "Add passenger details to the basket. Up to six passengers are supported; the actual count is determined at runtime by __RAND_PAX_COUNT__. Each passengerId (PAX-1…PAX-N) is used consistently across seat and bag additions.",
+      "description": "Add passenger details to the basket. Up to six passengers are supported; the actual count is determined at runtime by __RAND_PAX_COUNT__. Each passengerId (PAX-1\u2026PAX-N) is used consistently across seat and bag additions.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -497,7 +552,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -516,7 +571,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — passenger details stored in the basket for all passengers (1–6, determined by __RAND_PAX_COUNT__). The basket remains Active. totalFareAmount is unchanged.",
+        "description": "200 OK \u2014 passenger details stored in the basket for all passengers (1\u20136, determined by __RAND_PAX_COUNT__). The basket remains Active. totalFareAmount is unchanged.",
         "keyFields": [
           "status",
           "totalFareAmount"
@@ -524,18 +579,18 @@
       }
     },
     {
-      "step": 5,
-      "name": "Get Leg1 seatmap (DEL → LHR)",
-      "description": "Retrieve the seat map for the first leg of the connecting itinerary (AX412 DEL → LHR, B789 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
+      "step": 6,
+      "name": "Get Leg1 seatmap (DEL \u2192 LHR)",
+      "description": "Retrieve the seat map for the first leg of the connecting itinerary (AX412 DEL \u2192 LHR, B789 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
         "pathParams": {
-          "flightId": "from-step-3",
-          "aircraftType": "from-step-3",
-          "cabinCode": "from-step-3"
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
         }
       },
       "request": {
@@ -544,17 +599,17 @@
           {
             "field": "flightId",
             "from": "leg1InventoryId",
-            "source": "Step 3 → basketData.flightOffers[0].inventoryId"
+            "source": "Step 4 \u2192 basketData.flightOffers[0].inventoryId"
           },
           {
             "field": "aircraftType",
             "from": "leg1AircraftType",
-            "source": "Step 3 → basketData.flightOffers[0].aircraftType"
+            "source": "Step 4 \u2192 basketData.flightOffers[0].aircraftType"
           },
           {
             "field": "cabinCode",
             "from": "leg1CabinCode",
-            "source": "Step 3 → basketData.flightOffers[0].cabinCode"
+            "source": "Step 4 \u2192 basketData.flightOffers[0].cabinCode"
           }
         ]
       },
@@ -568,7 +623,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for Leg1 (DEL → LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
+        "description": "200 OK \u2014 seatmap returned for Leg1 (DEL \u2192 LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
         "keyFields": [
           "aircraftType",
           "cabins"
@@ -585,24 +640,24 @@
             "price": "leg1SeatPrice"
           },
           "usedInSteps": [
-            7
+            8
           ]
         }
       ]
     },
     {
-      "step": 6,
-      "name": "Get Leg2 seatmap (LHR → JFK)",
-      "description": "Retrieve the seat map for the second leg of the connecting itinerary (LHR → JFK, A351 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
+      "step": 7,
+      "name": "Get Leg2 seatmap (LHR \u2192 JFK)",
+      "description": "Retrieve the seat map for the second leg of the connecting itinerary (LHR \u2192 JFK, A351 aircraft). Passing cabinCode restricts the response to the booked cabin only, matching the Web app behaviour.",
       "type": "positive",
       "apiCall": {
         "method": "GET",
         "endpoint": "/api/v1/flights/{flightId}/seatmap?aircraftType={aircraftType}&cabinCode={cabinCode}",
         "baseUrlRef": "retail",
         "pathParams": {
-          "flightId": "from-step-3",
-          "aircraftType": "from-step-3",
-          "cabinCode": "from-step-3"
+          "flightId": "from-step-4",
+          "aircraftType": "from-step-4",
+          "cabinCode": "from-step-4"
         }
       },
       "request": {
@@ -611,17 +666,17 @@
           {
             "field": "flightId",
             "from": "leg2InventoryId",
-            "source": "Step 3 → basketData.flightOffers[1].inventoryId"
+            "source": "Step 4 \u2192 basketData.flightOffers[1].inventoryId"
           },
           {
             "field": "aircraftType",
             "from": "leg2AircraftType",
-            "source": "Step 3 → basketData.flightOffers[1].aircraftType"
+            "source": "Step 4 \u2192 basketData.flightOffers[1].aircraftType"
           },
           {
             "field": "cabinCode",
             "from": "leg2CabinCode",
-            "source": "Step 3 → basketData.flightOffers[1].cabinCode"
+            "source": "Step 4 \u2192 basketData.flightOffers[1].cabinCode"
           }
         ]
       },
@@ -635,7 +690,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seatmap returned for Leg2 (LHR → JFK) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
+        "description": "200 OK \u2014 seatmap returned for Leg2 (LHR \u2192 JFK) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
         "keyFields": [
           "aircraftType",
           "cabins"
@@ -652,13 +707,13 @@
             "price": "leg2SeatPrice"
           },
           "usedInSteps": [
-            7
+            8
           ]
         }
       ]
     },
     {
-      "step": 7,
+      "step": 8,
       "name": "Select seats",
       "description": "Assign one seat per passenger per leg. Seats must reference each leg's inventoryId as the segmentId. All seat assignments (one per passenger per leg) are submitted together in a single PUT call.",
       "type": "positive",
@@ -764,37 +819,37 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           },
           {
             "field": "[PAX-N].segmentId",
             "from": "leg1InventoryId",
-            "source": "Step 3 → basketData.flightOffers[0].inventoryId (all PAX-1…6 on Leg1)"
+            "source": "Step 4 \u2192 basketData.flightOffers[0].inventoryId (all PAX-1\u20266 on Leg1)"
           },
           {
             "field": "[PAX-N].seatNumber",
             "from": "leg1SeatNumber_N",
-            "source": "Step 5 → random available seat N on Leg1"
+            "source": "Step 6 \u2192 random available seat N on Leg1"
           },
           {
             "field": "[PAX-N].price",
             "from": "leg1SeatPrice_N",
-            "source": "Step 5 → price of seat N on Leg1"
+            "source": "Step 6 \u2192 price of seat N on Leg1"
           },
           {
             "field": "[PAX-N].segmentId",
             "from": "leg2InventoryId",
-            "source": "Step 3 → basketData.flightOffers[1].inventoryId (all PAX-1…6 on Leg2)"
+            "source": "Step 4 \u2192 basketData.flightOffers[1].inventoryId (all PAX-1\u20266 on Leg2)"
           },
           {
             "field": "[PAX-N].seatNumber",
             "from": "leg2SeatNumber_N",
-            "source": "Step 6 → random available seat N on Leg2"
+            "source": "Step 7 \u2192 random available seat N on Leg2"
           },
           {
             "field": "[PAX-N].price",
             "from": "leg2SeatPrice_N",
-            "source": "Step 6 → price of seat N on Leg2"
+            "source": "Step 7 \u2192 price of seat N on Leg2"
           }
         ]
       },
@@ -808,7 +863,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seat selections stored. One seat assigned per passenger (1–6) per leg. The basket reflects the updated seat selections with non-zero totalSeatAmount.",
+        "description": "200 OK \u2014 seat selections stored. One seat assigned per passenger (1\u20136) per leg. The basket reflects the updated seat selections with non-zero totalSeatAmount.",
         "keyFields": [
           "status",
           "totalSeatAmount"
@@ -817,7 +872,7 @@
       }
     },
     {
-      "step": 8,
+      "step": 9,
       "name": "Confirm basket",
       "description": "Confirm the basket, triggering payment authorisation, order creation, inventory hold and sell across both flight segments, e-ticket issuance for both legs, and payment settlement. The response contains the booking reference and e-ticket numbers for both legs.",
       "type": "positive",
@@ -846,7 +901,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 2 → response.basketId"
+            "source": "Step 2 \u2192 response.basketId"
           }
         ]
       },
@@ -871,18 +926,18 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger covering both legs of the connecting itinerary.",
+        "description": "201 Created \u2014 booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger covering both legs of the connecting itinerary.",
         "keyFields": [
           "bookingReference",
           "status",
           "eTickets"
         ],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger (1–6); segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
+        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger (1\u20136); segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
         "assertions": [
           {
             "field": "bookingReference",
             "assertion": "present",
-            "description": "bookingReference must be present — the human-readable PNR used for check-in and manage-booking flows."
+            "description": "bookingReference must be present \u2014 the human-readable PNR used for check-in and manage-booking flows."
           },
           {
             "field": "eTickets",

@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "OCI — 1 pax inbound check-in",
+    "name": "OCI \u2014 1 pax inbound check-in",
     "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation. Check-in is performed for the inbound (return) flight.",
     "domain": "Retail / Operations",
     "baseUrls": [
@@ -161,7 +161,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — search results returned. Contains a sessionId scoped to this search, and a list of available flights each with cabins and fare-family offers. The sessionId must be passed alongside the selected offerId when creating the basket.",
+        "description": "200 OK \u2014 search results returned. Contains a sessionId scoped to this search, and a list of available flights each with cabins and fare-family offers. The sessionId must be passed alongside the selected offerId when creating the basket.",
         "keyFields": [
           "sessionId",
           "flights"
@@ -261,7 +261,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — return search results returned. Contains a second sessionId and the list of available return flights. This sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
+        "description": "200 OK \u2014 return search results returned. Contains a second sessionId and the list of available return flights. This sessionId is distinct from the outbound sessionId and must be paired with the return offerId when building the basket segments.",
         "keyFields": [
           "sessionId",
           "flights"
@@ -319,22 +319,22 @@
           {
             "field": "segments[0].offerId",
             "from": "outboundOfferId",
-            "source": "Step 1 → random offer from search results"
+            "source": "Step 1 \u2192 random offer from search results"
           },
           {
             "field": "segments[0].sessionId",
             "from": "outboundSessionId",
-            "source": "Step 1 → response.sessionId"
+            "source": "Step 1 \u2192 response.sessionId"
           },
           {
             "field": "segments[1].offerId",
             "from": "returnOfferId",
-            "source": "Step 2 → random offer from search results"
+            "source": "Step 2 \u2192 random offer from search results"
           },
           {
             "field": "segments[1].sessionId",
             "from": "returnSessionId",
-            "source": "Step 2 → response.sessionId"
+            "source": "Step 2 \u2192 response.sessionId"
           }
         ]
       },
@@ -346,7 +346,7 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — basket created. Returns a basketId (GUID) which is the handle for all subsequent basket operations. Location header contains the basket resource path.",
+        "description": "201 Created \u2014 basket created. Returns a basketId (GUID) which is the handle for all subsequent basket operations. Location header contains the basket resource path.",
         "keyFields": [
           "basketId"
         ],
@@ -365,15 +365,68 @@
             10,
             11,
             12,
-            13,
-            14,
-            15
+            13
           ]
         }
       ]
     },
     {
       "step": 4,
+      "name": "Get basket summary",
+      "description": "Reprice all offers in the basket and retrieve a pricing summary with tax line breakdowns. This call triggers the Offer MS to refresh fare amounts from live cabin occupancy and FareRule data, copies tax lines into the stored offer, and sets validated = true on each inventory entry \u2014 unblocking the confirmation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 \u2192 response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
+          "status": "Active",
+          "currency": "GBP",
+          "flights": [
+            {
+              "validated": true,
+              "taxLines": []
+            }
+          ]
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 5,
       "name": "Get basket",
       "description": "Retrieve the basket immediately after creation to verify the initial state. Confirms both flight offers are present as basket items and that the basket status is Active.",
       "type": "positive",
@@ -391,7 +444,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 3 → response.basketId"
+            "source": "Step 3 \u2192 response.basketId"
           }
         ]
       },
@@ -439,7 +492,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — basket retrieved. basketStatus is 'Active'. Both flight offers are present in basketData.flightOffers, each assigned a basketItemId (BI-1, BI-2). passengers, seats, and bags are empty arrays at this point. All amount totals are 0.00 until pricing is resolved.",
+        "description": "200 OK \u2014 basket retrieved. basketStatus is 'Active'. Both flight offers are present in basketData.flightOffers, each assigned a basketItemId (BI-1, BI-2). passengers, seats, and bags are empty arrays at this point. All amount totals are 0.00 until pricing is resolved.",
         "keyFields": [
           "basketId",
           "basketStatus",
@@ -453,64 +506,64 @@
           "path": "basketData.flightOffers[0].inventoryId",
           "as": "outboundInventoryId",
           "usedInSteps": [
-            7
+            8
           ]
         },
         {
           "path": "basketData.flightOffers[0].flightNumber",
           "as": "outboundFlightNumber",
           "usedInSteps": [
-            7
+            8
           ]
         },
         {
           "path": "basketData.flightOffers[0].aircraftType",
           "as": "outboundAircraftType",
           "usedInSteps": [
-            7
+            8
           ]
         },
         {
           "path": "basketData.flightOffers[0].basketItemId",
           "as": "outboundBasketItemId",
           "usedInSteps": [
-            9
+            10
           ]
         },
         {
           "path": "basketData.flightOffers[1].inventoryId",
           "as": "returnInventoryId",
           "usedInSteps": [
-            8
+            9
           ]
         },
         {
           "path": "basketData.flightOffers[1].flightNumber",
           "as": "returnFlightNumber",
           "usedInSteps": [
-            8
+            9
           ]
         },
         {
           "path": "basketData.flightOffers[1].aircraftType",
           "as": "returnAircraftType",
           "usedInSteps": [
-            8
+            9
           ]
         },
         {
           "path": "basketData.flightOffers[1].basketItemId",
           "as": "returnBasketItemId",
           "usedInSteps": [
-            9
+            10
           ]
         }
       ]
     },
     {
-      "step": 5,
+      "step": 6,
       "name": "Add passengers",
-      "description": "Add passenger details to the basket. Each passenger record includes personal details, contact information, and an optional loyalty number for points accrual. The passengerId (PAX-1, PAX-2 …) is assigned by the caller and must be consistent across seats and bags additions.",
+      "description": "Add passenger details to the basket. Each passenger record includes personal details, contact information, and an optional loyalty number for points accrual. The passengerId (PAX-1, PAX-2 \u2026) is assigned by the caller and must be consistent across seats and bags additions.",
       "type": "positive",
       "apiCall": {
         "method": "PUT",
@@ -544,7 +597,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 3 → response.basketId"
+            "source": "Step 3 \u2192 response.basketId"
           }
         ]
       },
@@ -582,18 +635,18 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — passengers saved to the basket. Response is a basket summary. Passenger type must be a valid IATA code: ADT, CHD, INF, or YTH. contacts.email and contacts.phone are required for the primary passenger.",
+        "description": "200 OK \u2014 passengers saved to the basket. Response is a basket summary. Passenger type must be a valid IATA code: ADT, CHD, INF, or YTH. contacts.email and contacts.phone are required for the primary passenger.",
         "keyFields": [
           "basketId",
           "status",
           "totalPrice"
         ],
-        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 …) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocument is null for domestic or when not yet collected."
+        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 \u2026) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocument is null for domestic or when not yet collected."
       }
     },
     {
-      "step": 6,
-      "name": "Confirm and pay — valid card",
+      "step": 7,
+      "name": "Confirm and pay \u2014 valid card",
       "description": "Submit payment with a card number that passes the Luhn check to confirm the basket and create the order. The basket transitions to Confirmed and an orderId is returned.",
       "type": "positive",
       "apiCall": {
@@ -622,7 +675,7 @@
           {
             "field": "basketId",
             "from": "basketId",
-            "source": "Step 3 → response.basketId"
+            "source": "Step 3 \u2192 response.basketId"
           }
         ]
       },
@@ -635,7 +688,10 @@
           "eTickets": [
             {
               "passengerId": "PAX-1",
-              "segmentIds": ["BI-1", "BI-2"],
+              "segmentIds": [
+                "BI-1",
+                "BI-2"
+              ],
               "eTicketNumber": "932-0000000001"
             }
           ]
@@ -643,14 +699,14 @@
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created — booking confirmed. The basket is marked Confirmed and a new order is created. The response contains the orderId (GUID) and the human-readable bookingReference used for check-in and manage-booking flows.",
+        "description": "201 Created \u2014 booking confirmed. The basket is marked Confirmed and a new order is created. The response contains the orderId (GUID) and the human-readable bookingReference used for check-in and manage-booking flows.",
         "keyFields": [
           "orderId",
           "bookingReference",
           "status",
           "eTickets"
         ],
-        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods — passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated.",
+        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card number. payment.method valid values: CreditCard, DebitCard, PayPal, ApplePay. payment.cardNumber, payment.expiryDate, payment.cvv, and payment.cardholderName are required for card methods \u2014 passed directly to the Payment MS and never stored by the Retail API. loyaltyPointsToRedeem is null when paying by card only. On success, basketStatus on the basket resource transitions to Confirmed and confirmedOrderId is populated.",
         "assertions": [
           {
             "field": "eTickets",
@@ -670,17 +726,17 @@
           "field": "bookingReference",
           "as": "bookingReference",
           "usedInSteps": [
-            7,
             8,
             9,
             10,
-            11
+            11,
+            12
           ]
         }
       ]
     },
     {
-      "step": 7,
+      "step": 8,
       "name": "Retrieve booking for check-in",
       "description": "Look up the booking by reference, lead passenger name, and departure airport to open the check-in session. Returns the list of passengers with ticket numbers and, if the passenger is logged in and holds a loyalty profile, pre-populated travel document data. checkInEligible confirms the booking is within the 24-hour check-in window.",
       "type": "positive",
@@ -703,7 +759,7 @@
           {
             "field": "bookingReference",
             "from": "bookingReference",
-            "source": "Step 6 → response.bookingReference"
+            "source": "Step 7 \u2192 response.bookingReference"
           }
         ]
       },
@@ -726,36 +782,36 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — booking retrieved. checkInEligible must be true for the journey to proceed. passengers contains one record per traveller, each with a ticketNumber required for passport submission. travelDocument is null when no passport data is held; it is pre-filled when the passenger is logged in and a loyalty profile match is found.",
+        "description": "200 OK \u2014 booking retrieved. checkInEligible must be true for the journey to proceed. passengers contains one record per traveller, each with a ticketNumber required for passport submission. travelDocument is null when no passport data is held; it is pre-filled when the passenger is logged in and a loyalty profile match is found.",
         "keyFields": [
           "bookingReference",
           "checkInEligible",
           "passengers"
         ],
-        "validationNotes": "checkInEligible is false outside the 24-hour window or when the booking is not in a Confirmed status. ticketNumber format is carrier-prefix – numeric (e.g. 932-1234567890). passengerTypeCode uses IATA codes: ADT, CHD, INF, YTH."
+        "validationNotes": "checkInEligible is false outside the 24-hour window or when the booking is not in a Confirmed status. ticketNumber format is carrier-prefix \u2013 numeric (e.g. 932-1234567890). passengerTypeCode uses IATA codes: ADT, CHD, INF, YTH."
       },
       "chainsTo": [
         {
           "path": "passengers[0].ticketNumber",
           "as": "ticketNumber",
           "usedInSteps": [
-            8,
-            11,
-            12
+            9,
+            12,
+            13
           ]
         },
         {
           "path": "passengers[0].passengerId",
           "as": "passengerId",
           "usedInSteps": [
-            8,
-            11
+            9,
+            12
           ]
         }
       ]
     },
     {
-      "step": 8,
+      "step": 9,
       "name": "Submit passport details",
       "description": "Submit travel document data for each passenger on the booking. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice. This step may be called multiple times before final check-in submission.",
       "type": "positive",
@@ -788,12 +844,12 @@
           {
             "field": "bookingReference",
             "from": "bookingReference",
-            "source": "Step 6 → response.bookingReference"
+            "source": "Step 7 \u2192 response.bookingReference"
           },
           {
             "field": "passengers[0].ticketNumber",
             "from": "ticketNumber",
-            "source": "Step 7 → passengers[0].ticketNumber"
+            "source": "Step 8 \u2192 passengers[0].ticketNumber"
           }
         ]
       },
@@ -806,7 +862,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — passport details validated and saved to the order. success: true confirms the travel document passed date validation and was persisted. A 422 is returned if the passport is expired or issueDate is in the future.",
+        "description": "200 OK \u2014 passport details validated and saved to the order. success: true confirms the travel document passed date validation and was persisted. A 422 is returned if the passport is expired or issueDate is in the future.",
         "keyFields": [
           "bookingReference",
           "success"
@@ -815,7 +871,7 @@
       }
     },
     {
-      "step": 9,
+      "step": 10,
       "name": "Seat selection",
       "description": "Submit seat selection for the booking during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
       "type": "positive",
@@ -836,7 +892,7 @@
           {
             "field": "bookingReference",
             "from": "bookingReference",
-            "source": "Step 6 → response.bookingReference"
+            "source": "Step 7 \u2192 response.bookingReference"
           }
         ]
       },
@@ -849,7 +905,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — seat selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any seat changes.",
+        "description": "200 OK \u2014 seat selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any seat changes.",
         "keyFields": [
           "bookingReference",
           "success"
@@ -858,7 +914,7 @@
       }
     },
     {
-      "step": 10,
+      "step": 11,
       "name": "Baggage selection",
       "description": "Submit baggage selection for the booking during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
       "type": "positive",
@@ -879,7 +935,7 @@
           {
             "field": "bookingReference",
             "from": "bookingReference",
-            "source": "Step 6 → response.bookingReference"
+            "source": "Step 7 \u2192 response.bookingReference"
           }
         ]
       },
@@ -892,7 +948,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — baggage selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any bag changes.",
+        "description": "200 OK \u2014 baggage selection acknowledged. Not implemented at this time; the endpoint accepts the request and returns success without persisting any bag changes.",
         "keyFields": [
           "bookingReference",
           "success"
@@ -901,7 +957,7 @@
       }
     },
     {
-      "step": 11,
+      "step": 12,
       "name": "Complete check-in",
       "description": "Final check-in submission. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
       "type": "positive",
@@ -922,7 +978,7 @@
           {
             "field": "bookingReference",
             "from": "bookingReference",
-            "source": "Step 6 → response.bookingReference"
+            "source": "Step 7 \u2192 response.bookingReference"
           }
         ]
       },
@@ -937,16 +993,16 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — check-in complete. checkedIn contains the ticket numbers successfully checked in. The Delivery microservice has updated the ticket coupon status to C for each ticket. The web then calls POST /v1/oci/boarding-docs to retrieve boarding cards.",
+        "description": "200 OK \u2014 check-in complete. checkedIn contains the ticket numbers successfully checked in. The Delivery microservice has updated the ticket coupon status to C for each ticket. The web then calls POST /v1/oci/boarding-docs to retrieve boarding cards.",
         "keyFields": [
           "bookingReference",
           "checkedIn"
         ],
-        "validationNotes": "checkedIn is an array of ticket number strings. One entry per successfully checked-in ticket. Ticket numbers use the carrier-prefix–numeric format (e.g. 932-1234567890)."
+        "validationNotes": "checkedIn is an array of ticket number strings. One entry per successfully checked-in ticket. Ticket numbers use the carrier-prefix\u2013numeric format (e.g. 932-1234567890)."
       }
     },
     {
-      "step": 12,
+      "step": 13,
       "name": "Generate boarding cards",
       "description": "Request boarding documents for the checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for the supplied departure airport, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
       "type": "positive",
@@ -969,7 +1025,7 @@
           {
             "field": "ticketNumbers[0]",
             "from": "ticketNumber",
-            "source": "Step 7 → passengers[0].ticketNumber"
+            "source": "Step 8 \u2192 passengers[0].ticketNumber"
           }
         ]
       },
@@ -994,7 +1050,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — boarding cards generated. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
+        "description": "200 OK \u2014 boarding cards generated. boardingCards contains one entry per checked-in segment. Each card includes human-readable fields (flightNumber, seatNumber, origin, destination, cabinCode) and a bcbpString compliant with IATA Resolution 792 for barcode rendering.",
         "keyFields": [
           "boardingCards",
           "boardingCards[0].ticketNumber",
