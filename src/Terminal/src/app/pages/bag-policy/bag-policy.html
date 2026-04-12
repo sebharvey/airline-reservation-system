@@ -1,0 +1,212 @@
+<div class="bag-policy-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Bag Policies</h1>
+      <p class="page-subtitle">Free checked bag allowances by cabin class</p>
+    </div>
+    <div class="header-actions">
+      @if (loaded() && !showForm()) {
+        <button class="load-btn secondary-btn" (click)="loadPolicies()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+        <button class="load-btn" (click)="openCreateForm()">
+          + New Policy
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (success()) {
+    <div class="success-banner" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">{{ editing() ? 'Edit Bag Policy' : 'Create Bag Policy' }}</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
+
+      <div class="form-sections">
+        @if (!editing()) {
+          <!-- Create form -->
+          <div class="form-section">
+            <h3 class="section-heading">Cabin</h3>
+            <div class="form-grid grid-1">
+              <div class="form-group">
+                <label>Cabin Code *</label>
+                <select [ngModel]="createForm().cabinCode" (ngModelChange)="updateCreateField('cabinCode', $event)">
+                  <option value="Y">Y — Economy</option>
+                  <option value="W">W — Premium Economy</option>
+                  <option value="J">J — Business</option>
+                  <option value="F">F — First</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 class="section-heading">Allowance</h3>
+            <div class="form-grid grid-2">
+              <div class="form-group">
+                <label>Free Bags Included *</label>
+                <input type="number" [ngModel]="createForm().freeBagsIncluded" (ngModelChange)="updateCreateField('freeBagsIncluded', +$event)" min="0" step="1" required />
+              </div>
+              <div class="form-group">
+                <label>Max Weight per Bag (kg) *</label>
+                <input type="number" [ngModel]="createForm().maxWeightKgPerBag" (ngModelChange)="updateCreateField('maxWeightKgPerBag', +$event)" min="1" step="1" required />
+              </div>
+            </div>
+          </div>
+        } @else {
+          <!-- Edit form — cabin code is read-only -->
+          <div class="form-section">
+            <h3 class="section-heading">Cabin</h3>
+            <div class="cabin-readonly">
+              <span class="badge badge-cabin">{{ editing()!.cabinCode }}</span>
+              <span class="cabin-readonly-label">{{ cabinLabel(editing()!.cabinCode) }}</span>
+              <span class="cabin-readonly-note">Cabin code cannot be changed</span>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 class="section-heading">Allowance</h3>
+            <div class="form-grid grid-2">
+              <div class="form-group">
+                <label>Free Bags Included *</label>
+                <input type="number" [ngModel]="updateForm().freeBagsIncluded" (ngModelChange)="updateUpdateField('freeBagsIncluded', +$event)" min="0" step="1" required />
+              </div>
+              <div class="form-group">
+                <label>Max Weight per Bag (kg) *</label>
+                <input type="number" [ngModel]="updateForm().maxWeightKgPerBag" (ngModelChange)="updateUpdateField('maxWeightKgPerBag', +$event)" min="1" step="1" required />
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 class="section-heading">Status</h3>
+            <div class="form-grid grid-1">
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [ngModel]="updateForm().isActive" (ngModelChange)="updateUpdateField('isActive', $event)" />
+                  Active
+                </label>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button class="save-btn" (click)="save()" [disabled]="saving()">
+          @if (saving()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editing() ? 'Update Policy' : 'Create Policy' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats -->
+  @if (loaded() && !showForm()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Policies</span>
+      </div>
+      <div class="stat-card stat-active">
+        <span class="stat-value">{{ stats().active }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+      <div class="stat-card stat-bags">
+        <span class="stat-value">{{ stats().totalBags }}</span>
+        <span class="stat-label">Total Free Bags</span>
+      </div>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (loaded() && !showForm()) {
+    <div class="table-card">
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th>Cabin</th>
+            <th>Class</th>
+            <th>Free Bags</th>
+            <th>Max Weight</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (policy of filtered(); track policy.policyId) {
+            <tr class="rule-row">
+              <td>
+                <span class="badge badge-cabin">{{ policy.cabinCode }}</span>
+              </td>
+              <td>{{ cabinLabel(policy.cabinCode) }}</td>
+              <td class="mono">{{ policy.freeBagsIncluded }}</td>
+              <td class="mono">{{ policy.maxWeightKgPerBag }} kg</td>
+              <td>
+                <span class="badge" [class.badge-yes]="policy.isActive" [class.badge-no]="!policy.isActive">
+                  {{ policy.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(policy)" title="Edit">Edit</button>
+                  <button
+                    class="action-btn delete-btn"
+                    (click)="deletePolicy(policy.policyId)"
+                    [disabled]="deleting() === policy.policyId"
+                    title="Delete"
+                  >
+                    @if (deleting() === policy.policyId) { … } @else { Del }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (filtered().length === 0 && loaded()) {
+            <tr>
+              <td colspan="6" class="empty-row">
+                @if (filter()) {
+                  No policies match the filter "{{ filter() }}".
+                } @else {
+                  No bag policies found. Click "New Policy" to create one.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">Showing {{ filtered().length }} of {{ policies().length }} policies</p>
+  }
+
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading bag policies…</p>
+    </div>
+  }
+
+</div>

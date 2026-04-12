@@ -22,6 +22,8 @@
         { value: 'user',                        label: 'user - account creation & authentication' },
         { value: 'fare-rules',                  label: 'admin - fare rules' },
         { value: 'seat-pricing',                label: 'admin - seat pricing' },
+        { value: 'bag-policy',                  label: 'admin - bag policy' },
+        { value: 'bag-pricing',                 label: 'admin - bag pricing' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
 

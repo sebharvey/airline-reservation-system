@@ -57,6 +57,14 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/fare-rules/fare-rules').then(m => m.FareRulesComponent),
       },
       {
+        path: 'bag-policy',
+        loadComponent: () => import('./pages/bag-policy/bag-policy').then(m => m.BagPolicyComponent),
+      },
+      {
+        path: 'bag-pricing',
+        loadComponent: () => import('./pages/bag-pricing/bag-pricing').then(m => m.BagPricingComponent),
+      },
+      {
         path: 'seating',
         loadComponent: () => import('./pages/seating/seating').then(m => m.SeatingComponent),
       },
