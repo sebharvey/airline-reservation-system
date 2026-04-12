@@ -40,6 +40,10 @@ public sealed class ConfirmBasketHandler
         if (basket.ExpiresAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Basket has expired.");
 
+        // Validate all offers before creating any order record.
+        var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
+        await ValidateOffersAsync(basketDataJsonEarly, cancellationToken);
+
         var totalAmount = basket.TotalAmount ?? 0m;
         var currency = basket.CurrencyCode;
         var bookingType = command.LoyaltyPointsToRedeem.HasValue ? "Reward" : "Revenue";
@@ -128,6 +132,52 @@ public sealed class ConfirmBasketHandler
             Currency = confirmedOrder.CurrencyCode,
             BookedAt = DateTime.UtcNow
         };
+    }
+
+    private async Task ValidateOffersAsync(string? basketDataJson, CancellationToken cancellationToken)
+    {
+        var offerRefs = ParseOfferRefsFromBasketData(basketDataJson);
+        foreach (var (offerId, sessionId) in offerRefs)
+        {
+            var offer = await _offerServiceClient.GetOfferAsync(offerId, sessionId, cancellationToken);
+            if (offer is null)
+                throw new InvalidOperationException($"Offer {offerId} could not be found or has expired. Customer must re-search.");
+            if (!offer.Validated)
+                throw new InvalidOperationException($"Offer {offerId} has not been validated and cannot be confirmed.");
+        }
+    }
+
+    private static List<(Guid OfferId, Guid? SessionId)> ParseOfferRefsFromBasketData(string? basketDataJson)
+    {
+        var refs = new List<(Guid, Guid?)>();
+        if (basketDataJson == null) return refs;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("flightOffers", out var offersEl) &&
+                offersEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var offer in offersEl.EnumerateArray())
+                {
+                    if (offer.TryGetProperty("offerId", out var offerIdEl) &&
+                        offerIdEl.TryGetGuid(out var offerId))
+                    {
+                        Guid? sessionId = null;
+                        if (offer.TryGetProperty("sessionId", out var sessionIdEl) &&
+                            sessionIdEl.TryGetGuid(out var sid))
+                            sessionId = sid;
+
+                        refs.Add((offerId, sessionId));
+                    }
+                }
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return refs;
     }
 
     private async Task RunInventorySellAsync(

@@ -64,6 +64,7 @@ public sealed class OfferDetailDto
     public Guid SessionId { get; init; }
     public string ExpiresAt { get; init; } = string.Empty;
     public Guid InventoryId { get; init; }
+    public bool Validated { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
     public string DepartureTime { get; init; } = string.Empty;
