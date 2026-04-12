@@ -75,11 +75,11 @@ export class ProductGroupsComponent implements OnInit {
     this.editing.set(null);
   }
 
-  updateCreateField(field: keyof CreateProductGroupRequest, value: unknown): void {
+  updateCreateField<K extends keyof CreateProductGroupRequest>(field: K, value: CreateProductGroupRequest[K]): void {
     this.createForm.update(f => ({ ...f, [field]: value }));
   }
 
-  updateUpdateField(field: keyof UpdateProductGroupRequest, value: unknown): void {
+  updateUpdateField<K extends keyof UpdateProductGroupRequest>(field: K, value: UpdateProductGroupRequest[K]): void {
     this.updateForm.update(f => ({ ...f, [field]: value }));
   }
 
