@@ -224,6 +224,7 @@ export class SeatsComponent implements OnInit {
         segmentId: sel.segmentId,
         basketItemRef: sel.basketItemRef,
         seatOfferId: sel.seatOffer.seatOfferId,
+        seatNumber: sel.seatOffer.seatNumber,
         seatPosition: sel.seatOffer.position,
         price: sel.seatOffer.price,
         currency: sel.seatOffer.currency
