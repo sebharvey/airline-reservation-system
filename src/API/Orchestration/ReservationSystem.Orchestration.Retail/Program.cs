@@ -9,6 +9,7 @@ using ReservationSystem.Orchestration.Retail.Swagger;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
+using ReservationSystem.Orchestration.Retail.Application.BasketSummary;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrders;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
@@ -91,6 +92,7 @@ var host = new HostBuilder()
         services.AddScoped<SearchConnectingFlightsHandler>();
         services.AddScoped<CreateBasketHandler>();
         services.AddScoped<ConfirmBasketHandler>();
+        services.AddScoped<BasketSummaryHandler>();
         services.AddScoped<GetOrderHandler>();
         services.AddScoped<GetFlightInventoryHandler>();
         services.AddScoped<GetAdminOrdersHandler>();

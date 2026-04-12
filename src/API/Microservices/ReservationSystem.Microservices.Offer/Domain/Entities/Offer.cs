@@ -202,8 +202,19 @@ public sealed class Fare
 }
 
 /// <summary>
+/// A single tax line within a stored offer item, copied from FareRule.TaxLines at reprice time.
+/// </summary>
+public sealed class TaxLineItem
+{
+    public string Code { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string? Description { get; init; }
+}
+
+/// <summary>
 /// A single cabin fare entry within a stored offer's FaresInfo JSON payload.
 /// Each item has its own OfferId so the basket flow can reference a specific fare.
+/// TaxLines is null until the offer is repriced via POST /v1/offers/{offerId}/reprice.
 /// </summary>
 public sealed class StoredOfferItem
 {
@@ -224,6 +235,7 @@ public sealed class StoredOfferItem
     public decimal? PointsTaxes { get; init; }
     public int SeatsAvailable { get; init; }
     public string BookingType { get; init; } = string.Empty;
+    public IReadOnlyList<TaxLineItem>? TaxLines { get; init; }
 }
 
 /// <summary>

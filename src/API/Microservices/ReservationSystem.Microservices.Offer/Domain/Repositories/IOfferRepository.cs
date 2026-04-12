@@ -38,6 +38,7 @@ public interface IOfferRepository
     Task<Entities.StoredOffer?> GetStoredOfferByOfferIdAsync(Guid offerId, CancellationToken ct = default);
     Task<Entities.StoredOffer?> GetStoredOfferBySessionAndOfferIdAsync(Guid sessionId, Guid offerId, CancellationToken ct = default);
     Task CreateStoredOfferAsync(Entities.StoredOffer offer, CancellationToken ct = default);
+    Task UpdateStoredOfferFaresInfoAsync(Guid storedOfferId, string faresInfoJson, CancellationToken ct = default);
 
     // InventoryHold
     Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);

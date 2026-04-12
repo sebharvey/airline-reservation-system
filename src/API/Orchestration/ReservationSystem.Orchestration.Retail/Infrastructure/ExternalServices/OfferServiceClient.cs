@@ -29,6 +29,18 @@ public sealed class OfferServiceClient
         return await response.Content.ReadFromJsonAsync<OfferDetailDto>(JsonOptions, cancellationToken);
     }
 
+    public async Task<RepriceOfferDto?> RepriceOfferAsync(Guid offerId, Guid? sessionId = null, CancellationToken cancellationToken = default)
+    {
+        var url = sessionId.HasValue
+            ? $"/api/v1/offers/{offerId}/reprice?sessionId={sessionId.Value}"
+            : $"/api/v1/offers/{offerId}/reprice";
+
+        using var response = await _httpClient.PostAsync(url, content: null, cancellationToken);
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<RepriceOfferDto>(JsonOptions, cancellationToken);
+    }
+
     public async Task<OfferSearchResultDto> SearchAsync(
         string origin,
         string destination,

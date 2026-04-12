@@ -17,6 +17,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
+using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -46,6 +47,7 @@ public sealed class OfferFunction
     private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
     private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
     private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
+    private readonly RepriceStoredOfferHandler _repriceHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -65,6 +67,7 @@ public sealed class OfferFunction
         GetFlightInventoryByDateHandler getFlightInventoryHandler,
         GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
         GetInventoryHoldsHandler getInventoryHoldsHandler,
+        RepriceStoredOfferHandler repriceHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -83,6 +86,7 @@ public sealed class OfferFunction
         _getFlightInventoryHandler = getFlightInventoryHandler;
         _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
         _getInventoryHoldsHandler = getInventoryHoldsHandler;
+        _repriceHandler = repriceHandler;
         _logger = logger;
     }
 
@@ -394,6 +398,60 @@ public sealed class OfferFunction
                 cancellationFeeAmount = item.CancellationFeeAmount,
                 pointsPrice           = item.PointsPrice,
                 pointsTaxes           = item.PointsTaxes,
+                seatsAvailable        = item.SeatsAvailable,
+                bookingType           = item.BookingType
+            })
+        });
+    }
+
+    // POST /v1/offers/{offerId}/reprice
+    [Function("RepriceStoredOffer")]
+    [OpenApiOperation(operationId: "RepriceStoredOffer", tags: new[] { "Offers" }, Summary = "Reprice a stored offer — fetch tax lines from the matching FareRule and set validated = true")]
+    [OpenApiParameter(name: "offerId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Offer ID")]
+    [OpenApiParameter(name: "sessionId", In = ParameterLocation.Query, Required = false, Type = typeof(Guid), Description = "Session ID — scopes the lookup to the indexed session for efficiency")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — repriced inventory entry with tax lines and validated = true")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "Gone — offer has expired")]
+    public async Task<HttpResponseData> Reprice(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/offers/{offerId:guid}/reprice")] HttpRequestData req,
+        Guid offerId,
+        CancellationToken ct)
+    {
+        var sessionIdRaw = req.Query["sessionId"];
+        Guid? sessionId = Guid.TryParse(sessionIdRaw, out var sid) ? sid : null;
+
+        RepriceStoredOfferResult? result;
+        try
+        {
+            result = await _repriceHandler.HandleAsync(new RepriceStoredOfferCommand(offerId, sessionId), ct);
+        }
+        catch (OfferGoneException ex)
+        {
+            return await req.GoneAsync(ex.Message);
+        }
+
+        if (result is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(new
+        {
+            storedOfferId = result.StoredOfferId,
+            sessionId     = result.SessionId,
+            inventoryId   = result.InventoryId,
+            validated     = result.Validated,
+            offers        = result.Offers.Select(item => new
+            {
+                offerId               = item.OfferId,
+                cabinCode             = item.CabinCode,
+                fareBasisCode         = item.FareBasisCode,
+                fareFamily            = item.FareFamily,
+                currencyCode          = item.CurrencyCode,
+                baseFareAmount        = item.BaseFareAmount,
+                taxAmount             = item.TaxAmount,
+                totalAmount           = item.TotalAmount,
+                taxLines              = item.TaxLines,
+                isRefundable          = item.IsRefundable,
+                isChangeable          = item.IsChangeable,
                 seatsAvailable        = item.SeatsAvailable,
                 bookingType           = item.BookingType
             })

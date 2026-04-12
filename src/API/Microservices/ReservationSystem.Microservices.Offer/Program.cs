@@ -27,6 +27,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
+using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
@@ -85,6 +86,7 @@ var host = new HostBuilder()
         services.AddScoped<BatchCreateFlightsHandler>();
         services.AddScoped<SearchOffersHandler>();
         services.AddScoped<GetStoredOfferHandler>();
+        services.AddScoped<RepriceStoredOfferHandler>();
         services.AddScoped<HoldInventoryHandler>();
         services.AddScoped<SellInventoryHandler>();
         services.AddScoped<ReleaseInventoryHandler>();
