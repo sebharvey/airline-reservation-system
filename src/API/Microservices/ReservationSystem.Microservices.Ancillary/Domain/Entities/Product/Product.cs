@@ -18,7 +18,7 @@ public sealed class Product
     public DateTime UpdatedAt { get; private set; }
 
     // Navigation — populated by EF via Include
-    public IReadOnlyList<ProductPrice> Prices { get; private set; } = [];
+    public List<ProductPrice> Prices { get; private set; } = [];
 
     private Product() { }
 
