@@ -133,7 +133,7 @@ public sealed class ConfirmOrderHandler
             var item = new JsonObject();
             foreach (var prop in new[]
             {
-                "offerId", "sessionId", "inventoryId", "cabinCode", "basketItemId",
+                "offerId", "inventoryId", "cabinCode",
                 "flightNumber", "departureDate", "departureTime", "arrivalTime",
                 "origin", "destination", "aircraftType",
                 "fareBasisCode", "fareFamily",
@@ -142,7 +142,7 @@ public sealed class ConfirmOrderHandler
                 "pointsPrice", "pointsTaxes"
             })
             {
-                if (offerObj[prop] is JsonNode val)
+                if (offerObj[prop] is JsonNode val && val.GetValueKind() != System.Text.Json.JsonValueKind.Null)
                     item[prop] = val.DeepClone();
             }
 
@@ -186,10 +186,6 @@ public sealed class ConfirmOrderHandler
             },
             ["orderItems"] = flightOrderItems,
             ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
-            ["eTickets"] = new JsonArray(),
-            ["seatAssignments"] = basketJson["seats"]?.DeepClone() ?? new JsonArray(),
-            ["bagItems"] = basketJson["bags"]?.DeepClone() ?? new JsonArray(),
-            ["ssrItems"] = basketJson["ssrSelections"]?.DeepClone() ?? new JsonArray(),
             ["bookingType"] = bookingType,
             ["history"] = new JsonArray
             {
@@ -205,6 +201,14 @@ public sealed class ConfirmOrderHandler
                 }
             }
         };
+
+        // Only include optional arrays when non-empty; downstream handlers create the key when needed.
+        if (basketJson["seats"]?.AsArray() is { Count: > 0 } seats)
+            orderData["seatAssignments"] = seats.DeepClone();
+        if (basketJson["bags"]?.AsArray() is { Count: > 0 } bags)
+            orderData["bagItems"] = bags.DeepClone();
+        if (basketJson["ssrSelections"]?.AsArray() is { Count: > 0 } ssrs)
+            orderData["ssrItems"] = ssrs.DeepClone();
 
         if (draftData["pointsRedemption"] is JsonNode redemption)
             orderData["pointsRedemption"] = redemption.DeepClone();
