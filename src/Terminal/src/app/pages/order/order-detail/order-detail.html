@@ -197,7 +197,7 @@
                   </div>
                   <div class="edit-field">
                     <label class="field-label">Date of birth</label>
-                    <input class="edit-input" type="date" [value]="editForm().dateOfBirth ?? ''" (input)="updateEditField('dateOfBirth', $any($event.target).value)" />
+                    <input class="edit-input" type="date" [value]="editForm().dob ?? ''" (input)="updateEditField('dob', $any($event.target).value)" />
                   </div>
                   <div class="edit-field">
                     <label class="field-label">Email</label>
@@ -223,7 +223,7 @@
               <div class="field-grid">
                 <div class="field-row">
                   <span class="field-label">Date of birth</span>
-                  <span class="field-value">{{ formatDate(pax.dateOfBirth) }}</span>
+                  <span class="field-value">{{ formatDate(pax.dob) }}</span>
                 </div>
                 <div class="field-row">
                   <span class="field-label">Email</span>

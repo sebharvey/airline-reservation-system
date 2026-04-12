@@ -81,7 +81,7 @@ public sealed class GetOrderHandler
                             Type = pax.TryGetProperty("type", out var type) ? type.GetString() ?? "ADT" : "ADT",
                             GivenName = pax.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
                             Surname = pax.TryGetProperty("surname", out var sn) ? sn.GetString() ?? "" : "",
-                            DateOfBirth = pax.TryGetProperty("dateOfBirth", out var dob) ? dob.GetString() ?? "" : "",
+                            Dob = pax.TryGetProperty("dob", out var dob) ? dob.GetString() ?? "" : "",
                             Gender = pax.TryGetProperty("gender", out var gen) ? gen.GetString() ?? "" : "",
                             LoyaltyNumber = pax.TryGetProperty("loyaltyNumber", out var ln) ? ln.GetString() : null,
                             Contacts = contacts,

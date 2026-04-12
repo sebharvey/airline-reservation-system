@@ -31,7 +31,7 @@ export interface OrderPassenger {
   passengerId: string;
   givenName: string;
   surname: string;
-  dateOfBirth: string | null;
+  dob: string | null;
   type: string;
   gender: string | null;
   contacts: PassengerContacts | null;

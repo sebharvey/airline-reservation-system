@@ -181,7 +181,7 @@ internal sealed class RunSimulatorHandler
                 Type:           "ADT",
                 GivenName:      given,
                 Surname:        surname,
-                DateOfBirth:    dob,
+                Dob:            dob,
                 Gender:         gender,
                 LoyaltyNumber:  null,
                 Contacts:       new PassengerContacts(email, phone),

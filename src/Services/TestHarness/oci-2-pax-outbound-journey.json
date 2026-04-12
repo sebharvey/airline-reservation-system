@@ -583,7 +583,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME__",
             "surname": "__RAND_SURNAME__",
-            "dateOfBirth": "__RAND_DOB__",
+            "dob": "__RAND_DOB__",
             "gender": "__RAND_GENDER__",
             "loyaltyNumber": "__RAND_LOYALTY_NUMBER__",
             "contacts": {
@@ -597,7 +597,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_2__",
             "surname": "__RAND_SURNAME_2__",
-            "dateOfBirth": "__RAND_DOB_2__",
+            "dob": "__RAND_DOB_2__",
             "gender": "__RAND_GENDER_2__",
             "loyaltyNumber": null,
             "contacts": {

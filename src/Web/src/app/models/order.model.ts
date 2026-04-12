@@ -22,7 +22,7 @@ export interface Passenger {
   type: PassengerType;
   givenName: string;
   surname: string;
-  dateOfBirth: string;
+  dob: string;
   gender: 'Male' | 'Female' | 'Other' | '';
   loyaltyNumber: string | null;
   contacts: PassengerContacts | null;

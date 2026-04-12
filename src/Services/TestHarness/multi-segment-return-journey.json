@@ -723,7 +723,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME__",
             "surname": "__RAND_SURNAME__",
-            "dateOfBirth": "__RAND_DOB__",
+            "dob": "__RAND_DOB__",
             "gender": "__RAND_GENDER__",
             "loyaltyNumber": null,
             "contacts": {
@@ -738,7 +738,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_2__",
             "surname": "__RAND_SURNAME_2__",
-            "dateOfBirth": "__RAND_DOB_2__",
+            "dob": "__RAND_DOB_2__",
             "gender": "__RAND_GENDER_2__",
             "loyaltyNumber": null,
             "contacts": {
@@ -753,7 +753,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_3__",
             "surname": "__RAND_SURNAME_3__",
-            "dateOfBirth": "__RAND_DOB_3__",
+            "dob": "__RAND_DOB_3__",
             "gender": "__RAND_GENDER_3__",
             "loyaltyNumber": null,
             "contacts": {
@@ -768,7 +768,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_4__",
             "surname": "__RAND_SURNAME_4__",
-            "dateOfBirth": "__RAND_DOB_4__",
+            "dob": "__RAND_DOB_4__",
             "gender": "__RAND_GENDER_4__",
             "loyaltyNumber": null,
             "contacts": {
@@ -783,7 +783,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_5__",
             "surname": "__RAND_SURNAME_5__",
-            "dateOfBirth": "__RAND_DOB_5__",
+            "dob": "__RAND_DOB_5__",
             "gender": "__RAND_GENDER_5__",
             "loyaltyNumber": null,
             "contacts": {
@@ -798,7 +798,7 @@
             "type": "ADT",
             "givenName": "__RAND_GIVEN_NAME_6__",
             "surname": "__RAND_SURNAME_6__",
-            "dateOfBirth": "__RAND_DOB_6__",
+            "dob": "__RAND_DOB_6__",
             "gender": "__RAND_GENDER_6__",
             "loyaltyNumber": null,
             "contacts": {

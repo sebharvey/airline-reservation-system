@@ -307,13 +307,13 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
       "passengerId": "PAX-1",
       "givenName": "Alex",
       "surname": "Taylor",
-      "dateOfBirth": "1985-03-12"
+      "dob": "1985-03-12"
     },
     {
       "passengerId": "PAX-2",
       "givenName": "Jordan",
       "surname": "Taylor",
-      "dateOfBirth": "1987-07-22"
+      "dob": "1987-07-22"
     }
   ],
   "segments": [
@@ -361,7 +361,7 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
 | `passengers[].passengerId` | string | Yes | PAX reference, e.g. `PAX-1` |
 | `passengers[].givenName` | string | Yes | Passenger's given name |
 | `passengers[].surname` | string | Yes | Passenger's surname |
-| `passengers[].dateOfBirth` | string (date) | No | ISO 8601 date |
+| `passengers[].dob` | string (date) | No | ISO 8601 date |
 | `segments` | array | Yes | List of all flight segments requiring e-tickets |
 | `segments[].segmentId` | string | Yes | Segment reference, e.g. `SEG-1` |
 | `segments[].inventoryId` | string (UUID) | Yes | Flight inventory identifier from `offer.FlightInventory` |

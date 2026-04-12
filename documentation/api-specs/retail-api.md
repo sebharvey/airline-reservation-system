@@ -443,7 +443,7 @@ Add or update passenger details on a basket. Delegates to `PUT /v1/basket/{baske
       "type": "ADT",
       "givenName": "Alex",
       "surname": "Taylor",
-      "dateOfBirth": "1985-03-12",
+      "dob": "1985-03-12",
       "gender": "Male",
       "loyaltyNumber": "AX9876543",
       "contacts": {
@@ -470,7 +470,7 @@ Add or update passenger details on a basket. Delegates to `PUT /v1/basket/{baske
 | `passengers[].type` | string | Yes | IATA passenger type: `ADT`, `CHD`, `INF`, `YTH` |
 | `passengers[].givenName` | string | Yes | Max 100 characters |
 | `passengers[].surname` | string | Yes | Max 100 characters |
-| `passengers[].dateOfBirth` | string (date) | No | ISO 8601 date |
+| `passengers[].dob` | string (date) | No | ISO 8601 date |
 | `passengers[].gender` | string | No | `Male`, `Female`, `Unspecified` |
 | `passengers[].loyaltyNumber` | string | No | Apex Air loyalty number if the passenger is a member |
 | `passengers[].contacts` | object | No | At least one contact (email or phone) required on the lead passenger |

@@ -356,7 +356,7 @@ public sealed class ConfirmBasketHandler
                     PassengerId = p.PassengerId,
                     GivenName = p.GivenName,
                     Surname = p.Surname,
-                    DateOfBirth = p.DateOfBirth,
+                    Dob = p.Dob,
                     FormOfPayment = formOfPayment
                 })
                 .ToList();
@@ -602,7 +602,7 @@ public sealed class ConfirmBasketHandler
                         PassengerId = p.TryGetProperty("passengerId", out var v) ? v.GetString() ?? string.Empty : string.Empty,
                         GivenName = p.TryGetProperty("givenName", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         Surname = p.TryGetProperty("surname", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        DateOfBirth = p.TryGetProperty("dateOfBirth", out v) ? v.GetString() : null
+                        Dob = p.TryGetProperty("dob", out v) ? v.GetString() : null
                     });
                 }
             }
