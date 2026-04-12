@@ -77,7 +77,7 @@ public sealed class GetAdminOrderDetailHandler
     /// </summary>
     private async Task EnrichFlightSegmentsAsync(JsonObject orderData, CancellationToken ct)
     {
-        var orderItemsNode = orderData["items"]?.AsArray();
+        var orderItemsNode = orderData["orderItems"]?.AsArray();
         if (orderItemsNode is null || orderItemsNode.Count == 0)
             return;
 
@@ -91,7 +91,7 @@ public sealed class GetAdminOrderDetailHandler
             var item = orderItemsNode[n]?.AsObject();
             if (item is null) continue;
 
-            if (!item.TryGetPropertyValue("invId", out var invNode) || invNode is null)
+            if (!item.TryGetPropertyValue("inventoryId", out var invNode) || invNode is null)
                 continue;
 
             var inventoryIdStr = invNode.GetValue<string>();
@@ -100,7 +100,7 @@ public sealed class GetAdminOrderDetailHandler
 
             // basketItemId stored on the orderItem (new orders) or derived from position (legacy)
             var basketItemId = item["basketItemId"]?.GetValue<string>() ?? $"BI-{n + 1}";
-            var cabinCode = item["cabin"]?.GetValue<string>() ?? string.Empty;
+            var cabinCode = item["cabinCode"]?.GetValue<string>() ?? string.Empty;
 
             var flightDetail = await _offerServiceClient.GetFlightByInventoryIdAsync(inventoryId, ct);
             if (flightDetail is null) continue;
@@ -168,11 +168,11 @@ public sealed class GetAdminOrderDetailHandler
             }
         }
 
-        // Populate data.flightSegments
-        if (orderData["data"] is JsonObject dataLists)
+        // Populate dataLists.flightSegments
+        if (orderData["dataLists"] is JsonObject dataLists)
             dataLists["flightSegments"] = flightSegments;
         else
-            orderData["data"] = new JsonObject { ["flightSegments"] = flightSegments };
+            orderData["dataLists"] = new JsonObject { ["flightSegments"] = flightSegments };
 
         // Append seat ancillary items from seatAssignments so the Terminal passengers tab
         // can display seat numbers via getSeatForPaxSegment (which looks for itemType=Seat).
@@ -200,10 +200,10 @@ public sealed class GetAdminOrderDetailHandler
             }
         }
 
-        // Replace items only when we have enriched entries (prevents wiping ancillary items
+        // Replace orderItems only when we have enriched entries (prevents wiping ancillary items
         // that may have been appended by future post-sale operations)
         if (enrichedItems.Count > 0)
-            orderData["items"] = enrichedItems;
+            orderData["orderItems"] = enrichedItems;
     }
 
     /// <summary>
@@ -308,7 +308,7 @@ public sealed class GetAdminOrderDetailHandler
             {
                 ["eventType"] = eventType,
                 ["description"] = h["description"]?.GetValue<string>() ?? string.Empty,
-                ["timestamp"] = (h["ts"] ?? h["timestamp"])?.GetValue<string>() ?? string.Empty,
+                ["timestamp"] = h["timestamp"]?.GetValue<string>() ?? string.Empty,
             });
         }
 
