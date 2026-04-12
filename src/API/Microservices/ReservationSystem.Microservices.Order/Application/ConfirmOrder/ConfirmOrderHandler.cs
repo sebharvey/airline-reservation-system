@@ -75,7 +75,7 @@ public sealed class ConfirmOrderHandler
                 .Where(o => o["basketItemId"]?.GetValue<string>() is not null)
                 .ToDictionary(
                     o => o["basketItemId"]!.GetValue<string>(),
-                    o => o["cabinCode"]?.GetValue<string>() ?? string.Empty,
+                    o => o["cabin"]?.GetValue<string>() ?? string.Empty,
                     StringComparer.OrdinalIgnoreCase);
 
             foreach (var seat in seatsNode)
@@ -105,7 +105,7 @@ public sealed class ConfirmOrderHandler
                 DateTime.TryParse(departureDateTimeStr, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var departureUtc) &&
                 departureUtc <= ticketingCutoff)
             {
-                var flightNumber = offerObj["flightNumber"]?.GetValue<string>() ?? "unknown";
+                var flightNumber = offerObj["flight"]?.GetValue<string>() ?? "unknown";
                 throw new InvalidOperationException(
                     $"Ticketing is closed for flight {flightNumber}: departure at {departureDateTimeStr} is within 1 hour.");
             }
@@ -115,7 +115,7 @@ public sealed class ConfirmOrderHandler
 
         // Carry forward bookingType and any reward redemption data from the draft OrderData
         var draftData = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
-        var bookingType = draftData["bookingType"]?.GetValue<string>() ?? "Revenue";
+        var bookingType = (draftData["bkgType"] ?? draftData["bookingType"])?.GetValue<string>() ?? "Revenue";
 
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
@@ -133,12 +133,12 @@ public sealed class ConfirmOrderHandler
             var item = new JsonObject();
             foreach (var prop in new[]
             {
-                "offerId", "inventoryId", "cabinCode",
-                "flightNumber", "departureDate", "departureTime", "arrivalTime",
-                "origin", "destination", "aircraftType",
-                "fareBasisCode", "fareFamily",
-                "totalAmount", "baseFareAmount", "taxAmount",
-                "isRefundable", "isChangeable",
+                "offerId", "invId", "cabin",
+                "flight", "depDate", "depTime", "arrTime",
+                "origin", "dest", "acType",
+                "fareBasis", "fareFamily",
+                "total", "baseFare", "tax",
+                "refundable", "changeable",
                 "pointsPrice", "pointsTaxes"
             })
             {
@@ -148,13 +148,13 @@ public sealed class ConfirmOrderHandler
 
             // Overlay the repriced fare amounts and tax lines if available.
             var offerId    = offerObj["offerId"]?.GetValue<string>() ?? "";
-            var cabinCode  = offerObj["cabinCode"]?.GetValue<string>() ?? "";
+            var cabinCode  = offerObj["cabin"]?.GetValue<string>() ?? "";
             var lookupKey  = $"{offerId}:{cabinCode}";
             if (enrichedByKey.TryGetValue(lookupKey, out var enriched))
             {
-                item["baseFareAmount"] = enriched.BaseFareAmount;
-                item["taxAmount"]      = enriched.TaxAmount;
-                item["totalAmount"]    = enriched.TotalAmount;
+                item["baseFare"] = enriched.BaseFareAmount;
+                item["tax"]      = enriched.TaxAmount;
+                item["total"]    = enriched.TotalAmount;
 
                 if (enriched.TaxLines is { Count: > 0 })
                 {
@@ -179,25 +179,25 @@ public sealed class ConfirmOrderHandler
 
         var orderData = new JsonObject
         {
-            ["currencyCode"] = basket.CurrencyCode,
-            ["dataLists"] = new JsonObject
+            ["currency"] = basket.CurrencyCode,
+            ["data"] = new JsonObject
             {
                 ["passengers"] = passengersNode.DeepClone()
             },
-            ["orderItems"] = flightOrderItems,
+            ["items"] = flightOrderItems,
             ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
-            ["bookingType"] = bookingType,
+            ["bkgType"] = bookingType,
             ["history"] = new JsonArray
             {
                 draftData["history"]?[0]?.DeepClone() ?? new JsonObject
                 {
                     ["event"] = "OrderCreated",
-                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                    ["ts"] = DateTime.UtcNow.ToString("o")
                 },
                 new JsonObject
                 {
                     ["event"] = "OrderConfirmed",
-                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                    ["ts"] = DateTime.UtcNow.ToString("o")
                 }
             }
         };

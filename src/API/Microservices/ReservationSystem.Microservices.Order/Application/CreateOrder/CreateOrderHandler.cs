@@ -45,13 +45,13 @@ public sealed class CreateOrderHandler
         var orderData = new JsonObject
         {
             ["basketId"] = command.BasketId.ToString(),
-            ["bookingType"] = command.BookingType,
+            ["bkgType"] = command.BookingType,
             ["history"] = new JsonArray
             {
                 new JsonObject
                 {
                     ["event"] = "OrderCreated",
-                    ["timestamp"] = DateTime.UtcNow.ToString("o")
+                    ["ts"] = DateTime.UtcNow.ToString("o")
                 }
             }
         };
