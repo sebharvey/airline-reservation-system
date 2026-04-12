@@ -7,15 +7,17 @@ export interface SsrCatalogueEntry {
   ssrCode: string;
   label: string;
   category: string;
-  isActive: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class SsrCatalogueService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.retailApiUrl}/api/v1/ssr`;
+  #baseUrl = `${environment.retailApiUrl}/api/v1/ssr/options`;
 
   async getAll(): Promise<SsrCatalogueEntry[]> {
-    return firstValueFrom(this.#http.get<SsrCatalogueEntry[]>(this.#baseUrl));
+    const response = await firstValueFrom(
+      this.#http.get<{ ssrOptions: SsrCatalogueEntry[] }>(this.#baseUrl)
+    );
+    return response.ssrOptions;
   }
 }

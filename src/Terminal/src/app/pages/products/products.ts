@@ -88,7 +88,7 @@ export class ProductsComponent implements OnInit {
       ]);
       this.products.set(products);
       this.groups.set(groups);
-      this.ssrCodes.set(ssrCodes.filter(s => s.isActive));
+      this.ssrCodes.set(ssrCodes);
       this.loaded.set(true);
     } catch {
       this.error.set('Failed to load products. Please try again.');
