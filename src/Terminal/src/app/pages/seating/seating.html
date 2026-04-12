@@ -49,7 +49,7 @@
         <!-- Seat Identity -->
         <div class="form-section">
           <h3 class="section-heading">Seat Identity</h3>
-          <div class="form-grid grid-3">
+          <div class="form-grid grid-2">
             <div class="form-group">
               <label>Cabin Code *</label>
               <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
@@ -67,6 +67,13 @@
                 <option value="Middle">Middle</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="form-section">
+          <h3 class="section-heading">Pricing</h3>
+          <div class="form-grid grid-2">
             <div class="form-group">
               <label>Currency *</label>
               <input
@@ -79,13 +86,6 @@
                 required
               />
             </div>
-          </div>
-        </div>
-
-        <!-- Pricing -->
-        <div class="form-section">
-          <h3 class="section-heading">Pricing</h3>
-          <div class="form-grid grid-2">
             <div class="form-group">
               <label>Price *</label>
               <div class="price-input-wrap">
