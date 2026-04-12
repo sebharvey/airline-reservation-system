@@ -38,6 +38,21 @@ using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPricing
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Bag;
 using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Bag;
+using ReservationSystem.Microservices.Ancillary.Application.Product.CreateProductGroup;
+using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProductGroup;
+using ReservationSystem.Microservices.Ancillary.Application.Product.DeleteProductGroup;
+using ReservationSystem.Microservices.Ancillary.Application.Product.GetProductGroup;
+using ReservationSystem.Microservices.Ancillary.Application.Product.GetAllProductGroups;
+using ReservationSystem.Microservices.Ancillary.Application.Product.CreateProduct;
+using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProduct;
+using ReservationSystem.Microservices.Ancillary.Application.Product.DeleteProduct;
+using ReservationSystem.Microservices.Ancillary.Application.Product.GetProduct;
+using ReservationSystem.Microservices.Ancillary.Application.Product.GetAllProducts;
+using ReservationSystem.Microservices.Ancillary.Application.Product.CreateProductPrice;
+using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProductPrice;
+using ReservationSystem.Microservices.Ancillary.Application.Product.DeleteProductPrice;
+using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
+using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Product;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
@@ -73,6 +88,9 @@ var host = new HostBuilder()
         });
         services.AddScoped<IBagPolicyRepository, EfBagPolicyRepository>();
         services.AddScoped<IBagPricingRepository, EfBagPricingRepository>();
+        services.AddScoped<IProductGroupRepository, EfProductGroupRepository>();
+        services.AddScoped<IProductRepository, EfProductRepository>();
+        services.AddScoped<IProductPriceRepository, EfProductPriceRepository>();
 
         // ── Health check ────────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
@@ -108,6 +126,21 @@ var host = new HostBuilder()
         services.AddScoped<CreateBagPricingHandler>();
         services.AddScoped<UpdateBagPricingHandler>();
         services.AddScoped<DeleteBagPricingHandler>();
+
+        // ── Application use-case handlers (Product) ──────────────────────────────
+        services.AddScoped<GetAllProductGroupsHandler>();
+        services.AddScoped<GetProductGroupHandler>();
+        services.AddScoped<CreateProductGroupHandler>();
+        services.AddScoped<UpdateProductGroupHandler>();
+        services.AddScoped<DeleteProductGroupHandler>();
+        services.AddScoped<GetAllProductsHandler>();
+        services.AddScoped<GetProductHandler>();
+        services.AddScoped<CreateProductHandler>();
+        services.AddScoped<UpdateProductHandler>();
+        services.AddScoped<DeleteProductHandler>();
+        services.AddScoped<CreateProductPriceHandler>();
+        services.AddScoped<UpdateProductPriceHandler>();
+        services.AddScoped<DeleteProductPriceHandler>();
     })
     .Build();
 

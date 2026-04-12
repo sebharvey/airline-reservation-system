@@ -34,6 +34,9 @@ IF OBJECT_ID('[seat].[TR_Seatmap_UpdatedAt]',            'TR') IS NOT NULL DROP 
 IF OBJECT_ID('[seat].[TR_SeatPricing_UpdatedAt]',        'TR') IS NOT NULL DROP TRIGGER [seat].[TR_SeatPricing_UpdatedAt];
 IF OBJECT_ID('[bag].[TR_BagPolicy_UpdatedAt]',           'TR') IS NOT NULL DROP TRIGGER [bag].[TR_BagPolicy_UpdatedAt];
 IF OBJECT_ID('[bag].[TR_BagPricing_UpdatedAt]',          'TR') IS NOT NULL DROP TRIGGER [bag].[TR_BagPricing_UpdatedAt];
+IF OBJECT_ID('[product].[TR_ProductPrice_UpdatedAt]',    'TR') IS NOT NULL DROP TRIGGER [product].[TR_ProductPrice_UpdatedAt];
+IF OBJECT_ID('[product].[TR_Product_UpdatedAt]',         'TR') IS NOT NULL DROP TRIGGER [product].[TR_Product_UpdatedAt];
+IF OBJECT_ID('[product].[TR_ProductGroup_UpdatedAt]',    'TR') IS NOT NULL DROP TRIGGER [product].[TR_ProductGroup_UpdatedAt];
 IF OBJECT_ID('[schedule].[TR_ScheduleGroup_UpdatedAt]',  'TR') IS NOT NULL DROP TRIGGER [schedule].[TR_ScheduleGroup_UpdatedAt];
 IF OBJECT_ID('[schedule].[TR_FlightSchedule_UpdatedAt]', 'TR') IS NOT NULL DROP TRIGGER [schedule].[TR_FlightSchedule_UpdatedAt];
 IF OBJECT_ID('[customer].[TR_TierConfig_UpdatedAt]',     'TR') IS NOT NULL DROP TRIGGER [customer].[TR_TierConfig_UpdatedAt];
@@ -74,6 +77,11 @@ IF OBJECT_ID('[seat].[SeatPricing]', 'U') IS NOT NULL DROP TABLE [seat].[SeatPri
 IF OBJECT_ID('[seat].[Seatmap]',     'U') IS NOT NULL DROP TABLE [seat].[Seatmap];
 IF OBJECT_ID('[seat].[AircraftType]','U') IS NOT NULL DROP TABLE [seat].[AircraftType];
 
+-- product
+IF OBJECT_ID('[product].[ProductPrice]', 'U') IS NOT NULL DROP TABLE [product].[ProductPrice];
+IF OBJECT_ID('[product].[Product]',      'U') IS NOT NULL DROP TABLE [product].[Product];
+IF OBJECT_ID('[product].[ProductGroup]', 'U') IS NOT NULL DROP TABLE [product].[ProductGroup];
+
 -- bag
 IF OBJECT_ID('[bag].[BagPricing]', 'U') IS NOT NULL DROP TABLE [bag].[BagPricing];
 IF OBJECT_ID('[bag].[BagPolicy]',  'U') IS NOT NULL DROP TABLE [bag].[BagPolicy];
@@ -107,6 +115,7 @@ IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'order')      DROP SCHEMA [ord
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'payment')    DROP SCHEMA [payment];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'delivery')   DROP SCHEMA [delivery];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'seat')       DROP SCHEMA [seat];
+IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'product')    DROP SCHEMA [product];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'bag')        DROP SCHEMA [bag];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'schedule')   DROP SCHEMA [schedule];
 IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'customer')   DROP SCHEMA [customer];
@@ -127,6 +136,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'order')      EXEC('CREATE
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'payment')    EXEC('CREATE SCHEMA [payment]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'delivery')   EXEC('CREATE SCHEMA [delivery]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'seat')       EXEC('CREATE SCHEMA [seat]');
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'product')    EXEC('CREATE SCHEMA [product]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'bag')        EXEC('CREATE SCHEMA [bag]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'schedule')   EXEC('CREATE SCHEMA [schedule]');
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'customer')   EXEC('CREATE SCHEMA [customer]');
@@ -959,6 +969,102 @@ END
 GO
 
 -- =============================================================================
+-- PRODUCT DOMAIN
+-- =============================================================================
+
+-- product.ProductGroup ---------------------------------------------------------
+IF OBJECT_ID('[product].[ProductGroup]', 'U') IS NULL
+CREATE TABLE [product].[ProductGroup] (
+    ProductGroupId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ProductGroup_Id      DEFAULT NEWID(),
+    Name           NVARCHAR(100)    NOT NULL,
+    IsActive       BIT              NOT NULL CONSTRAINT DF_ProductGroup_Active   DEFAULT 1,
+    CreatedAt      DATETIME2        NOT NULL CONSTRAINT DF_ProductGroup_Created  DEFAULT SYSUTCDATETIME(),
+    UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_ProductGroup_Updated  DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_ProductGroup      PRIMARY KEY (ProductGroupId),
+    CONSTRAINT UQ_ProductGroup_Name UNIQUE (Name)
+);
+GO
+
+IF OBJECT_ID('[product].[TR_ProductGroup_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [product].[TR_ProductGroup_UpdatedAt]
+        ON [product].[ProductGroup]
+        AFTER UPDATE AS
+            UPDATE [product].[ProductGroup]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [product].[ProductGroup] t
+            INNER JOIN inserted i ON t.ProductGroupId = i.ProductGroupId;
+    ');
+END
+GO
+
+-- product.Product --------------------------------------------------------------
+IF OBJECT_ID('[product].[Product]', 'U') IS NULL
+CREATE TABLE [product].[Product] (
+    ProductId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Product_Id              DEFAULT NEWID(),
+    ProductGroupId    UNIQUEIDENTIFIER NOT NULL,
+    Name              NVARCHAR(200)    NOT NULL,
+    Description       NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Product_Description     DEFAULT '',
+    IsSegmentSpecific BIT              NOT NULL CONSTRAINT DF_Product_SegmentSpecific  DEFAULT 0,
+    SsrCode           CHAR(4)          NULL,
+    ImageBase64       NVARCHAR(MAX)    NULL,
+    IsActive          BIT              NOT NULL CONSTRAINT DF_Product_Active           DEFAULT 1,
+    CreatedAt         DATETIME2        NOT NULL CONSTRAINT DF_Product_Created          DEFAULT SYSUTCDATETIME(),
+    UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_Product_Updated          DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_Product             PRIMARY KEY (ProductId),
+    CONSTRAINT FK_Product_ProductGroup FOREIGN KEY (ProductGroupId) REFERENCES [product].[ProductGroup] (ProductGroupId)
+);
+GO
+
+IF OBJECT_ID('[product].[TR_Product_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [product].[TR_Product_UpdatedAt]
+        ON [product].[Product]
+        AFTER UPDATE AS
+            UPDATE [product].[Product]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [product].[Product] t
+            INNER JOIN inserted i ON t.ProductId = i.ProductId;
+    ');
+END
+GO
+
+-- product.ProductPrice ---------------------------------------------------------
+IF OBJECT_ID('[product].[ProductPrice]', 'U') IS NULL
+CREATE TABLE [product].[ProductPrice] (
+    PriceId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ProductPrice_Id       DEFAULT NEWID(),
+    ProductId    UNIQUEIDENTIFIER NOT NULL,
+    OfferId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ProductPrice_OfferId  DEFAULT NEWID(),
+    CurrencyCode CHAR(3)          NOT NULL,
+    Price        DECIMAL(10,2)    NOT NULL,
+    Tax          DECIMAL(10,2)    NOT NULL CONSTRAINT DF_ProductPrice_Tax      DEFAULT 0.00,
+    IsActive     BIT              NOT NULL CONSTRAINT DF_ProductPrice_Active   DEFAULT 1,
+    CreatedAt    DATETIME2        NOT NULL CONSTRAINT DF_ProductPrice_Created  DEFAULT SYSUTCDATETIME(),
+    UpdatedAt    DATETIME2        NOT NULL CONSTRAINT DF_ProductPrice_Updated  DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_ProductPrice                PRIMARY KEY (PriceId),
+    CONSTRAINT UQ_ProductPrice_ProductCurrency UNIQUE (ProductId, CurrencyCode),
+    CONSTRAINT UQ_ProductPrice_OfferId         UNIQUE (OfferId),
+    CONSTRAINT FK_ProductPrice_Product         FOREIGN KEY (ProductId) REFERENCES [product].[Product] (ProductId) ON DELETE CASCADE
+);
+GO
+
+IF OBJECT_ID('[product].[TR_ProductPrice_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [product].[TR_ProductPrice_UpdatedAt]
+        ON [product].[ProductPrice]
+        AFTER UPDATE AS
+            UPDATE [product].[ProductPrice]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [product].[ProductPrice] t
+            INNER JOIN inserted i ON t.PriceId = i.PriceId;
+    ');
+END
+GO
+
+-- =============================================================================
 -- SCHEDULE DOMAIN
 -- =============================================================================
 
@@ -1491,6 +1597,9 @@ BEGIN TRY
     TRUNCATE TABLE [seat].[AircraftType];
     TRUNCATE TABLE [bag].[BagPricing];
     TRUNCATE TABLE [bag].[BagPolicy];
+    DELETE FROM [product].[ProductPrice];
+    DELETE FROM [product].[Product];
+    DELETE FROM [product].[ProductGroup];
     DELETE FROM [schedule].[FlightSchedule];
     DELETE FROM [schedule].[ScheduleGroup];
     TRUNCATE TABLE [customer].[LoyaltyTransaction];

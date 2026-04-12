@@ -32,6 +32,8 @@ export class AppShell {
     { path: '/bag-policy', label: 'Bag Policy', icon: '🧳', description: 'Free bag allowances by cabin' },
     { path: '/bag-pricing', label: 'Bag Pricing', icon: '💼', description: 'Additional bag prices' },
     { path: '/seating', label: 'Seating', icon: '💺', description: 'Seat pricing rules' },
+    { path: '/product-groups', label: 'Product Groups', icon: '📦', description: 'Ancillary product categories' },
+    { path: '/products', label: 'Products', icon: '🛍', description: 'Duty free, meals and ancillary products' },
     { path: '/terminal', label: 'Terminal', icon: '⌨',  description: 'Cryptic command terminal' },
   ];
 
