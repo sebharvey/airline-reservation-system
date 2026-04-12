@@ -57,6 +57,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/fare-rules/fare-rules').then(m => m.FareRulesComponent),
       },
       {
+        path: 'seating',
+        loadComponent: () => import('./pages/seating/seating').then(m => m.SeatingComponent),
+      },
+      {
         path: 'terminal',
         loadComponent: () => import('./pages/terminal/terminal').then(m => m.TerminalComponent),
       },
