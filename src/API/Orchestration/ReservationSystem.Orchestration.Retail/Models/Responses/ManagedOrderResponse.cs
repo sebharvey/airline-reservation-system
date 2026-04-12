@@ -32,7 +32,7 @@ public sealed class ManagedPassenger
     public string Gender { get; init; } = string.Empty;
     public string? LoyaltyNumber { get; init; }
     public ManagedPassengerContacts? Contacts { get; init; }
-    public ManagedTravelDocument? TravelDocument { get; init; }
+    public IReadOnlyList<ManagedTravelDocument> Docs { get; init; } = [];
 }
 
 public sealed class ManagedPassengerContacts

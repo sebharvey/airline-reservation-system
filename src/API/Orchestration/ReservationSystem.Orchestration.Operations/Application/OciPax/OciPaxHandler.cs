@@ -65,14 +65,17 @@ public sealed class OciPaxHandler
             passengerUpdates.Add(new
             {
                 passengerId,
-                travelDocument = new
+                docs = new[]
                 {
-                    type = paxRequest.TravelDocument.Type,
-                    number = paxRequest.TravelDocument.Number,
-                    issuingCountry = paxRequest.TravelDocument.IssuingCountry,
-                    nationality = paxRequest.TravelDocument.Nationality,
-                    issueDate = paxRequest.TravelDocument.IssueDate,
-                    expiryDate = paxRequest.TravelDocument.ExpiryDate
+                    new
+                    {
+                        type = paxRequest.TravelDocument.Type,
+                        number = paxRequest.TravelDocument.Number,
+                        issuingCountry = paxRequest.TravelDocument.IssuingCountry,
+                        nationality = paxRequest.TravelDocument.Nationality,
+                        issueDate = paxRequest.TravelDocument.IssueDate,
+                        expiryDate = paxRequest.TravelDocument.ExpiryDate
+                    }
                 }
             });
         }

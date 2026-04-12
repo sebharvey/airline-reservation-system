@@ -177,14 +177,14 @@
                 </span>
               </div>
             }
-            @if (pax.travelDocument) {
+            @for (doc of pax.docs; track doc.number) {
               <div class="pax-detail-row">
                 <span class="pax-detail-label">Document</span>
-                <span>{{ pax.travelDocument.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ pax.travelDocument.number }}</span>
+                <span>{{ doc.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ doc.number }}</span>
               </div>
               <div class="pax-detail-row">
                 <span class="pax-detail-label">Expires</span>
-                <span>{{ formatDate(pax.travelDocument.expiryDate) }}</span>
+                <span>{{ formatDate(doc.expiryDate) }}</span>
               </div>
             }
             @if (pax.contacts) {

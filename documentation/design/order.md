@@ -384,13 +384,15 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
         "email": "alex.taylor@example.com",
         "phone": "+447700900100"
       },
-      "travelDocument": {
-        "type": "PASSPORT",
-        "number": "PA1234567",
-        "issuingCountry": "GBR",
-        "expiryDate": "2030-01-01",
-        "nationality": "GBR"
-      }
+      "docs": [
+        {
+          "type": "PASSPORT",
+          "number": "PA1234567",
+          "issuingCountry": "GBR",
+          "expiryDate": "2030-01-01",
+          "nationality": "GBR"
+        }
+      ]
     },
     {
       "passengerId": "PAX-2",
@@ -401,7 +403,7 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
       "gender": "Female",
       "loyaltyNumber": null,
       "contacts": null,
-      "travelDocument": null
+      "docs": []
     }
   ],
   "flightOffers": [
@@ -566,13 +568,15 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
           "email": "alex.taylor@example.com",
           "phone": "+447700900100"
         },
-        "travelDocument": {
-          "type": "PASSPORT",
-          "number": "PA1234567",
-          "issuingCountry": "GBR",
-          "expiryDate": "2030-01-01",
-          "nationality": "GBR"
-        }
+        "docs": [
+          {
+            "type": "PASSPORT",
+            "number": "PA1234567",
+            "issuingCountry": "GBR",
+            "expiryDate": "2030-01-01",
+            "nationality": "GBR"
+          }
+        ]
       },
       {
         "passengerId": "PAX-2",
@@ -583,13 +587,15 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
         "gender": "Female",
         "loyaltyNumber": null,
         "contacts": null,
-        "travelDocument": {
-          "type": "PASSPORT",
-          "number": "PA7654321",
-          "issuingCountry": "GBR",
-          "expiryDate": "2028-06-30",
-          "nationality": "GBR"
-        }
+        "docs": [
+          {
+            "type": "PASSPORT",
+            "number": "PA7654321",
+            "issuingCountry": "GBR",
+            "expiryDate": "2028-06-30",
+            "nationality": "GBR"
+          }
+        ]
       }
     ],
     "flightSegments": [

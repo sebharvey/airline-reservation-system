@@ -58,18 +58,21 @@ public sealed class GetOrderHandler
                             };
                         }
 
-                        ManagedTravelDocument? travelDoc = null;
-                        if (pax.TryGetProperty("travelDocument", out var docEl) &&
-                            docEl.ValueKind == JsonValueKind.Object)
+                        var travelDocs = new List<ManagedTravelDocument>();
+                        if (pax.TryGetProperty("docs", out var docsEl) &&
+                            docsEl.ValueKind == JsonValueKind.Array)
                         {
-                            travelDoc = new ManagedTravelDocument
+                            foreach (var docEl in docsEl.EnumerateArray())
                             {
-                                Type = docEl.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "",
-                                Number = docEl.TryGetProperty("number", out var n) ? n.GetString() ?? "" : "",
-                                IssuingCountry = docEl.TryGetProperty("issuingCountry", out var ic) ? ic.GetString() ?? "" : "",
-                                ExpiryDate = docEl.TryGetProperty("expiryDate", out var ed) ? ed.GetString() ?? "" : "",
-                                Nationality = docEl.TryGetProperty("nationality", out var nat) ? nat.GetString() ?? "" : ""
-                            };
+                                travelDocs.Add(new ManagedTravelDocument
+                                {
+                                    Type = docEl.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "",
+                                    Number = docEl.TryGetProperty("number", out var n) ? n.GetString() ?? "" : "",
+                                    IssuingCountry = docEl.TryGetProperty("issuingCountry", out var ic) ? ic.GetString() ?? "" : "",
+                                    ExpiryDate = docEl.TryGetProperty("expiryDate", out var ed) ? ed.GetString() ?? "" : "",
+                                    Nationality = docEl.TryGetProperty("nationality", out var nat) ? nat.GetString() ?? "" : ""
+                                });
+                            }
                         }
 
                         passengers.Add(new ManagedPassenger
@@ -82,7 +85,7 @@ public sealed class GetOrderHandler
                             Gender = pax.TryGetProperty("gender", out var gen) ? gen.GetString() ?? "" : "",
                             LoyaltyNumber = pax.TryGetProperty("loyaltyNumber", out var ln) ? ln.GetString() : null,
                             Contacts = contacts,
-                            TravelDocument = travelDoc
+                            Docs = travelDocs
                         });
                     }
                 }

@@ -356,13 +356,15 @@ Add or update passenger details on a basket. Replaces the full passengers array 
         "email": "alex.taylor@example.com",
         "phone": "+447700900100"
       },
-      "travelDocument": {
-        "type": "PASSPORT",
-        "number": "PA1234567",
-        "issuingCountry": "GBR",
-        "expiryDate": "2030-01-01",
-        "nationality": "GBR"
-      }
+      "docs": [
+        {
+          "type": "PASSPORT",
+          "number": "PA1234567",
+          "issuingCountry": "GBR",
+          "expiryDate": "2030-01-01",
+          "nationality": "GBR"
+        }
+      ]
     }
   ],
   "version": 1
@@ -380,7 +382,7 @@ Add or update passenger details on a basket. Replaces the full passengers array 
 | `passengers[].gender` | string | No | `Male` or `Female` |
 | `passengers[].loyaltyNumber` | string | No | Loyalty number if the passenger is a member |
 | `passengers[].contacts` | object | No | Contact information — `email` and/or `phone`. At least one contact required for the lead passenger |
-| `passengers[].travelDocument` | object | No | Travel document details — `type`, `number`, `issuingCountry`, `expiryDate`, `nationality` |
+| `passengers[].docs` | array | No | Travel documents — each entry has `type`, `number`, `issuingCountry`, `expiryDate`, `nationality`. Empty array when not yet collected |
 | `version` | integer | Yes | Current `Version` for OCC |
 
 #### Response — `200 OK`
@@ -814,13 +816,15 @@ Correct or update passenger details on a confirmed order. Updates the `passenger
       "passengerId": "PAX-1",
       "givenName": "Alex",
       "surname": "Taylor-Smith",
-      "travelDocument": {
-        "type": "PASSPORT",
-        "number": "PA9999999",
-        "issuingCountry": "GBR",
-        "expiryDate": "2031-06-30",
-        "nationality": "GBR"
-      }
+      "docs": [
+        {
+          "type": "PASSPORT",
+          "number": "PA9999999",
+          "issuingCountry": "GBR",
+          "expiryDate": "2031-06-30",
+          "nationality": "GBR"
+        }
+      ]
     }
   ],
   "version": 2

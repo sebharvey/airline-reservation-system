@@ -590,7 +590,7 @@
               "email": "__RAND_EMAIL__",
               "phone": "__RAND_PHONE__"
             },
-            "travelDocument": null
+            "docs": []
           },
           {
             "passengerId": "PAX-2",
@@ -604,7 +604,7 @@
               "email": "__RAND_EMAIL_2__",
               "phone": "__RAND_PHONE_2__"
             },
-            "travelDocument": null
+            "docs": []
           }
         ],
         "dataChain": [
@@ -655,7 +655,7 @@
           "status",
           "totalPrice"
         ],
-        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocument is null for domestic or when not yet collected."
+        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. docs is empty for domestic or when not yet collected."
       }
     },
     {
