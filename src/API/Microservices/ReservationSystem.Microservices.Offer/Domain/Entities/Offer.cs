@@ -425,4 +425,20 @@ public sealed class FareRule
         ValidFrom = validFrom; ValidTo = validTo;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>
+    /// Sums all tax line amounts from the TaxLines JSON array.
+    /// Returns 0 when TaxLines is null or unparseable.
+    /// </summary>
+    public decimal GetTotalTaxAmount()
+    {
+        if (string.IsNullOrEmpty(TaxLines)) return 0m;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(TaxLines);
+            return doc.RootElement.EnumerateArray()
+                .Sum(e => e.TryGetProperty("amount", out var a) ? a.GetDecimal() : 0m);
+        }
+        catch { return 0m; }
+    }
 }

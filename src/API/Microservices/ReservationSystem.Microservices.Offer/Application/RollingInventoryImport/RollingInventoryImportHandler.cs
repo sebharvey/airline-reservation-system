@@ -186,7 +186,7 @@ public sealed class RollingInventoryImportHandler
                         rule.BookingClass,
                         rule.CurrencyCode ?? "GBP",
                         rule.MinAmount ?? 0m,
-                        rule.TaxAmount ?? 0m,
+                        rule.GetTotalTaxAmount(),
                         rule.IsRefundable,
                         rule.IsChangeable,
                         rule.ChangeFeeAmount,

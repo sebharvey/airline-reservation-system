@@ -165,7 +165,7 @@ public sealed class SearchOffersHandler
             bookingClass:          rule.BookingClass,
             currencyCode:          rule.CurrencyCode ?? "GBP",
             baseFareAmount:        baseFareAmount,
-            taxAmount:             rule.TaxAmount ?? 0m,
+            taxAmount:             rule.GetTotalTaxAmount(),
             isRefundable:          rule.IsRefundable,
             isChangeable:          rule.IsChangeable,
             changeFeeAmount:       rule.ChangeFeeAmount,
