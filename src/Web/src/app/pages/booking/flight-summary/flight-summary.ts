@@ -19,6 +19,14 @@ export interface TaxLineEntry {
   amount: number;
 }
 
+export interface TaxSegmentGroup {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  lines: TaxLineEntry[];
+  subtotal: number;
+}
+
 @Component({
   selector: 'app-flight-summary',
   standalone: true,
@@ -45,24 +53,29 @@ export class FlightSummaryComponent implements OnInit {
     return s.flights.reduce((sum, f) => sum + f.taxAmount, 0);
   });
 
-  readonly allTaxLines = computed((): TaxLineEntry[] => {
+  readonly taxLinesByFlight = computed((): TaxSegmentGroup[] => {
     const s = this.summary();
     if (!s) return [];
-    const lines: TaxLineEntry[] = [];
-    for (const flight of s.flights) {
-      if (flight.taxLines && flight.taxLines.length > 0) {
-        for (const tl of flight.taxLines) {
-          lines.push({ flightNumber: flight.flightNumber, code: tl.code, description: tl.description, amount: tl.amount });
-        }
-      } else if (flight.taxAmount > 0) {
-        lines.push({ flightNumber: flight.flightNumber, code: 'TAX', description: 'Taxes & charges', amount: flight.taxAmount });
-      }
-    }
-    return lines;
+    return s.flights
+      .map(flight => {
+        const lines: TaxLineEntry[] = flight.taxLines && flight.taxLines.length > 0
+          ? flight.taxLines.map(tl => ({ flightNumber: flight.flightNumber, code: tl.code, description: tl.description, amount: tl.amount }))
+          : flight.taxAmount > 0
+            ? [{ flightNumber: flight.flightNumber, code: 'TAX', description: 'Taxes & charges', amount: flight.taxAmount }]
+            : [];
+        return {
+          flightNumber: flight.flightNumber,
+          origin: flight.origin,
+          destination: flight.destination,
+          lines,
+          subtotal: lines.reduce((sum, l) => sum + l.amount, 0)
+        };
+      })
+      .filter(g => g.lines.length > 0);
   });
 
   readonly allTaxLinesTotal = computed(() =>
-    this.allTaxLines().reduce((sum, t) => sum + t.amount, 0)
+    this.taxLinesByFlight().reduce((sum, g) => sum + g.subtotal, 0)
   );
 
   ngOnInit(): void {

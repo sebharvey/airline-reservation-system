@@ -377,6 +377,45 @@
   padding: 8px 0 0;
 }
 
+/* Segment group header in tax modal */
+.tax-segment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 8px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+}
+
+.tax-segment-flight {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: monospace;
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.tax-segment-route {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Per-segment subtotal line */
+.tax-segment-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .tax-line {
   display: flex;
   justify-content: space-between;
@@ -401,12 +440,6 @@
   color: var(--grad-start);
   padding: 2px 7px;
   border-radius: 4px;
-}
-
-.tax-flight {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
 }
 
 .tax-desc {
