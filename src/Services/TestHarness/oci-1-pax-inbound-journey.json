@@ -590,7 +590,7 @@
               "email": "__RAND_EMAIL__",
               "phone": "__RAND_PHONE__"
             },
-            "travelDocuments": []
+            "docs": []
           }
         ],
         "dataChain": [
@@ -641,7 +641,7 @@
           "status",
           "totalPrice"
         ],
-        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 \u2026) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. travelDocuments is empty for domestic or when not yet collected."
+        "validationNotes": "passengerId is caller-assigned (PAX-1, PAX-2 \u2026) and must be referenced consistently in seats and bags. type uses IATA passenger type codes. docs is empty for domestic or when not yet collected."
       }
     },
     {

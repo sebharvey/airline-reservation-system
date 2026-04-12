@@ -248,7 +248,7 @@
                     </span>
                   </div>
                 }
-                @for (doc of pax.travelDocuments; track doc.number) {
+                @for (doc of pax.docs; track doc.number) {
                   <div class="field-row">
                     <span class="field-label">Document</span>
                     <span class="field-value">{{ doc.type }} {{ doc.number }}</span>

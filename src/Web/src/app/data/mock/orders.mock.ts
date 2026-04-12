@@ -19,7 +19,7 @@ export const MOCK_ORDER_AB1234: Order = {
       gender: 'Male',
       loyaltyNumber: 'AX9876543',
       contacts: { email: 'alex.taylor@example.com', phone: '+447700900100' },
-      travelDocuments: [{
+      docs: [{
         type: 'PASSPORT',
         number: 'PA1234567',
         issuingCountry: 'GBR',
@@ -36,7 +36,7 @@ export const MOCK_ORDER_AB1234: Order = {
       gender: 'Female',
       loyaltyNumber: null,
       contacts: null,
-      travelDocuments: [{
+      docs: [{
         type: 'PASSPORT',
         number: 'PA7654321',
         issuingCountry: 'GBR',
@@ -143,7 +143,7 @@ export const MOCK_ORDER_CD5678: Order = {
       gender: 'Male',
       loyaltyNumber: 'AX1122334',
       contacts: { email: 'sam.morgan@example.com', phone: '+447711223344' },
-      travelDocuments: [{
+      docs: [{
         type: 'PASSPORT',
         number: 'PB9876543',
         issuingCountry: 'GBR',
@@ -243,7 +243,7 @@ export const MOCK_ORDER_EF9012: Order = {
       gender: 'Other',
       loyaltyNumber: null,
       contacts: { email: 'jamie.patel@example.com', phone: '+447788990011' },
-      travelDocuments: []
+      docs: []
     }
   ],
   flightSegments: [

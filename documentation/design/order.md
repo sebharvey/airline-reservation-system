@@ -384,7 +384,7 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
         "email": "alex.taylor@example.com",
         "phone": "+447700900100"
       },
-      "travelDocuments": [
+      "docs": [
         {
           "type": "PASSPORT",
           "number": "PA1234567",
@@ -403,7 +403,7 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
       "gender": "Female",
       "loyaltyNumber": null,
       "contacts": null,
-      "travelDocuments": []
+      "docs": []
     }
   ],
   "flightOffers": [
@@ -568,7 +568,7 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
           "email": "alex.taylor@example.com",
           "phone": "+447700900100"
         },
-        "travelDocuments": [
+        "docs": [
           {
             "type": "PASSPORT",
             "number": "PA1234567",
@@ -587,7 +587,7 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
         "gender": "Female",
         "loyaltyNumber": null,
         "contacts": null,
-        "travelDocuments": [
+        "docs": [
           {
             "type": "PASSPORT",
             "number": "PA7654321",

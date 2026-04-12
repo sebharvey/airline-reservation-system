@@ -65,7 +65,7 @@ public sealed class OciPaxHandler
             passengerUpdates.Add(new
             {
                 passengerId,
-                travelDocuments = new[]
+                docs = new[]
                 {
                     new
                     {

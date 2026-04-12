@@ -59,7 +59,7 @@ public sealed class GetOrderHandler
                         }
 
                         var travelDocs = new List<ManagedTravelDocument>();
-                        if (pax.TryGetProperty("travelDocuments", out var docsEl) &&
+                        if (pax.TryGetProperty("docs", out var docsEl) &&
                             docsEl.ValueKind == JsonValueKind.Array)
                         {
                             foreach (var docEl in docsEl.EnumerateArray())
@@ -85,7 +85,7 @@ public sealed class GetOrderHandler
                             Gender = pax.TryGetProperty("gender", out var gen) ? gen.GetString() ?? "" : "",
                             LoyaltyNumber = pax.TryGetProperty("loyaltyNumber", out var ln) ? ln.GetString() : null,
                             Contacts = contacts,
-                            TravelDocuments = travelDocs
+                            Docs = travelDocs
                         });
                     }
                 }

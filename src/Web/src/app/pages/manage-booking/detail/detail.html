@@ -177,7 +177,7 @@
                 </span>
               </div>
             }
-            @for (doc of pax.travelDocuments; track doc.number) {
+            @for (doc of pax.docs; track doc.number) {
               <div class="pax-detail-row">
                 <span class="pax-detail-label">Document</span>
                 <span>{{ doc.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ doc.number }}</span>

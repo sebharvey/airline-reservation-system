@@ -26,7 +26,7 @@ export interface Passenger {
   gender: 'Male' | 'Female' | 'Other' | '';
   loyaltyNumber: string | null;
   contacts: PassengerContacts | null;
-  travelDocuments: TravelDocument[];
+  docs: TravelDocument[];
 }
 
 export interface FlightSegment {

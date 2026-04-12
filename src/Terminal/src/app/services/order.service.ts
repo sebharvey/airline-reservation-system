@@ -35,7 +35,7 @@ export interface OrderPassenger {
   type: string;
   gender: string | null;
   contacts: PassengerContacts | null;
-  travelDocuments: PassengerTravelDocument[];
+  docs: PassengerTravelDocument[];
   loyaltyNumber: string | null;
 }
 

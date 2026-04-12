@@ -34,7 +34,7 @@ export class CheckInStateService {
   readonly currentOrder = signal<OciOrder | null>(null);
   readonly departureAirport = signal<string>('');
   readonly selectedPassengerIds = signal<string[]>([]);
-  readonly travelDocuments = signal<OciTravelDocument[]>([]);
+  readonly docs = signal<OciTravelDocument[]>([]);
   readonly bagSelections = signal<CheckInBagSelection[]>([]);
   readonly seatSelections = signal<CheckInSeatSelection[]>([]);
   readonly boardingPasses = signal<BoardingPass[]>([]);
@@ -62,7 +62,7 @@ export class CheckInStateService {
 
   setPassengerCheckInData(passengerIds: string[], travelDocs: OciTravelDocument[]): void {
     this.selectedPassengerIds.set(passengerIds);
-    this.travelDocuments.set(travelDocs);
+    this.docs.set(travelDocs);
   }
 
   setBagSelections(sels: CheckInBagSelection[]): void {
@@ -85,7 +85,7 @@ export class CheckInStateService {
     this.currentOrder.set(null);
     this.departureAirport.set('');
     this.selectedPassengerIds.set([]);
-    this.travelDocuments.set([]);
+    this.docs.set([]);
     this.bagSelections.set([]);
     this.seatSelections.set([]);
     this.boardingPasses.set([]);

@@ -173,7 +173,7 @@ isFirstAdult(index: number): boolean {
       contacts: this.isFirstAdult(i)
         ? { email: f.email.trim(), phone: f.phone.trim() }
         : null,
-      travelDocuments: []
+      docs: []
     }));
 
     const basket = this.basket();
