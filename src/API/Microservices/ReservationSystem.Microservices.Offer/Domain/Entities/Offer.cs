@@ -232,6 +232,7 @@ public sealed class StoredOfferItem
 public sealed class StoredOfferInventoryEntry
 {
     public Guid InventoryId { get; init; }
+    public bool Validated { get; init; } = false;
     public IReadOnlyList<StoredOfferItem> Offers { get; init; } = [];
 }
 
@@ -294,6 +295,7 @@ public sealed class StoredOffer
             return new StoredOfferInventoryEntry
             {
                 InventoryId = ivf.Inventory.InventoryId,
+                Validated   = false,
                 Offers      = items
             };
         }).ToList();
