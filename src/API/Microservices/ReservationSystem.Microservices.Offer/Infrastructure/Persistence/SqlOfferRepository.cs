@@ -503,6 +503,24 @@ public sealed class SqlOfferRepository : IOfferRepository
             offer.StoredOfferId, offer.SessionId);
     }
 
+    public async Task UpdateStoredOfferFaresInfoAsync(Guid storedOfferId, string faresInfoJson, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE [offer].[StoredOffer]
+            SET    FaresInfo = @FaresInfo
+            WHERE  StoredOfferId = @StoredOfferId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(sql,
+                new { StoredOfferId = storedOfferId, FaresInfo = faresInfoJson },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug("Updated FaresInfo for StoredOffer {StoredOfferId}", storedOfferId);
+    }
+
     // -------------------------------------------------------------------------
     // InventoryHold
     // -------------------------------------------------------------------------
