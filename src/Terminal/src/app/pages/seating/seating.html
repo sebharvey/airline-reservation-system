@@ -49,7 +49,7 @@
         <!-- Seat Identity -->
         <div class="form-section">
           <h3 class="section-heading">Seat Identity</h3>
-          <div class="form-grid grid-3">
+          <div class="form-grid grid-2">
             <div class="form-group">
               <label>Cabin Code *</label>
               <select [ngModel]="form().cabinCode" (ngModelChange)="updateField('cabinCode', $event)">
@@ -60,25 +60,12 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Description *</label>
-              <input
-                type="text"
-                [ngModel]="form().description"
-                (ngModelChange)="updateField('description', $event)"
-                placeholder="e.g. Window, Extra Legroom"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label>Sequence</label>
-              <input
-                type="number"
-                [ngModel]="form().sequence"
-                (ngModelChange)="updateField('sequence', +$event)"
-                min="0"
-                step="1"
-                placeholder="0"
-              />
+              <label>Seat Position *</label>
+              <select [ngModel]="form().description" (ngModelChange)="updateField('description', $event)">
+                <option value="Window">Window</option>
+                <option value="Aisle">Aisle</option>
+                <option value="Middle">Middle</option>
+              </select>
             </div>
           </div>
         </div>
@@ -188,7 +175,7 @@
         <input
           class="search-input"
           type="search"
-          placeholder="Filter by cabin, description, currency…"
+          placeholder="Filter by cabin, position, currency…"
           [value]="filter()"
           (input)="setFilter($any($event.target).value)"
         />
@@ -203,7 +190,7 @@
         <thead>
           <tr>
             <th>Cabin</th>
-            <th>Description</th>
+            <th>Position</th>
             <th>Price</th>
             <th>Status</th>
             <th class="hide-mobile">Valid From</th>

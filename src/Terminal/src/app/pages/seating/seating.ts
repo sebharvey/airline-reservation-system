@@ -88,7 +88,7 @@ export class SeatingComponent implements OnInit {
     this.editing.set(null);
     this.form.set({
       cabinCode: 'Y',
-      description: '',
+      description: 'Window',
       sequence: 0,
       currencyCode: 'GBP',
       price: 0,
