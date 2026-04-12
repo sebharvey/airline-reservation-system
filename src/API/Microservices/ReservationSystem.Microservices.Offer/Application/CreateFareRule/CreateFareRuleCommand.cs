@@ -14,6 +14,7 @@ public sealed record CreateFareRuleCommand(
     int? MinPoints,
     int? MaxPoints,
     decimal? PointsTaxes,
+    string? TaxLines,
     bool IsRefundable,
     bool IsChangeable,
     decimal ChangeFeeAmount,

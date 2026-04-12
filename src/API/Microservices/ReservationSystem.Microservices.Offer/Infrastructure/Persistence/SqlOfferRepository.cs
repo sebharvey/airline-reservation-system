@@ -838,12 +838,12 @@ public sealed class SqlOfferRepository : IOfferRepository
             INSERT INTO [offer].[FareRule]
                    (FareRuleId, RuleType, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
                     CurrencyCode, MinAmount, MaxAmount, TaxAmount,
-                    MinPoints, MaxPoints, PointsTaxes,
+                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
                     ValidFrom, ValidTo)
             VALUES (@FareRuleId, @RuleType, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
                     @CurrencyCode, @MinAmount, @MaxAmount, @TaxAmount,
-                    @MinPoints, @MaxPoints, @PointsTaxes,
+                    @MinPoints, @MaxPoints, @PointsTaxes, @TaxLines,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
                     @ValidFrom, @ValidTo);
             """;
@@ -873,6 +873,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                    MinPoints             = @MinPoints,
                    MaxPoints             = @MaxPoints,
                    PointsTaxes           = @PointsTaxes,
+                   TaxLines              = @TaxLines,
                    IsRefundable          = @IsRefundable,
                    IsChangeable          = @IsChangeable,
                    ChangeFeeAmount       = @ChangeFeeAmount,
@@ -1095,6 +1096,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             minPoints: (int?)row.MinPoints,
             maxPoints: (int?)row.MaxPoints,
             pointsTaxes: (decimal?)row.PointsTaxes,
+            taxLines: (string?)row.TaxLines,
             isRefundable: (bool)row.IsRefundable,
             isChangeable: (bool)row.IsChangeable,
             changeFeeAmount: (decimal)row.ChangeFeeAmount,
@@ -1123,6 +1125,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             fareRule.MinPoints,
             fareRule.MaxPoints,
             fareRule.PointsTaxes,
+            fareRule.TaxLines,
             fareRule.IsRefundable,
             fareRule.IsChangeable,
             fareRule.ChangeFeeAmount,

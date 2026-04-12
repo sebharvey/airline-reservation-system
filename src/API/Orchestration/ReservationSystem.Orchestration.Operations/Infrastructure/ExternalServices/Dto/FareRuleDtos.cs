@@ -16,6 +16,7 @@ public sealed class FareRuleDto
     public int? MinPoints { get; init; }
     public int? MaxPoints { get; init; }
     public decimal? PointsTaxes { get; init; }
+    public object[]? TaxLines { get; init; }
     public bool IsRefundable { get; init; }
     public bool IsChangeable { get; init; }
     public decimal ChangeFeeAmount { get; init; }

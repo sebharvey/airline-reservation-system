@@ -353,10 +353,15 @@ CREATE TABLE [offer].[FareRule] (
     ValidTo               DATETIME2            NULL,
     CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Created     DEFAULT SYSUTCDATETIME(),
     UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Updated     DEFAULT SYSUTCDATETIME(),
+    TaxLines              NVARCHAR(MAX)        NULL,
     CONSTRAINT PK_FareRule          PRIMARY KEY (FareRuleId),
     CONSTRAINT CHK_FareRule_Cabin   CHECK (CabinCode IN ('F','J','W','Y')),
     CONSTRAINT CHK_FareRule_RuleType CHECK (RuleType IN ('Money','Points'))
 );
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'TaxLines')
+    ALTER TABLE [offer].[FareRule] ADD TaxLines NVARCHAR(MAX) NULL;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_FareRule_FareBasisCode' AND object_id = OBJECT_ID('[offer].[FareRule]'))

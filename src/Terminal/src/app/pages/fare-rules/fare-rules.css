@@ -530,6 +530,78 @@
   .action-btns { flex-direction: column; gap: 2px; }
 }
 
+/* Tax lines editor */
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-heading-row .section-heading {
+  margin-bottom: 0;
+}
+
+.add-tax-btn {
+  padding: 6px 14px;
+  background: var(--grad-start);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.add-tax-btn:hover { opacity: 0.85; }
+
+.tax-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tax-line-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tax-code-input {
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.tax-amount-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.remove-tax-btn {
+  padding: 0 10px;
+  height: 38px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.remove-tax-btn:hover {
+  color: #e53e3e;
+  border-color: #e53e3e;
+}
+
+.tax-lines-empty {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 /* Small mobile */
 @media (max-width: 400px) {
   .fare-rules-page { padding: 8px; }

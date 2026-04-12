@@ -25,6 +25,7 @@ public sealed class UpdateFareRuleHandler
             command.CabinCode, command.BookingClass, command.CurrencyCode,
             command.MinAmount, command.MaxAmount, command.TaxAmount,
             command.MinPoints, command.MaxPoints, command.PointsTaxes,
+            command.TaxLines,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
             string.IsNullOrEmpty(command.ValidFrom) ? null : DateTimeOffset.Parse(command.ValidFrom),

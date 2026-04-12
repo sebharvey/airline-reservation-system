@@ -133,6 +133,42 @@
           }
         </div>
 
+        <!-- Tax Lines -->
+        <div class="form-section">
+          <div class="section-heading-row">
+            <h3 class="section-heading">Tax Lines</h3>
+            <button type="button" class="add-tax-btn" (click)="addTaxLine()">+ Add Tax</button>
+          </div>
+          @if (form().taxLines && form().taxLines!.length > 0) {
+            <div class="tax-lines-list">
+              @for (line of form().taxLines!; track $index) {
+                <div class="tax-line-row">
+                  <input
+                    type="text"
+                    class="tax-code-input uppercase-input"
+                    placeholder="Code (e.g. YQ)"
+                    maxlength="4"
+                    [ngModel]="line.code"
+                    (ngModelChange)="updateTaxLineCode($index, $event)"
+                  />
+                  <input
+                    type="number"
+                    class="tax-amount-input"
+                    placeholder="Amount"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="line.amount"
+                    (ngModelChange)="updateTaxLineAmount($index, $event)"
+                  />
+                  <button type="button" class="remove-tax-btn" (click)="removeTaxLine($index)" title="Remove">&times;</button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="tax-lines-empty">No tax lines defined. Click "+ Add Tax" to add one.</p>
+          }
+        </div>
+
         <!-- Conditions & Fees -->
         <div class="form-section">
           <h3 class="section-heading">Conditions &amp; Fees</h3>

@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType } from '../../services/fare-rules.service';
+import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType, TaxLine } from '../../services/fare-rules.service';
 
 @Component({
   selector: 'app-fare-rules',
@@ -39,6 +39,7 @@ export class FareRulesComponent implements OnInit {
     minPoints: null,
     maxPoints: null,
     pointsTaxes: null,
+    taxLines: [],
     isRefundable: false,
     isChangeable: false,
     changeFeeAmount: 0,
@@ -113,6 +114,7 @@ export class FareRulesComponent implements OnInit {
       minPoints: null,
       maxPoints: null,
       pointsTaxes: null,
+      taxLines: [],
       isRefundable: false,
       isChangeable: false,
       changeFeeAmount: 0,
@@ -141,6 +143,7 @@ export class FareRulesComponent implements OnInit {
       minPoints: rule.minPoints,
       maxPoints: rule.maxPoints,
       pointsTaxes: rule.pointsTaxes,
+      taxLines: rule.taxLines ? [...rule.taxLines] : [],
       isRefundable: rule.isRefundable,
       isChangeable: rule.isChangeable,
       changeFeeAmount: rule.changeFeeAmount,
@@ -176,12 +179,43 @@ export class FareRulesComponent implements OnInit {
     }));
   }
 
+  addTaxLine(): void {
+    this.form.update(f => ({
+      ...f,
+      taxLines: [...(f.taxLines ?? []), { code: '', amount: 0 }],
+    }));
+  }
+
+  removeTaxLine(index: number): void {
+    this.form.update(f => ({
+      ...f,
+      taxLines: (f.taxLines ?? []).filter((_, i) => i !== index),
+    }));
+  }
+
+  updateTaxLineCode(index: number, code: string): void {
+    this.form.update(f => {
+      const lines = [...(f.taxLines ?? [])];
+      lines[index] = { ...lines[index], code: code.toUpperCase() };
+      return { ...f, taxLines: lines };
+    });
+  }
+
+  updateTaxLineAmount(index: number, amount: number): void {
+    this.form.update(f => {
+      const lines = [...(f.taxLines ?? [])];
+      lines[index] = { ...lines[index], amount };
+      return { ...f, taxLines: lines };
+    });
+  }
+
   async saveRule(): Promise<void> {
     this.saving.set(true);
     this.error.set('');
     this.success.set('');
 
     const data = this.form();
+    const cleanedTaxLines = (data.taxLines ?? []).filter(t => t.code.trim().length > 0);
     const request: CreateFareRuleRequest = {
       ...data,
       flightNumber: data.flightNumber || null,
@@ -193,6 +227,7 @@ export class FareRulesComponent implements OnInit {
       minPoints: data.ruleType === 'Points' ? data.minPoints : null,
       maxPoints: data.ruleType === 'Points' ? data.maxPoints : null,
       pointsTaxes: data.ruleType === 'Points' ? data.pointsTaxes : null,
+      taxLines: cleanedTaxLines.length > 0 ? cleanedTaxLines : null,
       validFrom: data.validFrom ? `${data.validFrom}T00:00:00Z` : null,
       validTo: data.validTo ? `${data.validTo}T23:59:59Z` : null,
     };

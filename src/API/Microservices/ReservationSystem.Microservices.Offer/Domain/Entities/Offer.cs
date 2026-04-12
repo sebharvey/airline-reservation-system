@@ -345,6 +345,7 @@ public sealed class FareRule
     public int? MinPoints { get; private set; }
     public int? MaxPoints { get; private set; }
     public decimal? PointsTaxes { get; private set; }
+    public string? TaxLines { get; private set; }
     public bool IsRefundable { get; private set; }
     public bool IsChangeable { get; private set; }
     public decimal ChangeFeeAmount { get; private set; }
@@ -361,6 +362,7 @@ public sealed class FareRule
         string cabinCode, string bookingClass, string? currencyCode,
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
@@ -372,6 +374,7 @@ public sealed class FareRule
             CabinCode = cabinCode, BookingClass = bookingClass, CurrencyCode = currencyCode,
             MinAmount = minAmount, MaxAmount = maxAmount, TaxAmount = taxAmount,
             MinPoints = minPoints, MaxPoints = maxPoints, PointsTaxes = pointsTaxes,
+            TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             ValidFrom = validFrom, ValidTo = validTo,
@@ -384,6 +387,7 @@ public sealed class FareRule
         string? fareFamily, string cabinCode, string bookingClass, string? currencyCode,
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo, DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
@@ -394,6 +398,7 @@ public sealed class FareRule
             CabinCode = cabinCode, BookingClass = bookingClass, CurrencyCode = currencyCode,
             MinAmount = minAmount, MaxAmount = maxAmount, TaxAmount = taxAmount,
             MinPoints = minPoints, MaxPoints = maxPoints, PointsTaxes = pointsTaxes,
+            TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             ValidFrom = validFrom, ValidTo = validTo,
@@ -406,6 +411,7 @@ public sealed class FareRule
         string cabinCode, string bookingClass, string? currencyCode,
         decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
@@ -414,6 +420,7 @@ public sealed class FareRule
         CabinCode = cabinCode; BookingClass = bookingClass; CurrencyCode = currencyCode;
         MinAmount = minAmount; MaxAmount = maxAmount; TaxAmount = taxAmount;
         MinPoints = minPoints; MaxPoints = maxPoints; PointsTaxes = pointsTaxes;
+        TaxLines = taxLines;
         IsRefundable = isRefundable; IsChangeable = isChangeable;
         ChangeFeeAmount = changeFeeAmount; CancellationFeeAmount = cancellationFeeAmount;
         ValidFrom = validFrom; ValidTo = validTo;

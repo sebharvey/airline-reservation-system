@@ -24,6 +24,9 @@ public static class FareRuleMapper
             minPoints = r.MinPoints,
             maxPoints = r.MaxPoints,
             pointsTaxes = r.PointsTaxes,
+            taxLines = r.TaxLines != null
+                ? System.Text.Json.JsonSerializer.Deserialize<object[]>(r.TaxLines)
+                : null,
             isRefundable = r.IsRefundable,
             isChangeable = r.IsChangeable,
             changeFeeAmount = r.ChangeFeeAmount,
