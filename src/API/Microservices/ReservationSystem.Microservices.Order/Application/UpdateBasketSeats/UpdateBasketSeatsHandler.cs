@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
@@ -66,7 +67,7 @@ public sealed class UpdateBasketSeatsHandler
                 if (offerCabinByItemId.TryGetValue(itemRef, out var bookedCabin) &&
                     !string.Equals(seatCabin, bookedCabin, StringComparison.OrdinalIgnoreCase))
                 {
-                    var seatNumber = seat?["seatNumber"]?.GetValue<string>() ?? "unknown";
+                    var seatNumber = DecodeSeatNumber(seat?["seatOfferId"]?.GetValue<string>()) ?? "unknown";
                     throw new InvalidOperationException(
                         $"Seat {seatNumber} is in cabin '{seatCabin}' but the booked cabin for basket item '{itemRef}' is '{bookedCabin}'.");
                 }
@@ -118,5 +119,17 @@ public sealed class UpdateBasketSeatsHandler
             command.BasketId, totalSeatAmount);
 
         return updated;
+    }
+
+    private static string? DecodeSeatNumber(string? seatOfferId)
+    {
+        if (string.IsNullOrEmpty(seatOfferId)) return null;
+        try
+        {
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(seatOfferId));
+            var parts = decoded.Split('-');
+            return parts.Length == 6 ? parts[5] : null;
+        }
+        catch { return null; }
     }
 }

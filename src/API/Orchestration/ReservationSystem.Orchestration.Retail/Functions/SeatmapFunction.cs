@@ -7,6 +7,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
+using System.Text;
 using System.Web;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
@@ -89,7 +90,7 @@ public sealed class SeatmapFunction
             .Select(h => h.SeatNumber!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var cabins = BuildCabins(layout.Cabins, offersByNumber, heldSeatNumbers, cabinCode);
+        var cabins = BuildCabins(layout.Cabins, offersByNumber, heldSeatNumbers, inventory.FlightNumber, inventory.DepartureDate, cabinCode);
 
         var response = new
         {
@@ -110,6 +111,8 @@ public sealed class SeatmapFunction
         IEnumerable<CabinLayoutDto> cabinLayouts,
         Dictionary<string, SeatOfferDto> offersByNumber,
         HashSet<string> heldSeatNumbers,
+        string flightNumber,
+        string departureDate,
         string? cabinCodeFilter = null)
     {
         var result = new List<object>();
@@ -120,7 +123,7 @@ public sealed class SeatmapFunction
 
         foreach (var cabin in layouts)
         {
-            var seats = BuildSeats(cabin, offersByNumber, heldSeatNumbers);
+            var seats = BuildSeats(cabin, offersByNumber, heldSeatNumbers, flightNumber, departureDate);
 
             result.Add(new
             {
@@ -140,7 +143,9 @@ public sealed class SeatmapFunction
     private static List<object> BuildSeats(
         CabinLayoutDto cabin,
         Dictionary<string, SeatOfferDto> offersByNumber,
-        HashSet<string> heldSeatNumbers)
+        HashSet<string> heldSeatNumbers,
+        string flightNumber,
+        string departureDate)
     {
         var seats = new List<object>();
 
@@ -167,9 +172,11 @@ public sealed class SeatmapFunction
                 }
                 else if (offersByNumber.TryGetValue(seat.SeatNumber, out var offer))
                 {
+                    var seatOfferId = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+                        $"{flightNumber}-{departureDate}-{cabin.CabinCode}-{seat.SeatNumber}"));
                     seats.Add(new
                     {
-                        seatOfferId = offer.SeatOfferId,
+                        seatOfferId,
                         seatNumber = seat.SeatNumber,
                         column = seat.Column,
                         rowNumber = row.RowNumber,

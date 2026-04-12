@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
@@ -521,8 +522,8 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var seat in seatsEl.EnumerateArray())
                 {
-                    var paxId   = seat.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
-                    var seatNum = seat.TryGetProperty("seatNumber",  out var sn)   ? sn.GetString()   ?? "" : "";
+                    var paxId   = seat.TryGetProperty("passengerId",  out var spid) ? spid.GetString() ?? "" : "";
+                    var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null) ?? "";
                     if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(seatNum))
                     {
                         if (!seatsByPassenger.ContainsKey(paxId))
@@ -613,9 +614,9 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var seat in seatsEl.EnumerateArray())
                 {
-                    var paxId = seat.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
-                    var segId = seat.TryGetProperty("segmentId", out var ssid) ? ssid.GetString() ?? "" : "";
-                    var seatNum = seat.TryGetProperty("seatNumber", out var sn) ? sn.GetString() ?? "" : "";
+                    var paxId   = seat.TryGetProperty("passengerId",  out var spid) ? spid.GetString() ?? "" : "";
+                    var segId   = seat.TryGetProperty("segmentId",    out var ssid) ? ssid.GetString() ?? "" : "";
+                    var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null) ?? "";
                     if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId) && !string.IsNullOrEmpty(seatNum))
                     {
                         if (!seatsByInventoryId.ContainsKey(segId))
@@ -704,9 +705,9 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var seat in seatsEl.EnumerateArray())
                 {
-                    var segId   = seat.TryGetProperty("segmentId",   out var sid)  ? sid.GetString()  : null;
-                    var seatNum = seat.TryGetProperty("seatNumber",  out var sn)   ? sn.GetString()   : null;
-                    var paxId   = seat.TryGetProperty("passengerId", out var pid)  ? pid.GetString()  : null;
+                    var segId   = seat.TryGetProperty("segmentId",   out var sid) ? sid.GetString() : null;
+                    var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null);
+                    var paxId   = seat.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
                     if (!string.IsNullOrEmpty(segId))
                     {
                         if (!seatsByInventory.ContainsKey(segId))
@@ -734,5 +735,23 @@ public sealed class ConfirmBasketHandler
         catch { /* Return whatever was parsed */ }
 
         return (items, passengerIds, seatsByInventory);
+    }
+
+    /// <summary>
+    /// Decodes a base64 seat offer ID and returns the seat number.
+    /// Format: base64("{flightNumber}-{departureDate}-{cabinCode}-{seatNumber}")
+    /// e.g. base64("AX001-2026-04-12-Y-35A") → "35A"
+    /// </summary>
+    private static string? DecodeSeatNumber(string? seatOfferId)
+    {
+        if (string.IsNullOrEmpty(seatOfferId)) return null;
+        try
+        {
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(seatOfferId));
+            var parts = decoded.Split('-');
+            // parts: [0]=flightNumber, [1]=year, [2]=month, [3]=day, [4]=cabinCode, [5]=seatNumber
+            return parts.Length == 6 ? parts[5] : null;
+        }
+        catch { return null; }
     }
 }
