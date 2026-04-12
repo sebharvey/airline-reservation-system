@@ -369,6 +369,7 @@ public sealed class OfferFunction
             sessionId        = offer.SessionId,
             expiresAt        = offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             inventoryId      = inv.InventoryId,
+            validated        = entry?.Validated ?? false,
             flightNumber     = inv.FlightNumber,
             origin           = inv.Origin,
             destination      = inv.Destination,

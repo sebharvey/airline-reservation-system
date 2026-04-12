@@ -291,7 +291,7 @@ One row per **search session**. All matching flights and their cabin fares are s
 
 > **Indexes:** `IX_StoredOffer_SessionId` on `(SessionId)` — efficient session-scoped lookups; `IX_StoredOffer_Expiry` on `(ExpiresAt)`.
 > **One row per search session:** A single row stores all matching flights and all their cabin fares, keeping the row count equal to the number of searches.
-> **FaresInfo structure:** `{ "inventories": [ { "inventoryId": "<guid>", "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] } ] }`
+> **FaresInfo structure:** `{ "inventories": [ { "inventoryId": "<guid>", "validated": false, "offers": [ { "offerId": "<guid>", "cabinCode": "Y", "fareBasisCode": "YFLEX", "fareFamily": "Economy Flex", "currencyCode": "GBP", "baseFareAmount": 420.00, "taxAmount": 85.00, "totalAmount": 505.00, "isRefundable": true, "isChangeable": true, "bookingType": "Revenue", "seatsAvailable": 42, "pointsPrice": null } ] } ] }`
 > **Expiry alignment:** `ExpiresAt = CreatedAt + 60 minutes`, matching the basket expiry window.
 
 ---
