@@ -418,9 +418,10 @@ public sealed class OciFunction
 
         foreach (var pax in paxArr.EnumerateArray())
         {
-            var hasDoc = pax.TryGetProperty("travelDocument", out var td) &&
-                         td.ValueKind == JsonValueKind.Object &&
-                         td.TryGetProperty("number", out var num) &&
+            var hasDoc = pax.TryGetProperty("docs", out var td) &&
+                         td.ValueKind == JsonValueKind.Array &&
+                         td.GetArrayLength() > 0 &&
+                         td[0].TryGetProperty("number", out var num) &&
                          !string.IsNullOrWhiteSpace(num.GetString());
             if (!hasDoc)
                 return "Passenger travel documents have not been submitted.";
