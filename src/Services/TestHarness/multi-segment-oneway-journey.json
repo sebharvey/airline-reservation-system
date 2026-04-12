@@ -208,7 +208,7 @@
             }
           ],
           "channelCode": "WEB",
-          "currencyCode": "GBP",
+          "currency": "GBP",
           "bookingType": "Revenue",
           "passengerCount": "__RAND_PAX_COUNT__"
         },

@@ -35,7 +35,7 @@ export class ManageBagsPaymentComponent implements OnInit {
 
   readonly bagSelections = computed(() => this.manageBookingState.bagSelections());
   readonly totalAmount = computed(() => this.manageBookingState.totalBagAmount());
-  readonly currency = computed(() => this.order()?.currencyCode ?? 'GBP');
+  readonly currency = computed(() => this.order()?.currency ?? 'GBP');
 
   readonly cardDisplayNumber = computed(() => {
     const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);

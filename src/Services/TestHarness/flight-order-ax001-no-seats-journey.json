@@ -129,7 +129,7 @@
             }
           ],
           "channelCode": "WEB",
-          "currencyCode": "GBP",
+          "currency": "GBP",
           "bookingType": "Revenue"
         },
         "dataChain": [
@@ -392,7 +392,7 @@
         "body": {
           "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
           "channelCode": "WEB",
-          "currencyCode": "GBP",
+          "currency": "GBP",
           "basketStatus": "Active",
           "basketData": {
             "flightOffers": [

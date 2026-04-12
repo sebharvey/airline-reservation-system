@@ -6,7 +6,7 @@ export const MOCK_ORDER_AB1234: Order = {
   orderStatus: 'Confirmed',
   bookingType: 'Revenue',
   channelCode: 'WEB',
-  currencyCode: 'GBP',
+  currency: 'GBP',
   totalAmount: 1749.00,
   createdAt: '2026-03-01T10:32:00Z',
   passengers: [
@@ -130,7 +130,7 @@ export const MOCK_ORDER_CD5678: Order = {
   orderStatus: 'Confirmed',
   bookingType: 'Revenue',
   channelCode: 'WEB',
-  currencyCode: 'GBP',
+  currency: 'GBP',
   totalAmount: 857.00,
   createdAt: '2026-03-05T14:15:00Z',
   passengers: [
@@ -230,7 +230,7 @@ export const MOCK_ORDER_EF9012: Order = {
   orderStatus: 'Confirmed',
   bookingType: 'Revenue',
   channelCode: 'WEB',
-  currencyCode: 'GBP',
+  currency: 'GBP',
   totalAmount: 489.00,
   createdAt: '2026-03-10T09:00:00Z',
   passengers: [

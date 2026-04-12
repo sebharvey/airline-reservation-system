@@ -39,7 +39,7 @@ export class CheckInPaymentComponent implements OnInit {
   readonly totalBagAmount = computed(() => this.checkInState.totalBagAmount());
   readonly totalSeatAmount = computed(() => this.checkInState.totalSeatAmount());
   readonly totalAmount = computed(() => this.checkInState.totalPaymentAmount());
-  readonly currency = computed(() => this.order()?.currencyCode ?? 'GBP');
+  readonly currency = computed(() => this.order()?.currency ?? 'GBP');
 
   readonly cardDisplayNumber = computed(() => {
     const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);

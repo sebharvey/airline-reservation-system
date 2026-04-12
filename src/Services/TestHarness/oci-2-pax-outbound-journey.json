@@ -311,7 +311,7 @@
             }
           ],
           "channelCode": "WEB",
-          "currencyCode": "GBP",
+          "currency": "GBP",
           "bookingType": "Revenue",
           "loyaltyNumber": "AX8564125"
         },
@@ -453,7 +453,7 @@
         "body": {
           "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
           "channelCode": "WEB",
-          "currencyCode": "GBP",
+          "currency": "GBP",
           "basketStatus": "Active",
           "totalFareAmount": 0.0,
           "totalSeatAmount": 0.0,
@@ -465,7 +465,7 @@
           "basketData": {
             "bookingType": "oneWay",
             "channelCode": "WEB",
-            "currencyCode": "GBP",
+            "currency": "GBP",
             "flightOffers": [
               {
                 "offerId": "bc2f449f-a828-4826-a97c-4378531d7253",

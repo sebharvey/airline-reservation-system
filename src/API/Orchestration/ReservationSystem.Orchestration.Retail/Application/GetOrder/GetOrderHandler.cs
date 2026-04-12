@@ -303,7 +303,7 @@ public sealed class GetOrderHandler
             OrderStatus = order.OrderStatus,
             BookingType = GetBookingType(order),
             ChannelCode = order.ChannelCode,
-            CurrencyCode = order.CurrencyCode,
+            Currency = order.CurrencyCode,
             TotalAmount = order.TotalAmount ?? 0m,
             TotalPointsAmount = totalPointsAmount,
             CreatedAt = order.CreatedAt,

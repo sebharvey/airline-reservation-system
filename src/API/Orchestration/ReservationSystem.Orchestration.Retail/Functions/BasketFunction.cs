@@ -70,7 +70,7 @@ public sealed class BasketFunction
         var command = new CreateBasketCommand(
             request.Segments.Select(s => new BasketSegment(s.OfferId, s.SessionId)).ToList(),
             request.ChannelCode,
-            request.CurrencyCode,
+            request.Currency,
             request.BookingType,
             request.LoyaltyNumber,
             request.CustomerId,

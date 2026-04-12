@@ -37,7 +37,7 @@ public sealed class GetAdminOrderDetailHandler
             BookingReference = order.BookingReference ?? bookingReference,
             OrderStatus = order.OrderStatus,
             ChannelCode = order.ChannelCode,
-            CurrencyCode = order.CurrencyCode,
+            Currency = order.CurrencyCode,
             TotalAmount = order.TotalAmount,
             TicketingTimeLimit = order.TicketingTimeLimit,
             CreatedAt = order.CreatedAt,

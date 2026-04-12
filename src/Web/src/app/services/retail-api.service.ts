@@ -35,7 +35,7 @@ export interface CreateBasketParams {
   segments: BasketSegment[];
   bookingType: BookingType;
   passengerCount: number;
-  currencyCode?: string;
+  currency?: string;
   loyaltyNumber?: string;
 }
 
@@ -332,7 +332,7 @@ export class RetailApiService {
     const body = {
       segments: params.segments,
       channelCode: 'WEB',
-      currencyCode: params.currencyCode ?? 'GBP',
+      currency: params.currency ?? 'GBP',
       bookingType: params.bookingType,
       loyaltyNumber: params.loyaltyNumber ?? null,
       passengerCount: params.passengerCount
@@ -475,7 +475,7 @@ export class RetailApiService {
         bookingReference: res.bookingReference,
         checkInEligible: res.checkInEligible,
         orderStatus: 'Confirmed',
-        currencyCode: 'GBP',
+        currency: 'GBP',
         passengers: res.passengers.map(p => ({
           passengerId: p.passengerId,
           ticketNumber: p.ticketNumber,

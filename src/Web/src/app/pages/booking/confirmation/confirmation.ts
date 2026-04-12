@@ -155,7 +155,7 @@ export class ConfirmationComponent implements OnInit {
   }
 
   formatPrice(amount: number): string {
-    return `${this.order?.currencyCode ?? ''} ${amount.toFixed(2)}`;
+    return `${this.order?.currency ?? ''} ${amount.toFixed(2)}`;
   }
 
   cabinLabel(code: string): string {

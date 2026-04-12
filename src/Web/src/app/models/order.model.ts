@@ -105,7 +105,7 @@ export interface Order {
   orderStatus: OrderStatus;
   bookingType: BookingType;
   channelCode: string;
-  currencyCode: string;
+  currency: string;
   totalAmount: number;
   totalPointsAmount?: number;
   createdAt: string;
@@ -258,7 +258,7 @@ export interface OciOrder {
   bookingReference: string;
   checkInEligible?: boolean;
   orderStatus: string;
-  currencyCode: string;
+  currency: string;
   passengers: OciPassenger[];
   flightSegments?: OciFlightSegment[];
 }
