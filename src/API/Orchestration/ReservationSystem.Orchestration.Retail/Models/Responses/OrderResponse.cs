@@ -28,6 +28,19 @@ public sealed class OrderFlight
     public DateTime DepartureTime { get; init; }
     public DateTime ArrivalTime { get; init; }
     public string CabinClass { get; init; } = string.Empty;
+    public string? FareFamily { get; init; }
+    public string? FareBasisCode { get; init; }
+    public decimal BaseFareAmount { get; init; }
+    public decimal TaxAmount { get; init; }
+    public decimal TotalFareAmount { get; init; }
+    public IReadOnlyList<OrderFlightTaxLine>? TaxLines { get; init; }
+}
+
+public sealed class OrderFlightTaxLine
+{
+    public string Code { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class OrderPassenger

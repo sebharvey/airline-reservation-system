@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using ReservationSystem.Shared.Common.Json;
 using System.Linq;
@@ -40,9 +41,10 @@ public sealed class ConfirmBasketHandler
         if (basket.ExpiresAt <= DateTime.UtcNow)
             throw new InvalidOperationException("Basket has expired.");
 
-        // Validate all offers before creating any order record.
+        // Reprice and validate all offers before creating any order record.
+        // Calling reprice (not just get) ensures we have the latest dynamic fares and tax lines.
         var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
-        await ValidateOffersAsync(basketDataJsonEarly, cancellationToken);
+        var repricedOffers = await RepriceAndValidateOffersAsync(basketDataJsonEarly, cancellationToken);
 
         var totalAmount = basket.TotalAmount ?? 0m;
         var currency = basket.CurrencyCode;
@@ -78,11 +80,14 @@ public sealed class ConfirmBasketHandler
         }
 
         // 4. Confirm order in Order MS — validates completeness, assigns booking reference,
-        //    writes payment references into OrderData, and deletes the basket
+        //    writes payment references into OrderData, and deletes the basket.
+        //    Pass enriched offer data so the Order MS can lock confirmed fares + tax lines.
         var paymentRefs = new List<object>
         {
             new { type = command.PaymentMethod, paymentReference = paymentId, amount = totalAmount }
         };
+
+        var enrichedOffers = BuildEnrichedOffersPayload(basketDataJsonEarly, repricedOffers);
 
         OrderMsConfirmOrderResult confirmedOrder;
         try
@@ -91,7 +96,8 @@ public sealed class ConfirmBasketHandler
                 draftOrder.OrderId,
                 command.BasketId,
                 paymentRefs,
-                cancellationToken);
+                cancellationToken,
+                enrichedOffers: enrichedOffers.Count > 0 ? enrichedOffers : null);
         }
         catch
         {
@@ -115,12 +121,18 @@ public sealed class ConfirmBasketHandler
 
         var issuedTickets = await ticketsTask;
 
+        // Build flights from confirmed order items (which carry locked fares + tax lines).
+        // Fall back to basket data parsing only if the Order MS returned no items.
+        var flights = confirmedOrder.OrderItems.Count > 0
+            ? BuildFlightsFromConfirmedItems(confirmedOrder.OrderItems)
+            : ParseFlightsFromBasketData(basketDataJson);
+
         return new OrderResponse
         {
             BookingReference = confirmedOrder.BookingReference,
             Status = confirmedOrder.OrderStatus,
             CustomerId = string.Empty,
-            Flights = ParseFlightsFromBasketData(basketDataJson),
+            Flights = flights,
             Passengers = ParsePassengersFromBasketData(basketDataJson),
             ETickets = issuedTickets.Select(t => new IssuedETicket
             {
@@ -134,17 +146,122 @@ public sealed class ConfirmBasketHandler
         };
     }
 
-    private async Task ValidateOffersAsync(string? basketDataJson, CancellationToken cancellationToken)
+    /// <summary>
+    /// Calls the Offer MS reprice endpoint for every flight offer in the basket.
+    /// Reprice returns the latest dynamic fares and tax lines, and sets Validated = true.
+    /// Throws if any offer is not found / expired, or if validation still fails after reprice.
+    /// Returns a map of StoredOfferId → repriced offer data for use in order enrichment.
+    /// </summary>
+    private async Task<Dictionary<Guid, RepriceOfferDto>> RepriceAndValidateOffersAsync(
+        string? basketDataJson, CancellationToken cancellationToken)
     {
         var offerRefs = ParseOfferRefsFromBasketData(basketDataJson);
+        var result = new Dictionary<Guid, RepriceOfferDto>();
+
         foreach (var (offerId, sessionId) in offerRefs)
         {
-            var offer = await _offerServiceClient.GetOfferAsync(offerId, sessionId, cancellationToken);
-            if (offer is null)
+            var repriced = await _offerServiceClient.RepriceOfferAsync(offerId, sessionId, cancellationToken);
+            if (repriced is null)
                 throw new InvalidOperationException($"Offer {offerId} could not be found or has expired. Customer must re-search.");
-            if (!offer.Validated)
+            if (!repriced.Validated)
                 throw new InvalidOperationException($"Offer {offerId} needs to be priced before it can be confirmed.");
+            result[offerId] = repriced;
         }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Builds the enriched offers payload to pass to the Order MS confirm endpoint.
+    /// Each entry matches offerId + cabinCode from the basket to a repriced offer item.
+    /// </summary>
+    private static List<object> BuildEnrichedOffersPayload(
+        string? basketDataJson,
+        Dictionary<Guid, RepriceOfferDto> repricedOffers)
+    {
+        var payload = new List<object>();
+        if (basketDataJson is null) return payload;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("flightOffers", out var offersEl) ||
+                offersEl.ValueKind != JsonValueKind.Array)
+                return payload;
+
+            foreach (var offer in offersEl.EnumerateArray())
+            {
+                if (!offer.TryGetProperty("offerId", out var offerIdEl) ||
+                    !offerIdEl.TryGetGuid(out var offerId))
+                    continue;
+
+                var cabinCode = offer.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
+
+                if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
+
+                // Find the specific cabin item from the repriced offer
+                var item = repriced.Offers.FirstOrDefault(o =>
+                    string.Equals(o.CabinCode, cabinCode, StringComparison.OrdinalIgnoreCase))
+                    ?? repriced.Offers.FirstOrDefault();
+
+                if (item is null) continue;
+
+                payload.Add(new
+                {
+                    offerId        = offerId,
+                    cabinCode      = item.CabinCode,
+                    baseFareAmount = item.BaseFareAmount,
+                    taxAmount      = item.TaxAmount,
+                    totalAmount    = item.TotalAmount,
+                    taxLines       = item.TaxLines?.Select(tl => new
+                    {
+                        code        = tl.Code,
+                        amount      = tl.Amount,
+                        description = tl.Description
+                    })
+                });
+            }
+        }
+        catch { /* Return whatever was built */ }
+
+        return payload;
+    }
+
+    /// <summary>
+    /// Builds the Flights list from confirmed order items returned by the Order MS.
+    /// These carry the locked fares and tax lines as stored in OrderData.
+    /// </summary>
+    private static List<OrderFlight> BuildFlightsFromConfirmedItems(
+        IEnumerable<ConfirmedOrderItemResult> items)
+    {
+        return items.Select(item =>
+        {
+            var depDt = DateTime.TryParse($"{item.DepartureDate}T{item.DepartureTime}", out var d) ? d : default;
+            var arrDt = DateTime.TryParse($"{item.DepartureDate}T{item.ArrivalTime}",   out var a) ? a : default;
+
+            return new OrderFlight
+            {
+                FlightNumber     = item.FlightNumber,
+                Origin           = item.Origin,
+                Destination      = item.Destination,
+                DepartureTime    = depDt,
+                ArrivalTime      = arrDt,
+                CabinClass       = item.CabinCode,
+                FareFamily       = item.FareFamily,
+                FareBasisCode    = item.FareBasisCode,
+                BaseFareAmount   = item.BaseFareAmount,
+                TaxAmount        = item.TaxAmount,
+                TotalFareAmount  = item.TotalAmount,
+                TaxLines         = item.TaxLines?.Select(tl => new OrderFlightTaxLine
+                {
+                    Code        = tl.Code,
+                    Amount      = tl.Amount,
+                    Description = tl.Description
+                }).ToList()
+            };
+        }).ToList();
     }
 
     private static List<(Guid OfferId, Guid? SessionId)> ParseOfferRefsFromBasketData(string? basketDataJson)
