@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Application.Product.CreateProduct;
 
@@ -14,9 +15,9 @@ public sealed class CreateProductHandler
         _logger = logger;
     }
 
-    public async Task<Entities.Product.Product> HandleAsync(CreateProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity> HandleAsync(CreateProductCommand command, CancellationToken cancellationToken = default)
     {
-        var product = Entities.Product.Product.Create(
+        var product = ProductEntity.Create(
             command.ProductGroupId, command.Name, command.Description,
             command.IsSegmentSpecific, command.SsrCode, command.ImageBase64);
 

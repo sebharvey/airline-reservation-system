@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Product;
 
@@ -15,7 +16,7 @@ public sealed class EfProductRepository : IProductRepository
         _logger = logger;
     }
 
-    public async Task<Domain.Entities.Product.Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Products
             .Include(p => p.Prices)
@@ -23,7 +24,7 @@ public sealed class EfProductRepository : IProductRepository
             .FirstOrDefaultAsync(p => p.ProductId == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Domain.Entities.Product.Product>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ProductEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var products = await _context.Products
             .Include(p => p.Prices)
@@ -33,7 +34,7 @@ public sealed class EfProductRepository : IProductRepository
         return products.AsReadOnly();
     }
 
-    public async Task<IReadOnlyList<Domain.Entities.Product.Product>> GetByGroupAsync(Guid productGroupId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ProductEntity>> GetByGroupAsync(Guid productGroupId, CancellationToken cancellationToken = default)
     {
         var products = await _context.Products
             .Include(p => p.Prices)
@@ -44,7 +45,7 @@ public sealed class EfProductRepository : IProductRepository
         return products.AsReadOnly();
     }
 
-    public async Task<Domain.Entities.Product.Product> CreateAsync(Domain.Entities.Product.Product product, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity> CreateAsync(ProductEntity product, CancellationToken cancellationToken = default)
     {
         _context.Products.Add(product);
         await _context.SaveChangesAsync(cancellationToken);
@@ -52,7 +53,7 @@ public sealed class EfProductRepository : IProductRepository
         return product;
     }
 
-    public async Task<Domain.Entities.Product.Product?> UpdateAsync(Domain.Entities.Product.Product product, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity?> UpdateAsync(ProductEntity product, CancellationToken cancellationToken = default)
     {
         _context.Products.Update(product);
         var rowsAffected = await _context.SaveChangesAsync(cancellationToken);

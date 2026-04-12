@@ -6,6 +6,7 @@ using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProduc
 using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProductPrice;
 using ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
 using ReservationSystem.Microservices.Ancillary.Models.Product.Requests;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 using ReservationSystem.Microservices.Ancillary.Models.Product.Responses;
 
 namespace ReservationSystem.Microservices.Ancillary.Models.Product.Mappers;
@@ -59,7 +60,7 @@ public static class ProductMapper
 
     // ── Product: Domain → Response ───────────────────────────────────────────
 
-    public static ProductResponse ToResponse(Entities.Product.Product product) =>
+    public static ProductResponse ToResponse(ProductEntity product) =>
         new()
         {
             ProductId = product.ProductId,
@@ -75,7 +76,7 @@ public static class ProductMapper
             UpdatedAt = product.UpdatedAt
         };
 
-    public static IReadOnlyList<ProductResponse> ToResponse(IEnumerable<Entities.Product.Product> products) =>
+    public static IReadOnlyList<ProductResponse> ToResponse(IEnumerable<ProductEntity> products) =>
         products.Select(ToResponse).ToList().AsReadOnly();
 
     // ── ProductPrice: Request → Command ─────────────────────────────────────

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProduct;
 
@@ -15,12 +15,12 @@ public sealed class UpdateProductHandler
         _logger = logger;
     }
 
-    public async Task<Entities.Product.Product?> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
+    public async Task<ProductEntity?> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
     {
         var existing = await _repository.GetByIdAsync(command.ProductId, cancellationToken);
         if (existing is null) return null;
 
-        var updated = Entities.Product.Product.Reconstitute(
+        var updated = ProductEntity.Reconstitute(
             existing.ProductId, command.ProductGroupId, command.Name, command.Description,
             command.IsSegmentSpecific,
             string.IsNullOrWhiteSpace(command.SsrCode) ? null : command.SsrCode.ToUpperInvariant(),

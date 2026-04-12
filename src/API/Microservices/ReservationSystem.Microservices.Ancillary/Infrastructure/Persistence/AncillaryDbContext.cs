@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ReservationSystem.Microservices.Ancillary.Domain.Entities.Bag;
 using ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
+using ProductEntity = ReservationSystem.Microservices.Ancillary.Domain.Entities.Product.Product;
 
 namespace ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence;
 
@@ -16,7 +17,7 @@ public sealed class AncillaryDbContext : DbContext
     public DbSet<BagPolicy> BagPolicies => Set<BagPolicy>();
     public DbSet<BagPricing> BagPricings => Set<BagPricing>();
     public DbSet<ProductGroup> ProductGroups => Set<ProductGroup>();
-    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductEntity> Products => Set<ProductEntity>();
     public DbSet<ProductPrice> ProductPrices => Set<ProductPrice>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -86,7 +87,7 @@ public sealed class AncillaryDbContext : DbContext
         });
 
         // ── Product ────────────────────────────────────────────────────────────
-        modelBuilder.Entity<Product>(entity =>
+        modelBuilder.Entity<ProductEntity>(entity =>
         {
             entity.ToTable("Product", "product", t =>
             {
