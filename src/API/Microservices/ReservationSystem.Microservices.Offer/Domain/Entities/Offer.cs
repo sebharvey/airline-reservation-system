@@ -341,10 +341,10 @@ public sealed class FareRule
     public string? CurrencyCode { get; private set; }
     public decimal? MinAmount { get; private set; }
     public decimal? MaxAmount { get; private set; }
-    public decimal? TaxAmount { get; private set; }
     public int? MinPoints { get; private set; }
     public int? MaxPoints { get; private set; }
     public decimal? PointsTaxes { get; private set; }
+    public string? TaxLines { get; private set; }
     public bool IsRefundable { get; private set; }
     public bool IsChangeable { get; private set; }
     public decimal ChangeFeeAmount { get; private set; }
@@ -359,8 +359,9 @@ public sealed class FareRule
     public static FareRule Create(
         string ruleType, string? flightNumber, string fareBasisCode, string? fareFamily,
         string cabinCode, string bookingClass, string? currencyCode,
-        decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
+        decimal? minAmount, decimal? maxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
@@ -370,8 +371,9 @@ public sealed class FareRule
             RuleType = ruleType, FlightNumber = flightNumber,
             FareBasisCode = fareBasisCode, FareFamily = fareFamily,
             CabinCode = cabinCode, BookingClass = bookingClass, CurrencyCode = currencyCode,
-            MinAmount = minAmount, MaxAmount = maxAmount, TaxAmount = taxAmount,
+            MinAmount = minAmount, MaxAmount = maxAmount,
             MinPoints = minPoints, MaxPoints = maxPoints, PointsTaxes = pointsTaxes,
+            TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             ValidFrom = validFrom, ValidTo = validTo,
@@ -382,8 +384,9 @@ public sealed class FareRule
     public static FareRule Reconstitute(
         Guid fareRuleId, string ruleType, string? flightNumber, string fareBasisCode,
         string? fareFamily, string cabinCode, string bookingClass, string? currencyCode,
-        decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
+        decimal? minAmount, decimal? maxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo, DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
@@ -392,8 +395,9 @@ public sealed class FareRule
             FareRuleId = fareRuleId, RuleType = ruleType, FlightNumber = flightNumber,
             FareBasisCode = fareBasisCode, FareFamily = fareFamily,
             CabinCode = cabinCode, BookingClass = bookingClass, CurrencyCode = currencyCode,
-            MinAmount = minAmount, MaxAmount = maxAmount, TaxAmount = taxAmount,
+            MinAmount = minAmount, MaxAmount = maxAmount,
             MinPoints = minPoints, MaxPoints = maxPoints, PointsTaxes = pointsTaxes,
+            TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
             ValidFrom = validFrom, ValidTo = validTo,
@@ -404,16 +408,18 @@ public sealed class FareRule
     public void Update(
         string ruleType, string? flightNumber, string fareBasisCode, string? fareFamily,
         string cabinCode, string bookingClass, string? currencyCode,
-        decimal? minAmount, decimal? maxAmount, decimal? taxAmount,
+        decimal? minAmount, decimal? maxAmount,
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
+        string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
         RuleType = ruleType; FlightNumber = flightNumber;
         FareBasisCode = fareBasisCode; FareFamily = fareFamily;
         CabinCode = cabinCode; BookingClass = bookingClass; CurrencyCode = currencyCode;
-        MinAmount = minAmount; MaxAmount = maxAmount; TaxAmount = taxAmount;
+        MinAmount = minAmount; MaxAmount = maxAmount;
         MinPoints = minPoints; MaxPoints = maxPoints; PointsTaxes = pointsTaxes;
+        TaxLines = taxLines;
         IsRefundable = isRefundable; IsChangeable = isChangeable;
         ChangeFeeAmount = changeFeeAmount; CancellationFeeAmount = cancellationFeeAmount;
         ValidFrom = validFrom; ValidTo = validTo;

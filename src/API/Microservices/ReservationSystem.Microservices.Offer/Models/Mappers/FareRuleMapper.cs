@@ -20,10 +20,12 @@ public static class FareRuleMapper
             currencyCode = r.CurrencyCode,
             minAmount = r.MinAmount,
             maxAmount = r.MaxAmount,
-            taxAmount = r.TaxAmount,
             minPoints = r.MinPoints,
             maxPoints = r.MaxPoints,
             pointsTaxes = r.PointsTaxes,
+            taxLines = r.TaxLines != null
+                ? System.Text.Json.JsonSerializer.Deserialize<object[]>(r.TaxLines)
+                : null,
             isRefundable = r.IsRefundable,
             isChangeable = r.IsChangeable,
             changeFeeAmount = r.ChangeFeeAmount,

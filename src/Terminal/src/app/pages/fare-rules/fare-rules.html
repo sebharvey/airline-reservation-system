@@ -96,7 +96,7 @@
         <div class="form-section">
           <h3 class="section-heading">Pricing</h3>
           @if (form().ruleType === 'Money') {
-            <div class="form-grid grid-4">
+            <div class="form-grid grid-3">
               <div class="form-group">
                 <label>Currency *</label>
                 <input type="text" [ngModel]="form().currencyCode" (ngModelChange)="updateField('currencyCode', $event)" maxlength="3" required />
@@ -108,10 +108,6 @@
               <div class="form-group">
                 <label>Max Amount *</label>
                 <input type="number" [ngModel]="form().maxAmount" (ngModelChange)="updateField('maxAmount', $event)" min="0" step="0.01" required />
-              </div>
-              <div class="form-group">
-                <label>Tax *</label>
-                <input type="number" [ngModel]="form().taxAmount" (ngModelChange)="updateField('taxAmount', $event)" min="0" step="0.01" required />
               </div>
             </div>
           }
@@ -130,6 +126,73 @@
                 <input type="number" [ngModel]="form().pointsTaxes" (ngModelChange)="updateField('pointsTaxes', $event)" min="0" step="0.01" />
               </div>
             </div>
+          }
+        </div>
+
+        <!-- Tax Lines -->
+        <div class="form-section">
+          <div class="section-heading-row">
+            <h3 class="section-heading">Tax Lines</h3>
+            <button type="button" class="add-tax-btn" (click)="addTaxLine()">+ Add Tax</button>
+          </div>
+          @if (form().taxLines && form().taxLines!.length > 0) {
+            <div class="tax-lines-list">
+              @for (line of form().taxLines!; track $index) {
+                <div class="tax-line-row">
+                  <select
+                    class="tax-code-select"
+                    [ngModel]="line.code"
+                    (ngModelChange)="updateTaxLineCode($index, $event)"
+                  >
+                    <option value="" disabled>Code</option>
+                    <optgroup label="Carrier Surcharges">
+                      <option value="YQ">YQ — Carrier surcharge (fuel)</option>
+                      <option value="YR">YR — Carrier surcharge (misc)</option>
+                    </optgroup>
+                    <optgroup label="UK">
+                      <option value="GB">GB — Air Passenger Duty</option>
+                      <option value="UB">UB — Passenger Service Charge</option>
+                    </optgroup>
+                    <optgroup label="USA">
+                      <option value="US">US — Federal Transportation Tax</option>
+                      <option value="XF">XF — Passenger Facility Charge</option>
+                      <option value="ZP">ZP — Flight Segment Tax</option>
+                      <option value="AY">AY — Security Service Fee</option>
+                    </optgroup>
+                    <optgroup label="Europe">
+                      <option value="E7">E7 — EU Emissions Trading</option>
+                      <option value="F6">F6 — France Solidarity Tax</option>
+                      <option value="TK">TK — Turkey VAT</option>
+                    </optgroup>
+                    <optgroup label="Asia-Pacific">
+                      <option value="JD">JD — Japan Consumption Tax</option>
+                      <option value="SQ">SQ — Singapore Departure Tax</option>
+                      <option value="WY">WY — Oman Airport Tax</option>
+                    </optgroup>
+                    <optgroup label="Middle East &amp; Africa">
+                      <option value="DU">DU — Dubai Tourism Dirham</option>
+                      <option value="OY">OY — Security Surcharge</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="IZ">IZ — Israel Departure Tax</option>
+                      <option value="RA">RA — IATA Levy</option>
+                    </optgroup>
+                  </select>
+                  <input
+                    type="number"
+                    class="tax-amount-input"
+                    placeholder="Amount"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="line.amount"
+                    (ngModelChange)="updateTaxLineAmount($index, $event)"
+                  />
+                  <button type="button" class="remove-tax-btn" (click)="removeTaxLine($index)" title="Remove">&times;</button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="tax-lines-empty">No tax lines defined. Click "+ Add Tax" to add one.</p>
           }
         </div>
 
@@ -241,7 +304,6 @@
             <th class="hide-mobile">Family</th>
             <th>Min</th>
             <th>Max</th>
-            <th class="hide-mobile">Tax</th>
             <th class="hide-tablet">Refund</th>
             <th class="hide-tablet">Change</th>
             <th class="hide-tablet">Valid Period</th>
@@ -268,11 +330,9 @@
               @if (rule.ruleType === 'Money') {
                 <td class="mono">{{ formatAmount(rule.minAmount, rule.currencyCode) }}</td>
                 <td class="mono">{{ formatAmount(rule.maxAmount, rule.currencyCode) }}</td>
-                <td class="hide-mobile mono">{{ formatAmount(rule.taxAmount, rule.currencyCode) }}</td>
               } @else {
                 <td class="mono">{{ formatPoints(rule.minPoints) }} pts</td>
                 <td class="mono">{{ formatPoints(rule.maxPoints) }} pts</td>
-                <td class="hide-mobile mono">{{ formatAmount(rule.pointsTaxes, 'GBP') }}</td>
               }
               <td class="hide-tablet">
                 <span class="badge" [class.badge-yes]="rule.isRefundable" [class.badge-no]="!rule.isRefundable">
@@ -309,7 +369,7 @@
 
           @if (filtered().length === 0 && loaded()) {
             <tr>
-              <td colspan="12" class="empty-row">
+              <td colspan="11" class="empty-row">
                 @if (filter()) {
                   No fare rules match the filter "{{ filter() }}".
                 } @else {

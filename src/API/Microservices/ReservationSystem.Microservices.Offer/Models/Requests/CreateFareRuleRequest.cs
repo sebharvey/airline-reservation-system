@@ -31,9 +31,6 @@ public sealed class CreateFareRuleRequest
     [JsonPropertyName("maxAmount")]
     public decimal? MaxAmount { get; init; }
 
-    [JsonPropertyName("taxAmount")]
-    public decimal? TaxAmount { get; init; }
-
     [JsonPropertyName("minPoints")]
     public int? MinPoints { get; init; }
 
@@ -42,6 +39,9 @@ public sealed class CreateFareRuleRequest
 
     [JsonPropertyName("pointsTaxes")]
     public decimal? PointsTaxes { get; init; }
+
+    [JsonPropertyName("taxLines")]
+    public string? TaxLines { get; init; }
 
     [JsonPropertyName("isRefundable")]
     public bool IsRefundable { get; init; }

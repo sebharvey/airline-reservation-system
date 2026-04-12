@@ -5,6 +5,11 @@ import { environment } from '../environment';
 
 export type RuleType = 'Money' | 'Points';
 
+export interface TaxLine {
+  code: string;
+  amount: number;
+}
+
 export interface FareRule {
   fareRuleId: string;
   ruleType: RuleType;
@@ -16,10 +21,10 @@ export interface FareRule {
   currencyCode: string | null;
   minAmount: number | null;
   maxAmount: number | null;
-  taxAmount: number | null;
   minPoints: number | null;
   maxPoints: number | null;
   pointsTaxes: number | null;
+  taxLines: TaxLine[] | null;
   isRefundable: boolean;
   isChangeable: boolean;
   changeFeeAmount: number;
@@ -40,10 +45,10 @@ export interface CreateFareRuleRequest {
   currencyCode?: string | null;
   minAmount?: number | null;
   maxAmount?: number | null;
-  taxAmount?: number | null;
   minPoints?: number | null;
   maxPoints?: number | null;
   pointsTaxes?: number | null;
+  taxLines?: TaxLine[] | null;
   isRefundable: boolean;
   isChangeable: boolean;
   changeFeeAmount: number;
