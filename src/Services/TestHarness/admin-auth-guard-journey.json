@@ -1334,6 +1334,171 @@
         "validationNotes": "Response must be 401, not 404. Debug endpoints are high-risk if unauthenticated."
       },
       "chainsTo": []
+    },
+    {
+      "step": 41,
+      "name": "GET /admin/seat-pricing — no token",
+      "description": "List all seat pricing rules via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/seat-pricing",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token supplied. The TerminalAuthenticationMiddleware must reject the request before the handler executes.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 200 or 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 42,
+      "name": "GET /admin/seat-pricing/{seatPricingId} — no token",
+      "description": "Fetch a seat pricing rule by ID via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/admin/seat-pricing/{seatPricingId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "seatPricingId": "00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token supplied. The TerminalAuthenticationMiddleware must reject the request before the handler executes.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404. A nil GUID path param is used to avoid any accidental data match."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 43,
+      "name": "POST /admin/seat-pricing — no token",
+      "description": "Create a seat pricing rule via the Retail API without an Authorization header. A minimal valid body is supplied so a 400 cannot mask the 401.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/seat-pricing",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cabinCode": "Y",
+          "seatPosition": "Window",
+          "currencyCode": "GBP",
+          "price": 25.00,
+          "validFrom": "2026-01-01T00:00:00Z",
+          "validTo": null
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token supplied. The TerminalAuthenticationMiddleware must reject the request before the handler executes. A valid body is included to confirm the 401 is not a 400 masking the auth failure.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 400 or 201."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 44,
+      "name": "PUT /admin/seat-pricing/{seatPricingId} — no token",
+      "description": "Update a seat pricing rule via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/admin/seat-pricing/{seatPricingId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "seatPricingId": "00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "price": 30.00
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token supplied. The TerminalAuthenticationMiddleware must reject the request before the handler executes.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 45,
+      "name": "DELETE /admin/seat-pricing/{seatPricingId} — no token",
+      "description": "Delete a seat pricing rule via the Retail API without an Authorization header.",
+      "type": "negative",
+      "apiCall": {
+        "method": "DELETE",
+        "endpoint": "/api/v1/admin/seat-pricing/{seatPricingId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "seatPricingId": "00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Bearer token supplied. The TerminalAuthenticationMiddleware must reject the request before the handler executes.",
+        "keyFields": [],
+        "validationNotes": "Response must be 401, not 404."
+      },
+      "chainsTo": []
     }
   ]
 }
