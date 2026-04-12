@@ -51,7 +51,7 @@ public sealed class UpdateBasketFlightsHandler
         {
             foreach (var offer in flightsArray)
             {
-                var price = offer?["totalAmount"]?.GetValue<decimal>() ?? 0m;
+                var price = offer?["total"]?.GetValue<decimal>() ?? 0m;
                 totalFareAmount += price;
             }
         }

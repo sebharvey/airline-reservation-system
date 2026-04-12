@@ -64,12 +64,12 @@ public sealed class GetAdminOrdersHandler
         try
         {
             var data = orderData.Value;
-            if (data.TryGetProperty("orderItems", out var items) &&
+            if (data.TryGetProperty("items", out var items) &&
                 items.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in items.EnumerateArray())
                 {
-                    if (item.TryGetProperty("inventoryId", out var invEl) &&
+                    if (item.TryGetProperty("invId", out var invEl) &&
                         invEl.TryGetGuid(out var id))
                     {
                         ids.Add(id);
@@ -95,7 +95,7 @@ public sealed class GetAdminOrdersHandler
             try
             {
                 var data = order.OrderData.Value;
-                if (data.TryGetProperty("dataLists", out var dataLists) &&
+                if (data.TryGetProperty("data", out var dataLists) &&
                     dataLists.TryGetProperty("passengers", out var passengers) &&
                     passengers.GetArrayLength() > 0)
                 {
