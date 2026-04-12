@@ -69,6 +69,14 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/seating/seating').then(m => m.SeatingComponent),
       },
       {
+        path: 'product-groups',
+        loadComponent: () => import('./pages/product-groups/product-groups').then(m => m.ProductGroupsComponent),
+      },
+      {
+        path: 'products',
+        loadComponent: () => import('./pages/products/products').then(m => m.ProductsComponent),
+      },
+      {
         path: 'terminal',
         loadComponent: () => import('./pages/terminal/terminal').then(m => m.TerminalComponent),
       },
