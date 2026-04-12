@@ -60,13 +60,33 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Seat Position *</label>
-              <select [ngModel]="form().seatPosition" (ngModelChange)="updateField('seatPosition', $event)">
-                <option value="Window">Window</option>
-                <option value="Aisle">Aisle</option>
-                <option value="Middle">Middle</option>
-              </select>
+              <label>Description *</label>
+              <input
+                type="text"
+                [ngModel]="form().description"
+                (ngModelChange)="updateField('description', $event)"
+                placeholder="e.g. Window, Extra Legroom"
+                required
+              />
             </div>
+            <div class="form-group">
+              <label>Sequence</label>
+              <input
+                type="number"
+                [ngModel]="form().sequence"
+                (ngModelChange)="updateField('sequence', +$event)"
+                min="0"
+                step="1"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Pricing -->
+        <div class="form-section">
+          <h3 class="section-heading">Pricing</h3>
+          <div class="form-grid grid-3">
             <div class="form-group">
               <label>Currency *</label>
               <input
@@ -79,13 +99,6 @@
                 required
               />
             </div>
-          </div>
-        </div>
-
-        <!-- Pricing -->
-        <div class="form-section">
-          <h3 class="section-heading">Pricing</h3>
-          <div class="form-grid grid-2">
             <div class="form-group">
               <label>Price *</label>
               <div class="price-input-wrap">
@@ -137,7 +150,7 @@
         <button
           class="save-btn"
           (click)="savePricing()"
-          [disabled]="saving() || !form().cabinCode || !form().seatPosition || !form().currencyCode || !form().price"
+          [disabled]="saving() || !form().cabinCode || !form().description || !form().currencyCode || !form().price"
         >
           @if (saving()) {
             <span class="btn-spinner"></span> Saving…
@@ -175,7 +188,7 @@
         <input
           class="search-input"
           type="search"
-          placeholder="Filter by cabin, position, currency…"
+          placeholder="Filter by cabin, description, currency…"
           [value]="filter()"
           (input)="setFilter($any($event.target).value)"
         />
@@ -190,7 +203,7 @@
         <thead>
           <tr>
             <th>Cabin</th>
-            <th>Position</th>
+            <th>Description</th>
             <th>Price</th>
             <th>Status</th>
             <th class="hide-mobile">Valid From</th>
@@ -206,7 +219,7 @@
                 <span class="badge badge-cabin">{{ pricing.cabinCode }}</span>
                 <span class="cabin-label">{{ cabinLabel(pricing.cabinCode) }}</span>
               </td>
-              <td>{{ pricing.seatPosition }}</td>
+              <td>{{ pricing.description }}</td>
               <td class="mono">{{ formatPrice(pricing.price, pricing.currencyCode) }}</td>
               <td>
                 <span class="badge" [class.badge-active]="pricing.isActive" [class.badge-inactive]="!pricing.isActive">

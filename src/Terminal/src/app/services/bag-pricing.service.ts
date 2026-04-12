@@ -24,6 +24,7 @@ export interface CreateBagPricingRequest {
 }
 
 export interface UpdateBagPricingRequest {
+  currencyCode?: string | null;
   price: number;
   isActive: boolean;
   validFrom: string;

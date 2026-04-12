@@ -864,7 +864,8 @@ IF OBJECT_ID('[seat].[SeatPricing]', 'U') IS NULL
 CREATE TABLE [seat].[SeatPricing] (
     SeatPricingId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_SeatPricing_Id       DEFAULT NEWID(),
     CabinCode     CHAR(1)          NOT NULL,
-    SeatPosition  VARCHAR(10)      NOT NULL,
+    Description   VARCHAR(100)     NOT NULL,
+    Sequence      INT              NOT NULL CONSTRAINT DF_SeatPricing_Sequence DEFAULT 0,
     CurrencyCode  CHAR(3)          NOT NULL CONSTRAINT DF_SeatPricing_Currency DEFAULT 'GBP',
     Price         DECIMAL(10,2)    NOT NULL,
     IsActive      BIT              NOT NULL CONSTRAINT DF_SeatPricing_Active   DEFAULT 1,
@@ -872,10 +873,9 @@ CREATE TABLE [seat].[SeatPricing] (
     ValidTo       DATETIME2            NULL,
     CreatedAt     DATETIME2        NOT NULL CONSTRAINT DF_SeatPricing_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_SeatPricing_Updated  DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_SeatPricing           PRIMARY KEY (SeatPricingId),
-    CONSTRAINT UQ_SeatPricing_CabinPos  UNIQUE (CabinCode, SeatPosition, CurrencyCode),
-    CONSTRAINT CHK_SeatPricing_Cabin    CHECK (CabinCode    IN ('F','J','W','Y')),
-    CONSTRAINT CHK_SeatPricing_Position CHECK (SeatPosition IN ('Window','Aisle','Middle'))
+    CONSTRAINT PK_SeatPricing            PRIMARY KEY (SeatPricingId),
+    CONSTRAINT UQ_SeatPricing_CabinDesc  UNIQUE (CabinCode, Description, CurrencyCode),
+    CONSTRAINT CHK_SeatPricing_Cabin     CHECK (CabinCode IN ('F','J','W','Y'))
 );
 GO
 
@@ -1508,13 +1508,13 @@ BEGIN TRY
     ('A339','Airbus','Airbus A330-900', 326,N'[{"cabin":"J","count":40},{"cabin":"W","count":56},{"cabin":"Y","count":230}]');
 
     -- seat.SeatPricing (all cabins: F, J, W, Y) --------------------------------
-    INSERT INTO [seat].[SeatPricing] (CabinCode, SeatPosition, CurrencyCode, Price, ValidFrom) VALUES
-    ('W','Window','GBP',70.00,'2025-01-01'),
-    ('W','Aisle', 'GBP',50.00,'2025-01-01'),
-    ('W','Middle','GBP',20.00,'2025-01-01'),
-    ('Y','Window','GBP',70.00,'2025-01-01'),
-    ('Y','Aisle', 'GBP',50.00,'2025-01-01'),
-    ('Y','Middle','GBP',20.00,'2025-01-01');
+    INSERT INTO [seat].[SeatPricing] (CabinCode, Description, Sequence, CurrencyCode, Price, ValidFrom) VALUES
+    ('W','Window', 1,'GBP',70.00,'2025-01-01'),
+    ('W','Aisle',  2,'GBP',50.00,'2025-01-01'),
+    ('W','Middle', 3,'GBP',20.00,'2025-01-01'),
+    ('Y','Window', 1,'GBP',70.00,'2025-01-01'),
+    ('Y','Aisle',  2,'GBP',50.00,'2025-01-01'),
+    ('Y','Middle', 3,'GBP',20.00,'2025-01-01');
 
     -- seat.Seatmap (A351 abbreviated layout) ----------------------------------
     INSERT INTO [seat].[Seatmap] (AircraftTypeCode, CabinLayout) VALUES

@@ -55,7 +55,8 @@ public static class SeatMapper
     public static CreateSeatPricingCommand ToCommand(CreateSeatPricingRequest request) =>
         new(
             CabinCode: request.CabinCode,
-            SeatPosition: request.SeatPosition,
+            Description: request.Description,
+            Sequence: request.Sequence,
             CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             ValidFrom: request.ValidFrom,
@@ -65,7 +66,8 @@ public static class SeatMapper
         new(
             SeatPricingId: seatPricingId,
             CabinCode: request.CabinCode,
-            SeatPosition: request.SeatPosition,
+            Description: request.Description,
+            Sequence: request.Sequence,
             CurrencyCode: request.CurrencyCode,
             Price: request.Price,
             IsActive: request.IsActive,
@@ -125,7 +127,8 @@ public static class SeatMapper
         {
             SeatPricingId = seatPricing.SeatPricingId,
             CabinCode = seatPricing.CabinCode,
-            SeatPosition = seatPricing.SeatPosition,
+            Description = seatPricing.Description,
+            Sequence = seatPricing.Sequence,
             CurrencyCode = seatPricing.CurrencyCode,
             Price = seatPricing.Price,
             IsActive = seatPricing.IsActive,

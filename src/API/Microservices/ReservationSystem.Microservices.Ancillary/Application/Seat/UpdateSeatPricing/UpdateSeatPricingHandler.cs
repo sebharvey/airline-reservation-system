@@ -29,7 +29,8 @@ public sealed class UpdateSeatPricingHandler
         var updated = SeatPricing.Reconstitute(
             command.SeatPricingId,
             command.CabinCode ?? existing.CabinCode,
-            command.SeatPosition ?? existing.SeatPosition,
+            command.Description ?? existing.Description,
+            command.Sequence ?? existing.Sequence,
             command.CurrencyCode ?? existing.CurrencyCode,
             command.Price ?? existing.Price,
             command.IsActive ?? existing.IsActive,

@@ -32,7 +32,8 @@ export class SeatingComponent implements OnInit {
   // Form fields
   form = signal<CreateSeatPricingRequest>({
     cabinCode: 'Y',
-    seatPosition: 'Window',
+    description: '',
+    sequence: 0,
     currencyCode: 'GBP',
     price: 0,
     validFrom: '',
@@ -49,7 +50,7 @@ export class SeatingComponent implements OnInit {
     return all.filter(
       p =>
         p.cabinCode.toLowerCase().includes(q) ||
-        p.seatPosition.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
         p.currencyCode.toLowerCase().includes(q)
     );
   });
@@ -87,7 +88,8 @@ export class SeatingComponent implements OnInit {
     this.editing.set(null);
     this.form.set({
       cabinCode: 'Y',
-      seatPosition: 'Window',
+      description: '',
+      sequence: 0,
       currencyCode: 'GBP',
       price: 0,
       validFrom: '',
@@ -103,7 +105,8 @@ export class SeatingComponent implements OnInit {
     this.editing.set(pricing);
     this.form.set({
       cabinCode: pricing.cabinCode,
-      seatPosition: pricing.seatPosition,
+      description: pricing.description,
+      sequence: pricing.sequence,
       currencyCode: pricing.currencyCode,
       price: pricing.price,
       validFrom: pricing.validFrom ? pricing.validFrom.substring(0, 10) : '',
@@ -136,7 +139,8 @@ export class SeatingComponent implements OnInit {
       if (editingPricing) {
         const request: UpdateSeatPricingRequest = {
           cabinCode: data.cabinCode,
-          seatPosition: data.seatPosition,
+          description: data.description,
+          sequence: data.sequence,
           currencyCode: data.currencyCode,
           price: data.price,
           isActive: this.formIsActive(),

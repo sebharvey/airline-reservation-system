@@ -68,8 +68,8 @@ public sealed class SeatPricingFunction
         if (string.IsNullOrWhiteSpace(request.CabinCode) || request.CabinCode is not ("F" or "J" or "W" or "Y"))
             return await req.BadRequestAsync("cabinCode must be 'F', 'J', 'W', or 'Y'.");
 
-        if (string.IsNullOrWhiteSpace(request.SeatPosition) || request.SeatPosition is not ("Window" or "Aisle" or "Middle"))
-            return await req.BadRequestAsync("seatPosition must be 'Window', 'Aisle', or 'Middle'.");
+        if (string.IsNullOrWhiteSpace(request.Description))
+            return await req.BadRequestAsync("description is required.");
 
         if (request.Price <= 0)
             return await req.BadRequestAsync("price must be > 0.");

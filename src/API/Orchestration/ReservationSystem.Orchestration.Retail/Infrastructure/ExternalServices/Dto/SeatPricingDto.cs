@@ -4,7 +4,8 @@ namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices
 public sealed record SeatPricingDto(
     Guid SeatPricingId,
     string CabinCode,
-    string SeatPosition,
+    string Description,
+    int Sequence,
     string CurrencyCode,
     decimal Price,
     bool IsActive,
@@ -19,7 +20,8 @@ internal sealed record SeatPricingListWrapper(IReadOnlyList<SeatPricingDto> Pric
 /// <summary>Request body forwarded to the Ancillary microservice to create a seat pricing rule.</summary>
 public sealed record CreateSeatPricingRequestDto(
     string CabinCode,
-    string SeatPosition,
+    string Description,
+    int Sequence,
     string CurrencyCode,
     decimal Price,
     DateTime ValidFrom,
@@ -28,7 +30,8 @@ public sealed record CreateSeatPricingRequestDto(
 /// <summary>Request body forwarded to the Ancillary microservice to update a seat pricing rule.</summary>
 public sealed record UpdateSeatPricingRequestDto(
     string? CabinCode,
-    string? SeatPosition,
+    string? Description,
+    int? Sequence,
     string? CurrencyCode,
     decimal? Price,
     bool? IsActive,

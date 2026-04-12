@@ -6,7 +6,8 @@ import { environment } from '../environment';
 export interface SeatPricing {
   seatPricingId: string;
   cabinCode: string;
-  seatPosition: string;
+  description: string;
+  sequence: number;
   currencyCode: string;
   price: number;
   isActive: boolean;
@@ -18,7 +19,8 @@ export interface SeatPricing {
 
 export interface CreateSeatPricingRequest {
   cabinCode: string;
-  seatPosition: string;
+  description: string;
+  sequence: number;
   currencyCode: string;
   price: number;
   validFrom: string;
@@ -27,7 +29,8 @@ export interface CreateSeatPricingRequest {
 
 export interface UpdateSeatPricingRequest {
   cabinCode?: string | null;
-  seatPosition?: string | null;
+  description?: string | null;
+  sequence?: number | null;
   currencyCode?: string | null;
   price?: number | null;
   isActive?: boolean | null;

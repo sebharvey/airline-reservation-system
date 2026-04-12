@@ -6,7 +6,8 @@ namespace ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateSeatP
 public sealed record UpdateSeatPricingCommand(
     Guid SeatPricingId,
     string? CabinCode,
-    string? SeatPosition,
+    string? Description,
+    int? Sequence,
     string? CurrencyCode,
     decimal? Price,
     bool? IsActive,

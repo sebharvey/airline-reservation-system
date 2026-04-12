@@ -7,7 +7,8 @@ public sealed class SeatPricingResponse
 {
     public Guid SeatPricingId { get; init; }
     public string CabinCode { get; init; } = string.Empty;
-    public string SeatPosition { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public int Sequence { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public decimal Price { get; init; }
     public bool IsActive { get; init; }

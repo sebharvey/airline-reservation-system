@@ -88,7 +88,7 @@
             </div>
           </div>
         } @else {
-          <!-- Edit form — sequence and currency are read-only -->
+          <!-- Edit form — sequence is read-only, currency is editable -->
           <div class="form-section">
             <h3 class="section-heading">Rule Identity</h3>
             <div class="identity-readonly">
@@ -97,20 +97,20 @@
                 <span class="badge badge-sequence">{{ editing()!.bagSequence }}</span>
                 <span class="identity-desc">{{ sequenceLabel(editing()!.bagSequence) }}</span>
               </div>
-              <div class="identity-item">
-                <span class="identity-label">Currency</span>
-                <span class="badge badge-currency">{{ editing()!.currencyCode }}</span>
-              </div>
-              <span class="identity-note">Sequence and currency cannot be changed</span>
+              <span class="identity-note">Bag sequence cannot be changed after creation</span>
             </div>
           </div>
           <div class="form-section">
             <h3 class="section-heading">Pricing</h3>
-            <div class="form-grid grid-1">
+            <div class="form-grid grid-2">
+              <div class="form-group">
+                <label>Currency *</label>
+                <input type="text" [ngModel]="updateForm().currencyCode" (ngModelChange)="updateUpdateField('currencyCode', $event.toUpperCase())" maxlength="3" required class="uppercase-input" />
+              </div>
               <div class="form-group">
                 <label>Price *</label>
                 <div class="price-wrap">
-                  <span class="price-currency">{{ editing()!.currencyCode }}</span>
+                  <span class="price-currency">{{ updateForm().currencyCode || editing()!.currencyCode }}</span>
                   <input type="number" class="price-input" [ngModel]="updateForm().price" (ngModelChange)="updateUpdateField('price', +$event)" min="0.01" step="0.01" required />
                 </div>
               </div>

@@ -5,7 +5,8 @@ namespace ReservationSystem.Microservices.Ancillary.Application.Seat.CreateSeatP
 /// </summary>
 public sealed record CreateSeatPricingCommand(
     string CabinCode,
-    string SeatPosition,
+    string Description,
+    int Sequence,
     string CurrencyCode,
     decimal Price,
     DateTime ValidFrom,

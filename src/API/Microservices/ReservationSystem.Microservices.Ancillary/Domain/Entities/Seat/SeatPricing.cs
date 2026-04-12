@@ -8,7 +8,8 @@ public sealed class SeatPricing
 {
     public Guid SeatPricingId { get; private set; }
     public string CabinCode { get; private set; } = string.Empty;
-    public string SeatPosition { get; private set; } = string.Empty;
+    public string Description { get; private set; } = string.Empty;
+    public int Sequence { get; private set; }
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
     public bool IsActive { get; private set; }
@@ -24,21 +25,23 @@ public sealed class SeatPricing
     /// </summary>
     public static SeatPricing Create(
         string cabinCode,
-        string seatPosition,
+        string description,
+        int sequence,
         string currencyCode,
         decimal price,
         DateTime validFrom,
         DateTime? validTo = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cabinCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(seatPosition);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
 
         return new SeatPricing
         {
             SeatPricingId = Guid.NewGuid(),
             CabinCode = cabinCode,
-            SeatPosition = seatPosition,
+            Description = description,
+            Sequence = sequence,
             CurrencyCode = currencyCode,
             Price = price,
             IsActive = true,
@@ -55,7 +58,8 @@ public sealed class SeatPricing
     public static SeatPricing Reconstitute(
         Guid seatPricingId,
         string cabinCode,
-        string seatPosition,
+        string description,
+        int sequence,
         string currencyCode,
         decimal price,
         bool isActive,
@@ -68,7 +72,8 @@ public sealed class SeatPricing
         {
             SeatPricingId = seatPricingId,
             CabinCode = cabinCode,
-            SeatPosition = seatPosition,
+            Description = description,
+            Sequence = sequence,
             CurrencyCode = currencyCode,
             Price = price,
             IsActive = isActive,

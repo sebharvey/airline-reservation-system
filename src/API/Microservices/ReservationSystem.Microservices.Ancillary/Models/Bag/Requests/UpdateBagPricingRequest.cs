@@ -4,6 +4,9 @@ namespace ReservationSystem.Microservices.Ancillary.Models.Bag.Requests;
 
 public sealed class UpdateBagPricingRequest
 {
+    [JsonPropertyName("currencyCode")]
+    public string? CurrencyCode { get; init; }
+
     [JsonPropertyName("price")]
     public decimal Price { get; init; }
 
