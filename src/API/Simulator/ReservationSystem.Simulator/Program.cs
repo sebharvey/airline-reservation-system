@@ -3,9 +3,9 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using ReservationSystem.Microservices.Simulator.Application.RunSimulator;
-using ReservationSystem.Microservices.Simulator.Domain.ExternalServices;
-using ReservationSystem.Microservices.Simulator.Infrastructure.ExternalServices;
+using ReservationSystem.Simulator.Application.RunSimulator;
+using ReservationSystem.Simulator.Domain.ExternalServices;
+using ReservationSystem.Simulator.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()

@@ -1,8 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Simulator.Application.RunSimulator;
+using ReservationSystem.Simulator.Application.RunSimulator;
 
-namespace ReservationSystem.Microservices.Simulator.Functions;
+namespace ReservationSystem.Simulator.Functions;
 
 /// <summary>
 /// Hourly timer trigger that creates 5 confirmed orders for the next day's

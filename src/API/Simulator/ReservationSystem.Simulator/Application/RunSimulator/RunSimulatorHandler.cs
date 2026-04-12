@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Microservices.Simulator.Domain.ExternalServices;
-using ReservationSystem.Microservices.Simulator.Models;
+using ReservationSystem.Simulator.Domain.ExternalServices;
+using ReservationSystem.Simulator.Models;
 
-namespace ReservationSystem.Microservices.Simulator.Application.RunSimulator;
+namespace ReservationSystem.Simulator.Application.RunSimulator;
 
 /// <summary>
 /// Creates 5 confirmed orders for the next day's AX001 (LHR → JFK) flight,

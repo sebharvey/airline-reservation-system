@@ -1,6 +1,6 @@
-using ReservationSystem.Microservices.Simulator.Models;
+using ReservationSystem.Simulator.Models;
 
-namespace ReservationSystem.Microservices.Simulator.Domain.ExternalServices;
+namespace ReservationSystem.Simulator.Domain.ExternalServices;
 
 internal interface IRetailApiClient
 {
