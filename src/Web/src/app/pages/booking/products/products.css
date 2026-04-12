@@ -191,14 +191,42 @@
   flex: 1;
 }
 
+.tile-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .tile-price {
-  margin-top: 8px;
   font-size: 1rem;
   font-weight: 700;
   background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  flex: 1;
+}
+
+.btn-add {
+  padding: 8px 18px;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-add:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
 
 /* ── Actions ── */

@@ -10,9 +10,9 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 
 /// <summary>
 /// HTTP-triggered function for retail product catalogue retrieval.
-/// Proxies all active products (with prices) from the Ancillary microservice,
-/// returning the full list so the channel can filter by basket currency and
-/// group by product group for display.
+/// Fetches products and product groups from the Ancillary microservice in
+/// parallel, then returns the catalogue pre-grouped as productGroups[] →
+/// products[] so channels receive a ready-to-render structure.
 /// </summary>
 public sealed class ProductsFunction
 {
@@ -46,41 +46,45 @@ public sealed class ProductsFunction
         var groupList   = await groupsTask;
 
         if (productList is null || productList.Products.Count == 0)
-            return await req.OkJsonAsync(new { products = Array.Empty<object>() });
+            return await req.OkJsonAsync(new { productGroups = Array.Empty<object>() });
 
-        // Build a lookup of groupId → group name
+        // Build a lookup of groupId → group name (active groups only)
         var groupNames = groupList?.Groups
             .Where(g => g.IsActive)
             .ToDictionary(g => g.ProductGroupId, g => g.Name)
             ?? new Dictionary<Guid, string>();
 
-        // Return active products with their active prices; include the group name
-        var activeProducts = productList.Products
+        // Group active products by their product group, preserving API order
+        var grouped = productList.Products
             .Where(p => p.IsActive)
-            .Select(p => new
+            .GroupBy(p => p.ProductGroupId)
+            .Select(g => new
             {
-                productId         = p.ProductId,
-                productGroupId    = p.ProductGroupId,
-                productGroupName  = groupNames.TryGetValue(p.ProductGroupId, out var gn) ? gn : string.Empty,
-                name              = p.Name,
-                description       = p.Description,
-                imageBase64       = p.ImageBase64,
-                ssrCode           = p.SsrCode,
-                isSegmentSpecific = p.IsSegmentSpecific,
-                prices            = p.Prices
-                    .Where(pr => pr.IsActive)
-                    .Select(pr => new
-                    {
-                        priceId      = pr.PriceId,
-                        offerId      = pr.OfferId,
-                        currencyCode = pr.CurrencyCode,
-                        price        = pr.Price,
-                        tax          = pr.Tax
-                    })
-                    .ToList()
+                productGroupId   = g.Key,
+                productGroupName = groupNames.TryGetValue(g.Key, out var gn) ? gn : string.Empty,
+                products         = g.Select(p => new
+                {
+                    productId         = p.ProductId,
+                    name              = p.Name,
+                    description       = p.Description,
+                    imageBase64       = p.ImageBase64,
+                    ssrCode           = p.SsrCode,
+                    isSegmentSpecific = p.IsSegmentSpecific,
+                    prices            = p.Prices
+                        .Where(pr => pr.IsActive)
+                        .Select(pr => new
+                        {
+                            priceId      = pr.PriceId,
+                            offerId      = pr.OfferId,
+                            currencyCode = pr.CurrencyCode,
+                            price        = pr.Price,
+                            tax          = pr.Tax
+                        })
+                        .ToList()
+                }).ToList()
             })
             .ToList();
 
-        return await req.OkJsonAsync(new { products = activeProducts });
+        return await req.OkJsonAsync(new { productGroups = grouped });
     }
 }

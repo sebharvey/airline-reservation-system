@@ -129,8 +129,6 @@ export interface ProductPrice {
 
 export interface Product {
   productId: string;
-  productGroupId: string;
-  productGroupName: string;
   name: string;
   description: string;
   imageBase64: string | null;
@@ -141,12 +139,12 @@ export interface Product {
 
 export interface ProductGroup {
   productGroupId: string;
-  name: string;
+  productGroupName: string;
   products: Product[];
 }
 
 export interface ProductsResponse {
-  products: Product[];
+  productGroups: ProductGroup[];
 }
 
 export interface FlightStatus {
