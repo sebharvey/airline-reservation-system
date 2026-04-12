@@ -146,6 +146,7 @@ export interface BasketSeatSelection {
   segmentId: string;
   basketItemRef: string;
   seatOfferId: string;
+  seatNumber: string;
   seatPosition: string;
   price: number;
   currency: string;
