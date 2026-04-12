@@ -1300,6 +1300,17 @@
                 const pass = actual === a.expected;
                 return { pass, description: a.description, expected: a.expected, actual };
             }
+            if (a.assertion === 'equals') {
+                if (isWildcardPath) {
+                    const values = value;
+                    const allMatch = Array.isArray(values) && values.length > 0 &&
+                        values.every(v => v === a.expected);
+                    const actual = Array.isArray(values) && values.length === 1 ? values[0] : JSON.stringify(values);
+                    return { pass: allMatch, description: a.description, expected: a.expected, actual };
+                }
+                const pass = value === a.expected;
+                return { pass, description: a.description, expected: a.expected, actual: value };
+            }
             if (a.assertion === 'greaterThan') {
                 const actual = typeof value === 'number' ? value : null;
                 const pass = actual !== null && actual > a.expected;
