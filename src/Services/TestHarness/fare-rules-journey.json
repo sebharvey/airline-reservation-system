@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Fare rules — create, edit & remove",
+    "name": "Admin — fare rules",
     "description": "End-to-end journey covering fare rule lifecycle management via the Operations API. Registers an employee account, creates a fare rule with tax lines, updates the rule and tax lines, verifies the saved changes by reading the record back, deletes the fare rule, then removes the employee account.",
     "domain": "Operations",
     "baseUrls": [
