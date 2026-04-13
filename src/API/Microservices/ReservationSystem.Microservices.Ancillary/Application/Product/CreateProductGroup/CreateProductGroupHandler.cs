@@ -17,7 +17,7 @@ public sealed class CreateProductGroupHandler
 
     public async Task<ProductGroup> HandleAsync(CreateProductGroupCommand command, CancellationToken cancellationToken = default)
     {
-        var group = ProductGroup.Create(command.Name);
+        var group = ProductGroup.Create(command.Name, command.SortOrder);
         var created = await _repository.CreateAsync(group, cancellationToken);
         _logger.LogInformation("Created ProductGroup {ProductGroupId} '{Name}'", created.ProductGroupId, created.Name);
         return created;

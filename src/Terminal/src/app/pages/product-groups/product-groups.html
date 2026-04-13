@@ -35,20 +35,28 @@
         @if (!editing()) {
           <div class="form-section">
             <h3 class="section-heading">Group Details</h3>
-            <div class="form-grid grid-1">
+            <div class="form-grid grid-2">
               <div class="form-group">
                 <label>Name *</label>
                 <input type="text" [ngModel]="createForm().name" (ngModelChange)="updateCreateField('name', $event)" placeholder="e.g. Duty Free" required />
+              </div>
+              <div class="form-group">
+                <label>Sort Order</label>
+                <input type="number" [ngModel]="createForm().sortOrder" (ngModelChange)="updateCreateField('sortOrder', +$event)" placeholder="0" min="0" />
               </div>
             </div>
           </div>
         } @else {
           <div class="form-section">
             <h3 class="section-heading">Group Details</h3>
-            <div class="form-grid grid-1">
+            <div class="form-grid grid-2">
               <div class="form-group">
                 <label>Name *</label>
                 <input type="text" [ngModel]="updateForm().name" (ngModelChange)="updateUpdateField('name', $event)" required />
+              </div>
+              <div class="form-group">
+                <label>Sort Order</label>
+                <input type="number" [ngModel]="updateForm().sortOrder" (ngModelChange)="updateUpdateField('sortOrder', +$event)" min="0" />
               </div>
             </div>
           </div>
@@ -98,6 +106,7 @@
         <thead>
           <tr>
             <th>Name</th>
+            <th>Order</th>
             <th>Status</th>
             <th>Created</th>
             <th>Actions</th>
@@ -107,6 +116,7 @@
           @for (group of groups(); track group.productGroupId) {
             <tr class="rule-row">
               <td class="name-cell">{{ group.name }}</td>
+              <td class="mono">{{ group.sortOrder }}</td>
               <td>
                 <span class="badge" [class.badge-yes]="group.isActive" [class.badge-no]="!group.isActive">
                   {{ group.isActive ? 'Active' : 'Inactive' }}
@@ -129,7 +139,7 @@
           }
           @if (groups().length === 0 && loaded()) {
             <tr>
-              <td colspan="4" class="empty-row">No product groups found. Click "New Group" to create one.</td>
+              <td colspan="5" class="empty-row">No product groups found. Click "New Group" to create one.</td>
             </tr>
           }
         </tbody>

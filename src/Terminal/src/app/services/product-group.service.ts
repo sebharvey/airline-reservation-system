@@ -6,6 +6,7 @@ import { environment } from '../environment';
 export interface ProductGroup {
   productGroupId: string;
   name: string;
+  sortOrder: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -13,10 +14,12 @@ export interface ProductGroup {
 
 export interface CreateProductGroupRequest {
   name: string;
+  sortOrder: number;
 }
 
 export interface UpdateProductGroupRequest {
   name: string;
+  sortOrder: number;
   isActive: boolean;
 }
 

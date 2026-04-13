@@ -977,6 +977,7 @@ IF OBJECT_ID('[product].[ProductGroup]', 'U') IS NULL
 CREATE TABLE [product].[ProductGroup] (
     ProductGroupId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_ProductGroup_Id      DEFAULT NEWID(),
     Name           NVARCHAR(100)    NOT NULL,
+    SortOrder      INT              NOT NULL CONSTRAINT DF_ProductGroup_Sort     DEFAULT 0,
     IsActive       BIT              NOT NULL CONSTRAINT DF_ProductGroup_Active   DEFAULT 1,
     CreatedAt      DATETIME2        NOT NULL CONSTRAINT DF_ProductGroup_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_ProductGroup_Updated  DEFAULT SYSUTCDATETIME(),
@@ -997,6 +998,10 @@ BEGIN
             INNER JOIN inserted i ON t.ProductGroupId = i.ProductGroupId;
     ');
 END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[product].[ProductGroup]') AND name = 'SortOrder')
+    ALTER TABLE [product].[ProductGroup] ADD SortOrder INT NOT NULL CONSTRAINT DF_ProductGroup_Sort DEFAULT 0;
 GO
 
 -- product.Product --------------------------------------------------------------

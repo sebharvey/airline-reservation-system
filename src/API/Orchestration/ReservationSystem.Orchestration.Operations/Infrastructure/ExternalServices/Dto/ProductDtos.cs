@@ -4,6 +4,7 @@ public sealed class ProductGroupDto
 {
     public Guid ProductGroupId { get; init; }
     public string Name { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
     public bool IsActive { get; init; }
     public string CreatedAt { get; init; } = string.Empty;
     public string UpdatedAt { get; init; } = string.Empty;

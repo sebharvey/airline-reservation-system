@@ -21,7 +21,7 @@ public sealed class UpdateProductGroupHandler
         if (existing is null) return null;
 
         var updated = ProductGroup.Reconstitute(
-            existing.ProductGroupId, command.Name, command.IsActive,
+            existing.ProductGroupId, command.Name, command.SortOrder, command.IsActive,
             existing.CreatedAt, DateTime.UtcNow);
 
         return await _repository.UpdateAsync(updated, cancellationToken);
