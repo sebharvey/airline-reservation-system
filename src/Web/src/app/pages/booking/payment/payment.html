@@ -7,28 +7,40 @@
     <p class="step-label">Step 5 of 5</p>
   </div>
 
-  <ng-container *ngIf="basket() as b">
+  <!-- Summary loading state -->
+  <div class="summary-card" *ngIf="summaryLoading()">
+    <div class="summary-title">Order Summary</div>
+    <p class="loading-text">Loading order summary&hellip;</p>
+  </div>
 
-    <!-- Order Summary -->
+  <!-- Summary error state -->
+  <div class="summary-card" *ngIf="!summaryLoading() && summaryError()">
+    <div class="summary-title">Order Summary</div>
+    <p class="error-text">Unable to load order summary. Please go back and try again.</p>
+  </div>
+
+  <!-- Order Summary (API-driven) -->
+  <ng-container *ngIf="paymentSummary() as summary">
+
     <div class="summary-card">
       <div class="summary-title">Order Summary</div>
 
       <!-- Flights -->
       <div class="summary-section">
         <div class="summary-section-label">Flights</div>
-        <div class="summary-row" *ngFor="let fo of b.flightOffers">
+        <div class="summary-row" *ngFor="let flight of summary.flights">
           <span class="summary-row-label">
-            {{ fo.flightNumber }} &nbsp; {{ fo.origin }} &#8594; {{ fo.destination }}
-            <span class="summary-row-sub">{{ formatDateTime(fo.departureDateTime) }} &middot; {{ fo.cabinName }}</span>
+            {{ flight.flightNumber }} &nbsp; {{ flight.origin }} &#8594; {{ flight.destination }}
+            <span class="summary-row-sub">{{ formatDateTime(flight.departureDateTime) }} &middot; {{ flight.cabinName }}</span>
           </span>
-          <span class="summary-row-value">{{ formatPrice(fo.totalPrice) }}</span>
+          <span class="summary-row-value">{{ formatPrice(flight.totalAmount) }}</span>
         </div>
       </div>
 
       <!-- Passengers -->
       <div class="summary-section">
         <div class="summary-section-label">Passengers</div>
-        <div class="summary-row" *ngFor="let pax of b.passengers">
+        <div class="summary-row" *ngFor="let pax of summary.passengers">
           <span class="summary-row-label">
             {{ pax.givenName }} {{ pax.surname }}
             <span class="summary-row-sub">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
@@ -37,64 +49,64 @@
       </div>
 
       <!-- Seat Selections -->
-      <div class="summary-section" *ngIf="b.seatSelections.length > 0">
+      <div class="summary-section" *ngIf="summary.seatSelections.length > 0">
         <div class="summary-section-label">Seats</div>
-        <div class="summary-row" *ngFor="let sel of b.seatSelections">
-          <span class="summary-row-label">Seat {{ sel.seatNumber }} &middot; {{ sel.seatPosition }}</span>
-          <span class="summary-row-value">{{ formatPrice(sel.price) }}</span>
+        <div class="summary-row" *ngFor="let seat of summary.seatSelections">
+          <span class="summary-row-label">Seat {{ seat.seatNumber }} &middot; {{ seat.seatPosition }}</span>
+          <span class="summary-row-value">{{ formatPrice(seat.price) }}</span>
         </div>
       </div>
 
       <!-- Bag Selections -->
-      <div class="summary-section" *ngIf="b.bagSelections.length > 0">
+      <div class="summary-section" *ngIf="summary.bagSelections.length > 0">
         <div class="summary-section-label">Baggage</div>
-        <div class="summary-row" *ngFor="let sel of b.bagSelections">
-          <span class="summary-row-label">{{ sel.additionalBags }} additional bag(s)</span>
-          <span class="summary-row-value">{{ formatPrice(sel.price) }}</span>
+        <div class="summary-row" *ngFor="let bag of summary.bagSelections">
+          <span class="summary-row-label">{{ bag.additionalBags }} additional bag(s)</span>
+          <span class="summary-row-value">{{ formatPrice(bag.price) }}</span>
         </div>
       </div>
 
       <!-- Product Selections -->
-      <div class="summary-section" *ngIf="b.productSelections.length > 0">
+      <div class="summary-section" *ngIf="summary.productSelections.length > 0">
         <div class="summary-section-label">Products</div>
-        <div class="summary-row" *ngFor="let sel of b.productSelections">
+        <div class="summary-row" *ngFor="let prod of summary.productSelections">
           <span class="summary-row-label">
-            {{ sel.name }}
-            <span class="summary-row-sub" *ngIf="sel.segmentRef">Segment specific</span>
+            {{ prod.name }}
+            <span class="summary-row-sub" *ngIf="prod.segmentRef">Segment specific</span>
           </span>
-          <span class="summary-row-value">{{ formatPrice(sel.price) }}</span>
+          <span class="summary-row-value">{{ formatPrice(prod.price) }}</span>
         </div>
       </div>
 
       <!-- Totals -->
       <div class="summary-totals">
-        <div class="total-row subtotal" *ngIf="isRewardBooking()">
+        <div class="total-row subtotal" *ngIf="summary.bookingType === 'Reward'">
           <span>Points Redemption</span>
-          <span class="points-color">{{ pointsTotal() | number:'1.0-0' }} pts</span>
+          <span class="points-color">{{ summary.totals.pointsAmount | number:'1.0-0' }} pts</span>
         </div>
-        <div class="total-row subtotal" *ngIf="!isRewardBooking()">
+        <div class="total-row subtotal" *ngIf="summary.bookingType !== 'Reward'">
           <span>Fare</span>
-          <span>{{ formatPrice(fareTotal()) }}</span>
+          <span>{{ formatPrice(summary.totals.fareAmount) }}</span>
         </div>
-        <div class="total-row subtotal" *ngIf="isRewardBooking()">
+        <div class="total-row subtotal" *ngIf="summary.bookingType === 'Reward'">
           <span>Taxes &amp; Fees</span>
-          <span>{{ formatPrice(taxesTotal()) }}</span>
+          <span>{{ formatPrice(summary.totals.taxAmount) }}</span>
         </div>
-        <div class="total-row subtotal" *ngIf="seatTotal() > 0">
+        <div class="total-row subtotal" *ngIf="summary.totals.seatAmount > 0">
           <span>Seats</span>
-          <span>{{ formatPrice(seatTotal()) }}</span>
+          <span>{{ formatPrice(summary.totals.seatAmount) }}</span>
         </div>
-        <div class="total-row subtotal" *ngIf="bagTotal() > 0">
+        <div class="total-row subtotal" *ngIf="summary.totals.bagAmount > 0">
           <span>Baggage</span>
-          <span>{{ formatPrice(bagTotal()) }}</span>
+          <span>{{ formatPrice(summary.totals.bagAmount) }}</span>
         </div>
-        <div class="total-row subtotal" *ngIf="productTotal() > 0">
+        <div class="total-row subtotal" *ngIf="summary.totals.productAmount > 0">
           <span>Products</span>
-          <span>{{ formatPrice(productTotal()) }}</span>
+          <span>{{ formatPrice(summary.totals.productAmount) }}</span>
         </div>
         <div class="total-row grand">
           <span>Card Payment Total</span>
-          <strong>{{ formatPrice(grandTotal()) }}</strong>
+          <strong>{{ formatPrice(summary.totals.grandTotal) }}</strong>
         </div>
       </div>
     </div>
@@ -159,9 +171,9 @@
       </div>
 
       <!-- Pay Button -->
-      <button class="btn-pay" [class.loading]="paying()" [disabled]="paying()" (click)="onPay()">
+      <button class="btn-pay" [class.loading]="paying()" [disabled]="paying() || summaryLoading()" (click)="onPay()">
         <span class="btn-pay-content" *ngIf="!paying()">
-          {{ isRewardBooking() ? 'Redeem Points & Pay Taxes' : 'Pay' }} {{ formatPrice(grandTotal()) }}
+          {{ isRewardBooking() ? 'Redeem Points & Pay Taxes' : 'Pay' }} {{ formatGrandTotal() }}
         </span>
         <span class="btn-pay-content" *ngIf="paying()">
           <span class="pay-spinner"></span>
@@ -187,4 +199,3 @@
     <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>
   </div>
 </div>
-

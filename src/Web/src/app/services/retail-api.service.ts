@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
-import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 
 
@@ -347,6 +347,16 @@ export class RetailApiService {
   getBasketSummary(basketId: string): Observable<BasketSummary> {
     const base = environment.retailApiBaseUrl;
     return this.#http.get<BasketSummary>(`${base}/api/v1/basket/${basketId}/summary`);
+  }
+
+  /**
+   * GET /v1/basket/{basketId}/payment-summary
+   * Return the complete payment-screen summary from the basket.
+   * All totals and display data are pre-calculated by the API.
+   */
+  getBasketPaymentSummary(basketId: string): Observable<PaymentSummary> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http.get<PaymentSummary>(`${base}/api/v1/basket/${basketId}/payment-summary`);
   }
 
   /**

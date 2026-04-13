@@ -7,6 +7,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Application.BasketSummary;
+using ReservationSystem.Orchestration.Retail.Application.PaymentSummary;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
@@ -25,6 +26,7 @@ public sealed class BasketFunction
     private readonly CreateBasketHandler _createBasketHandler;
     private readonly ConfirmBasketHandler _confirmBasketHandler;
     private readonly BasketSummaryHandler _basketSummaryHandler;
+    private readonly PaymentSummaryHandler _paymentSummaryHandler;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<BasketFunction> _logger;
 
@@ -32,12 +34,14 @@ public sealed class BasketFunction
         CreateBasketHandler createBasketHandler,
         ConfirmBasketHandler confirmBasketHandler,
         BasketSummaryHandler basketSummaryHandler,
+        PaymentSummaryHandler paymentSummaryHandler,
         OrderServiceClient orderServiceClient,
         ILogger<BasketFunction> logger)
     {
         _createBasketHandler = createBasketHandler;
         _confirmBasketHandler = confirmBasketHandler;
         _basketSummaryHandler = basketSummaryHandler;
+        _paymentSummaryHandler = paymentSummaryHandler;
         _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
@@ -306,6 +310,25 @@ public sealed class BasketFunction
         CancellationToken cancellationToken)
     {
         var result = await _basketSummaryHandler.HandleAsync(new BasketSummaryQuery(basketId), cancellationToken);
+        if (result is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/basket/{basketId}/payment-summary
+    // -------------------------------------------------------------------------
+
+    [Function("GetPaymentSummary")]
+    [OpenApiOperation(operationId: "GetPaymentSummary", tags: new[] { "Basket" }, Summary = "Return a complete payment-screen summary for a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PaymentSummaryResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> PaymentSummary(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/basket/{basketId:guid}/payment-summary")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _paymentSummaryHandler.HandleAsync(new PaymentSummaryQuery(basketId), cancellationToken);
         if (result is null) return req.CreateResponse(HttpStatusCode.NotFound);
         return await req.OkJsonAsync(result);
     }

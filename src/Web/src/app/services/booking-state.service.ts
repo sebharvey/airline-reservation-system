@@ -16,8 +16,6 @@ import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
 import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, Passenger, Order, BookingType, BasketSummary } from '../models/order.model';
 
-const BASKET_ID_KEY = 'apex_basket_id';
-
 function uuid(): string {
   return 'bsk-' + Math.random().toString(36).slice(2, 10);
 }
@@ -107,7 +105,6 @@ export class BookingStateService {
     ttl.setHours(ttl.getHours() + TTL_HOURS);
 
     const basketId = apiBasketId ?? uuid();
-    localStorage.setItem(BASKET_ID_KEY, basketId);
     this._basket.set({
       basketId,
       bookingType,
@@ -199,13 +196,11 @@ export class BookingStateService {
   confirmOrder(order: Order): void {
     this._confirmedOrder.set(order);
     this._basket.set(null);
-    localStorage.removeItem(BASKET_ID_KEY);
   }
 
   clearBasket(): void {
     this._basket.set(null);
     this._basketSummary.set(null);
-    localStorage.removeItem(BASKET_ID_KEY);
   }
 
   clearAll(): void {
@@ -213,6 +208,5 @@ export class BookingStateService {
     this._basketSummary.set(null);
     this._confirmedOrder.set(null);
     this._bookingType.set('Revenue');
-    localStorage.removeItem(BASKET_ID_KEY);
   }
 }

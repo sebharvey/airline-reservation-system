@@ -61,6 +61,8 @@
 | `PUT` | `/v1/basket/{basketId}/seats` | Add or update seat selections on a basket during the bookflow |
 | `PUT` | `/v1/basket/{basketId}/bags` | Add or update bag selections on a basket during the bookflow; accepts bag offer IDs per passenger per segment; updates `TotalBagAmount` on the basket |
 | `PUT` | `/v1/basket/{basketId}/ssrs` | Add or update Special Service Request selections on a basket during the bookflow; accepts SSR code, passenger reference, and segment reference per selection; no charge — basket total is unchanged |
+| `GET` | `/v1/basket/{basketId}/summary` | Reprice all flight offers in the basket and return a pricing summary with per-flight tax line breakdowns |
+| `GET` | `/v1/basket/{basketId}/payment-summary` | Return the complete payment-screen summary for a basket: flights, passengers, seat/bag/product/SSR selections, and all monetary totals pre-calculated server-side. The Angular client renders this response as-is with no business logic |
 | `POST` | `/v1/basket/{basketId}/confirm` | Confirm a basket, triggering payment (fare + any seat/bag ancillaries as separate transactions), ticketing, and order creation. For reward baskets, orchestrates points authorisation (Customer MS), tax-only payment authorisation (Payment MS), ticketing, inventory settlement, points settlement, and order creation |
 
 ### Orders

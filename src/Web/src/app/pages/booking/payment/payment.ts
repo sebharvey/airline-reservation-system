@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { RetailApiService, IssuedETicket } from '../../../services/retail-api.service';
+import { PaymentSummary } from '../../../models/order.model';
 import { Basket, Order, OrderItem, FlightSegment, Payment, Passenger, PointsRedemption } from '../../../models/order.model';
 
 function randomAlpha(len: number): string {
@@ -14,10 +15,6 @@ function randomAlpha(len: number): string {
 
 function randomNum(len: number): string {
   return Array.from({ length: len }, () => String(Math.floor(Math.random() * 10))).join('');
-}
-
-function generateBookingRef(): string {
-  return randomAlpha(2) + randomNum(4);
 }
 
 function generateOrderId(): string {
@@ -58,19 +55,14 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     const paxRefs = fo.passengerRefs;
     const eTickets = paxRefs.map(pRef => {
       const pax = basket.passengers.find(p => p.passengerId === pRef);
-      const realTicket = issuedETickets?.find(
-        t => t.passengerId === pRef
-      );
+      const realTicket = issuedETickets?.find(t => t.passengerId === pRef);
       return {
         passengerId: pax?.passengerId ?? pRef,
         eTicketNumber: realTicket?.eTicketNumber ?? 'N/A'
       };
     });
 
-    // Seat assignments for this segment
-    const seatsForSeg = basket.seatSelections.filter(
-      s => s.basketItemRef === fo.basketItemId
-    );
+    const seatsForSeg = basket.seatSelections.filter(s => s.basketItemRef === fo.basketItemId);
     const seatAssignments = seatsForSeg.map(s => ({
       passengerId: s.passengerId,
       seatNumber: s.seatNumber
@@ -97,9 +89,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   // Seat items
   basket.seatSelections.forEach(sel => {
     const fo = basket.flightOffers.find(f => f.basketItemId === sel.basketItemRef);
-    const segId = fo
-      ? `SEG-${basket.flightOffers.indexOf(fo) + 1}`
-      : 'SEG-1';
+    const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Seat',
@@ -117,9 +107,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   // Bag items
   basket.bagSelections.forEach(sel => {
     const fo = basket.flightOffers.find(f => f.basketItemId === sel.basketItemRef);
-    const segId = fo
-      ? `SEG-${basket.flightOffers.indexOf(fo) + 1}`
-      : 'SEG-1';
+    const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Bag',
@@ -136,12 +124,8 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
 
   // Product items
   basket.productSelections?.forEach(sel => {
-    const fo = sel.segmentRef
-      ? basket.flightOffers.find(f => f.basketItemId === sel.segmentRef)
-      : null;
-    const segId = fo
-      ? `SEG-${basket.flightOffers.indexOf(fo) + 1}`
-      : 'SEG-1';
+    const fo = sel.segmentRef ? basket.flightOffers.find(f => f.basketItemId === sel.segmentRef) : null;
+    const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Product',
@@ -221,6 +205,11 @@ export class PaymentComponent implements OnInit {
   readonly basket = this.bookingState.basket;
   readonly isRewardBooking = this.bookingState.isRewardBooking;
 
+  /** API-driven summary — the single source of truth for the order summary section. */
+  readonly paymentSummary = signal<PaymentSummary | null>(null);
+  readonly summaryLoading = signal(true);
+  readonly summaryError = signal(false);
+
   // Payment form fields
   cardholderName = signal('');
   cardNumber = signal('');
@@ -257,19 +246,28 @@ export class PaymentComponent implements OnInit {
     { value: '11', label: '11 - Nov' }, { value: '12', label: '12 - Dec' }
   ]);
 
-  readonly seatTotal = computed(() => this.basket()?.totalSeatAmount ?? 0);
-  readonly bagTotal = computed(() => this.basket()?.totalBagAmount ?? 0);
-  readonly productTotal = computed(() => this.basket()?.totalProductAmount ?? 0);
-  readonly fareTotal = computed(() => this.basket()?.totalFareAmount ?? 0);
-  readonly taxesTotal = computed(() => this.basket()?.totalTaxesAmount ?? 0);
-  readonly pointsTotal = computed(() => this.basket()?.totalPointsAmount ?? 0);
-  readonly grandTotal = computed(() => this.basket()?.totalAmount ?? 0);
-  readonly currency = computed(() => this.basket()?.currency ?? 'GBP');
-
   ngOnInit(): void {
-    if (!this.basket()) {
+    const basket = this.basket();
+    if (!basket) {
       this.router.navigate(['/']);
+      return;
     }
+    this.loadPaymentSummary(basket.basketId);
+  }
+
+  private loadPaymentSummary(basketId: string): void {
+    this.summaryLoading.set(true);
+    this.summaryError.set(false);
+    this.retailApi.getBasketPaymentSummary(basketId).subscribe({
+      next: (summary) => {
+        this.paymentSummary.set(summary);
+        this.summaryLoading.set(false);
+      },
+      error: () => {
+        this.summaryLoading.set(false);
+        this.summaryError.set(true);
+      }
+    });
   }
 
   onCardNumberInput(event: Event): void {
@@ -346,7 +344,8 @@ export class PaymentComponent implements OnInit {
   }
 
   formatPrice(amount: number): string {
-    return `${this.currency()} ${amount.toFixed(2)}`;
+    const currency = this.paymentSummary()?.currency ?? this.basket()?.currency ?? 'GBP';
+    return `${currency} ${amount.toFixed(2)}`;
   }
 
   formatDateTime(dt: string): string {
@@ -355,5 +354,11 @@ export class PaymentComponent implements OnInit {
       day: 'numeric', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+  }
+
+  formatGrandTotal(): string {
+    const summary = this.paymentSummary();
+    if (!summary) return '';
+    return this.formatPrice(summary.totals.grandTotal);
   }
 }
