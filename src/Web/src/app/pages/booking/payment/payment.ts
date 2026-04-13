@@ -319,7 +319,8 @@ export class PaymentComponent implements OnInit {
       expiryDate,
       this.cvv(),
       this.cardholderName().trim(),
-      loyaltyPointsToRedeem
+      loyaltyPointsToRedeem,
+      basket.productSelections ?? []
     ).subscribe({
       next: (result) => {
         const rawCardNumber = this.cardNumber().replace(/\D/g, '');
