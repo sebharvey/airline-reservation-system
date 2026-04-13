@@ -242,6 +242,84 @@ export interface BasketSummary {
   totalPrice: number;
 }
 
+// ─── Payment summary models (API-driven, no client-side calculations) ────────
+
+export interface PaymentSummaryFlight {
+  offerId: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  cabinCode: string;
+  cabinName: string;
+  fareFamily: string | null;
+  fareAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+}
+
+export interface PaymentSummaryPassenger {
+  passengerId: string;
+  type: string;
+  givenName: string;
+  surname: string;
+}
+
+export interface PaymentSummarySeatSelection {
+  passengerId: string;
+  seatNumber: string;
+  seatPosition: string;
+  flightNumber: string;
+  price: number;
+  currency: string;
+}
+
+export interface PaymentSummaryBagSelection {
+  passengerId: string;
+  additionalBags: number;
+  flightNumber: string;
+  price: number;
+  currency: string;
+}
+
+export interface PaymentSummaryProductSelection {
+  passengerId: string;
+  name: string;
+  price: number;
+  currency: string;
+  segmentRef: string | null;
+}
+
+export interface PaymentSummarySsrSelection {
+  ssrCode: string;
+  passengerId: string;
+}
+
+export interface PaymentSummaryTotals {
+  fareAmount: number;
+  taxAmount: number;
+  seatAmount: number;
+  bagAmount: number;
+  productAmount: number;
+  pointsAmount: number;
+  grandTotal: number;
+}
+
+export interface PaymentSummary {
+  basketId: string;
+  bookingType: string;
+  currency: string;
+  ticketingTimeLimit: string | null;
+  flights: PaymentSummaryFlight[];
+  passengers: PaymentSummaryPassenger[];
+  seatSelections: PaymentSummarySeatSelection[];
+  bagSelections: PaymentSummaryBagSelection[];
+  productSelections: PaymentSummaryProductSelection[];
+  ssrSelections: PaymentSummarySsrSelection[];
+  totals: PaymentSummaryTotals;
+}
+
 // ─── Online Check-In (OCI) response models ───────────────────────────────────
 
 export interface OciSeatAssignment {

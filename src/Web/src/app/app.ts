@@ -7,6 +7,7 @@ import { LoyaltyStateService } from './services/loyalty-state.service';
 import { LoyaltyApiService } from './services/loyalty-api.service';
 // DEBUG — import for basket debug modal; remove with basket debug feature
 import { RetailApiService } from './services/retail-api.service';
+import { BookingStateService } from './services/booking-state.service';
 import { HttpDebugService, HttpLogEntry } from './services/http-debug.service';
 
 @Component({
@@ -22,6 +23,7 @@ export class App {
 
   // DEBUG — basket debug modal state; remove with basket debug feature
   private readonly retailApi = inject(RetailApiService);
+  private readonly bookingState = inject(BookingStateService);
   readonly basketDebugOpen = signal(false);
   readonly basketDebugLoading = signal(false);
   readonly basketDebugData = signal<string | null>(null);
@@ -64,7 +66,7 @@ export class App {
 
   // DEBUG — basket debug modal methods; remove with basket debug feature
   openBasketDebug(): void {
-    const basketId = localStorage.getItem('apex_basket_id');
+    const basketId = this.bookingState.basket()?.basketId ?? null;
     this.basketDebugData.set(null);
     this.basketDebugError.set(null);
     this.basketDebugOpen.set(true);
