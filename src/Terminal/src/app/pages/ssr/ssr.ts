@@ -2,7 +2,7 @@ import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SsrService, SsrOption } from '../../services/ssr.service';
 
-type CategoryFilter = 'all' | 'Meal' | 'Mobility' | 'Accessibility';
+type CategoryFilter = 'all' | 'Meal' | 'Mobility' | 'Accessibility' | 'Medical' | 'Assistance';
 
 @Component({
   selector: 'app-ssr',
@@ -29,7 +29,7 @@ export class SsrComponent implements OnInit {
 
   ssrOptions = signal<SsrOption[]>([]);
 
-  readonly categories = ['Meal', 'Mobility', 'Accessibility'];
+  readonly categories = ['Meal', 'Mobility', 'Accessibility', 'Medical', 'Assistance'];
 
   filteredOptions = computed(() => {
     const q = this.search().toLowerCase();
@@ -49,6 +49,8 @@ export class SsrComponent implements OnInit {
     meal: this.ssrOptions().filter(s => s.category === 'Meal').length,
     mobility: this.ssrOptions().filter(s => s.category === 'Mobility').length,
     accessibility: this.ssrOptions().filter(s => s.category === 'Accessibility').length,
+    medical: this.ssrOptions().filter(s => s.category === 'Medical').length,
+    assistance: this.ssrOptions().filter(s => s.category === 'Assistance').length,
   }));
 
   async ngOnInit(): Promise<void> {
@@ -163,6 +165,8 @@ export class SsrComponent implements OnInit {
       case 'Meal':          return 'badge-meal';
       case 'Mobility':      return 'badge-mobility';
       case 'Accessibility': return 'badge-accessibility';
+      case 'Medical':       return 'badge-medical';
+      case 'Assistance':    return 'badge-assistance';
       default:              return '';
     }
   }

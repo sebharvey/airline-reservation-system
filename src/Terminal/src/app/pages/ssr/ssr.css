@@ -46,7 +46,7 @@
 /* ── Stats ── */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -77,9 +77,11 @@
   letter-spacing: 0.5px;
 }
 
-.stat-meal .stat-value        { color: #58a6ff; }
-.stat-mobility .stat-value    { color: #3fb950; }
+.stat-meal .stat-value          { color: #58a6ff; }
+.stat-mobility .stat-value      { color: #3fb950; }
 .stat-accessibility .stat-value { color: #d29922; }
+.stat-medical .stat-value       { color: #a371f7; }
+.stat-assistance .stat-value    { color: #39c5cf; }
 
 /* ── Add form ── */
 .add-form-card {
@@ -280,6 +282,8 @@
 .badge-meal          { background: rgba(88, 166, 255, 0.15);  color: #58a6ff; }
 .badge-mobility      { background: rgba(63, 185, 80, 0.15);   color: #3fb950; }
 .badge-accessibility { background: rgba(210, 153, 34, 0.15);  color: #d29922; }
+.badge-medical       { background: rgba(163, 113, 247, 0.15); color: #a371f7; }
+.badge-assistance    { background: rgba(57, 197, 207, 0.15);  color: #39c5cf; }
 
 .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .muted { color: var(--text-muted); }
@@ -489,6 +493,10 @@
 @media (max-width: 600px) {
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-row .stat-card:first-child {
+    grid-column: span 2;
   }
 
   .add-form-grid,
