@@ -135,6 +135,24 @@
     </div>
   </div>
 
+  <!-- Products -->
+  <div class="section-card" *ngIf="productItems.length > 0">
+    <h2>Products</h2>
+    <div class="ancillary-row" *ngFor="let item of productItems">
+      <span class="ancillary-icon">&#127873;</span>
+      <span class="ancillary-desc">
+        {{ item.productName }}
+        <ng-container *ngIf="getSegment(item.segmentRef) as seg">
+          &mdash; {{ seg.origin }} &#8594; {{ seg.destination }}
+        </ng-container>
+      </span>
+      <span class="ancillary-pax" *ngFor="let pRef of item.passengerRefs">
+        {{ getPassengerName(pRef) }}
+      </span>
+      <span class="ancillary-price">{{ formatPrice(item.totalPrice) }}</span>
+    </div>
+  </div>
+
   <!-- Points Redemption (reward bookings) -->
   <div class="section-card" *ngIf="isRewardBooking && pointsRedemption">
     <h2>Points Redemption</h2>
@@ -188,6 +206,10 @@
       <div class="breakdown-row" *ngIf="bagTotal > 0">
         <span>Baggage</span>
         <span>{{ formatPrice(bagTotal) }}</span>
+      </div>
+      <div class="breakdown-row" *ngIf="productTotal > 0">
+        <span>Products</span>
+        <span>{{ formatPrice(productTotal) }}</span>
       </div>
     </div>
     <div class="total-row">

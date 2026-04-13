@@ -30,7 +30,8 @@
       <h2 class="group-title" *ngIf="group.productGroupName">{{ group.productGroupName }}</h2>
 
       <div class="product-grid">
-        <div class="product-tile" *ngFor="let product of group.products">
+        <div class="product-tile" *ngFor="let product of group.products"
+             [class.product-tile--added]="isProductAdded(product)">
 
           <!-- Product image -->
           <div class="tile-image-wrap">
@@ -51,8 +52,16 @@
             <div class="tile-footer">
               <div class="tile-price" *ngIf="getPriceForCurrency(product) !== null">
                 {{ currency() }} {{ getPriceForCurrency(product) | number:'1.2-2' }}
+                <span class="tile-price-note" *ngIf="product.isSegmentSpecific">per pax / segment</span>
+                <span class="tile-price-note" *ngIf="!product.isSegmentSpecific">per pax</span>
               </div>
-              <button class="btn-add" (click)="onAdd(product)">+ Add</button>
+              <button
+                class="btn-add"
+                [class.btn-add--added]="isProductAdded(product)"
+                (click)="onAdd(product)">
+                <ng-container *ngIf="!isProductAdded(product)">+ Add</ng-container>
+                <ng-container *ngIf="isProductAdded(product)">{{ getAddedLabel(product) }}</ng-container>
+              </button>
             </div>
           </div>
 
@@ -62,10 +71,80 @@
     </div>
   </ng-container>
 
+  <!-- Products Total -->
+  <div class="products-total" *ngIf="productTotal() > 0">
+    <span>Products Total</span>
+    <strong>{{ currency() }} {{ productTotal() | number:'1.2-2' }}</strong>
+  </div>
+
   <!-- Actions -->
   <div class="actions">
     <button class="btn-secondary" (click)="onContinue()">Skip</button>
     <button class="btn-primary" (click)="onContinue()">Continue to Payment ›</button>
   </div>
 
+</div>
+
+<!-- PAX Selection Modal -->
+<div class="modal-backdrop" *ngIf="showModal()" (click)="closeModal()" role="dialog" aria-modal="true" aria-labelledby="pax-modal-title">
+  <div class="modal-card fade-in" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="pax-modal-title">{{ modalProduct()?.name }}</h2>
+        <p class="modal-subtitle" *ngIf="!modalProduct()?.isSegmentSpecific">
+          Select which passengers to add this product for.
+        </p>
+        <p class="modal-subtitle" *ngIf="modalProduct()?.isSegmentSpecific">
+          Select which passengers and flight segments to add this product for.
+        </p>
+      </div>
+      <button class="modal-close" (click)="closeModal()" aria-label="Close">&#10005;</button>
+    </div>
+
+    <!-- Price reminder -->
+    <div class="modal-price-note" *ngIf="modalProduct() as product">
+      {{ currency() }} {{ getPriceForCurrency(product) | number:'1.2-2' }}
+      <span *ngIf="!product.isSegmentSpecific">per passenger</span>
+      <span *ngIf="product.isSegmentSpecific">per passenger per segment</span>
+    </div>
+
+    <!-- Non-segment-specific: simple PAX checkboxes -->
+    <ng-container *ngIf="!modalProduct()?.isSegmentSpecific">
+      <div class="modal-pax-list">
+        <label class="modal-pax-row" *ngFor="let entry of modalPaxEntries()">
+          <input
+            type="checkbox"
+            [checked]="entry.selected"
+            (change)="togglePax(entry.passengerId)" />
+          <span class="pax-label-name">{{ entry.name }}</span>
+        </label>
+      </div>
+    </ng-container>
+
+    <!-- Segment-specific: PAX + nested segment checkboxes -->
+    <ng-container *ngIf="modalProduct()?.isSegmentSpecific">
+      <div class="modal-pax-list modal-pax-list--segments">
+        <div class="modal-pax-segment-group" *ngFor="let entry of modalPaxEntries()">
+          <div class="pax-group-name">{{ entry.name }}</div>
+          <label class="modal-segment-row" *ngFor="let seg of entry.segments">
+            <input
+              type="checkbox"
+              [checked]="seg.selected"
+              (change)="toggleSegment(entry.passengerId, seg.basketItemId)" />
+            <span class="seg-label">{{ seg.label }}</span>
+          </label>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" (click)="closeModal()">Cancel</button>
+      <button class="btn-modal-confirm" (click)="onConfirmModal()">
+        <ng-container *ngIf="modalHasSelections">Update basket</ng-container>
+        <ng-container *ngIf="!modalHasSelections">Remove from basket</ng-container>
+      </button>
+    </div>
+
+  </div>
 </div>

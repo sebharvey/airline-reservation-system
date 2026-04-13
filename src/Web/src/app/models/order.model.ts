@@ -55,7 +55,7 @@ export interface ETicket {
 
 export interface OrderItem {
   orderItemId: string;
-  type: 'Flight' | 'Seat' | 'Bag';
+  type: 'Flight' | 'Seat' | 'Bag' | 'Product';
   segmentRef: string;
   passengerRefs: string[];
   fareFamily?: string;
@@ -72,6 +72,8 @@ export interface OrderItem {
   seatPosition?: string;
   additionalBags?: number;
   freeBagsIncluded?: number;
+  productName?: string;
+  productOfferId?: string;
 }
 
 export interface Payment {
@@ -168,6 +170,18 @@ export interface BasketSsrSelection {
   segmentRef: string;
 }
 
+export interface BasketProductSelection {
+  basketItemId: string;
+  productId: string;
+  offerId: string;
+  name: string;
+  passengerId: string;
+  /** Populated for segment-specific products; references the flightOffer.basketItemId */
+  segmentRef?: string;
+  price: number;
+  currency: string;
+}
+
 export interface Basket {
   basketId: string;
   bookingType: BookingType;
@@ -176,11 +190,13 @@ export interface Basket {
   seatSelections: BasketSeatSelection[];
   bagSelections: BasketBagSelection[];
   ssrSelections: BasketSsrSelection[];
+  productSelections: BasketProductSelection[];
   totalFareAmount: number;
   totalPointsAmount: number;
   totalTaxesAmount: number;
   totalSeatAmount: number;
   totalBagAmount: number;
+  totalProductAmount: number;
   totalAmount: number;
   currency: string;
   ticketingTimeLimit: string;

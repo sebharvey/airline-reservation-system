@@ -2,9 +2,9 @@
 
   <!-- Page Header -->
   <div class="page-header">
-    <a routerLink="/booking/bags" class="back-link">&#8249; Back</a>
+    <a routerLink="/booking/products" class="back-link">&#8249; Back</a>
     <h1>{{ isRewardBooking() ? 'Taxes & Fees Payment' : 'Payment' }}</h1>
-    <p class="step-label">Step 4 of 4</p>
+    <p class="step-label">Step 5 of 5</p>
   </div>
 
   <ng-container *ngIf="basket() as b">
@@ -54,6 +54,18 @@
         </div>
       </div>
 
+      <!-- Product Selections -->
+      <div class="summary-section" *ngIf="b.productSelections.length > 0">
+        <div class="summary-section-label">Products</div>
+        <div class="summary-row" *ngFor="let sel of b.productSelections">
+          <span class="summary-row-label">
+            {{ sel.name }}
+            <span class="summary-row-sub" *ngIf="sel.segmentRef">Segment specific</span>
+          </span>
+          <span class="summary-row-value">{{ formatPrice(sel.price) }}</span>
+        </div>
+      </div>
+
       <!-- Totals -->
       <div class="summary-totals">
         <div class="total-row subtotal" *ngIf="isRewardBooking()">
@@ -75,6 +87,10 @@
         <div class="total-row subtotal" *ngIf="bagTotal() > 0">
           <span>Baggage</span>
           <span>{{ formatPrice(bagTotal()) }}</span>
+        </div>
+        <div class="total-row subtotal" *ngIf="productTotal() > 0">
+          <span>Products</span>
+          <span>{{ formatPrice(productTotal()) }}</span>
         </div>
         <div class="total-row grand">
           <span>Card Payment Total</span>

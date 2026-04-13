@@ -14,7 +14,7 @@
 
 import { Injectable, signal, computed } from '@angular/core';
 import { FlightOffer } from '../models/flight.model';
-import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, Passenger, Order, BookingType, BasketSummary } from '../models/order.model';
+import { Basket, BasketFlightOffer, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, Passenger, Order, BookingType, BasketSummary } from '../models/order.model';
 
 const BASKET_ID_KEY = 'apex_basket_id';
 
@@ -116,11 +116,13 @@ export class BookingStateService {
       seatSelections: [],
       bagSelections: [],
       ssrSelections: [],
+      productSelections: [],
       totalFareAmount: bookingType === 'Reward' ? 0 : totalFare,
       totalPointsAmount: bookingType === 'Reward' ? totalPoints : 0,
       totalTaxesAmount: bookingType === 'Reward' ? totalTaxes : 0,
       totalSeatAmount: 0,
       totalBagAmount: 0,
+      totalProductAmount: 0,
       totalAmount: bookingType === 'Reward' ? totalTaxes : totalFare,
       currency: offers[0].currency,
       ticketingTimeLimit: ttl.toISOString()
@@ -153,7 +155,7 @@ export class BookingStateService {
         ...b,
         seatSelections: selections,
         totalSeatAmount: totalSeats,
-        totalAmount: base + totalSeats + b.totalBagAmount
+        totalAmount: base + totalSeats + b.totalBagAmount + b.totalProductAmount
       };
     });
   }
@@ -173,7 +175,22 @@ export class BookingStateService {
         ...b,
         bagSelections: selections,
         totalBagAmount: totalBags,
-        totalAmount: base + b.totalSeatAmount + totalBags
+        totalAmount: base + b.totalSeatAmount + totalBags + b.totalProductAmount
+      };
+    });
+  }
+
+  /** Save product selections and recalculate total. */
+  setProductSelections(selections: BasketProductSelection[]): void {
+    this._basket.update(b => {
+      if (!b) return b;
+      const totalProducts = selections.reduce((sum, s) => sum + s.price, 0);
+      const base = b.bookingType === 'Reward' ? b.totalTaxesAmount : b.totalFareAmount;
+      return {
+        ...b,
+        productSelections: selections,
+        totalProductAmount: totalProducts,
+        totalAmount: base + b.totalSeatAmount + b.totalBagAmount + totalProducts
       };
     });
   }
