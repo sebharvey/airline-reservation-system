@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
-import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketSummary } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 
 
@@ -386,8 +386,30 @@ export class RetailApiService {
   }
 
   /**
+   * PUT /v1/basket/{basketId}/products
+   * Store product selections in the basket during the bookflow.
+   * Each entry carries the offer ID, passenger reference, and optional segment reference
+   * so the order record can be populated with the correct pax/segment combinations.
+   */
+  updateBasketProducts(basketId: string, productSelections: BasketProductSelection[]): Observable<void> {
+    const base = environment.retailApiBaseUrl;
+    const body = productSelections.map(sel => ({
+      offerId: sel.offerId,
+      passengerId: sel.passengerId,
+      segmentRef: sel.segmentRef ?? null,
+      productId: sel.productId,
+      name: sel.name,
+      price: sel.price,
+      currency: sel.currency
+    }));
+    return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/products`, body);
+  }
+
+  /**
    * POST /v1/basket/{basketId}/confirm
    * Confirm the basket — processes payment, creates order, issues e-tickets.
+   * Product selections are included in the request body so the Retail API
+   * can write offer IDs with pax/segment information into the OrderData.
    */
   confirmBasket(
     basketId: string,
@@ -396,12 +418,18 @@ export class RetailApiService {
     expiryDate: string,
     cvv: string,
     cardholderName: string,
-    loyaltyPointsToRedeem?: number
+    loyaltyPointsToRedeem?: number,
+    productSelections?: BasketProductSelection[]
   ): Observable<ConfirmBasketResponse> {
     const base = environment.retailApiBaseUrl;
     const body = {
       payment: { method: paymentMethod, cardNumber, expiryDate, cvv, cardholderName },
-      loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null
+      loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null,
+      products: (productSelections ?? []).map(sel => ({
+        offerId: sel.offerId,
+        passengerId: sel.passengerId,
+        segmentRef: sel.segmentRef ?? null
+      }))
     };
     return this.#http.post<ConfirmBasketResponse>(`${base}/api/v1/basket/${basketId}/confirm`, body);
   }

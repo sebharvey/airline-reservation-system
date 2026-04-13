@@ -40,6 +40,9 @@ export class ProductsComponent implements OnInit {
   error = signal('');
   productGroups = signal<ProductGroup[]>([]);
 
+  saving = signal(false);
+  saveError = signal('');
+
   // Modal state
   showModal = signal(false);
   modalProduct = signal<Product | null>(null);
@@ -102,9 +105,9 @@ export class ProductsComponent implements OnInit {
     return `data:image/jpeg;base64,${imageBase64}`;
   }
 
-  /** Returns the basket selections for a given product. */
+  /** Returns the basket selections for a given product. Safe against a stale basket. */
   getProductSelections(product: Product): BasketProductSelection[] {
-    return this.basket()?.productSelections.filter(s => s.productId === product.productId) ?? [];
+    return this.basket()?.productSelections?.filter(s => s.productId === product.productId) ?? [];
   }
 
   /** True when the product has at least one selection in the basket. */
@@ -195,8 +198,8 @@ export class ProductsComponent implements OnInit {
     const priceEntry = product.prices.find(p => p.currencyCode === currency);
     if (!priceEntry) return;
 
-    // Remove any existing selections for this product, then add the new ones
-    const otherSelections = basket.productSelections.filter(
+    // Keep selections for all OTHER products; replace this product's selections
+    const otherSelections = (basket.productSelections ?? []).filter(
       s => s.productId !== product.productId
     );
 
@@ -256,7 +259,50 @@ export class ProductsComponent implements OnInit {
   /** Human-readable summary of current basket product selections total. */
   readonly productTotal = computed(() => this.basket()?.totalProductAmount ?? 0);
 
+  /**
+   * Save current product selections to the backend basket then navigate to payment.
+   * Follows the same pattern as the bags page (updateBasketBags → navigate).
+   */
   onContinue(): void {
-    this.router.navigate(['/booking/payment']);
+    const basket = this.basket();
+    if (!basket) return;
+
+    const selections = basket.productSelections ?? [];
+
+    this.saving.set(true);
+    this.saveError.set('');
+
+    this.retailApi.updateBasketProducts(basket.basketId, selections).subscribe({
+      next: () => {
+        this.bookingState.setProductSelections(selections);
+        this.saving.set(false);
+        this.router.navigate(['/booking/payment']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save product selections. Please try again.');
+      }
+    });
+  }
+
+  /** Clear product selections and navigate to payment (skip products). */
+  onSkip(): void {
+    const basket = this.basket();
+    if (!basket) return;
+
+    this.saving.set(true);
+    this.saveError.set('');
+
+    this.retailApi.updateBasketProducts(basket.basketId, []).subscribe({
+      next: () => {
+        this.bookingState.setProductSelections([]);
+        this.saving.set(false);
+        this.router.navigate(['/booking/payment']);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveError.set('Failed to save product selections. Please try again.');
+      }
+    });
   }
 }

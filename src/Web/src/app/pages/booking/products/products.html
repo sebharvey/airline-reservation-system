@@ -77,10 +77,15 @@
     <strong>{{ currency() }} {{ productTotal() | number:'1.2-2' }}</strong>
   </div>
 
+  <!-- Save error -->
+  <div class="error-card" *ngIf="saveError()">{{ saveError() }}</div>
+
   <!-- Actions -->
   <div class="actions">
-    <button class="btn-secondary" (click)="onContinue()">Skip</button>
-    <button class="btn-primary" (click)="onContinue()">Continue to Payment ›</button>
+    <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip</button>
+    <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
+      {{ saving() ? 'Saving…' : 'Continue to Payment ›' }}
+    </button>
   </div>
 
 </div>
