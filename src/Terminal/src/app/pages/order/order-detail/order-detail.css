@@ -1,5 +1,4 @@
 .order-detail-page {
-  max-width: 900px;
   padding: 16px;
 }
 
@@ -154,44 +153,22 @@
 .chip-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .chip-value { font-size: 0.85rem; font-weight: 600; color: var(--text); }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 20px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tabs::-webkit-scrollbar { display: none; }
-
-.tab {
+/* Section headings */
+.section-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color var(--transition);
+  gap: 8px;
 }
 
-.tab:hover { color: var(--text); }
-
-.tab-active {
-  color: var(--grad-start);
-  border-bottom-color: var(--grad-start);
-  font-weight: 600;
-}
-
-.tab-count {
+.section-count {
   background: rgba(102, 126, 234, 0.12);
   color: var(--grad-start);
   border-radius: 10px;
@@ -200,20 +177,63 @@
   font-weight: 700;
 }
 
-/* Tab content */
-.tab-content { animation: fadeIn 0.2s ease; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.empty-tab {
-  padding: 40px 0;
+.empty-section {
+  padding: 24px 0;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  margin: 0;
 }
+
+/* Grid layout */
+.order-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "itinerary"
+    "passengers"
+    "ancillaries"
+    "payments"
+    "ssrs"
+    "history"
+    "tickets";
+}
+
+@media (min-width: 768px) {
+  .order-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "itinerary   passengers"
+      "ancillaries ancillaries"
+      "payments    history"
+      "ssrs        ssrs"
+      "tickets     tickets";
+  }
+}
+
+@media (min-width: 1280px) {
+  .order-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas:
+      "itinerary   passengers   passengers"
+      "ancillaries ancillaries  payments"
+      "ssrs        ssrs         history"
+      "tickets     tickets      tickets";
+  }
+}
+
+.grid-section {
+  min-width: 0;
+}
+
+.grid-itinerary   { grid-area: itinerary; }
+.grid-passengers  { grid-area: passengers; }
+.grid-ancillaries { grid-area: ancillaries; }
+.grid-payments    { grid-area: payments; }
+.grid-ssrs        { grid-area: ssrs; }
+.grid-history     { grid-area: history; }
+.grid-tickets     { grid-area: tickets; }
 
 /* Segment cards */
 .segment-card {
@@ -731,7 +751,7 @@
 }
 
 @media (min-width: 901px) {
-  .order-detail-page { padding: 0; }
+  .order-detail-page { padding: 20px 24px; }
 }
 
 /* Tickets tab */

@@ -30,7 +30,6 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('itinerary');
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
@@ -108,6 +107,8 @@ export class OrderDetailComponent implements OnInit {
   ngOnInit(): void {
     this.bookingRef = this.#route.snapshot.paramMap.get('bookingRef') ?? '';
     this.loadOrder();
+    this.loadSsrOptions();
+    this.loadTickets();
   }
 
   async loadOrder(): Promise<void> {
@@ -125,12 +126,6 @@ export class OrderDetailComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'): void {
-    this.activeTab.set(tab);
-    if (tab === 'ssrs') this.loadSsrOptions();
-    if (tab === 'tickets') this.loadTickets();
   }
 
   goBack(): void {
