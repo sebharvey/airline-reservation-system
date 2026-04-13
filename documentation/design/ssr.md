@@ -4,7 +4,7 @@
 
 SSRs are IATA-standardised four-character codes communicating individual passenger service needs to operations, ground handlers, and cabin crew.
 
-- Two categories: **meal/dietary requests** (VGML, MOML, DBML, etc.) and **mobility/accessibility assistance** (WCHR, WCHS, WCHC, BLND, DEAF, etc.).
+- Five categories: **meal/dietary requests** (VGML, MOML, DBML, etc.), **mobility/wheelchair assistance** (WCHR, WCHS, WCHC), **accessibility** (BLND, DEAF, DPNA), **medical** (MEDA, STCR, OXYG), and **passenger assistance** (MAAS, UMNR, EXST).
 - All SSRs carry no ancillary charge; **EU Regulation 1107/2006** requires carriers to accommodate disabled passengers without surcharge.
 - SSRs are segment-specific — a connecting passenger requires independent SSR entries per leg.
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
@@ -19,7 +19,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 | SsrCatalogueId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
 | SsrCode | CHAR(4) | No | | UK | IATA four-character SSR code, e.g. `VGML`, `WCHR` |
 | Label | VARCHAR(100) | No | | | Human-readable name displayed on channel, e.g. `Vegetarian meal (lacto-ovo)` |
-| Category | VARCHAR(20) | No | | | `Meal` · `Mobility` · `Accessibility` |
+| Category | VARCHAR(20) | No | | | `Meal` · `Mobility` · `Accessibility` · `Medical` · `Assistance` |
 | IsActive | BIT | No | `1` | | Inactive codes are excluded from `GET /v1/ssr/options` responses but retained for historical order display |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
@@ -53,6 +53,12 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 | `BLND` | Accessibility | Blind or severely visually impaired passenger |
 | `DEAF` | Accessibility | Deaf or severely hearing-impaired passenger |
 | `DPNA` | Accessibility | Disabled passenger needing assistance (general; use where a more specific code does not apply) |
+| `MEDA` | Medical | Medical case — passenger requires medical clearance before travel |
+| `STCR` | Medical | Stretcher passenger — requires full row of seats and medical escort |
+| `OXYG` | Medical | Portable oxygen required in-flight |
+| `MAAS` | Assistance | Meet and assist — passenger requires escort at departure, transit, and arrival points |
+| `UMNR` | Assistance | Unaccompanied minor — child travelling without an accompanying adult |
+| `EXST` | Assistance | Extra seat required — passenger requires an additional purchased seat |
 
 ## SSR Selection — Bookflow
 
