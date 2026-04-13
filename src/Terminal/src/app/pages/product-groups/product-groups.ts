@@ -28,8 +28,8 @@ export class ProductGroupsComponent implements OnInit {
   saving = signal(false);
   deleting = signal<string | null>(null);
 
-  createForm = signal<CreateProductGroupRequest>({ name: '' });
-  updateForm = signal<UpdateProductGroupRequest>({ name: '', isActive: true });
+  createForm = signal<CreateProductGroupRequest>({ name: '', sortOrder: 0 });
+  updateForm = signal<UpdateProductGroupRequest>({ name: '', sortOrder: 0, isActive: true });
 
   stats = computed(() => {
     const all = this.groups();
@@ -57,7 +57,7 @@ export class ProductGroupsComponent implements OnInit {
 
   openCreateForm(): void {
     this.editing.set(null);
-    this.createForm.set({ name: '' });
+    this.createForm.set({ name: '', sortOrder: 0 });
     this.showForm.set(true);
     this.error.set('');
     this.success.set('');
@@ -65,7 +65,7 @@ export class ProductGroupsComponent implements OnInit {
 
   openEditForm(group: ProductGroup): void {
     this.editing.set(group);
-    this.updateForm.set({ name: group.name, isActive: group.isActive });
+    this.updateForm.set({ name: group.name, sortOrder: group.sortOrder, isActive: group.isActive });
     this.showForm.set(true);
     this.error.set('');
     this.success.set('');

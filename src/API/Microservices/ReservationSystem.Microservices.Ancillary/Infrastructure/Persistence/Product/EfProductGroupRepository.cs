@@ -27,7 +27,7 @@ public sealed class EfProductGroupRepository : IProductGroupRepository
     {
         var groups = await _context.ProductGroups
             .AsNoTracking()
-            .OrderBy(g => g.Name)
+            .OrderBy(g => g.SortOrder).ThenBy(g => g.Name)
             .ToListAsync(cancellationToken);
         return groups.AsReadOnly();
     }

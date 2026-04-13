@@ -16,10 +16,10 @@ public static class ProductMapper
     // ── ProductGroup: Request → Command ─────────────────────────────────────
 
     public static CreateProductGroupCommand ToCommand(CreateProductGroupRequest request) =>
-        new(Name: request.Name);
+        new(Name: request.Name, SortOrder: request.SortOrder);
 
     public static UpdateProductGroupCommand ToCommand(Guid groupId, UpdateProductGroupRequest request) =>
-        new(ProductGroupId: groupId, Name: request.Name, IsActive: request.IsActive);
+        new(ProductGroupId: groupId, Name: request.Name, SortOrder: request.SortOrder, IsActive: request.IsActive);
 
     // ── ProductGroup: Domain → Response ─────────────────────────────────────
 
@@ -28,6 +28,7 @@ public static class ProductMapper
         {
             ProductGroupId = group.ProductGroupId,
             Name = group.Name,
+            SortOrder = group.SortOrder,
             IsActive = group.IsActive,
             CreatedAt = group.CreatedAt,
             UpdatedAt = group.UpdatedAt

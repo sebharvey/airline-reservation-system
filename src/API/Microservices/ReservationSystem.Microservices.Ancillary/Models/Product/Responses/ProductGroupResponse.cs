@@ -10,6 +10,9 @@ public sealed class ProductGroupResponse
     [JsonPropertyName("name")]
     public string Name { get; init; } = string.Empty;
 
+    [JsonPropertyName("sortOrder")]
+    public int SortOrder { get; init; }
+
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }
 

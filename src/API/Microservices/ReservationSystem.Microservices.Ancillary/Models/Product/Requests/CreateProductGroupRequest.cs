@@ -6,4 +6,7 @@ public sealed class CreateProductGroupRequest
 {
     [JsonPropertyName("name")]
     public string Name { get; init; } = string.Empty;
+
+    [JsonPropertyName("sortOrder")]
+    public int SortOrder { get; init; }
 }

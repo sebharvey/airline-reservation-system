@@ -79,6 +79,7 @@ public sealed class AncillaryDbContext : DbContext
             entity.HasKey(g => g.ProductGroupId);
             entity.Property(g => g.ProductGroupId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(g => g.Name).HasColumnType("nvarchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(g => g.SortOrder).HasColumnType("int").IsRequired();
             entity.Property(g => g.IsActive).HasColumnType("bit").IsRequired();
             entity.Property(g => g.CreatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(g => g.UpdatedAt).HasColumnType("datetime2").IsRequired();
