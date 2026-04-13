@@ -40,13 +40,12 @@ export class ProductsComponent implements OnInit {
   error = signal('');
   productGroups = signal<ProductGroup[]>([]);
 
-  saving = signal(false);
-  saveError = signal('');
-
   // Modal state
   showModal = signal(false);
   modalProduct = signal<Product | null>(null);
   modalPaxEntries = signal<PaxModalEntry[]>([]);
+  modalSaving = signal(false);
+  modalSaveError = signal('');
 
   ngOnInit(): void {
     if (!this.basket()) {
@@ -236,14 +235,30 @@ export class ProductsComponent implements OnInit {
       }
     }
 
-    this.bookingState.setProductSelections([...otherSelections, ...newSelections]);
-    this.closeModal();
+    const allSelections = [...otherSelections, ...newSelections];
+
+    this.modalSaving.set(true);
+    this.modalSaveError.set('');
+
+    this.retailApi.updateBasketProducts(basket.basketId, allSelections).subscribe({
+      next: () => {
+        this.bookingState.setProductSelections(allSelections);
+        this.modalSaving.set(false);
+        this.closeModal();
+      },
+      error: () => {
+        this.modalSaving.set(false);
+        this.modalSaveError.set('Failed to update basket. Please try again.');
+      }
+    });
   }
 
   closeModal(): void {
     this.showModal.set(false);
     this.modalProduct.set(null);
     this.modalPaxEntries.set([]);
+    this.modalSaving.set(false);
+    this.modalSaveError.set('');
   }
 
   /** Whether the modal has any selections currently ticked. */
@@ -259,50 +274,13 @@ export class ProductsComponent implements OnInit {
   /** Human-readable summary of current basket product selections total. */
   readonly productTotal = computed(() => this.basket()?.totalProductAmount ?? 0);
 
-  /**
-   * Save current product selections to the backend basket then navigate to payment.
-   * Follows the same pattern as the bags page (updateBasketBags → navigate).
-   */
+  /** Navigate to payment. Product selections are already saved to basket when confirmed via modal. */
   onContinue(): void {
-    const basket = this.basket();
-    if (!basket) return;
-
-    const selections = basket.productSelections ?? [];
-
-    this.saving.set(true);
-    this.saveError.set('');
-
-    this.retailApi.updateBasketProducts(basket.basketId, selections).subscribe({
-      next: () => {
-        this.bookingState.setProductSelections(selections);
-        this.saving.set(false);
-        this.router.navigate(['/booking/payment']);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.saveError.set('Failed to save product selections. Please try again.');
-      }
-    });
+    this.router.navigate(['/booking/payment']);
   }
 
-  /** Clear product selections and navigate to payment (skip products). */
+  /** Navigate to payment without any product selections. */
   onSkip(): void {
-    const basket = this.basket();
-    if (!basket) return;
-
-    this.saving.set(true);
-    this.saveError.set('');
-
-    this.retailApi.updateBasketProducts(basket.basketId, []).subscribe({
-      next: () => {
-        this.bookingState.setProductSelections([]);
-        this.saving.set(false);
-        this.router.navigate(['/booking/payment']);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.saveError.set('Failed to save product selections. Please try again.');
-      }
-    });
+    this.router.navigate(['/booking/payment']);
   }
 }

@@ -77,15 +77,10 @@
     <strong>{{ currency() }} {{ productTotal() | number:'1.2-2' }}</strong>
   </div>
 
-  <!-- Save error -->
-  <div class="error-card" *ngIf="saveError()">{{ saveError() }}</div>
-
   <!-- Actions -->
   <div class="actions">
-    <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip</button>
-    <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
-      {{ saving() ? 'Saving…' : 'Continue to Payment ›' }}
-    </button>
+    <button class="btn-secondary" (click)="onSkip()">Skip</button>
+    <button class="btn-primary" (click)="onContinue()">Continue to Payment ›</button>
   </div>
 
 </div>
@@ -143,11 +138,14 @@
       </div>
     </ng-container>
 
+    <div class="error-card" *ngIf="modalSaveError()">{{ modalSaveError() }}</div>
+
     <div class="modal-actions">
-      <button class="btn-modal-cancel" (click)="closeModal()">Cancel</button>
-      <button class="btn-modal-confirm" (click)="onConfirmModal()">
-        <ng-container *ngIf="modalHasSelections">Update basket</ng-container>
-        <ng-container *ngIf="!modalHasSelections">Remove from basket</ng-container>
+      <button class="btn-modal-cancel" [disabled]="modalSaving()" (click)="closeModal()">Cancel</button>
+      <button class="btn-modal-confirm" [disabled]="modalSaving()" (click)="onConfirmModal()">
+        <ng-container *ngIf="modalSaving()">Saving…</ng-container>
+        <ng-container *ngIf="!modalSaving() && modalHasSelections">Update basket</ng-container>
+        <ng-container *ngIf="!modalSaving() && !modalHasSelections">Remove from basket</ng-container>
       </button>
     </div>
 
