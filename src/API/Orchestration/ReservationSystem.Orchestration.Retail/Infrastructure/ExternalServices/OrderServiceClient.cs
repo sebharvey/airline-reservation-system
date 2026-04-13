@@ -111,6 +111,17 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task UpdateProductsAsync(Guid basketId, string productsJson, CancellationToken ct)
+    {
+        using var content = new StringContent(productsJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PutAsync($"/api/v1/basket/{basketId}/products", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update basket products: {error}");
+        }
+    }
+
     public async Task<OrderMsCreateOrderResult> CreateOrderAsync(
         Guid basketId, string bookingType, string? redemptionReference,
         CancellationToken ct)

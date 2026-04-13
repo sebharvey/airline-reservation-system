@@ -3,30 +3,30 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 
-namespace ReservationSystem.Microservices.Order.Application.UpdateBasketBags;
+namespace ReservationSystem.Microservices.Order.Application.UpdateBasketProducts;
 
 /// <summary>
-/// Handles the <see cref="UpdateBasketBagsCommand"/>.
-/// Adds or replaces bag ancillary selections within an existing basket.
+/// Handles the <see cref="UpdateBasketProductsCommand"/>.
+/// Adds or replaces product ancillary selections within an existing basket.
 /// </summary>
-public sealed class UpdateBasketBagsHandler
+public sealed class UpdateBasketProductsHandler
 {
     private readonly IBasketRepository _repository;
-    private readonly ILogger<UpdateBasketBagsHandler> _logger;
+    private readonly ILogger<UpdateBasketProductsHandler> _logger;
 
-    public UpdateBasketBagsHandler(
+    public UpdateBasketProductsHandler(
         IBasketRepository repository,
-        ILogger<UpdateBasketBagsHandler> logger)
+        ILogger<UpdateBasketProductsHandler> logger)
     {
         _repository = repository;
         _logger = logger;
     }
 
     public async Task<Basket?> HandleAsync(
-        UpdateBasketBagsCommand command,
+        UpdateBasketProductsCommand command,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Updating bags for basket {BasketId}", command.BasketId);
+        _logger.LogInformation("Updating products for basket {BasketId}", command.BasketId);
 
         var basket = await _repository.GetByIdAsync(command.BasketId, cancellationToken);
         if (basket is null)
@@ -42,29 +42,18 @@ public sealed class UpdateBasketBagsHandler
         }
 
         var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
-        var bagsNode = JsonNode.Parse(command.BagsData);
-        basketJson["bags"] = bagsNode;
+        var productsNode = JsonNode.Parse(command.ProductsData);
+        basketJson["products"] = productsNode;
 
-        // Calculate total bag amount from bag selections
-        decimal totalBagAmount = 0m;
-        if (bagsNode is JsonArray bagsArray)
+        // Calculate total product amount from product selections
+        decimal totalProductAmount = 0m;
+        if (productsNode is JsonArray productsArray)
         {
-            foreach (var bag in bagsArray)
-            {
-                var price = bag?["price"]?.GetValue<decimal>() ?? 0m;
-                totalBagAmount += price;
-            }
+            foreach (var product in productsArray)
+                totalProductAmount += product?["price"]?.GetValue<decimal>() ?? 0m;
         }
 
-        // Include any existing product selections in the total
-        decimal existingProductTotal = 0m;
-        if (basketJson["products"] is JsonArray existingProducts)
-        {
-            foreach (var product in existingProducts)
-                existingProductTotal += product?["price"]?.GetValue<decimal>() ?? 0m;
-        }
-
-        var totalAmount = (basket.TotalFareAmount ?? 0m) + basket.TotalSeatAmount + totalBagAmount + existingProductTotal;
+        var totalAmount = (basket.TotalFareAmount ?? 0m) + basket.TotalSeatAmount + basket.TotalBagAmount + totalProductAmount;
 
         var updated = Basket.Reconstitute(
             basket.BasketId,
@@ -73,7 +62,7 @@ public sealed class UpdateBasketBagsHandler
             basket.BasketStatus,
             basket.TotalFareAmount,
             basket.TotalSeatAmount,
-            totalBagAmount,
+            basket.TotalBagAmount,
             totalAmount,
             basket.ExpiresAt,
             basket.ConfirmedOrderId,
@@ -84,8 +73,8 @@ public sealed class UpdateBasketBagsHandler
 
         await _repository.UpdateAsync(updated, cancellationToken);
 
-        _logger.LogInformation("Basket {BasketId} bags updated, totalBagAmount={TotalBagAmount}",
-            command.BasketId, totalBagAmount);
+        _logger.LogInformation("Basket {BasketId} products updated, totalProductAmount={TotalProductAmount}",
+            command.BasketId, totalProductAmount);
 
         return updated;
     }

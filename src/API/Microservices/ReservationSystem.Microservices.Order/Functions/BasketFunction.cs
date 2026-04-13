@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.Order.Application.GetBasket;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketBags;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketFlights;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketPassengers;
+using ReservationSystem.Microservices.Order.Application.UpdateBasketProducts;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketSeats;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketSsrs;
 using ReservationSystem.Microservices.Order.Models.Mappers;
@@ -31,6 +32,7 @@ public sealed class BasketFunction
     private readonly UpdateBasketBagsHandler _updateBagsHandler;
     private readonly UpdateBasketPassengersHandler _updatePassengersHandler;
     private readonly UpdateBasketSsrsHandler _updateSsrsHandler;
+    private readonly UpdateBasketProductsHandler _updateProductsHandler;
     private readonly ExpireBasketHandler _expireBasketHandler;
     private readonly ILogger<BasketFunction> _logger;
 
@@ -42,6 +44,7 @@ public sealed class BasketFunction
         UpdateBasketBagsHandler updateBagsHandler,
         UpdateBasketPassengersHandler updatePassengersHandler,
         UpdateBasketSsrsHandler updateSsrsHandler,
+        UpdateBasketProductsHandler updateProductsHandler,
         ExpireBasketHandler expireBasketHandler,
         ILogger<BasketFunction> logger)
     {
@@ -52,6 +55,7 @@ public sealed class BasketFunction
         _updateBagsHandler = updateBagsHandler;
         _updatePassengersHandler = updatePassengersHandler;
         _updateSsrsHandler = updateSsrsHandler;
+        _updateProductsHandler = updateProductsHandler;
         _expireBasketHandler = expireBasketHandler;
         _logger = logger;
     }
@@ -336,6 +340,35 @@ public sealed class BasketFunction
             {
                 basketId = basket.BasketId,
                 ssrCount,
+                totalAmount = basket.TotalAmount ?? 0m
+            });
+        }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // PUT /v1/basket/{basketId}/products
+    [Function("UpdateBasketProducts")]
+    [OpenApiOperation(operationId: "UpdateBasketProducts", tags: new[] { "Basket" }, Summary = "Update product selections in a basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "The product update request")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketAmountResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateProducts(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/products")] HttpRequestData req,
+        Guid basketId, CancellationToken ct)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
+        catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
+
+        var command = new UpdateBasketProductsCommand(basketId, body);
+        try
+        {
+            var basket = await _updateProductsHandler.HandleAsync(command, ct);
+            if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+            return await req.OkJsonAsync(new
+            {
+                basketId = basket.BasketId,
                 totalAmount = basket.TotalAmount ?? 0m
             });
         }

@@ -95,7 +95,15 @@ public sealed class UpdateBasketSeatsHandler
             }
         }
 
-        var totalAmount = (basket.TotalFareAmount ?? 0m) + totalSeatAmount + basket.TotalBagAmount;
+        // Include any existing product selections in the total
+        decimal existingProductTotal = 0m;
+        if (basketJson["products"] is JsonArray existingProducts)
+        {
+            foreach (var product in existingProducts)
+                existingProductTotal += product?["price"]?.GetValue<decimal>() ?? 0m;
+        }
+
+        var totalAmount = (basket.TotalFareAmount ?? 0m) + totalSeatAmount + basket.TotalBagAmount + existingProductTotal;
 
         var updated = Basket.Reconstitute(
             basket.BasketId,
