@@ -134,6 +134,28 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
     });
   });
 
+  // Product items
+  basket.productSelections?.forEach(sel => {
+    const fo = sel.segmentRef
+      ? basket.flightOffers.find(f => f.basketItemId === sel.segmentRef)
+      : null;
+    const segId = fo
+      ? `SEG-${basket.flightOffers.indexOf(fo) + 1}`
+      : 'SEG-1';
+    orderItems.push({
+      orderItemId: `OI-${randomNum(6)}`,
+      type: 'Product',
+      segmentRef: segId,
+      passengerRefs: [sel.passengerId],
+      unitPrice: sel.price,
+      taxes: 0,
+      totalPrice: sel.price,
+      paymentReference: payRef,
+      productName: sel.name,
+      productOfferId: sel.offerId
+    });
+  });
+
   const isReward = basket.bookingType === 'Reward';
   const paymentDescription = isReward ? 'Taxes and fees' : 'Full payment';
 
@@ -237,6 +259,7 @@ export class PaymentComponent implements OnInit {
 
   readonly seatTotal = computed(() => this.basket()?.totalSeatAmount ?? 0);
   readonly bagTotal = computed(() => this.basket()?.totalBagAmount ?? 0);
+  readonly productTotal = computed(() => this.basket()?.totalProductAmount ?? 0);
   readonly fareTotal = computed(() => this.basket()?.totalFareAmount ?? 0);
   readonly taxesTotal = computed(() => this.basket()?.totalTaxesAmount ?? 0);
   readonly pointsTotal = computed(() => this.basket()?.totalPointsAmount ?? 0);

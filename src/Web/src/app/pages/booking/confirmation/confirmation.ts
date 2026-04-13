@@ -73,6 +73,10 @@ export class ConfirmationComponent implements OnInit {
     return this.order?.orderItems.filter(oi => oi.type === 'Bag') ?? [];
   }
 
+  get productItems(): OrderItem[] {
+    return this.order?.orderItems.filter(oi => oi.type === 'Product') ?? [];
+  }
+
   get payment() {
     return this.order?.payments[0] ?? null;
   }
@@ -92,6 +96,12 @@ export class ConfirmationComponent implements OnInit {
   get bagTotal(): number {
     return this.order?.orderItems
       .filter(oi => oi.type === 'Bag')
+      .reduce((sum, oi) => sum + oi.totalPrice, 0) ?? 0;
+  }
+
+  get productTotal(): number {
+    return this.order?.orderItems
+      .filter(oi => oi.type === 'Product')
       .reduce((sum, oi) => sum + oi.totalPrice, 0) ?? 0;
   }
 
