@@ -232,6 +232,36 @@ public sealed class BasketFunction
     }
 
     // -------------------------------------------------------------------------
+    // PUT /v1/basket/{basketId}/products
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateBasketProducts")]
+    [OpenApiOperation(operationId: "UpdateBasketProducts", tags: new[] { "Basket" }, Summary = "Update product selections in basket")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Product selections")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateProducts(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/products")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for UpdateProducts");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        await _orderServiceClient.UpdateProductsAsync(basketId, body, cancellationToken);
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
+    }
+
+    // -------------------------------------------------------------------------
     // PUT /v1/basket/{basketId}/ssrs
     // -------------------------------------------------------------------------
 
