@@ -9,6 +9,7 @@ on:
     branches: [ main ]
     paths:
       - 'src/API/Microservices/ReservationSystem.Microservices.Ancillary/**'
+      - 'src/API/Shared/**'
       - '.github/workflows/main_reservation-system-microservice-ancillary.yml'
 
 env:
