@@ -35,12 +35,10 @@ public sealed class RunSimulatorHandler
     private static readonly (string Origin, string Destination)[] Routes =
     [
         ("LHR", "JFK"),
-        ("LHR", "LAX"),
         ("LHR", "MIA"),
-        ("LHR", "SFO"),
-        ("LHR", "ORD"),
-        ("LHR", "HKG"),
-        ("LHR", "NRT"),
+        ("LHR", "BOM"),
+        ("LHR", "DEL"),
+        ("LHR", "BLR"),
     ];
 
     // ── Cabin preference weights ────────────────────────────────────────────────
