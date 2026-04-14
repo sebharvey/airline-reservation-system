@@ -12,6 +12,7 @@ using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPricing
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Mappers;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Requests;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Microservices.Ancillary.Functions.Bag;
@@ -42,6 +43,7 @@ public sealed class BagPricingFunction
     }
 
     [Function("GetAllBagPricings")]
+    [MicroserviceCache(24)]
     [OpenApiOperation(operationId: "GetAllBagPricings", tags: new[] { "BagPricing" }, Summary = "List all bag pricing rules")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

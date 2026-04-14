@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Ancillary.Application.Bag.UpdateBagPolicy;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Mappers;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Requests;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -42,6 +43,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("GetAllBagPolicies")]
+    [MicroserviceCache(24)]
     [OpenApiOperation(operationId: "GetAllBagPolicies", tags: new[] { "BagPolicies" }, Summary = "List all bag policies")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPoliciesListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

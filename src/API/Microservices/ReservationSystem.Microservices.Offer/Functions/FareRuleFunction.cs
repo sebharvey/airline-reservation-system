@@ -6,6 +6,7 @@ using ReservationSystem.Microservices.Offer.Application.UpdateFareRule;
 using ReservationSystem.Microservices.Offer.Application.DeleteFareRule;
 using ReservationSystem.Microservices.Offer.Application.GetFareRule;
 using ReservationSystem.Microservices.Offer.Application.SearchFareRules;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -67,6 +68,7 @@ public sealed class FareRuleFunction
 
     // GET /v1/fare-rules/{fareRuleId}
     [Function("GetFareRule")]
+    [MicroserviceCache(1)]
     [OpenApiOperation(operationId: "GetFareRule", tags: new[] { "Fare Rules" }, Summary = "Get a fare rule by ID")]
     [OpenApiParameter(name: "fareRuleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Fare rule ID")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "OK")]

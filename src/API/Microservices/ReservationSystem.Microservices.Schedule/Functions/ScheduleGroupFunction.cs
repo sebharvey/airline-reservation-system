@@ -7,6 +7,7 @@ using ReservationSystem.Microservices.Schedule.Domain.Entities;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Models.Requests;
 using ReservationSystem.Microservices.Schedule.Models.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -36,6 +37,7 @@ public sealed class ScheduleGroupFunction
     // -------------------------------------------------------------------------
 
     [Function("GetScheduleGroups")]
+    [MicroserviceCache(1)]
     [OpenApiOperation(operationId: "GetScheduleGroups", tags: new[] { "ScheduleGroups" }, Summary = "Retrieve all schedule groups")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetScheduleGroupsResponse), Description = "OK — returns all schedule groups")]
     public async Task<HttpResponseData> GetScheduleGroups(

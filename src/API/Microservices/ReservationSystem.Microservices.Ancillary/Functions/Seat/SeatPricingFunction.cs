@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateSeatPrici
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Mappers;
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Requests;
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -42,6 +43,7 @@ public sealed class SeatPricingFunction
     }
 
     [Function("GetAllSeatPricings")]
+    [MicroserviceCache(24)]
     [OpenApiOperation(operationId: "GetAllSeatPricings", tags: new[] { "SeatPricing" }, Summary = "List all seat pricing rules")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

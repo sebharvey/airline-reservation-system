@@ -12,6 +12,7 @@ using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Seat;
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Mappers;
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Requests;
 using ReservationSystem.Microservices.Ancillary.Models.Seat.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -46,6 +47,7 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("GetAllAircraftTypes")]
+    [MicroserviceCache(24)]
     [OpenApiOperation(operationId: "GetAllAircraftTypes", tags: new[] { "AircraftTypes" }, Summary = "List all aircraft types")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AircraftTypeResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

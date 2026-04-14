@@ -19,14 +19,22 @@ using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMicroserviceCache();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── Caching ────────────────────────────────────────────────────────────
+        services.AddMicroserviceCache();
+
         // ── OpenAPI ────────────────────────────────────────────────────────────
         services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
 
