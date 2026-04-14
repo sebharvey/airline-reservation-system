@@ -11,7 +11,7 @@ namespace ReservationSystem.Simulator.Application.RunSimulator;
 /// then Business. SSRs are added on roughly a third of bookings.
 /// Intended to be invoked by a scheduled timer trigger every 20 minutes.
 /// </summary>
-internal sealed class RunSimulatorHandler
+public sealed class RunSimulatorHandler
 {
     // ── Configuration ──────────────────────────────────────────────────────────
 
