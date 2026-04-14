@@ -137,10 +137,11 @@ public sealed class RunSimulatorHandler
 
     public async Task HandleAsync(CancellationToken ct = default)
     {
-        var orderCount = Random.Shared.Next(MinOrders, MaxOrders + 1);
-        var created    = 0;
+        var orderCount  = Random.Shared.Next(MinOrders, MaxOrders + 1);
+        var channelCode = $"SIM{Random.Shared.Next(100, 1000)}";
+        var created     = 0;
 
-        _logger.LogInformation("Simulator: starting run — targeting {Count} orders", orderCount);
+        _logger.LogInformation("Simulator: starting run — targeting {Count} orders, channel {ChannelCode}", orderCount, channelCode);
 
         for (var i = 0; i < orderCount; i++)
         {
@@ -149,8 +150,8 @@ public sealed class RunSimulatorHandler
             try
             {
                 var (orderId, bookingRef, route, isReturn) = isConnecting
-                    ? await CreateConnectingOrderAsync(paxCount, ct)
-                    : await CreateOrderAsync(paxCount, ct);
+                    ? await CreateConnectingOrderAsync(paxCount, channelCode, ct)
+                    : await CreateOrderAsync(paxCount, channelCode, ct);
                 created++;
                 _logger.LogInformation(
                     "Simulator: order {Index}/{Total} created — orderId={OrderId} ref={BookingRef} " +
@@ -173,7 +174,7 @@ public sealed class RunSimulatorHandler
     // ── Order creation ─────────────────────────────────────────────────────────
 
     private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateOrderAsync(
-        int paxCount, CancellationToken ct)
+        int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
         var route = Routes[Random.Shared.Next(Routes.Length)];
@@ -298,7 +299,7 @@ public sealed class RunSimulatorHandler
         // ── Step 9: Confirm and pay ────────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
-            ChannelCode: "SIM",
+            ChannelCode: channelCode,
             new PaymentRequest(
                 Method:         "CreditCard",
                 CardNumber:     "4111111111111111",
@@ -316,7 +317,7 @@ public sealed class RunSimulatorHandler
     // ── Connecting order creation ──────────────────────────────────────────────
 
     private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateConnectingOrderAsync(
-        int paxCount, CancellationToken ct)
+        int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
         var route = ConnectingRoutes[Random.Shared.Next(ConnectingRoutes.Length)];
@@ -413,7 +414,7 @@ public sealed class RunSimulatorHandler
         // ── Step 9: Confirm and pay ────────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
-            ChannelCode: "SIM",
+            ChannelCode: channelCode,
             new PaymentRequest(
                 Method:         "CreditCard",
                 CardNumber:     "4111111111111111",
