@@ -46,6 +46,12 @@ internal sealed class RetailApiClient : IRetailApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task GetBasketSummaryAsync(string basketId, CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetAsync($"/api/v1/basket/{basketId}/summary", ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<GetBasketResponse> GetBasketAsync(string basketId, CancellationToken ct = default)
     {
         var response = await _httpClient.GetAsync($"/api/v1/basket/{basketId}", ct);
@@ -68,6 +74,12 @@ internal sealed class RetailApiClient : IRetailApiClient
     public async Task AddSeatsAsync(string basketId, List<SeatAssignment> seats, CancellationToken ct = default)
     {
         var response = await _httpClient.PutAsJsonAsync($"/api/v1/basket/{basketId}/seats", seats, JsonOptions, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task AddSsrsAsync(string basketId, List<SsrRequest> ssrs, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"/api/v1/basket/{basketId}/ssrs", ssrs, JsonOptions, ct);
         response.EnsureSuccessStatusCode();
     }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Simulator.Domain.ExternalServices;
 using ReservationSystem.Simulator.Models;
@@ -5,32 +6,100 @@ using ReservationSystem.Simulator.Models;
 namespace ReservationSystem.Simulator.Application.RunSimulator;
 
 /// <summary>
-/// Creates 5 confirmed orders for the next day's AX001 (LHR → JFK) flight,
-/// each with a random passenger count (1–6). Intended to be invoked by a
-/// scheduled timer trigger every 60 minutes.
+/// Creates 1–6 confirmed orders per run across random routes over the next 48 hours.
+/// Most bookings are return trips. Cabin selection favours Economy, then Premium Economy,
+/// then Business. SSRs are added on roughly a third of bookings.
+/// Intended to be invoked by a scheduled timer trigger every 20 minutes.
 /// </summary>
 internal sealed class RunSimulatorHandler
 {
-    private const int OrderCount  = 5;
-    private const int MinPax      = 1;
-    private const int MaxPax      = 6;
-    private const string Origin      = "LHR";
-    private const string Destination = "JFK";
-    private const string FlightNumber = "AX001";
+    // ── Configuration ──────────────────────────────────────────────────────────
+
+    private const int MinOrders = 1;
+    private const int MaxOrders = 6;
+    private const int MinPax    = 1;
+    private const int MaxPax    = 6;
+
+    /// <summary>Probability (0–100) that a booking includes a return flight.</summary>
+    private const int ReturnProbabilityPct = 70;
+
+    /// <summary>Probability (0–100) that a booking includes SSR selections.</summary>
+    private const int SsrProbabilityPct = 35;
+
+    // ── Route catalogue — all daily direct routes ──────────────────────────────
+
+    /// <summary>Outbound leg origin/destination pairs. Return uses the reverse.</summary>
+    private static readonly (string Origin, string Destination)[] Routes =
+    [
+        ("LHR", "JFK"),
+        ("LHR", "LAX"),
+        ("LHR", "MIA"),
+        ("LHR", "SFO"),
+        ("LHR", "ORD"),
+        ("LHR", "HKG"),
+        ("LHR", "NRT"),
+    ];
+
+    // ── Cabin preference weights ────────────────────────────────────────────────
+
+    // Economy (Y) is sold first, then Premium Economy (W), then Business (J).
+    private static readonly (string Code, int Weight)[] CabinWeights =
+    [
+        ("Y", 60),   // Economy
+        ("W", 25),   // Premium Economy
+        ("J", 15),   // Business
+    ];
+
+    // ── SSR catalogue — realistic codes used in the simulation ─────────────────
+
+    private static readonly string[] SsrCodes =
+    [
+        "VGML",  // Vegetarian meal
+        "HNML",  // Hindu meal
+        "MOML",  // Muslim / halal meal
+        "KSML",  // Kosher meal
+        "DBML",  // Diabetic meal
+        "GFML",  // Gluten-free meal
+        "WCHR",  // Wheelchair — can walk, needs assistance over distances
+        "MAAS",  // Meet and assist
+    ];
+
+    // ── Name pools ─────────────────────────────────────────────────────────────
 
     private static readonly string[] FirstNames =
     [
-        "James", "Oliver", "Harry", "George", "Noah", "Jack", "Charlie", "Jacob",
-        "Amelia", "Olivia", "Isla", "Emily", "Poppy", "Ava", "Isabella", "Jessica",
-        "Lily", "Sophie", "Liam", "Emma", "William", "Sophia", "Mason", "Charlotte"
+        // British / Western
+        "James", "Oliver", "Harry", "Noah", "Jack", "Charlie", "William", "Liam",
+        "Thomas", "Samuel", "Max", "Daniel", "Ethan", "Lucas", "Alexander",
+        "Amelia", "Olivia", "Isla", "Emily", "Poppy", "Ava", "Isabella",
+        "Lily", "Sophie", "Emma", "Charlotte", "Grace", "Sienna", "Ellie",
+        // South Asian
+        "Aryan", "Rohan", "Vikram", "Amir", "Ravi", "Priya", "Anjali", "Fatima", "Aisha",
+        // East Asian
+        "Wei", "Chen", "Kai", "Mei", "Yuki", "Hina",
+        // African
+        "Kwame", "Oluwaseun", "Chioma", "Amara",
+        // Other international
+        "Nadia", "Zara", "Aaliyah", "Sofia", "Elena",
     ];
 
     private static readonly string[] LastNames =
     [
-        "Smith", "Jones", "Williams", "Taylor", "Brown", "Davies", "Evans", "Wilson",
-        "Thomas", "Roberts", "Johnson", "Lewis", "Walker", "Robinson", "Wood", "Hall",
-        "Green", "Clark", "Hughes", "Martin", "Scott", "White", "Harris", "Turner"
+        // British
+        "Smith", "Jones", "Williams", "Taylor", "Brown", "Davies", "Evans",
+        "Wilson", "Thomas", "Roberts", "Johnson", "Lewis", "Walker", "Robinson",
+        "Wood", "Hall", "Green", "Clark", "Hughes", "Martin", "Scott", "White",
+        // South Asian
+        "Khan", "Patel", "Singh", "Ahmed", "Sharma", "Chaudhary",
+        // East Asian
+        "Zhang", "Liu", "Chen", "Nakamura", "Tanaka", "Park",
+        // African
+        "Okafor", "Adeyemi", "Mensah", "Diallo",
+        // Other international
+        "Müller", "Rossi", "Fernandez", "Bergström", "Kowalski",
     ];
+
+    // ── Dependencies ───────────────────────────────────────────────────────────
 
     private readonly IRetailApiClient _retailApiClient;
     private readonly ILogger<RunSimulatorHandler> _logger;
@@ -43,110 +112,164 @@ internal sealed class RunSimulatorHandler
         _logger          = logger;
     }
 
+    // ── Entry point ────────────────────────────────────────────────────────────
+
     public async Task HandleAsync(CancellationToken ct = default)
     {
-        var departureDate = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd");
-        var created = 0;
+        var orderCount = Random.Shared.Next(MinOrders, MaxOrders + 1);
+        var created    = 0;
 
-        _logger.LogInformation(
-            "Simulator: starting {Count} order run for {FlightNumber} on {DepartureDate}",
-            OrderCount, FlightNumber, departureDate);
+        _logger.LogInformation("Simulator: starting run — targeting {Count} orders", orderCount);
 
-        for (var i = 0; i < OrderCount; i++)
+        for (var i = 0; i < orderCount; i++)
         {
             var paxCount = Random.Shared.Next(MinPax, MaxPax + 1);
             try
             {
-                var (orderId, bookingRef) = await CreateOrderAsync(departureDate, paxCount, ct);
+                var (orderId, bookingRef, route, isReturn) = await CreateOrderAsync(paxCount, ct);
                 created++;
                 _logger.LogInformation(
-                    "Simulator: order {Index}/{Total} created — orderId={OrderId} bookingRef={BookingRef} paxCount={PaxCount}",
-                    i + 1, OrderCount, orderId, bookingRef, paxCount);
+                    "Simulator: order {Index}/{Total} created — orderId={OrderId} ref={BookingRef} " +
+                    "route={Route} return={IsReturn} pax={PaxCount}",
+                    i + 1, orderCount, orderId, bookingRef, route, isReturn, paxCount);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Simulator: order {Index}/{Total} failed (paxCount={PaxCount})",
-                    i + 1, OrderCount, paxCount);
+                _logger.LogWarning(ex,
+                    "Simulator: order {Index}/{Total} failed (pax={PaxCount}) — skipping to next",
+                    i + 1, orderCount, paxCount);
             }
         }
 
         _logger.LogInformation(
-            "Simulator: run complete — {Created}/{Total} orders created for {FlightNumber} on {DepartureDate}",
-            created, OrderCount, FlightNumber, departureDate);
+            "Simulator: run complete — {Created}/{Total} orders created",
+            created, orderCount);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
+    // ── Order creation ─────────────────────────────────────────────────────────
 
-    private async Task<(string OrderId, string BookingRef)> CreateOrderAsync(
-        string departureDate, int paxCount, CancellationToken ct)
+    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateOrderAsync(
+        int paxCount, CancellationToken ct)
     {
-        // Step 1: search for AX001 on the departure date
-        var searchRequest = new SearchSliceRequest(Origin, Destination, departureDate, paxCount, "Revenue");
-        var searchResponse = await _retailApiClient.SearchSliceAsync(searchRequest, ct);
+        var now   = DateTime.UtcNow;
+        var route = Routes[Random.Shared.Next(Routes.Length)];
 
-        var ax001 = searchResponse.Flights.FirstOrDefault(f => f.FlightNumber == FlightNumber)
-            ?? throw new InvalidOperationException($"{FlightNumber} not found in search results for {departureDate}.");
+        // ── Step 1: Search outbound ────────────────────────────────────────────
+        // Pick randomly between today and tomorrow for the departure date.
+        var departureDateOffset = Random.Shared.Next(0, 2); // 0 = today, 1 = tomorrow
+        var outboundDate        = now.Date.AddDays(departureDateOffset).ToString("yyyy-MM-dd");
 
-        var offerIds = ax001.Cabins
-            .SelectMany(c => c.FareFamilies)
-            .Select(ff => ff.Offer.OfferId)
-            .ToList();
+        var outboundSearchReq = new SearchSliceRequest(route.Origin, route.Destination, outboundDate, paxCount, "Revenue");
+        var outboundSearchRes = await _retailApiClient.SearchSliceAsync(outboundSearchReq, ct);
 
-        if (offerIds.Count == 0)
-            throw new InvalidOperationException($"No offers found for {FlightNumber} on {departureDate}.");
+        var outboundLeg = SelectValidLeg(outboundSearchRes, now)
+            ?? throw new InvalidOperationException(
+                $"No outbound flights within the valid window for {route.Origin}→{route.Destination} on {outboundDate}.");
 
-        var offerId = offerIds[Random.Shared.Next(offerIds.Count)];
+        var outboundCabin = SelectCabin(outboundLeg.Cabins);
+        var outboundOffer = outboundCabin.FareFamilies[Random.Shared.Next(outboundCabin.FareFamilies.Count)].Offer;
 
-        // Step 2: create basket
-        var basketRequest = new CreateBasketRequest(
-            [new BasketSegment(offerId, searchResponse.SessionId)],
-            "WEB", "GBP", "Revenue");
+        // ── Step 2: Optionally search return ──────────────────────────────────
+        var hasReturn     = Random.Shared.Next(100) < ReturnProbabilityPct;
+        string? returnSessionId = null;
+        string? returnOfferId   = null;
 
-        var basketResponse = await _retailApiClient.CreateBasketAsync(basketRequest, ct);
-        var basketId = basketResponse.BasketId;
+        if (hasReturn)
+        {
+            // Return 1–7 days after outbound departure
+            var returnDayOffset = Random.Shared.Next(1, 8);
+            var returnDate = DateTime.ParseExact(outboundDate, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                                     .AddDays(returnDayOffset)
+                                     .ToString("yyyy-MM-dd");
 
-        // Step 3: add passengers
+            try
+            {
+                var returnSearchReq = new SearchSliceRequest(route.Destination, route.Origin, returnDate, paxCount, "Revenue");
+                var returnSearchRes = await _retailApiClient.SearchSliceAsync(returnSearchReq, ct);
+
+                var returnLegs = returnSearchRes.Itineraries.SelectMany(it => it.Legs).ToList();
+                if (returnLegs.Count > 0)
+                {
+                    var returnLeg   = returnLegs[Random.Shared.Next(returnLegs.Count)];
+                    var returnCabin = SelectCabin(returnLeg.Cabins);
+                    returnOfferId   = returnCabin.FareFamilies[Random.Shared.Next(returnCabin.FareFamilies.Count)].Offer.OfferId;
+                    returnSessionId = returnLeg.SessionId;
+                }
+                else
+                {
+                    hasReturn = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Simulator: return search failed for {Dest}→{Orig} — booking one-way", route.Destination, route.Origin);
+                hasReturn = false;
+            }
+        }
+
+        // ── Step 3: Create basket ──────────────────────────────────────────────
+        var segments = new List<BasketSegment>
+        {
+            new(outboundOffer.OfferId, outboundLeg.SessionId)
+        };
+
+        if (hasReturn && returnOfferId is not null && returnSessionId is not null)
+            segments.Add(new(returnOfferId, returnSessionId));
+
+        var basketReq = new CreateBasketRequest(segments, "WEB", "GBP", "Revenue");
+        var basketRes = await _retailApiClient.CreateBasketAsync(basketReq, ct);
+        var basketId  = basketRes.BasketId;
+
+        // ── Step 4: Get basket summary (reprice + validate offers) ─────────────
+        await _retailApiClient.GetBasketSummaryAsync(basketId, ct);
+
+        // ── Step 5: Add passengers ─────────────────────────────────────────────
         var passengers = GeneratePassengers(paxCount);
         await _retailApiClient.AddPassengersAsync(basketId, passengers, ct);
 
-        // Step 4: get basket to extract inventory details
-        var basket = await _retailApiClient.GetBasketAsync(basketId, ct);
-        var flightOffer = basket.BasketData.FlightOffers.FirstOrDefault()
-            ?? throw new InvalidOperationException($"Basket {basketId} has no flight offers.");
+        // ── Step 6: Get basket to read inventoryId / basketItemId per segment ──
+        var basket       = await _retailApiClient.GetBasketAsync(basketId, ct);
+        var flightOffers = basket.BasketData.FlightOffers;
 
-        // Step 5: get seatmap for the booked cabin
-        var seatmap = await _retailApiClient.GetSeatmapAsync(
-            flightOffer.InventoryId, flightOffer.AircraftType,
-            flightOffer.FlightNumber, flightOffer.CabinCode, ct);
+        if (flightOffers.Count == 0)
+            throw new InvalidOperationException($"Basket {basketId} contains no flight offers after creation.");
 
-        var availableSeats = seatmap.Cabins
-            .SelectMany(c => c.Seats)
-            .Where(s => string.Equals(s.Availability, "available", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(_ => Random.Shared.Next())
-            .Take(paxCount)
-            .ToList();
+        var outboundFlight = flightOffers[0];
+        var returnFlight   = flightOffers.Count > 1 ? flightOffers[1] : null;
 
-        if (availableSeats.Count < paxCount)
-            throw new InvalidOperationException(
-                $"Not enough available seats on {FlightNumber}: needed {paxCount}, found {availableSeats.Count}.");
+        // ── Step 7: Seatmaps + seat selection ──────────────────────────────────
+        var allSeats = new List<SeatAssignment>();
 
-        // Step 6: add seats — one per passenger
-        var seatAssignments = availableSeats.Select((seat, index) => new SeatAssignment(
-            PassengerId:   $"PAX-{index + 1}",
-            SegmentId:     flightOffer.InventoryId,
-            BasketItemRef: flightOffer.BasketItemId,
-            SeatOfferId:   seat.SeatOfferId,
-            SeatNumber:    seat.SeatNumber,
-            SeatPosition:  seat.Position,
-            CabinCode:     seat.CabinCode,
-            Price:         seat.Price,
-            Currency:      seat.Currency)).ToList();
+        var outboundSeats = await TrySelectSeatsAsync(outboundFlight, paxCount, ct);
+        allSeats.AddRange(outboundSeats);
 
-        await _retailApiClient.AddSeatsAsync(basketId, seatAssignments, ct);
+        if (returnFlight is not null)
+        {
+            var returnSeats = await TrySelectSeatsAsync(returnFlight, paxCount, ct);
+            allSeats.AddRange(returnSeats);
+        }
 
-        // Step 7: confirm and pay with a Luhn-valid test card
-        var primary = passengers[0];
+        if (allSeats.Count > 0)
+            await _retailApiClient.AddSeatsAsync(basketId, allSeats, ct);
+
+        // ── Step 8: SSRs (applied to a subset of bookings) ────────────────────
+        if (Random.Shared.Next(100) < SsrProbabilityPct)
+        {
+            try
+            {
+                var segmentInventoryIds = flightOffers.Select(f => f.InventoryId).ToList();
+                var ssrs = GenerateSsrs(passengers, segmentInventoryIds);
+                if (ssrs.Count > 0)
+                    await _retailApiClient.AddSsrsAsync(basketId, ssrs, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Simulator: SSR add failed for basket {BasketId} — continuing without SSRs", basketId);
+            }
+        }
+
+        // ── Step 9: Confirm and pay ────────────────────────────────────────────
+        var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
             new PaymentRequest(
                 Method:         "CreditCard",
@@ -157,7 +280,137 @@ internal sealed class RunSimulatorHandler
             LoyaltyPointsToRedeem: null);
 
         var confirmResponse = await _retailApiClient.ConfirmBasketAsync(basketId, confirmRequest, ct);
-        return (confirmResponse.OrderId, confirmResponse.BookingReference);
+
+        var routeLabel = $"{route.Origin}→{route.Destination}" + (hasReturn ? $" (return)" : " (one-way)");
+        return (confirmResponse.OrderId, confirmResponse.BookingReference, routeLabel, hasReturn);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a randomly chosen leg whose departure is at least 1 hour from now
+    /// and no more than 48 hours from now. Returns null when no legs qualify.
+    /// </summary>
+    private static SearchLeg? SelectValidLeg(SearchSliceResponse response, DateTime utcNow)
+    {
+        var earliest = utcNow.AddHours(1);
+        var latest   = utcNow.AddHours(48);
+
+        var validLegs = response.Itineraries
+            .SelectMany(it => it.Legs)
+            .Where(leg =>
+            {
+                var departure = ParseDeparture(leg.DepartureDate, leg.DepartureTime);
+                return departure.HasValue && departure.Value > earliest && departure.Value <= latest;
+            })
+            .ToList();
+
+        if (validLegs.Count == 0) return null;
+        return validLegs[Random.Shared.Next(validLegs.Count)];
+    }
+
+    private static DateTime? ParseDeparture(string date, string time)
+    {
+        if (DateTime.TryParseExact(
+                $"{date} {time}",
+                "yyyy-MM-dd HH:mm",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var dt))
+            return dt;
+        return null;
+    }
+
+    /// <summary>
+    /// Selects a cabin using weighted random choice — Economy 60%, Premium Economy 25%,
+    /// Business 15%. Falls back to a uniform random pick if none of the preferred cabins
+    /// are available on this flight.
+    /// </summary>
+    private static SearchCabin SelectCabin(List<SearchCabin> cabins)
+    {
+        var available = cabins.ToDictionary(c => c.CabinCode, StringComparer.OrdinalIgnoreCase);
+
+        var eligible = CabinWeights.Where(cw => available.ContainsKey(cw.Code)).ToList();
+        if (eligible.Count == 0)
+            return cabins[Random.Shared.Next(cabins.Count)];
+
+        var totalWeight = eligible.Sum(cw => cw.Weight);
+        var roll        = Random.Shared.Next(totalWeight);
+        var cumulative  = 0;
+
+        foreach (var (code, weight) in eligible)
+        {
+            cumulative += weight;
+            if (roll < cumulative)
+                return available[code];
+        }
+
+        return cabins[0]; // unreachable, but satisfies the compiler
+    }
+
+    /// <summary>
+    /// Fetches the seatmap for a flight and returns seat assignments for each passenger.
+    /// Returns an empty list (rather than throwing) when the seatmap is unavailable
+    /// or there are insufficient available seats, so the booking can continue without seats.
+    /// </summary>
+    private async Task<List<SeatAssignment>> TrySelectSeatsAsync(
+        BasketFlightOffer flight, int paxCount, CancellationToken ct)
+    {
+        try
+        {
+            var seatmap = await _retailApiClient.GetSeatmapAsync(
+                flight.InventoryId, flight.AircraftType, flight.FlightNumber, flight.CabinCode, ct);
+
+            var available = seatmap.Cabins
+                .SelectMany(c => c.Seats)
+                .Where(s => string.Equals(s.Availability, "available", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(_ => Random.Shared.Next())
+                .Take(paxCount)
+                .ToList();
+
+            if (available.Count < paxCount)
+                return [];
+
+            return available.Select((seat, idx) => new SeatAssignment(
+                PassengerId:   $"PAX-{idx + 1}",
+                SegmentId:     flight.InventoryId,
+                BasketItemRef: flight.BasketItemId,
+                SeatOfferId:   seat.SeatOfferId,
+                SeatNumber:    seat.SeatNumber,
+                SeatPosition:  seat.Position,
+                CabinCode:     seat.CabinCode,
+                Price:         seat.Price,
+                Currency:      seat.Currency)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex,
+                "Simulator: seatmap unavailable for flight {FlightNumber} — continuing without seats",
+                flight.FlightNumber);
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Assigns a random SSR code to a randomly chosen subset of passengers (at least one),
+    /// applied across every segment in the booking.
+    /// </summary>
+    private static List<SsrRequest> GenerateSsrs(List<PassengerRequest> passengers, List<string> segmentInventoryIds)
+    {
+        var ssrs = new List<SsrRequest>();
+
+        // Pick 1 to all passengers to receive an SSR
+        var passengerCount = Random.Shared.Next(1, passengers.Count + 1);
+        var selectedPax    = passengers.OrderBy(_ => Random.Shared.Next()).Take(passengerCount).ToList();
+
+        foreach (var pax in selectedPax)
+        {
+            var ssrCode = SsrCodes[Random.Shared.Next(SsrCodes.Length)];
+            foreach (var segmentId in segmentInventoryIds)
+                ssrs.Add(new SsrRequest(ssrCode, pax.PassengerId, segmentId));
+        }
+
+        return ssrs;
     }
 
     private static List<PassengerRequest> GeneratePassengers(int count)
@@ -169,7 +422,7 @@ internal sealed class RunSimulatorHandler
             var given   = FirstNames[Random.Shared.Next(FirstNames.Length)];
             var surname = LastNames[Random.Shared.Next(LastNames.Length)];
             var dob     = DateTime.UtcNow
-                              .AddYears(-Random.Shared.Next(25, 65))
+                              .AddYears(-Random.Shared.Next(20, 70))
                               .AddDays(-Random.Shared.Next(0, 365))
                               .ToString("yyyy-MM-dd");
             var gender  = Random.Shared.Next(2) == 0 ? "M" : "F";
@@ -177,15 +430,15 @@ internal sealed class RunSimulatorHandler
             var phone   = $"+447{Random.Shared.Next(100_000_000, 999_999_999)}";
 
             passengers.Add(new PassengerRequest(
-                PassengerId:    $"PAX-{i + 1}",
-                Type:           "ADT",
-                GivenName:      given,
-                Surname:        surname,
-                Dob:            dob,
-                Gender:         gender,
-                LoyaltyNumber:  null,
-                Contacts:       new PassengerContacts(email, phone),
-                TravelDocument: null));
+                PassengerId:   $"PAX-{i + 1}",
+                Type:          "ADT",
+                GivenName:     given,
+                Surname:       surname,
+                Dob:           dob,
+                Gender:        gender,
+                LoyaltyNumber: null,
+                Contacts:      new PassengerContacts(email, phone),
+                Docs:          []));
         }
 
         return passengers;

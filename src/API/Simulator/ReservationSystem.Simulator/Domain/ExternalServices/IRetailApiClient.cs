@@ -10,11 +10,15 @@ internal interface IRetailApiClient
 
     Task AddPassengersAsync(string basketId, List<PassengerRequest> passengers, CancellationToken ct = default);
 
+    Task GetBasketSummaryAsync(string basketId, CancellationToken ct = default);
+
     Task<GetBasketResponse> GetBasketAsync(string basketId, CancellationToken ct = default);
 
     Task<GetSeatmapResponse> GetSeatmapAsync(string inventoryId, string aircraftType, string flightNumber, string cabinCode, CancellationToken ct = default);
 
     Task AddSeatsAsync(string basketId, List<SeatAssignment> seats, CancellationToken ct = default);
+
+    Task AddSsrsAsync(string basketId, List<SsrRequest> ssrs, CancellationToken ct = default);
 
     Task<ConfirmBasketResponse> ConfirmBasketAsync(string basketId, ConfirmBasketRequest request, CancellationToken ct = default);
 }
