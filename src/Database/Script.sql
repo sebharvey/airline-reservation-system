@@ -507,7 +507,6 @@ CREATE TABLE [order].[Order] (
     OrderData          NVARCHAR(MAX)    NOT NULL,
     CONSTRAINT PK_Order          PRIMARY KEY (OrderId),
     CONSTRAINT CHK_Order_Status  CHECK (OrderStatus IN ('OrderInit','Draft','Confirmed','Changed','Cancelled')),
-    CONSTRAINT CHK_Order_Channel CHECK (ChannelCode IN ('WEB','APP','NDC','KIOSK','CC','AIRPORT')),
     CONSTRAINT CHK_Order_Data    CHECK (ISJSON(OrderData) = 1)
 );
 GO
