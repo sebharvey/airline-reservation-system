@@ -29,6 +29,9 @@ public sealed class RunSimulatorHandler
     /// <summary>Probability (0–100) that a booking includes SSR selections.</summary>
     private const int SsrProbabilityPct = 35;
 
+    /// <summary>Probability (0–100) that an order is a connecting journey via LHR rather than direct.</summary>
+    private const int ConnectingProbabilityPct = 30;
+
     // ── Route catalogue — all daily direct routes ──────────────────────────────
 
     /// <summary>Outbound leg origin/destination pairs. Return uses the reverse.</summary>
@@ -39,6 +42,23 @@ public sealed class RunSimulatorHandler
         ("LHR", "BOM"),
         ("LHR", "DEL"),
         ("LHR", "BLR"),
+    ];
+
+    // ── Connecting route catalogue — two-segment journeys via LHR ─────────────
+
+    /// <summary>Multi-segment itineraries connecting South Asia ↔ North America via LHR.</summary>
+    private static readonly (string Origin, string Hub, string Destination)[] ConnectingRoutes =
+    [
+        ("DEL", "LHR", "JFK"),
+        ("DEL", "LHR", "MIA"),
+        ("BOM", "LHR", "JFK"),
+        ("BOM", "LHR", "MIA"),
+        ("BLR", "LHR", "JFK"),
+        ("BLR", "LHR", "MIA"),
+        ("JFK", "LHR", "DEL"),
+        ("JFK", "LHR", "BOM"),
+        ("MIA", "LHR", "DEL"),
+        ("MIA", "LHR", "BOM"),
     ];
 
     // ── Cabin preference weights ────────────────────────────────────────────────
@@ -124,10 +144,13 @@ public sealed class RunSimulatorHandler
 
         for (var i = 0; i < orderCount; i++)
         {
-            var paxCount = Random.Shared.Next(MinPax, MaxPax + 1);
+            var paxCount    = Random.Shared.Next(MinPax, MaxPax + 1);
+            var isConnecting = Random.Shared.Next(100) < ConnectingProbabilityPct;
             try
             {
-                var (orderId, bookingRef, route, isReturn) = await CreateOrderAsync(paxCount, ct);
+                var (orderId, bookingRef, route, isReturn) = isConnecting
+                    ? await CreateConnectingOrderAsync(paxCount, ct)
+                    : await CreateOrderAsync(paxCount, ct);
                 created++;
                 _logger.LogInformation(
                     "Simulator: order {Index}/{Total} created — orderId={OrderId} ref={BookingRef} " +
@@ -287,6 +310,120 @@ public sealed class RunSimulatorHandler
 
         var routeLabel = $"{route.Origin}→{route.Destination}" + (hasReturn ? $" (return)" : " (one-way)");
         return (confirmResponse.OrderId, confirmResponse.BookingReference, routeLabel, hasReturn);
+    }
+
+    // ── Connecting order creation ──────────────────────────────────────────────
+
+    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateConnectingOrderAsync(
+        int paxCount, CancellationToken ct)
+    {
+        var now   = DateTime.UtcNow;
+        var route = ConnectingRoutes[Random.Shared.Next(ConnectingRoutes.Length)];
+
+        // ── Step 1: Search leg 1 (Origin → Hub) ───────────────────────────────
+        var departureDateOffset = Random.Shared.Next(0, 2); // 0 = today, 1 = tomorrow
+        var leg1Date            = now.Date.AddDays(departureDateOffset).ToString("yyyy-MM-dd");
+
+        var leg1SearchReq = new SearchSliceRequest(route.Origin, route.Hub, leg1Date, paxCount, "Revenue");
+        var leg1SearchRes = await _retailApiClient.SearchSliceAsync(leg1SearchReq, ct);
+
+        var leg1 = SelectValidLeg(leg1SearchRes, now)
+            ?? throw new InvalidOperationException(
+                $"No leg 1 flights within the valid window for {route.Origin}→{route.Hub} on {leg1Date}.");
+
+        var leg1Cabin = SelectCabin(leg1.Cabins);
+        var leg1Offer = leg1Cabin.FareFamilies[Random.Shared.Next(leg1Cabin.FareFamilies.Count)].Offer;
+
+        // ── Step 2: Search leg 2 (Hub → Destination) on the arrival date ──────
+        // ArrivalDayOffset indicates whether leg 1 arrives on the same calendar
+        // date as its departure or the following day.
+        var leg2Date = DateTime.ParseExact(leg1Date, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                               .AddDays(leg1.ArrivalDayOffset)
+                               .ToString("yyyy-MM-dd");
+
+        var leg2SearchReq = new SearchSliceRequest(route.Hub, route.Destination, leg2Date, paxCount, "Revenue");
+        var leg2SearchRes = await _retailApiClient.SearchSliceAsync(leg2SearchReq, ct);
+
+        var leg2Legs = leg2SearchRes.Itineraries.SelectMany(it => it.Legs).ToList();
+        if (leg2Legs.Count == 0)
+            throw new InvalidOperationException(
+                $"No leg 2 flights for {route.Hub}→{route.Destination} on {leg2Date}.");
+
+        var leg2       = leg2Legs[Random.Shared.Next(leg2Legs.Count)];
+        var leg2Cabin  = SelectCabin(leg2.Cabins);
+        var leg2Offer  = leg2Cabin.FareFamilies[Random.Shared.Next(leg2Cabin.FareFamilies.Count)].Offer;
+
+        // ── Step 3: Create basket with both segments ───────────────────────────
+        var segments = new List<BasketSegment>
+        {
+            new(leg1Offer.OfferId, leg1.SessionId),
+            new(leg2Offer.OfferId, leg2.SessionId),
+        };
+
+        var basketReq = new CreateBasketRequest(segments, "WEB", "GBP", "Revenue");
+        var basketRes = await _retailApiClient.CreateBasketAsync(basketReq, ct);
+        var basketId  = basketRes.BasketId;
+
+        // ── Step 4: Get basket summary (reprice + validate offers) ─────────────
+        await _retailApiClient.GetBasketSummaryAsync(basketId, ct);
+
+        // ── Step 5: Add passengers ─────────────────────────────────────────────
+        var passengers = GeneratePassengers(paxCount);
+        await _retailApiClient.AddPassengersAsync(basketId, passengers, ct);
+
+        // ── Step 6: Get basket to read inventoryId / basketItemId per segment ──
+        var basket       = await _retailApiClient.GetBasketAsync(basketId, ct);
+        var flightOffers = basket.BasketData.FlightOffers;
+
+        if (flightOffers.Count == 0)
+            throw new InvalidOperationException($"Basket {basketId} contains no flight offers after creation.");
+
+        // ── Step 7: Seat selection (skipped ~50% of the time) ─────────────────
+        var allSeats = new List<SeatAssignment>();
+
+        if (Random.Shared.Next(100) < SeatSelectionProbabilityPct)
+        {
+            foreach (var flight in flightOffers)
+            {
+                var seats = await TrySelectSeatsAsync(flight, paxCount, ct);
+                allSeats.AddRange(seats);
+            }
+
+            if (allSeats.Count > 0)
+                await _retailApiClient.AddSeatsAsync(basketId, allSeats, ct);
+        }
+
+        // ── Step 8: SSRs ──────────────────────────────────────────────────────
+        if (Random.Shared.Next(100) < SsrProbabilityPct)
+        {
+            try
+            {
+                var segmentInventoryIds = flightOffers.Select(f => f.InventoryId).ToList();
+                var ssrs = GenerateSsrs(passengers, segmentInventoryIds);
+                if (ssrs.Count > 0)
+                    await _retailApiClient.AddSsrsAsync(basketId, ssrs, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Simulator: SSR add failed for basket {BasketId} — continuing without SSRs", basketId);
+            }
+        }
+
+        // ── Step 9: Confirm and pay ────────────────────────────────────────────
+        var primary        = passengers[0];
+        var confirmRequest = new ConfirmBasketRequest(
+            new PaymentRequest(
+                Method:         "CreditCard",
+                CardNumber:     "4111111111111111",
+                ExpiryDate:     "12/28",
+                Cvv:            "737",
+                CardholderName: $"{primary.GivenName} {primary.Surname}"),
+            LoyaltyPointsToRedeem: null);
+
+        var confirmResponse = await _retailApiClient.ConfirmBasketAsync(basketId, confirmRequest, ct);
+
+        var routeLabel = $"{route.Origin}→{route.Hub}→{route.Destination}";
+        return (confirmResponse.OrderId, confirmResponse.BookingReference, routeLabel, false);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
