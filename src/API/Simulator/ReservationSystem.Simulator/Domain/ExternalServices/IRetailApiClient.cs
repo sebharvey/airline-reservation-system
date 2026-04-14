@@ -2,7 +2,7 @@ using ReservationSystem.Simulator.Models;
 
 namespace ReservationSystem.Simulator.Domain.ExternalServices;
 
-internal interface IRetailApiClient
+public interface IRetailApiClient
 {
     Task<SearchSliceResponse> SearchSliceAsync(SearchSliceRequest request, CancellationToken ct = default);
 
