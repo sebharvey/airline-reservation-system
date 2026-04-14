@@ -45,7 +45,7 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(FunctionContext context, FunctionExecutionDelegate next)
+    public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
         var attribute = ResolveAttribute(context);
 
