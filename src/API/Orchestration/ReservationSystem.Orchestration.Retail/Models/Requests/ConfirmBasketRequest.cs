@@ -2,6 +2,7 @@ namespace ReservationSystem.Orchestration.Retail.Models.Requests;
 
 public sealed class ConfirmBasketRequest
 {
+    public string ChannelCode { get; init; } = string.Empty;
     public PaymentDetailsRequest Payment { get; init; } = new();
     public decimal? LoyaltyPointsToRedeem { get; init; }
 }

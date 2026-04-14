@@ -9,7 +9,6 @@ public sealed class BasketSegmentRequest
 public sealed class CreateBasketRequest
 {
     public IReadOnlyList<BasketSegmentRequest> Segments { get; init; } = [];
-    public string ChannelCode { get; init; } = string.Empty;
     public string? Currency { get; init; }
     public string? BookingType { get; init; }
     public string? LoyaltyNumber { get; init; }

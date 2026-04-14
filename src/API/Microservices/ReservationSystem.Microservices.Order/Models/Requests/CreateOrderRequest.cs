@@ -7,6 +7,9 @@ public sealed class CreateOrderRequest
     [JsonPropertyName("basketId")]
     public Guid BasketId { get; init; }
 
+    [JsonPropertyName("channelCode")]
+    public string ChannelCode { get; init; } = string.Empty;
+
     [JsonPropertyName("redemptionReference")]
     public string? RedemptionReference { get; init; }
 

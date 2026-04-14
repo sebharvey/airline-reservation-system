@@ -34,10 +34,10 @@ public sealed class CreateOrderHandler
     {
         _logger.LogInformation("Creating draft order from basket {BasketId}", command.BasketId);
 
-        // Load basket silently to obtain channel and currency for the Order row.
+        // Load basket silently to obtain currency for the Order row.
         // No validation — if the basket is missing or invalid that will be caught at confirm time.
         var basket = await _basketRepository.GetByIdAsync(command.BasketId, cancellationToken);
-        var channelCode = basket?.ChannelCode ?? "WEB";
+        var channelCode = command.ChannelCode;
         var currencyCode = basket?.CurrencyCode ?? "GBP";
         var totalAmount = basket?.TotalAmount;
 

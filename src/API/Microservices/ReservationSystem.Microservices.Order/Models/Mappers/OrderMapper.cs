@@ -13,7 +13,6 @@ public static class OrderMapper
 {
     public static CreateBasketCommand ToCommand(CreateBasketRequest request) =>
         new(
-            ChannelCode: request.ChannelCode,
             CurrencyCode: string.IsNullOrWhiteSpace(request.CurrencyCode) ? "GBP" : request.CurrencyCode,
             BookingType: string.IsNullOrWhiteSpace(request.BookingType) ? "Revenue" : request.BookingType,
             LoyaltyNumber: request.LoyaltyNumber,
@@ -22,6 +21,7 @@ public static class OrderMapper
     public static CreateOrderCommand ToCommand(CreateOrderRequest request) =>
         new(
             BasketId: request.BasketId,
+            ChannelCode: request.ChannelCode,
             RedemptionReference: request.RedemptionReference,
             BookingType: string.IsNullOrWhiteSpace(request.BookingType) ? "Revenue" : request.BookingType);
 
@@ -40,7 +40,6 @@ public static class OrderMapper
         new()
         {
             BasketId = basket.BasketId,
-            ChannelCode = basket.ChannelCode,
             CurrencyCode = basket.CurrencyCode,
             BasketStatus = basket.BasketStatus,
             TotalFareAmount = basket.TotalFareAmount,

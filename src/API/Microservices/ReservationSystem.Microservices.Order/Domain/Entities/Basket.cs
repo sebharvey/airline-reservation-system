@@ -7,7 +7,6 @@ namespace ReservationSystem.Microservices.Order.Domain.Entities;
 public sealed class Basket
 {
     public Guid BasketId { get; private set; }
-    public string ChannelCode { get; private set; } = string.Empty;
     public string CurrencyCode { get; private set; } = string.Empty;
     public string BasketStatus { get; private set; } = string.Empty;
     public decimal? TotalFareAmount { get; private set; }
@@ -24,18 +23,15 @@ public sealed class Basket
     private Basket() { }
 
     public static Basket Create(
-        string channelCode,
         string currencyCode,
         DateTime expiresAt,
         string basketData = "{}")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(channelCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
 
         return new Basket
         {
             BasketId = Guid.NewGuid(),
-            ChannelCode = channelCode,
             CurrencyCode = currencyCode,
             BasketStatus = BasketStatusValues.Active,
             TotalFareAmount = null,
@@ -53,7 +49,6 @@ public sealed class Basket
 
     public static Basket Reconstitute(
         Guid basketId,
-        string channelCode,
         string currencyCode,
         string basketStatus,
         decimal? totalFareAmount,
@@ -70,7 +65,6 @@ public sealed class Basket
         return new Basket
         {
             BasketId = basketId,
-            ChannelCode = channelCode,
             CurrencyCode = currencyCode,
             BasketStatus = basketStatus,
             TotalFareAmount = totalFareAmount,

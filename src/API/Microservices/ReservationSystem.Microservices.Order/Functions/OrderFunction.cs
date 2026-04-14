@@ -92,7 +92,10 @@ public sealed class OrderFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateOrderRequest>(_logger, ct);
         if (error is not null) return error;
 
-        var command = OrderMapper.ToCommand(request!);
+        if (string.IsNullOrWhiteSpace(request!.ChannelCode))
+            return await req.BadRequestAsync("The field 'channelCode' is required.");
+
+        var command = OrderMapper.ToCommand(request);
         var order = await _createOrderHandler.HandleAsync(command, ct);
 
         var httpResponse = req.CreateResponse(HttpStatusCode.Created);

@@ -31,11 +31,6 @@ public sealed class OrderDbContext : DbContext
                   .HasColumnType("uniqueidentifier")
                   .ValueGeneratedNever();
 
-            entity.Property(b => b.ChannelCode)
-                  .HasColumnName("ChannelCode")
-                  .HasColumnType("varchar(20)")
-                  .IsRequired();
-
             entity.Property(b => b.CurrencyCode)
                   .HasColumnName("CurrencyCode")
                   .HasColumnType("char(3)")

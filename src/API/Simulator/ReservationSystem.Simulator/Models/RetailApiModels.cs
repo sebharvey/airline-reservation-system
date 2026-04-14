@@ -52,7 +52,6 @@ public sealed record SearchOffer(
 
 public sealed record CreateBasketRequest(
     List<BasketSegment> Segments,
-    string ChannelCode,
     string Currency,
     string BookingType);
 
@@ -138,6 +137,7 @@ public sealed record SsrRequest(
 // ── Confirm ────────────────────────────────────────────────────────────────────
 
 public sealed record ConfirmBasketRequest(
+    string ChannelCode,
     PaymentRequest Payment,
     object? LoyaltyPointsToRedeem);
 
