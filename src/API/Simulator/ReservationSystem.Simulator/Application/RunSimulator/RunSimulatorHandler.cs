@@ -15,8 +15,8 @@ public sealed class RunSimulatorHandler
 {
     // ── Configuration ──────────────────────────────────────────────────────────
 
-    private const int MinOrders = 1;
-    private const int MaxOrders = 6;
+    private const int MinOrders = 5;
+    private const int MaxOrders = 10;
     private const int MinPax    = 1;
     private const int MaxPax    = 6;
 
