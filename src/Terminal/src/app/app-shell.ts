@@ -10,6 +10,12 @@ interface NavItem {
   description: string;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+  bottom?: boolean;
+}
+
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -23,23 +29,41 @@ export class AppShell {
 
   sidebarOpen = signal(false);
 
-  navItems: NavItem[] = [
-    { path: '/inventory', label: 'Inventory', icon: '✈',  description: 'Flight inventory & seat availability' },
-    { path: '/order',    label: 'Order',    icon: '📋', description: 'Manage orders & payments' },
-    { path: '/customer', label: 'Customer', icon: '👤', description: 'Customer profiles & history' },
-    { path: '/schedules', label: 'Schedules', icon: '🗓', description: 'Flight schedule management' },
-    { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
-    { path: '/bag-policy', label: 'Bag Policy', icon: '🧳', description: 'Free bag allowances by cabin' },
-    { path: '/bag-pricing', label: 'Bag Pricing', icon: '💼', description: 'Additional bag prices' },
-    { path: '/seating', label: 'Seating', icon: '💺', description: 'Seat pricing rules' },
-    { path: '/product-groups', label: 'Product Groups', icon: '📦', description: 'Ancillary product categories' },
-    { path: '/products', label: 'Products', icon: '🛍', description: 'Duty free, meals and ancillary products' },
-    { path: '/terminal', label: 'Terminal', icon: '⌨',  description: 'Cryptic command terminal' },
-  ];
-
-  secondaryNavItems: NavItem[] = [
-    { path: '/ssr',   label: 'SSR Catalogue', icon: '♿', description: 'Special Service Request catalogue' },
-    { path: '/users', label: 'Users', icon: '👥', description: 'User & agent management' },
+  navGroups: NavGroup[] = [
+    {
+      label: 'Operations',
+      items: [
+        { path: '/inventory', label: 'Inventory', icon: '✈',  description: 'Flight inventory & seat availability' },
+        { path: '/order',     label: 'Order',     icon: '📋', description: 'Manage orders & payments' },
+        { path: '/customer',  label: 'Customer',  icon: '👤', description: 'Customer profiles & history' },
+        { path: '/terminal',  label: 'Terminal',  icon: '⌨',  description: 'Cryptic command terminal' },
+      ],
+    },
+    {
+      label: 'Schedule & Fares',
+      items: [
+        { path: '/schedules',  label: 'Schedules',  icon: '🗓', description: 'Flight schedule management' },
+        { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
+      ],
+    },
+    {
+      label: 'Ancillaries',
+      items: [
+        { path: '/bag-policy',     label: 'Bag Policy',     icon: '🧳', description: 'Free bag allowances by cabin' },
+        { path: '/bag-pricing',    label: 'Bag Pricing',    icon: '💼', description: 'Additional bag prices' },
+        { path: '/seating',        label: 'Seating',        icon: '💺', description: 'Seat pricing rules' },
+        { path: '/product-groups', label: 'Product Groups', icon: '📦', description: 'Ancillary product categories' },
+        { path: '/products',       label: 'Products',       icon: '🛍', description: 'Duty free, meals and ancillary products' },
+        { path: '/ssr',            label: 'SSR Catalogue',  icon: '♿', description: 'Special Service Request catalogue' },
+      ],
+    },
+    {
+      label: 'Administration',
+      bottom: true,
+      items: [
+        { path: '/users', label: 'Users', icon: '👥', description: 'User & agent management' },
+      ],
+    },
   ];
 
   toggleSidebar(): void {
