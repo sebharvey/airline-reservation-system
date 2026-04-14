@@ -99,6 +99,27 @@
 
 .clear-btn:hover { background: var(--bg-light); }
 
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--white);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+
+.refresh-btn:hover:not(:disabled) { background: var(--bg-light); }
+.refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.refresh-btn svg.spinning { animation: spin 0.7s linear infinite; }
+
 /* Spinner */
 .btn-spinner {
   width: 14px;
