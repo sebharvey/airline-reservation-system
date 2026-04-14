@@ -57,7 +57,6 @@ public sealed class UpdateBasketProductsHandler
 
         var updated = Basket.Reconstitute(
             basket.BasketId,
-            basket.ChannelCode,
             basket.CurrencyCode,
             basket.BasketStatus,
             basket.TotalFareAmount,

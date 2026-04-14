@@ -107,7 +107,6 @@ public sealed class UpdateBasketSeatsHandler
 
         var updated = Basket.Reconstitute(
             basket.BasketId,
-            basket.ChannelCode,
             basket.CurrencyCode,
             basket.BasketStatus,
             basket.TotalFareAmount,
