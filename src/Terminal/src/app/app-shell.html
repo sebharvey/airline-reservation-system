@@ -51,35 +51,22 @@
     <!-- ── Sidebar ── -->
     <aside class="sidebar" [class.open]="sidebarOpen()">
       <nav class="sidebar-nav" (click)="closeSidebar()">
-        <div class="nav-section">
-          <p class="nav-section-label">Modules</p>
-          @for (item of navItems; track item.path) {
-            <a
-              [routerLink]="item.path"
-              routerLinkActive="active"
-              class="nav-item"
-              [attr.title]="item.description"
-            >
-              <span class="nav-icon">{{ item.icon }}</span>
-              <span class="nav-label">{{ item.label }}</span>
-            </a>
-          }
-        </div>
-
-        <div class="nav-section nav-section-bottom">
-          <p class="nav-section-label">Administration</p>
-          @for (item of secondaryNavItems; track item.path) {
-            <a
-              [routerLink]="item.path"
-              routerLinkActive="active"
-              class="nav-item"
-              [attr.title]="item.description"
-            >
-              <span class="nav-icon">{{ item.icon }}</span>
-              <span class="nav-label">{{ item.label }}</span>
-            </a>
-          }
-        </div>
+        @for (group of navGroups; track group.label) {
+          <div class="nav-section" [class.nav-section-bottom]="group.bottom">
+            <p class="nav-section-label">{{ group.label }}</p>
+            @for (item of group.items; track item.path) {
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                class="nav-item"
+                [attr.title]="item.description"
+              >
+                <span class="nav-icon">{{ item.icon }}</span>
+                <span class="nav-label">{{ item.label }}</span>
+              </a>
+            }
+          </div>
+        }
       </nav>
 
       <div class="sidebar-footer">
