@@ -26,14 +26,22 @@ using ReservationSystem.Microservices.Identity.Domain.Repositories;
 using ReservationSystem.Microservices.Identity.Infrastructure.Persistence;
 using ReservationSystem.Shared.Business.Infrastructure.Configuration;
 using ReservationSystem.Shared.Business.Security;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMicroserviceCache();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── Caching ────────────────────────────────────────────────────────────
+        services.AddMicroserviceCache();
+
         // ── OpenAPI ────────────────────────────────────────────────────────────
         services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
 

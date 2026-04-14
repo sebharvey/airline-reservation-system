@@ -5,12 +5,20 @@ using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Exceptions.Application.GetExceptions;
+using ReservationSystem.Shared.Common.Caching;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMicroserviceCache();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── Caching ────────────────────────────────────────────────────────────
+        services.AddMicroserviceCache();
+
         // ── Telemetry ──────────────────────────────────────────────────────────
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();

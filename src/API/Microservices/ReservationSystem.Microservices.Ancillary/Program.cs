@@ -53,15 +53,23 @@ using ReservationSystem.Microservices.Ancillary.Application.Product.UpdateProduc
 using ReservationSystem.Microservices.Ancillary.Application.Product.DeleteProductPrice;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Product;
 using ReservationSystem.Microservices.Ancillary.Infrastructure.Persistence.Product;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Common.Infrastructure.Configuration;
 using ReservationSystem.Shared.Common.Infrastructure.Persistence;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseNewtonsoftJson())
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMicroserviceCache();
+        worker.UseNewtonsoftJson();
+    })
     .ConfigureOpenApi()
     .ConfigureServices((context, services) =>
     {
+        // ── Caching ────────────────────────────────────────────────────────────
+        services.AddMicroserviceCache();
+
         // ── OpenAPI ────────────────────────────────────────────────────────────
         services.AddSingleton<IOpenApiConfigurationOptions, OpenApiConfigurationOptions>();
 
