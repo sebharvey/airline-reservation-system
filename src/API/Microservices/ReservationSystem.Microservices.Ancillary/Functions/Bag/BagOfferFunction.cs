@@ -7,6 +7,7 @@ using System.Net;
 using ReservationSystem.Microservices.Ancillary.Domain.Repositories.Bag;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Mappers;
 using ReservationSystem.Microservices.Ancillary.Models.Bag.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Web;
 
@@ -34,6 +35,7 @@ public sealed class BagOfferFunction
     /// BagOfferId values are deterministic: bo-{first8chars_of_inventoryId}-{cabinCode}-{bagSequence}-v1
     /// </summary>
     [Function("GetBagOffers")]
+    [MicroserviceCache(1)]
     [OpenApiOperation(operationId: "GetBagOffers", tags: new[] { "BagOffers" }, Summary = "Get bag offers for a flight and cabin")]
     [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The inventory (flight) ID")]
     [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The cabin code (F, J, W, or Y)")]
@@ -92,6 +94,7 @@ public sealed class BagOfferFunction
     /// BagOfferId format: bo-{inventoryIdPrefix}-{cabinCode}-{bagSequence}-v1
     /// </summary>
     [Function("GetBagOffer")]
+    [MicroserviceCache(1)]
     [OpenApiOperation(operationId: "GetBagOffer", tags: new[] { "BagOffers" }, Summary = "Validate a specific bag offer")]
     [OpenApiParameter(name: "bagOfferId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The bag offer ID")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagOfferValidationResponse), Description = "OK")]

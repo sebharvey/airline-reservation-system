@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.Order.Application.GetSsrOptions;
 using ReservationSystem.Microservices.Order.Application.UpdateSsrOption;
 using ReservationSystem.Microservices.Order.Models.Requests;
 using ReservationSystem.Microservices.Order.Models.Responses;
+using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 
@@ -38,6 +39,7 @@ public sealed class SsrFunction
 
     // GET /v1/ssr/options
     [Function("GetSsrOptions")]
+    [MicroserviceCache(24)]
     [OpenApiOperation(operationId: "GetSsrOptions", tags: new[] { "SSR" }, Summary = "Retrieve all active SSR codes and labels by category")]
     [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter SSRs applicable to a specific cabin")]
     [OpenApiParameter(name: "flightNumbers", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Comma-separated flight numbers to filter applicable SSRs")]
