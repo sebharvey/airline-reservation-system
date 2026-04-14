@@ -2210,6 +2210,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "channelCode": "TEST",
           "payment": {
             "method": "CreditCard",
             "cardNumber": "4111111111111234",
@@ -2274,6 +2275,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "channelCode": "TEST",
           "payment": {
             "method": "CreditCard",
             "cardNumber": "4111111111111111",
