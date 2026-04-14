@@ -23,6 +23,9 @@ public sealed class RunSimulatorHandler
     /// <summary>Probability (0–100) that a booking includes a return flight.</summary>
     private const int ReturnProbabilityPct = 70;
 
+    /// <summary>Probability (0–100) that a booking includes seat selection.</summary>
+    private const int SeatSelectionProbabilityPct = 50;
+
     /// <summary>Probability (0–100) that a booking includes SSR selections.</summary>
     private const int SsrProbabilityPct = 35;
 
@@ -237,20 +240,23 @@ public sealed class RunSimulatorHandler
         var outboundFlight = flightOffers[0];
         var returnFlight   = flightOffers.Count > 1 ? flightOffers[1] : null;
 
-        // ── Step 7: Seatmaps + seat selection ──────────────────────────────────
+        // ── Step 7: Seatmaps + seat selection (skipped ~50% of the time) ─────────
         var allSeats = new List<SeatAssignment>();
 
-        var outboundSeats = await TrySelectSeatsAsync(outboundFlight, paxCount, ct);
-        allSeats.AddRange(outboundSeats);
-
-        if (returnFlight is not null)
+        if (Random.Shared.Next(100) < SeatSelectionProbabilityPct)
         {
-            var returnSeats = await TrySelectSeatsAsync(returnFlight, paxCount, ct);
-            allSeats.AddRange(returnSeats);
-        }
+            var outboundSeats = await TrySelectSeatsAsync(outboundFlight, paxCount, ct);
+            allSeats.AddRange(outboundSeats);
 
-        if (allSeats.Count > 0)
-            await _retailApiClient.AddSeatsAsync(basketId, allSeats, ct);
+            if (returnFlight is not null)
+            {
+                var returnSeats = await TrySelectSeatsAsync(returnFlight, paxCount, ct);
+                allSeats.AddRange(returnSeats);
+            }
+
+            if (allSeats.Count > 0)
+                await _retailApiClient.AddSeatsAsync(basketId, allSeats, ct);
+        }
 
         // ── Step 8: SSRs (applied to a subset of bookings) ────────────────────
         if (Random.Shared.Next(100) < SsrProbabilityPct)
