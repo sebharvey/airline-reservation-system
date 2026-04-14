@@ -4,7 +4,6 @@ public sealed record BasketSegment(Guid OfferId, Guid? SessionId);
 
 public sealed record CreateBasketCommand(
     IReadOnlyList<BasketSegment> Segments,
-    string ChannelCode,
     string? Currency,
     string? BookingType,
     string? LoyaltyNumber,

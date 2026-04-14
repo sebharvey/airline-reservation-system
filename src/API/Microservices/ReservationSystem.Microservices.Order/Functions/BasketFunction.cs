@@ -73,10 +73,7 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, ct);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request!.ChannelCode))
-            return await req.BadRequestAsync("The field 'channelCode' is required.");
-
-        if (request.BookingType == "Reward" &&
+        if (request!.BookingType == "Reward" &&
             (string.IsNullOrWhiteSpace(request.LoyaltyNumber) || request.TotalPointsAmount is null))
             return await req.BadRequestAsync("'loyaltyNumber' and 'totalPointsAmount' are required for Reward bookings.");
 
@@ -115,7 +112,6 @@ public sealed class BasketFunction
         return await req.OkJsonAsync(new
         {
             basketId = basket.BasketId,
-            channelCode = basket.ChannelCode,
             currency = basket.CurrencyCode,
             basketStatus = basket.BasketStatus,
             totalFareAmount = basket.TotalFareAmount,

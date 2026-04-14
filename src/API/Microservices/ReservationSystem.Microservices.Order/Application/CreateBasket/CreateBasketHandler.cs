@@ -26,15 +26,13 @@ public sealed class CreateBasketHandler
         CreateBasketCommand command,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating basket for channel {ChannelCode}, currency {CurrencyCode}",
-            command.ChannelCode, command.CurrencyCode);
+        _logger.LogInformation("Creating basket for currency {CurrencyCode}", command.CurrencyCode);
 
         var expiresAt = DateTime.UtcNow.AddMinutes(60);
 
         var basketData = new JsonObject
         {
             ["bookingType"] = "oneWay",
-            ["channelCode"] = command.ChannelCode,
             ["currency"] = command.CurrencyCode,
             ["loyaltyNumber"] = command.LoyaltyNumber,
             ["flightOffers"] = new JsonArray(),
@@ -44,7 +42,6 @@ public sealed class CreateBasketHandler
         };
 
         var basket = Basket.Create(
-            command.ChannelCode,
             command.CurrencyCode,
             expiresAt,
             basketData.ToJsonString());

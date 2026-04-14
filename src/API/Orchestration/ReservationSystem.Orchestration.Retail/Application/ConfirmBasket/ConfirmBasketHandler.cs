@@ -54,6 +54,7 @@ public sealed class ConfirmBasketHandler
         // 2. Create draft order in Order MS — no booking reference yet, basket remains active
         var draftOrder = await _orderServiceClient.CreateOrderAsync(
             command.BasketId,
+            channelCode: command.ChannelCode,
             bookingType: bookingType,
             redemptionReference: null,
             cancellationToken);

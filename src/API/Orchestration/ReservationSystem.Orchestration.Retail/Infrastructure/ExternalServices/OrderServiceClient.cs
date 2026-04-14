@@ -23,11 +23,11 @@ public sealed class OrderServiceClient
     }
 
     public async Task<OrderMsCreateBasketResult> CreateBasketAsync(
-        string channelCode, string currency, string bookingType,
+        string currency, string bookingType,
         string? loyaltyNumber, int? totalPointsAmount,
         CancellationToken ct)
     {
-        var payload = new { channelCode, currency, bookingType, loyaltyNumber, totalPointsAmount };
+        var payload = new { currency, bookingType, loyaltyNumber, totalPointsAmount };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/basket", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -123,10 +123,10 @@ public sealed class OrderServiceClient
     }
 
     public async Task<OrderMsCreateOrderResult> CreateOrderAsync(
-        Guid basketId, string bookingType, string? redemptionReference,
+        Guid basketId, string channelCode, string bookingType, string? redemptionReference,
         CancellationToken ct)
     {
-        var payload = new { basketId, bookingType, redemptionReference };
+        var payload = new { basketId, channelCode, bookingType, redemptionReference };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -352,9 +352,6 @@ public sealed class OrderMsBasketResult
 {
     [JsonPropertyName("basketId")]
     public Guid BasketId { get; init; }
-
-    [JsonPropertyName("channelCode")]
-    public string ChannelCode { get; init; } = string.Empty;
 
     [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;

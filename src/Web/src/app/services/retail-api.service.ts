@@ -331,7 +331,6 @@ export class RetailApiService {
     const base = environment.retailApiBaseUrl;
     const body = {
       segments: params.segments,
-      channelCode: 'WEB',
       currency: params.currency ?? 'GBP',
       bookingType: params.bookingType,
       loyaltyNumber: params.loyaltyNumber ?? null,
@@ -433,6 +432,7 @@ export class RetailApiService {
   ): Observable<ConfirmBasketResponse> {
     const base = environment.retailApiBaseUrl;
     const body = {
+      channelCode: 'WEB',
       payment: { method: paymentMethod, cardNumber, expiryDate, cvv, cardholderName },
       loyaltyPointsToRedeem: loyaltyPointsToRedeem ?? null,
       products: (productSelections ?? []).map(sel => ({

@@ -11,9 +11,6 @@ public sealed class BasketResponse
     [JsonPropertyName("basketId")]
     public Guid BasketId { get; init; }
 
-    [JsonPropertyName("channelCode")]
-    public string ChannelCode { get; init; } = string.Empty;
-
     [JsonPropertyName("currency")]
     public string CurrencyCode { get; init; } = string.Empty;
 

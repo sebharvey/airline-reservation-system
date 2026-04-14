@@ -65,15 +65,11 @@ public sealed class BasketFunction
         if (request!.Segments is null || request.Segments.Count == 0)
             return await req.BadRequestAsync("At least one 'segments' entry is required.");
 
-        if (string.IsNullOrWhiteSpace(request.ChannelCode))
-            return await req.BadRequestAsync("The field 'channelCode' is required.");
-
         if (request.PassengerCount < 1)
             return await req.BadRequestAsync("The field 'passengerCount' must be at least 1.");
 
         var command = new CreateBasketCommand(
             request.Segments.Select(s => new BasketSegment(s.OfferId, s.SessionId)).ToList(),
-            request.ChannelCode,
             request.Currency,
             request.BookingType,
             request.LoyaltyNumber,
@@ -351,11 +347,15 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<ConfirmBasketRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request!.Payment?.Method))
+        if (string.IsNullOrWhiteSpace(request!.ChannelCode))
+            return await req.BadRequestAsync("The field 'channelCode' is required.");
+
+        if (string.IsNullOrWhiteSpace(request.Payment?.Method))
             return await req.BadRequestAsync("The field 'payment.method' is required.");
 
         var command = new ConfirmBasketCommand(
             basketId,
+            request.ChannelCode,
             request.Payment.Method,
             request.Payment.CardNumber,
             request.Payment.ExpiryDate,

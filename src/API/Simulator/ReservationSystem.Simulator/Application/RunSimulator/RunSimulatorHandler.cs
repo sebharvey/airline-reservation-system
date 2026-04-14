@@ -240,7 +240,7 @@ public sealed class RunSimulatorHandler
         if (hasReturn && returnOfferId is not null && returnSessionId is not null)
             segments.Add(new(returnOfferId, returnSessionId));
 
-        var basketReq = new CreateBasketRequest(segments, "WEB", "GBP", "Revenue");
+        var basketReq = new CreateBasketRequest(segments, "GBP", "Revenue");
         var basketRes = await _retailApiClient.CreateBasketAsync(basketReq, ct);
         var basketId  = basketRes.BasketId;
 
@@ -298,6 +298,7 @@ public sealed class RunSimulatorHandler
         // ── Step 9: Confirm and pay ────────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
+            ChannelCode: "SIM",
             new PaymentRequest(
                 Method:         "CreditCard",
                 CardNumber:     "4111111111111111",
@@ -360,7 +361,7 @@ public sealed class RunSimulatorHandler
             new(leg2Offer.OfferId, leg2.SessionId),
         };
 
-        var basketReq = new CreateBasketRequest(segments, "WEB", "GBP", "Revenue");
+        var basketReq = new CreateBasketRequest(segments, "GBP", "Revenue");
         var basketRes = await _retailApiClient.CreateBasketAsync(basketReq, ct);
         var basketId  = basketRes.BasketId;
 
@@ -412,6 +413,7 @@ public sealed class RunSimulatorHandler
         // ── Step 9: Confirm and pay ────────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
+            ChannelCode: "SIM",
             new PaymentRequest(
                 Method:         "CreditCard",
                 CardNumber:     "4111111111111111",

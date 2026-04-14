@@ -23,7 +23,6 @@ public sealed class CreateBasketHandler
             : command.LoyaltyNumber is not null ? "Reward" : "Revenue";
 
         var basket = await _orderServiceClient.CreateBasketAsync(
-            channelCode: command.ChannelCode,
             currency: command.Currency ?? "GBP",
             bookingType: bookingType,
             loyaltyNumber: command.LoyaltyNumber,

@@ -452,7 +452,6 @@ GO
 IF OBJECT_ID('[order].[Basket]', 'U') IS NULL
 CREATE TABLE [order].[Basket] (
     BasketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Basket_Id       DEFAULT NEWID(),
-    ChannelCode      VARCHAR(20)      NOT NULL,
     CurrencyCode     CHAR(3)          NOT NULL CONSTRAINT DF_Basket_Currency DEFAULT 'GBP',
     BasketStatus     VARCHAR(20)      NOT NULL CONSTRAINT DF_Basket_Status   DEFAULT 'Active',
     TotalFareAmount  DECIMAL(10,2)        NULL,
@@ -467,7 +466,6 @@ CREATE TABLE [order].[Basket] (
     BasketData       NVARCHAR(MAX)    NOT NULL,
     CONSTRAINT PK_Basket          PRIMARY KEY (BasketId),
     CONSTRAINT CHK_Basket_Status  CHECK (BasketStatus IN ('Active','Expired','Abandoned','Confirmed')),
-    CONSTRAINT CHK_Basket_Channel CHECK (ChannelCode  IN ('WEB','APP','NDC','KIOSK','CC','AIRPORT')),
     CONSTRAINT CHK_Basket_Data    CHECK (ISJSON(BasketData) = 1)
 );
 GO
