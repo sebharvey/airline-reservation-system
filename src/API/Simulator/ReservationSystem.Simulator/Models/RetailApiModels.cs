@@ -10,28 +10,50 @@ internal sealed record SearchSliceRequest(
     string BookingType);
 
 internal sealed record SearchSliceResponse(
-    string SessionId,
-    List<SearchFlight> Flights);
+    List<SearchItinerary> Itineraries);
 
-internal sealed record SearchFlight(
+internal sealed record SearchItinerary(
+    List<SearchLeg> Legs);
+
+internal sealed record SearchLeg(
+    string SessionId,
     string FlightNumber,
+    string Origin,
+    string Destination,
+    string DepartureDate,
+    string DepartureTime,
+    string ArrivalTime,
+    int ArrivalDayOffset,
+    string AircraftType,
     List<SearchCabin> Cabins);
 
 internal sealed record SearchCabin(
+    string CabinCode,
+    int AvailableSeats,
+    decimal FromPrice,
+    string Currency,
     List<SearchFareFamily> FareFamilies);
 
 internal sealed record SearchFareFamily(
+    string FareFamily,
     SearchOffer Offer);
 
 internal sealed record SearchOffer(
-    string OfferId);
+    string OfferId,
+    string FareBasisCode,
+    decimal BasePrice,
+    decimal Tax,
+    decimal TotalPrice,
+    string Currency,
+    bool IsRefundable,
+    bool IsChangeable);
 
 // ── Basket ─────────────────────────────────────────────────────────────────────
 
 internal sealed record CreateBasketRequest(
     List<BasketSegment> Segments,
     string ChannelCode,
-    string CurrencyCode,
+    string Currency,
     string BookingType);
 
 internal sealed record BasketSegment(
@@ -52,7 +74,7 @@ internal sealed record PassengerRequest(
     string Gender,
     string? LoyaltyNumber,
     PassengerContacts Contacts,
-    object? TravelDocument);
+    List<object> Docs);
 
 internal sealed record PassengerContacts(
     string Email,
@@ -105,6 +127,13 @@ internal sealed record SeatAssignment(
     string CabinCode,
     decimal Price,
     string Currency);
+
+// ── SSRs ───────────────────────────────────────────────────────────────────────
+
+internal sealed record SsrRequest(
+    string SsrCode,
+    string PassengerRef,
+    string SegmentRef);
 
 // ── Confirm ────────────────────────────────────────────────────────────────────
 

@@ -5,9 +5,9 @@ using ReservationSystem.Simulator.Application.RunSimulator;
 namespace ReservationSystem.Simulator.Functions;
 
 /// <summary>
-/// Hourly timer trigger that creates 5 confirmed orders for the next day's
-/// AX001 (LHR → JFK) flight, each with a random passenger count (1–6).
-/// Simulates realistic booking activity for testing and demonstration.
+/// Timer trigger that fires every 20 minutes and creates 1–6 confirmed orders
+/// across random routes over the next 48 hours. Simulates realistic web booking
+/// activity with a mix of one-way and return journeys.
 /// </summary>
 public sealed class SimulatorFunction
 {
@@ -22,10 +22,10 @@ public sealed class SimulatorFunction
         _logger  = logger;
     }
 
-    // Runs every 60 minutes at the top of the hour: "0 0 * * * *"
+    // Runs every 20 minutes: "0 */20 * * * *"
     [Function("Simulator")]
     public async Task Run(
-        [TimerTrigger("0 0 * * * *")] TimerInfo timerInfo,
+        [TimerTrigger("0 */20 * * * *")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         _logger.LogInformation("Simulator timer triggered at {UtcNow:O}", DateTime.UtcNow);

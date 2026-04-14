@@ -50,14 +50,14 @@ These four functions run concurrently at midnight UTC every day.
 
 ---
 
-## Every 60 minutes
+## Every 20 minutes
 
 ### `Simulator`
 
 - **Service** — Simulator microservice (`ReservationSystem.Microservices.Simulator`)
 - **Class** — `SimulatorFunction`
-- **Schedule** — `0 0 * * * *`
-- **What it does** — Creates 5 confirmed orders for the next day's AX001 (LHR → JFK) flight. Each order uses a random passenger count (1–6 adults). The full booking journey is executed for each order: search, basket creation, passenger entry, seat selection, and payment confirmation via the Retail API.
+- **Schedule** — `0 */20 * * * *`
+- **What it does** — Creates 1–6 confirmed orders per run, simulating web bookings placed throughout the day. Each run picks a random order count, then for each order: selects a random route from seven daily long-haul routes (LHR→JFK, LHR→LAX, LHR→MIA, LHR→SFO, LHR→ORD, LHR→HKG, LHR→NRT), picks a random outbound departure within the next 48 hours (at least 1 hour from now), and adds 1–6 adult passengers. 70% of bookings include a return flight departing 1–7 days after the outbound. Cabin selection is weighted toward Economy (60%), then Premium Economy (25%), then Business (15%). 35% of bookings include SSR selections (meal or mobility codes). The full booking flow is executed: search, basket creation, basket summary repricing, passenger entry, seat selection, optional SSRs, and payment confirmation. Errors on individual orders are logged and skipped without aborting the run.
 - **External dependency** — Retail API (`RetailApi:BaseUrl`). The Retail API base URL defaults to the live Azure deployment if the config key is absent.
 
 ---
