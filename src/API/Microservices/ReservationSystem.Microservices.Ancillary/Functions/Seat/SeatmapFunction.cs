@@ -71,21 +71,15 @@ public sealed class SeatmapFunction
 
         var at = await _aircraftTypeRepository.GetByCodeAsync(aircraftType, cancellationToken);
 
-        // CabinLayout is stored as {"aircraftType":...,"cabins":[...]} — extract just the cabins array
-        var fullLayout = JsonSerializer.Deserialize<JsonElement>(seatmap.CabinLayout);
-        if (!fullLayout.TryGetProperty("cabins", out var cabinsJson))
-        {
-            _logger.LogError("Seatmap {SeatmapId} has no 'cabins' property in CabinLayout", seatmap.SeatmapId);
-            return await req.InternalServerErrorAsync();
-        }
-
+        // Return the seatmap with parsed CabinLayout JSON
+        var cabinLayoutJson = JsonSerializer.Deserialize<JsonElement>(seatmap.CabinLayout);
         var response = new
         {
             seatmapId = seatmap.SeatmapId,
             aircraftType = seatmap.AircraftTypeCode,
             version = seatmap.Version,
             totalSeats = at?.TotalSeats ?? 0,
-            cabins = cabinsJson
+            cabins = cabinLayoutJson
         };
 
         return await req.OkJsonAsync(response);
