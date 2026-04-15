@@ -102,6 +102,9 @@
   <div class="save-error" *ngIf="saveError()">{{ saveError() }}</div>
   <div class="actions">
     <a routerLink="/" class="btn-secondary">Cancel</a>
+    <button type="button" class="btn-dev" (click)="fillRandomPaxData()" title="Testing only — fills all passenger forms with random data">
+      &#127922; Random Pax Data
+    </button>
     <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
       {{ saving() ? 'Saving…' : 'Continue to Seat Selection ›' }}
     </button>

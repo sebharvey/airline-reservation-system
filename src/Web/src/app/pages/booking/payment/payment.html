@@ -122,6 +122,13 @@
         {{ detectCardType() }}
       </div>
 
+      <!-- Dev: fill test card -->
+      <div class="dev-fill-row">
+        <button type="button" class="btn-dev" (click)="fillTestCard()" title="Testing only — fills card details with a Visa test number">
+          &#127922; Fill Test Card
+        </button>
+      </div>
+
       <!-- Cardholder Name -->
       <div class="field" [class.error]="submitted() && !cardholderName().trim()">
         <label>Cardholder Name</label>
