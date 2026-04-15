@@ -220,6 +220,14 @@
             Standby
             <span class="holds-tab-count">{{ standbyHolds().length }}</span>
           </button>
+          <button
+            class="holds-tab"
+            [class.holds-tab-active]="holdsTab() === 'seatmap'"
+            role="tab"
+            [attr.aria-selected]="holdsTab() === 'seatmap'"
+            (click)="switchToSeatmap()">
+            Seat Map
+          </button>
         </div>
 
         <!-- Confirmed tab -->
@@ -308,6 +316,71 @@
               </table>
             </div>
             <p class="modal-count">{{ standbyHolds().length }} passenger{{ standbyHolds().length !== 1 ? 's' : '' }} · listed by priority then join time</p>
+          }
+        }
+
+        <!-- Seat Map tab -->
+        @if (holdsTab() === 'seatmap') {
+          @if (seatmapLoading()) {
+            <div class="modal-loading">
+              <span class="btn-spinner modal-spinner"></span>
+              <span>Loading seat map…</span>
+            </div>
+          } @else if (seatmapError()) {
+            <div class="error-banner" role="alert">
+              <span>&#9888;</span> {{ seatmapError() }}
+            </div>
+          } @else if (seatmap()) {
+            <div class="sm-scroll">
+              @for (cabin of seatmap()!.cabins; track cabin.cabinCode) {
+                <div class="sm-cabin-section">
+                  <div class="sm-cabin-label">{{ cabin.cabinName }}</div>
+
+                  <!-- Column headers -->
+                  <div class="sm-row">
+                    <div class="sm-row-num"></div>
+                    @for (col of cabin.columns; track col; let ci = $index) {
+                      <div class="sm-col-header" [class.sm-aisle-after]="hasAisle(cabin.layout, ci)">{{ col }}</div>
+                    }
+                  </div>
+
+                  <!-- Seat rows -->
+                  @for (row of getSeatRows(cabin); track row) {
+                    <div class="sm-row">
+                      <div class="sm-row-num">{{ row }}</div>
+                      @for (col of cabin.columns; track col; let ci = $index) {
+                        @if (getSeatForRowCol(cabin, row, col); as seat) {
+                          <div
+                            [class]="seatClass(seat)"
+                            [class.sm-aisle-after]="hasAisle(cabin.layout, ci)"
+                            [title]="seat.seatNumber + ' · ' + seat.position + ' · ' + seat.availability">
+                            <span class="sm-seat-num">{{ seat.seatNumber }}</span>
+                          </div>
+                        } @else {
+                          <div class="sm-seat sm-seat-gap" [class.sm-aisle-after]="hasAisle(cabin.layout, ci)"></div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Legend -->
+            <div class="sm-legend">
+              <div class="sm-legend-item">
+                <div class="sm-legend-swatch sm-swatch-available"></div>
+                <span>Available</span>
+              </div>
+              <div class="sm-legend-item">
+                <div class="sm-legend-swatch sm-swatch-held"></div>
+                <span>Held</span>
+              </div>
+              <div class="sm-legend-item">
+                <div class="sm-legend-swatch sm-swatch-sold"></div>
+                <span>Sold</span>
+              </div>
+            </div>
           }
         }
       }
