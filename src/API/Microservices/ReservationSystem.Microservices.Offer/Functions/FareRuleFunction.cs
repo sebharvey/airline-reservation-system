@@ -68,7 +68,7 @@ public sealed class FareRuleFunction
 
     // GET /v1/fare-rules/{fareRuleId}
     [Function("GetFareRule")]
-    [MicroserviceCache(1)]
+    [MicroserviceCache("FareRules", 1)]
     [OpenApiOperation(operationId: "GetFareRule", tags: new[] { "Fare Rules" }, Summary = "Get a fare rule by ID")]
     [OpenApiParameter(name: "fareRuleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Fare rule ID")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "OK")]
@@ -87,6 +87,7 @@ public sealed class FareRuleFunction
 
     // POST /v1/fare-rules
     [Function("CreateFareRule")]
+    [MicroserviceCacheInvalidate("FareRules")]
     [OpenApiOperation(operationId: "CreateFareRule", tags: new[] { "Fare Rules" }, Summary = "Create a new fare rule")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateFareRuleRequest), Required = true, Description = "Fare rule details")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "Created")]
@@ -130,6 +131,7 @@ public sealed class FareRuleFunction
 
     // PUT /v1/fare-rules/{fareRuleId}
     [Function("UpdateFareRule")]
+    [MicroserviceCacheInvalidate("FareRules")]
     [OpenApiOperation(operationId: "UpdateFareRule", tags: new[] { "Fare Rules" }, Summary = "Update an existing fare rule")]
     [OpenApiParameter(name: "fareRuleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Fare rule ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateFareRuleRequest), Required = true, Description = "Updated fare rule details")]
@@ -177,6 +179,7 @@ public sealed class FareRuleFunction
 
     // DELETE /v1/fare-rules/{fareRuleId}
     [Function("DeleteFareRule")]
+    [MicroserviceCacheInvalidate("FareRules")]
     [OpenApiOperation(operationId: "DeleteFareRule", tags: new[] { "Fare Rules" }, Summary = "Delete a fare rule")]
     [OpenApiParameter(name: "fareRuleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Fare rule ID")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

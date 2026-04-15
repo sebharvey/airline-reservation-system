@@ -39,7 +39,7 @@ public sealed class SsrFunction
 
     // GET /v1/ssr/options
     [Function("GetSsrOptions")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("Ssr", 24)]
     [OpenApiOperation(operationId: "GetSsrOptions", tags: new[] { "SSR" }, Summary = "Retrieve all active SSR codes and labels by category")]
     [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter SSRs applicable to a specific cabin")]
     [OpenApiParameter(name: "flightNumbers", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Comma-separated flight numbers to filter applicable SSRs")]
@@ -66,6 +66,7 @@ public sealed class SsrFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateSsrOption")]
+    [MicroserviceCacheInvalidate("Ssr")]
     [OpenApiOperation(operationId: "CreateSsrOption", tags: new[] { "SSR" }, Summary = "Create a new SSR catalogue entry")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateSsrOptionRequest), Required = true)]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateSsrOptionResponse), Description = "Created")]
@@ -99,6 +100,7 @@ public sealed class SsrFunction
     // -------------------------------------------------------------------------
 
     [Function("UpdateSsrOption")]
+    [MicroserviceCacheInvalidate("Ssr")]
     [OpenApiOperation(operationId: "UpdateSsrOption", tags: new[] { "SSR" }, Summary = "Update label or category of an existing SSR catalogue entry")]
     [OpenApiParameter(name: "ssrCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Four-character IATA SSR code")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSsrOptionRequest), Required = true)]
@@ -132,6 +134,7 @@ public sealed class SsrFunction
     // -------------------------------------------------------------------------
 
     [Function("DeactivateSsrOption")]
+    [MicroserviceCacheInvalidate("Ssr")]
     [OpenApiOperation(operationId: "DeactivateSsrOption", tags: new[] { "SSR" }, Summary = "Deactivate an SSR code (sets IsActive = false)")]
     [OpenApiParameter(name: "ssrCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Four-character IATA SSR code")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deactivated")]

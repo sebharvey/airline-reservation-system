@@ -55,7 +55,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("GetSeatmap")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("Seatmap", 24)]
     [OpenApiOperation(operationId: "GetSeatmap", tags: new[] { "Seatmaps" }, Summary = "Get the active seatmap for an aircraft type")]
     [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
@@ -86,7 +86,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("GetAllSeatmaps")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("Seatmap", 24)]
     [OpenApiOperation(operationId: "GetAllSeatmaps", tags: new[] { "Seatmaps" }, Summary = "List all seatmaps")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapListItemResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAllSeatmaps(
@@ -123,6 +123,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("CreateSeatmap")]
+    [MicroserviceCacheInvalidate("Seatmap")]
     [OpenApiOperation(operationId: "CreateSeatmap", tags: new[] { "Seatmaps" }, Summary = "Create a new seatmap")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateSeatmapRequest), Required = true, Description = "The seatmap to create")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "Created")]
@@ -162,6 +163,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("UpdateSeatmap")]
+    [MicroserviceCacheInvalidate("Seatmap")]
     [OpenApiOperation(operationId: "UpdateSeatmap", tags: new[] { "Seatmaps" }, Summary = "Update a seatmap")]
     [OpenApiParameter(name: "seatmapId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seatmap ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSeatmapRequest), Required = true, Description = "The update request")]
@@ -186,6 +188,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("DeleteSeatmap")]
+    [MicroserviceCacheInvalidate("Seatmap")]
     [OpenApiOperation(operationId: "DeleteSeatmap", tags: new[] { "Seatmaps" }, Summary = "Delete a seatmap")]
     [OpenApiParameter(name: "seatmapId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seatmap ID")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

@@ -43,7 +43,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("GetAllBagPolicies")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("BagPolicy", 24)]
     [OpenApiOperation(operationId: "GetAllBagPolicies", tags: new[] { "BagPolicies" }, Summary = "List all bag policies")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPoliciesListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
@@ -72,6 +72,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("CreateBagPolicy")]
+    [MicroserviceCacheInvalidate("BagPolicy", "BagOffer")]
     [OpenApiOperation(operationId: "CreateBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Create a new bag policy")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBagPolicyRequest), Required = true, Description = "The bag policy to create")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(BagPolicyResponse), Description = "Created")]
@@ -111,6 +112,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("UpdateBagPolicy")]
+    [MicroserviceCacheInvalidate("BagPolicy", "BagOffer")]
     [OpenApiOperation(operationId: "UpdateBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Update a bag policy")]
     [OpenApiParameter(name: "policyId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag policy ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateBagPolicyRequest), Required = true, Description = "The update request")]
@@ -138,6 +140,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("DeleteBagPolicy")]
+    [MicroserviceCacheInvalidate("BagPolicy", "BagOffer")]
     [OpenApiOperation(operationId: "DeleteBagPolicy", tags: new[] { "BagPolicies" }, Summary = "Delete a bag policy")]
     [OpenApiParameter(name: "policyId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag policy ID")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
