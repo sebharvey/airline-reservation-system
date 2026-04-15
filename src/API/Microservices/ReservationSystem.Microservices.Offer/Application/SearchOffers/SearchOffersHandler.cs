@@ -87,11 +87,14 @@ public sealed class SearchOffersHandler
                 if (rules.Count == 0)
                     continue;
 
-                // 6. Apply cascade: overwrite by (FareBasisCode, RuleType) so the last
+                // 6. Apply cascade: overwrite by (FareFamily, RuleType) so the last
                 //    (most-specific) rule wins — O(n) single pass.
+                //    Keying on FareFamily (not FareBasisCode) ensures a flight-specific rule
+                //    (e.g. CNRFJC for AX001) displaces the generic rule (e.g. JSAVGB) that
+                //    occupies the same fare-family slot, rather than co-existing with it.
                 var effective = new Dictionary<string, FareRule>(StringComparer.Ordinal);
                 foreach (var rule in rules)
-                    effective[$"{rule.FareBasisCode}:{rule.RuleType}"] = rule;
+                    effective[$"{rule.FareFamily ?? rule.FareBasisCode}:{rule.RuleType}"] = rule;
 
                 // 7. For each effective rule, derive a fare snapshot.
                 foreach (var rule in effective.Values)
