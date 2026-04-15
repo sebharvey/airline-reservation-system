@@ -39,9 +39,7 @@ public sealed class RunSimulatorHandler
     [
         ("LHR", "JFK"),
         ("LHR", "MIA"),
-        ("LHR", "BOM"),
         ("LHR", "DEL"),
-        ("LHR", "BLR"),
     ];
 
     // ── Connecting route catalogue — two-segment journeys via LHR ─────────────
@@ -51,14 +49,8 @@ public sealed class RunSimulatorHandler
     [
         ("DEL", "LHR", "JFK"),
         ("DEL", "LHR", "MIA"),
-        ("BOM", "LHR", "JFK"),
-        ("BOM", "LHR", "MIA"),
-        ("BLR", "LHR", "JFK"),
-        ("BLR", "LHR", "MIA"),
         ("JFK", "LHR", "DEL"),
-        ("JFK", "LHR", "BOM"),
         ("MIA", "LHR", "DEL"),
-        ("MIA", "LHR", "BOM"),
     ];
 
     // ── Cabin preference weights ────────────────────────────────────────────────
