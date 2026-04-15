@@ -11,20 +11,20 @@ namespace ReservationSystem.Shared.Common.Caching;
 
 /// <summary>
 /// Azure Functions isolated-worker middleware that serves cached HTTP responses
-/// for endpoints decorated with <see cref="MicroserviceCacheAttribute"/>.
+/// for endpoints decorated with <see cref="MicroserviceCacheAttribute"/>, and
+/// invalidates named cache groups for endpoints decorated with
+/// <see cref="MicroserviceCacheInvalidateAttribute"/>.
 ///
 /// Pipeline behaviour:
 /// <list type="bullet">
-///   <item>Functions without <see cref="MicroserviceCacheAttribute"/> are passed
-///         through immediately — zero overhead.</item>
-///   <item>Non-GET requests on decorated functions are passed through uncached
-///         (mutating verbs must never be cached).</item>
-///   <item>On a cache hit the downstream function and all DB calls are bypassed;
-///         the stored response bytes are written directly to the invocation result.</item>
-///   <item>On a cache miss the function executes normally. If the response is 2xx
-///         the body is read, stored in <see cref="IMemoryCache"/>, and the stream
-///         is rewound so the runtime can still send it to the caller.</item>
-///   <item>Non-2xx responses (errors) are never cached.</item>
+///   <item>Functions without either attribute are passed through immediately — zero overhead.</item>
+///   <item>GET requests decorated with <see cref="MicroserviceCacheAttribute"/>: cache hit
+///         short-circuits the function; cache miss executes the function and stores the 2xx
+///         response body, keyed under the named group.</item>
+///   <item>Non-GET requests decorated with <see cref="MicroserviceCacheInvalidateAttribute"/>:
+///         after a successful (2xx) response all cache entries registered under the named
+///         group are evicted, so the next GET repopulates from the source of truth.</item>
+///   <item>Non-2xx responses are never cached and never trigger invalidation.</item>
 /// </list>
 ///
 /// Register via <c>worker.UseMicroserviceCache()</c> and
@@ -32,9 +32,13 @@ namespace ReservationSystem.Shared.Common.Caching;
 /// </summary>
 public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
 {
-    // Caches the result of reflection per function entry point so that the
-    // assembly scan only happens once per unique function across all invocations.
-    private readonly ConcurrentDictionary<string, MicroserviceCacheAttribute?> _attributeCache = new();
+    // Both cache attributes are resolved together in a single reflection pass per
+    // function entry point and stored here so subsequent invocations are free.
+    private readonly ConcurrentDictionary<string, CacheAttributes> _resolvedAttributes = new();
+
+    // Tracks every cache key stored under a given cache name so that
+    // invalidation can evict the whole group without knowing individual keys.
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _keysByName = new();
 
     private readonly IMemoryCache _cache;
     private readonly ILogger<MicroserviceCacheMiddleware> _logger;
@@ -47,93 +51,111 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
 
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
-        var attribute = ResolveAttribute(context);
+        var attrs = ResolveAttributes(context);
 
-        // No attribute — pass through with zero overhead.
-        if (attribute is null)
+        // No attributes on this function — pass through with zero overhead.
+        if (attrs.Cache is null && attrs.Invalidate is null)
         {
             await next(context);
             return;
         }
 
         var req = await context.GetHttpRequestDataAsync();
+        var isGet = req is not null && req.Method.Equals("GET", StringComparison.OrdinalIgnoreCase);
 
-        // Only cache safe, idempotent GET requests.
-        if (req is null || !req.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+        // ── Cache hit short-circuit (GET + MicroserviceCacheAttribute) ─────────
+        if (attrs.Cache is not null && isGet && req is not null)
         {
-            await next(context);
-            return;
+            var cacheKey = BuildCacheKey(context, req, attrs.Cache);
+
+            if (_cache.TryGetValue<CachedHttpResponse>(cacheKey, out var cached) && cached is not null)
+            {
+                _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
+
+                var hit = req.CreateResponse(cached.StatusCode);
+
+                foreach (var (name, values) in cached.Headers)
+                    hit.Headers.TryAddWithoutValidation(name, values);
+
+                await hit.Body.WriteAsync(cached.Body);
+
+                context.GetInvocationResult().Value = hit;
+                return; // Short-circuit — function body never executes.
+            }
         }
 
-        var cacheKey = BuildCacheKey(context, req, attribute);
-
-        // ── Cache hit ──────────────────────────────────────────────────────────
-        if (_cache.TryGetValue<CachedHttpResponse>(cacheKey, out var cached) && cached is not null)
-        {
-            _logger.LogDebug("Cache hit for {CacheKey}", cacheKey);
-
-            var hit = req.CreateResponse(cached.StatusCode);
-
-            foreach (var (name, values) in cached.Headers)
-                hit.Headers.TryAddWithoutValidation(name, values);
-
-            await hit.Body.WriteAsync(cached.Body);
-
-            context.GetInvocationResult().Value = hit;
-            return; // Short-circuit — function body never executes.
-        }
-
-        // ── Cache miss — execute function ──────────────────────────────────────
+        // ── Execute function ───────────────────────────────────────────────────
         await next(context);
 
-        if (context.GetInvocationResult().Value is not HttpResponseData response)
-            return;
+        if (req is null) return;
 
-        // Only cache successful responses.
-        var statusCode = (int)response.StatusCode;
-        if (statusCode < 200 || statusCode >= 300)
-            return;
+        var response = context.GetInvocationResult().Value as HttpResponseData;
+        var statusCode = response is not null ? (int)response.StatusCode : 0;
+        var isSuccess = statusCode >= 200 && statusCode < 300;
 
-        if (!response.Body.CanSeek)
-            return;
+        // ── Populate cache after successful GET ────────────────────────────────
+        if (attrs.Cache is not null && isGet && isSuccess && response is not null)
+        {
+            if (response.Body.CanSeek)
+            {
+                response.Body.Position = 0;
+                using var buffer = new MemoryStream();
+                await response.Body.CopyToAsync(buffer);
+                var bodyBytes = buffer.ToArray();
+                response.Body.Position = 0;
 
-        // Read the body, store it, then rewind so the runtime can still send it.
-        response.Body.Position = 0;
-        using var buffer = new MemoryStream();
-        await response.Body.CopyToAsync(buffer);
-        var bodyBytes = buffer.ToArray();
-        response.Body.Position = 0;
+                var headers = response.Headers
+                    .ToDictionary(h => h.Key, h => h.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
 
-        var headers = response.Headers
-            .ToDictionary(h => h.Key, h => h.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+                var cacheKey = BuildCacheKey(context, req, attrs.Cache);
+                var entry = new CachedHttpResponse(response.StatusCode, headers, bodyBytes);
+                _cache.Set(cacheKey, entry, TimeSpan.FromHours(attrs.Cache.Hours));
 
-        var entry = new CachedHttpResponse(response.StatusCode, headers, bodyBytes);
-        _cache.Set(cacheKey, entry, TimeSpan.FromHours(attribute.Hours));
+                // Register the key under its cache name so invalidation can find it.
+                _keysByName
+                    .GetOrAdd(attrs.Cache.CacheName, _ => new ConcurrentDictionary<string, byte>(StringComparer.Ordinal))
+                    .TryAdd(cacheKey, 0);
 
-        _logger.LogDebug("Cached response for {CacheKey} (name={CacheName}, {Hours}h TTL)", cacheKey, attribute.CacheName, attribute.Hours);
+                _logger.LogDebug("Cached response for {CacheKey} (name={CacheName}, {Hours}h TTL)",
+                    cacheKey, attrs.Cache.CacheName, attrs.Cache.Hours);
+            }
+        }
+
+        // ── Invalidate cache after successful non-GET ──────────────────────────
+        if (attrs.Invalidate is not null && !isGet && isSuccess)
+        {
+            if (_keysByName.TryRemove(attrs.Invalidate.CacheName, out var keys))
+            {
+                foreach (var key in keys.Keys)
+                    _cache.Remove(key);
+
+                _logger.LogDebug("Invalidated {Count} cache entries for name={CacheName}",
+                    keys.Count, attrs.Invalidate.CacheName);
+            }
+        }
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Resolves the <see cref="MicroserviceCacheAttribute"/> for the function being
-    /// invoked. The result is cached in <see cref="_attributeCache"/> so reflection
-    /// only runs once per unique entry point across all invocations.
+    /// Resolves both cache attributes for the function being invoked in a single
+    /// reflection pass. The result is stored per entry point so reflection only
+    /// runs once per unique function across all invocations.
     /// </summary>
-    private MicroserviceCacheAttribute? ResolveAttribute(FunctionContext context)
+    private CacheAttributes ResolveAttributes(FunctionContext context)
     {
         var entryPoint = context.FunctionDefinition.EntryPoint;
 
-        return _attributeCache.GetOrAdd(entryPoint, static ep =>
+        return _resolvedAttributes.GetOrAdd(entryPoint, static ep =>
         {
             var lastDot = ep.LastIndexOf('.');
-            if (lastDot < 0) return null;
+            if (lastDot < 0) return default;
 
-            var typeName  = ep[..lastDot];
+            var typeName   = ep[..lastDot];
             var methodName = ep[(lastDot + 1)..];
 
             // Scan loaded assemblies for the declaring type. This runs once per
-            // function; the result is stored in _attributeCache thereafter.
+            // function; the result is stored in _resolvedAttributes thereafter.
             var type = AppDomain.CurrentDomain
                 .GetAssemblies()
                 .SelectMany(a =>
@@ -143,15 +165,24 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
                 })
                 .FirstOrDefault(t => t.FullName == typeName);
 
-            return type
-                ?.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance)
-                ?.GetCustomAttribute<MicroserviceCacheAttribute>();
+            var method = type?.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+
+            return new CacheAttributes(
+                method?.GetCustomAttribute<MicroserviceCacheAttribute>(),
+                method?.GetCustomAttribute<MicroserviceCacheInvalidateAttribute>());
         });
     }
 
     private static string BuildCacheKey(FunctionContext context, HttpRequestData req, MicroserviceCacheAttribute attribute)
         => $"{attribute.CacheName}:{context.FunctionDefinition.EntryPoint}:{req.Method.ToUpperInvariant()}:{req.Url.AbsoluteUri}";
 }
+
+/// <summary>
+/// Pair of optional cache attributes resolved once per function entry point.
+/// </summary>
+internal readonly record struct CacheAttributes(
+    MicroserviceCacheAttribute? Cache,
+    MicroserviceCacheInvalidateAttribute? Invalidate);
 
 /// <summary>
 /// Immutable snapshot of an HTTP response stored in the memory cache.
