@@ -37,7 +37,7 @@ public sealed class ScheduleGroupFunction
     // -------------------------------------------------------------------------
 
     [Function("GetScheduleGroups")]
-    [MicroserviceCache(1)]
+    [MicroserviceCache("Schedule", 1)]
     [OpenApiOperation(operationId: "GetScheduleGroups", tags: new[] { "ScheduleGroups" }, Summary = "Retrieve all schedule groups")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetScheduleGroupsResponse), Description = "OK — returns all schedule groups")]
     public async Task<HttpResponseData> GetScheduleGroups(

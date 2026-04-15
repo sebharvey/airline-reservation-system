@@ -65,7 +65,7 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
             return;
         }
 
-        var cacheKey = BuildCacheKey(context, req);
+        var cacheKey = BuildCacheKey(context, req, attribute);
 
         // ── Cache hit ──────────────────────────────────────────────────────────
         if (_cache.TryGetValue<CachedHttpResponse>(cacheKey, out var cached) && cached is not null)
@@ -110,7 +110,7 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
         var entry = new CachedHttpResponse(response.StatusCode, headers, bodyBytes);
         _cache.Set(cacheKey, entry, TimeSpan.FromHours(attribute.Hours));
 
-        _logger.LogDebug("Cached response for {CacheKey} ({Hours}h TTL)", cacheKey, attribute.Hours);
+        _logger.LogDebug("Cached response for {CacheKey} (name={CacheName}, {Hours}h TTL)", cacheKey, attribute.CacheName, attribute.Hours);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -149,8 +149,8 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
         });
     }
 
-    private static string BuildCacheKey(FunctionContext context, HttpRequestData req)
-        => $"{context.FunctionDefinition.EntryPoint}:{req.Method.ToUpperInvariant()}:{req.Url.AbsoluteUri}";
+    private static string BuildCacheKey(FunctionContext context, HttpRequestData req, MicroserviceCacheAttribute attribute)
+        => $"{attribute.CacheName}:{context.FunctionDefinition.EntryPoint}:{req.Method.ToUpperInvariant()}:{req.Url.AbsoluteUri}";
 }
 
 /// <summary>

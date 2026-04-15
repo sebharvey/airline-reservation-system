@@ -47,7 +47,7 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("GetAllAircraftTypes")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("AircraftType", 24)]
     [OpenApiOperation(operationId: "GetAllAircraftTypes", tags: new[] { "AircraftTypes" }, Summary = "List all aircraft types")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AircraftTypeResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

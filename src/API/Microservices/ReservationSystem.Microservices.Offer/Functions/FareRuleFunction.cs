@@ -68,7 +68,7 @@ public sealed class FareRuleFunction
 
     // GET /v1/fare-rules/{fareRuleId}
     [Function("GetFareRule")]
-    [MicroserviceCache(1)]
+    [MicroserviceCache("FareRules", 1)]
     [OpenApiOperation(operationId: "GetFareRule", tags: new[] { "Fare Rules" }, Summary = "Get a fare rule by ID")]
     [OpenApiParameter(name: "fareRuleId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Fare rule ID")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "OK")]

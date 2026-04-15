@@ -43,7 +43,7 @@ public sealed class BagPolicyFunction
     }
 
     [Function("GetAllBagPolicies")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("BagPolicy", 24)]
     [OpenApiOperation(operationId: "GetAllBagPolicies", tags: new[] { "BagPolicies" }, Summary = "List all bag policies")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPoliciesListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(

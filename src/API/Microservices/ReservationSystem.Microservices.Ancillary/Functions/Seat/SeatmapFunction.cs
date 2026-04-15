@@ -55,7 +55,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("GetSeatmap")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("Seatmap", 24)]
     [OpenApiOperation(operationId: "GetSeatmap", tags: new[] { "Seatmaps" }, Summary = "Get the active seatmap for an aircraft type")]
     [OpenApiParameter(name: "aircraftType", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
@@ -86,7 +86,7 @@ public sealed class SeatmapFunction
     }
 
     [Function("GetAllSeatmaps")]
-    [MicroserviceCache(24)]
+    [MicroserviceCache("Seatmap", 24)]
     [OpenApiOperation(operationId: "GetAllSeatmaps", tags: new[] { "Seatmaps" }, Summary = "List all seatmaps")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapListItemResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAllSeatmaps(
