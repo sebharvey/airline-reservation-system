@@ -270,6 +270,15 @@ export class PaymentComponent implements OnInit {
     });
   }
 
+  fillTestCard(): void {
+    const nextYear = (new Date().getFullYear() + 3).toString();
+    this.cardholderName.set('Test User');
+    this.cardNumber.set('4111111111111111');
+    this.expiryMonth.set('12');
+    this.expiryYear.set(nextYear);
+    this.cvv.set('123');
+  }
+
   onCardNumberInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const digits = input.value.replace(/\D/g, '').substring(0, 16);

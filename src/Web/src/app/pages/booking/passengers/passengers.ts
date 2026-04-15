@@ -147,6 +147,38 @@ isFirstAdult(index: number): boolean {
     return index === 0 && this.forms()[index]?.type === 'ADT';
   }
 
+  fillRandomPaxData(): void {
+    const firstNames = ['James', 'Oliver', 'Harry', 'Jack', 'George', 'Emma', 'Olivia', 'Amelia', 'Isla', 'Sophie'];
+    const lastNames = ['Smith', 'Jones', 'Williams', 'Taylor', 'Brown', 'Davies', 'Evans', 'Wilson', 'Thomas', 'Roberts'];
+    const genders: Array<'Male' | 'Female' | 'Other'> = ['Male', 'Female', 'Other'];
+
+    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    const randomDob = (minAge: number, maxAge: number): string => {
+      const now = new Date();
+      const year = now.getFullYear() - randInt(minAge, maxAge);
+      const month = randInt(1, 12).toString().padStart(2, '0');
+      const day = randInt(1, 28).toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const updated = this.forms().map((f, i) => {
+      const given = pick(firstNames);
+      const surname = pick(lastNames);
+      const gender = pick(genders);
+      const dob = f.type === 'ADT' ? randomDob(16, 65) : randomDob(2, 15);
+      const base: PassengerForm = { ...f, givenName: given, surname, gender, dob };
+      if (this.isFirstAdult(i)) {
+        base.email = `${given.toLowerCase()}.${surname.toLowerCase()}@example.com`;
+        base.phone = `+44 7700 9${randInt(10000, 99999)}`;
+      }
+      return base;
+    });
+
+    this.forms.set(updated);
+  }
+
   isFormValid(): boolean {
     return this.forms().every(f => {
       const base = f.givenName.trim() && f.surname.trim() && f.dob && f.gender;
