@@ -479,6 +479,12 @@
   background: rgba(88, 166, 255, 0.1);
 }
 
+.copy-btn:hover {
+  border-color: #3fb950;
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.1);
+}
+
 .delete-btn:hover {
   border-color: #f85149;
   color: #f85149;

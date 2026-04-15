@@ -21,6 +21,7 @@ export class FareRulesComponent implements OnInit {
   // Form state
   showForm = signal(false);
   editing = signal<FareRule | null>(null);
+  copying = signal(false);
   saving = signal(false);
   deleting = signal<string | null>(null);
 
@@ -103,6 +104,7 @@ export class FareRulesComponent implements OnInit {
 
   openCreateForm(): void {
     this.editing.set(null);
+    this.copying.set(false);
     this.form.set({
       ruleType: 'Money',
       flightNumber: null,
@@ -129,8 +131,38 @@ export class FareRulesComponent implements OnInit {
     this.success.set('');
   }
 
+  copyRule(rule: FareRule): void {
+    this.editing.set(null);
+    this.copying.set(true);
+    this.form.set({
+      ruleType: rule.ruleType,
+      flightNumber: rule.flightNumber,
+      fareBasisCode: '',
+      fareFamily: rule.fareFamily,
+      cabinCode: rule.cabinCode,
+      bookingClass: rule.bookingClass,
+      currencyCode: rule.currencyCode,
+      minAmount: rule.minAmount,
+      maxAmount: rule.maxAmount,
+      minPoints: rule.minPoints,
+      maxPoints: rule.maxPoints,
+      pointsTaxes: rule.pointsTaxes,
+      taxLines: rule.taxLines ? rule.taxLines.map(t => ({ ...t })) : [],
+      isRefundable: rule.isRefundable,
+      isChangeable: rule.isChangeable,
+      changeFeeAmount: rule.changeFeeAmount,
+      cancellationFeeAmount: rule.cancellationFeeAmount,
+      validFrom: rule.validFrom ? rule.validFrom.substring(0, 10) : '',
+      validTo: rule.validTo ? rule.validTo.substring(0, 10) : '',
+    });
+    this.showForm.set(true);
+    this.error.set('');
+    this.success.set('');
+  }
+
   openEditForm(rule: FareRule): void {
     this.editing.set(rule);
+    this.copying.set(false);
     this.form.set({
       ruleType: rule.ruleType,
       flightNumber: rule.flightNumber,
@@ -160,6 +192,7 @@ export class FareRulesComponent implements OnInit {
   cancelForm(): void {
     this.showForm.set(false);
     this.editing.set(null);
+    this.copying.set(false);
   }
 
   updateField(field: string, value: unknown): void {
@@ -242,6 +275,7 @@ export class FareRulesComponent implements OnInit {
       }
       this.showForm.set(false);
       this.editing.set(null);
+      this.copying.set(false);
       await this.loadRules();
     } catch {
       this.error.set('Failed to save fare rule. Please check the data and try again.');
