@@ -372,7 +372,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 301;
-  width: min(760px, calc(100vw - 32px));
+  width: min(860px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
@@ -575,6 +575,147 @@
 .standby-priority {
   font-size: 0.75rem;
   font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ── Seat Map tab ── */
+.sm-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.sm-cabin-section {
+  margin-bottom: 20px;
+}
+
+.sm-cabin-section:last-child {
+  margin-bottom: 0;
+}
+
+.sm-cabin-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grad-start, #6366f1);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}
+
+.sm-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.sm-row-num {
+  width: 20px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding-right: 3px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.sm-col-header {
+  width: 28px;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.sm-aisle-after {
+  margin-right: 10px;
+}
+
+.sm-seat {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.sm-seat-num {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.sm-seat-available {
+  background: rgba(63, 185, 80, 0.12);
+  border-color: rgba(63, 185, 80, 0.35);
+  color: #2ea043;
+}
+
+.sm-seat-held {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: rgba(88, 166, 255, 0.45);
+  color: #388bfd;
+}
+
+.sm-seat-sold {
+  background: var(--bg-light);
+  border-color: var(--border);
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.sm-seat-gap {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Legend */
+.sm-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.sm-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+}
+
+.sm-swatch-available {
+  background: rgba(63, 185, 80, 0.12);
+  border-color: rgba(63, 185, 80, 0.35);
+}
+
+.sm-swatch-held {
+  background: rgba(88, 166, 255, 0.18);
+  border-color: rgba(88, 166, 255, 0.45);
+}
+
+.sm-swatch-sold {
+  background: var(--bg-light);
+  border-color: var(--border);
+  opacity: 0.55;
 }
 
 /* Secondary button */

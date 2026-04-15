@@ -66,6 +66,36 @@ export interface InventoryHold {
   createdAt: string;
 }
 
+export type SeatAvailability = 'available' | 'held' | 'sold';
+
+export interface SeatmapSeat {
+  seatOfferId: string;
+  seatNumber: string;
+  column: string;
+  rowNumber: number;
+  position: string;
+  cabinCode: string;
+  availability: SeatAvailability;
+  attributes: string[];
+}
+
+export interface CabinSeatmap {
+  cabinCode: string;
+  cabinName: string;
+  columns: string[];
+  layout: string;
+  startRow: number;
+  endRow: number;
+  seats: SeatmapSeat[];
+}
+
+export interface FlightSeatmap {
+  flightId: string;
+  flightNumber: string;
+  aircraftType: string;
+  cabins: CabinSeatmap[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   #http = inject(HttpClient);
@@ -84,6 +114,15 @@ export class InventoryService {
     return firstValueFrom(
       this.#http.get<InventoryHold[]>(
         `${this.#baseUrl}/inventory/${inventoryId}/holds`
+      )
+    );
+  }
+
+  async getFlightSeatmap(inventoryId: string, flightNumber: string, aircraftType: string): Promise<FlightSeatmap> {
+    const params = `flightNumber=${encodeURIComponent(flightNumber)}&aircraftType=${encodeURIComponent(aircraftType)}`;
+    return firstValueFrom(
+      this.#http.get<FlightSeatmap>(
+        `${environment.retailApiUrl}/api/v1/flights/${inventoryId}/seatmap?${params}`
       )
     );
   }
