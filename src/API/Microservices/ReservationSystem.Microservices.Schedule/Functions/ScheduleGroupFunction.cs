@@ -81,6 +81,7 @@ public sealed class ScheduleGroupFunction
     // -------------------------------------------------------------------------
 
     [Function("CreateScheduleGroup")]
+    [MicroserviceCacheInvalidate("Schedule")]
     [OpenApiOperation(operationId: "CreateScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Create a new schedule group")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateScheduleGroupRequest), Required = true)]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(ScheduleGroupItem), Description = "Created")]
@@ -138,6 +139,7 @@ public sealed class ScheduleGroupFunction
     // -------------------------------------------------------------------------
 
     [Function("UpdateScheduleGroup")]
+    [MicroserviceCacheInvalidate("Schedule")]
     [OpenApiOperation(operationId: "UpdateScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Update an existing schedule group")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateScheduleGroupRequest), Required = true)]
@@ -200,6 +202,7 @@ public sealed class ScheduleGroupFunction
     // -------------------------------------------------------------------------
 
     [Function("DeleteScheduleGroup")]
+    [MicroserviceCacheInvalidate("Schedule")]
     [OpenApiOperation(operationId: "DeleteScheduleGroup", tags: new[] { "ScheduleGroups" }, Summary = "Delete a schedule group and all its schedules")]
     [OpenApiParameter(name: "scheduleGroupId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

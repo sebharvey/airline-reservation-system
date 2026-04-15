@@ -72,6 +72,7 @@ public sealed class BagPricingFunction
     }
 
     [Function("CreateBagPricing")]
+    [MicroserviceCacheInvalidate("BagPricing", "BagOffer")]
     [OpenApiOperation(operationId: "CreateBagPricing", tags: new[] { "BagPricing" }, Summary = "Create a new bag pricing rule")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateBagPricingRequest), Required = true, Description = "The bag pricing rule to create")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(BagPricingResponse), Description = "Created")]
@@ -112,6 +113,7 @@ public sealed class BagPricingFunction
     }
 
     [Function("UpdateBagPricing")]
+    [MicroserviceCacheInvalidate("BagPricing", "BagOffer")]
     [OpenApiOperation(operationId: "UpdateBagPricing", tags: new[] { "BagPricing" }, Summary = "Update a bag pricing rule")]
     [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateBagPricingRequest), Required = true, Description = "The update request")]
@@ -148,6 +150,7 @@ public sealed class BagPricingFunction
     }
 
     [Function("DeleteBagPricing")]
+    [MicroserviceCacheInvalidate("BagPricing", "BagOffer")]
     [OpenApiOperation(operationId: "DeleteBagPricing", tags: new[] { "BagPricing" }, Summary = "Delete a bag pricing rule")]
     [OpenApiParameter(name: "pricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The bag pricing rule ID")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

@@ -38,6 +38,7 @@ public sealed class ScheduleFunction
     // -------------------------------------------------------------------------
 
     [Function("ImportSchedules")]
+    [MicroserviceCacheInvalidate("Schedule")]
     [OpenApiOperation(operationId: "ImportSchedules", tags: new[] { "Schedules" }, Summary = "Bulk-import flight schedules into a schedule group from a season schedule payload")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ImportSchedulesRequest), Required = true, Description = "Full season schedule payload containing scheduleGroupId, header, carriers, and schedule definitions")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesResponse), Description = "OK — returns count of imported and deleted records with per-schedule summary")]

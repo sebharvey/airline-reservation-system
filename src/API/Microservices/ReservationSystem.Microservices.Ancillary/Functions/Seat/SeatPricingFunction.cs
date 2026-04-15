@@ -55,6 +55,7 @@ public sealed class SeatPricingFunction
     }
 
     [Function("CreateSeatPricing")]
+    [MicroserviceCacheInvalidate("SeatPricing")]
     [OpenApiOperation(operationId: "CreateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Create a new seat pricing rule")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateSeatPricingRequest), Required = true, Description = "The seat pricing rule to create")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(SeatPricingResponse), Description = "Created")]
@@ -113,6 +114,7 @@ public sealed class SeatPricingFunction
     }
 
     [Function("UpdateSeatPricing")]
+    [MicroserviceCacheInvalidate("SeatPricing")]
     [OpenApiOperation(operationId: "UpdateSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Update a seat pricing rule")]
     [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateSeatPricingRequest), Required = true, Description = "The update request")]
@@ -143,6 +145,7 @@ public sealed class SeatPricingFunction
     }
 
     [Function("DeleteSeatPricing")]
+    [MicroserviceCacheInvalidate("SeatPricing")]
     [OpenApiOperation(operationId: "DeleteSeatPricing", tags: new[] { "SeatPricing" }, Summary = "Delete a seat pricing rule")]
     [OpenApiParameter(name: "seatPricingId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The seat pricing rule ID")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

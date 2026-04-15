@@ -59,6 +59,7 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("CreateAircraftType")]
+    [MicroserviceCacheInvalidate("AircraftType")]
     [OpenApiOperation(operationId: "CreateAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Create a new aircraft type")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(CreateAircraftTypeRequest), Required = true, Description = "The aircraft type to create")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(AircraftTypeResponse), Description = "Created")]
@@ -113,6 +114,7 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("UpdateAircraftType")]
+    [MicroserviceCacheInvalidate("AircraftType", "Seatmap")]
     [OpenApiOperation(operationId: "UpdateAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Update an aircraft type")]
     [OpenApiParameter(name: "aircraftTypeCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateAircraftTypeRequest), Required = true, Description = "The update request")]
@@ -137,6 +139,7 @@ public sealed class AircraftTypeFunction
     }
 
     [Function("DeleteAircraftType")]
+    [MicroserviceCacheInvalidate("AircraftType", "Seatmap")]
     [OpenApiOperation(operationId: "DeleteAircraftType", tags: new[] { "AircraftTypes" }, Summary = "Delete an aircraft type")]
     [OpenApiParameter(name: "aircraftTypeCode", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The aircraft type code")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]

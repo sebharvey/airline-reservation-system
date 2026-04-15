@@ -124,13 +124,16 @@ public sealed class MicroserviceCacheMiddleware : IFunctionsWorkerMiddleware
         // ── Invalidate cache after successful non-GET ──────────────────────────
         if (attrs.Invalidate is not null && !isGet && isSuccess)
         {
-            if (_keysByName.TryRemove(attrs.Invalidate.CacheName, out var keys))
+            foreach (var name in attrs.Invalidate.CacheNames)
             {
-                foreach (var key in keys.Keys)
-                    _cache.Remove(key);
+                if (_keysByName.TryRemove(name, out var keys))
+                {
+                    foreach (var key in keys.Keys)
+                        _cache.Remove(key);
 
-                _logger.LogDebug("Invalidated {Count} cache entries for name={CacheName}",
-                    keys.Count, attrs.Invalidate.CacheName);
+                    _logger.LogDebug("Invalidated {Count} cache entries for name={CacheName}",
+                        keys.Count, name);
+                }
             }
         }
     }
