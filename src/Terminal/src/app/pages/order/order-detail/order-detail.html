@@ -84,16 +84,56 @@
       </div>
     </div>
 
-    <!-- ── MAIN CONTENT GRID ── -->
-    <div class="order-grid">
-
-      <!-- ── ITINERARY ── -->
-      <div class="grid-section grid-itinerary">
-        <h2 class="section-heading">Itinerary</h2>
-        @if (segments().length === 0) {
-          <p class="empty-section">No flight segments on record.</p>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" [class.tab-active]="activeTab() === 'itinerary'" (click)="switchTab('itinerary')">
+        Itinerary
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'passengers'" (click)="switchTab('passengers')">
+        Passengers
+        @if (passengers().length) {
+          <span class="tab-count">{{ passengers().length }}</span>
         }
-        @for (seg of segments(); track seg.segmentId) {
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'ancillaries'" (click)="switchTab('ancillaries')">
+        Ancillaries
+        @if (ancillaryItems().length) {
+          <span class="tab-count">{{ ancillaryItems().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'payments'" (click)="switchTab('payments')">
+        Payments
+        @if (payments().length) {
+          <span class="tab-count">{{ payments().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'history'" (click)="switchTab('history')">
+        History
+        @if (history().length) {
+          <span class="tab-count">{{ history().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'ssrs'" (click)="switchTab('ssrs')">
+        SSRs
+        @if (ssrItems().length) {
+          <span class="tab-count">{{ ssrItems().length }}</span>
+        }
+      </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'tickets'" (click)="switchTab('tickets')">
+        Tickets
+        @if (tickets().length) {
+          <span class="tab-count">{{ tickets().length }}</span>
+        }
+      </button>
+    </div>
+
+    <!-- ── ITINERARY TAB ── -->
+    @if (activeTab() === 'itinerary') {
+      <div class="tab-content fade-in">
+        @if (segments().length === 0) {
+          <p class="empty-tab">No flight segments on record.</p>
+        }
+        @for (seg of segments(); track seg.segmentId; let i = $index) {
           <div class="segment-card">
             <div class="segment-header">
               <span class="flight-badge">{{ seg.flightNumber }}</span>
@@ -118,22 +158,19 @@
                 <span class="route-date muted">{{ formatDate(seg.arrivalTime) }}</span>
               </div>
             </div>
+
           </div>
         }
       </div>
+    }
 
-      <!-- ── PASSENGERS ── -->
-      <div class="grid-section grid-passengers">
-        <h2 class="section-heading">
-          Passengers
-          @if (passengers().length) {
-            <span class="section-count">{{ passengers().length }}</span>
-          }
-        </h2>
+    <!-- ── PASSENGERS TAB ── -->
+    @if (activeTab() === 'passengers') {
+      <div class="tab-content fade-in">
         @if (passengers().length === 0) {
-          <p class="empty-section">No passenger data on record.</p>
+          <p class="empty-tab">No passenger data on record.</p>
         }
-        @for (pax of passengers(); track pax.passengerId) {
+        @for (pax of passengers(); track pax.passengerId; let i = $index) {
           <div class="info-card">
             <div class="info-card-header">
               <div class="pax-avatar">{{ pax.givenName[0] }}</div>
@@ -238,17 +275,13 @@
           </div>
         }
       </div>
+    }
 
-      <!-- ── ANCILLARIES ── -->
-      <div class="grid-section grid-ancillaries">
-        <h2 class="section-heading">
-          Ancillaries
-          @if (ancillaryItems().length) {
-            <span class="section-count">{{ ancillaryItems().length }}</span>
-          }
-        </h2>
+    <!-- ── ANCILLARIES TAB ── -->
+    @if (activeTab() === 'ancillaries') {
+      <div class="tab-content fade-in">
         @if (ancillaryItems().length === 0) {
-          <p class="empty-section">No ancillary items on record.</p>
+          <p class="empty-tab">No ancillary items on record.</p>
         } @else {
           <div class="table-card">
             <table class="data-table">
@@ -290,17 +323,13 @@
           </div>
         }
       </div>
+    }
 
-      <!-- ── PAYMENTS ── -->
-      <div class="grid-section grid-payments">
-        <h2 class="section-heading">
-          Payments
-          @if (payments().length) {
-            <span class="section-count">{{ payments().length }}</span>
-          }
-        </h2>
+    <!-- ── PAYMENTS TAB ── -->
+    @if (activeTab() === 'payments') {
+      <div class="tab-content fade-in">
         @if (payments().length === 0) {
-          <p class="empty-section">No payment records on record.</p>
+          <p class="empty-tab">No payment records on record.</p>
         } @else {
           <div class="table-card">
             <table class="data-table">
@@ -334,15 +363,33 @@
           </div>
         }
       </div>
+    }
 
-      <!-- ── SSRs ── -->
-      <div class="grid-section grid-ssrs">
-        <h2 class="section-heading">
-          Special Service Requests
-          @if (ssrItems().length) {
-            <span class="section-count">{{ ssrItems().length }}</span>
-          }
-        </h2>
+    <!-- ── HISTORY TAB ── -->
+    @if (activeTab() === 'history') {
+      <div class="tab-content fade-in">
+        @if (history().length === 0) {
+          <p class="empty-tab">No history events on record.</p>
+        } @else {
+          <div class="history-list">
+            @for (event of history(); track event.timestamp + event.eventType) {
+              <div class="history-event">
+                <div class="event-dot"></div>
+                <div class="event-body">
+                  <span class="event-type">{{ event.eventType }}</span>
+                  <span class="event-desc">{{ event.description }}</span>
+                  <span class="event-time muted">{{ formatDateTime(event.timestamp) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── SSRs TAB ── -->
+    @if (activeTab() === 'ssrs') {
+      <div class="tab-content fade-in">
 
         @if (ssrError()) {
           <div class="alert alert-error" role="alert">
@@ -350,106 +397,106 @@
           </div>
         }
 
-        <!-- Current SSRs — shown immediately, independent of catalogue loading -->
-        @if (ssrItems().length === 0) {
-          <p class="empty-section">No special service requests on this order.</p>
-        } @else {
-          <div class="table-card ssr-table-card">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th>Passenger</th>
-                  <th>Segment</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of ssrItems(); track ssrKey(item)) {
-                  @if (editingSsrKey() === ssrKey(item)) {
-                    <!-- Inline edit row -->
-                    <tr class="ssr-edit-row">
-                      <td colspan="4">
-                        <div class="ssr-form-grid">
-                          <div class="edit-field">
-                            <label class="field-label">SSR type</label>
-                            <select class="edit-input" (change)="updateEditSsrField('ssrCode', $any($event.target).value)">
-                              <option value="">Select SSR…</option>
-                              @for (category of objectKeys(ssrOptionsByCategory()); track category) {
-                                <optgroup [label]="category">
-                                  @for (opt of ssrOptionsByCategory()[category]; track opt.ssrCode) {
-                                    <option [value]="opt.ssrCode" [selected]="opt.ssrCode === editSsrForm().ssrCode">{{ opt.ssrCode }} — {{ opt.label }}</option>
-                                  }
-                                </optgroup>
-                              }
-                            </select>
+          <!-- Current SSRs — shown immediately, independent of catalogue loading -->
+          @if (ssrItems().length === 0) {
+            <p class="empty-tab">No special service requests on this order.</p>
+          } @else {
+            <div class="table-card ssr-table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Passenger</th>
+                    <th>Segment</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of ssrItems(); track ssrKey(item)) {
+                    @if (editingSsrKey() === ssrKey(item)) {
+                      <!-- Inline edit row -->
+                      <tr class="ssr-edit-row">
+                        <td colspan="4">
+                          <div class="ssr-form-grid">
+                            <div class="edit-field">
+                              <label class="field-label">SSR type</label>
+                              <select class="edit-input" (change)="updateEditSsrField('ssrCode', $any($event.target).value)">
+                                <option value="">Select SSR…</option>
+                                @for (category of objectKeys(ssrOptionsByCategory()); track category) {
+                                  <optgroup [label]="category">
+                                    @for (opt of ssrOptionsByCategory()[category]; track opt.ssrCode) {
+                                      <option [value]="opt.ssrCode" [selected]="opt.ssrCode === editSsrForm().ssrCode">{{ opt.ssrCode }} — {{ opt.label }}</option>
+                                    }
+                                  </optgroup>
+                                }
+                              </select>
+                            </div>
+                            <div class="edit-field">
+                              <label class="field-label">Passenger</label>
+                              <select class="edit-input" (change)="updateEditSsrField('passengerRef', $any($event.target).value)">
+                                <option value="">Select passenger…</option>
+                                @for (pax of passengers(); track pax.passengerId) {
+                                  <option [value]="pax.passengerId" [selected]="pax.passengerId === editSsrForm().passengerRef">{{ pax.givenName }} {{ pax.surname }}</option>
+                                }
+                              </select>
+                            </div>
+                            <div class="edit-field">
+                              <label class="field-label">Flight segment</label>
+                              <select class="edit-input" (change)="updateEditSsrField('segmentRef', $any($event.target).value)">
+                                <option value="">Select segment…</option>
+                                @for (seg of segments(); track seg.segmentId) {
+                                  <option [value]="seg.segmentId" [selected]="seg.segmentId === editSsrForm().segmentRef">{{ seg.flightNumber }} ({{ seg.origin }} → {{ seg.destination }})</option>
+                                }
+                              </select>
+                            </div>
                           </div>
-                          <div class="edit-field">
-                            <label class="field-label">Passenger</label>
-                            <select class="edit-input" (change)="updateEditSsrField('passengerRef', $any($event.target).value)">
-                              <option value="">Select passenger…</option>
-                              @for (pax of passengers(); track pax.passengerId) {
-                                <option [value]="pax.passengerId" [selected]="pax.passengerId === editSsrForm().passengerRef">{{ pax.givenName }} {{ pax.surname }}</option>
-                              }
-                            </select>
+                        </td>
+                        <td>
+                          <div class="edit-actions ssr-row-actions">
+                            <button
+                              class="save-btn"
+                              [disabled]="ssrSaving() || !editSsrForm().ssrCode || !editSsrForm().passengerRef || !editSsrForm().segmentRef"
+                              (click)="saveEditSsr(item)"
+                            >
+                              {{ ssrSaving() ? 'Saving…' : 'Save' }}
+                            </button>
+                            <button class="cancel-btn" [disabled]="ssrSaving()" (click)="cancelEditSsr()">Cancel</button>
                           </div>
-                          <div class="edit-field">
-                            <label class="field-label">Flight segment</label>
-                            <select class="edit-input" (change)="updateEditSsrField('segmentRef', $any($event.target).value)">
-                              <option value="">Select segment…</option>
-                              @for (seg of segments(); track seg.segmentId) {
-                                <option [value]="seg.segmentId" [selected]="seg.segmentId === editSsrForm().segmentRef">{{ seg.flightNumber }} ({{ seg.origin }} → {{ seg.destination }})</option>
-                              }
-                            </select>
+                        </td>
+                      </tr>
+                    } @else {
+                      <!-- Read-only row -->
+                      <tr>
+                        <td><span class="item-type-badge item-ssr mono">{{ item.ssrCode }}</span></td>
+                        <td>{{ getSsrLabel(item.ssrCode) }}</td>
+                        <td>{{ getPassengerName(item.passengerRef) }}</td>
+                        <td class="mono">{{ getSegmentLabel(item.segmentRef) }}</td>
+                        <td>
+                          <div class="ssr-row-actions">
+                            <button class="edit-btn" [disabled]="ssrSaving() || ssrOptionsLoading()" (click)="startEditSsr(item)">Edit</button>
+                            <button class="remove-ssr-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">Remove</button>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="edit-actions ssr-row-actions">
-                          <button
-                            class="save-btn"
-                            [disabled]="ssrSaving() || !editSsrForm().ssrCode || !editSsrForm().passengerRef || !editSsrForm().segmentRef"
-                            (click)="saveEditSsr(item)"
-                          >
-                            {{ ssrSaving() ? 'Saving…' : 'Save' }}
-                          </button>
-                          <button class="cancel-btn" [disabled]="ssrSaving()" (click)="cancelEditSsr()">Cancel</button>
-                        </div>
-                      </td>
-                    </tr>
-                  } @else {
-                    <!-- Read-only row -->
-                    <tr>
-                      <td><span class="item-type-badge item-ssr mono">{{ item.ssrCode }}</span></td>
-                      <td>{{ getSsrLabel(item.ssrCode) }}</td>
-                      <td>{{ getPassengerName(item.passengerRef) }}</td>
-                      <td class="mono">{{ getSegmentLabel(item.segmentRef) }}</td>
-                      <td>
-                        <div class="ssr-row-actions">
-                          <button class="edit-btn" [disabled]="ssrSaving() || ssrOptionsLoading()" (click)="startEditSsr(item)">Edit</button>
-                          <button class="remove-ssr-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">Remove</button>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+                    }
                   }
-                }
-              </tbody>
-            </table>
-          </div>
-        }
+                </tbody>
+              </table>
+            </div>
+          }
 
-        <!-- SSR catalogue loading state (needed for add/edit dropdowns) -->
-        @if (ssrOptionsLoading()) {
-          <div class="ssr-loading">
-            <span class="spinner"></span>
-            <span>Loading SSR catalogue…</span>
-          </div>
-        } @else if (ssrOptionsError()) {
-          <div class="alert alert-error" role="alert">
-            <span>&#9888;</span> {{ ssrOptionsError() }}
-          </div>
-        } @else {
+          <!-- SSR catalogue loading state (needed for add/edit dropdowns) -->
+          @if (ssrOptionsLoading()) {
+            <div class="ssr-loading">
+              <span class="spinner"></span>
+              <span>Loading SSR catalogue…</span>
+            </div>
+          } @else if (ssrOptionsError()) {
+            <div class="alert alert-error" role="alert">
+              <span>&#9888;</span> {{ ssrOptionsError() }}
+            </div>
+          } @else {
 
           <!-- Add SSR -->
           <div class="ssr-add-section">
@@ -505,43 +552,14 @@
             }
           </div>
 
-        }
-      </div>
-
-      <!-- ── HISTORY ── -->
-      <div class="grid-section grid-history">
-        <h2 class="section-heading">
-          History
-          @if (history().length) {
-            <span class="section-count">{{ history().length }}</span>
           }
-        </h2>
-        @if (history().length === 0) {
-          <p class="empty-section">No history events on record.</p>
-        } @else {
-          <div class="history-list">
-            @for (event of history(); track event.timestamp + event.eventType) {
-              <div class="history-event">
-                <div class="event-dot"></div>
-                <div class="event-body">
-                  <span class="event-type">{{ event.eventType }}</span>
-                  <span class="event-desc">{{ event.description }}</span>
-                  <span class="event-time muted">{{ formatDateTime(event.timestamp) }}</span>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
 
-      <!-- ── TICKETS ── -->
-      <div class="grid-section grid-tickets">
-        <h2 class="section-heading">
-          Tickets
-          @if (tickets().length) {
-            <span class="section-count">{{ tickets().length }}</span>
-          }
-        </h2>
+      </div>
+    }
+
+    <!-- ── TICKETS TAB ── -->
+    @if (activeTab() === 'tickets') {
+      <div class="tab-content fade-in">
 
         @if (ticketsError()) {
           <div class="alert alert-error" role="alert">
@@ -555,7 +573,7 @@
             <span>Loading tickets…</span>
           </div>
         } @else if (tickets().length === 0 && !ticketsError()) {
-          <p class="empty-section">No tickets on record for this booking.</p>
+          <p class="empty-tab">No tickets on record for this booking.</p>
         } @else {
 
           <!-- Active tickets -->
@@ -636,8 +654,7 @@
 
         }
       </div>
-
-    </div><!-- /order-grid -->
+    }
 
   }
 
@@ -905,20 +922,29 @@
           class="debug-tab"
           [class.debug-tab-active]="debugTab() === 'tickets'"
           (click)="switchDebugTab('tickets')">
-          Tickets
+          Ticket rows
         </button>
       </div>
       <div class="debug-modal-body">
         @if (debugTab() === 'order') {
-          @if (debugOrderLoading()) { <div class="debug-loading">Loading…</div> }
-          @else if (debugOrderError()) { <div class="debug-error">{{ debugOrderError() }}</div> }
-          @else { <pre class="debug-pre">{{ debugOrderJson() }}</pre> }
+          @if (debugOrderLoading()) {
+            <div class="debug-loading">Loading…</div>
+          } @else if (debugOrderError()) {
+            <div class="debug-error">{{ debugOrderError() }}</div>
+          } @else {
+            <pre class="debug-pre">{{ debugOrderJson() }}</pre>
+          }
         } @else {
-          @if (debugTicketsLoading()) { <div class="debug-loading">Loading…</div> }
-          @else if (debugTicketsError()) { <div class="debug-error">{{ debugTicketsError() }}</div> }
-          @else { <pre class="debug-pre">{{ debugTicketsJson() }}</pre> }
+          @if (debugTicketsLoading()) {
+            <div class="debug-loading">Loading…</div>
+          } @else if (debugTicketsError()) {
+            <div class="debug-error">{{ debugTicketsError() }}</div>
+          } @else {
+            <pre class="debug-pre">{{ debugTicketsJson() }}</pre>
+          }
         }
       </div>
     </div>
   </div>
 }
+
