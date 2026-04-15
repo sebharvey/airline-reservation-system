@@ -40,7 +40,7 @@
   @if (showForm()) {
     <div class="form-card">
       <div class="form-header">
-        <h2 class="form-title">{{ editing() ? 'Edit Fare Rule' : 'Create Fare Rule' }}</h2>
+        <h2 class="form-title">{{ editing() ? 'Edit Fare Rule' : copying() ? 'Copy Fare Rule' : 'Create Fare Rule' }}</h2>
         <button class="close-btn" (click)="cancelForm()">&times;</button>
       </div>
 
@@ -371,6 +371,7 @@
               <td>
                 <div class="action-btns">
                   <button class="action-btn edit-btn" (click)="openEditForm(rule)" title="Edit">Edit</button>
+                  <button class="action-btn copy-btn" (click)="copyRule(rule)" title="Copy">Copy</button>
                   <button
                     class="action-btn delete-btn"
                     (click)="deleteRule(rule.fareRuleId)"
