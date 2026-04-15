@@ -53,6 +53,13 @@ export class InventoryComponent implements OnInit {
     this.loadInventory();
   }
 
+  changeDay(offset: number): void {
+    const d = new Date(this.selectedDate() + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offset);
+    this.selectedDate.set(d.toISOString().slice(0, 10));
+    this.loadInventory();
+  }
+
   cabinDisplay(cabin: CabinInventory | null): string {
     if (!cabin || cabin.totalSeats === 0) return '—';
     return `${cabin.seatsAvailable}/${cabin.totalSeats}`;

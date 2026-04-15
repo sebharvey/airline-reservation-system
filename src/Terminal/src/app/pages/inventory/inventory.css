@@ -39,6 +39,38 @@
   gap: 4px;
 }
 
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.day-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.day-nav-btn:hover:not(:disabled) {
+  border-color: var(--grad-start, #6366f1);
+  color: var(--grad-start, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.day-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .refresh-btn {
   display: inline-flex;
   align-items: center;
