@@ -145,6 +145,13 @@
                 <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
                   Holds
                 </button>
+                <button
+                  class="disruption-btn"
+                  (click)="openDisruptionModal(flight)"
+                  [disabled]="!canDisrupt(flight)"
+                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.ticketingStatus === 'Closed' ? 'Flight is closed' : 'Manage disruption for this flight'">
+                  Disruption
+                </button>
               </td>
             </tr>
           }
@@ -388,6 +395,119 @@
 
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeHoldsModal()">Close</button>
+    </div>
+  </div>
+}
+
+<!-- Disruption modal -->
+@if (disruptionModalFlight()) {
+  <div class="modal-backdrop" (click)="closeDisruptionModal()"></div>
+  <div class="modal disruption-modal" role="dialog" aria-modal="true" aria-labelledby="disruption-modal-title">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h2 class="modal-title" id="disruption-modal-title">Flight Disruption</h2>
+        <p class="modal-subtitle">
+          {{ disruptionModalFlight()!.flightNumber }} &nbsp;·&nbsp;
+          {{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }} &nbsp;·&nbsp;
+          {{ disruptionModalFlight()!.departureDate }}
+        </p>
+      </div>
+      <button class="modal-close" (click)="closeDisruptionModal()" [disabled]="disruptionLoading()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      @if (disruptionError()) {
+        <div class="error-banner" role="alert">
+          <span>&#9888;</span> {{ disruptionError() }}
+        </div>
+      }
+
+      @if (disruptionStep() === 'action') {
+        <p class="disruption-intro">Select the disruption action to apply to this flight.</p>
+
+        <div class="disruption-actions">
+          <!-- Cancel flight -->
+          <div class="disruption-action-card">
+            <div class="disruption-action-header">
+              <div class="disruption-action-icon disruption-icon-cancel">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </div>
+              <div class="disruption-action-text">
+                <div class="disruption-action-title">Cancel flight</div>
+                <div class="disruption-action-desc">Take the flight off sale immediately. Affected passengers will be rebooked where possible.</div>
+              </div>
+            </div>
+            <button class="btn-danger" (click)="startCancellationConfirm()">Cancel this flight</button>
+          </div>
+
+          <!-- Time change — coming soon -->
+          <div class="disruption-action-card disruption-action-disabled">
+            <div class="disruption-action-header">
+              <div class="disruption-action-icon disruption-icon-delay">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="disruption-action-text">
+                <div class="disruption-action-title">
+                  Change departure time
+                  <span class="badge-coming-soon">Coming soon</span>
+                </div>
+                <div class="disruption-action-desc">Update the scheduled departure and arrival times and notify affected passengers.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (disruptionStep() === 'confirm') {
+        <div class="disruption-confirm">
+          <div class="disruption-warn-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <h3 class="disruption-confirm-title">Confirm flight cancellation</h3>
+          <p class="disruption-confirm-desc">
+            You are about to cancel flight
+            <strong>{{ disruptionModalFlight()!.flightNumber }}</strong>
+            ({{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }})
+            on <strong>{{ disruptionModalFlight()!.departureDate }}</strong>.
+          </p>
+          <ul class="disruption-confirm-effects">
+            <li>The flight will be marked as cancelled immediately</li>
+            <li>No new bookings will be accepted on this flight</li>
+            <li>Affected passengers will need to be rebooked</li>
+            <li>This action cannot be undone</li>
+          </ul>
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer disruption-modal-footer">
+      @if (disruptionStep() === 'action') {
+        <button class="btn-secondary" (click)="closeDisruptionModal()">Close</button>
+      }
+      @if (disruptionStep() === 'confirm') {
+        <button class="btn-secondary" (click)="disruptionStep.set('action')" [disabled]="disruptionLoading()">
+          Go back
+        </button>
+        <button class="btn-danger" (click)="executeCancellation()" [disabled]="disruptionLoading()">
+          @if (disruptionLoading()) {
+            <span class="btn-spinner-white"></span>
+            Cancelling&hellip;
+          } @else {
+            Yes, cancel flight
+          }
+        </button>
+      }
     </div>
   </div>
 }
