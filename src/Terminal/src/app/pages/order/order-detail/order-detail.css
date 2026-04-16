@@ -732,7 +732,7 @@
 }
 
 @media (min-width: 901px) {
-  .order-detail-page { padding: 0; }
+  .order-detail-page { padding: 0; max-width: none; }
 }
 
 /* Tickets tab */

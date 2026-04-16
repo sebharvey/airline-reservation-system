@@ -524,5 +524,5 @@
 }
 
 @media (min-width: 901px) {
-  .products-page { padding: 0; }
+  .products-page { padding: 0; max-width: none; }
 }

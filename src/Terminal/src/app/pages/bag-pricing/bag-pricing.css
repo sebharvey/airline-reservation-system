@@ -456,5 +456,5 @@
 }
 
 @media (min-width: 901px) {
-  .bag-pricing-page { padding: 0; }
+  .bag-pricing-page { padding: 0; max-width: none; }
 }

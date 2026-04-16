@@ -280,5 +280,5 @@
 }
 
 @media (min-width: 901px) {
-  .customer-list-page { padding: 0; }
+  .customer-list-page { padding: 0; max-width: none; }
 }
