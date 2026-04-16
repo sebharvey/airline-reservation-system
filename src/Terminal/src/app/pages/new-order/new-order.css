@@ -999,7 +999,8 @@
   margin-left: auto;
 }
 
-.basket-empty {
+.basket-empty,
+.basket-creating {
   display: flex;
   flex-direction: column;
   align-items: center;

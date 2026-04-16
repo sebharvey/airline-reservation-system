@@ -265,6 +265,12 @@ export class NewOrderService {
     );
   }
 
+  async getBasketSummary(basketId: string): Promise<BasketSummary> {
+    return firstValueFrom(
+      this.#http.get<BasketSummary>(`${this.#retailUrl}/basket/${basketId}/summary`)
+    );
+  }
+
   async getPaymentSummary(basketId: string): Promise<PaymentSummary> {
     return firstValueFrom(
       this.#http.get<PaymentSummary>(`${this.#retailUrl}/basket/${basketId}/payment-summary`)

@@ -674,90 +674,74 @@
 
         <div class="panel-body">
 
-          @if (!selectedOutboundOffer() && !basket() && step() !== 'confirmed') {
-            <div class="basket-empty">
-              <span class="basket-empty-icon">&#128722;</span>
-              <p>No flights selected yet</p>
-            </div>
+          @if (!basket() && step() !== 'confirmed') {
+            @if (loading()) {
+              <div class="basket-creating">
+                <span class="btn-spinner large-spinner"></span>
+                <p>Creating basket&#8230;</p>
+              </div>
+            } @else {
+              <div class="basket-empty">
+                <span class="basket-empty-icon">&#128722;</span>
+                <p>No flights selected yet</p>
+              </div>
+            }
           }
 
-          <!-- Flights section -->
-          @if (selectedOutboundOffer() || basket()) {
+          <!-- Flights section — populated exclusively from the API basket response -->
+          @if (basket()?.flights?.length) {
             <div class="basket-section">
               <p class="basket-section-label">Flights</p>
-
-              @if (basket()?.flights?.length) {
-                @for (flight of basket()!.flights; track flight.offerId) {
-                  <div class="basket-flight-row">
-                    <div class="basket-flight-route">
-                      <span class="bflight-num">{{ flight.flightNumber }}</span>
-                      <span class="bflight-dir">{{ flight.origin }} &#8594; {{ flight.destination }}</span>
-                    </div>
-                    <div class="basket-flight-meta">
-                      <span class="basket-cabin-chip" [class]="cabinClass(flight.cabinCode)">
-                        {{ cabinLabel(flight.cabinCode) }}
-                      </span>
-                      <span class="basket-fare-name">{{ flight.fareFamily }}</span>
-                    </div>
-                    <span class="basket-flight-price">
-                      {{ formatAmount(flight.totalAmount, basket()!.currency) }}
-                    </span>
+              @for (flight of basket()!.flights; track flight.offerId) {
+                <div class="basket-flight-row">
+                  <div class="basket-flight-route">
+                    <span class="bflight-num">{{ flight.flightNumber }}</span>
+                    <span class="bflight-dir">{{ flight.origin }} &#8594; {{ flight.destination }}</span>
                   </div>
-                }
-              } @else {
-                @if (selectedOutboundOffer(); as offer) {
-                  <div class="basket-flight-row">
-                    <div class="basket-flight-route">
-                      <span class="bflight-num">{{ offer.flightNumber }}</span>
-                      <span class="bflight-dir">{{ offer.origin }} &#8594; {{ offer.destination }}</span>
-                    </div>
-                    <div class="basket-flight-meta">
-                      <span class="basket-cabin-chip" [class]="cabinClass(offer.cabinCode)">
-                        {{ cabinLabel(offer.cabinCode) }}
-                      </span>
-                      <span class="basket-fare-name">{{ offer.fareFamily }}</span>
-                    </div>
-                    <span class="basket-flight-price basket-price-pending">
-                      {{ formatAmount(offer.totalAmount, offer.currencyCode) }}
+                  <div class="basket-flight-meta">
+                    <span class="basket-cabin-chip" [class]="cabinClass(flight.cabinCode)">
+                      {{ cabinLabel(flight.cabinCode) }}
                     </span>
+                    <span class="basket-fare-name">{{ flight.fareFamily }}</span>
                   </div>
-                }
-                @if (selectedInboundOffer(); as offer) {
-                  <div class="basket-flight-row">
-                    <div class="basket-flight-route">
-                      <span class="bflight-num">{{ offer.flightNumber }}</span>
-                      <span class="bflight-dir">{{ offer.origin }} &#8594; {{ offer.destination }}</span>
-                    </div>
-                    <div class="basket-flight-meta">
-                      <span class="basket-cabin-chip" [class]="cabinClass(offer.cabinCode)">
-                        {{ cabinLabel(offer.cabinCode) }}
-                      </span>
-                      <span class="basket-fare-name">{{ offer.fareFamily }}</span>
-                    </div>
-                    <span class="basket-flight-price basket-price-pending">
-                      {{ formatAmount(offer.totalAmount, offer.currencyCode) }}
-                    </span>
-                  </div>
-                }
-              }
-            </div>
-          }
-
-          <!-- Passengers section -->
-          @if (passengerForms().length > 0 && (step() === 'payment' || step() === 'confirmed')) {
-            <div class="basket-section">
-              <p class="basket-section-label">Passengers</p>
-              @for (pax of passengerForms(); track pax.passengerId) {
-                <div class="basket-pax-row">
-                  <span class="basket-pax-name">
-                    {{ pax.givenName || '—' }} {{ pax.surname || '—' }}
-                  </span>
-                  <span class="pax-type-chip pax-chip-sm" [class]="'pax-' + pax.type.toLowerCase()">
-                    {{ pax.type }}
+                  <span class="basket-flight-price">
+                    {{ formatAmount(flight.totalAmount, basket()!.currency) }}
                   </span>
                 </div>
               }
             </div>
+          }
+
+          <!-- Passengers section — API payment summary is the source of truth once loaded -->
+          @if (step() === 'payment' || step() === 'confirmed') {
+            @if (paymentSummary()?.passengers?.length) {
+              <div class="basket-section">
+                <p class="basket-section-label">Passengers</p>
+                @for (pax of paymentSummary()!.passengers; track pax.passengerId) {
+                  <div class="basket-pax-row">
+                    <span class="basket-pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+                    <span class="pax-type-chip pax-chip-sm" [class]="'pax-' + pax.type.toLowerCase()">
+                      {{ pax.type }}
+                    </span>
+                  </div>
+                }
+              </div>
+            } @else if (passengerForms().length > 0) {
+              <!-- fallback while payment summary is in-flight -->
+              <div class="basket-section">
+                <p class="basket-section-label">Passengers</p>
+                @for (pax of passengerForms(); track pax.passengerId) {
+                  <div class="basket-pax-row">
+                    <span class="basket-pax-name">
+                      {{ pax.givenName || '—' }} {{ pax.surname || '—' }}
+                    </span>
+                    <span class="pax-type-chip pax-chip-sm" [class]="'pax-' + pax.type.toLowerCase()">
+                      {{ pax.type }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
           }
 
           <!-- Price breakdown -->
