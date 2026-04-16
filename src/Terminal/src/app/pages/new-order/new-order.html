@@ -219,40 +219,51 @@
               @for (group of outboundFlightGroups(); track group.flightNumber + group.departureTime) {
                 <div class="flight-card" [class.flight-card-selected]="isOutboundSelected(group)">
                   <div class="flight-card-top">
-                    <div class="flight-id">
-                      <span class="flight-num">{{ group.flightNumber }}</span>
-                      <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                    <div class="flight-header-row">
+                      <div class="flight-id">
+                        <span class="flight-num">{{ group.flightNumber }}</span>
+                        <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                      </div>
+                      <div class="flight-times">
+                        <span class="time">{{ group.departureTime }}</span>
+                        <span class="flight-route-arrow">
+                          <span class="route-line"></span>
+                          <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                          <span class="route-line"></span>
+                          &#8594;
+                        </span>
+                        <span class="time">
+                          {{ group.arrivalTime }}
+                          @if (group.arrivalDayOffset > 0) {
+                            <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                          }
+                        </span>
+                      </div>
                     </div>
-                    <div class="flight-times">
-                      <span class="time">{{ group.departureTime }}</span>
-                      <span class="flight-route-arrow">
-                        <span class="route-line"></span>
-                        <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
-                        <span class="route-line"></span>
-                        &#8594;
-                      </span>
-                      <span class="time">
-                        {{ group.arrivalTime }}
-                        @if (group.arrivalDayOffset > 0) {
-                          <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
-                        }
-                      </span>
+                    <div class="flight-sub-row">
+                      <span class="airport-codes">{{ group.origin }} &#8594; {{ group.destination }}</span>
                     </div>
-                    <div class="airport-codes">{{ group.origin }} &#8594; {{ group.destination }}</div>
                   </div>
 
-                  <div class="cabin-grid">
-                    @for (offer of group.offers; track offer.offerId) {
-                      <button class="cabin-btn"
-                        [class]="cabinClass(offer.cabinCode)"
-                        [class.cabin-btn-selected]="selectedOutboundOffer()?.offerId === offer.offerId"
-                        [disabled]="loading()"
-                        (click)="selectOutbound(offer)">
-                        <span class="cabin-name">{{ cabinLabel(offer.cabinCode) }}</span>
-                        <span class="cabin-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
-                        <span class="cabin-family">{{ offer.fareFamily }}</span>
-                        <span class="cabin-seats">{{ offer.seatsAvailable }} left</span>
-                      </button>
+                  <div class="fare-list">
+                    @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
+                      <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
+                        <div class="fare-cabin-label">
+                          <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+                        </div>
+                        @for (offer of cg.offers; track offer.offerId) {
+                          <button class="fare-row"
+                            [class.fare-row-selected]="selectedOutboundOffer()?.offerId === offer.offerId"
+                            [disabled]="loading()"
+                            (click)="selectOutbound(offer)">
+                            <span class="fare-row-family">{{ offer.fareFamily }}</span>
+                            <div class="fare-row-right">
+                              <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                              <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
+                            </div>
+                          </button>
+                        }
+                      </div>
                     }
                   </div>
                 </div>
@@ -287,40 +298,51 @@
               @for (group of inboundFlightGroups(); track group.flightNumber + group.departureTime) {
                 <div class="flight-card" [class.flight-card-selected]="isInboundSelected(group)">
                   <div class="flight-card-top">
-                    <div class="flight-id">
-                      <span class="flight-num">{{ group.flightNumber }}</span>
-                      <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                    <div class="flight-header-row">
+                      <div class="flight-id">
+                        <span class="flight-num">{{ group.flightNumber }}</span>
+                        <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                      </div>
+                      <div class="flight-times">
+                        <span class="time">{{ group.departureTime }}</span>
+                        <span class="flight-route-arrow">
+                          <span class="route-line"></span>
+                          <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                          <span class="route-line"></span>
+                          &#8594;
+                        </span>
+                        <span class="time">
+                          {{ group.arrivalTime }}
+                          @if (group.arrivalDayOffset > 0) {
+                            <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                          }
+                        </span>
+                      </div>
                     </div>
-                    <div class="flight-times">
-                      <span class="time">{{ group.departureTime }}</span>
-                      <span class="flight-route-arrow">
-                        <span class="route-line"></span>
-                        <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
-                        <span class="route-line"></span>
-                        &#8594;
-                      </span>
-                      <span class="time">
-                        {{ group.arrivalTime }}
-                        @if (group.arrivalDayOffset > 0) {
-                          <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
-                        }
-                      </span>
+                    <div class="flight-sub-row">
+                      <span class="airport-codes">{{ group.destination }} &#8594; {{ group.origin }}</span>
                     </div>
-                    <div class="airport-codes">{{ group.destination }} &#8594; {{ group.origin }}</div>
                   </div>
 
-                  <div class="cabin-grid">
-                    @for (offer of group.offers; track offer.offerId) {
-                      <button class="cabin-btn"
-                        [class]="cabinClass(offer.cabinCode)"
-                        [class.cabin-btn-selected]="selectedInboundOffer()?.offerId === offer.offerId"
-                        [disabled]="loading()"
-                        (click)="selectInbound(offer)">
-                        <span class="cabin-name">{{ cabinLabel(offer.cabinCode) }}</span>
-                        <span class="cabin-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
-                        <span class="cabin-family">{{ offer.fareFamily }}</span>
-                        <span class="cabin-seats">{{ offer.seatsAvailable }} left</span>
-                      </button>
+                  <div class="fare-list">
+                    @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
+                      <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
+                        <div class="fare-cabin-label">
+                          <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+                        </div>
+                        @for (offer of cg.offers; track offer.offerId) {
+                          <button class="fare-row"
+                            [class.fare-row-selected]="selectedInboundOffer()?.offerId === offer.offerId"
+                            [disabled]="loading()"
+                            (click)="selectInbound(offer)">
+                            <span class="fare-row-family">{{ offer.fareFamily }}</span>
+                            <div class="fare-row-right">
+                              <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                              <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
+                            </div>
+                          </button>
+                        }
+                      </div>
                     }
                   </div>
                 </div>

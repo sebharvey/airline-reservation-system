@@ -398,6 +398,20 @@ export class NewOrderComponent {
 
   // ── Private helpers ──────────────────────────────────────────────────────
 
+  cabinGroups(offers: SearchOffer[]): { cabinCode: string; offers: SearchOffer[] }[] {
+    const groups: { cabinCode: string; offers: SearchOffer[] }[] = [];
+    let current: { cabinCode: string; offers: SearchOffer[] } | null = null;
+    for (const offer of offers) {
+      if (!current || current.cabinCode !== offer.cabinCode) {
+        current = { cabinCode: offer.cabinCode, offers: [offer] };
+        groups.push(current);
+      } else {
+        current.offers.push(offer);
+      }
+    }
+    return groups;
+  }
+
   #groupOffersByFlight(offers: SearchOffer[]): FlightGroup[] {
     const map = new Map<string, FlightGroup>();
     for (const offer of offers) {
@@ -417,9 +431,10 @@ export class NewOrderComponent {
       map.get(key)!.offers.push(offer);
     }
     for (const group of map.values()) {
-      group.offers.sort(
-        (a, b) => (CABIN_ORDER[a.cabinCode] ?? 9) - (CABIN_ORDER[b.cabinCode] ?? 9)
-      );
+      group.offers.sort((a, b) => {
+        const cabinDiff = (CABIN_ORDER[a.cabinCode] ?? 9) - (CABIN_ORDER[b.cabinCode] ?? 9);
+        return cabinDiff !== 0 ? cabinDiff : a.totalAmount - b.totalAmount;
+      });
     }
     return Array.from(map.values()).sort((a, b) =>
       a.departureTime.localeCompare(b.departureTime)

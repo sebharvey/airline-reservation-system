@@ -528,12 +528,23 @@
 }
 
 .flight-card-top {
-  padding: 12px 16px 10px;
+  padding: 10px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.flight-header-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.flight-sub-row {
+  display: flex;
+  align-items: center;
+  padding-left: 2px;
 }
 
 .flight-id {
@@ -614,78 +625,96 @@
   white-space: nowrap;
 }
 
-/* ── Cabin selection grid ────────────────────────────────────── */
-.cabin-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-}
-
-.cabin-btn {
-  flex: 1;
-  min-width: 80px;
+/* ── Fare list (vertical, grouped by cabin) ──────────────────── */
+.fare-list {
   display: flex;
   flex-direction: column;
+}
+
+.fare-cabin-group {
+  border-top: 1px solid var(--border);
+}
+
+.fare-cabin-label {
+  display: flex;
   align-items: center;
-  padding: 10px 8px;
-  background: var(--white);
-  border: none;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  transition: background var(--transition);
-  gap: 2px;
+  padding: 5px 14px 4px;
+  background: var(--bg-light);
 }
 
-.cabin-btn:last-child { border-right: none; }
-
-.cabin-btn:hover:not(:disabled):not(.cabin-btn-selected) { background: var(--bg-light); }
-.cabin-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-
-.cabin-btn-selected {
-  background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
-}
-
-.cabin-name {
-  font-size: 0.7rem;
-  font-weight: 700;
+.fare-cabin-name {
+  font-size: 0.62rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.6px;
   color: var(--text-muted);
 }
 
-.cabin-price {
+.fare-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  background: var(--white);
+  border: none;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  cursor: pointer;
+  transition: background var(--transition);
+  gap: 8px;
+}
+
+.fare-row:hover:not(:disabled):not(.fare-row-selected) { background: var(--bg-light); }
+.fare-row:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.fare-row-selected {
+  background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+}
+
+.fare-row-family {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  text-align: left;
+}
+
+.fare-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.fare-row-price {
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
 }
 
-.cabin-family {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.2;
-}
-
-.cabin-seats {
-  font-size: 0.6rem;
+.fare-row-seats {
+  font-size: 0.62rem;
   color: var(--text-muted);
 }
 
 /* Cabin colour accents */
-.cabin-first   .cabin-name { color: #b8860b; }
-.cabin-first   .cabin-price { color: #b8860b; }
-.cabin-first.cabin-btn-selected { background: rgba(184,134,11,0.06); }
+.fare-cabin-group.cabin-first .fare-cabin-label  { background: rgba(184,134,11,0.05); }
+.fare-cabin-group.cabin-first .fare-cabin-name   { color: #b8860b; }
+.fare-cabin-group.cabin-first .fare-row-price    { color: #b8860b; }
+.fare-cabin-group.cabin-first .fare-row-selected { background: rgba(184,134,11,0.07); }
 
-.cabin-business .cabin-name { color: var(--grad-start); }
-.cabin-business .cabin-price { color: var(--grad-start); }
-.cabin-business.cabin-btn-selected { background: rgba(102,126,234,0.08); }
+.fare-cabin-group.cabin-business .fare-cabin-label  { background: rgba(102,126,234,0.05); }
+.fare-cabin-group.cabin-business .fare-cabin-name   { color: var(--grad-start); }
+.fare-cabin-group.cabin-business .fare-row-price    { color: var(--grad-start); }
+.fare-cabin-group.cabin-business .fare-row-selected { background: rgba(102,126,234,0.08); }
 
-.cabin-premium .cabin-name { color: #10b981; }
-.cabin-premium .cabin-price { color: #10b981; }
-.cabin-premium.cabin-btn-selected { background: rgba(16,185,129,0.06); }
+.fare-cabin-group.cabin-premium .fare-cabin-label  { background: rgba(16,185,129,0.05); }
+.fare-cabin-group.cabin-premium .fare-cabin-name   { color: #10b981; }
+.fare-cabin-group.cabin-premium .fare-row-price    { color: #10b981; }
+.fare-cabin-group.cabin-premium .fare-row-selected { background: rgba(16,185,129,0.07); }
 
-.cabin-economy .cabin-name { color: var(--text-muted); }
+.fare-cabin-group.cabin-economy .fare-cabin-name { color: var(--text-muted); }
 
 /* ── Passenger pane ──────────────────────────────────────────── */
 .pax-pane {
