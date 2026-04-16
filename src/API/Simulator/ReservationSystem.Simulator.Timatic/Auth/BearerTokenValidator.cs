@@ -6,7 +6,7 @@ using System.Text;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 
-namespace Reservation.Simulator.Timatic.Auth;
+namespace ReservationSystem.Simulator.Timatic.Auth;
 
 internal static class BearerTokenValidator
 {

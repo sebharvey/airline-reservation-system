@@ -1,6 +1,6 @@
 // Description: Request and response models for all three IATA Timatic AutoCheck simulator endpoints.
 
-namespace Reservation.Simulator.Timatic.Models;
+namespace ReservationSystem.Simulator.Timatic.Models;
 
 // ── Document Check ─────────────────────────────────────────────────────────────
 
