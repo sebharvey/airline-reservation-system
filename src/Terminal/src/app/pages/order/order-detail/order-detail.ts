@@ -213,6 +213,7 @@ export class OrderDetailComponent implements OnInit {
       Seat: 'item-seat',
       Bag: 'item-bag',
       SSR: 'item-ssr',
+      Product: 'item-product',
     }[type] ?? 'item-other';
   }
 

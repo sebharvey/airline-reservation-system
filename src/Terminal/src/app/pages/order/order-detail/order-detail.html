@@ -310,6 +310,7 @@
                     <td>
                       @if (item.seatNumber) { <span class="mono">{{ item.seatNumber }}</span> }
                       @else if (item.bagWeightKg) { {{ item.bagWeightKg }}kg }
+                      @else if (item.name) { {{ item.name }} }
                       @else { — }
                     </td>
                     <td>

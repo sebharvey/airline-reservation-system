@@ -194,8 +194,35 @@ public sealed class GetAdminOrderDetailHandler
                     ["eTicketNumber"] = null,
                     ["seatNumber"] = seat["seatNumber"]?.GetValue<string>(),
                     ["bagWeightKg"] = null,
+                    ["name"] = null,
                     ["amount"] = seat["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
                     ["currency"] = seat["currency"]?.GetValue<string>(),
+                });
+            }
+        }
+
+        // Append product ancillary items from productItems so the Terminal ancillaries tab
+        // can display purchased products (e.g. lounge access, priority boarding).
+        var productItemsNode = orderData["productItems"]?.AsArray();
+        if (productItemsNode is not null)
+        {
+            foreach (var productNode in productItemsNode)
+            {
+                var product = productNode?.AsObject();
+                if (product is null) continue;
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"] = product["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
+                    ["itemType"] = "Product",
+                    ["passengerId"] = product["passengerId"]?.GetValue<string>(),
+                    ["segmentId"] = product["segmentRef"]?.GetValue<string>(),
+                    ["status"] = "Confirmed",
+                    ["eTicketNumber"] = null,
+                    ["seatNumber"] = null,
+                    ["bagWeightKg"] = null,
+                    ["name"] = product["name"]?.GetValue<string>(),
+                    ["amount"] = product["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                    ["currency"] = product["currency"]?.GetValue<string>(),
                 });
             }
         }

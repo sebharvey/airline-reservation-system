@@ -225,6 +225,8 @@ public sealed class ConfirmOrderHandler
             orderData["bagItems"] = bags.DeepClone();
         if (basketJson["ssrSelections"]?.AsArray() is { Count: > 0 } ssrs)
             orderData["ssrItems"] = ssrs.DeepClone();
+        if (basketJson["products"]?.AsArray() is { Count: > 0 } products)
+            orderData["productItems"] = products.DeepClone();
 
         if (draftData["pointsRedemption"] is JsonNode redemption)
             orderData["pointsRedemption"] = redemption.DeepClone();
