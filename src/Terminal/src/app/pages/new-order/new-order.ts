@@ -63,7 +63,7 @@ export class NewOrderComponent {
   tripType = signal<'one-way' | 'return'>('one-way');
   origin = signal('');
   destination = signal('');
-  outboundDate = signal('');
+  outboundDate = signal(new Date().toISOString().slice(0, 10));
   returnDate = signal('');
   adults = signal(1);
   children = signal(0);
@@ -101,8 +101,11 @@ export class NewOrderComponent {
     this.passengerForms().every(p => p.givenName.trim() && p.surname.trim())
   );
 
+  // ── Accordion (booking panel) ─────────────────────────────────────────────
+  accordionSection = signal<'passengers' | 'seats' | 'payment'>('passengers');
+
   // ── Payment ──────────────────────────────────────────────────────────────
-  payMethod = signal('CreditCard');
+  payMethod = signal<'CreditCard' | 'Cash'>('CreditCard');
   cardNumber = signal('');
   cardExpiry = signal('');
   cardCvv = signal('');
@@ -217,6 +220,7 @@ export class NewOrderComponent {
     try {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
       this.step.set('payment');
+      this.accordionSection.set('payment');
     } catch (err: any) {
       this.error.set(err?.error?.message ?? 'Failed to save passengers. Please try again.');
     } finally {
@@ -229,8 +233,8 @@ export class NewOrderComponent {
   async confirmBooking(): Promise<void> {
     const basketSummary = this.basket();
     if (!basketSummary) return;
-    if (!this.cardNumber() || !this.cardExpiry() || !this.cardCvv() || !this.cardName()) {
-      this.error.set('Please fill in all payment details.');
+    if (this.payMethod() === 'CreditCard' && (!this.cardNumber() || !this.cardExpiry() || !this.cardCvv() || !this.cardName())) {
+      this.error.set('Please fill in all card details.');
       return;
     }
     this.loading.set(true);
@@ -275,6 +279,7 @@ export class NewOrderComponent {
 
   backToPassengers(): void {
     this.step.set('passengers');
+    this.accordionSection.set('passengers');
   }
 
   viewOrder(): void {
@@ -292,10 +297,12 @@ export class NewOrderComponent {
     this.passengerForms.set([]);
     this.confirmed.set(null);
     this.error.set('');
+    this.accordionSection.set('passengers');
     this.cardNumber.set('');
     this.cardExpiry.set('');
     this.cardCvv.set('');
     this.cardName.set('');
+    this.payMethod.set('CreditCard');
   }
 
   // ── Pax counters ─────────────────────────────────────────────────────────
