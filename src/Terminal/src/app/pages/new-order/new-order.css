@@ -528,12 +528,23 @@
 }
 
 .flight-card-top {
-  padding: 12px 16px 10px;
+  padding: 10px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.flight-header-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.flight-sub-row {
+  display: flex;
+  align-items: center;
+  padding-left: 2px;
 }
 
 .flight-id {
@@ -614,78 +625,96 @@
   white-space: nowrap;
 }
 
-/* ── Cabin selection grid ────────────────────────────────────── */
-.cabin-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-}
-
-.cabin-btn {
-  flex: 1;
-  min-width: 80px;
+/* ── Fare list (vertical, grouped by cabin) ──────────────────── */
+.fare-list {
   display: flex;
   flex-direction: column;
+}
+
+.fare-cabin-group {
+  border-top: 1px solid var(--border);
+}
+
+.fare-cabin-label {
+  display: flex;
   align-items: center;
-  padding: 10px 8px;
-  background: var(--white);
-  border: none;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  transition: background var(--transition);
-  gap: 2px;
+  padding: 5px 14px 4px;
+  background: var(--bg-light);
 }
 
-.cabin-btn:last-child { border-right: none; }
-
-.cabin-btn:hover:not(:disabled):not(.cabin-btn-selected) { background: var(--bg-light); }
-.cabin-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-
-.cabin-btn-selected {
-  background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
-}
-
-.cabin-name {
-  font-size: 0.7rem;
-  font-weight: 700;
+.fare-cabin-name {
+  font-size: 0.62rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.6px;
   color: var(--text-muted);
 }
 
-.cabin-price {
+.fare-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  background: var(--white);
+  border: none;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  cursor: pointer;
+  transition: background var(--transition);
+  gap: 8px;
+}
+
+.fare-row:hover:not(:disabled):not(.fare-row-selected) { background: var(--bg-light); }
+.fare-row:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.fare-row-selected {
+  background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+}
+
+.fare-row-family {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  text-align: left;
+}
+
+.fare-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.fare-row-price {
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--text);
   line-height: 1;
 }
 
-.cabin-family {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.2;
-}
-
-.cabin-seats {
-  font-size: 0.6rem;
+.fare-row-seats {
+  font-size: 0.62rem;
   color: var(--text-muted);
 }
 
 /* Cabin colour accents */
-.cabin-first   .cabin-name { color: #b8860b; }
-.cabin-first   .cabin-price { color: #b8860b; }
-.cabin-first.cabin-btn-selected { background: rgba(184,134,11,0.06); }
+.fare-cabin-group.cabin-first .fare-cabin-label  { background: rgba(184,134,11,0.05); }
+.fare-cabin-group.cabin-first .fare-cabin-name   { color: #b8860b; }
+.fare-cabin-group.cabin-first .fare-row-price    { color: #b8860b; }
+.fare-cabin-group.cabin-first .fare-row-selected { background: rgba(184,134,11,0.07); }
 
-.cabin-business .cabin-name { color: var(--grad-start); }
-.cabin-business .cabin-price { color: var(--grad-start); }
-.cabin-business.cabin-btn-selected { background: rgba(102,126,234,0.08); }
+.fare-cabin-group.cabin-business .fare-cabin-label  { background: rgba(102,126,234,0.05); }
+.fare-cabin-group.cabin-business .fare-cabin-name   { color: var(--grad-start); }
+.fare-cabin-group.cabin-business .fare-row-price    { color: var(--grad-start); }
+.fare-cabin-group.cabin-business .fare-row-selected { background: rgba(102,126,234,0.08); }
 
-.cabin-premium .cabin-name { color: #10b981; }
-.cabin-premium .cabin-price { color: #10b981; }
-.cabin-premium.cabin-btn-selected { background: rgba(16,185,129,0.06); }
+.fare-cabin-group.cabin-premium .fare-cabin-label  { background: rgba(16,185,129,0.05); }
+.fare-cabin-group.cabin-premium .fare-cabin-name   { color: #10b981; }
+.fare-cabin-group.cabin-premium .fare-row-price    { color: #10b981; }
+.fare-cabin-group.cabin-premium .fare-row-selected { background: rgba(16,185,129,0.07); }
 
-.cabin-economy .cabin-name { color: var(--text-muted); }
+.fare-cabin-group.cabin-economy .fare-cabin-name { color: var(--text-muted); }
 
 /* ── Passenger pane ──────────────────────────────────────────── */
 .pax-pane {
@@ -999,7 +1028,8 @@
   margin-left: auto;
 }
 
-.basket-empty {
+.basket-empty,
+.basket-creating {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1179,4 +1209,216 @@
 .basket-confirmed-amount {
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+/* ── Booking accordion panel ─────────────────────────────── */
+.booking-panel {
+  /* inherits .panel styles */
+}
+
+.booking-panel-header {
+  justify-content: space-between;
+}
+
+.back-btn-header {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-btn-header:hover { background: rgba(255,255,255,0.25); }
+
+/* ── Accordion ───────────────────────────────────────────── */
+.accordion {
+  display: flex;
+  flex-direction: column;
+}
+
+.accordion-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.accordion-item:last-child { border-bottom: none; }
+
+.accordion-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: var(--white);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+
+.accordion-trigger:hover:not(:disabled) { background: var(--bg-light); }
+.accordion-trigger:disabled { cursor: default; }
+
+.accordion-trigger-na {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: var(--white);
+  cursor: default;
+}
+
+.accordion-item-open > .accordion-trigger { background: var(--bg-light); }
+
+.accordion-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.accordion-item-disabled .accordion-num,
+.accordion-item-locked .accordion-num {
+  background: var(--border);
+  color: var(--text-muted);
+}
+
+.accordion-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+.accordion-item-disabled .accordion-title,
+.accordion-item-locked .accordion-title {
+  color: var(--text-muted);
+}
+
+.accordion-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.accordion-done {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #3fb950;
+  background: rgba(63,185,80,0.1);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.accordion-chevron {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.accordion-item-open > .accordion-trigger .accordion-chevron {
+  transform: rotate(90deg);
+}
+
+.accordion-coming-soon {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* ── Accordion body ──────────────────────────────────────── */
+.accordion-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* ── Payment method toggle ───────────────────────────────── */
+.pay-method-toggle {
+  display: flex;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pay-method-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--white);
+  color: var(--text-muted);
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.pay-method-btn.active {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+}
+
+.pay-method-btn:not(.active):hover {
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+/* ── Cash info ───────────────────────────────────────────── */
+.cash-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(245,158,11,0.07);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 8px;
+}
+
+.cash-info-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.cash-info-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.cash-info-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
 }

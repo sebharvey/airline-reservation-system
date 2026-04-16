@@ -123,6 +123,76 @@ export interface ConfirmResponse {
   }>;
 }
 
+// ── Payment summary ──────────────────────────────────────────────────────────
+
+export interface PaymentSummaryFlight {
+  offerId: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  cabinCode: string;
+  fareFamily: string | null;
+  baseFareAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+}
+
+export interface PaymentSummaryPassenger {
+  passengerId: string;
+  type: string;
+  givenName: string;
+  surname: string;
+}
+
+export interface PaymentSummaryTotals {
+  fareAmount: number;
+  taxAmount: number;
+  seatAmount: number;
+  bagAmount: number;
+  productAmount: number;
+  pointsAmount: number;
+  grandTotal: number;
+}
+
+export interface PaymentSummary {
+  basketId: string;
+  bookingType: string;
+  currency: string;
+  ticketingTimeLimit: string | null;
+  flights: PaymentSummaryFlight[];
+  passengers: PaymentSummaryPassenger[];
+  seatSelections: Array<{
+    passengerId: string;
+    seatNumber: string;
+    seatPosition: string;
+    flightNumber: string;
+    price: number;
+  }>;
+  bagSelections: Array<{
+    passengerId: string;
+    additionalBags: number;
+    flightNumber: string;
+    price: number;
+  }>;
+  totals: PaymentSummaryTotals;
+}
+
+// ── Seat selection ───────────────────────────────────────────────────────────
+
+export interface SeatSelection {
+  seatOfferId: string;
+  passengerRef: string;
+  flightOfferId: string;
+}
+
+export interface SeatUpdateResponse {
+  basketId: string;
+  totalSeatAmount: number;
+  totalAmount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class NewOrderService {
   #http = inject(HttpClient);
@@ -192,6 +262,24 @@ export class NewOrderService {
   async updatePassengers(basketId: string, passengers: BasketPassenger[]): Promise<void> {
     await firstValueFrom(
       this.#http.put(`${this.#retailUrl}/basket/${basketId}/passengers`, { passengers })
+    );
+  }
+
+  async getBasketSummary(basketId: string): Promise<BasketSummary> {
+    return firstValueFrom(
+      this.#http.get<BasketSummary>(`${this.#retailUrl}/basket/${basketId}/summary`)
+    );
+  }
+
+  async getPaymentSummary(basketId: string): Promise<PaymentSummary> {
+    return firstValueFrom(
+      this.#http.get<PaymentSummary>(`${this.#retailUrl}/basket/${basketId}/payment-summary`)
+    );
+  }
+
+  async updateSeats(basketId: string, seatSelections: SeatSelection[]): Promise<SeatUpdateResponse> {
+    return firstValueFrom(
+      this.#http.put<SeatUpdateResponse>(`${this.#retailUrl}/basket/${basketId}/seats`, { seatSelections })
     );
   }
 

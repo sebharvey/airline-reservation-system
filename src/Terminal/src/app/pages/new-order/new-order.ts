@@ -8,6 +8,7 @@ import {
   BasketSummary,
   ConfirmResponse,
   BasketPassenger,
+  PaymentSummary,
 } from '../../services/new-order.service';
 
 interface PassengerForm {
@@ -63,7 +64,7 @@ export class NewOrderComponent {
   tripType = signal<'one-way' | 'return'>('one-way');
   origin = signal('');
   destination = signal('');
-  outboundDate = signal('');
+  outboundDate = signal(new Date().toISOString().slice(0, 10));
   returnDate = signal('');
   adults = signal(1);
   children = signal(0);
@@ -101,12 +102,18 @@ export class NewOrderComponent {
     this.passengerForms().every(p => p.givenName.trim() && p.surname.trim())
   );
 
+  // ── Accordion (booking panel) ─────────────────────────────────────────────
+  accordionSection = signal<'passengers' | 'seats' | 'payment'>('passengers');
+
   // ── Payment ──────────────────────────────────────────────────────────────
-  payMethod = signal('CreditCard');
+  payMethod = signal<'CreditCard' | 'Cash'>('CreditCard');
   cardNumber = signal('');
   cardExpiry = signal('');
   cardCvv = signal('');
   cardName = signal('');
+
+  // ── Payment summary (loaded from API when payment section opens) ─────────
+  paymentSummary = signal<PaymentSummary | null>(null);
 
   // ── Confirmation ─────────────────────────────────────────────────────────
   confirmed = signal<ConfirmResponse | null>(null);
@@ -216,7 +223,15 @@ export class NewOrderComponent {
     this.error.set('');
     try {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
+      // Refresh basket from API so the right column always reflects server state
+      const refreshed = await this.#svc.getBasketSummary(basketSummary.basketId);
+      this.basket.set(refreshed);
       this.step.set('payment');
+      this.accordionSection.set('payment');
+      // Load payment summary from API — non-blocking; basket totals shown as fallback until resolved
+      this.#svc.getPaymentSummary(basketSummary.basketId)
+        .then(s => this.paymentSummary.set(s))
+        .catch(() => { /* non-critical — basket totals shown as fallback */ });
     } catch (err: any) {
       this.error.set(err?.error?.message ?? 'Failed to save passengers. Please try again.');
     } finally {
@@ -229,8 +244,8 @@ export class NewOrderComponent {
   async confirmBooking(): Promise<void> {
     const basketSummary = this.basket();
     if (!basketSummary) return;
-    if (!this.cardNumber() || !this.cardExpiry() || !this.cardCvv() || !this.cardName()) {
-      this.error.set('Please fill in all payment details.');
+    if (this.payMethod() === 'CreditCard' && (!this.cardNumber() || !this.cardExpiry() || !this.cardCvv() || !this.cardName())) {
+      this.error.set('Please fill in all card details.');
       return;
     }
     this.loading.set(true);
@@ -275,6 +290,7 @@ export class NewOrderComponent {
 
   backToPassengers(): void {
     this.step.set('passengers');
+    this.accordionSection.set('passengers');
   }
 
   viewOrder(): void {
@@ -291,11 +307,14 @@ export class NewOrderComponent {
     this.basket.set(null);
     this.passengerForms.set([]);
     this.confirmed.set(null);
+    this.paymentSummary.set(null);
     this.error.set('');
+    this.accordionSection.set('passengers');
     this.cardNumber.set('');
     this.cardExpiry.set('');
     this.cardCvv.set('');
     this.cardName.set('');
+    this.payMethod.set('CreditCard');
   }
 
   // ── Pax counters ─────────────────────────────────────────────────────────
@@ -379,6 +398,20 @@ export class NewOrderComponent {
 
   // ── Private helpers ──────────────────────────────────────────────────────
 
+  cabinGroups(offers: SearchOffer[]): { cabinCode: string; offers: SearchOffer[] }[] {
+    const groups: { cabinCode: string; offers: SearchOffer[] }[] = [];
+    let current: { cabinCode: string; offers: SearchOffer[] } | null = null;
+    for (const offer of offers) {
+      if (!current || current.cabinCode !== offer.cabinCode) {
+        current = { cabinCode: offer.cabinCode, offers: [offer] };
+        groups.push(current);
+      } else {
+        current.offers.push(offer);
+      }
+    }
+    return groups;
+  }
+
   #groupOffersByFlight(offers: SearchOffer[]): FlightGroup[] {
     const map = new Map<string, FlightGroup>();
     for (const offer of offers) {
@@ -398,9 +431,10 @@ export class NewOrderComponent {
       map.get(key)!.offers.push(offer);
     }
     for (const group of map.values()) {
-      group.offers.sort(
-        (a, b) => (CABIN_ORDER[a.cabinCode] ?? 9) - (CABIN_ORDER[b.cabinCode] ?? 9)
-      );
+      group.offers.sort((a, b) => {
+        const cabinDiff = (CABIN_ORDER[a.cabinCode] ?? 9) - (CABIN_ORDER[b.cabinCode] ?? 9);
+        return cabinDiff !== 0 ? cabinDiff : a.totalAmount - b.totalAmount;
+      });
     }
     return Array.from(map.values()).sort((a, b) =>
       a.departureTime.localeCompare(b.departureTime)
