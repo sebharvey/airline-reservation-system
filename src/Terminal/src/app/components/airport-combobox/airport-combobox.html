@@ -1,0 +1,35 @@
+<div class="airport-combobox" [class.open]="isOpen">
+  <div class="combobox-input-wrap">
+    <input
+      [id]="inputId"
+      type="text"
+      [placeholder]="placeholder"
+      [(ngModel)]="query"
+      [name]="inputId"
+      autocomplete="off"
+      [disabled]="isDisabled"
+      (input)="onQueryInput()"
+      (focus)="isOpen = true"
+    />
+    <button type="button" class="combobox-toggle" (click)="toggle()" tabindex="-1" aria-label="Show airports">
+      <span class="chevron" [class.up]="isOpen">&#x2303;</span>
+    </button>
+  </div>
+  @if (isOpen) {
+    <ul class="combobox-list" role="listbox">
+      @for (airport of suggestions; track airport.code) {
+        <li
+          role="option"
+          [class.selected]="airport.code === selectedCode"
+          (mousedown)="select(airport)">
+          <span class="airport-code">{{ airport.code }}</span>
+          <span class="airport-city">{{ airport.city }}</span>
+          <span class="airport-name">{{ airport.name }}</span>
+        </li>
+      }
+      @if (suggestions.length === 0) {
+        <li class="no-results">No airports found</li>
+      }
+    </ul>
+  }
+</div>

@@ -68,22 +68,25 @@
           <!-- Origin / Destination -->
           <div class="route-row">
             <div class="form-group flex-1">
-              <label class="form-label">From</label>
-              <input class="form-input iata-input" type="text" placeholder="LHR"
-                [value]="origin()"
-                (input)="origin.set($any($event.target).value.toUpperCase())"
-                maxlength="3" />
+              <label class="form-label" for="origin-input">From</label>
+              <app-airport-combobox
+                inputId="origin-input"
+                placeholder="City or airport"
+                [ngModel]="origin()"
+                (ngModelChange)="origin.set($event)"
+                name="origin">
+              </app-airport-combobox>
             </div>
-            <button class="swap-btn" title="Swap airports"
-              (click)="swapAirports()">
-              ⇄
-            </button>
+            <button class="swap-btn" title="Swap airports" (click)="swapAirports()">⇄</button>
             <div class="form-group flex-1">
-              <label class="form-label">To</label>
-              <input class="form-input iata-input" type="text" placeholder="JFK"
-                [value]="destination()"
-                (input)="destination.set($any($event.target).value.toUpperCase())"
-                maxlength="3" />
+              <label class="form-label" for="destination-input">To</label>
+              <app-airport-combobox
+                inputId="destination-input"
+                placeholder="City or airport"
+                [ngModel]="destination()"
+                (ngModelChange)="destination.set($event)"
+                name="destination">
+              </app-airport-combobox>
             </div>
           </div>
 

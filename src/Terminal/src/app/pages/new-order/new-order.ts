@@ -1,4 +1,6 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
 import { Router } from '@angular/router';
 import {
   NewOrderService,
@@ -37,12 +39,25 @@ const CABIN_ORDER: Record<string, number> = { F: 0, J: 1, W: 2, Y: 3 };
 
 @Component({
   selector: 'app-new-order',
+  imports: [FormsModule, AirportComboboxComponent],
   templateUrl: './new-order.html',
   styleUrl: './new-order.css',
 })
 export class NewOrderComponent {
   #svc = inject(NewOrderService);
   #router = inject(Router);
+
+  constructor() {
+    // Auto-set return date to +14 days when outbound date changes, if return date is not yet set.
+    effect(() => {
+      const outbound = this.outboundDate();
+      if (outbound && !this.returnDate()) {
+        const d = new Date(outbound + 'T00:00:00');
+        d.setDate(d.getDate() + 14);
+        this.returnDate.set(d.toISOString().slice(0, 10));
+      }
+    });
+  }
 
   // ── Search form ──────────────────────────────────────────────────────────
   tripType = signal<'one-way' | 'return'>('one-way');
