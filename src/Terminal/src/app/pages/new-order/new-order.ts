@@ -62,8 +62,8 @@ export class NewOrderComponent {
 
   // ── Search form ──────────────────────────────────────────────────────────
   tripType = signal<'one-way' | 'return'>('one-way');
-  origin = signal('');
-  destination = signal('');
+  origin = signal('LHR');
+  destination = signal('JFK');
   outboundDate = signal(new Date().toISOString().slice(0, 10));
   returnDate = signal('');
   adults = signal(1);
