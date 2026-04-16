@@ -478,9 +478,13 @@
                 [disabled]="step() !== 'payment'">
                 <span class="accordion-num">3</span>
                 <span class="accordion-title">Payment</span>
-                @if (basket() && step() === 'payment') {
+                @if (step() === 'payment') {
                   <span class="accordion-meta">
-                    {{ formatAmount(basket()!.totalPrice, basket()!.currency) }}
+                    @if (paymentSummary()) {
+                      {{ formatAmount(paymentSummary()!.totals.grandTotal, paymentSummary()!.currency) }}
+                    } @else if (basket()) {
+                      {{ formatAmount(basket()!.totalPrice, basket()!.currency) }}
+                    }
                   </span>
                 }
                 <span class="accordion-chevron">&#8250;</span>
@@ -488,6 +492,45 @@
 
               @if (accordionSection() === 'payment' && step() === 'payment') {
                 <div class="accordion-body">
+
+                  <!-- Amount due summary -->
+                  @if (paymentSummary()) {
+                    <div class="basket-totals">
+                      <div class="total-line">
+                        <span>Fare</span>
+                        <span>{{ formatAmount(paymentSummary()!.totals.fareAmount, paymentSummary()!.currency) }}</span>
+                      </div>
+                      @if (paymentSummary()!.totals.taxAmount > 0) {
+                        <div class="total-line">
+                          <span>Taxes &amp; fees</span>
+                          <span>{{ formatAmount(paymentSummary()!.totals.taxAmount, paymentSummary()!.currency) }}</span>
+                        </div>
+                      }
+                      @if (paymentSummary()!.totals.seatAmount > 0) {
+                        <div class="total-line">
+                          <span>Seats</span>
+                          <span>{{ formatAmount(paymentSummary()!.totals.seatAmount, paymentSummary()!.currency) }}</span>
+                        </div>
+                      }
+                      @if (paymentSummary()!.totals.bagAmount > 0) {
+                        <div class="total-line">
+                          <span>Bags</span>
+                          <span>{{ formatAmount(paymentSummary()!.totals.bagAmount, paymentSummary()!.currency) }}</span>
+                        </div>
+                      }
+                      <div class="total-line total-grand">
+                        <span>Total due</span>
+                        <span>{{ formatAmount(paymentSummary()!.totals.grandTotal, paymentSummary()!.currency) }}</span>
+                      </div>
+                    </div>
+                  } @else if (basket()) {
+                    <div class="basket-totals">
+                      <div class="total-line total-grand">
+                        <span>Total due</span>
+                        <span>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</span>
+                      </div>
+                    </div>
+                  }
 
                   <!-- Payment method toggle -->
                   <div class="pay-method-toggle">
@@ -549,7 +592,13 @@
                       <div>
                         <p class="cash-info-title">Cash payment selected</p>
                         <p class="cash-info-desc">
-                          Collect {{ formatAmount(basket()!.totalPrice, basket()!.currency) }} from the customer at the point of service.
+                          Collect
+                          @if (paymentSummary()) {
+                            {{ formatAmount(paymentSummary()!.totals.grandTotal, paymentSummary()!.currency) }}
+                          } @else if (basket()) {
+                            {{ formatAmount(basket()!.totalPrice, basket()!.currency) }}
+                          }
+                          from the customer at the point of service.
                         </p>
                       </div>
                     </div>

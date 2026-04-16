@@ -8,6 +8,7 @@ import {
   BasketSummary,
   ConfirmResponse,
   BasketPassenger,
+  PaymentSummary,
 } from '../../services/new-order.service';
 
 interface PassengerForm {
@@ -110,6 +111,9 @@ export class NewOrderComponent {
   cardExpiry = signal('');
   cardCvv = signal('');
   cardName = signal('');
+
+  // ── Payment summary (loaded from API when payment section opens) ─────────
+  paymentSummary = signal<PaymentSummary | null>(null);
 
   // ── Confirmation ─────────────────────────────────────────────────────────
   confirmed = signal<ConfirmResponse | null>(null);
@@ -221,6 +225,10 @@ export class NewOrderComponent {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
       this.step.set('payment');
       this.accordionSection.set('payment');
+      // Load payment summary from API — non-blocking; accordion renders basket fallback until resolved
+      this.#svc.getPaymentSummary(basketSummary.basketId)
+        .then(s => this.paymentSummary.set(s))
+        .catch(() => { /* non-critical — basket totals shown as fallback */ });
     } catch (err: any) {
       this.error.set(err?.error?.message ?? 'Failed to save passengers. Please try again.');
     } finally {
@@ -296,6 +304,7 @@ export class NewOrderComponent {
     this.basket.set(null);
     this.passengerForms.set([]);
     this.confirmed.set(null);
+    this.paymentSummary.set(null);
     this.error.set('');
     this.accordionSection.set('passengers');
     this.cardNumber.set('');
