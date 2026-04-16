@@ -134,7 +134,6 @@ public sealed class SqlOfferRepository : IOfferRepository
               AND  fi.DepartureDate = @DepartureDate
               AND  fi.Status        = 'Active'
               AND  fi.SeatsAvailable >= @PaxCount
-              AND  DATEADD(day, DATEDIFF(day, 0, fi.DepartureDate), CAST(fi.DepartureTime AS DATETIME)) > DATEADD(hour, 1, GETUTCDATE())
             ORDER BY fi.DepartureTime;
             """;
 
