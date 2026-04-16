@@ -151,6 +151,51 @@ export class InventoryComponent implements OnInit {
     this.holdsModalFlight.set(null);
   }
 
+  // Disruption modal
+  disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
+  disruptionStep = signal<'action' | 'confirm'>('action');
+  disruptionLoading = signal(false);
+  disruptionError = signal('');
+
+  canDisrupt(flight: FlightInventoryGroup): boolean {
+    return flight.status !== 'Cancelled' && flight.ticketingStatus !== 'Closed';
+  }
+
+  openDisruptionModal(flight: FlightInventoryGroup): void {
+    this.disruptionModalFlight.set(flight);
+    this.disruptionStep.set('action');
+    this.disruptionError.set('');
+  }
+
+  closeDisruptionModal(): void {
+    if (this.disruptionLoading()) return;
+    this.disruptionModalFlight.set(null);
+  }
+
+  startCancellationConfirm(): void {
+    this.disruptionStep.set('confirm');
+    this.disruptionError.set('');
+  }
+
+  async executeCancellation(): Promise<void> {
+    const flight = this.disruptionModalFlight();
+    if (!flight) return;
+    this.disruptionLoading.set(true);
+    this.disruptionError.set('');
+    try {
+      await this.#inventoryService.cancelFlightInventory(
+        flight.flightNumber,
+        flight.departureDate
+      );
+      this.disruptionModalFlight.set(null);
+      await this.loadInventory();
+    } catch {
+      this.disruptionError.set('Failed to cancel flight. Please try again.');
+    } finally {
+      this.disruptionLoading.set(false);
+    }
+  }
+
   holdStatusClass(status: string): string {
     return status === 'Confirmed' ? 'badge-active' : 'badge-held';
   }

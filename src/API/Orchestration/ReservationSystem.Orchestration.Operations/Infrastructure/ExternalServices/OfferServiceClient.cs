@@ -159,4 +159,24 @@ public sealed class OfferServiceClient
         var result = await response.Content.ReadFromJsonAsync<CreateFareDto>(JsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("Empty response from Offer MS create fare.");
     }
+
+    public async Task CancelFlightInventoryAsync(
+        string flightNumber,
+        string departureDate,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { flightNumber, departureDate };
+        var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/cancel", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No active inventory found for flight {flightNumber} on {departureDate}.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+    }
 }
