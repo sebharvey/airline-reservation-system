@@ -25,5 +25,5 @@ public sealed class JwtOptions
     public string Audience { get; init; } = "apex-air-reservation";
 
     /// <summary>Access token lifetime in minutes.</summary>
-    public int AccessTokenExpiryMinutes { get; init; } = 15;
+    public int AccessTokenExpiryMinutes { get; init; } = 480;
 }
