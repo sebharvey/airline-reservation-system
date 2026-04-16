@@ -5,6 +5,7 @@ import { environment } from '../environment';
 
 export interface SearchOffer {
   offerId: string;
+  sessionId: string;
   flightNumber: string;
   departureDate: string;
   departureTime: string;
@@ -31,30 +32,54 @@ export interface SearchResponse {
 
 // ── API response shapes ───────────────────────────────────────────────────────
 
-interface ApiSliceOffer {
+interface ApiFareOffer {
   offerId: string;
+  fareBasisCode: string;
+  basePrice: number;
+  tax: number;
+  totalPrice: number;
+  currency: string;
+  isRefundable: boolean;
+  isChangeable: boolean;
+}
+
+interface ApiFareFamilyOffer {
+  fareFamily: string;
+  offer: ApiFareOffer;
+}
+
+interface ApiCabin {
+  cabinCode: string;
+  availableSeats: number;
+  fromPrice: number;
+  currency: string;
+  fromPoints: number | null;
+  fareFamilies: ApiFareFamilyOffer[];
+}
+
+interface ApiLeg {
+  sessionId: string;
+  inventoryId: string;
   flightNumber: string;
+  origin: string;
+  destination: string;
   departureDate: string;
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
-  origin: string;
-  destination: string;
   aircraftType: string;
-  cabinCode: string;
-  fareBasisCode: string;
-  fareFamily: string;
-  currencyCode: string;
-  baseFareAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-  isRefundable: boolean;
-  isChangeable: boolean;
-  seatsAvailable: number;
+  cabins: ApiCabin[];
+}
+
+interface ApiItinerary {
+  legs: ApiLeg[];
+  connectionDurationMinutes: number | null;
+  combinedFromPrice: number;
+  currency: string;
 }
 
 interface ApiSliceSearchResponse {
-  offers: ApiSliceOffer[];
+  itineraries: ApiItinerary[];
 }
 
 export interface BasketPassenger {
@@ -197,34 +222,44 @@ export class NewOrderService {
       })
     );
 
-    const offers: SearchOffer[] = (res.offers ?? []).map(o => ({
-      offerId: o.offerId,
-      flightNumber: o.flightNumber,
-      departureDate: o.departureDate,
-      departureTime: o.departureTime,
-      arrivalTime: o.arrivalTime,
-      arrivalDayOffset: o.arrivalDayOffset,
-      origin: o.origin,
-      destination: o.destination,
-      aircraftType: o.aircraftType,
-      cabinCode: o.cabinCode,
-      fareBasisCode: o.fareBasisCode,
-      fareFamily: o.fareFamily,
-      currencyCode: o.currencyCode,
-      baseFareAmount: o.baseFareAmount,
-      taxAmount: o.taxAmount,
-      totalAmount: o.totalAmount,
-      isRefundable: o.isRefundable,
-      isChangeable: o.isChangeable,
-      seatsAvailable: o.seatsAvailable,
-    }));
+    const offers: SearchOffer[] = [];
+    for (const itinerary of res.itineraries ?? []) {
+      for (const leg of itinerary.legs ?? []) {
+        for (const cabin of leg.cabins ?? []) {
+          for (const ff of cabin.fareFamilies ?? []) {
+            offers.push({
+              offerId: ff.offer.offerId,
+              sessionId: leg.sessionId,
+              flightNumber: leg.flightNumber,
+              departureDate: leg.departureDate,
+              departureTime: leg.departureTime,
+              arrivalTime: leg.arrivalTime,
+              arrivalDayOffset: leg.arrivalDayOffset,
+              origin: leg.origin,
+              destination: leg.destination,
+              aircraftType: leg.aircraftType,
+              cabinCode: cabin.cabinCode,
+              seatsAvailable: cabin.availableSeats,
+              fareFamily: ff.fareFamily,
+              fareBasisCode: ff.offer.fareBasisCode,
+              currencyCode: ff.offer.currency,
+              baseFareAmount: ff.offer.basePrice,
+              taxAmount: ff.offer.tax,
+              totalAmount: ff.offer.totalPrice,
+              isRefundable: ff.offer.isRefundable,
+              isChangeable: ff.offer.isChangeable,
+            });
+          }
+        }
+      }
+    }
     return { offers };
   }
 
-  async createBasket(offerIds: string[], passengerCount: number): Promise<BasketSummary> {
+  async createBasket(segments: { offerId: string; sessionId: string }[], passengerCount: number): Promise<BasketSummary> {
     return firstValueFrom(
       this.#http.post<BasketSummary>(`${this.#retailUrl}/basket`, {
-        segments: offerIds.map(offerId => ({ offerId })),
+        segments: segments.map(s => ({ offerId: s.offerId, sessionId: s.sessionId })),
         passengerCount,
         currency: 'GBP',
         bookingType: 'Revenue',
