@@ -336,5 +336,5 @@
 }
 
 @media (min-width: 901px) {
-  .product-groups-page { padding: 0; }
+  .product-groups-page { padding: 0; max-width: none; }
 }

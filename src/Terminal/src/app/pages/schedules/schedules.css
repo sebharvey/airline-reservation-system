@@ -399,7 +399,7 @@
 }
 
 @media (min-width: 901px) {
-  .schedules-page { padding: 0; }
+  .schedules-page { padding: 0; max-width: none; }
 }
 
 /* Header actions */

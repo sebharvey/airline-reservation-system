@@ -621,5 +621,5 @@ select.field-input {
 }
 
 @media (min-width: 901px) {
-  .customer-detail-page { padding: 0; }
+  .customer-detail-page { padding: 0; max-width: none; }
 }

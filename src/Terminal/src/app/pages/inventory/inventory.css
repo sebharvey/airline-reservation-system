@@ -361,7 +361,7 @@
 }
 
 @media (min-width: 901px) {
-  .inventory-page { padding: 0; }
+  .inventory-page { padding: 0; max-width: none; }
 }
 
 /* Action column — holds + disruption buttons */

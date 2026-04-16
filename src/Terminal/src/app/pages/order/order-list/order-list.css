@@ -308,5 +308,5 @@
 }
 
 @media (min-width: 901px) {
-  .order-list-page { padding: 0; }
+  .order-list-page { padding: 0; max-width: none; }
 }

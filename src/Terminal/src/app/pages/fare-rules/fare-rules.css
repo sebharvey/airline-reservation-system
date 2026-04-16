@@ -716,5 +716,5 @@
 }
 
 @media (min-width: 901px) {
-  .fare-rules-page { padding: 0; }
+  .fare-rules-page { padding: 0; max-width: none; }
 }

@@ -512,5 +512,5 @@
 }
 
 @media (min-width: 901px) {
-  .seating-page { padding: 0; }
+  .seating-page { padding: 0; max-width: none; }
 }

@@ -396,5 +396,5 @@
 }
 
 @media (min-width: 901px) {
-  .bag-policy-page { padding: 0; }
+  .bag-policy-page { padding: 0; max-width: none; }
 }
