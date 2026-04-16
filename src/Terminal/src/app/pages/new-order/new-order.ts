@@ -226,9 +226,6 @@ export class NewOrderComponent {
     this.error.set('');
     try {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
-      // Refresh basket from API so the right column always reflects server state
-      const refreshed = await this.#svc.getBasketSummary(basketSummary.basketId);
-      this.basket.set(refreshed);
       this.step.set('payment');
       this.accordionSection.set('payment');
       // Load payment summary from API — non-blocking; basket totals shown as fallback until resolved
