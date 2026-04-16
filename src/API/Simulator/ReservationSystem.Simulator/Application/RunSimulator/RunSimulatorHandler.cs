@@ -9,7 +9,7 @@ namespace ReservationSystem.Simulator.Application.RunSimulator;
 /// Creates 1–6 confirmed orders per run across random routes over the next 48 hours.
 /// Most bookings are return trips. Cabin selection favours Economy, then Premium Economy,
 /// then Business. SSRs are added on roughly a third of bookings.
-/// Intended to be invoked by a scheduled timer trigger every 20 minutes.
+/// Intended to be invoked by a scheduled timer trigger every 10 minutes.
 /// </summary>
 public sealed class RunSimulatorHandler
 {
