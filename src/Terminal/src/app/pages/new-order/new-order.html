@@ -136,13 +136,6 @@
             }
           </button>
 
-          <!-- New search shortcut when mid-flow -->
-          @if (step() !== 'search') {
-            <button class="link-btn" (click)="startOver()">
-              &#8592; Start new search
-            </button>
-          }
-
         </div>
       </div>
     </aside>
@@ -152,181 +145,177 @@
          ════════════════════════════════════════════════════════════ -->
     <main class="col col-middle">
 
-      <!-- ── IDLE placeholder ── -->
-      @if (step() === 'search') {
-        <div class="empty-state">
-          <div class="empty-icon">✈</div>
-          <h3>Search for flights</h3>
-          <p>Fill in the search form and click "Search Flights" to find available options.</p>
-        </div>
-      }
-
-      <!-- ── OUTBOUND RESULTS ── -->
-      @if (step() === 'outbound-results') {
-        <div class="panel fade-in">
+      <!-- ── FLIGHT RESULTS PANEL (visible from initial search through results selection) ── -->
+      @if (step() === 'search' || step() === 'outbound-results' || step() === 'inbound-results') {
+        <div class="panel">
           <div class="panel-header">
-            <span>&#9992;</span> Outbound Flights
-            <button class="back-btn" (click)="backToSearch()">&#8592; Search</button>
+            <span>&#9992;</span>
+            @if (step() === 'inbound-results') { Return Flights }
+            @else if (step() === 'outbound-results') { Outbound Flights }
+            @else { Flights }
           </div>
           <div class="panel-body">
-            <p class="results-meta">
-              <strong>{{ origin() }} &#8594; {{ destination() }}</strong>
-              &nbsp;·&nbsp; {{ formatDate(outboundDate()) }}
-              &nbsp;·&nbsp; {{ totalPax() }} pax
-            </p>
 
-            @if (loading()) {
-              <div class="loading-pane">
-                <span class="btn-spinner large-spinner"></span>
-                <p>Finding return flights&#8230;</p>
+            @if (step() === 'search') {
+              <div class="empty-state">
+                <div class="empty-icon">✈</div>
+                <h3>Search for flights</h3>
+                <p>Fill in the search form and click "Search Flights" to find available options.</p>
               </div>
-            } @else if (outboundFlightGroups().length === 0) {
-              <div class="no-results">
-                <span class="no-results-icon">&#128683;</span>
-                <p>No flights found for this route and date. Try a different date.</p>
-              </div>
-            } @else {
-              <div class="flight-list">
-                @for (group of outboundFlightGroups(); track group.flightNumber + group.departureTime) {
-                  <div class="flight-card" [class.flight-card-selected]="isOutboundSelected(group)">
-                    <div class="flight-card-top">
-                      <div class="flight-header-row">
-                        <div class="flight-id">
-                          <span class="flight-num">{{ group.flightNumber }}</span>
-                          <span class="aircraft-chip">{{ group.aircraftType }}</span>
-                        </div>
-                        <div class="flight-times">
-                          <span class="time">{{ group.departureTime }}</span>
-                          <span class="flight-route-arrow">
-                            <span class="route-line"></span>
-                            <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
-                            <span class="route-line"></span>
-                            &#8594;
-                          </span>
-                          <span class="time">
-                            {{ group.arrivalTime }}
-                            @if (group.arrivalDayOffset > 0) {
-                              <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
-                            }
-                          </span>
-                        </div>
-                      </div>
-                      <div class="flight-sub-row">
-                        <span class="airport-codes">{{ group.origin }} &#8594; {{ group.destination }}</span>
-                      </div>
-                    </div>
+            }
 
-                    <div class="fare-list">
-                      @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
-                        <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
-                          <div class="fare-cabin-label">
-                            <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+            @if (step() === 'outbound-results') {
+              <p class="results-meta">
+                <strong>{{ origin() }} &#8594; {{ destination() }}</strong>
+                &nbsp;·&nbsp; {{ formatDate(outboundDate()) }}
+                &nbsp;·&nbsp; {{ totalPax() }} pax
+              </p>
+
+              @if (loading()) {
+                <div class="loading-pane">
+                  <span class="btn-spinner large-spinner"></span>
+                  <p>Searching&#8230;</p>
+                </div>
+              } @else if (outboundFlightGroups().length === 0) {
+                <div class="no-results">
+                  <span class="no-results-icon">&#128683;</span>
+                  <p>No flights found for this route and date. Try a different date.</p>
+                </div>
+              } @else {
+                <div class="flight-list">
+                  @for (group of outboundFlightGroups(); track group.flightNumber + group.departureTime) {
+                    <div class="flight-card" [class.flight-card-selected]="isOutboundSelected(group)">
+                      <div class="flight-card-top">
+                        <div class="flight-header-row">
+                          <div class="flight-id">
+                            <span class="flight-num">{{ group.flightNumber }}</span>
+                            <span class="aircraft-chip">{{ group.aircraftType }}</span>
                           </div>
-                          @for (offer of cg.offers; track offer.offerId) {
-                            <button class="fare-row"
-                              [class.fare-row-selected]="selectedOutboundOffer()?.offerId === offer.offerId"
-                              [disabled]="loading()"
-                              (click)="selectOutbound(offer)">
-                              <span class="fare-row-family">{{ offer.fareFamily }}</span>
-                              <div class="fare-row-right">
-                                <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
-                                <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
-                              </div>
-                            </button>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- ── INBOUND RESULTS (return) ── -->
-      @if (step() === 'inbound-results') {
-        <div class="panel fade-in">
-          <div class="panel-header">
-            <span>&#9992;</span> Return Flights
-            <button class="back-btn" (click)="backToOutboundResults()">&#8592; Outbound</button>
-          </div>
-          <div class="panel-body">
-            <p class="results-meta">
-              <strong>{{ destination() }} &#8594; {{ origin() }}</strong>
-              &nbsp;·&nbsp; {{ formatDate(returnDate()) }}
-              &nbsp;·&nbsp; {{ totalPax() }} pax
-            </p>
-
-            @if (inboundFlightGroups().length === 0) {
-              <div class="no-results">
-                <span class="no-results-icon">&#128683;</span>
-                <p>No return flights found for this route and date. Try a different date.</p>
-              </div>
-            } @else {
-              <div class="flight-list">
-                @for (group of inboundFlightGroups(); track group.flightNumber + group.departureTime) {
-                  <div class="flight-card" [class.flight-card-selected]="isInboundSelected(group)">
-                    <div class="flight-card-top">
-                      <div class="flight-header-row">
-                        <div class="flight-id">
-                          <span class="flight-num">{{ group.flightNumber }}</span>
-                          <span class="aircraft-chip">{{ group.aircraftType }}</span>
-                        </div>
-                        <div class="flight-times">
-                          <span class="time">{{ group.departureTime }}</span>
-                          <span class="flight-route-arrow">
-                            <span class="route-line"></span>
-                            <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
-                            <span class="route-line"></span>
-                            &#8594;
-                          </span>
-                          <span class="time">
-                            {{ group.arrivalTime }}
-                            @if (group.arrivalDayOffset > 0) {
-                              <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
-                            }
-                          </span>
-                        </div>
-                      </div>
-                      <div class="flight-sub-row">
-                        <span class="airport-codes">{{ group.destination }} &#8594; {{ group.origin }}</span>
-                      </div>
-                    </div>
-
-                    <div class="fare-list">
-                      @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
-                        <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
-                          <div class="fare-cabin-label">
-                            <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+                          <div class="flight-times">
+                            <span class="time">{{ group.departureTime }}</span>
+                            <span class="flight-route-arrow">
+                              <span class="route-line"></span>
+                              <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                              <span class="route-line"></span>
+                              &#8594;
+                            </span>
+                            <span class="time">
+                              {{ group.arrivalTime }}
+                              @if (group.arrivalDayOffset > 0) {
+                                <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                              }
+                            </span>
                           </div>
-                          @for (offer of cg.offers; track offer.offerId) {
-                            <button class="fare-row"
-                              [class.fare-row-selected]="selectedInboundOffer()?.offerId === offer.offerId"
-                              [disabled]="loading()"
-                              (click)="selectInbound(offer)">
-                              <span class="fare-row-family">{{ offer.fareFamily }}</span>
-                              <div class="fare-row-right">
-                                <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
-                                <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
-                              </div>
-                            </button>
-                          }
                         </div>
-                      }
+                        <div class="flight-sub-row">
+                          <span class="airport-codes">{{ group.origin }} &#8594; {{ group.destination }}</span>
+                        </div>
+                      </div>
+
+                      <div class="fare-list">
+                        @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
+                          <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
+                            <div class="fare-cabin-label">
+                              <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+                            </div>
+                            @for (offer of cg.offers; track offer.offerId) {
+                              <button class="fare-row"
+                                [class.fare-row-selected]="selectedOutboundOffer()?.offerId === offer.offerId"
+                                [disabled]="loading()"
+                                (click)="selectOutbound(offer)">
+                                <span class="fare-row-family">{{ offer.fareFamily }}</span>
+                                <div class="fare-row-right">
+                                  <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                                  <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
+                                </div>
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
                     </div>
-                  </div>
-                }
-              </div>
+                  }
+                </div>
+              }
             }
 
-            @if (loading()) {
-              <div class="loading-pane">
-                <span class="btn-spinner large-spinner"></span>
-                <p>Creating basket&#8230;</p>
-              </div>
+            @if (step() === 'inbound-results') {
+              <p class="results-meta">
+                <strong>{{ destination() }} &#8594; {{ origin() }}</strong>
+                &nbsp;·&nbsp; {{ formatDate(returnDate()) }}
+                &nbsp;·&nbsp; {{ totalPax() }} pax
+              </p>
+
+              @if (inboundFlightGroups().length === 0) {
+                <div class="no-results">
+                  <span class="no-results-icon">&#128683;</span>
+                  <p>No return flights found for this route and date. Try a different date.</p>
+                </div>
+              } @else {
+                <div class="flight-list">
+                  @for (group of inboundFlightGroups(); track group.flightNumber + group.departureTime) {
+                    <div class="flight-card" [class.flight-card-selected]="isInboundSelected(group)">
+                      <div class="flight-card-top">
+                        <div class="flight-header-row">
+                          <div class="flight-id">
+                            <span class="flight-num">{{ group.flightNumber }}</span>
+                            <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                          </div>
+                          <div class="flight-times">
+                            <span class="time">{{ group.departureTime }}</span>
+                            <span class="flight-route-arrow">
+                              <span class="route-line"></span>
+                              <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                              <span class="route-line"></span>
+                              &#8594;
+                            </span>
+                            <span class="time">
+                              {{ group.arrivalTime }}
+                              @if (group.arrivalDayOffset > 0) {
+                                <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flight-sub-row">
+                          <span class="airport-codes">{{ group.destination }} &#8594; {{ group.origin }}</span>
+                        </div>
+                      </div>
+
+                      <div class="fare-list">
+                        @for (cg of cabinGroups(group.offers); track cg.cabinCode) {
+                          <div class="fare-cabin-group" [class]="cabinClass(cg.cabinCode)">
+                            <div class="fare-cabin-label">
+                              <span class="fare-cabin-name">{{ cabinLabel(cg.cabinCode) }}</span>
+                            </div>
+                            @for (offer of cg.offers; track offer.offerId) {
+                              <button class="fare-row"
+                                [class.fare-row-selected]="selectedInboundOffer()?.offerId === offer.offerId"
+                                [disabled]="loading()"
+                                (click)="selectInbound(offer)">
+                                <span class="fare-row-family">{{ offer.fareFamily }}</span>
+                                <div class="fare-row-right">
+                                  <span class="fare-row-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                                  <span class="fare-row-seats">{{ offer.seatsAvailable }} left</span>
+                                </div>
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (loading()) {
+                <div class="loading-pane">
+                  <span class="btn-spinner large-spinner"></span>
+                  <p>Creating basket&#8230;</p>
+                </div>
+              }
             }
+
           </div>
         </div>
       }

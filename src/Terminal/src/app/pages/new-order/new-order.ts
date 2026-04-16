@@ -174,7 +174,7 @@ export class NewOrderComponent {
         this.loading.set(false);
       }
     } else {
-      await this.#createBasketAndContinue([offer.offerId], this.totalPax());
+      await this.#createBasketAndContinue([{ offerId: offer.offerId, sessionId: offer.sessionId }], this.totalPax());
     }
   }
 
@@ -183,7 +183,10 @@ export class NewOrderComponent {
     this.error.set('');
     const outbound = this.selectedOutboundOffer();
     if (!outbound) return;
-    await this.#createBasketAndContinue([outbound.offerId, offer.offerId], this.totalPax());
+    await this.#createBasketAndContinue([
+      { offerId: outbound.offerId, sessionId: outbound.sessionId },
+      { offerId: offer.offerId, sessionId: offer.sessionId },
+    ], this.totalPax());
   }
 
   // ── Passengers ───────────────────────────────────────────────────────────
@@ -462,11 +465,11 @@ export class NewOrderComponent {
     this.passengerForms.set(forms);
   }
 
-  async #createBasketAndContinue(offerIds: string[], passengerCount: number): Promise<void> {
+  async #createBasketAndContinue(segments: { offerId: string; sessionId: string }[], passengerCount: number): Promise<void> {
     this.loading.set(true);
     this.error.set('');
     try {
-      const basketSummary = await this.#svc.createBasket(offerIds, passengerCount);
+      const basketSummary = await this.#svc.createBasket(segments, passengerCount);
       this.basket.set(basketSummary);
       this.#initPassengerForms();
       this.step.set('passengers');
