@@ -30,6 +30,7 @@ interface FlightGroup {
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  durationMinutes: number;
   aircraftType: string;
   offers: SearchOffer[];
 }
@@ -354,12 +355,10 @@ export class NewOrderComponent {
     return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   }
 
-  duration(dep: string, arr: string, dayOffset = 0): string {
-    const [dh, dm] = dep.split(':').map(Number);
-    const [ah, am] = arr.split(':').map(Number);
-    let mins = (ah * 60 + am + dayOffset * 24 * 60) - (dh * 60 + dm);
-    if (mins < 0) mins += 24 * 60;
-    return `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? (mins % 60) + 'm' : ''}`.trim();
+  formatDuration(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
 
   cabinLabel(code: string): string {
@@ -461,6 +460,7 @@ export class NewOrderComponent {
           departureTime: offer.departureTime,
           arrivalTime: offer.arrivalTime,
           arrivalDayOffset: offer.arrivalDayOffset,
+          durationMinutes: offer.durationMinutes,
           aircraftType: offer.aircraftType,
           offers: [],
         });

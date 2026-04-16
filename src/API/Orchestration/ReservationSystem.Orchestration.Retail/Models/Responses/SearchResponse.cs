@@ -48,6 +48,7 @@ public sealed class SliceLeg
     public string DepartureTime { get; init; } = string.Empty;
     public string ArrivalTime { get; init; } = string.Empty;
     public int ArrivalDayOffset { get; init; }
+    public int DurationMinutes { get; init; }
     public string AircraftType { get; init; } = string.Empty;
     public IReadOnlyList<CabinSearchResult> Cabins { get; init; } = [];
 }
