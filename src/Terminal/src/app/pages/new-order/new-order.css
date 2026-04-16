@@ -997,6 +997,30 @@
   color: var(--text);
 }
 
+/* #region TEMP: Random pax data button — remove before production */
+.temp-dev-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.dev-btn {
+  background: none;
+  border: 1px dashed var(--border, #ccc);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.dev-btn:hover {
+  border-color: var(--primary, #0066cc);
+  color: var(--primary, #0066cc);
+}
+/* #endregion TEMP */
+
 .ticket-date {
   font-size: 0.75rem;
   color: var(--text-muted);

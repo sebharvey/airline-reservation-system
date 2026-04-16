@@ -423,6 +423,12 @@
                     </div>
                   }
 
+                  <!-- #region TEMP: Random pax data button — remove before production -->
+                  <div class="temp-dev-tools">
+                    <button class="dev-btn" type="button" (click)="fillRandomPaxData()">&#127922; Random pax data</button>
+                  </div>
+                  <!-- #endregion TEMP -->
+
                   <button class="primary-btn" (click)="savePassengers()"
                     [disabled]="loading() || !passengersValid()">
                     @if (loading()) {
