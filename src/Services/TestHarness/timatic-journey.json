@@ -36,10 +36,10 @@
             "documentType": "P",
             "nationality": "GBR",
             "documentIssuerCountry": "GBR",
-            "documentNumber": "123456789",
-            "documentExpiryDate": "2031-01-01",
-            "dateOfBirth": "1980-01-01",
-            "gender": "M",
+            "documentNumber": "__RAND_DOC_NUMBER__",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
             "residentCountry": "GBR"
           },
           "itinerary": [
@@ -113,10 +113,10 @@
             "documentType": "P",
             "nationality": "GBR",
             "documentIssuerCountry": "GBR",
-            "documentNumber": "123456789",
-            "documentExpiryDate": "2031-01-01",
-            "dateOfBirth": "1980-01-01",
-            "gender": "M",
+            "documentNumber": "__RAND_DOC_NUMBER__",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
             "residentCountry": "GBR"
           },
           "itinerary": [
@@ -184,12 +184,12 @@
             "surname": "__RAND_SURNAME__",
             "givenNames": "__RAND_GIVEN_NAME__",
             "dateOfBirth": "__RAND_DOB__",
-            "gender": "__RAND_GENDER__",
+            "gender": "__RAND_GENDER_CODE__",
             "nationality": "GBR",
             "documentType": "P",
-            "documentNumber": "987654321",
+            "documentNumber": "__RAND_DOC_NUMBER__",
             "documentIssuerCountry": "GBR",
-            "documentExpiryDate": "2031-06-15"
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__"
           }
         }
       },
@@ -221,7 +221,7 @@
     {
       "step": 4,
       "name": "Realtime gate check — valid MRZ",
-      "description": "POST a realtime gate check with a valid ICAO 9303 TD3 Machine Readable Passport MRZ for John Smith (GBR, DOB 1980-01-01, expiry 2031-01-01). The simulator parses the two MRZ lines and returns decision: GO with the extracted document fields in parsedDocument.",
+      "description": "POST a realtime gate check with a valid ICAO 9303 TD3 Machine Readable Passport MRZ generated from random pax data. The simulator parses the two MRZ lines and returns decision: GO with the extracted document fields in parsedDocument.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -240,8 +240,8 @@
           "departureAirport": "LHR",
           "arrivalAirport": "JFK",
           "mrzData": {
-            "line1": "P<GBRSMITH<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
-            "line2": "1234567897GBR8001011M3101015<<<<<<<<<<<<<<<9"
+            "line1": "__RAND_MRZ_LINE1__",
+            "line2": "__RAND_MRZ_LINE2__"
           },
           "agentId": "AGENT-LHR-001",
           "checkTimestamp": "__RAND_DEPART_DATE__T06:30:00Z"
@@ -255,12 +255,12 @@
           "conditionsMet": true,
           "carrierLiabilityConfirmed": true,
           "parsedDocument": {
-            "surname": "SMITH",
-            "givenNames": "JOHN",
+            "surname": "__RAND_SURNAME__",
+            "givenNames": "__RAND_GIVEN_NAME__",
             "nationality": "GBR",
-            "dateOfBirth": "1980-01-01",
-            "documentExpiryDate": "2031-01-01",
-            "documentNumber": "123456789"
+            "dateOfBirth": "__RAND_DOB__",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__",
+            "documentNumber": "__RAND_DOC_NUMBER__"
           },
           "auditRef": "TMC-2026-04-16-GATE-A1B2C3",
           "processedAt": "2026-04-16T06:30:00.1234567Z"
@@ -268,7 +268,7 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK — gate check returns GO. conditionsMet and carrierLiabilityConfirmed are true. parsedDocument contains fields extracted from the MRZ: surname SMITH, givenNames JOHN, nationality GBR, dateOfBirth 1980-01-01, documentExpiryDate 2031-01-01, documentNumber 123456789. auditRef follows the format TMC-YYYY-MM-DD-GATE-XXXXXX.",
+        "description": "200 OK — gate check returns GO. conditionsMet and carrierLiabilityConfirmed are true. parsedDocument contains fields extracted from the MRZ using the random pax data generated for this run. auditRef follows the format TMC-YYYY-MM-DD-GATE-XXXXXX.",
         "keyFields": [
           "decision",
           "conditionsMet",
@@ -300,10 +300,10 @@
             "documentType": "P",
             "nationality": "GBR",
             "documentIssuerCountry": "GBR",
-            "documentNumber": "123456789",
-            "documentExpiryDate": "2031-01-01",
-            "dateOfBirth": "1980-01-01",
-            "gender": "M",
+            "documentNumber": "__RAND_DOC_NUMBER__",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
             "residentCountry": "GBR"
           },
           "itinerary": [
@@ -352,15 +352,15 @@
           "departureAirport": "LHR",
           "arrivalAirport": "JFK",
           "paxInfo": {
-            "surname": "SMITH",
-            "givenNames": "JOHN",
-            "dateOfBirth": "1980-01-01",
-            "gender": "M",
+            "surname": "__RAND_SURNAME__",
+            "givenNames": "__RAND_GIVEN_NAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
             "nationality": "GBR",
             "documentType": "P",
-            "documentNumber": "123456789",
+            "documentNumber": "__RAND_DOC_NUMBER__",
             "documentIssuerCountry": "GBR",
-            "documentExpiryDate": "2031-01-01"
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__"
           }
         }
       },

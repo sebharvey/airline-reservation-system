@@ -320,6 +320,46 @@
     function randDigits(n) { return Math.floor(Math.random() * Math.pow(10, n)).toString().padStart(n, '0'); }
     function isoDate(d) { return d.toISOString().split('T')[0]; }
 
+    function mrzCharValue(c) {
+        if (c >= '0' && c <= '9') return parseInt(c, 10);
+        if (c >= 'A' && c <= 'Z') return c.charCodeAt(0) - 55;
+        return 0;
+    }
+    function mrzCheck(s) {
+        const w = [7, 3, 1];
+        let n = 0;
+        for (let i = 0; i < s.length; i++) n += mrzCharValue(s[i]) * w[i % 3];
+        return String(n % 10);
+    }
+    function sanitizeMrzName(s) {
+        return s.toUpperCase()
+            .replace(/[ÀÁÂÃÄ]/g, 'A').replace(/[ÈÉÊË]/g, 'E')
+            .replace(/[ÌÍÎÏ]/g, 'I').replace(/[ÒÓÔÕÖ]/g, 'O')
+            .replace(/[ÙÚÛÜ]/g, 'U').replace(/Ñ/g, 'N')
+            .replace(/[^A-Z0-9]/g, '<');
+    }
+    function generateMrz(surname, givenName, docNumber, dob, genderCode, docExpiry) {
+        const sn = sanitizeMrzName(surname);
+        const gn = sanitizeMrzName(givenName);
+        const nameField = (sn + '<<' + gn).padEnd(39, '<').slice(0, 39);
+        const line1 = 'P<GBR' + nameField;
+
+        const dn  = docNumber.toUpperCase().replace(/[^A-Z0-9]/g, '<').padEnd(9, '<').slice(0, 9);
+        const dc  = mrzCheck(dn);
+        const dparts = dob.split('-');
+        const dobMrz = dparts[0].slice(2) + dparts[1] + dparts[2];
+        const dbc = mrzCheck(dobMrz);
+        const sex = genderCode === 'F' ? 'F' : 'M';
+        const eparts = docExpiry.split('-');
+        const expMrz = eparts[0].slice(2) + eparts[1] + eparts[2];
+        const exc = mrzCheck(expMrz);
+        const opt = '<<<<<<<<<<<<<<<'; // 15 chars
+        const cc  = mrzCheck(dn + dc + dobMrz + dbc + sex + expMrz + exc + opt);
+        const line2 = dn + dc + 'GBR' + dobMrz + dbc + sex + expMrz + exc + opt + cc;
+
+        return { line1, line2 };
+    }
+
     let runtimeVars = {};
     const journeyRuntimeVars = {};
 
@@ -398,10 +438,18 @@
         const tomorrowDateObj = new Date(today); tomorrowDateObj.setDate(today.getDate() + 1);
         const tomorrowDate    = isoDate(tomorrowDateObj);
 
+        const genderCode     = gender === 'Female' ? 'F' : 'M';
+        const docNumber      = randDigits(9);
+        const docExpiryDateObj = new Date(today);
+        docExpiryDateObj.setFullYear(today.getFullYear() + 5 + Math.floor(Math.random() * 6));
+        const docExpiry      = isoDate(docExpiryDateObj);
+        const { line1: mrzLine1, line2: mrzLine2 } = generateMrz(surname, givenName, docNumber, dateOfBirth, genderCode, docExpiry);
+
         runtimeVars = {
             givenName, surname, password, email,
             recipientGivenName, recipientSurname, recipientPassword, recipientEmail,
             gender, dateOfBirth, phone, loyaltyNumber,
+            genderCode, docNumber, docExpiry, mrzLine1, mrzLine2,
             pax2GivenName, pax2Surname, pax2Gender, pax2DateOfBirth, pax2Email, pax2Phone,
             paxCount,
             pax3GivenName: pax3.givenName, pax3Surname: pax3.surname, pax3Gender: pax3.gender,
@@ -463,7 +511,12 @@
                 .replace(/__RAND_SURNAME__/g,        runtimeVars.surname)
                 .replace(/__RAND_EMAIL__/g,          runtimeVars.email)
                 .replace(/__RAND_PASSWORD__/g,       runtimeVars.password)
+                .replace(/__RAND_GENDER_CODE__/g,    runtimeVars.genderCode)
                 .replace(/__RAND_GENDER__/g,         runtimeVars.gender)
+                .replace(/__RAND_DOC_NUMBER__/g,     runtimeVars.docNumber)
+                .replace(/__RAND_DOC_EXPIRY__/g,     runtimeVars.docExpiry)
+                .replace(/__RAND_MRZ_LINE1__/g,      runtimeVars.mrzLine1)
+                .replace(/__RAND_MRZ_LINE2__/g,      runtimeVars.mrzLine2)
                 .replace(/__RAND_DOB__/g,            runtimeVars.dateOfBirth)
                 .replace(/__RAND_PHONE__/g,          runtimeVars.phone)
                 .replace(/__RAND_LOYALTY_NUMBER__/g,  runtimeVars.loyaltyNumber)
