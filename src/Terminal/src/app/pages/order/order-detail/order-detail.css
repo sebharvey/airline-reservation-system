@@ -464,11 +464,12 @@
   font-weight: 700;
 }
 
-.item-flight  { background: rgba(88, 166, 255, 0.12); color: #58a6ff; }
-.item-seat    { background: rgba(102, 126, 234, 0.12); color: #667eea; }
-.item-bag     { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-.item-ssr     { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.item-other   { background: rgba(139, 149, 162, 0.1); color: #8b95a2; }
+.item-flight   { background: rgba(88, 166, 255, 0.12); color: #58a6ff; }
+.item-seat     { background: rgba(102, 126, 234, 0.12); color: #667eea; }
+.item-bag      { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.item-ssr      { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.item-product  { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+.item-other    { background: rgba(139, 149, 162, 0.1); color: #8b95a2; }
 
 /* Payment status */
 .pay-status-badge {

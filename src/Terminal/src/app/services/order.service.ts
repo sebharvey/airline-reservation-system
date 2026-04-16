@@ -61,6 +61,7 @@ export interface OrderItem {
   seatNumber: string | null;
   bagWeightKg: number | null;
   ssrCode: string | null;
+  name: string | null;
   amount: number | null;
   currency: string | null;
 }
