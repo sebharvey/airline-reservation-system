@@ -24,6 +24,7 @@
         { value: 'seat-pricing',                label: 'admin - seat pricing' },
         { value: 'bag-policy',                  label: 'admin - bag policy' },
         { value: 'bag-pricing',                 label: 'admin - bag pricing' },
+        { value: 'timatic',                     label: 'timatic - autocheck simulator' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
 

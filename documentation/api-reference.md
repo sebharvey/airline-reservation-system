@@ -501,7 +501,7 @@ The Accounting microservice is a pure event consumer. It has no synchronous API 
 
 ---
 
-## Timatic Simulator
+## Timatic Simulator — [Full API Spec](api-specs/timatic-simulator.md)
 
 > **Scope:** Simulator only — happy-path responses. No actual document, visa, or APIS validation is performed. Designed to be called by the `DocumentVerification` microservice during online check-in.
 

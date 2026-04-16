@@ -20,7 +20,7 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 
 | Service | Base URL | Region |
 |---------|----------|--------|
-| Timatic Simulator | TBC | UK South |
+| Timatic Simulator | `https://reservation-system-simulator-timatic-h0guaxfvgaengdeh.uksouth-01.azurewebsites.net` | UK South |
 
 ---
 

@@ -1,0 +1,410 @@
+{
+  "journey": {
+    "name": "Timatic Simulator — autocheck endpoints",
+    "description": "End-to-end journey covering all three IATA AutoCheck simulator endpoints: document check (with and without US ESTA advisory), APIS check, and realtime gate MRZ check. Negative steps verify that missing or wrong Authorization headers return 401. Positive steps send Authorization: Bearer timatic-test-2026 — the Timatic:ApiToken Azure App Setting on the simulator must be set to timatic-test-2026 for positive steps to pass.",
+    "domain": "Simulator",
+    "baseUrls": [
+      {
+        "id": "timatic",
+        "label": "Timatic Simulator",
+        "url": "https://reservation-system-simulator-timatic-h0guaxfvgaengdeh.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Document check — LHR→JFK (ESTA)",
+      "description": "POST a document check for a British passport holder travelling LHR→JFK. The simulator inspects the final arrival airport (JFK) and appends an ESTA advisory because JFK is a US gateway. All other requirement flags (visaRequired, healthDocRequired, transitVisaRequired) are false.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/documentcheck",
+        "baseUrlRef": "timatic",
+        "note": "Authorization header must match the Timatic:ApiToken app setting"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-001",
+          "airlineCode": "AX",
+          "journeyType": "OW",
+          "paxInfo": {
+            "documentType": "P",
+            "nationality": "GBR",
+            "documentIssuerCountry": "GBR",
+            "documentNumber": "123456789",
+            "documentExpiryDate": "2031-01-01",
+            "dateOfBirth": "1980-01-01",
+            "gender": "M",
+            "residentCountry": "GBR"
+          },
+          "itinerary": [
+            {
+              "departureAirport": "LHR",
+              "arrivalAirport": "JFK",
+              "airline": "AX",
+              "flightNumber": "AX001",
+              "departureDate": "__RAND_DEPART_DATE__"
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-001",
+          "status": "OK",
+          "passportRequired": true,
+          "visaRequired": false,
+          "healthDocRequired": false,
+          "transitVisaRequired": false,
+          "requirements": [],
+          "advisories": [
+            {
+              "type": "ESTA",
+              "description": "ESTA registration required prior to travel.",
+              "url": "https://esta.cbp.dhs.gov",
+              "mandatory": true
+            }
+          ],
+          "dataAsOf": "2026-04-16T08:00:00.0000000Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — document check accepted. passportRequired is true. visaRequired, healthDocRequired, and transitVisaRequired are all false. Because JFK is a recognised US gateway, the advisories array contains exactly one ESTA advisory with mandatory: true. transactionIdentifier echoes the request value.",
+        "keyFields": [
+          "status",
+          "passportRequired",
+          "visaRequired",
+          "advisories"
+        ],
+        "validationNotes": "advisories array must contain exactly one item with type ESTA and mandatory true. requirements array must be empty. dataAsOf is today at 08:00 UTC.",
+        "assertions": [
+          { "field": "advisories", "assertion": "count", "expected": 1 }
+        ]
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 2,
+      "name": "Document check — LHR→CDG (no advisory)",
+      "description": "POST a document check for a British passport holder travelling LHR→CDG. CDG is not a US gateway so no advisory is appended. Confirms the simulator only adds the ESTA advisory for US destinations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/documentcheck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-002",
+          "airlineCode": "AX",
+          "journeyType": "OW",
+          "paxInfo": {
+            "documentType": "P",
+            "nationality": "GBR",
+            "documentIssuerCountry": "GBR",
+            "documentNumber": "123456789",
+            "documentExpiryDate": "2031-01-01",
+            "dateOfBirth": "1980-01-01",
+            "gender": "M",
+            "residentCountry": "GBR"
+          },
+          "itinerary": [
+            {
+              "departureAirport": "LHR",
+              "arrivalAirport": "CDG",
+              "airline": "AX",
+              "flightNumber": "AX010",
+              "departureDate": "__RAND_DEPART_DATE__"
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-002",
+          "status": "OK",
+          "passportRequired": true,
+          "visaRequired": false,
+          "healthDocRequired": false,
+          "transitVisaRequired": false,
+          "requirements": [],
+          "advisories": [],
+          "dataAsOf": "2026-04-16T08:00:00.0000000Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — document check accepted. CDG is not a US gateway so advisories array is empty. All requirement flags are false.",
+        "keyFields": [
+          "status",
+          "advisories"
+        ],
+        "validationNotes": "advisories must be an empty array. requirements must be an empty array.",
+        "assertions": [
+          { "field": "advisories", "assertion": "count", "expected": 0 }
+        ]
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 3,
+      "name": "APIS check — valid check-in data",
+      "description": "POST APIS (Advance Passenger Information) for a British passport holder on AX001 LHR→JFK. Simulates the check-in submission pathway. The simulator always returns apisStatus: ACCEPTED with fineRisk: LOW and a generated audit reference in the format TMC-YYYY-MM-DD-XXXXXXXX.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/apischeck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-APIS-001",
+          "airlineCode": "AX",
+          "flightNumber": "AX001",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "departureAirport": "LHR",
+          "arrivalAirport": "JFK",
+          "paxInfo": {
+            "surname": "__RAND_SURNAME__",
+            "givenNames": "__RAND_GIVEN_NAME__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "nationality": "GBR",
+            "documentType": "P",
+            "documentNumber": "987654321",
+            "documentIssuerCountry": "GBR",
+            "documentExpiryDate": "2031-06-15"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "transactionIdentifier": "TXN-2026-APIS-001",
+          "apisStatus": "ACCEPTED",
+          "carrierLiabilityConfirmed": true,
+          "fineRisk": "LOW",
+          "warnings": [],
+          "auditRef": "TMC-2026-04-16-A1B2C3D4",
+          "processedAt": "2026-04-16T09:30:00.0000000Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — APIS accepted. apisStatus is ACCEPTED, carrierLiabilityConfirmed is true, fineRisk is LOW, warnings is empty. auditRef follows the format TMC-YYYY-MM-DD-XXXXXXXX.",
+        "keyFields": [
+          "apisStatus",
+          "carrierLiabilityConfirmed",
+          "fineRisk",
+          "auditRef"
+        ],
+        "validationNotes": "auditRef format: TMC- + date + - + 8 uppercase hex characters. warnings must be empty. transactionIdentifier echoes the request value."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 4,
+      "name": "Realtime gate check — valid MRZ",
+      "description": "POST a realtime gate check with a valid ICAO 9303 TD3 Machine Readable Passport MRZ for John Smith (GBR, DOB 1980-01-01, expiry 2031-01-01). The simulator parses the two MRZ lines and returns decision: GO with the extracted document fields in parsedDocument.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/realtimecheck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-GATE-001",
+          "airlineCode": "AX",
+          "flightNumber": "AX001",
+          "departureAirport": "LHR",
+          "arrivalAirport": "JFK",
+          "mrzData": {
+            "line1": "P<GBRSMITH<<JOHN<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+            "line2": "1234567897GBR8001011M3101015<<<<<<<<<<<<<<<9"
+          },
+          "agentId": "AGENT-LHR-001",
+          "checkTimestamp": "__RAND_DEPART_DATE__T06:30:00Z"
+        }
+      },
+      "response": {
+        "statusCode": 200,
+        "body": {
+          "transactionIdentifier": "TXN-2026-GATE-001",
+          "decision": "GO",
+          "conditionsMet": true,
+          "carrierLiabilityConfirmed": true,
+          "parsedDocument": {
+            "surname": "SMITH",
+            "givenNames": "JOHN",
+            "nationality": "GBR",
+            "dateOfBirth": "1980-01-01",
+            "documentExpiryDate": "2031-01-01",
+            "documentNumber": "123456789"
+          },
+          "auditRef": "TMC-2026-04-16-GATE-A1B2C3",
+          "processedAt": "2026-04-16T06:30:00.1234567Z"
+        }
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "200 OK — gate check returns GO. conditionsMet and carrierLiabilityConfirmed are true. parsedDocument contains fields extracted from the MRZ: surname SMITH, givenNames JOHN, nationality GBR, dateOfBirth 1980-01-01, documentExpiryDate 2031-01-01, documentNumber 123456789. auditRef follows the format TMC-YYYY-MM-DD-GATE-XXXXXX.",
+        "keyFields": [
+          "decision",
+          "conditionsMet",
+          "parsedDocument"
+        ],
+        "validationNotes": "parsedDocument.surname and parsedDocument.givenNames are extracted from MRZ line 1 using the double-chevron (<<) delimiter. MRZ dates YYMMDD: years >= 60 → 1900s, years < 60 → 2000s."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 5,
+      "name": "Document check — no Authorization header (401)",
+      "description": "POST a document check without an Authorization header. The simulator rejects all requests that lack a Bearer token before reaching handler logic.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/documentcheck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-UNAUTH",
+          "airlineCode": "AX",
+          "journeyType": "OW",
+          "paxInfo": {
+            "documentType": "P",
+            "nationality": "GBR",
+            "documentIssuerCountry": "GBR",
+            "documentNumber": "123456789",
+            "documentExpiryDate": "2031-01-01",
+            "dateOfBirth": "1980-01-01",
+            "gender": "M",
+            "residentCountry": "GBR"
+          },
+          "itinerary": [
+            {
+              "departureAirport": "LHR",
+              "arrivalAirport": "JFK",
+              "airline": "AX",
+              "flightNumber": "AX001",
+              "departureDate": "__RAND_DEPART_DATE__"
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — no Authorization header supplied. The BearerTokenValidator returns false immediately when the header is absent. No request body processing occurs.",
+        "keyFields": [],
+        "validationNotes": "Response body is empty. The simulator returns 401 without a JSON error envelope for auth failures."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 6,
+      "name": "APIS check — wrong bearer token (401)",
+      "description": "POST an APIS check with a bearer token that does not match the configured Timatic:ApiToken. The SHA-256 hash comparison fails and the simulator returns 401 without processing the body.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/apischeck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer this-is-the-wrong-token"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-APIS-UNAUTH",
+          "airlineCode": "AX",
+          "flightNumber": "AX001",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "departureAirport": "LHR",
+          "arrivalAirport": "JFK",
+          "paxInfo": {
+            "surname": "SMITH",
+            "givenNames": "JOHN",
+            "dateOfBirth": "1980-01-01",
+            "gender": "M",
+            "nationality": "GBR",
+            "documentType": "P",
+            "documentNumber": "123456789",
+            "documentIssuerCountry": "GBR",
+            "documentExpiryDate": "2031-01-01"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 401,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 401,
+        "description": "401 Unauthorized — bearer token is present but the SHA-256 hash of 'this-is-the-wrong-token' does not match the hash of the configured Timatic:ApiToken. The simulator rejects the request before parsing the body.",
+        "keyFields": [],
+        "validationNotes": "Response body is empty. Hash comparison is constant-time to prevent timing-based token discovery."
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 7,
+      "name": "Realtime check — malformed body (400)",
+      "description": "POST a realtime check with a valid Authorization header but a malformed JSON body. The simulator returns 400 Bad Request when the body cannot be deserialized.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/realtimecheck",
+        "baseUrlRef": "timatic",
+        "note": "Body is intentionally null to trigger 400"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "400 Bad Request — valid token but null/empty request body. The simulator deserializes to null and returns 400 without executing any check logic.",
+        "keyFields": [],
+        "validationNotes": "Response body is empty. The 400 is returned for both unparseable JSON and a successfully deserialized null body."
+      },
+      "chainsTo": []
+    }
+  ]
+}
