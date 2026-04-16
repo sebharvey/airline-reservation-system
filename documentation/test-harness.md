@@ -122,6 +122,11 @@ Journey JSON files use `__RAND_*__` placeholders that are replaced at runtime wi
 | `__RAND_DOB__` | Random date 1950–2005 | `1987-04-12` |
 | `__RAND_PHONE__` | `07` + 9 random digits | `07482910384` |
 | `__RAND_LOYALTY_NUMBER__` | `AX` + 7 random digits | `AX4829103` |
+| `__RAND_GENDER_CODE__` | ICAO gender code: `M` or `F` (derived from `__RAND_GENDER__`) | `F` |
+| `__RAND_DOC_NUMBER__` | 9 random digits (passport/travel document number) | `482910384` |
+| `__RAND_DOC_EXPIRY__` | Random date 5–10 years ahead | `2031-09-14` |
+| `__RAND_MRZ_LINE1__` | ICAO 9303 TD3 MRZ line 1 built from PAX-1 name | `P<GBRPATEL<<AMARA<<<...` |
+| `__RAND_MRZ_LINE2__` | ICAO 9303 TD3 MRZ line 2 built from PAX-1 doc data | `4829103847GBR870412...` |
 
 ### PAX-2 (second passenger) placeholders
 
