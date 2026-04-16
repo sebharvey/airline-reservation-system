@@ -195,7 +195,7 @@
                             <span class="time">{{ group.departureTime }}</span>
                             <span class="flight-route-arrow">
                               <span class="route-line"></span>
-                              <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                              <span class="route-dur">{{ formatDuration(group.durationMinutes) }}</span>
                               <span class="route-line"></span>
                               &#8594;
                             </span>
@@ -265,7 +265,7 @@
                             <span class="time">{{ group.departureTime }}</span>
                             <span class="flight-route-arrow">
                               <span class="route-line"></span>
-                              <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                              <span class="route-dur">{{ formatDuration(group.durationMinutes) }}</span>
                               <span class="route-line"></span>
                               &#8594;
                             </span>

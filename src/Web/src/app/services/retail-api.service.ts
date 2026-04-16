@@ -122,6 +122,7 @@ interface SliceApiLeg {
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  durationMinutes: number;
   aircraftType: string;
   cabins: SliceApiCabin[];
 }
@@ -187,6 +188,7 @@ function buildLegOffer(
     totalPrice: family.offer.totalPrice,
     currency: family.offer.currency,
     seatsAvailable: cabin.availableSeats,
+    durationMinutes: leg.durationMinutes,
     pointsPrice: cabin.fromPoints ?? undefined,
     pointsTaxes: undefined
   };
@@ -259,6 +261,7 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
             totalPrice: family1.offer.totalPrice + family2.offer.totalPrice,
             currency: family1.offer.currency,
             seatsAvailable: Math.min(cabin1.availableSeats, cabin2.availableSeats),
+            durationMinutes: leg1.durationMinutes + (itinerary.connectionDurationMinutes ?? 0) + leg2.durationMinutes,
             pointsPrice: (cabin1.fromPoints != null && cabin2.fromPoints != null)
               ? cabin1.fromPoints + cabin2.fromPoints : undefined,
             pointsTaxes: undefined,

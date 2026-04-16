@@ -11,6 +11,7 @@ export interface SearchOffer {
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  durationMinutes: number;
   origin: string;
   destination: string;
   aircraftType: string;
@@ -67,6 +68,7 @@ interface ApiLeg {
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  durationMinutes: number;
   aircraftType: string;
   cabins: ApiCabin[];
 }
@@ -235,6 +237,7 @@ export class NewOrderService {
               departureTime: leg.departureTime,
               arrivalTime: leg.arrivalTime,
               arrivalDayOffset: leg.arrivalDayOffset,
+              durationMinutes: leg.durationMinutes,
               origin: leg.origin,
               destination: leg.destination,
               aircraftType: leg.aircraftType,

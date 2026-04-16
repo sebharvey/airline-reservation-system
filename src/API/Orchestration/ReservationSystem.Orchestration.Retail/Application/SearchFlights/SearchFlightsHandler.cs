@@ -87,6 +87,7 @@ public sealed class SearchFlightsHandler
                     DepartureTime    = f.DepartureTime,
                     ArrivalTime      = f.ArrivalTime,
                     ArrivalDayOffset = f.ArrivalDayOffset,
+                    DurationMinutes  = f.DurationMinutes,
                     AircraftType     = f.AircraftType,
                     Cabins           = cabins
                 }],
@@ -181,6 +182,7 @@ public sealed class SearchFlightsHandler
                             DepartureTime    = leg1Flight.DepartureTime,
                             ArrivalTime      = leg1Flight.ArrivalTime,
                             ArrivalDayOffset = leg1Flight.ArrivalDayOffset,
+                            DurationMinutes  = leg1Flight.DurationMinutes,
                             AircraftType     = leg1Flight.AircraftType,
                             Cabins           = leg1Cabins
                         },
@@ -195,6 +197,7 @@ public sealed class SearchFlightsHandler
                             DepartureTime    = leg2Flight.DepartureTime,
                             ArrivalTime      = leg2Flight.ArrivalTime,
                             ArrivalDayOffset = leg2Flight.ArrivalDayOffset,
+                            DurationMinutes  = leg2Flight.DurationMinutes,
                             AircraftType     = leg2Flight.AircraftType,
                             Cabins           = leg2Cabins
                         }

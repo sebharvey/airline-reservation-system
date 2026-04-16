@@ -16,6 +16,7 @@ interface FlightRow {
   departureDateTime: string;
   arrivalDateTime: string;
   aircraftType: string;
+  durationMinutes: number;
   cabinOffers: Partial<Record<CabinCode, FlightOffer[]>>;
   isConnecting: boolean;
   connectionDurationMinutes?: number;
@@ -364,12 +365,10 @@ export class SearchResultsComponent implements OnInit {
     return this.airports.find(a => a.code === code)?.city ?? code;
   }
 
-  getDuration(dep: string, arr: string): string {
-    const diffMs = new Date(arr).getTime() - new Date(dep).getTime();
-    const totalMins = Math.round(diffMs / 60000);
-    const h = Math.floor(totalMins / 60);
-    const m = totalMins % 60;
-    return `${h}h ${m}m`;
+  formatDuration(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
 
   formatTime(dt: string): string {
@@ -392,6 +391,7 @@ export class SearchResultsComponent implements OnInit {
           departureDateTime: offer.departureDateTime,
           arrivalDateTime: offer.arrivalDateTime,
           aircraftType: offer.aircraftType,
+          durationMinutes: offer.durationMinutes,
           cabinOffers: {},
           isConnecting: offer.isConnecting ?? false,
           connectionDurationMinutes: offer.connectionDurationMinutes

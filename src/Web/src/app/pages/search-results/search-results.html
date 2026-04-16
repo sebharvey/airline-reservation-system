@@ -65,7 +65,7 @@
                   <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
                 </div>
                 <div class="flight-meta">
-                  <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
+                  <span class="duration-label">{{ formatDuration(row.durationMinutes) }}</span>
                   <span class="direct-dot">&#8226;</span>
                   <ng-container *ngIf="!row.isConnecting">
                     <span class="direct-label">Direct</span>
@@ -168,7 +168,7 @@
                   <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
                 </div>
                 <div class="flight-meta">
-                  <span class="duration-label">{{ getDuration(row.departureDateTime, row.arrivalDateTime) }}</span>
+                  <span class="duration-label">{{ formatDuration(row.durationMinutes) }}</span>
                   <span class="direct-dot">&#8226;</span>
                   <ng-container *ngIf="!row.isConnecting">
                     <span class="direct-label">Direct</span>
