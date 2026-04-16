@@ -100,12 +100,22 @@ export interface FlightSeatmap {
 export class InventoryService {
   #http = inject(HttpClient);
   #baseUrl = `${environment.retailApiUrl}/api/v1/admin`;
+  #operationsBaseUrl = `${environment.operationsApiUrl}/api/v1/admin`;
 
   async getFlightInventory(departureDate: string): Promise<FlightInventoryGroup[]> {
     return firstValueFrom(
       this.#http.get<FlightInventoryGroup[]>(
         `${this.#baseUrl}/inventory`,
         { params: { departureDate } }
+      )
+    );
+  }
+
+  async cancelFlightInventory(flightNumber: string, departureDate: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.post(
+        `${this.#operationsBaseUrl}/inventory/cancel`,
+        { flightNumber, departureDate }
       )
     );
   }

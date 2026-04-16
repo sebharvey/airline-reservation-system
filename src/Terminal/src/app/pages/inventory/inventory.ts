@@ -177,18 +177,18 @@ export class InventoryComponent implements OnInit {
     this.disruptionError.set('');
   }
 
-  executeCancellation(): void {
+  async executeCancellation(): Promise<void> {
     const flight = this.disruptionModalFlight();
     if (!flight) return;
     this.disruptionLoading.set(true);
     this.disruptionError.set('');
     try {
-      this.flights.update(list =>
-        list.map(f =>
-          f.inventoryId === flight.inventoryId ? { ...f, status: 'Cancelled' } : f
-        )
+      await this.#inventoryService.cancelFlightInventory(
+        flight.flightNumber,
+        flight.departureDate
       );
       this.disruptionModalFlight.set(null);
+      await this.loadInventory();
     } catch {
       this.disruptionError.set('Failed to cancel flight. Please try again.');
     } finally {
