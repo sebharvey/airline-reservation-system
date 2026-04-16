@@ -9,10 +9,10 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Reservation.Simulator.Timatic.Auth;
-using Reservation.Simulator.Timatic.Models;
+using ReservationSystem.Simulator.Timatic.Auth;
+using ReservationSystem.Simulator.Timatic.Models;
 
-namespace Reservation.Simulator.Timatic.Functions;
+namespace ReservationSystem.Simulator.Timatic.Functions;
 
 public sealed class DocumentCheckFunction
 {
