@@ -55,43 +55,39 @@ export interface BasketFlight {
   departureDateTime: string;
   arrivalDateTime: string;
   cabinCode: string;
-  fareFamily: string;
+  fareFamily: string | null;
   totalAmount: number;
 }
 
 export interface BasketSummary {
   basketId: string;
-  bookingType: string;
-  totalFareAmount: number;
+  status: string;
+  totalFareAmount: number | null;
   totalSeatAmount: number;
   totalBagAmount: number;
-  totalAmount: number;
+  totalPrice: number;
   totalPointsAmount: number | null;
-  currencyCode: string;
+  currency: string;
   expiresAt: string;
   flights: BasketFlight[];
 }
 
 export interface ConfirmResponse {
   bookingReference: string;
-  orderStatus: string;
-  bookingType: string;
-  totalAmount: number;
-  currencyCode: string;
+  status: string;
+  totalPrice: number;
+  currency: string;
   eTickets: Array<{
     eTicketNumber: string;
     passengerId: string;
-    flightNumber: string;
-    departureDate: string;
+    segmentIds: string[];
   }>;
-  paymentIds: string[];
-  redemptionReference: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
 export class NewOrderService {
   #http = inject(HttpClient);
-  #retailUrl = `${environment.retailApiUrl}/api/v1`;
+  #retailUrl = `${environment.retailApiUrl}/api/v1/admin`;
 
   async searchSlice(
     origin: string,
@@ -110,12 +106,12 @@ export class NewOrderService {
     );
   }
 
-  async createBasket(offerIds: string[]): Promise<BasketSummary> {
+  async createBasket(offerIds: string[], passengerCount: number): Promise<BasketSummary> {
     return firstValueFrom(
       this.#http.post<BasketSummary>(`${this.#retailUrl}/basket`, {
-        offerIds,
-        channelCode: 'CC',
-        currencyCode: 'GBP',
+        segments: offerIds.map(offerId => ({ offerId })),
+        passengerCount,
+        currency: 'GBP',
         bookingType: 'Revenue',
         loyaltyNumber: null,
       })
@@ -139,7 +135,10 @@ export class NewOrderService {
     },
   ): Promise<ConfirmResponse> {
     return firstValueFrom(
-      this.#http.post<ConfirmResponse>(`${this.#retailUrl}/basket/${basketId}/confirm`, { payment })
+      this.#http.post<ConfirmResponse>(`${this.#retailUrl}/basket/${basketId}/confirm`, {
+        channelCode: 'CC',
+        payment,
+      })
     );
   }
 }

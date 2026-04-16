@@ -443,7 +443,7 @@
               @if (basket()) {
                 <p class="results-meta">
                   Total due:
-                  <strong>{{ formatAmount(basket()!.totalAmount, basket()!.currencyCode) }}</strong>
+                  <strong>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</strong>
                 </p>
               }
             </div>
@@ -518,7 +518,7 @@
               <div class="confirmed-check">&#10003;</div>
               <h2 class="confirmed-title">Booking Confirmed</h2>
               <p class="confirmed-sub">
-                {{ formatAmount(conf.totalAmount, conf.currencyCode) }}
+                {{ formatAmount(conf.totalPrice, conf.currency) }}
                 &nbsp;·&nbsp; {{ conf.eTickets.length }} ticket{{ conf.eTickets.length !== 1 ? 's' : '' }} issued
               </p>
 
@@ -532,8 +532,7 @@
                   @for (ticket of conf.eTickets; track ticket.eTicketNumber) {
                     <div class="ticket-row">
                       <span class="ticket-num mono">{{ ticket.eTicketNumber }}</span>
-                      <span class="ticket-flight">{{ ticket.flightNumber }}</span>
-                      <span class="ticket-date">{{ formatDate(ticket.departureDate) }}</span>
+                      <span class="ticket-pax">{{ ticket.passengerId }}</span>
                     </div>
                   }
                 </div>
@@ -590,7 +589,7 @@
                       <span class="basket-fare-name">{{ flight.fareFamily }}</span>
                     </div>
                     <span class="basket-flight-price">
-                      {{ formatAmount(flight.totalAmount, basket()!.currencyCode) }}
+                      {{ formatAmount(flight.totalAmount, basket()!.currency) }}
                     </span>
                   </div>
                 }
@@ -655,23 +654,23 @@
             <div class="basket-totals">
               <div class="total-line">
                 <span>Fare</span>
-                <span>{{ formatAmount(basket()!.totalFareAmount, basket()!.currencyCode) }}</span>
+                <span>{{ formatAmount(basket()!.totalFareAmount ?? 0, basket()!.currency) }}</span>
               </div>
               @if (basket()!.totalSeatAmount > 0) {
                 <div class="total-line">
                   <span>Seats</span>
-                  <span>{{ formatAmount(basket()!.totalSeatAmount, basket()!.currencyCode) }}</span>
+                  <span>{{ formatAmount(basket()!.totalSeatAmount, basket()!.currency) }}</span>
                 </div>
               }
               @if (basket()!.totalBagAmount > 0) {
                 <div class="total-line">
                   <span>Bags</span>
-                  <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currencyCode) }}</span>
+                  <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
                 </div>
               }
               <div class="total-line total-grand">
                 <span>Total</span>
-                <span>{{ formatAmount(basket()!.totalAmount, basket()!.currencyCode) }}</span>
+                <span>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</span>
               </div>
             </div>
           }
@@ -685,7 +684,7 @@
               </div>
               <p class="basket-confirmed-status">&#10003; Booking confirmed</p>
               <p class="basket-confirmed-amount">
-                {{ formatAmount(confirmed()!.totalAmount, confirmed()!.currencyCode) }}
+                {{ formatAmount(confirmed()!.totalPrice, confirmed()!.currency) }}
               </p>
             </div>
           }

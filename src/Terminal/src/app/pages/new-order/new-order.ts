@@ -152,7 +152,7 @@ export class NewOrderComponent {
         this.loading.set(false);
       }
     } else {
-      await this.#createBasketAndContinue([offer.offerId]);
+      await this.#createBasketAndContinue([offer.offerId], this.totalPax());
     }
   }
 
@@ -161,7 +161,7 @@ export class NewOrderComponent {
     this.error.set('');
     const outbound = this.selectedOutboundOffer();
     if (!outbound) return;
-    await this.#createBasketAndContinue([outbound.offerId, offer.offerId]);
+    await this.#createBasketAndContinue([outbound.offerId, offer.offerId], this.totalPax());
   }
 
   // ── Passengers ───────────────────────────────────────────────────────────
@@ -413,11 +413,11 @@ export class NewOrderComponent {
     this.passengerForms.set(forms);
   }
 
-  async #createBasketAndContinue(offerIds: string[]): Promise<void> {
+  async #createBasketAndContinue(offerIds: string[], passengerCount: number): Promise<void> {
     this.loading.set(true);
     this.error.set('');
     try {
-      const basketSummary = await this.#svc.createBasket(offerIds);
+      const basketSummary = await this.#svc.createBasket(offerIds, passengerCount);
       this.basket.set(basketSummary);
       this.#initPassengerForms();
       this.step.set('passengers');
