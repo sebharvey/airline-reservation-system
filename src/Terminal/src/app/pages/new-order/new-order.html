@@ -1,0 +1,697 @@
+<div class="new-order-page fade-in">
+
+  <!-- ── Page header ── -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">New Order</h1>
+      <p class="page-subtitle">Search flights and create a new booking via the Contact Centre</p>
+    </div>
+
+    <nav class="step-bar" aria-label="Booking progress">
+      <div class="step-item" [class.active]="step() === 'search'" [class.done]="step() !== 'search'">
+        <span class="step-num">1</span><span class="step-name">Search</span>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item"
+        [class.active]="step() === 'outbound-results' || step() === 'inbound-results'"
+        [class.done]="['passengers','payment','confirmed'].includes(step())">
+        <span class="step-num">2</span><span class="step-name">Flights</span>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item"
+        [class.active]="step() === 'passengers'"
+        [class.done]="['payment','confirmed'].includes(step())">
+        <span class="step-num">3</span><span class="step-name">Passengers</span>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item"
+        [class.active]="step() === 'payment'"
+        [class.done]="step() === 'confirmed'">
+        <span class="step-num">4</span><span class="step-name">Payment</span>
+      </div>
+      <div class="step-connector"></div>
+      <div class="step-item" [class.active]="step() === 'confirmed'">
+        <span class="step-num">5</span><span class="step-name">Confirmed</span>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ── Error banner ── -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+      <button class="error-close" (click)="error.set('')" aria-label="Dismiss">&#10005;</button>
+    </div>
+  }
+
+  <!-- ── Three-column grid ── -->
+  <div class="order-grid">
+
+    <!-- ════════════════════════════════════════════════════════════
+         LEFT COLUMN — Flight Search
+         ════════════════════════════════════════════════════════════ -->
+    <aside class="col col-search">
+      <div class="panel">
+        <div class="panel-header">
+          <span>✈</span> Flight Search
+        </div>
+        <div class="panel-body">
+
+          <!-- Trip type toggle -->
+          <div class="toggle-group">
+            <button class="toggle-btn" [class.active]="tripType() === 'one-way'"
+              (click)="tripType.set('one-way')">One Way</button>
+            <button class="toggle-btn" [class.active]="tripType() === 'return'"
+              (click)="tripType.set('return')">Return</button>
+          </div>
+
+          <!-- Origin / Destination -->
+          <div class="route-row">
+            <div class="form-group flex-1">
+              <label class="form-label">From</label>
+              <input class="form-input iata-input" type="text" placeholder="LHR"
+                [value]="origin()"
+                (input)="origin.set($any($event.target).value.toUpperCase())"
+                maxlength="3" />
+            </div>
+            <button class="swap-btn" title="Swap airports"
+              (click)="swapAirports()">
+              ⇄
+            </button>
+            <div class="form-group flex-1">
+              <label class="form-label">To</label>
+              <input class="form-input iata-input" type="text" placeholder="JFK"
+                [value]="destination()"
+                (input)="destination.set($any($event.target).value.toUpperCase())"
+                maxlength="3" />
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="form-group">
+            <label class="form-label">Outbound Date</label>
+            <input class="form-input" type="date"
+              [value]="outboundDate()"
+              (input)="outboundDate.set($any($event.target).value)" />
+          </div>
+
+          @if (tripType() === 'return') {
+            <div class="form-group">
+              <label class="form-label">Return Date</label>
+              <input class="form-input" type="date"
+                [value]="returnDate()"
+                (input)="returnDate.set($any($event.target).value)" />
+            </div>
+          }
+
+          <!-- Passenger counters -->
+          <div class="pax-block">
+            <p class="pax-block-label">Passengers</p>
+
+            <div class="pax-row">
+              <div class="pax-info">
+                <span class="pax-type">Adults</span>
+                <span class="pax-age">12+</span>
+              </div>
+              <div class="pax-counter">
+                <button class="pax-btn" (click)="decrementPax('adults')"
+                  [disabled]="adults() <= 1">&#8722;</button>
+                <span class="pax-val">{{ adults() }}</span>
+                <button class="pax-btn" (click)="incrementPax('adults')"
+                  [disabled]="adults() >= 9">&#43;</button>
+              </div>
+            </div>
+
+            <div class="pax-row">
+              <div class="pax-info">
+                <span class="pax-type">Children</span>
+                <span class="pax-age">2–11</span>
+              </div>
+              <div class="pax-counter">
+                <button class="pax-btn" (click)="decrementPax('children')"
+                  [disabled]="children() <= 0">&#8722;</button>
+                <span class="pax-val">{{ children() }}</span>
+                <button class="pax-btn" (click)="incrementPax('children')"
+                  [disabled]="children() >= 9">&#43;</button>
+              </div>
+            </div>
+
+            <div class="pax-row">
+              <div class="pax-info">
+                <span class="pax-type">Infants</span>
+                <span class="pax-age">under 2</span>
+              </div>
+              <div class="pax-counter">
+                <button class="pax-btn" (click)="decrementPax('infants')"
+                  [disabled]="infants() <= 0">&#8722;</button>
+                <span class="pax-val">{{ infants() }}</span>
+                <button class="pax-btn" (click)="incrementPax('infants')"
+                  [disabled]="infants() >= adults()">&#43;</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Search button -->
+          <button class="search-btn" (click)="search()"
+            [disabled]="loading() || !origin() || !destination() || !outboundDate()">
+            @if (loading() && step() === 'search') {
+              <span class="btn-spinner"></span> Searching&#8230;
+            } @else {
+              ✈ Search Flights
+            }
+          </button>
+
+          <!-- New search shortcut when mid-flow -->
+          @if (step() !== 'search') {
+            <button class="link-btn" (click)="startOver()">
+              &#8592; Start new search
+            </button>
+          }
+
+        </div>
+      </div>
+    </aside>
+
+    <!-- ════════════════════════════════════════════════════════════
+         MIDDLE COLUMN — Flow steps
+         ════════════════════════════════════════════════════════════ -->
+    <main class="col col-middle">
+
+      <!-- ── IDLE placeholder ── -->
+      @if (step() === 'search') {
+        <div class="empty-state">
+          <div class="empty-icon">✈</div>
+          <h3>Search for flights</h3>
+          <p>Fill in the search form and click "Search Flights" to find available options.</p>
+        </div>
+      }
+
+      <!-- ── OUTBOUND RESULTS ── -->
+      @if (step() === 'outbound-results') {
+        <div class="results-pane fade-in">
+          <div class="results-header">
+            <div>
+              <h2 class="results-title">Outbound Flights</h2>
+              <p class="results-meta">
+                <strong>{{ origin() }} &#8594; {{ destination() }}</strong>
+                &nbsp;·&nbsp; {{ formatDate(outboundDate()) }}
+                &nbsp;·&nbsp; {{ totalPax() }} pax
+              </p>
+            </div>
+            <button class="back-btn" (click)="backToSearch()">&#8592; Search</button>
+          </div>
+
+          @if (loading()) {
+            <div class="loading-pane">
+              <span class="btn-spinner large-spinner"></span>
+              <p>Finding return flights&#8230;</p>
+            </div>
+          } @else if (outboundFlightGroups().length === 0) {
+            <div class="no-results">
+              <span class="no-results-icon">&#128683;</span>
+              <p>No flights found for this route and date. Try a different date.</p>
+            </div>
+          } @else {
+            <div class="flight-list">
+              @for (group of outboundFlightGroups(); track group.flightNumber + group.departureTime) {
+                <div class="flight-card" [class.flight-card-selected]="isOutboundSelected(group)">
+                  <div class="flight-card-top">
+                    <div class="flight-id">
+                      <span class="flight-num">{{ group.flightNumber }}</span>
+                      <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                    </div>
+                    <div class="flight-times">
+                      <span class="time">{{ group.departureTime }}</span>
+                      <span class="flight-route-arrow">
+                        <span class="route-line"></span>
+                        <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                        <span class="route-line"></span>
+                        &#8594;
+                      </span>
+                      <span class="time">
+                        {{ group.arrivalTime }}
+                        @if (group.arrivalDayOffset > 0) {
+                          <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                        }
+                      </span>
+                    </div>
+                    <div class="airport-codes">{{ group.origin }} &#8594; {{ group.destination }}</div>
+                  </div>
+
+                  <div class="cabin-grid">
+                    @for (offer of group.offers; track offer.offerId) {
+                      <button class="cabin-btn"
+                        [class]="cabinClass(offer.cabinCode)"
+                        [class.cabin-btn-selected]="selectedOutboundOffer()?.offerId === offer.offerId"
+                        [disabled]="loading()"
+                        (click)="selectOutbound(offer)">
+                        <span class="cabin-name">{{ cabinLabel(offer.cabinCode) }}</span>
+                        <span class="cabin-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                        <span class="cabin-family">{{ offer.fareFamily }}</span>
+                        <span class="cabin-seats">{{ offer.seatsAvailable }} left</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ── INBOUND RESULTS (return) ── -->
+      @if (step() === 'inbound-results') {
+        <div class="results-pane fade-in">
+          <div class="results-header">
+            <div>
+              <h2 class="results-title">Return Flights</h2>
+              <p class="results-meta">
+                <strong>{{ destination() }} &#8594; {{ origin() }}</strong>
+                &nbsp;·&nbsp; {{ formatDate(returnDate()) }}
+                &nbsp;·&nbsp; {{ totalPax() }} pax
+              </p>
+            </div>
+            <button class="back-btn" (click)="backToOutboundResults()">&#8592; Outbound</button>
+          </div>
+
+          @if (inboundFlightGroups().length === 0) {
+            <div class="no-results">
+              <span class="no-results-icon">&#128683;</span>
+              <p>No return flights found for this route and date. Try a different date.</p>
+            </div>
+          } @else {
+            <div class="flight-list">
+              @for (group of inboundFlightGroups(); track group.flightNumber + group.departureTime) {
+                <div class="flight-card" [class.flight-card-selected]="isInboundSelected(group)">
+                  <div class="flight-card-top">
+                    <div class="flight-id">
+                      <span class="flight-num">{{ group.flightNumber }}</span>
+                      <span class="aircraft-chip">{{ group.aircraftType }}</span>
+                    </div>
+                    <div class="flight-times">
+                      <span class="time">{{ group.departureTime }}</span>
+                      <span class="flight-route-arrow">
+                        <span class="route-line"></span>
+                        <span class="route-dur">{{ duration(group.departureTime, group.arrivalTime, group.arrivalDayOffset) }}</span>
+                        <span class="route-line"></span>
+                        &#8594;
+                      </span>
+                      <span class="time">
+                        {{ group.arrivalTime }}
+                        @if (group.arrivalDayOffset > 0) {
+                          <sup class="day-offset">+{{ group.arrivalDayOffset }}</sup>
+                        }
+                      </span>
+                    </div>
+                    <div class="airport-codes">{{ group.destination }} &#8594; {{ group.origin }}</div>
+                  </div>
+
+                  <div class="cabin-grid">
+                    @for (offer of group.offers; track offer.offerId) {
+                      <button class="cabin-btn"
+                        [class]="cabinClass(offer.cabinCode)"
+                        [class.cabin-btn-selected]="selectedInboundOffer()?.offerId === offer.offerId"
+                        [disabled]="loading()"
+                        (click)="selectInbound(offer)">
+                        <span class="cabin-name">{{ cabinLabel(offer.cabinCode) }}</span>
+                        <span class="cabin-price">{{ formatAmount(offer.totalAmount, offer.currencyCode) }}</span>
+                        <span class="cabin-family">{{ offer.fareFamily }}</span>
+                        <span class="cabin-seats">{{ offer.seatsAvailable }} left</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (loading()) {
+            <div class="loading-pane">
+              <span class="btn-spinner large-spinner"></span>
+              <p>Creating basket&#8230;</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ── PASSENGERS ── -->
+      @if (step() === 'passengers') {
+        <div class="pax-pane fade-in">
+          <div class="results-header">
+            <div>
+              <h2 class="results-title">Passenger Details</h2>
+              <p class="results-meta">{{ totalPax() }} passenger{{ totalPax() !== 1 ? 's' : '' }}</p>
+            </div>
+            <button class="back-btn" (click)="backToResults()">&#8592; Flights</button>
+          </div>
+
+          @for (pax of passengerForms(); track pax.passengerId; let i = $index) {
+            <div class="pax-card">
+              <div class="pax-card-header">
+                <div class="pax-card-title">
+                  <span class="pax-num">{{ pax.passengerId }}</span>
+                  <span class="pax-type-chip" [class]="'pax-' + pax.type.toLowerCase()">
+                    {{ paxLabel(pax.type) }}
+                  </span>
+                </div>
+                @if (i === 0) {
+                  <span class="lead-pax-badge">Lead passenger</span>
+                }
+              </div>
+
+              <div class="pax-fields">
+                <div class="field-row-2">
+                  <div class="form-group">
+                    <label class="form-label">First Name <span class="required">*</span></label>
+                    <input class="form-input" type="text"
+                      [value]="pax.givenName"
+                      (input)="updatePassengerField(i, 'givenName', $any($event.target).value)" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Last Name <span class="required">*</span></label>
+                    <input class="form-input" type="text"
+                      [value]="pax.surname"
+                      (input)="updatePassengerField(i, 'surname', $any($event.target).value)" />
+                  </div>
+                </div>
+
+                <div class="field-row-2">
+                  <div class="form-group">
+                    <label class="form-label">Date of Birth</label>
+                    <input class="form-input" type="date"
+                      [value]="pax.dob"
+                      (input)="updatePassengerField(i, 'dob', $any($event.target).value)" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    <select class="form-input"
+                      (change)="updatePassengerField(i, 'gender', $any($event.target).value)">
+                      <option value="Unspecified" [selected]="pax.gender === 'Unspecified'">Not specified</option>
+                      <option value="Male" [selected]="pax.gender === 'Male'">Male</option>
+                      <option value="Female" [selected]="pax.gender === 'Female'">Female</option>
+                    </select>
+                  </div>
+                </div>
+
+                @if (i === 0) {
+                  <div class="field-row-2">
+                    <div class="form-group">
+                      <label class="form-label">Email</label>
+                      <input class="form-input" type="email"
+                        placeholder="contact@example.com"
+                        [value]="pax.email"
+                        (input)="updatePassengerField(i, 'email', $any($event.target).value)" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Phone</label>
+                      <input class="form-input" type="tel"
+                        placeholder="+44 7700 900000"
+                        [value]="pax.phone"
+                        (input)="updatePassengerField(i, 'phone', $any($event.target).value)" />
+                    </div>
+                  </div>
+                }
+
+                <div class="form-group">
+                  <label class="form-label">Loyalty Number</label>
+                  <input class="form-input" type="text"
+                    placeholder="AX0000000 (optional)"
+                    [value]="pax.loyaltyNumber"
+                    (input)="updatePassengerField(i, 'loyaltyNumber', $any($event.target).value)" />
+                </div>
+              </div>
+            </div>
+          }
+
+          <button class="primary-btn" (click)="savePassengers()"
+            [disabled]="loading() || !passengersValid()">
+            @if (loading()) {
+              <span class="btn-spinner"></span> Saving&#8230;
+            } @else {
+              Continue to Payment &#8594;
+            }
+          </button>
+        </div>
+      }
+
+      <!-- ── PAYMENT ── -->
+      @if (step() === 'payment') {
+        <div class="payment-pane fade-in">
+          <div class="results-header">
+            <div>
+              <h2 class="results-title">Payment</h2>
+              @if (basket()) {
+                <p class="results-meta">
+                  Total due:
+                  <strong>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</strong>
+                </p>
+              }
+            </div>
+            <button class="back-btn" (click)="backToPassengers()">&#8592; Passengers</button>
+          </div>
+
+          <div class="payment-card">
+            <div class="payment-card-header">Card Details</div>
+
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <select class="form-input"
+                (change)="payMethod.set($any($event.target).value)">
+                <option value="CreditCard" [selected]="payMethod() === 'CreditCard'">Credit Card</option>
+                <option value="DebitCard" [selected]="payMethod() === 'DebitCard'">Debit Card</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cardholder Name</label>
+              <input class="form-input" type="text"
+                placeholder="Name as it appears on card"
+                [value]="cardName()"
+                (input)="cardName.set($any($event.target).value)" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Card Number</label>
+              <input class="form-input mono" type="text"
+                placeholder="•••• •••• •••• ••••"
+                maxlength="16"
+                [value]="cardNumber()"
+                (input)="cardNumber.set($any($event.target).value)" />
+            </div>
+
+            <div class="field-row-2">
+              <div class="form-group">
+                <label class="form-label">Expiry Date</label>
+                <input class="form-input" type="text"
+                  placeholder="MM/YY"
+                  maxlength="5"
+                  [value]="cardExpiry()"
+                  (input)="cardExpiry.set($any($event.target).value)" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">CVV</label>
+                <input class="form-input" type="password"
+                  placeholder="•••"
+                  maxlength="4"
+                  [value]="cardCvv()"
+                  (input)="cardCvv.set($any($event.target).value)" />
+              </div>
+            </div>
+          </div>
+
+          <button class="primary-btn confirm-btn" (click)="confirmBooking()"
+            [disabled]="loading()">
+            @if (loading()) {
+              <span class="btn-spinner"></span> Processing&#8230;
+            } @else {
+              &#128274; Confirm Booking
+            }
+          </button>
+        </div>
+      }
+
+      <!-- ── CONFIRMED ── -->
+      @if (step() === 'confirmed') {
+        <div class="confirmed-pane fade-in">
+          @if (confirmed(); as conf) {
+            <div class="confirmed-card">
+              <div class="confirmed-check">&#10003;</div>
+              <h2 class="confirmed-title">Booking Confirmed</h2>
+              <p class="confirmed-sub">
+                {{ formatAmount(conf.totalPrice, conf.currency) }}
+                &nbsp;·&nbsp; {{ conf.eTickets.length }} ticket{{ conf.eTickets.length !== 1 ? 's' : '' }} issued
+              </p>
+
+              <div class="pnr-box">
+                <span class="pnr-label">Booking Reference</span>
+                <span class="pnr-value">{{ conf.bookingReference }}</span>
+              </div>
+
+              @if (conf.eTickets.length > 0) {
+                <div class="ticket-list">
+                  @for (ticket of conf.eTickets; track ticket.eTicketNumber) {
+                    <div class="ticket-row">
+                      <span class="ticket-num mono">{{ ticket.eTicketNumber }}</span>
+                      <span class="ticket-pax">{{ ticket.passengerId }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="confirmed-actions">
+                <button class="primary-btn" (click)="viewOrder()">View Order</button>
+                <button class="secondary-btn" (click)="startOver()">New Booking</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════════
+         RIGHT COLUMN — Basket
+         ════════════════════════════════════════════════════════════ -->
+    <aside class="col col-basket">
+      <div class="panel basket-panel">
+        <div class="panel-header basket-panel-header">
+          <span>&#128722;</span> Basket
+          @if (basket() && step() !== 'confirmed') {
+            <span class="expiry-chip">exp. {{ formatExpiry(basket()!.expiresAt) }}</span>
+          }
+        </div>
+
+        <div class="panel-body">
+
+          @if (!selectedOutboundOffer() && !basket() && step() !== 'confirmed') {
+            <div class="basket-empty">
+              <span class="basket-empty-icon">&#128722;</span>
+              <p>No flights selected yet</p>
+            </div>
+          }
+
+          <!-- Flights section -->
+          @if (selectedOutboundOffer() || basket()) {
+            <div class="basket-section">
+              <p class="basket-section-label">Flights</p>
+
+              @if (basket()?.flights?.length) {
+                @for (flight of basket()!.flights; track flight.offerId) {
+                  <div class="basket-flight-row">
+                    <div class="basket-flight-route">
+                      <span class="bflight-num">{{ flight.flightNumber }}</span>
+                      <span class="bflight-dir">{{ flight.origin }} &#8594; {{ flight.destination }}</span>
+                    </div>
+                    <div class="basket-flight-meta">
+                      <span class="basket-cabin-chip" [class]="cabinClass(flight.cabinCode)">
+                        {{ cabinLabel(flight.cabinCode) }}
+                      </span>
+                      <span class="basket-fare-name">{{ flight.fareFamily }}</span>
+                    </div>
+                    <span class="basket-flight-price">
+                      {{ formatAmount(flight.totalAmount, basket()!.currency) }}
+                    </span>
+                  </div>
+                }
+              } @else {
+                @if (selectedOutboundOffer(); as offer) {
+                  <div class="basket-flight-row">
+                    <div class="basket-flight-route">
+                      <span class="bflight-num">{{ offer.flightNumber }}</span>
+                      <span class="bflight-dir">{{ offer.origin }} &#8594; {{ offer.destination }}</span>
+                    </div>
+                    <div class="basket-flight-meta">
+                      <span class="basket-cabin-chip" [class]="cabinClass(offer.cabinCode)">
+                        {{ cabinLabel(offer.cabinCode) }}
+                      </span>
+                      <span class="basket-fare-name">{{ offer.fareFamily }}</span>
+                    </div>
+                    <span class="basket-flight-price basket-price-pending">
+                      {{ formatAmount(offer.totalAmount, offer.currencyCode) }}
+                    </span>
+                  </div>
+                }
+                @if (selectedInboundOffer(); as offer) {
+                  <div class="basket-flight-row">
+                    <div class="basket-flight-route">
+                      <span class="bflight-num">{{ offer.flightNumber }}</span>
+                      <span class="bflight-dir">{{ offer.origin }} &#8594; {{ offer.destination }}</span>
+                    </div>
+                    <div class="basket-flight-meta">
+                      <span class="basket-cabin-chip" [class]="cabinClass(offer.cabinCode)">
+                        {{ cabinLabel(offer.cabinCode) }}
+                      </span>
+                      <span class="basket-fare-name">{{ offer.fareFamily }}</span>
+                    </div>
+                    <span class="basket-flight-price basket-price-pending">
+                      {{ formatAmount(offer.totalAmount, offer.currencyCode) }}
+                    </span>
+                  </div>
+                }
+              }
+            </div>
+          }
+
+          <!-- Passengers section -->
+          @if (passengerForms().length > 0 && (step() === 'payment' || step() === 'confirmed')) {
+            <div class="basket-section">
+              <p class="basket-section-label">Passengers</p>
+              @for (pax of passengerForms(); track pax.passengerId) {
+                <div class="basket-pax-row">
+                  <span class="basket-pax-name">
+                    {{ pax.givenName || '—' }} {{ pax.surname || '—' }}
+                  </span>
+                  <span class="pax-type-chip pax-chip-sm" [class]="'pax-' + pax.type.toLowerCase()">
+                    {{ pax.type }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Price breakdown -->
+          @if (basket()) {
+            <div class="basket-totals">
+              <div class="total-line">
+                <span>Fare</span>
+                <span>{{ formatAmount(basket()!.totalFareAmount ?? 0, basket()!.currency) }}</span>
+              </div>
+              @if (basket()!.totalSeatAmount > 0) {
+                <div class="total-line">
+                  <span>Seats</span>
+                  <span>{{ formatAmount(basket()!.totalSeatAmount, basket()!.currency) }}</span>
+                </div>
+              }
+              @if (basket()!.totalBagAmount > 0) {
+                <div class="total-line">
+                  <span>Bags</span>
+                  <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
+                </div>
+              }
+              <div class="total-line total-grand">
+                <span>Total</span>
+                <span>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</span>
+              </div>
+            </div>
+          }
+
+          <!-- Confirmed summary -->
+          @if (step() === 'confirmed' && confirmed()) {
+            <div class="basket-confirmed-summary">
+              <div class="basket-pnr-row">
+                <span class="bpnr-label">PNR</span>
+                <span class="bpnr-value">{{ confirmed()!.bookingReference }}</span>
+              </div>
+              <p class="basket-confirmed-status">&#10003; Booking confirmed</p>
+              <p class="basket-confirmed-amount">
+                {{ formatAmount(confirmed()!.totalPrice, confirmed()!.currency) }}
+              </p>
+            </div>
+          }
+
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
