@@ -22,17 +22,56 @@ export interface SearchOffer {
   totalAmount: number;
   isRefundable: boolean;
   isChangeable: boolean;
-  changeFeeAmount: number;
-  cancellationFeeAmount: number;
   seatsAvailable: number;
-  expiresAt: string;
 }
 
 export interface SearchResponse {
+  offers: SearchOffer[];
+}
+
+// ── API response shapes ───────────────────────────────────────────────────────
+
+interface ApiFareOffer {
+  offerId: string;
+  fareBasisCode: string;
+  basePrice: number;
+  tax: number;
+  totalPrice: number;
+  currency: string;
+  isRefundable: boolean;
+  isChangeable: boolean;
+}
+
+interface ApiFareFamilyResult {
+  fareFamily: string;
+  offer: ApiFareOffer;
+}
+
+interface ApiCabinResult {
+  cabinCode: string;
+  availableSeats: number;
+  currency: string;
+  fareFamilies: ApiFareFamilyResult[];
+}
+
+interface ApiSliceLeg {
+  flightNumber: string;
   origin: string;
   destination: string;
   departureDate: string;
-  offers: SearchOffer[];
+  departureTime: string;
+  arrivalTime: string;
+  arrivalDayOffset: number;
+  aircraftType: string;
+  cabins: ApiCabinResult[];
+}
+
+interface ApiSliceItinerary {
+  legs: ApiSliceLeg[];
+}
+
+interface ApiSliceSearchResponse {
+  itineraries: ApiSliceItinerary[];
 }
 
 export interface BasketPassenger {
@@ -95,8 +134,8 @@ export class NewOrderService {
     departureDate: string,
     paxCount: number,
   ): Promise<SearchResponse> {
-    return firstValueFrom(
-      this.#http.post<SearchResponse>(`${this.#retailUrl}/search/slice`, {
+    const res = await firstValueFrom(
+      this.#http.post<ApiSliceSearchResponse>(`${this.#retailUrl}/search/slice`, {
         origin: origin.toUpperCase(),
         destination: destination.toUpperCase(),
         departureDate,
@@ -104,6 +143,38 @@ export class NewOrderService {
         bookingType: 'Revenue',
       })
     );
+
+    const offers: SearchOffer[] = [];
+    for (const itinerary of res.itineraries ?? []) {
+      for (const leg of itinerary.legs ?? []) {
+        for (const cabin of leg.cabins ?? []) {
+          for (const ff of cabin.fareFamilies ?? []) {
+            offers.push({
+              offerId: ff.offer.offerId,
+              flightNumber: leg.flightNumber,
+              departureDate: leg.departureDate,
+              departureTime: leg.departureTime,
+              arrivalTime: leg.arrivalTime,
+              arrivalDayOffset: leg.arrivalDayOffset,
+              origin: leg.origin,
+              destination: leg.destination,
+              aircraftType: leg.aircraftType,
+              cabinCode: cabin.cabinCode,
+              fareBasisCode: ff.offer.fareBasisCode,
+              fareFamily: ff.fareFamily,
+              currencyCode: ff.offer.currency,
+              baseFareAmount: ff.offer.basePrice,
+              taxAmount: ff.offer.tax,
+              totalAmount: ff.offer.totalPrice,
+              isRefundable: ff.offer.isRefundable,
+              isChangeable: ff.offer.isChangeable,
+              seatsAvailable: cabin.availableSeats,
+            });
+          }
+        }
+      }
+    }
+    return { offers };
   }
 
   async createBasket(offerIds: string[], passengerCount: number): Promise<BasketSummary> {
