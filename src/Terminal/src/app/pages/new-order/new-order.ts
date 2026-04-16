@@ -399,6 +399,43 @@ export class NewOrderComponent {
     );
   }
 
+  // #region TEMP: Random pax test data — remove before production
+  fillRandomPaxData(): void {
+    const adultPool = [
+      { givenName: 'James',  surname: 'Harrison', gender: 'Male',   dob: '1985-03-22' },
+      { givenName: 'Sarah',  surname: 'Mitchell',  gender: 'Female', dob: '1990-07-14' },
+      { givenName: 'Thomas', surname: 'Clarke',    gender: 'Male',   dob: '1978-11-05' },
+      { givenName: 'Emily',  surname: 'Watson',    gender: 'Female', dob: '1995-02-28' },
+      { givenName: 'Daniel', surname: 'Brown',     gender: 'Male',   dob: '1982-09-17' },
+    ];
+    const childPool = [
+      { givenName: 'Oliver', gender: 'Male',   dob: '2018-04-10' },
+      { givenName: 'Sophie', gender: 'Female', dob: '2016-08-23' },
+      { givenName: 'Jack',   gender: 'Male',   dob: '2019-12-01' },
+    ];
+    const infantPool = [
+      { givenName: 'Noah', gender: 'Male',   dob: '2025-06-15' },
+      { givenName: 'Isla', gender: 'Female', dob: '2025-01-20' },
+    ];
+
+    const leadSurname = adultPool[0].surname;
+    let ai = 0, ci = 0, ii = 0;
+    this.passengerForms.update(forms => forms.map((pax, idx) => {
+      if (pax.type === 'ADT') {
+        const t = adultPool[ai++ % adultPool.length];
+        return { ...pax, givenName: t.givenName, surname: t.surname, dob: t.dob, gender: t.gender,
+          ...(idx === 0 ? { email: 'james.harrison@example.com', phone: '+44 7700 900123' } : {}) };
+      } else if (pax.type === 'CHD') {
+        const t = childPool[ci++ % childPool.length];
+        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+      } else {
+        const t = infantPool[ii++ % infantPool.length];
+        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+      }
+    }));
+  }
+  // #endregion TEMP
+
   // ── Private helpers ──────────────────────────────────────────────────────
 
   cabinGroups(offers: SearchOffer[]): { cabinCode: string; offers: SearchOffer[] }[] {
