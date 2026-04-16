@@ -31,47 +31,30 @@ export interface SearchResponse {
 
 // ── API response shapes ───────────────────────────────────────────────────────
 
-interface ApiFareOffer {
+interface ApiSliceOffer {
   offerId: string;
-  fareBasisCode: string;
-  basePrice: number;
-  tax: number;
-  totalPrice: number;
-  currency: string;
-  isRefundable: boolean;
-  isChangeable: boolean;
-}
-
-interface ApiFareFamilyResult {
-  fareFamily: string;
-  offer: ApiFareOffer;
-}
-
-interface ApiCabinResult {
-  cabinCode: string;
-  availableSeats: number;
-  currency: string;
-  fareFamilies: ApiFareFamilyResult[];
-}
-
-interface ApiSliceLeg {
   flightNumber: string;
-  origin: string;
-  destination: string;
   departureDate: string;
   departureTime: string;
   arrivalTime: string;
   arrivalDayOffset: number;
+  origin: string;
+  destination: string;
   aircraftType: string;
-  cabins: ApiCabinResult[];
-}
-
-interface ApiSliceItinerary {
-  legs: ApiSliceLeg[];
+  cabinCode: string;
+  fareBasisCode: string;
+  fareFamily: string;
+  currencyCode: string;
+  baseFareAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  isRefundable: boolean;
+  isChangeable: boolean;
+  seatsAvailable: number;
 }
 
 interface ApiSliceSearchResponse {
-  itineraries: ApiSliceItinerary[];
+  offers: ApiSliceOffer[];
 }
 
 export interface BasketPassenger {
@@ -214,36 +197,27 @@ export class NewOrderService {
       })
     );
 
-    const offers: SearchOffer[] = [];
-    for (const itinerary of res.itineraries ?? []) {
-      for (const leg of itinerary.legs ?? []) {
-        for (const cabin of leg.cabins ?? []) {
-          for (const ff of cabin.fareFamilies ?? []) {
-            offers.push({
-              offerId: ff.offer.offerId,
-              flightNumber: leg.flightNumber,
-              departureDate: leg.departureDate,
-              departureTime: leg.departureTime,
-              arrivalTime: leg.arrivalTime,
-              arrivalDayOffset: leg.arrivalDayOffset,
-              origin: leg.origin,
-              destination: leg.destination,
-              aircraftType: leg.aircraftType,
-              cabinCode: cabin.cabinCode,
-              fareBasisCode: ff.offer.fareBasisCode,
-              fareFamily: ff.fareFamily,
-              currencyCode: ff.offer.currency,
-              baseFareAmount: ff.offer.basePrice,
-              taxAmount: ff.offer.tax,
-              totalAmount: ff.offer.totalPrice,
-              isRefundable: ff.offer.isRefundable,
-              isChangeable: ff.offer.isChangeable,
-              seatsAvailable: cabin.availableSeats,
-            });
-          }
-        }
-      }
-    }
+    const offers: SearchOffer[] = (res.offers ?? []).map(o => ({
+      offerId: o.offerId,
+      flightNumber: o.flightNumber,
+      departureDate: o.departureDate,
+      departureTime: o.departureTime,
+      arrivalTime: o.arrivalTime,
+      arrivalDayOffset: o.arrivalDayOffset,
+      origin: o.origin,
+      destination: o.destination,
+      aircraftType: o.aircraftType,
+      cabinCode: o.cabinCode,
+      fareBasisCode: o.fareBasisCode,
+      fareFamily: o.fareFamily,
+      currencyCode: o.currencyCode,
+      baseFareAmount: o.baseFareAmount,
+      taxAmount: o.taxAmount,
+      totalAmount: o.totalAmount,
+      isRefundable: o.isRefundable,
+      isChangeable: o.isChangeable,
+      seatsAvailable: o.seatsAvailable,
+    }));
     return { offers };
   }
 
