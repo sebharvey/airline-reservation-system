@@ -301,6 +301,7 @@ public sealed class OfferFunction
                 departureTime    = inv.DepartureTime.ToString("HH:mm"),
                 arrivalTime      = inv.ArrivalTime.ToString("HH:mm"),
                 arrivalDayOffset = inv.ArrivalDayOffset,
+                durationMinutes  = CalculateDurationMinutes(inv),
                 aircraftType     = inv.AircraftType,
                 expiresAt        = result.Offer.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 offers = (entry?.Offers ?? []).Select(item => new
@@ -924,5 +925,13 @@ public sealed class OfferFunction
             status      = h.Status,
             createdAt   = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
+    }
+
+    private static int CalculateDurationMinutes(FlightInventory inv)
+    {
+        var dep    = inv.DepartureTimeUtc ?? inv.DepartureTime;
+        var arr    = inv.ArrivalTimeUtc   ?? inv.ArrivalTime;
+        var offset = inv.ArrivalDayOffsetUtc ?? inv.ArrivalDayOffset;
+        return arr.Hour * 60 + arr.Minute + offset * 1440 - (dep.Hour * 60 + dep.Minute);
     }
 }

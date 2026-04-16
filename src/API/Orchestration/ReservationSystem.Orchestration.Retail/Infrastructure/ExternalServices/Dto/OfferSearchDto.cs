@@ -36,6 +36,7 @@ public sealed class FlightItemDto
     public string DepartureTime { get; init; } = string.Empty;
     public string ArrivalTime { get; init; } = string.Empty;
     public int ArrivalDayOffset { get; init; }
+    public int DurationMinutes { get; init; }
     public string AircraftType { get; init; } = string.Empty;
     public string ExpiresAt { get; init; } = string.Empty;
     public IReadOnlyList<OfferItemDto> Offers { get; init; } = [];

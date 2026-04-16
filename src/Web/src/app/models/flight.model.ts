@@ -33,6 +33,7 @@ export interface FlightOffer {
   totalPrice: number;
   currency: string;
   seatsAvailable: number;
+  durationMinutes: number;
   pointsPrice?: number;
   pointsTaxes?: number;
   /**
