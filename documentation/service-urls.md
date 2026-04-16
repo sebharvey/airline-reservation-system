@@ -16,6 +16,14 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 
 ---
 
+## Simulators
+
+| Service | Base URL | Region |
+|---------|----------|--------|
+| Timatic Simulator | TBC | UK South |
+
+---
+
 ## Microservices
 
 | Service | Base URL | Region |
@@ -76,3 +84,4 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Disruption API | `DeliveryMs:BaseUrl` | Delivery MS |
 | Disruption API | `CustomerMs:BaseUrl` | Customer MS |
 | Disruption API | `PaymentMs:BaseUrl` | Payment MS |
+| Timatic Simulator | `Timatic:ApiToken` | Expected Bearer token — SHA-256 hash compared against each incoming `Authorization: Bearer` value |

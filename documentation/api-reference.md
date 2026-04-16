@@ -45,6 +45,7 @@
 - [Airport API](#airport-api)
 - [Finance API](#finance-api)
 - [Accounting Microservice](#accounting-microservice)
+- [Timatic Simulator](#timatic-simulator)
 
 ---
 
@@ -496,3 +497,17 @@ The Accounting microservice is a pure event consumer. It has no synchronous API 
 | `TicketVoided` | Delivery MS | Record ticket void |
 | `DocumentIssued` | Delivery MS | Record ancillary (seat/bag) revenue |
 | `DocumentVoided` | Delivery MS | Reverse ancillary revenue record |
+
+---
+
+## Timatic Simulator
+
+> **Scope:** Simulator only — happy-path responses. No actual document, visa, or APIS validation is performed. Designed to be called by the `DocumentVerification` microservice during online check-in.
+
+Mimics the IATA AutoCheck REST API. All endpoints use `Authorization: Bearer <token>` authentication. The expected token is stored in the `Timatic:ApiToken` Azure App Setting; incoming and stored tokens are compared as SHA-256 hashes (no plaintext comparison). Routes have no `/api` prefix — they are served at the paths below verbatim.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/autocheck/v1/documentcheck` | Document check — validates passport, visa, and health document requirements for a journey. Called at booking or OCI entry. Returns `status: OK`, no visa required, no health document required, and any applicable advisories (e.g. ESTA for US arrivals) |
+| `POST` | `/autocheck/v1/apischeck` | APIS check — validates Advance Passenger Information when a passenger submits check-in data. Returns `apisStatus: ACCEPTED`, `fineRisk: LOW`, and a generated audit reference |
+| `POST` | `/autocheck/v1/realtimecheck` | Realtime gate check — called when a gate agent scans the passenger MRZ. Parses the ICAO TD3 MRZ lines and returns a `decision: GO` with the extracted document fields |
