@@ -10,6 +10,7 @@ public sealed class BasketResponse
     public decimal? TotalFareAmount { get; init; }
     public decimal TotalSeatAmount { get; init; }
     public decimal TotalBagAmount { get; init; }
+    public decimal TotalProductAmount { get; init; }
     public decimal TotalPrice { get; init; }
     public int? TotalPointsAmount { get; init; }
     public string Currency { get; init; } = string.Empty;

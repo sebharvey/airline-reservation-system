@@ -13,6 +13,10 @@ import {
   CabinSeatmap,
   Seatmap,
   BasketSeatSelection,
+  Product,
+  ProductPrice,
+  ProductCatalogue,
+  BasketProductSelection,
 } from '../../services/new-order.service';
 
 interface PassengerForm {
@@ -53,7 +57,18 @@ interface SelectedSeat {
   seatOffer: SeatOffer;
 }
 
-type Step = 'search' | 'outbound-results' | 'inbound-results' | 'passengers' | 'seats' | 'payment' | 'confirmed';
+interface SelectedProduct {
+  productId: string;
+  offerId: string;
+  name: string;
+  passengerId: string | null;
+  segmentId: string | null;
+  unitPrice: number;
+  tax: number;
+  currencyCode: string;
+}
+
+type Step = 'search' | 'outbound-results' | 'inbound-results' | 'passengers' | 'seats' | 'products' | 'payment' | 'confirmed';
 
 const CABIN_ORDER: Record<string, number> = { F: 0, J: 1, W: 2, Y: 3 };
 
@@ -122,7 +137,7 @@ export class NewOrderComponent {
   );
 
   // ── Accordion (booking panel) ─────────────────────────────────────────────
-  accordionSection = signal<'passengers' | 'seats' | 'payment'>('passengers');
+  accordionSection = signal<'passengers' | 'seats' | 'products' | 'payment'>('passengers');
 
   // ── Payment ──────────────────────────────────────────────────────────────
   payMethod = signal<'CreditCard' | 'Cash'>('CreditCard');
@@ -200,6 +215,20 @@ export class NewOrderComponent {
     return entry.seatmap.cabins.find(c => c.cabinCode === entry.flight.cabinCode)
       ?? entry.seatmap.cabins[0]
       ?? null;
+  });
+
+  // ── Products ─────────────────────────────────────────────────────────────
+  productCatalogue = signal<ProductCatalogue | null>(null);
+  productSelections = signal<Map<string, SelectedProduct>>(new Map());
+  productsLoading = signal(false);
+  productsError = signal('');
+
+  readonly productTotal = computed(() => {
+    let total = 0;
+    for (const sel of this.productSelections().values()) {
+      total += sel.unitPrice + sel.tax;
+    }
+    return total;
   });
 
   // ── Confirmation ─────────────────────────────────────────────────────────
@@ -437,8 +466,9 @@ export class NewOrderComponent {
     try {
       await this.#svc.updateSeats(basket.basketId, []);
       this.seatSelections.set(new Map());
-      this.step.set('payment');
-      this.accordionSection.set('payment');
+      this.step.set('products');
+      this.accordionSection.set('products');
+      this.#loadProductCatalogue();
     } catch (err: any) {
       this.seatsError.set(err?.error?.message ?? 'Failed to proceed. Please try again.');
     } finally {
@@ -466,12 +496,112 @@ export class NewOrderComponent {
     this.seatsError.set('');
     try {
       await this.#svc.updateSeats(basket.basketId, selectionsList);
-      this.step.set('payment');
-      this.accordionSection.set('payment');
+      this.step.set('products');
+      this.accordionSection.set('products');
+      this.#loadProductCatalogue();
     } catch (err: any) {
       this.seatsError.set(err?.error?.message ?? 'Failed to save seats. Please try again.');
     } finally {
       this.seatsSaving.set(false);
+    }
+  }
+
+  // ── Products ─────────────────────────────────────────────────────────────
+
+  #loadProductCatalogue(): void {
+    if (this.productCatalogue()) return;
+    this.productsLoading.set(true);
+    this.#svc.getProducts()
+      .then(catalogue => {
+        this.productCatalogue.set(catalogue);
+        this.productsLoading.set(false);
+      })
+      .catch(() => {
+        this.productsLoading.set(false);
+        this.productsError.set('Failed to load products.');
+      });
+  }
+
+  getProductPrice(product: Product): ProductPrice | null {
+    const currency = this.basket()?.currency ?? 'GBP';
+    return product.prices.find(p => p.currencyCode === currency)
+      ?? product.prices[0]
+      ?? null;
+  }
+
+  toggleProduct(product: Product, passengerId: string, segmentId: string | null): void {
+    const price = this.getProductPrice(product);
+    if (!price) return;
+    const key = `${product.productId}__${passengerId}__${segmentId ?? ''}`;
+    const newMap = new Map<string, SelectedProduct>(this.productSelections());
+    if (newMap.has(key)) {
+      newMap.delete(key);
+    } else {
+      newMap.set(key, {
+        productId: product.productId,
+        offerId: price.offerId,
+        name: product.name,
+        passengerId,
+        segmentId,
+        unitPrice: price.price,
+        tax: price.tax,
+        currencyCode: price.currencyCode,
+      });
+    }
+    this.productSelections.set(newMap);
+  }
+
+  isProductSelected(productId: string, passengerId: string, segmentId: string | null): boolean {
+    return this.productSelections().has(`${productId}__${passengerId}__${segmentId ?? ''}`);
+  }
+
+  async skipProducts(): Promise<void> {
+    const basket = this.basket();
+    if (!basket) return;
+    this.productsLoading.set(true);
+    this.productsError.set('');
+    try {
+      const updated = await this.#svc.updateProducts(basket.basketId, []);
+      this.basket.set(updated);
+      this.productSelections.set(new Map());
+      this.step.set('payment');
+      this.accordionSection.set('payment');
+    } catch (err: any) {
+      this.productsError.set(err?.error?.message ?? 'Failed to proceed. Please try again.');
+    } finally {
+      this.productsLoading.set(false);
+    }
+  }
+
+  async saveProducts(): Promise<void> {
+    const basket = this.basket();
+    if (!basket) return;
+    const selectionsList: BasketProductSelection[] = [];
+    for (const sel of this.productSelections().values()) {
+      selectionsList.push({
+        productId: sel.productId,
+        offerId: sel.offerId,
+        name: sel.name,
+        passengerId: sel.passengerId,
+        segmentId: sel.segmentId,
+        quantity: 1,
+        unitPrice: sel.unitPrice,
+        tax: sel.tax,
+        price: sel.unitPrice + sel.tax,
+        currencyCode: sel.currencyCode,
+      });
+    }
+    this.productsLoading.set(true);
+    this.productsError.set('');
+    try {
+      const updated = await this.#svc.updateProducts(basket.basketId, selectionsList);
+      this.basket.set(updated);
+      this.step.set('payment');
+      this.accordionSection.set('payment');
+    } catch (err: any) {
+      this.productsError.set(err?.error?.message ?? 'Failed to save products. Please try again.');
+    } finally {
+      this.productsLoading.set(false);
     }
   }
 
@@ -566,6 +696,10 @@ export class NewOrderComponent {
     this.seatSelections.set(new Map());
     this.seatsSaving.set(false);
     this.seatsError.set('');
+    this.productCatalogue.set(null);
+    this.productSelections.set(new Map());
+    this.productsLoading.set(false);
+    this.productsError.set('');
   }
 
   // ── Pax counters ─────────────────────────────────────────────────────────

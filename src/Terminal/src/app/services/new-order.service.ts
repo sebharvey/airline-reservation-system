@@ -119,6 +119,7 @@ export interface BasketSummary {
   totalFareAmount: number | null;
   totalSeatAmount: number;
   totalBagAmount: number;
+  totalProductAmount: number;
   totalPrice: number;
   totalPointsAmount: number | null;
   currency: string;
@@ -136,6 +137,49 @@ export interface ConfirmResponse {
     passengerId: string;
     segmentIds: string[];
   }>;
+}
+
+// ── Products ─────────────────────────────────────────────────────────────────
+
+export interface ProductPrice {
+  priceId: string;
+  offerId: string;
+  currencyCode: string;
+  price: number;
+  tax: number;
+}
+
+export interface Product {
+  productId: string;
+  name: string;
+  description: string;
+  imageBase64: string | null;
+  ssrCode: string | null;
+  isSegmentSpecific: boolean;
+  prices: ProductPrice[];
+}
+
+export interface ProductGroup {
+  productGroupId: string;
+  productGroupName: string;
+  products: Product[];
+}
+
+export interface ProductCatalogue {
+  productGroups: ProductGroup[];
+}
+
+export interface BasketProductSelection {
+  productId: string;
+  offerId: string;
+  name: string;
+  passengerId: string | null;
+  segmentId: string | null;
+  quantity: number;
+  unitPrice: number;
+  tax: number;
+  price: number;
+  currencyCode: string;
 }
 
 // ── Seat selection ───────────────────────────────────────────────────────────
@@ -258,6 +302,18 @@ export class NewOrderService {
   async updatePassengers(basketId: string, passengers: BasketPassenger[]): Promise<void> {
     await firstValueFrom(
       this.#http.put(`${this.#retailUrl}/basket/${basketId}/passengers`, passengers)
+    );
+  }
+
+  async getProducts(): Promise<ProductCatalogue> {
+    return firstValueFrom(
+      this.#http.get<ProductCatalogue>(`${this.#retailUrl}/products`)
+    );
+  }
+
+  async updateProducts(basketId: string, selections: BasketProductSelection[]): Promise<BasketSummary> {
+    return firstValueFrom(
+      this.#http.put<BasketSummary>(`${this.#retailUrl}/basket/${basketId}/products`, selections)
     );
   }
 
