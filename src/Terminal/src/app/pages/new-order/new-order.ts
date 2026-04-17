@@ -65,7 +65,7 @@ export class NewOrderComponent {
   tripType = signal<'one-way' | 'return'>('one-way');
   origin = signal('LHR');
   destination = signal('JFK');
-  outboundDate = signal(new Date().toISOString().slice(0, 10));
+  outboundDate = signal((() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })());
   returnDate = signal('');
   adults = signal(1);
   children = signal(0);
