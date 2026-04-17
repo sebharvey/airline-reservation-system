@@ -98,6 +98,9 @@ export interface BasketPassenger {
 
 export interface BasketFlight {
   offerId: string;
+  inventoryId: string | null;
+  aircraftType: string | null;
+  basketItemId: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -191,10 +194,45 @@ export interface PaymentSummary {
 
 // ── Seat selection ───────────────────────────────────────────────────────────
 
-export interface SeatSelection {
+export interface SeatOffer {
   seatOfferId: string;
-  passengerRef: string;
-  flightOfferId: string;
+  seatNumber: string;
+  column: string;
+  rowNumber: number;
+  position: string;
+  cabinCode: string;
+  price: number;
+  currency: string;
+  availability: 'available' | 'held' | 'sold';
+  attributes: string[];
+}
+
+export interface CabinSeatmap {
+  cabinCode: string;
+  cabinName: string;
+  columns: string[];
+  layout: string;
+  startRow: number;
+  endRow: number;
+  seats: SeatOffer[];
+}
+
+export interface Seatmap {
+  flightId: string;
+  flightNumber: string;
+  aircraftType: string;
+  cabins: CabinSeatmap[];
+}
+
+export interface BasketSeatSelection {
+  passengerId: string;
+  segmentId: string;
+  basketItemRef: string;
+  seatOfferId: string;
+  seatNumber: string;
+  seatPosition: string;
+  price: number;
+  currency: string;
 }
 
 export interface SeatUpdateResponse {
@@ -283,9 +321,16 @@ export class NewOrderService {
     );
   }
 
-  async updateSeats(basketId: string, seatSelections: SeatSelection[]): Promise<SeatUpdateResponse> {
+  async getSeatmap(inventoryId: string, flightNumber: string, aircraftType: string, cabinCode: string): Promise<Seatmap> {
+    const params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}&cabinCode=${encodeURIComponent(cabinCode)}`;
     return firstValueFrom(
-      this.#http.put<SeatUpdateResponse>(`${this.#retailUrl}/basket/${basketId}/seats`, { seatSelections })
+      this.#http.get<Seatmap>(`${this.#retailUrl}/flights/${inventoryId}/seatmap?${params}`)
+    );
+  }
+
+  async updateSeats(basketId: string, seatSelections: BasketSeatSelection[]): Promise<SeatUpdateResponse> {
+    return firstValueFrom(
+      this.#http.put<SeatUpdateResponse>(`${this.#retailUrl}/basket/${basketId}/seats`, seatSelections)
     );
   }
 

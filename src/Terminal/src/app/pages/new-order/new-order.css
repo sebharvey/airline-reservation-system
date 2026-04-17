@@ -1501,6 +1501,224 @@
   margin-top: 2px;
 }
 
+/* ── Seatmap ─────────────────────────────────────────────────── */
+.sm-pax-tabs,
+.sm-flight-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sm-pax-tab,
+.sm-flight-tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 7px 10px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.sm-pax-tab.active,
+.sm-flight-tab.active {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #fff;
+  border-color: transparent;
+}
+
+.sm-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sm-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(248,81,73,0.07);
+  border: 1px solid rgba(248,81,73,0.25);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #f85149;
+}
+
+.sm-selection-indicator {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 8px 10px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.sm-selection-indicator strong { color: var(--text); }
+.sm-selected-seat { color: var(--grad-start); font-weight: 700; margin-left: 4px; }
+
+.sm-wrap {
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.sm-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.sm-header-row { margin-bottom: 5px; }
+
+.sm-row-num {
+  width: 22px;
+  text-align: right;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  padding-right: 3px;
+}
+
+.sm-col-header {
+  width: 34px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.sm-seat {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+  font-size: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transition: transform 0.12s;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sm-seat-num {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sm-seat-price {
+  font-size: 0.42rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.sm-seat-available {
+  background: #27ae6022;
+  border-color: #27ae6066;
+  color: #1a8a4a;
+  font-size: inherit;
+}
+
+.sm-seat-available:hover:not(:disabled) {
+  background: #27ae6033;
+  transform: scale(1.08);
+}
+
+.sm-seat-selected {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  border-color: var(--grad-start);
+  color: #fff;
+  font-size: inherit;
+}
+
+.sm-seat-selected:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.sm-seat-other {
+  background: rgba(102,126,234,0.12);
+  border-color: rgba(102,126,234,0.35);
+  color: var(--grad-start);
+  font-size: inherit;
+  cursor: default;
+}
+
+.sm-seat-sold {
+  background: var(--border);
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+  font-size: inherit;
+}
+
+.sm-seat-gap {
+  background: transparent;
+  border: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+.sm-aisle { margin-right: 10px; }
+
+.sm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.sm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.sm-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+}
+
+.sm-swatch-available { background: #27ae6022; border-color: #27ae6066; }
+.sm-swatch-selected  { background: linear-gradient(135deg, var(--grad-start), var(--grad-end)); }
+.sm-swatch-other     { background: rgba(102,126,234,0.12); border-color: rgba(102,126,234,0.35); }
+.sm-swatch-sold      { background: var(--border); opacity: 0.45; }
+
+.sm-action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sm-action-row .secondary-btn { flex: 0 0 auto; width: auto; padding: 10px 16px; }
+.sm-save-btn { flex: 1; }
+
 /* ── Cash info ───────────────────────────────────────────────── */
 .cash-info {
   display: flex;
