@@ -273,7 +273,7 @@ export class NewOrderService {
 
   async updatePassengers(basketId: string, passengers: BasketPassenger[]): Promise<void> {
     await firstValueFrom(
-      this.#http.put(`${this.#retailUrl}/basket/${basketId}/passengers`, { passengers })
+      this.#http.put(`${this.#retailUrl}/basket/${basketId}/passengers`, passengers)
     );
   }
 

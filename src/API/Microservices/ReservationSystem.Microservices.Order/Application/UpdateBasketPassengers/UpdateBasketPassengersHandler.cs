@@ -42,8 +42,7 @@ public sealed class UpdateBasketPassengersHandler
         }
 
         var basketJson = JsonNode.Parse(basket.BasketData)?.AsObject() ?? new JsonObject();
-        var parsed = JsonNode.Parse(command.PassengersData);
-        var passengersNode = parsed is JsonObject wrapper ? wrapper["passengers"] ?? parsed : parsed;
+        var passengersNode = JsonNode.Parse(command.PassengersData);
         basketJson["passengers"] = passengersNode;
 
         // Recalculate fare totals from the stored per-person unit amounts multiplied by the
