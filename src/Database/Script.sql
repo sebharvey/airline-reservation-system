@@ -518,6 +518,27 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_BookingReference
         WHERE BookingReference IS NOT NULL;
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[order].[Order]') AND name = 'LastItemDepartureDate')
+    ALTER TABLE [order].[Order]
+        ADD LastItemDepartureDate AS CAST(JSON_VALUE(OrderData, '$.orderItems[last].departureDate') AS DATE) PERSISTED;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[order].[Order]') AND name = 'LastItemDepartureTime')
+    ALTER TABLE [order].[Order]
+        ADD LastItemDepartureTime AS CAST(JSON_VALUE(OrderData, '$.orderItems[last].departureTime') AS TIME) PERSISTED;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[order].[Order]') AND name = 'LastItemArrivalTime')
+    ALTER TABLE [order].[Order]
+        ADD LastItemArrivalTime AS CAST(JSON_VALUE(OrderData, '$.orderItems[last].arrivalTime') AS TIME) PERSISTED;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_LastSegmentArrival' AND object_id = OBJECT_ID('[order].[Order]'))
+    CREATE INDEX IX_Order_LastSegmentArrival
+        ON [order].[Order] (LastItemDepartureDate, LastItemArrivalTime, LastItemDepartureTime)
+        WHERE LastItemDepartureDate IS NOT NULL;
+GO
+
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('
