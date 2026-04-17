@@ -316,24 +316,21 @@ export class NewOrderService {
   }
 
   async getPaymentSummary(basketId: string): Promise<PaymentSummary> {
-    const base = `${environment.retailApiUrl}/api/v1`;
     return firstValueFrom(
-      this.#http.get<PaymentSummary>(`${base}/basket/${basketId}/payment-summary`)
+      this.#http.get<PaymentSummary>(`${this.#retailUrl}/basket/${basketId}/payment-summary`)
     );
   }
 
   async getSeatmap(inventoryId: string, flightNumber: string, aircraftType: string, cabinCode: string): Promise<Seatmap> {
-    const base = `${environment.retailApiUrl}/api/v1`;
     const params = `aircraftType=${encodeURIComponent(aircraftType)}&flightNumber=${encodeURIComponent(flightNumber)}&cabinCode=${encodeURIComponent(cabinCode)}`;
     return firstValueFrom(
-      this.#http.get<Seatmap>(`${base}/flights/${inventoryId}/seatmap?${params}`)
+      this.#http.get<Seatmap>(`${this.#retailUrl}/flights/${inventoryId}/seatmap?${params}`)
     );
   }
 
   async updateSeats(basketId: string, seatSelections: BasketSeatSelection[]): Promise<SeatUpdateResponse> {
-    const base = `${environment.retailApiUrl}/api/v1`;
     return firstValueFrom(
-      this.#http.put<SeatUpdateResponse>(`${base}/basket/${basketId}/seats`, seatSelections)
+      this.#http.put<SeatUpdateResponse>(`${this.#retailUrl}/basket/${basketId}/seats`, seatSelections)
     );
   }
 

@@ -7,6 +7,7 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
+using ReservationSystem.Orchestration.Retail.Application.PaymentSummary;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
@@ -26,6 +27,7 @@ public sealed class AdminBookingFunction
     private readonly SearchFlightsHandler _searchHandler;
     private readonly CreateBasketHandler _createBasketHandler;
     private readonly ConfirmBasketHandler _confirmBasketHandler;
+    private readonly PaymentSummaryHandler _paymentSummaryHandler;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<AdminBookingFunction> _logger;
 
@@ -33,12 +35,14 @@ public sealed class AdminBookingFunction
         SearchFlightsHandler searchHandler,
         CreateBasketHandler createBasketHandler,
         ConfirmBasketHandler confirmBasketHandler,
+        PaymentSummaryHandler paymentSummaryHandler,
         OrderServiceClient orderServiceClient,
         ILogger<AdminBookingFunction> logger)
     {
         _searchHandler = searchHandler;
         _createBasketHandler = createBasketHandler;
         _confirmBasketHandler = confirmBasketHandler;
+        _paymentSummaryHandler = paymentSummaryHandler;
         _orderServiceClient = orderServiceClient;
         _logger = logger;
     }
@@ -210,6 +214,64 @@ public sealed class AdminBookingFunction
         {
             return await req.UnprocessableEntityAsync(ex.Message);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/admin/basket/{basketId}/seats
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateBasketSeats")]
+    [OpenApiOperation(operationId: "AdminUpdateBasketSeats", tags: new[] { "Admin Booking" }, Summary = "Update seat selections in basket (staff)")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Seat selections")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> UpdateBasketSeats(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/admin/basket/{basketId:guid}/seats")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminUpdateBasketSeats");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        try
+        {
+            await _orderServiceClient.UpdateSeatsAsync(basketId, body, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/basket/{basketId}/payment-summary
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetPaymentSummary")]
+    [OpenApiOperation(operationId: "AdminGetPaymentSummary", tags: new[] { "Admin Booking" }, Summary = "Return payment-screen summary for a basket (staff)")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PaymentSummaryResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> GetPaymentSummary(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/basket/{basketId:guid}/payment-summary")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _paymentSummaryHandler.HandleAsync(new PaymentSummaryQuery(basketId), cancellationToken);
+        if (result is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(result);
     }
 
     // -------------------------------------------------------------------------
