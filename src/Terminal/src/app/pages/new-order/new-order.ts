@@ -109,9 +109,54 @@ export class NewOrderComponent {
   // ── Payment ──────────────────────────────────────────────────────────────
   payMethod = signal<'CreditCard' | 'Cash'>('CreditCard');
   cardNumber = signal('');
-  cardExpiry = signal('');
+  expiryMonth = signal('');
+  expiryYear = signal('');
   cardCvv = signal('');
   cardName = signal('');
+  paymentSubmitted = signal(false);
+
+  readonly cardDisplayNumber = computed(() => {
+    const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
+    return raw.replace(/(.{4})/g, '$1 ').trim();
+  });
+
+  readonly expiryMonths = computed(() => [
+    { value: '01', label: '01 — Jan' }, { value: '02', label: '02 — Feb' },
+    { value: '03', label: '03 — Mar' }, { value: '04', label: '04 — Apr' },
+    { value: '05', label: '05 — May' }, { value: '06', label: '06 — Jun' },
+    { value: '07', label: '07 — Jul' }, { value: '08', label: '08 — Aug' },
+    { value: '09', label: '09 — Sep' }, { value: '10', label: '10 — Oct' },
+    { value: '11', label: '11 — Nov' }, { value: '12', label: '12 — Dec' },
+  ]);
+
+  readonly expiryYears = computed(() => {
+    const cur = new Date().getFullYear();
+    return Array.from({ length: 12 }, (_, i) => cur + i);
+  });
+
+  detectCardType(): string {
+    const num = this.cardNumber().replace(/\D/g, '');
+    if (num.startsWith('4')) return 'Visa';
+    if (/^5[1-5]/.test(num) || /^2[2-7]/.test(num)) return 'Mastercard';
+    if (/^3[47]/.test(num)) return 'Amex';
+    return 'Card';
+  }
+
+  onCardNumberInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').substring(0, 16);
+    this.cardNumber.set(digits);
+    input.value = digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  fillTestCard(): void {
+    const nextYear = (new Date().getFullYear() + 3).toString();
+    this.cardName.set('Test Agent');
+    this.cardNumber.set('4111111111111111');
+    this.expiryMonth.set('12');
+    this.expiryYear.set(nextYear);
+    this.cardCvv.set('123');
+  }
 
   // ── Payment summary (loaded from API when payment section opens) ─────────
   paymentSummary = signal<PaymentSummary | null>(null);
@@ -245,17 +290,25 @@ export class NewOrderComponent {
   async confirmBooking(): Promise<void> {
     const basketSummary = this.basket();
     if (!basketSummary) return;
-    if (this.payMethod() === 'CreditCard' && (!this.cardNumber() || !this.cardExpiry() || !this.cardCvv() || !this.cardName())) {
-      this.error.set('Please fill in all card details.');
-      return;
+
+    if (this.payMethod() === 'CreditCard') {
+      this.paymentSubmitted.set(true);
+      const digits = this.cardNumber().replace(/\D/g, '');
+      if (!this.cardName().trim() || digits.length < 16 || !this.expiryMonth() || !this.expiryYear() || this.cardCvv().trim().length < 3) {
+        return;
+      }
     }
+
     this.loading.set(true);
     this.error.set('');
     try {
+      const expiryDate = this.payMethod() === 'CreditCard'
+        ? `${this.expiryMonth()}/${this.expiryYear().toString().slice(-2)}`
+        : '';
       const result = await this.#svc.confirmBasket(basketSummary.basketId, {
         method: this.payMethod(),
-        cardNumber: this.cardNumber(),
-        expiryDate: this.cardExpiry(),
+        cardNumber: this.cardNumber().replace(/\D/g, ''),
+        expiryDate,
         cvv: this.cardCvv(),
         cardholderName: this.cardName(),
       });
@@ -312,9 +365,11 @@ export class NewOrderComponent {
     this.error.set('');
     this.accordionSection.set('passengers');
     this.cardNumber.set('');
-    this.cardExpiry.set('');
+    this.expiryMonth.set('');
+    this.expiryYear.set('');
     this.cardCvv.set('');
     this.cardName.set('');
+    this.paymentSubmitted.set(false);
     this.payMethod.set('CreditCard');
   }
 

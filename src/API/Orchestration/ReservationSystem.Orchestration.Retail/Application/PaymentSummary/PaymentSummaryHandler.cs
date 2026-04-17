@@ -72,8 +72,12 @@ public sealed class PaymentSummaryHandler
         // ── Totals ─────────────────────────────────────────────────────────────
         var isReward = string.Equals(bookingType, "Reward", StringComparison.OrdinalIgnoreCase);
 
-        var fareAmount   = isReward ? 0m : (basket.TotalFareAmount ?? 0m);
-        var taxAmount    = isReward ? (basket.TotalFareAmount ?? 0m) : 0m;
+        var baseFareSum = flights.Sum(f => f.BaseFareAmount);
+        var taxSum      = flights.Sum(f => f.TaxAmount);
+
+        // Revenue: split into base fare and taxes. Reward: fare=0, taxAmount=cash taxes owed.
+        var fareAmount = isReward ? 0m : baseFareSum;
+        var taxAmount  = isReward ? (basket.TotalFareAmount ?? 0m) : taxSum;
         var seatAmount   = basket.TotalSeatAmount;
         var bagAmount    = basket.TotalBagAmount;
 

@@ -537,40 +537,98 @@
 
                   <!-- Credit card fields -->
                   @if (payMethod() === 'CreditCard') {
-                    <div class="form-group">
-                      <label class="form-label">Cardholder Name</label>
-                      <input class="form-input" type="text"
-                        placeholder="Name as it appears on card"
-                        [value]="cardName()"
-                        (input)="cardName.set($any($event.target).value)" />
-                    </div>
+                    <div class="card-form">
 
-                    <div class="form-group">
-                      <label class="form-label">Card Number</label>
-                      <input class="form-input mono" type="text"
-                        placeholder="•••• •••• •••• ••••"
-                        maxlength="16"
-                        [value]="cardNumber()"
-                        (input)="cardNumber.set($any($event.target).value)" />
-                    </div>
+                      <!-- Dev fill button -->
+                      <div class="card-dev-row">
+                        <button type="button" class="card-dev-btn" (click)="fillTestCard()">
+                          &#127922; Fill test card
+                        </button>
+                      </div>
 
-                    <div class="field-row-2">
-                      <div class="form-group">
-                        <label class="form-label">Expiry Date</label>
+                      <!-- Card type badge -->
+                      @if (cardNumber().length >= 4) {
+                        <div class="card-type-badge">{{ detectCardType() }}</div>
+                      }
+
+                      <!-- Cardholder name -->
+                      <div class="card-field" [class.card-field-error]="paymentSubmitted() && !cardName().trim()">
+                        <label class="card-label">Cardholder Name</label>
                         <input class="form-input" type="text"
-                          placeholder="MM/YY"
-                          maxlength="5"
-                          [value]="cardExpiry()"
-                          (input)="cardExpiry.set($any($event.target).value)" />
+                          placeholder="As printed on card"
+                          autocomplete="cc-name"
+                          [value]="cardName()"
+                          (input)="cardName.set($any($event.target).value)" />
+                        @if (paymentSubmitted() && !cardName().trim()) {
+                          <span class="card-field-msg">Required</span>
+                        }
                       </div>
-                      <div class="form-group">
-                        <label class="form-label">CVV</label>
-                        <input class="form-input" type="password"
-                          placeholder="•••"
-                          maxlength="4"
-                          [value]="cardCvv()"
-                          (input)="cardCvv.set($any($event.target).value)" />
+
+                      <!-- Card number -->
+                      <div class="card-field" [class.card-field-error]="paymentSubmitted() && cardNumber().replace(' ','').length < 16">
+                        <label class="card-label">Card Number</label>
+                        <input class="form-input mono" type="text"
+                          inputmode="numeric"
+                          placeholder="1234 5678 9012 3456"
+                          maxlength="19"
+                          autocomplete="cc-number"
+                          [value]="cardDisplayNumber()"
+                          (input)="onCardNumberInput($event)" />
+                        @if (paymentSubmitted() && cardNumber().replace(' ','').length < 16) {
+                          <span class="card-field-msg">Enter a valid 16-digit card number</span>
+                        }
                       </div>
+
+                      <!-- Expiry month + year + CVV -->
+                      <div class="card-row-3">
+                        <div class="card-field" [class.card-field-error]="paymentSubmitted() && !expiryMonth()">
+                          <label class="card-label">Expiry Month</label>
+                          <select class="form-input"
+                            autocomplete="cc-exp-month"
+                            [value]="expiryMonth()"
+                            (change)="expiryMonth.set($any($event.target).value)">
+                            <option value="">MM</option>
+                            @for (m of expiryMonths(); track m.value) {
+                              <option [value]="m.value">{{ m.label }}</option>
+                            }
+                          </select>
+                          @if (paymentSubmitted() && !expiryMonth()) {
+                            <span class="card-field-msg">Required</span>
+                          }
+                        </div>
+
+                        <div class="card-field" [class.card-field-error]="paymentSubmitted() && !expiryYear()">
+                          <label class="card-label">Expiry Year</label>
+                          <select class="form-input"
+                            autocomplete="cc-exp-year"
+                            [value]="expiryYear()"
+                            (change)="expiryYear.set($any($event.target).value)">
+                            <option value="">YYYY</option>
+                            @for (y of expiryYears(); track y) {
+                              <option [value]="y">{{ y }}</option>
+                            }
+                          </select>
+                          @if (paymentSubmitted() && !expiryYear()) {
+                            <span class="card-field-msg">Required</span>
+                          }
+                        </div>
+
+                        <div class="card-field" [class.card-field-error]="paymentSubmitted() && cardCvv().trim().length < 3">
+                          <label class="card-label">CVV</label>
+                          <input class="form-input mono" type="text"
+                            inputmode="numeric"
+                            placeholder="123"
+                            maxlength="4"
+                            autocomplete="cc-csc"
+                            [value]="cardCvv()"
+                            (input)="cardCvv.set($any($event.target).value)" />
+                          @if (paymentSubmitted() && cardCvv().trim().length < 3) {
+                            <span class="card-field-msg">Required</span>
+                          }
+                        </div>
+                      </div>
+
+                      <p class="card-security-note">&#128274; Payment is encrypted. Card details are not stored.</p>
                     </div>
                   }
 
@@ -736,26 +794,55 @@
           <!-- Price breakdown -->
           @if (basket()) {
             <div class="basket-totals">
-              <div class="total-line">
-                <span>Fare</span>
-                <span>{{ formatAmount(basket()!.totalFareAmount ?? 0, basket()!.currency) }}</span>
-              </div>
-              @if (basket()!.totalSeatAmount > 0) {
+              @if (paymentSummary()) {
                 <div class="total-line">
-                  <span>Seats</span>
-                  <span>{{ formatAmount(basket()!.totalSeatAmount, basket()!.currency) }}</span>
+                  <span>Fare</span>
+                  <span>{{ formatAmount(paymentSummary()!.totals.fareAmount, paymentSummary()!.currency) }}</span>
+                </div>
+                @if (paymentSummary()!.totals.taxAmount > 0) {
+                  <div class="total-line total-line-sub">
+                    <span>Taxes &amp; fees</span>
+                    <span>{{ formatAmount(paymentSummary()!.totals.taxAmount, paymentSummary()!.currency) }}</span>
+                  </div>
+                }
+                @if (paymentSummary()!.totals.seatAmount > 0) {
+                  <div class="total-line">
+                    <span>Seats</span>
+                    <span>{{ formatAmount(paymentSummary()!.totals.seatAmount, paymentSummary()!.currency) }}</span>
+                  </div>
+                }
+                @if (paymentSummary()!.totals.bagAmount > 0) {
+                  <div class="total-line">
+                    <span>Bags</span>
+                    <span>{{ formatAmount(paymentSummary()!.totals.bagAmount, paymentSummary()!.currency) }}</span>
+                  </div>
+                }
+                <div class="total-line total-grand">
+                  <span>Total</span>
+                  <span>{{ formatAmount(paymentSummary()!.totals.grandTotal, paymentSummary()!.currency) }}</span>
+                </div>
+              } @else {
+                <div class="total-line">
+                  <span>Fare</span>
+                  <span>{{ formatAmount(basket()!.totalFareAmount ?? 0, basket()!.currency) }}</span>
+                </div>
+                @if (basket()!.totalSeatAmount > 0) {
+                  <div class="total-line">
+                    <span>Seats</span>
+                    <span>{{ formatAmount(basket()!.totalSeatAmount, basket()!.currency) }}</span>
+                  </div>
+                }
+                @if (basket()!.totalBagAmount > 0) {
+                  <div class="total-line">
+                    <span>Bags</span>
+                    <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
+                  </div>
+                }
+                <div class="total-line total-grand">
+                  <span>Total</span>
+                  <span>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</span>
                 </div>
               }
-              @if (basket()!.totalBagAmount > 0) {
-                <div class="total-line">
-                  <span>Bags</span>
-                  <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
-                </div>
-              }
-              <div class="total-line total-grand">
-                <span>Total</span>
-                <span>{{ formatAmount(basket()!.totalPrice, basket()!.currency) }}</span>
-              </div>
             </div>
           }
 
