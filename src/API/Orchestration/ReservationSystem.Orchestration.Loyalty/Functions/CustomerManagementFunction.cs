@@ -446,7 +446,6 @@ public sealed class CustomerManagementFunction
 
         return req.NoContent();
     }
-}
 
     // -------------------------------------------------------------------------
     // GET /v1/admin/customers/{loyaltyNumber}/notes
