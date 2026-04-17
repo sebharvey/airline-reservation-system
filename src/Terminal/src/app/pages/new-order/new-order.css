@@ -36,6 +36,8 @@
   align-items: center;
   gap: 0;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .step-item {
@@ -139,10 +141,12 @@
 }
 
 /* ── Column base ─────────────────────────────────────────────── */
-.col-search,
-.col-basket {
-  position: sticky;
-  top: 16px;
+@media (min-width: 900px) {
+  .col-search,
+  .col-basket {
+    position: sticky;
+    top: 16px;
+  }
 }
 
 /* ── Panel ───────────────────────────────────────────────────── */
@@ -794,6 +798,12 @@
   gap: 10px;
 }
 
+@media (max-width: 360px) {
+  .field-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Payment pane ────────────────────────────────────────────── */
 .payment-pane {
   display: flex;
@@ -1343,6 +1353,15 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30vw;
+}
+
+@media (min-width: 900px) {
+  .accordion-meta {
+    max-width: none;
+  }
 }
 
 .accordion-done {
@@ -1493,6 +1512,15 @@
   display: grid;
   grid-template-columns: 1fr 1fr 90px;
   gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .card-row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .card-row-3 .card-field:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .card-security-note {
