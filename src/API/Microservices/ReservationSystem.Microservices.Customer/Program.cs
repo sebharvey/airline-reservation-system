@@ -21,6 +21,10 @@ using ReservationSystem.Microservices.Customer.Application.AddCustomerOrder;
 using ReservationSystem.Microservices.Customer.Application.GetCustomerOrders;
 using ReservationSystem.Microservices.Customer.Application.GetPreferences;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
+using ReservationSystem.Microservices.Customer.Application.GetNotes;
+using ReservationSystem.Microservices.Customer.Application.AddNote;
+using ReservationSystem.Microservices.Customer.Application.UpdateNote;
+using ReservationSystem.Microservices.Customer.Application.DeleteNote;
 using ReservationSystem.Microservices.Customer.Domain.Repositories;
 using ReservationSystem.Microservices.Customer.Infrastructure.Persistence;
 using ReservationSystem.Microservices.Customer.Swagger;
@@ -68,6 +72,7 @@ var host = new HostBuilder()
         services.AddScoped<ILoyaltyTransactionRepository, EfLoyaltyTransactionRepository>();
         services.AddScoped<ICustomerPreferencesRepository, EfCustomerPreferencesRepository>();
         services.AddScoped<ICustomerOrderRepository, EfCustomerOrderRepository>();
+        services.AddScoped<ICustomerNoteRepository, EfCustomerNoteRepository>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
@@ -90,6 +95,10 @@ var host = new HostBuilder()
         services.AddScoped<UpdatePreferencesHandler>();
         services.AddScoped<AddCustomerOrderHandler>();
         services.AddScoped<GetCustomerOrdersHandler>();
+        services.AddScoped<GetNotesHandler>();
+        services.AddScoped<AddNoteHandler>();
+        services.AddScoped<UpdateNoteHandler>();
+        services.AddScoped<DeleteNoteHandler>();
     })
     .Build();
 

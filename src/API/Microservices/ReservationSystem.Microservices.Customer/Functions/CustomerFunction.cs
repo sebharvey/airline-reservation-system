@@ -20,6 +20,10 @@ using ReservationSystem.Microservices.Customer.Application.AddCustomerOrder;
 using ReservationSystem.Microservices.Customer.Application.GetCustomerOrders;
 using ReservationSystem.Microservices.Customer.Application.GetPreferences;
 using ReservationSystem.Microservices.Customer.Application.UpdatePreferences;
+using ReservationSystem.Microservices.Customer.Application.GetNotes;
+using ReservationSystem.Microservices.Customer.Application.AddNote;
+using ReservationSystem.Microservices.Customer.Application.UpdateNote;
+using ReservationSystem.Microservices.Customer.Application.DeleteNote;
 using ReservationSystem.Microservices.Customer.Models.Mappers;
 using ReservationSystem.Microservices.Customer.Models.Requests;
 using ReservationSystem.Microservices.Customer.Models.Responses;
@@ -53,6 +57,10 @@ public sealed class CustomerFunction
     private readonly UpdatePreferencesHandler _updatePreferencesHandler;
     private readonly AddCustomerOrderHandler _addCustomerOrderHandler;
     private readonly GetCustomerOrdersHandler _getCustomerOrdersHandler;
+    private readonly GetNotesHandler _getNotesHandler;
+    private readonly AddNoteHandler _addNoteHandler;
+    private readonly UpdateNoteHandler _updateNoteHandler;
+    private readonly DeleteNoteHandler _deleteNoteHandler;
     private readonly ILogger<CustomerFunction> _logger;
 
     public CustomerFunction(
@@ -73,6 +81,10 @@ public sealed class CustomerFunction
         UpdatePreferencesHandler updatePreferencesHandler,
         AddCustomerOrderHandler addCustomerOrderHandler,
         GetCustomerOrdersHandler getCustomerOrdersHandler,
+        GetNotesHandler getNotesHandler,
+        AddNoteHandler addNoteHandler,
+        UpdateNoteHandler updateNoteHandler,
+        DeleteNoteHandler deleteNoteHandler,
         ILogger<CustomerFunction> logger)
     {
         _createHandler = createHandler;
@@ -92,6 +104,10 @@ public sealed class CustomerFunction
         _updatePreferencesHandler = updatePreferencesHandler;
         _addCustomerOrderHandler = addCustomerOrderHandler;
         _getCustomerOrdersHandler = getCustomerOrdersHandler;
+        _getNotesHandler = getNotesHandler;
+        _addNoteHandler = addNoteHandler;
+        _updateNoteHandler = updateNoteHandler;
+        _deleteNoteHandler = deleteNoteHandler;
         _logger = logger;
     }
 
@@ -628,5 +644,119 @@ public sealed class CustomerFunction
         };
 
         return await req.OkJsonAsync(response);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/customers/{loyaltyNumber}/notes
+    // -------------------------------------------------------------------------
+
+    [Function("GetCustomerNotes")]
+    [OpenApiOperation(operationId: "GetCustomerNotes", tags: new[] { "Notes" }, Summary = "Get all contact-centre notes for a customer")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerNotesResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetNotes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var notes = await _getNotesHandler.HandleAsync(new GetNotesQuery(loyaltyNumber), cancellationToken);
+
+        if (notes is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(CustomerMapper.ToNotesResponse(loyaltyNumber, notes));
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/customers/{loyaltyNumber}/notes
+    // -------------------------------------------------------------------------
+
+    [Function("AddCustomerNote")]
+    [OpenApiOperation(operationId: "AddCustomerNote", tags: new[] { "Notes" }, Summary = "Add a contact-centre note to a customer")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AddNoteRequest), Required = true, Description = "Note details")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CustomerNoteItem), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AddNoteRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.NoteText))
+            return await req.BadRequestAsync("noteText is required.");
+
+        if (string.IsNullOrWhiteSpace(request.CreatedBy))
+            return await req.BadRequestAsync("createdBy is required.");
+
+        var command = new AddNoteCommand(loyaltyNumber, request.NoteText, request.CreatedBy);
+        var note = await _addNoteHandler.HandleAsync(command, cancellationToken);
+
+        if (note is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.CreatedAsync($"/v1/customers/{loyaltyNumber}/notes/{note.NoteId}", CustomerMapper.ToNoteItem(note));
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/customers/{loyaltyNumber}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("UpdateCustomerNote")]
+    [OpenApiOperation(operationId: "UpdateCustomerNote", tags: new[] { "Notes" }, Summary = "Update a contact-centre note")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Note ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateNoteRequest), Required = true, Description = "Updated note text")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        string loyaltyNumber,
+        Guid noteId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateNoteRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.NoteText))
+            return await req.BadRequestAsync("noteText is required.");
+
+        var updated = await _updateNoteHandler.HandleAsync(
+            new UpdateNoteCommand(loyaltyNumber, noteId, request.NoteText), cancellationToken);
+
+        if (!updated)
+            return await req.NotFoundAsync($"Note '{noteId}' not found for customer '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/customers/{loyaltyNumber}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("DeleteCustomerNote")]
+    [OpenApiOperation(operationId: "DeleteCustomerNote", tags: new[] { "Notes" }, Summary = "Delete a contact-centre note")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Customer loyalty number")]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Note ID")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DeleteNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        string loyaltyNumber,
+        Guid noteId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await _deleteNoteHandler.HandleAsync(
+            new DeleteNoteCommand(loyaltyNumber, noteId), cancellationToken);
+
+        if (!deleted)
+            return await req.NotFoundAsync($"Note '{noteId}' not found for customer '{loyaltyNumber}'.");
+
+        return req.NoContent();
     }
 }

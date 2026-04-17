@@ -1357,6 +1357,46 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CustomerOrder_Customer
         ON [customer].[Order] (CustomerId, CreatedAt DESC);
 GO
 
+-- CustomerNote ----------------------------------------------------------------
+
+IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[customer].[CustomerNote]') AND type = 'U')
+BEGIN
+    CREATE TABLE [customer].[CustomerNote] (
+        NoteId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_CustomerNote_Id      DEFAULT NEWID(),
+        CustomerId  UNIQUEIDENTIFIER NOT NULL,
+        NoteText    NVARCHAR(2000)   NOT NULL,
+        CreatedBy   VARCHAR(100)     NOT NULL,
+        CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_CustomerNote_Created DEFAULT SYSUTCDATETIME(),
+        UpdatedAt   DATETIME2        NOT NULL CONSTRAINT DF_CustomerNote_Updated DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_CustomerNote          PRIMARY KEY (NoteId),
+        CONSTRAINT FK_CustomerNote_Customer FOREIGN KEY (CustomerId) REFERENCES [customer].[Customer](CustomerId)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CustomerNote_CustomerId' AND object_id = OBJECT_ID('[customer].[CustomerNote]'))
+    CREATE INDEX IX_CustomerNote_CustomerId
+        ON [customer].[CustomerNote] (CustomerId, CreatedAt DESC);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_CustomerNote_UpdatedAt')
+BEGIN
+    EXEC('
+    CREATE TRIGGER [customer].[TR_CustomerNote_UpdatedAt]
+    ON [customer].[CustomerNote]
+    AFTER UPDATE
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        UPDATE [customer].[CustomerNote]
+        SET    UpdatedAt = SYSUTCDATETIME()
+        FROM   [customer].[CustomerNote] n
+        INNER JOIN inserted i ON n.NoteId = i.NoteId;
+    END
+    ');
+END
+GO
+
 -- Incremental column additions (for existing deployments) --------------------
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[customer].[Customer]') AND name = 'Gender')
     ALTER TABLE [customer].[Customer] ADD Gender VARCHAR(20) NULL;

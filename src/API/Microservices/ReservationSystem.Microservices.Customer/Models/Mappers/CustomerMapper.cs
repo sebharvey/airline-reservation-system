@@ -230,4 +230,21 @@ public static class CustomerMapper
             SenderLoyaltyNumber: senderLoyaltyNumber,
             RecipientLoyaltyNumber: request.RecipientLoyaltyNumber,
             Points: request.Points);
+
+    public static CustomerNotesResponse ToNotesResponse(string loyaltyNumber, IReadOnlyList<CustomerNote> notes) =>
+        new()
+        {
+            LoyaltyNumber = loyaltyNumber,
+            Notes = notes.Select(ToNoteItem).ToList().AsReadOnly()
+        };
+
+    public static CustomerNoteItem ToNoteItem(CustomerNote note) =>
+        new()
+        {
+            NoteId = note.NoteId,
+            NoteText = note.NoteText,
+            CreatedBy = note.CreatedBy,
+            CreatedAt = note.CreatedAt,
+            UpdatedAt = note.UpdatedAt,
+        };
 }

@@ -81,6 +81,11 @@
         [class.tab-active]="activeTab() === 'orders'"
         (click)="switchTab('orders')"
       >Orders</button>
+      <button
+        class="tab"
+        [class.tab-active]="activeTab() === 'notes'"
+        (click)="switchTab('notes')"
+      >Notes</button>
     </div>
   }
 
@@ -708,6 +713,120 @@
           <div class="empty-orders-icon">&#128230;</div>
           <h3 class="empty-orders-title">No orders yet</h3>
           <p class="empty-orders-text">Orders created against this customer account will appear here.</p>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- Notes tab -->
+  @if (customer() && activeTab() === 'notes') {
+    <div class="tab-content fade-in">
+
+      <div class="detail-actions-bar">
+        @if (!showAddNoteForm()) {
+          <button class="edit-btn" (click)="openAddNoteForm()">Add Note</button>
+        }
+      </div>
+
+      <!-- Add note form -->
+      @if (showAddNoteForm()) {
+        <div class="note-form-card">
+          <h3 class="section-title">New note</h3>
+          <div class="field">
+            <label class="field-label">Note</label>
+            <textarea class="field-input note-textarea"
+              [value]="addNoteText()"
+              (input)="setField(addNoteText.set.bind(addNoteText), $event)"
+              [disabled]="addNoteSaving()"
+              placeholder="Enter note…"
+              rows="4"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn-secondary" (click)="cancelAddNote()" [disabled]="addNoteSaving()">Cancel</button>
+            <button class="btn-primary" (click)="submitAddNote()" [disabled]="addNoteSaving()">
+              @if (addNoteSaving()) {
+                <span class="btn-spinner"></span> Saving…
+              } @else {
+                Add Note
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (notesLoading()) {
+        <div class="loading-state">
+          <span class="spinner"></span>
+          <span>Loading notes…</span>
+        </div>
+      }
+
+      @if (!notesLoading() && notes().length > 0) {
+        <div class="notes-list">
+          @for (note of notes(); track note.noteId) {
+            <div class="note-card">
+              @if (editingNoteId() === note.noteId) {
+                <!-- Inline edit mode -->
+                <div class="note-edit-form">
+                  <textarea class="field-input note-textarea"
+                    [value]="editNoteText()"
+                    (input)="setField(editNoteText.set.bind(editNoteText), $event)"
+                    [disabled]="editNoteSaving()"
+                    rows="4"></textarea>
+                  <div class="note-edit-actions">
+                    <button class="btn-secondary" (click)="cancelEditNote()" [disabled]="editNoteSaving()">Cancel</button>
+                    <button class="btn-primary" (click)="submitEditNote()" [disabled]="editNoteSaving()">
+                      @if (editNoteSaving()) {
+                        <span class="btn-spinner"></span> Saving…
+                      } @else {
+                        Save
+                      }
+                    </button>
+                  </div>
+                </div>
+              } @else if (confirmDeleteNoteId() === note.noteId) {
+                <!-- Delete confirmation -->
+                <div class="note-delete-confirm">
+                  <span class="note-delete-text">Delete this note? This cannot be undone.</span>
+                  <div class="note-delete-actions">
+                    <button class="btn-secondary" (click)="cancelDeleteNote()" [disabled]="deletingNoteId() === note.noteId">Cancel</button>
+                    <button class="btn-danger" (click)="deleteNote(note.noteId)" [disabled]="deletingNoteId() === note.noteId">
+                      @if (deletingNoteId() === note.noteId) {
+                        <span class="btn-spinner"></span> Deleting…
+                      } @else {
+                        Delete
+                      }
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <!-- View mode -->
+                <div class="note-body">
+                  <p class="note-text">{{ note.noteText }}</p>
+                  <div class="note-meta">
+                    <span class="note-author">{{ note.createdBy }}</span>
+                    <span class="note-date">{{ formatDateTime(note.createdAt) }}</span>
+                    @if (note.updatedAt !== note.createdAt) {
+                      <span class="note-edited">(edited {{ formatDateTime(note.updatedAt) }})</span>
+                    }
+                  </div>
+                </div>
+                <div class="note-actions">
+                  <button class="edit-btn edit-btn-sm" (click)="startEditNote(note)">Edit</button>
+                  <button class="btn-danger-outline note-delete-btn" (click)="confirmDeleteNote(note.noteId)">Delete</button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (!notesLoading() && notes().length === 0 && !showAddNoteForm()) {
+        <div class="empty-orders">
+          <div class="empty-orders-icon">&#128221;</div>
+          <h3 class="empty-orders-title">No notes yet</h3>
+          <p class="empty-orders-text">Contact centre notes added to this account will appear here.</p>
         </div>
       }
 

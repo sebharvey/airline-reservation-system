@@ -120,6 +120,19 @@ export interface CustomerOrdersResponse {
   orders: CustomerOrderItem[];
 }
 
+export interface CustomerNote {
+  noteId: string;
+  noteText: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerNotesResponse {
+  loyaltyNumber: string;
+  notes: CustomerNote[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
   #http = inject(HttpClient);
@@ -193,6 +206,30 @@ export class CustomerService {
       this.#http.get<CustomerOrdersResponse>(
         `${this.#baseUrl}/${loyaltyNumber}/orders`
       )
+    );
+  }
+
+  async getNotes(loyaltyNumber: string): Promise<CustomerNotesResponse> {
+    return firstValueFrom(
+      this.#http.get<CustomerNotesResponse>(`${this.#baseUrl}/${loyaltyNumber}/notes`)
+    );
+  }
+
+  async addNote(loyaltyNumber: string, noteText: string): Promise<CustomerNote> {
+    return firstValueFrom(
+      this.#http.post<CustomerNote>(`${this.#baseUrl}/${loyaltyNumber}/notes`, { noteText })
+    );
+  }
+
+  async updateNote(loyaltyNumber: string, noteId: string, noteText: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.put(`${this.#baseUrl}/${loyaltyNumber}/notes/${noteId}`, { noteText })
+    );
+  }
+
+  async deleteNote(loyaltyNumber: string, noteId: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.delete(`${this.#baseUrl}/${loyaltyNumber}/notes/${noteId}`)
     );
   }
 }
