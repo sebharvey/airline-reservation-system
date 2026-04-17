@@ -6,9 +6,14 @@ import {
   NewOrderService,
   SearchOffer,
   BasketSummary,
+  BasketFlight,
   ConfirmResponse,
   BasketPassenger,
   PaymentSummary,
+  SeatOffer,
+  CabinSeatmap,
+  Seatmap,
+  BasketSeatSelection,
 } from '../../services/new-order.service';
 
 interface PassengerForm {
@@ -35,7 +40,21 @@ interface FlightGroup {
   offers: SearchOffer[];
 }
 
-type Step = 'search' | 'outbound-results' | 'inbound-results' | 'passengers' | 'payment' | 'confirmed';
+interface SeatmapEntry {
+  flight: BasketFlight;
+  seatmap: Seatmap | null;
+  loading: boolean;
+  error: string;
+}
+
+interface SelectedSeat {
+  passengerId: string;
+  segmentId: string;
+  basketItemId: string;
+  seatOffer: SeatOffer;
+}
+
+type Step = 'search' | 'outbound-results' | 'inbound-results' | 'passengers' | 'seats' | 'payment' | 'confirmed';
 
 const CABIN_ORDER: Record<string, number> = { F: 0, J: 1, W: 2, Y: 3 };
 
@@ -161,6 +180,24 @@ export class NewOrderComponent {
   // ── Payment summary (loaded from API when payment section opens) ─────────
   paymentSummary = signal<PaymentSummary | null>(null);
 
+  // ── Seats ─────────────────────────────────────────────────────────────────
+  seatmapEntries = signal<SeatmapEntry[]>([]);
+  activeSeatPaxIdx = signal(0);
+  activeSeatFlightIdx = signal(0);
+  seatSelections = signal<Map<string, SelectedSeat>>(new Map());
+  seatsSaving = signal(false);
+  seatsError = signal('');
+
+  readonly activeSeatEntry = computed(() => this.seatmapEntries()[this.activeSeatFlightIdx()] ?? null);
+  readonly activeSeatPax = computed(() => this.passengerForms()[this.activeSeatPaxIdx()] ?? null);
+  readonly activeSeatCabin = computed((): CabinSeatmap | null => {
+    const entry = this.activeSeatEntry();
+    if (!entry?.seatmap) return null;
+    return entry.seatmap.cabins.find(c => c.cabinCode === entry.flight.cabinCode)
+      ?? entry.seatmap.cabins[0]
+      ?? null;
+  });
+
   // ── Confirmation ─────────────────────────────────────────────────────────
   confirmed = signal<ConfirmResponse | null>(null);
 
@@ -272,16 +309,171 @@ export class NewOrderComponent {
     this.error.set('');
     try {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
-      this.step.set('payment');
-      this.accordionSection.set('payment');
-      // Load payment summary from API — non-blocking; basket totals shown as fallback until resolved
-      this.#svc.getPaymentSummary(basketSummary.basketId)
-        .then(s => this.paymentSummary.set(s))
-        .catch(() => { /* non-critical — basket totals shown as fallback */ });
+      this.step.set('seats');
+      this.accordionSection.set('seats');
+      this.activeSeatPaxIdx.set(0);
+      this.activeSeatFlightIdx.set(0);
+      this.#loadSeatmaps();
     } catch (err: any) {
       this.error.set(err?.error?.message ?? 'Failed to save passengers. Please try again.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  // ── Seats ─────────────────────────────────────────────────────────────────
+
+  #loadSeatmaps(): void {
+    const basket = this.basket();
+    if (!basket?.flights?.length) return;
+    const entries: SeatmapEntry[] = basket.flights.map(f => ({ flight: f, seatmap: null, loading: true, error: '' }));
+    this.seatmapEntries.set(entries);
+    basket.flights.forEach((f, idx) => {
+      if (!f.inventoryId) {
+        this.seatmapEntries.update(list => {
+          const updated = [...list];
+          updated[idx] = { ...updated[idx], loading: false, error: 'No inventory ID for this flight' };
+          return updated;
+        });
+        return;
+      }
+      this.#svc.getSeatmap(f.inventoryId, f.flightNumber, f.aircraftType ?? '', f.cabinCode)
+        .then(seatmap => {
+          this.seatmapEntries.update(list => {
+            const updated = [...list];
+            updated[idx] = { ...updated[idx], seatmap, loading: false };
+            return updated;
+          });
+        })
+        .catch(() => {
+          this.seatmapEntries.update(list => {
+            const updated = [...list];
+            updated[idx] = { ...updated[idx], loading: false, error: 'Failed to load seatmap' };
+            return updated;
+          });
+        });
+    });
+  }
+
+  selectSeat(seatOffer: SeatOffer, entry: SeatmapEntry): void {
+    if (seatOffer.availability !== 'available') return;
+    const pax = this.activeSeatPax();
+    if (!pax) return;
+    if (this.isSeatTakenByOther(seatOffer, entry.flight.basketItemId)) return;
+    const key = `${pax.passengerId}__${entry.flight.basketItemId}`;
+    const newMap = new Map<string, SelectedSeat>(this.seatSelections());
+    if (newMap.get(key)?.seatOffer.seatOfferId === seatOffer.seatOfferId) {
+      newMap.delete(key);
+    } else {
+      newMap.set(key, { passengerId: pax.passengerId, segmentId: entry.flight.inventoryId ?? '', basketItemId: entry.flight.basketItemId, seatOffer });
+    }
+    this.seatSelections.set(newMap);
+  }
+
+  isSeatSelected(seatOffer: SeatOffer, basketItemId: string): boolean {
+    const pax = this.activeSeatPax();
+    if (!pax) return false;
+    const sel = this.seatSelections().get(`${pax.passengerId}__${basketItemId}`);
+    return sel?.seatOffer.seatOfferId === seatOffer.seatOfferId;
+  }
+
+  isSeatTakenByOther(seatOffer: SeatOffer, basketItemId: string): boolean {
+    const pax = this.activeSeatPax();
+    if (!pax) return false;
+    for (const [key, sel] of this.seatSelections()) {
+      if (key.startsWith(pax.passengerId + '__')) continue;
+      if (sel.seatOffer.seatOfferId === seatOffer.seatOfferId && sel.basketItemId === basketItemId) return true;
+    }
+    return false;
+  }
+
+  getSeatClass(seatOffer: SeatOffer | null, basketItemId: string): string {
+    if (!seatOffer) return 'sm-seat sm-seat-gap';
+    if (seatOffer.availability === 'sold' || seatOffer.availability === 'held') return 'sm-seat sm-seat-sold';
+    if (this.isSeatSelected(seatOffer, basketItemId)) return 'sm-seat sm-seat-selected';
+    if (this.isSeatTakenByOther(seatOffer, basketItemId)) return 'sm-seat sm-seat-other';
+    return 'sm-seat sm-seat-available';
+  }
+
+  getSeatRows(cabin: CabinSeatmap): number[] {
+    const rows: number[] = [];
+    for (let r = cabin.startRow; r <= cabin.endRow; r++) rows.push(r);
+    return rows;
+  }
+
+  getSeatForRowCol(cabin: CabinSeatmap, row: number, col: string): SeatOffer | null {
+    return cabin.seats.find(s => s.rowNumber === row && s.column === col) ?? null;
+  }
+
+  hasAisle(layout: string, colIndex: number): boolean {
+    const groups = layout.split('-').map(Number);
+    let count = 0;
+    for (let g = 0; g < groups.length - 1; g++) {
+      count += groups[g];
+      if (colIndex === count - 1) return true;
+    }
+    return false;
+  }
+
+  getSeatPrice(seat: SeatOffer, cabinCode: string): string {
+    if (cabinCode === 'J' || cabinCode === 'F') return 'Incl.';
+    if (seat.price === 0) return 'Free';
+    return `${seat.currency} ${seat.price.toFixed(0)}`;
+  }
+
+  getSelectedSeatForPaxFlight(passengerId: string, basketItemId: string): SelectedSeat | undefined {
+    return this.seatSelections().get(`${passengerId}__${basketItemId}`);
+  }
+
+  async skipSeats(): Promise<void> {
+    const basket = this.basket();
+    if (!basket) return;
+    this.seatsSaving.set(true);
+    this.seatsError.set('');
+    try {
+      await this.#svc.updateSeats(basket.basketId, []);
+      this.seatSelections.set(new Map());
+      this.step.set('payment');
+      this.accordionSection.set('payment');
+      this.#svc.getPaymentSummary(basket.basketId)
+        .then(s => this.paymentSummary.set(s))
+        .catch(() => {});
+    } catch (err: any) {
+      this.seatsError.set(err?.error?.message ?? 'Failed to proceed. Please try again.');
+    } finally {
+      this.seatsSaving.set(false);
+    }
+  }
+
+  async saveSeats(): Promise<void> {
+    const basket = this.basket();
+    if (!basket) return;
+    const selectionsList: BasketSeatSelection[] = [];
+    for (const sel of this.seatSelections().values()) {
+      selectionsList.push({
+        passengerId: sel.passengerId,
+        segmentId: sel.segmentId,
+        basketItemRef: sel.basketItemId,
+        seatOfferId: sel.seatOffer.seatOfferId,
+        seatNumber: sel.seatOffer.seatNumber,
+        seatPosition: sel.seatOffer.position,
+        price: sel.seatOffer.price,
+        currency: sel.seatOffer.currency,
+      });
+    }
+    this.seatsSaving.set(true);
+    this.seatsError.set('');
+    try {
+      await this.#svc.updateSeats(basket.basketId, selectionsList);
+      this.step.set('payment');
+      this.accordionSection.set('payment');
+      this.#svc.getPaymentSummary(basket.basketId)
+        .then(s => this.paymentSummary.set(s))
+        .catch(() => {});
+    } catch (err: any) {
+      this.seatsError.set(err?.error?.message ?? 'Failed to save seats. Please try again.');
+    } finally {
+      this.seatsSaving.set(false);
     }
   }
 
@@ -371,6 +563,12 @@ export class NewOrderComponent {
     this.cardName.set('');
     this.paymentSubmitted.set(false);
     this.payMethod.set('CreditCard');
+    this.seatmapEntries.set([]);
+    this.activeSeatPaxIdx.set(0);
+    this.activeSeatFlightIdx.set(0);
+    this.seatSelections.set(new Map());
+    this.seatsSaving.set(false);
+    this.seatsError.set('');
   }
 
   // ── Pax counters ─────────────────────────────────────────────────────────
