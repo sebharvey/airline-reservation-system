@@ -1425,6 +1425,83 @@
 }
 
 /* ── Cash info ───────────────────────────────────────────── */
+/* ── Card payment form ───────────────────────────────────────── */
+.card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.card-dev-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card-dev-btn {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.card-dev-btn:hover { background: var(--border); color: var(--text); }
+
+.card-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: var(--accent, #2563eb);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+}
+
+.card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.card-field-error .form-input,
+.card-field-error select.form-input {
+  border-color: #ef4444 !important;
+  background: rgba(239,68,68,0.04);
+}
+
+.card-field-msg {
+  font-size: 0.7rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.card-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 90px;
+  gap: 10px;
+}
+
+.card-security-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ── Cash info ───────────────────────────────────────────────── */
 .cash-info {
   display: flex;
   align-items: flex-start;
