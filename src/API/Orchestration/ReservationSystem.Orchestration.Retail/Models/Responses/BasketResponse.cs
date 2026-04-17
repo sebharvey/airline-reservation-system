@@ -30,5 +30,7 @@ public sealed class BasketFlight
     public DateTime? ArrivalDateTime { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public string? FareFamily { get; init; }
+    public decimal FareAmount { get; init; }
+    public decimal TaxAmount { get; init; }
     public decimal TotalAmount { get; init; }
 }

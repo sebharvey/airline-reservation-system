@@ -108,6 +108,8 @@ export interface BasketFlight {
   arrivalDateTime: string;
   cabinCode: string;
   fareFamily: string | null;
+  fareAmount: number;
+  taxAmount: number;
   totalAmount: number;
 }
 
@@ -134,62 +136,6 @@ export interface ConfirmResponse {
     passengerId: string;
     segmentIds: string[];
   }>;
-}
-
-// ── Payment summary ──────────────────────────────────────────────────────────
-
-export interface PaymentSummaryFlight {
-  offerId: string;
-  flightNumber: string;
-  origin: string;
-  destination: string;
-  departureDateTime: string;
-  arrivalDateTime: string;
-  cabinCode: string;
-  fareFamily: string | null;
-  fareAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-}
-
-export interface PaymentSummaryPassenger {
-  passengerId: string;
-  type: string;
-  givenName: string;
-  surname: string;
-}
-
-export interface PaymentSummaryTotals {
-  fareAmount: number;
-  taxAmount: number;
-  seatAmount: number;
-  bagAmount: number;
-  productAmount: number;
-  pointsAmount: number;
-  grandTotal: number;
-}
-
-export interface PaymentSummary {
-  basketId: string;
-  bookingType: string;
-  currency: string;
-  ticketingTimeLimit: string | null;
-  flights: PaymentSummaryFlight[];
-  passengers: PaymentSummaryPassenger[];
-  seatSelections: Array<{
-    passengerId: string;
-    seatNumber: string;
-    seatPosition: string;
-    flightNumber: string;
-    price: number;
-  }>;
-  bagSelections: Array<{
-    passengerId: string;
-    additionalBags: number;
-    flightNumber: string;
-    price: number;
-  }>;
-  totals: PaymentSummaryTotals;
 }
 
 // ── Seat selection ───────────────────────────────────────────────────────────
@@ -312,12 +258,6 @@ export class NewOrderService {
   async updatePassengers(basketId: string, passengers: BasketPassenger[]): Promise<void> {
     await firstValueFrom(
       this.#http.put(`${this.#retailUrl}/basket/${basketId}/passengers`, passengers)
-    );
-  }
-
-  async getPaymentSummary(basketId: string): Promise<PaymentSummary> {
-    return firstValueFrom(
-      this.#http.get<PaymentSummary>(`${this.#retailUrl}/basket/${basketId}/payment-summary`)
     );
   }
 

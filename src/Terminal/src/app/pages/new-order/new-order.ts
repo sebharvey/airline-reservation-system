@@ -9,7 +9,6 @@ import {
   BasketFlight,
   ConfirmResponse,
   BasketPassenger,
-  PaymentSummary,
   SeatOffer,
   CabinSeatmap,
   Seatmap,
@@ -177,9 +176,6 @@ export class NewOrderComponent {
     this.cardCvv.set('123');
   }
 
-  // ── Payment summary (loaded from API when payment section opens) ─────────
-  paymentSummary = signal<PaymentSummary | null>(null);
-
   // ── Seats ─────────────────────────────────────────────────────────────────
   seatmapEntries = signal<SeatmapEntry[]>([]);
   activeSeatPaxIdx = signal(0);
@@ -187,6 +183,14 @@ export class NewOrderComponent {
   seatSelections = signal<Map<string, SelectedSeat>>(new Map());
   seatsSaving = signal(false);
   seatsError = signal('');
+
+  readonly basketFareTotals = computed(() => {
+    const flights = this.basket()?.flights ?? [];
+    return {
+      fare: flights.reduce((s, f) => s + f.fareAmount, 0),
+      tax: flights.reduce((s, f) => s + f.taxAmount, 0),
+    };
+  });
 
   readonly activeSeatEntry = computed(() => this.seatmapEntries()[this.activeSeatFlightIdx()] ?? null);
   readonly activeSeatPax = computed(() => this.passengerForms()[this.activeSeatPaxIdx()] ?? null);
@@ -435,9 +439,6 @@ export class NewOrderComponent {
       this.seatSelections.set(new Map());
       this.step.set('payment');
       this.accordionSection.set('payment');
-      this.#svc.getPaymentSummary(basket.basketId)
-        .then(s => this.paymentSummary.set(s))
-        .catch(() => {});
     } catch (err: any) {
       this.seatsError.set(err?.error?.message ?? 'Failed to proceed. Please try again.');
     } finally {
@@ -467,9 +468,6 @@ export class NewOrderComponent {
       await this.#svc.updateSeats(basket.basketId, selectionsList);
       this.step.set('payment');
       this.accordionSection.set('payment');
-      this.#svc.getPaymentSummary(basket.basketId)
-        .then(s => this.paymentSummary.set(s))
-        .catch(() => {});
     } catch (err: any) {
       this.seatsError.set(err?.error?.message ?? 'Failed to save seats. Please try again.');
     } finally {
@@ -553,7 +551,6 @@ export class NewOrderComponent {
     this.basket.set(null);
     this.passengerForms.set([]);
     this.confirmed.set(null);
-    this.paymentSummary.set(null);
     this.error.set('');
     this.accordionSection.set('passengers');
     this.cardNumber.set('');
