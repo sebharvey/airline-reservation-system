@@ -368,6 +368,9 @@ public sealed class OrderMsBasketResult
     [JsonPropertyName("totalBagAmount")]
     public decimal TotalBagAmount { get; init; }
 
+    [JsonPropertyName("totalProductAmount")]
+    public decimal TotalProductAmount { get; init; }
+
     [JsonPropertyName("totalAmount")]
     public decimal? TotalAmount { get; init; }
 

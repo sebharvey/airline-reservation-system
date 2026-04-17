@@ -29,6 +29,7 @@ public sealed class AdminBookingFunction
     private readonly ConfirmBasketHandler _confirmBasketHandler;
     private readonly PaymentSummaryHandler _paymentSummaryHandler;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly ProductServiceClient _productServiceClient;
     private readonly ILogger<AdminBookingFunction> _logger;
 
     public AdminBookingFunction(
@@ -37,6 +38,7 @@ public sealed class AdminBookingFunction
         ConfirmBasketHandler confirmBasketHandler,
         PaymentSummaryHandler paymentSummaryHandler,
         OrderServiceClient orderServiceClient,
+        ProductServiceClient productServiceClient,
         ILogger<AdminBookingFunction> logger)
     {
         _searchHandler = searchHandler;
@@ -44,6 +46,7 @@ public sealed class AdminBookingFunction
         _confirmBasketHandler = confirmBasketHandler;
         _paymentSummaryHandler = paymentSummaryHandler;
         _orderServiceClient = orderServiceClient;
+        _productServiceClient = productServiceClient;
         _logger = logger;
     }
 
@@ -275,6 +278,105 @@ public sealed class AdminBookingFunction
     }
 
     // -------------------------------------------------------------------------
+    // GET /v1/admin/products
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetProducts")]
+    [OpenApiOperation(operationId: "AdminGetProducts", tags: new[] { "Admin Booking" }, Summary = "List all active retail products grouped by product group (staff)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Products with prices grouped by product group")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> GetProducts(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/products")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var productsTask = _productServiceClient.GetAllProductsAsync(cancellationToken);
+        var groupsTask   = _productServiceClient.GetAllProductGroupsAsync(cancellationToken);
+
+        await Task.WhenAll(productsTask, groupsTask);
+
+        var productList = await productsTask;
+        var groupList   = await groupsTask;
+
+        if (productList is null || productList.Products.Count == 0)
+            return await req.OkJsonAsync(new { productGroups = Array.Empty<object>() });
+
+        var groupNames = groupList?.Groups
+            .Where(g => g.IsActive)
+            .ToDictionary(g => g.ProductGroupId, g => g.Name)
+            ?? new Dictionary<Guid, string>();
+
+        var grouped = productList.Products
+            .Where(p => p.IsActive)
+            .GroupBy(p => p.ProductGroupId)
+            .Select(g => new
+            {
+                productGroupId   = g.Key,
+                productGroupName = groupNames.TryGetValue(g.Key, out var gn) ? gn : string.Empty,
+                products         = g.Select(p => new
+                {
+                    productId         = p.ProductId,
+                    name              = p.Name,
+                    description       = p.Description,
+                    imageBase64       = p.ImageBase64,
+                    ssrCode           = p.SsrCode,
+                    isSegmentSpecific = p.IsSegmentSpecific,
+                    prices            = p.Prices
+                        .Where(pr => pr.IsActive)
+                        .Select(pr => new
+                        {
+                            priceId      = pr.PriceId,
+                            offerId      = pr.OfferId,
+                            currencyCode = pr.CurrencyCode,
+                            price        = pr.Price,
+                            tax          = pr.Tax
+                        })
+                        .ToList()
+                }).ToList()
+            })
+            .ToList();
+
+        return await req.OkJsonAsync(new { productGroups = grouped });
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/admin/basket/{basketId}/products
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateBasketProducts")]
+    [OpenApiOperation(operationId: "AdminUpdateBasketProducts", tags: new[] { "Admin Booking" }, Summary = "Update add-on product selections in basket (staff)")]
+    [OpenApiParameter(name: "basketId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "The basket identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Product selections")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK — updated basket")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> UpdateBasketProducts(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/admin/basket/{basketId:guid}/products")] HttpRequestData req,
+        Guid basketId,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminUpdateBasketProducts");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        try
+        {
+            await _orderServiceClient.UpdateProductsAsync(basketId, body, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        var basket = await _orderServiceClient.GetBasketAsync(basketId, cancellationToken);
+        if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(MapToBasketResponse(basket));
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -322,6 +424,7 @@ public sealed class AdminBookingFunction
             TotalFareAmount = basket.TotalFareAmount,
             TotalSeatAmount = basket.TotalSeatAmount,
             TotalBagAmount = basket.TotalBagAmount,
+            TotalProductAmount = basket.TotalProductAmount,
             TotalPrice = basket.TotalAmount ?? 0m,
             Currency = basket.CurrencyCode,
             CreatedAt = basket.CreatedAt,

@@ -321,7 +321,7 @@
       }
 
       <!-- ── BOOKING ACCORDION (passengers + seats + payment) ── -->
-      @if (step() === 'passengers' || step() === 'seats' || step() === 'payment') {
+      @if (step() === 'passengers' || step() === 'seats' || step() === 'products' || step() === 'payment') {
         <div class="panel booking-panel fade-in">
           <div class="panel-header booking-panel-header">
             <span>&#128203;</span> Booking Details
@@ -336,7 +336,7 @@
                 <span class="accordion-num">1</span>
                 <span class="accordion-title">Passenger Details</span>
                 <span class="accordion-meta">{{ totalPax() }} pax</span>
-                @if (step() === 'seats' || step() === 'payment') {
+                @if (step() === 'seats' || step() === 'products' || step() === 'payment') {
                   <span class="accordion-done">&#10003;</span>
                 }
                 <span class="accordion-chevron">&#8250;</span>
@@ -447,7 +447,7 @@
               [class.accordion-item-open]="accordionSection() === 'seats'"
               [class.accordion-item-locked]="step() === 'passengers'">
               <button class="accordion-trigger"
-                (click)="(step() === 'seats' || step() === 'payment') ? accordionSection.set('seats') : null"
+                (click)="(step() === 'seats' || step() === 'products' || step() === 'payment') ? accordionSection.set('seats') : null"
                 [disabled]="step() === 'passengers'">
                 <span class="accordion-num">2</span>
                 <span class="accordion-title">Seat Selection</span>
@@ -458,7 +458,7 @@
                     }
                   </span>
                 }
-                @if (step() === 'payment') {
+                @if (step() === 'products' || step() === 'payment') {
                   <span class="accordion-done">&#10003;</span>
                 }
                 <span class="accordion-chevron">&#8250;</span>
@@ -586,14 +586,129 @@
               }
             </div>
 
-            <!-- ── 3. Payment ── -->
+            <!-- ── 3. Add-on Products ── -->
+            <div class="accordion-item"
+              [class.accordion-item-open]="accordionSection() === 'products'"
+              [class.accordion-item-locked]="step() === 'passengers' || step() === 'seats'">
+              <button class="accordion-trigger"
+                (click)="(step() === 'products' || step() === 'payment') ? accordionSection.set('products') : null"
+                [disabled]="step() === 'passengers' || step() === 'seats'">
+                <span class="accordion-num">3</span>
+                <span class="accordion-title">Add-on Products</span>
+                @if (productTotal() > 0 && basket()) {
+                  <span class="accordion-meta">{{ formatAmount(productTotal(), basket()!.currency) }}</span>
+                }
+                @if (step() === 'payment') {
+                  <span class="accordion-done">&#10003;</span>
+                }
+                <span class="accordion-chevron">&#8250;</span>
+              </button>
+
+              @if (accordionSection() === 'products') {
+                <div class="accordion-body">
+
+                  @if (productsError()) {
+                    <div class="error-banner" role="alert">
+                      <span>&#9888;</span> {{ productsError() }}
+                      <button class="error-close" (click)="productsError.set('')" aria-label="Dismiss">&#10005;</button>
+                    </div>
+                  }
+
+                  @if (productsLoading() && !productCatalogue()) {
+                    <div class="sm-loading">
+                      <span class="btn-spinner large-spinner"></span>
+                      <p>Loading products&#8230;</p>
+                    </div>
+                  } @else if (productCatalogue()?.productGroups?.length === 0) {
+                    <div class="empty-state" style="padding: 0.5rem 0">
+                      <p>No add-on products available for this booking.</p>
+                    </div>
+                  } @else if (productCatalogue()) {
+                    <div class="prod-groups">
+                      @for (group of productCatalogue()!.productGroups; track group.productGroupId) {
+                        <div class="prod-group">
+                          @if (productCatalogue()!.productGroups.length > 1) {
+                            <p class="prod-group-title">{{ group.productGroupName }}</p>
+                          }
+                          @for (product of group.products; track product.productId) {
+                            @let price = getProductPrice(product);
+                            <div class="prod-card">
+                              <div class="prod-card-header">
+                                <span class="prod-card-name">{{ product.name }}</span>
+                                @if (price) {
+                                  <span class="prod-card-price">
+                                    {{ price.price === 0 ? 'Free' : formatAmount(price.price + price.tax, price.currencyCode) }}
+                                  </span>
+                                }
+                              </div>
+                              @if (product.description) {
+                                <p class="prod-card-desc">{{ product.description }}</p>
+                              }
+                              <div class="prod-pax-rows">
+                                @if (!product.isSegmentSpecific) {
+                                  @for (pax of passengerForms(); track pax.passengerId; let i = $index) {
+                                    <div class="prod-pax-row"
+                                      (click)="toggleProduct(product, pax.passengerId, null)">
+                                      <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, null)">
+                                        @if (isProductSelected(product.productId, pax.passengerId, null)) { &#10003; }
+                                      </div>
+                                      <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
+                                    </div>
+                                  }
+                                } @else {
+                                  @for (pax of passengerForms(); track pax.passengerId; let i = $index) {
+                                    @for (flight of basket()!.flights; track flight.basketItemId) {
+                                      <div class="prod-pax-row"
+                                        (click)="toggleProduct(product, pax.passengerId, flight.inventoryId)">
+                                        <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, flight.inventoryId)">
+                                          @if (isProductSelected(product.productId, pax.passengerId, flight.inventoryId)) { &#10003; }
+                                        </div>
+                                        <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
+                                        <span class="prod-pax-segment">{{ flight.origin }}&#8202;&#8594;&#8202;{{ flight.destination }}</span>
+                                      </div>
+                                    }
+                                  }
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    @if (productTotal() > 0 && basket()) {
+                      <div class="prod-total-row">
+                        <span>Products total</span>
+                        <span>{{ formatAmount(productTotal(), basket()!.currency) }}</span>
+                      </div>
+                    }
+                  }
+
+                  <div class="prod-action-row">
+                    <button class="secondary-btn" (click)="skipProducts()" [disabled]="productsLoading()">
+                      Skip
+                    </button>
+                    <button class="primary-btn prod-save-btn" (click)="saveProducts()" [disabled]="productsLoading()">
+                      @if (productsLoading()) {
+                        <span class="btn-spinner"></span> Saving&#8230;
+                      } @else {
+                        Save &amp; Continue &#8594;
+                      }
+                    </button>
+                  </div>
+
+                </div>
+              }
+            </div>
+
+            <!-- ── 4. Payment ── -->
             <div class="accordion-item"
               [class.accordion-item-open]="accordionSection() === 'payment'"
               [class.accordion-item-locked]="step() !== 'payment'">
               <button class="accordion-trigger"
                 (click)="step() === 'payment' ? accordionSection.set('payment') : null"
                 [disabled]="step() !== 'payment'">
-                <span class="accordion-num">3</span>
+                <span class="accordion-num">4</span>
                 <span class="accordion-title">Payment</span>
                 @if (step() === 'payment' && basket()) {
                   <span class="accordion-meta">
@@ -629,6 +744,12 @@
                         <div class="total-line">
                           <span>Bags</span>
                           <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
+                        </div>
+                      }
+                      @if (basket()!.totalProductAmount > 0) {
+                        <div class="total-line">
+                          <span>Products</span>
+                          <span>{{ formatAmount(basket()!.totalProductAmount, basket()!.currency) }}</span>
                         </div>
                       }
                       <div class="total-line total-grand">
@@ -875,7 +996,7 @@
           }
 
           <!-- Passengers section -->
-          @if ((step() === 'seats' || step() === 'payment' || step() === 'confirmed') && passengerForms().length > 0) {
+          @if ((step() === 'seats' || step() === 'products' || step() === 'payment' || step() === 'confirmed') && passengerForms().length > 0) {
             <div class="basket-section">
               <p class="basket-section-label">Passengers</p>
               @for (pax of passengerForms(); track pax.passengerId) {
@@ -914,6 +1035,12 @@
                 <div class="total-line">
                   <span>Bags</span>
                   <span>{{ formatAmount(basket()!.totalBagAmount, basket()!.currency) }}</span>
+                </div>
+              }
+              @if (basket()!.totalProductAmount > 0) {
+                <div class="total-line">
+                  <span>Products</span>
+                  <span>{{ formatAmount(basket()!.totalProductAmount, basket()!.currency) }}</span>
                 </div>
               }
               <div class="total-line total-grand">
