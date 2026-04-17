@@ -304,6 +304,8 @@ public sealed class AdminBookingFunction
                             ArrivalDateTime = ParseOfferDateTime(offer, "departureDate", "arrivalTime"),
                             CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
                             FareFamily = offer.TryGetProperty("fareFamily", out v) ? v.GetString() : null,
+                            FareAmount = offer.TryGetProperty("baseFareAmount", out v) ? v.GetDecimal() : 0m,
+                            TaxAmount = offer.TryGetProperty("taxAmount", out v) ? v.GetDecimal() : 0m,
                             TotalAmount = offer.TryGetProperty("totalAmount", out v) ? v.GetDecimal() : 0m
                         });
                     }
