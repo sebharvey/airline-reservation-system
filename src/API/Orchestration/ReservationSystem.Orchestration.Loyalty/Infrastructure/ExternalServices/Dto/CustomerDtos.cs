@@ -85,6 +85,21 @@ public sealed class CustomerOrdersDto
     public IReadOnlyList<CustomerOrderItemDto> Orders { get; init; } = [];
 }
 
+public sealed class CustomerNoteDto
+{
+    public Guid NoteId { get; init; }
+    public string NoteText { get; init; } = string.Empty;
+    public string CreatedBy { get; init; } = string.Empty;
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+}
+
+public sealed class CustomerNotesDto
+{
+    public string LoyaltyNumber { get; init; } = string.Empty;
+    public IReadOnlyList<CustomerNoteDto> Notes { get; init; } = [];
+}
+
 public sealed class TransferPointsResultDto
 {
     public string SenderLoyaltyNumber { get; init; } = string.Empty;

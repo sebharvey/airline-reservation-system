@@ -209,6 +209,76 @@ public sealed class CustomerServiceClient
         return result ?? [];
     }
 
+    public async Task<CustomerNotesDto?> GetNotesAsync(
+        string loyaltyNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/api/v1/customers/{loyaltyNumber}/notes", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CustomerNotesDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task<CustomerNoteDto?> AddNoteAsync(
+        string loyaltyNumber,
+        string noteText,
+        string createdBy,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { noteText, createdBy };
+        var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/customers/{loyaltyNumber}/notes", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<CustomerNoteDto>(JsonOptions, cancellationToken);
+    }
+
+    public async Task<bool> UpdateNoteAsync(
+        string loyaltyNumber,
+        Guid noteId,
+        string noteText,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { noteText };
+        var response = await _httpClient.PutAsJsonAsync(
+            $"/api/v1/customers/{loyaltyNumber}/notes/{noteId}", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<bool> DeleteNoteAsync(
+        string loyaltyNumber,
+        Guid noteId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync(
+            $"/api/v1/customers/{loyaltyNumber}/notes/{noteId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
     public async Task<TransferPointsResultDto?> TransferPointsAsync(
         string senderLoyaltyNumber,
         string recipientLoyaltyNumber,

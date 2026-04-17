@@ -163,6 +163,10 @@ Staff-facing endpoints for managing loyalty customers. All routes require a vali
 | `DELETE` | `/v1/admin/customers/{loyaltyNumber}` | Delete a customer account and all its transactions permanently |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}/status` | Activate or deactivate a customer account; accepts `isActive` boolean |
 | `PATCH` | `/v1/admin/customers/{loyaltyNumber}/identity` | Update identity account fields for a customer; accepts `email` (applied without verification) and `isLocked` (lock or unlock the account); at least one field must be provided; `409` if email already registered to another account |
+| `GET` | `/v1/admin/customers/{loyaltyNumber}/notes` | Retrieve all contact-centre notes for a customer; ordered most-recent-first |
+| `POST` | `/v1/admin/customers/{loyaltyNumber}/notes` | Add a contact-centre note to a customer account; `createdBy` is extracted from the staff JWT `unique_name` claim automatically |
+| `PUT` | `/v1/admin/customers/{loyaltyNumber}/notes/{noteId}` | Update the text of an existing note; `404` if the note does not belong to the customer |
+| `DELETE` | `/v1/admin/customers/{loyaltyNumber}/notes/{noteId}` | Delete a contact-centre note permanently; `404` if the note does not belong to the customer |
 
 ---
 

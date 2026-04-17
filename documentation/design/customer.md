@@ -453,3 +453,21 @@ The Customer domain uses three tables: `Customer` (profile, tier, and points bal
 
 > **Transaction types:** `Earn` — points accrued from a completed flight. `Redeem` — points redeemed against a future booking (award bookings, future phase). `Adjustment` — manual correction applied by a customer service agent with a reason, or a member-initiated peer-to-peer points transfer (debit on sender, credit on recipient, each carrying the counterpart's loyalty number in the description). `Expiry` — points removed due to account inactivity or programme rules. `Reinstate` — reversal of an expiry or erroneous redemption.
 
+#### `customer.CustomerNote`
+
+Free-text notes added to a customer account by contact-centre staff. Not visible to the customer.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| NoteId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| CustomerId | UNIQUEIDENTIFIER | No | | FK → `customer.Customer(CustomerId)` | Cascade delete |
+| NoteText | NVARCHAR(2000) | No | | | Free-text note body |
+| CreatedBy | VARCHAR(100) | No | | | Staff username extracted from JWT `unique_name` claim |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | Set by `TR_CustomerNote_UpdatedAt` trigger on update |
+
+> **Indexes:** `IX_CustomerNote_CustomerId` on `(CustomerId, CreatedAt DESC)`.
+> **Trigger:** `TR_CustomerNote_UpdatedAt` — sets `UpdatedAt` to `SYSUTCDATETIME()` on every `UPDATE`.
+> **Cascade:** Deleting a customer cascades to all their notes.
+> **Access:** Notes are staff-only; the Loyalty API exposes them under `/v1/admin/customers/{loyaltyNumber}/notes` with full CRUD. Notes are never included in customer-facing profile responses.
+

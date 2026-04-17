@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import {
   CustomerService,
   CustomerDetail,
+  CustomerNote,
   CustomerOrderItem,
   Transaction,
   UpdateCustomerRequest,
@@ -89,7 +90,7 @@ export class CustomerDetailComponent implements OnInit {
   #searchState = inject(CustomerSearchStateService);
 
   loyaltyNumber = '';
-  activeTab = signal<'details' | 'transactions' | 'orders'>('details');
+  activeTab = signal<'details' | 'transactions' | 'orders' | 'notes'>('details');
   loading = signal(false);
   saving = signal(false);
   error = signal('');
@@ -161,6 +162,18 @@ export class CustomerDetailComponent implements OnInit {
 
   // Verify email
   verifyingEmail = signal(false);
+
+  // Notes
+  notes = signal<CustomerNote[]>([]);
+  notesLoading = signal(false);
+  showAddNoteForm = signal(false);
+  addNoteText = signal('');
+  addNoteSaving = signal(false);
+  editingNoteId = signal<string | null>(null);
+  editNoteText = signal('');
+  editNoteSaving = signal(false);
+  deletingNoteId = signal<string | null>(null);
+  confirmDeleteNoteId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.loyaltyNumber = this.#route.snapshot.paramMap.get('loyaltyNumber') ?? '';
@@ -277,13 +290,16 @@ export class CustomerDetailComponent implements OnInit {
     }
   }
 
-  async switchTab(tab: 'details' | 'transactions' | 'orders'): Promise<void> {
+  async switchTab(tab: 'details' | 'transactions' | 'orders' | 'notes'): Promise<void> {
     this.activeTab.set(tab);
     if (tab === 'transactions' && this.transactions().length === 0) {
       await this.loadTransactions();
     }
     if (tab === 'orders' && this.orders().length === 0 && !this.ordersLoading()) {
       await this.loadOrders();
+    }
+    if (tab === 'notes' && this.notes().length === 0 && !this.notesLoading()) {
+      await this.loadNotes();
     }
   }
 
@@ -591,6 +607,121 @@ export class CustomerDetailComponent implements OnInit {
       this.error.set('Failed to verify email address. Please try again.');
     } finally {
       this.verifyingEmail.set(false);
+    }
+  }
+
+  // Notes
+
+  async loadNotes(): Promise<void> {
+    this.notesLoading.set(true);
+    try {
+      const result = await this.#customerService.getNotes(this.loyaltyNumber);
+      this.notes.set(result.notes);
+    } catch {
+      this.error.set('Failed to load notes.');
+    } finally {
+      this.notesLoading.set(false);
+    }
+  }
+
+  openAddNoteForm(): void {
+    this.addNoteText.set('');
+    this.showAddNoteForm.set(true);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelAddNote(): void {
+    this.showAddNoteForm.set(false);
+  }
+
+  async submitAddNote(): Promise<void> {
+    const text = this.addNoteText().trim();
+    if (!text) {
+      this.error.set('Note text is required.');
+      return;
+    }
+
+    this.addNoteSaving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      const note = await this.#customerService.addNote(this.loyaltyNumber, text);
+      this.notes.update(current => [note, ...current]);
+      this.showAddNoteForm.set(false);
+      this.success.set('Note added.');
+    } catch {
+      this.error.set('Failed to add note. Please try again.');
+    } finally {
+      this.addNoteSaving.set(false);
+    }
+  }
+
+  startEditNote(note: CustomerNote): void {
+    this.editingNoteId.set(note.noteId);
+    this.editNoteText.set(note.noteText);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelEditNote(): void {
+    this.editingNoteId.set(null);
+    this.error.set('');
+  }
+
+  async submitEditNote(): Promise<void> {
+    const noteId = this.editingNoteId();
+    const text = this.editNoteText().trim();
+
+    if (!noteId) return;
+    if (!text) {
+      this.error.set('Note text is required.');
+      return;
+    }
+
+    this.editNoteSaving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.#customerService.updateNote(this.loyaltyNumber, noteId, text);
+      this.notes.update(current =>
+        current.map(n => n.noteId === noteId ? { ...n, noteText: text } : n)
+      );
+      this.editingNoteId.set(null);
+      this.success.set('Note updated.');
+    } catch {
+      this.error.set('Failed to update note. Please try again.');
+    } finally {
+      this.editNoteSaving.set(false);
+    }
+  }
+
+  confirmDeleteNote(noteId: string): void {
+    this.confirmDeleteNoteId.set(noteId);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  cancelDeleteNote(): void {
+    this.confirmDeleteNoteId.set(null);
+  }
+
+  async deleteNote(noteId: string): Promise<void> {
+    this.deletingNoteId.set(noteId);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.#customerService.deleteNote(this.loyaltyNumber, noteId);
+      this.notes.update(current => current.filter(n => n.noteId !== noteId));
+      this.confirmDeleteNoteId.set(null);
+      this.success.set('Note deleted.');
+    } catch {
+      this.error.set('Failed to delete note. Please try again.');
+    } finally {
+      this.deletingNoteId.set(null);
     }
   }
 }

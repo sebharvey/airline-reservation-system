@@ -8,9 +8,11 @@ using ReservationSystem.Shared.Common.Models;
 using ReservationSystem.Orchestration.Loyalty.Application.SearchCustomers;
 using ReservationSystem.Orchestration.Loyalty.Application.GetTransactions;
 using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Loyalty.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Loyalty.Models.Requests;
 using ReservationSystem.Orchestration.Loyalty.Models.Responses;
 using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Loyalty.Functions;
 
@@ -443,6 +445,191 @@ public sealed class CustomerManagementFunction
             return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
 
         return req.NoContent();
+    }
+}
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/customers/{loyaltyNumber}/notes
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetCustomerNotes")]
+    [OpenApiOperation(operationId: "AdminGetCustomerNotes", tags: new[] { "Admin Customers" }, Summary = "Get contact-centre notes for a customer (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminCustomerNotesResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetCustomerNotes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var result = await _customerServiceClient.GetNotesAsync(loyaltyNumber, cancellationToken);
+
+        if (result is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        return await req.OkJsonAsync(new AdminCustomerNotesResponse
+        {
+            LoyaltyNumber = result.LoyaltyNumber,
+            Notes = result.Notes.Select(n => new AdminCustomerNoteItem
+            {
+                NoteId = n.NoteId,
+                NoteText = n.NoteText,
+                CreatedBy = n.CreatedBy,
+                CreatedAt = n.CreatedAt,
+                UpdatedAt = n.UpdatedAt,
+            }).ToList()
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/admin/customers/{loyaltyNumber}/notes
+    // -------------------------------------------------------------------------
+
+    [Function("AdminAddCustomerNote")]
+    [OpenApiOperation(operationId: "AdminAddCustomerNote", tags: new[] { "Admin Customers" }, Summary = "Add a contact-centre note to a customer (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminAddNoteRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(AdminCustomerNoteItem), Description = "Created")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddCustomerNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        string loyaltyNumber,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminAddNoteRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.NoteText))
+            return await req.BadRequestAsync("noteText is required.");
+
+        var createdBy = ExtractUsername(req);
+
+        CustomerNoteDto? note;
+        try
+        {
+            note = await _customerServiceClient.AddNoteAsync(loyaltyNumber, request.NoteText, createdBy, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        if (note is null)
+            return await req.NotFoundAsync($"Customer not found for loyalty number '{loyaltyNumber}'.");
+
+        var item = new AdminCustomerNoteItem
+        {
+            NoteId = note.NoteId,
+            NoteText = note.NoteText,
+            CreatedBy = note.CreatedBy,
+            CreatedAt = note.CreatedAt,
+            UpdatedAt = note.UpdatedAt,
+        };
+
+        return await req.CreatedAsync($"/v1/admin/customers/{loyaltyNumber}/notes/{note.NoteId}", item);
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/admin/customers/{loyaltyNumber}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateCustomerNote")]
+    [OpenApiOperation(operationId: "AdminUpdateCustomerNote", tags: new[] { "Admin Customers" }, Summary = "Update a contact-centre note (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminUpdateNoteRequest), Required = true)]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateCustomerNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/admin/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        string loyaltyNumber,
+        Guid noteId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminUpdateNoteRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.NoteText))
+            return await req.BadRequestAsync("noteText is required.");
+
+        bool updated;
+        try
+        {
+            updated = await _customerServiceClient.UpdateNoteAsync(loyaltyNumber, noteId, request.NoteText, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+
+        if (!updated)
+            return await req.NotFoundAsync($"Note '{noteId}' not found for customer '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/admin/customers/{loyaltyNumber}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDeleteCustomerNote")]
+    [OpenApiOperation(operationId: "AdminDeleteCustomerNote", tags: new[] { "Admin Customers" }, Summary = "Delete a contact-centre note (staff)")]
+    [OpenApiParameter(name: "loyaltyNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string))]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid))]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DeleteCustomerNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        string loyaltyNumber,
+        Guid noteId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await _customerServiceClient.DeleteNoteAsync(loyaltyNumber, noteId, cancellationToken);
+
+        if (!deleted)
+            return await req.NotFoundAsync($"Note '{noteId}' not found for customer '{loyaltyNumber}'.");
+
+        return req.NoContent();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static string ExtractUsername(HttpRequestData req)
+    {
+        try
+        {
+            if (!req.Headers.TryGetValues("Authorization", out var values))
+                return "Staff";
+
+            var bearer = values.FirstOrDefault();
+            if (bearer?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) != true)
+                return "Staff";
+
+            var token = bearer[7..];
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+                return "Staff";
+
+            var padded = parts[1].Replace('-', '+').Replace('_', '/');
+            padded = padded.PadRight(padded.Length + (4 - padded.Length % 4) % 4, '=');
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("unique_name", out var uniqueName) && uniqueName.GetString() is { } un && !string.IsNullOrWhiteSpace(un))
+                return un;
+
+            if (root.TryGetProperty("sub", out var sub) && sub.GetString() is { } s && !string.IsNullOrWhiteSpace(s))
+                return s;
+        }
+        catch { }
+
+        return "Staff";
     }
 }
 

@@ -16,6 +16,7 @@ public sealed class CustomerDbContext : DbContext
     public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
     public DbSet<CustomerPreferences> CustomerPreferences => Set<CustomerPreferences>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+    public DbSet<CustomerNote> CustomerNotes => Set<CustomerNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -283,6 +284,50 @@ public sealed class CustomerDbContext : DbContext
             entity.HasOne<Domain.Entities.Customer>()
                   .WithOne()
                   .HasForeignKey<CustomerPreferences>(p => p.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CustomerNote>(entity =>
+        {
+            entity.ToTable("CustomerNote", "customer", t =>
+            {
+                t.HasTrigger("TR_CustomerNote_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+
+            entity.HasKey(n => n.NoteId);
+
+            entity.Property(n => n.NoteId)
+                  .HasColumnName("NoteId")
+                  .HasColumnType("uniqueidentifier")
+                  .ValueGeneratedNever();
+
+            entity.Property(n => n.CustomerId)
+                  .HasColumnName("CustomerId")
+                  .HasColumnType("uniqueidentifier")
+                  .IsRequired();
+
+            entity.Property(n => n.NoteText)
+                  .HasColumnName("NoteText")
+                  .HasColumnType("nvarchar(2000)")
+                  .IsRequired();
+
+            entity.Property(n => n.CreatedBy)
+                  .HasColumnName("CreatedBy")
+                  .HasColumnType("varchar(100)")
+                  .IsRequired();
+
+            entity.Property(n => n.CreatedAt)
+                  .HasColumnName("CreatedAt")
+                  .HasColumnType("datetime2");
+
+            entity.Property(n => n.UpdatedAt)
+                  .HasColumnName("UpdatedAt")
+                  .HasColumnType("datetime2");
+
+            entity.HasOne<Domain.Entities.Customer>()
+                  .WithMany()
+                  .HasForeignKey(n => n.CustomerId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
