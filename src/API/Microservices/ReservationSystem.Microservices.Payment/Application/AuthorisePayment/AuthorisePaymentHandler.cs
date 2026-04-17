@@ -56,17 +56,33 @@ public sealed class AuthorisePaymentHandler
         if (amountToAuthorise <= 0)
             throw new ArgumentException("Amount to authorise must be greater than zero.");
 
-        var cardLast4 = command.CardNumber.Length >= 4
-            ? command.CardNumber[^4..]
-            : command.CardNumber;
+        string? cardType;
+        string? cardLast4;
 
-        var cardType = DeriveCardType(command.CardNumber);
+        if (string.IsNullOrEmpty(command.CardNumber))
+        {
+            // Cash payments do not require card details — record the authorisation directly.
+            if (!string.Equals(payment.Method, "Cash", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Card details are required for {payment.Method} payments.");
 
-        // TODO: Call payment gateway (e.g. Adyen, Stripe, Worldpay) to authorise the card.
-        // The gateway call should use the full card number, expiry, CVV, and amount held on
-        // the Payment record. On success, persist the gateway authorisation code / token
-        // (in memory only — never to the database). On decline, set Status = Declined and
-        // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
+            cardType = null;
+            cardLast4 = null;
+        }
+        else
+        {
+            cardLast4 = command.CardNumber.Length >= 4
+                ? command.CardNumber[^4..]
+                : command.CardNumber;
+
+            cardType = DeriveCardType(command.CardNumber);
+
+            // TODO: Call payment gateway (e.g. Adyen, Stripe, Worldpay) to authorise the card.
+            // The gateway call should use the full card number, expiry, CVV, and amount held on
+            // the Payment record. On success, persist the gateway authorisation code / token
+            // (in memory only — never to the database). On decline, set Status = Declined and
+            // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
+        }
 
         payment.Authorise(amountToAuthorise, cardType, cardLast4);
         await _repository.UpdateAsync(payment, cancellationToken);

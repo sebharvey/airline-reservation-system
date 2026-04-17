@@ -46,7 +46,7 @@ public sealed class PaymentServiceClient
         string? cardNumber, string? expiryDate, string? cvv, string? cardholderName,
         CancellationToken ct)
     {
-        var cardDetails = cardNumber is not null
+        var cardDetails = !string.IsNullOrEmpty(cardNumber)
             ? new { cardNumber, expiryDate, cvv, cardholderName }
             : (object?)null;
         var payload = new { amount, cardDetails };

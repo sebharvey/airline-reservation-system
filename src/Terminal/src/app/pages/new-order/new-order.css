@@ -1183,6 +1183,13 @@
 
 .total-line:last-child { border-bottom: none; }
 
+.total-line-sub {
+  padding-left: 20px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
 .total-grand {
   font-size: 0.9rem;
   font-weight: 700;

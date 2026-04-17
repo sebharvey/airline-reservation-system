@@ -92,9 +92,9 @@ public sealed class PaymentSummarySsrSelection
 /// </summary>
 public sealed class PaymentSummaryTotals
 {
-    /// <summary>Total fare (base + tax) for all passengers across all flights. Zero for reward bookings.</summary>
+    /// <summary>Base fare for all passengers across all flights. Zero for reward bookings.</summary>
     public decimal FareAmount { get; init; }
-    /// <summary>Tax portion for reward bookings (cash amount owed). Zero for revenue bookings.</summary>
+    /// <summary>Tax portion for all passengers. For reward bookings this is the full cash amount owed.</summary>
     public decimal TaxAmount { get; init; }
     /// <summary>Total seat ancillary charges.</summary>
     public decimal SeatAmount { get; init; }

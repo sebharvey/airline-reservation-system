@@ -127,25 +127,35 @@ public sealed class PaymentFunction
         var (request, error) = await req.TryDeserializeBodyAsync<AuthorisePaymentRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (request.CardDetails is null
-            || string.IsNullOrWhiteSpace(request.CardDetails.CardNumber)
-            || string.IsNullOrWhiteSpace(request.CardDetails.ExpiryDate)
-            || string.IsNullOrWhiteSpace(request.CardDetails.Cvv))
-            return await req.BadRequestAsync("Card details (cardNumber, expiryDate, cvv) are required.");
+        var cardNumber = string.Empty;
+        var expiryDate = string.Empty;
+        var cvv = string.Empty;
+        var cardholderName = string.Empty;
 
-        var cardNumber = request.CardDetails.CardNumber.Replace(" ", "").Replace("-", "");
+        if (request.CardDetails is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.CardDetails.CardNumber)
+                || string.IsNullOrWhiteSpace(request.CardDetails.ExpiryDate)
+                || string.IsNullOrWhiteSpace(request.CardDetails.Cvv))
+                return await req.BadRequestAsync("Card details (cardNumber, expiryDate, cvv) are required.");
 
-        if (!IsValidLuhn(cardNumber))
-            return await req.BadRequestAsync("Card number is invalid.");
+            cardNumber = request.CardDetails.CardNumber.Replace(" ", "").Replace("-", "");
 
-        if (!IsValidExpiryDate(request.CardDetails.ExpiryDate))
-            return await req.BadRequestAsync("Card expiry date is invalid or in the past.");
+            if (!IsValidLuhn(cardNumber))
+                return await req.BadRequestAsync("Card number is invalid.");
 
-        var isAmex = cardNumber.Length >= 2 && cardNumber[0] == '3' && (cardNumber[1] == '4' || cardNumber[1] == '7');
-        var expectedCvvLength = isAmex ? 4 : 3;
-        var cvv = request.CardDetails.Cvv;
-        if (cvv.Length != expectedCvvLength || !cvv.All(char.IsDigit))
-            return await req.BadRequestAsync($"Security code must be {expectedCvvLength} digits.");
+            if (!IsValidExpiryDate(request.CardDetails.ExpiryDate))
+                return await req.BadRequestAsync("Card expiry date is invalid or in the past.");
+
+            var isAmex = cardNumber.Length >= 2 && cardNumber[0] == '3' && (cardNumber[1] == '4' || cardNumber[1] == '7');
+            var expectedCvvLength = isAmex ? 4 : 3;
+            cvv = request.CardDetails.Cvv;
+            if (cvv.Length != expectedCvvLength || !cvv.All(char.IsDigit))
+                return await req.BadRequestAsync($"Security code must be {expectedCvvLength} digits.");
+
+            expiryDate = request.CardDetails.ExpiryDate;
+            cardholderName = request.CardDetails.CardholderName ?? string.Empty;
+        }
 
         if (request.Amount.HasValue && request.Amount.Value <= 0)
             return await req.BadRequestAsync("The 'amount' must be greater than zero when provided.");
@@ -154,9 +164,9 @@ public sealed class PaymentFunction
             paymentGuid,
             request.Amount,
             cardNumber,
-            request.CardDetails.ExpiryDate,
-            request.CardDetails.Cvv,
-            request.CardDetails.CardholderName);
+            expiryDate,
+            cvv,
+            cardholderName);
 
         try
         {

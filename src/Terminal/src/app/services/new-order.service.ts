@@ -144,7 +144,7 @@ export interface PaymentSummaryFlight {
   arrivalDateTime: string;
   cabinCode: string;
   fareFamily: string | null;
-  baseFareAmount: number;
+  fareAmount: number;
   taxAmount: number;
   totalAmount: number;
 }
