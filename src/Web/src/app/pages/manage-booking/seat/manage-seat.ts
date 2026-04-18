@@ -14,6 +14,7 @@ interface SeatSelection {
   inventoryId: string;
   cabinCode: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -165,6 +166,7 @@ export class ManageSeatComponent implements OnInit {
                 inventoryId: seg2.segmentId,
                 cabinCode: seg2.cabinCode,
                 price: 0,
+                tax: 0,
                 currency: order.currency ?? 'GBP'
               });
             }
@@ -232,6 +234,7 @@ export class ManageSeatComponent implements OnInit {
         inventoryId: sm.flightId,
         cabinCode: seat.cabinCode,
         price: seat.price,
+        tax: seat.tax,
         currency: seat.currency
       });
     }
@@ -275,7 +278,10 @@ export class ManageSeatComponent implements OnInit {
       seatNumber: s.seatNumber,
       seatOfferId: s.seatOfferId || undefined,
       inventoryId: s.inventoryId || undefined,
-      cabinCode: s.cabinCode || undefined
+      cabinCode: s.cabinCode || undefined,
+      price: s.price,
+      tax: s.tax,
+      currency: s.currency
     }));
 
     const payment = this.hasPaidSeats() ? {

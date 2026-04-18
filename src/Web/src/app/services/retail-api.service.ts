@@ -717,7 +717,7 @@ export class RetailApiService {
    */
   updateSeats(
     bookingRef: string,
-    seatSelections: { passengerId: string; segmentId: string; seatNumber: string; seatOfferId?: string; inventoryId?: string; cabinCode?: string }[],
+    seatSelections: { passengerId: string; segmentId: string; seatNumber: string; seatOfferId?: string; inventoryId?: string; cabinCode?: string; price?: number; tax?: number; currency?: string }[],
     payment?: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }
   ): Observable<{ success: boolean; paymentId?: string; totalSeatAmount?: number }> {
     const base = environment.retailApiBaseUrl;

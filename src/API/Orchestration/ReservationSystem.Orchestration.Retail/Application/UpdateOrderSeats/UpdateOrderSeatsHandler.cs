@@ -9,7 +9,7 @@ namespace ReservationSystem.Orchestration.Retail.Application.UpdateOrderSeats;
 /// For free seat changes (no SeatOfferId supplied): updates seat assignments in Order MS only.
 ///
 /// For paid seat purchases:
-/// 1. Validate each seat offer via Ancillary MS — resolve authoritative price.
+/// 1. Validate each seat offer via Ancillary MS — resolve authoritative price and tax.
 /// 2. Authorise payment via Payment MS (type=SeatAncillary).
 /// 3. Hold then sell the seat(s) in Offer MS inventory.
 /// 4. Settle payment.
@@ -61,13 +61,16 @@ public sealed class UpdateOrderSeatsHandler
             {
                 passengerId = s.PassengerId,
                 segmentId = s.SegmentId,
-                seatNumber = s.SeatNumber
+                seatNumber = s.SeatNumber,
+                price = s.Price,
+                tax = s.Tax,
+                currency = s.Currency
             }).ToList();
             await _orderServiceClient.UpdateOrderSeatsPostSaleAsync(bookingReference, freePayload, ct);
             return new UpdateOrderSeatsResponse { BookingReference = bookingReference, Updated = true };
         }
 
-        // 2. Validate each paid seat offer — resolve authoritative price
+        // 2. Validate each paid seat offer — resolve authoritative price and tax
         var currency = order.CurrencyCode;
         decimal totalSeatAmount = 0m;
         var validatedSeats = new List<ValidatedSeatItem>();
@@ -88,9 +91,10 @@ public sealed class UpdateOrderSeatsHandler
                 InventoryId = sel.InventoryId,
                 CabinCode = sel.CabinCode,
                 Price = offer.Price,
+                Tax = offer.Tax,
                 Currency = offer.CurrencyCode
             });
-            totalSeatAmount += offer.Price;
+            totalSeatAmount += offer.Price + offer.Tax;
         }
 
         // 3. Initialise and authorise payment
@@ -146,13 +150,23 @@ public sealed class UpdateOrderSeatsHandler
         await _paymentServiceClient.SettleAsync(paymentId, totalSeatAmount, ct);
 
         // 6. Update seat assignments in Order MS (paid and any free selections together)
-        var seatsPayload = command.SeatSelections.Select(s => new
+        var seatsPayload = command.SeatSelections.Select(s =>
         {
-            passengerId = s.PassengerId,
-            segmentId = s.SegmentId,
-            seatNumber = s.SeatNumber,
-            seatOfferId = string.IsNullOrEmpty(s.SeatOfferId) ? null : s.SeatOfferId,
-            paymentReference = string.IsNullOrEmpty(s.SeatOfferId) ? null : paymentId
+            var isPaid = !string.IsNullOrEmpty(s.SeatOfferId);
+            var validated = isPaid
+                ? validatedSeats.Find(v => v.PassengerId == s.PassengerId && v.SegmentId == s.SegmentId)
+                : null;
+            return new
+            {
+                passengerId = s.PassengerId,
+                segmentId = s.SegmentId,
+                seatNumber = s.SeatNumber,
+                seatOfferId = isPaid ? s.SeatOfferId : null,
+                paymentReference = isPaid ? paymentId : (string?)null,
+                price = validated?.Price ?? s.Price,
+                tax = validated?.Tax ?? s.Tax,
+                currency = validated?.Currency ?? s.Currency
+            };
         }).ToList();
 
         await _orderServiceClient.UpdateOrderSeatsPostSaleAsync(bookingReference, seatsPayload, ct);
@@ -165,7 +179,7 @@ public sealed class UpdateOrderSeatsHandler
                 await _deliveryServiceClient.IssueDocumentAsync(
                     bookingReference, "SeatAncillary",
                     seat.PassengerId, seat.SegmentId,
-                    seat.Price, seat.Currency, paymentId, ct);
+                    seat.Price + seat.Tax, seat.Currency, paymentId, ct);
             }
             catch (Exception ex)
             {
@@ -190,6 +204,7 @@ public sealed class UpdateOrderSeatsHandler
         public Guid InventoryId { get; init; }
         public string CabinCode { get; init; } = string.Empty;
         public decimal Price { get; init; }
+        public decimal Tax { get; init; }
         public string Currency { get; init; } = string.Empty;
     }
 }
@@ -208,6 +223,9 @@ public sealed class SeatSelectionItem
     public string SeatOfferId { get; init; } = string.Empty;
     public Guid InventoryId { get; init; }
     public string CabinCode { get; init; } = string.Empty;
+    public decimal Price { get; init; }
+    public decimal Tax { get; init; }
+    public string Currency { get; init; } = string.Empty;
 }
 
 public sealed class PaymentDetails
