@@ -94,7 +94,7 @@ public sealed class TaxAttributionService
     ///
     /// For <see cref="TaxScope.SplitPerCoupon"/> taxes (e.g. YQ carrier surcharge), the total
     /// amount is divided equally across the applicable coupons, producing one group per coupon.
-    /// This ensures <c>GetAttributedValue</c> can sum TicketTax amounts without double-counting.
+    /// This ensures coupon value sums from <c>TicketData.fareConstruction.taxes</c> are correct without double-counting.
     ///
     /// For all other scopes, a single group is returned with the full amount.
     /// </summary>

@@ -92,7 +92,6 @@ public sealed class FareConstructionDetail
 
     [JsonPropertyName("taxes")] public List<TaxDetail> Taxes { get; init; } = [];
     [JsonPropertyName("totalTaxes")] public decimal TotalTaxes { get; init; }
-    [JsonPropertyName("totalAmount")] public decimal TotalAmount { get; init; }
 }
 
 public sealed class TaxDetail
