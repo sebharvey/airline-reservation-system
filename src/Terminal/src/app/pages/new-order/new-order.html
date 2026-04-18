@@ -456,10 +456,10 @@
             <!-- ── 2. Seat Selection ── -->
             <div class="accordion-item"
               [class.accordion-item-open]="accordionSection() === 'seats'"
-              [class.accordion-item-locked]="step() === 'passengers'">
+              [class.accordion-item-locked]="step() === 'passengers' || isStandby()">
               <button class="accordion-trigger"
-                (click)="(step() === 'seats' || step() === 'products' || step() === 'payment') ? accordionSection.set('seats') : null"
-                [disabled]="step() === 'passengers'">
+                (click)="(step() === 'seats' || step() === 'products' || step() === 'payment') && !isStandby() ? accordionSection.set('seats') : null"
+                [disabled]="step() === 'passengers' || isStandby()">
                 <span class="accordion-num">2</span>
                 <span class="accordion-title">Seat Selection</span>
                 @if (basket()?.flights?.length) {
@@ -600,10 +600,10 @@
             <!-- ── 3. Add-on Products ── -->
             <div class="accordion-item"
               [class.accordion-item-open]="accordionSection() === 'products'"
-              [class.accordion-item-locked]="step() === 'passengers' || step() === 'seats'">
+              [class.accordion-item-locked]="step() === 'passengers' || step() === 'seats' || isStandby()">
               <button class="accordion-trigger"
-                (click)="(step() === 'products' || step() === 'payment') ? accordionSection.set('products') : null"
-                [disabled]="step() === 'passengers' || step() === 'seats'">
+                (click)="(step() === 'products' || step() === 'payment') && !isStandby() ? accordionSection.set('products') : null"
+                [disabled]="step() === 'passengers' || step() === 'seats' || isStandby()">
                 <span class="accordion-num">3</span>
                 <span class="accordion-title">Add-on Products</span>
                 @if (productTotal() > 0 && basket()) {

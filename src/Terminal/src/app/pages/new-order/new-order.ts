@@ -346,11 +346,16 @@ export class NewOrderComponent {
     this.error.set('');
     try {
       await this.#svc.updatePassengers(basketSummary.basketId, passengers);
-      this.step.set('seats');
-      this.accordionSection.set('seats');
-      this.activeSeatPaxIdx.set(0);
-      this.activeSeatFlightIdx.set(0);
-      this.#loadSeatmaps();
+      if (this.isStandby()) {
+        this.step.set('payment');
+        this.accordionSection.set('payment');
+      } else {
+        this.step.set('seats');
+        this.accordionSection.set('seats');
+        this.activeSeatPaxIdx.set(0);
+        this.activeSeatFlightIdx.set(0);
+        this.#loadSeatmaps();
+      }
     } catch (err: any) {
       this.error.set(err?.error?.message ?? 'Failed to save passengers. Please try again.');
     } finally {
