@@ -83,6 +83,7 @@ public sealed class ManagedOrderItem
     public int? AdditionalBags { get; init; }
     public int? FreeBagsIncluded { get; init; }
     public string? SeatNumber { get; init; }
+    public string? SsrCode { get; init; }
 }
 
 public sealed class ManagedETicket

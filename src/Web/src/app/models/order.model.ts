@@ -55,7 +55,7 @@ export interface ETicket {
 
 export interface OrderItem {
   orderItemId: string;
-  type: 'Flight' | 'Seat' | 'Bag' | 'Product';
+  type: 'Flight' | 'Seat' | 'Bag' | 'Product' | 'SSR';
   segmentRef: string;
   passengerRefs: string[];
   fareFamily?: string;
@@ -73,6 +73,7 @@ export interface OrderItem {
   freeBagsIncluded?: number;
   productName?: string;
   productOfferId?: string;
+  ssrCode?: string;
 }
 
 export interface Payment {
