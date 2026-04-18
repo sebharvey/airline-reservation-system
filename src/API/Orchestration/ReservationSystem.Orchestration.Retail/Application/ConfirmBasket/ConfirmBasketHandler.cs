@@ -117,7 +117,7 @@ public sealed class ConfirmBasketHandler
         var basketDataJson = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
 
         var inventoryTask = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, cancellationToken);
-        var ticketsTask   = RunTicketIssuanceAsync(basketDataJson, command, paymentId, totalAmount, currency, confirmedOrder, cancellationToken);
+        var ticketsTask   = RunTicketIssuanceAsync(basketDataJson, command, paymentId, totalAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
         var settleTask    = _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
         var customerTask  = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
 
@@ -342,6 +342,7 @@ public sealed class ConfirmBasketHandler
         decimal totalAmount,
         string currency,
         OrderMsConfirmOrderResult confirmedOrder,
+        Dictionary<Guid, RepriceOfferDto> repricedOffers,
         CancellationToken cancellationToken)
     {
         if (basketDataJson == null) return [];
@@ -351,6 +352,7 @@ public sealed class ConfirmBasketHandler
             if (passengers.Count == 0 || segments.Count == 0) return [];
 
             var formOfPayment = BuildFormOfPayment(command, paymentId, totalAmount, currency);
+            var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers, passengers.Count);
             var passengersWithPayment = passengers
                 .Select(p => new TicketPassenger
                 {
@@ -358,6 +360,7 @@ public sealed class ConfirmBasketHandler
                     GivenName = p.GivenName,
                     Surname = p.Surname,
                     Dob = p.Dob,
+                    FareConstruction = fareConstruction,
                     FormOfPayment = formOfPayment
                 })
                 .ToList();
@@ -659,6 +662,115 @@ public sealed class ConfirmBasketHandler
         catch { /* Return whatever was parsed */ }
 
         return (passengers, segments);
+    }
+
+    private static TicketFareConstruction? BuildFareConstruction(
+        string basketDataJson,
+        Dictionary<Guid, RepriceOfferDto> repricedOffers,
+        int numPassengers)
+    {
+        if (numPassengers <= 0) return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("flightOffers", out var offersEl) ||
+                offersEl.ValueKind != JsonValueKind.Array)
+                return null;
+
+            // Collect ordered per-segment fare components and aggregate taxes.
+            var components = new List<(string Origin, string Carrier, string Destination, decimal NucAmount)>();
+            var taxAccumulator = new Dictionary<string, (decimal Total, string Currency, string? Description)>(StringComparer.OrdinalIgnoreCase);
+            string? collectingCurrency = null;
+
+            foreach (var offer in offersEl.EnumerateArray())
+            {
+                if (!offer.TryGetProperty("offerId", out var offerIdEl) ||
+                    !offerIdEl.TryGetGuid(out var offerId))
+                    continue;
+
+                if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
+
+                var origin      = offer.TryGetProperty("origin",       out var o)  ? o.GetString()  ?? "" : "";
+                var destination = offer.TryGetProperty("destination",  out var d)  ? d.GetString()  ?? "" : "";
+                var flightNum   = offer.TryGetProperty("flightNumber", out var fn) ? fn.GetString() ?? "" : "";
+                var cabinCode   = offer.TryGetProperty("cabinCode",    out var cc) ? cc.GetString() ?? "" : "";
+                var carrier     = ExtractCarrierCode(flightNum);
+
+                if (string.IsNullOrEmpty(origin) || string.IsNullOrEmpty(destination) || carrier.Length < 2)
+                    continue;
+
+                var item = repriced.Offers.FirstOrDefault(i =>
+                    string.Equals(i.CabinCode, cabinCode, StringComparison.OrdinalIgnoreCase))
+                    ?? repriced.Offers.FirstOrDefault();
+
+                if (item is null) continue;
+
+                collectingCurrency ??= item.CurrencyCode;
+
+                // Per-passenger NUC component: round each one; NUC total = sum of rounded components.
+                var perPaxComponent = Math.Round(item.BaseFareAmount / numPassengers, 2, MidpointRounding.AwayFromZero);
+                components.Add((origin.ToUpperInvariant(), carrier.ToUpperInvariant(), destination.ToUpperInvariant(), perPaxComponent));
+
+                if (item.TaxLines != null)
+                {
+                    foreach (var tl in item.TaxLines)
+                    {
+                        if (taxAccumulator.TryGetValue(tl.Code, out var existing))
+                            taxAccumulator[tl.Code] = (existing.Total + tl.Amount, existing.Currency, existing.Description);
+                        else
+                            taxAccumulator[tl.Code] = (tl.Amount, item.CurrencyCode, tl.Description);
+                    }
+                }
+            }
+
+            if (components.Count == 0 || string.IsNullOrEmpty(collectingCurrency)) return null;
+
+            // NUC total = sum of per-passenger component amounts (already rounded individually).
+            var nucTotal = components.Sum(c => c.NucAmount);
+
+            // Build per-passenger tax lines, dividing aggregated amounts by pax count.
+            var taxLines = taxAccumulator.Select(kv => new TicketTaxLine
+            {
+                Code        = kv.Key,
+                Amount      = Math.Round(kv.Value.Total / numPassengers, 2, MidpointRounding.AwayFromZero),
+                Currency    = kv.Value.Currency,
+                Description = kv.Value.Description
+            }).ToList();
+            var totalTaxes = taxLines.Sum(t => t.Amount);
+
+            // Build IATA linear fare calculation string: "LON BA JFK 300.00 BA LON 300.00 NUC600.00 END ROE1.000000"
+            var sb = new StringBuilder(components[0].Origin);
+            foreach (var (_, carrier2, dest, nuc) in components)
+                sb.Append($" {carrier2} {dest} {nuc:F2}");
+            sb.Append($" NUC{nucTotal:F2} END ROE1.000000");
+
+            return new TicketFareConstruction
+            {
+                PricingCurrency    = collectingCurrency,
+                CollectingCurrency = collectingCurrency,
+                BaseFare           = nucTotal, // ROE = 1.0, so NUC amount equals local fare
+                EquivalentFarePaid = nucTotal,
+                NucAmount          = nucTotal,
+                RoeApplied         = 1.0m,
+                FareCalculationLine = sb.ToString(),
+                Taxes      = taxLines,
+                TotalTaxes = totalTaxes
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string ExtractCarrierCode(string flightNumber)
+    {
+        // IATA carrier codes are 2 alpha characters at the start of the flight number (e.g. "BA1234" → "BA").
+        var alpha = new string(flightNumber.TakeWhile(char.IsLetter).ToArray());
+        return alpha.Length >= 2 ? alpha[..2] : alpha;
     }
 
     private static string? ParseLoyaltyNumber(string basketDataJson)
