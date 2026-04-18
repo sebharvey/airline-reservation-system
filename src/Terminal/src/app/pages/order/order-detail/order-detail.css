@@ -869,6 +869,9 @@
 /* Mobile tickets card list — hidden on desktop */
 .mobile-tickets-list { display: none; }
 
+/* Mobile payments card list — hidden on desktop */
+.mobile-payments-list { display: none; }
+
 /* Mobile */
 @media (max-width: 600px) {
   .order-detail-page { padding: 12px; }
@@ -1059,6 +1062,60 @@
     font-weight: 600;
     color: var(--grad-start);
     margin-top: 2px;
+  }
+
+  .mobile-payments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .mobile-payment-card {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-payment-card:last-child { border-bottom: none; }
+
+  .mobile-payment-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-payment-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .mobile-payment-method {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-payment-amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--grad-start);
+  }
+
+  .mobile-payment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+    font-size: 0.75rem;
   }
 }
 

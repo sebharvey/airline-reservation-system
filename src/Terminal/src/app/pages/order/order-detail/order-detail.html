@@ -370,6 +370,32 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile card list (replaces table on small screens) -->
+          <div class="mobile-payments-list">
+            @for (pay of payments(); track pay.paymentId) {
+              <div class="mobile-payment-card">
+                <div class="mobile-payment-main">
+                  <div class="mobile-payment-top">
+                    <span class="mobile-payment-method">
+                      {{ pay.paymentMethod || '—' }}@if (pay.cardLast4) { <span class="muted"> •••• {{ pay.cardLast4 }}</span> }
+                    </span>
+                    <span class="pay-status-badge" [class]="paymentStatusClass(pay.status)">{{ pay.status }}</span>
+                  </div>
+                  <div class="mobile-payment-amount">{{ formatAmount(pay.amount, pay.currency) }}</div>
+                  <div class="mobile-payment-meta">
+                    <span class="mono muted small-mono">{{ pay.paymentId }}</span>
+                    @if (pay.authorisedAt) {
+                      <span class="muted">Auth: {{ formatDateTime(pay.authorisedAt) }}</span>
+                    }
+                    @if (pay.settledAt) {
+                      <span class="muted">Settled: {{ formatDateTime(pay.settledAt) }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
         }
       </div>
     }
