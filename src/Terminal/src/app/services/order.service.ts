@@ -187,7 +187,6 @@ export interface OrderData {
     flightSegments: FlightSegment[];
   };
   orderItems: OrderItem[];
-  ssrItems: SsrItem[];
   payments: OrderPayment[];
   history: OrderHistoryEvent[];
 }
