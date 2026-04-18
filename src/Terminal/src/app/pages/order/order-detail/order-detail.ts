@@ -30,7 +30,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'orderItems' | 'passengers' | 'payments' | 'history' | 'tickets'>('orderItems');
+  activeTab = signal<'orderItems' | 'payments' | 'history' | 'tickets'>('orderItems');
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
@@ -51,6 +51,7 @@ export class OrderDetailComponent implements OnInit {
   editSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
 
   selectedOrderItem = signal<OrderItem | null>(null);
+  selectedPassenger = signal<OrderPassenger | null>(null);
 
   // Tickets tab state
   tickets = signal<Ticket[]>([]);
@@ -142,9 +143,21 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'orderItems' | 'passengers' | 'payments' | 'history' | 'tickets'): void {
+  switchTab(tab: 'orderItems' | 'payments' | 'history' | 'tickets'): void {
     this.activeTab.set(tab);
     if (tab === 'tickets') this.loadTickets();
+  }
+
+  openPaxModal(pax: OrderPassenger): void {
+    this.selectedPassenger.set(pax);
+    this.editingPaxId.set(null);
+    this.editError.set('');
+  }
+
+  closePaxModal(): void {
+    this.selectedPassenger.set(null);
+    this.editingPaxId.set(null);
+    this.editError.set('');
   }
 
   openItemModal(item: OrderItem): void {
@@ -215,6 +228,7 @@ export class OrderDetailComponent implements OnInit {
     try {
       await this.#orderService.updateOrderPassengers(this.bookingRef, updatedPassengers);
       this.editingPaxId.set(null);
+      this.selectedPassenger.set(null);
       await this.loadOrder();
     } catch {
       this.editError.set('Failed to save changes. Please try again.');

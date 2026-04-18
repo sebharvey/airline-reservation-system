@@ -133,7 +133,7 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Meta strip */
+/* Meta strip (retained for chip styles) */
 .meta-strip {
   display: flex;
   flex-wrap: wrap;
@@ -153,6 +153,119 @@
 
 .chip-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .chip-value { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+
+/* Two-column info panel: meta left, passengers right */
+.order-info-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .order-info-panel { grid-template-columns: 1fr; }
+}
+
+.order-meta-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-pax-col {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pax-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pax-col-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Compact passenger card (clickable) */
+.pax-card-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.pax-card-compact:hover {
+  background: rgba(102, 126, 234, 0.06);
+  border-color: var(--grad-start);
+}
+
+.pax-avatar-sm {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  font-size: 0.85rem !important;
+}
+
+.pax-compact-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pax-compact-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pax-compact-type {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.pax-chevron {
+  color: var(--text-muted);
+  font-size: 1rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.pax-card-compact:hover .pax-chevron { opacity: 1; color: var(--grad-start); }
+
+/* Passenger type badge in modal */
+.pax-type-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
 
 /* Tabs */
 .tabs {
