@@ -214,17 +214,26 @@ public sealed class ConfirmBasketHandler
 
                 if (item is null) continue;
 
+                // The Offer MS returns per-pax prices; multiply by the passenger count
+                // stored on the basket offer so the Order MS receives all-pax totals.
+                var passengerCount = 1;
+                if (offer.TryGetProperty("passengerCount", out var pcEl) &&
+                    pcEl.ValueKind == JsonValueKind.Number &&
+                    pcEl.TryGetInt32(out var pc) && pc > 0)
+                    passengerCount = pc;
+
                 payload.Add(new
                 {
                     offerId        = offerId,
                     cabinCode      = item.CabinCode,
-                    baseFareAmount = item.BaseFareAmount,
-                    taxAmount      = item.TaxAmount,
-                    totalAmount    = item.TotalAmount,
+                    baseFareAmount = item.BaseFareAmount * passengerCount,
+                    taxAmount      = item.TaxAmount      * passengerCount,
+                    totalAmount    = item.TotalAmount    * passengerCount,
+                    passengerCount = passengerCount,
                     taxLines       = item.TaxLines?.Select(tl => new
                     {
                         code        = tl.Code,
-                        amount      = tl.Amount,
+                        amount      = tl.Amount * passengerCount,
                         description = tl.Description
                     })
                 });

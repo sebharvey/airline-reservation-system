@@ -165,11 +165,16 @@ public sealed class GetAdminOrderDetailHandler
                 }
             }
 
-            var fareAmount  = item["baseFareAmount"] is JsonNode fareNode ? fareNode.DeepClone() : null;
-            var taxAmount   = item["taxAmount"]      is JsonNode taxNode  ? taxNode.DeepClone()  : null;
-            var itemTotal   = item["totalAmount"]    is JsonNode totNode  ? totNode.DeepClone()  : null;
-            var taxLines    = item["taxLines"]       is JsonNode tlNode   ? tlNode.DeepClone()   : null;
-            var currency    = orderData["currency"]  is JsonNode curNode  ? curNode.DeepClone()  : null;
+            var fareAmount     = item["baseFareAmount"] is JsonNode fareNode ? fareNode.DeepClone() : null;
+            var taxAmount      = item["taxAmount"]      is JsonNode taxNode  ? taxNode.DeepClone()  : null;
+            var itemTotal      = item["totalAmount"]    is JsonNode totNode  ? totNode.DeepClone()  : null;
+            var taxLines       = item["taxLines"]       is JsonNode tlNode   ? tlNode.DeepClone()   : null;
+            var currency       = orderData["currency"]  is JsonNode curNode  ? curNode.DeepClone()  : null;
+            var passengerCount = item["passengerCount"] is JsonNode pcNode   ? pcNode.GetValue<int>() : 1;
+            if (passengerCount < 1) passengerCount = 1;
+
+            // Append pax count to description so it is visible in the list view
+            var itemDesc = passengerCount > 1 ? $"{segDesc} ({passengerCount} pax)" : segDesc;
 
             if (matchingETickets.Count > 0)
             {
@@ -177,22 +182,23 @@ public sealed class GetAdminOrderDetailHandler
                 {
                     enrichedItems.Add(new JsonObject
                     {
-                        ["itemId"] = Guid.NewGuid().ToString(),
-                        ["itemType"] = "Flight",
-                        ["description"] = segDesc,
-                        ["passengerId"] = paxId,
-                        ["segmentId"] = inventoryIdStr,
-                        ["status"] = itemStatus,
-                        ["eTicketNumber"] = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
-                        ["seatNumber"] = null,
-                        ["bagWeightKg"] = null,
-                        ["fareAmount"]  = fareAmount?.DeepClone(),
-                        ["taxAmount"]   = taxAmount?.DeepClone(),
-                        ["totalAmount"] = itemTotal?.DeepClone(),
-                        ["lineTotal"]   = itemTotal?.DeepClone(),
-                        ["taxLines"]    = taxLines?.DeepClone(),
-                        ["amount"] = null,
-                        ["currency"] = currency?.DeepClone(),
+                        ["itemId"]         = Guid.NewGuid().ToString(),
+                        ["itemType"]       = "Flight",
+                        ["description"]    = itemDesc,
+                        ["passengerId"]    = paxId,
+                        ["segmentId"]      = inventoryIdStr,
+                        ["status"]         = itemStatus,
+                        ["eTicketNumber"]  = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
+                        ["seatNumber"]     = null,
+                        ["bagWeightKg"]    = null,
+                        ["fareAmount"]     = fareAmount?.DeepClone(),
+                        ["taxAmount"]      = taxAmount?.DeepClone(),
+                        ["totalAmount"]    = itemTotal?.DeepClone(),
+                        ["lineTotal"]      = itemTotal?.DeepClone(),
+                        ["taxLines"]       = taxLines?.DeepClone(),
+                        ["amount"]         = null,
+                        ["currency"]       = currency?.DeepClone(),
+                        ["passengerCount"] = passengerCount,
                     });
                 }
             }
@@ -200,22 +206,23 @@ public sealed class GetAdminOrderDetailHandler
             {
                 enrichedItems.Add(new JsonObject
                 {
-                    ["itemId"] = Guid.NewGuid().ToString(),
-                    ["itemType"] = "Flight",
-                    ["description"] = segDesc,
-                    ["passengerId"] = null,
-                    ["segmentId"] = inventoryIdStr,
-                    ["status"] = itemStatus,
-                    ["eTicketNumber"] = null,
-                    ["seatNumber"] = null,
-                    ["bagWeightKg"] = null,
-                    ["fareAmount"]  = fareAmount?.DeepClone(),
-                    ["taxAmount"]   = taxAmount?.DeepClone(),
-                    ["totalAmount"] = itemTotal?.DeepClone(),
-                    ["lineTotal"]   = itemTotal?.DeepClone(),
-                    ["taxLines"]    = taxLines?.DeepClone(),
-                    ["amount"] = null,
-                    ["currency"] = currency?.DeepClone(),
+                    ["itemId"]         = Guid.NewGuid().ToString(),
+                    ["itemType"]       = "Flight",
+                    ["description"]    = itemDesc,
+                    ["passengerId"]    = null,
+                    ["segmentId"]      = inventoryIdStr,
+                    ["status"]         = itemStatus,
+                    ["eTicketNumber"]  = null,
+                    ["seatNumber"]     = null,
+                    ["bagWeightKg"]    = null,
+                    ["fareAmount"]     = fareAmount?.DeepClone(),
+                    ["taxAmount"]      = taxAmount?.DeepClone(),
+                    ["totalAmount"]    = itemTotal?.DeepClone(),
+                    ["lineTotal"]      = itemTotal?.DeepClone(),
+                    ["taxLines"]       = taxLines?.DeepClone(),
+                    ["amount"]         = null,
+                    ["currency"]       = currency?.DeepClone(),
+                    ["passengerCount"] = passengerCount,
                 });
             }
         }

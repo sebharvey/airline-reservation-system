@@ -77,6 +77,7 @@ export interface OrderItem {
   lineTotal: number | null;
   taxLines: TaxLine[] | null;
   currency: string | null;
+  passengerCount: number | null;
 }
 
 export interface ItemTotals {
