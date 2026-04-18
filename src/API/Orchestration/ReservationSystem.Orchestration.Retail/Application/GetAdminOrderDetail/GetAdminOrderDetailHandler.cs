@@ -133,8 +133,10 @@ public sealed class GetAdminOrderDetailHandler
             var segDesc = $"{flightDetail.FlightNumber} {flightDetail.Origin}→{flightDetail.Destination}";
             segmentDescriptions[inventoryIdStr] = segDesc;
 
-            // Build one enriched orderItem per passenger for this segment, carrying the e-ticket
-            // number so the Terminal can look it up by passengerId + segmentId.
+            // Build one enriched Flight orderItem per passenger eTicket for this segment.
+            // If no eTickets exist yet (pre-ticketing), emit a single item with no passenger/eTicket
+            // so the flight always appears in the Order Items tab.
+            var matchingETickets = new List<(string paxId, string eTicketNumber)>();
             if (eTicketsNode is not null)
             {
                 foreach (var eTicketNode in eTicketsNode)
@@ -142,7 +144,6 @@ public sealed class GetAdminOrderDetailHandler
                     var et = eTicketNode?.AsObject();
                     if (et is null) continue;
 
-                    // eTickets store SegmentId as the original basketItemId (e.g. "BI-1")
                     var etSegId = et["SegmentId"]?.GetValue<string>()
                                ?? et["segmentId"]?.GetValue<string>()
                                ?? string.Empty;
@@ -157,6 +158,14 @@ public sealed class GetAdminOrderDetailHandler
                                      ?? et["eTicketNumber"]?.GetValue<string>()
                                      ?? string.Empty;
 
+                    matchingETickets.Add((paxId, eTicketNumber));
+                }
+            }
+
+            if (matchingETickets.Count > 0)
+            {
+                foreach (var (paxId, eTicketNumber) in matchingETickets)
+                {
                     enrichedItems.Add(new JsonObject
                     {
                         ["itemId"] = Guid.NewGuid().ToString(),
@@ -172,6 +181,23 @@ public sealed class GetAdminOrderDetailHandler
                         ["currency"] = null,
                     });
                 }
+            }
+            else
+            {
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"] = Guid.NewGuid().ToString(),
+                    ["itemType"] = "Flight",
+                    ["description"] = segDesc,
+                    ["passengerId"] = null,
+                    ["segmentId"] = inventoryIdStr,
+                    ["status"] = "Confirmed",
+                    ["eTicketNumber"] = null,
+                    ["seatNumber"] = null,
+                    ["bagWeightKg"] = null,
+                    ["amount"] = null,
+                    ["currency"] = null,
+                });
             }
         }
 
@@ -209,36 +235,6 @@ public sealed class GetAdminOrderDetailHandler
             });
         }
 
-        // Append product ancillary items from productItems so the Terminal ancillaries tab
-        // can display purchased products (e.g. lounge access, priority boarding).
-        var productItemsNode = orderData["productItems"]?.AsArray();
-        if (productItemsNode is not null)
-        {
-            foreach (var productNode in productItemsNode)
-            {
-                var product = productNode?.AsObject();
-                if (product is null) continue;
-                var productName = product["name"]?.GetValue<string>() ?? "Product";
-                enrichedItems.Add(new JsonObject
-                {
-                    ["itemId"]        = product["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
-                    ["itemType"]      = "Product",
-                    ["description"]   = productName,
-                    ["passengerId"]   = product["passengerId"]?.GetValue<string>(),
-                    ["segmentId"]     = product["segmentRef"]?.GetValue<string>(),
-                    ["status"]        = "Confirmed",
-                    ["eTicketNumber"] = null,
-                    ["seatNumber"]    = null,
-                    ["bagWeightKg"]   = null,
-                    ["name"]          = productName,
-                    ["amount"]        = product["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
-                    ["currency"]      = product["currency"]?.GetValue<string>(),
-                });
-            }
-        }
-
-        // Replace orderItems only when we have enriched entries (prevents wiping ancillary items
-        // that may have been appended by future post-sale operations)
         if (enrichedItems.Count > 0)
             orderData["orderItems"] = enrichedItems;
     }
