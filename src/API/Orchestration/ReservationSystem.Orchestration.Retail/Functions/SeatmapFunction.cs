@@ -183,6 +183,7 @@ public sealed class SeatmapFunction
                         position = seat.Position,
                         cabinCode = cabin.CabinCode,
                         price = offer.Price,
+                        tax = offer.Tax,
                         currency = offer.CurrencyCode,
                         availability = "available",
                         attributes = seat.Attributes

@@ -32,7 +32,10 @@ public sealed class UpdateOrderSeatsHandler
         {
             passengerId = s.PassengerId,
             segmentId = s.SegmentId,
-            seatNumber = s.SeatNumber
+            seatNumber = s.SeatNumber,
+            price = s.Price,
+            tax = s.Tax,
+            currency = s.Currency
         }).ToList();
 
         await _orderServiceClient.UpdateOrderSeatsPostSaleAsync(bookingReference, seatsPayload, ct);
@@ -55,6 +58,9 @@ public sealed class SeatSelectionItem
     public string PassengerId { get; init; } = string.Empty;
     public string SegmentId { get; init; } = string.Empty;
     public string SeatNumber { get; init; } = string.Empty;
+    public decimal Price { get; init; }
+    public decimal Tax { get; init; }
+    public string Currency { get; init; } = string.Empty;
 }
 
 public sealed class UpdateOrderSeatsResponse
