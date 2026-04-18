@@ -51,10 +51,12 @@ PRINT 'Triggers dropped.';
 
 -- Drop tables (child-before-parent order to respect FK constraints) -----------
 
--- delivery
-IF OBJECT_ID('[delivery].[Document]',  'U') IS NOT NULL DROP TABLE [delivery].[Document];
-IF OBJECT_ID('[delivery].[Manifest]',  'U') IS NOT NULL DROP TABLE [delivery].[Manifest];
-IF OBJECT_ID('[delivery].[Ticket]',    'U') IS NOT NULL DROP TABLE [delivery].[Ticket];
+-- delivery (child-before-parent order)
+IF OBJECT_ID('[delivery].[TicketTaxCoupon]', 'U') IS NOT NULL DROP TABLE [delivery].[TicketTaxCoupon];
+IF OBJECT_ID('[delivery].[TicketTax]',       'U') IS NOT NULL DROP TABLE [delivery].[TicketTax];
+IF OBJECT_ID('[delivery].[Document]',        'U') IS NOT NULL DROP TABLE [delivery].[Document];
+IF OBJECT_ID('[delivery].[Manifest]',        'U') IS NOT NULL DROP TABLE [delivery].[Manifest];
+IF OBJECT_ID('[delivery].[Ticket]',          'U') IS NOT NULL DROP TABLE [delivery].[Ticket];
 
 -- payment
 IF OBJECT_ID('[payment].[PaymentEvent]', 'U') IS NOT NULL DROP TABLE [payment].[PaymentEvent];
@@ -655,20 +657,25 @@ GO
 -- =============================================================================
 
 -- delivery.Ticket -------------------------------------------------------------
+-- One row per e-ticket (one passenger, all segments). Financial data lives in
+-- TicketData.fareConstruction JSON; FareCalculation is a typed column so coupon
+-- fare shares can be derived without parsing the full JSON blob.
 IF OBJECT_ID('[delivery].[Ticket]', 'U') IS NULL
 CREATE TABLE [delivery].[Ticket] (
     TicketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Ticket_Id       DEFAULT NEWID(),
     TicketNumber     BIGINT           NOT NULL IDENTITY(1000000001, 1),
     BookingReference CHAR(6)          NOT NULL,
     PassengerId      VARCHAR(20)      NOT NULL,
+    -- IATA linear fare calc; NUC amounts + ROE; coupon fare share derived from this + TicketData.fareConstruction.baseFare.
+    FareCalculation  NVARCHAR(500)    NOT NULL CONSTRAINT DF_Ticket_FareCalc DEFAULT '',
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided   DEFAULT 0,
     VoidedAt         DATETIME2            NULL,
     TicketData       JSON             NOT NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Updated  DEFAULT SYSUTCDATETIME(),
     Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version  DEFAULT 1,
-    CONSTRAINT PK_Ticket         PRIMARY KEY (TicketId),
-    CONSTRAINT UQ_Ticket_Number  UNIQUE (TicketNumber)
+    CONSTRAINT PK_Ticket        PRIMARY KEY (TicketId),
+    CONSTRAINT UQ_Ticket_Number UNIQUE (TicketNumber)
 );
 GO
 
@@ -1846,7 +1853,7 @@ BEGIN TRY
         + CAST(@InvId_AX001 AS NVARCHAR(36))
         + N'","segmentRef":"SEG-1","passengerRefs":["PAX-1","PAX-2"],"unitPrice":1250.00,"taxes":182.50,"totalPrice":1432.50,"paymentReference":"AXPAY-0001","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000001"},{"passengerId":"PAX-2","eTicketNumber":"932-1000000002"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"1A"},{"passengerId":"PAX-2","seatNumber":"1K"}]},{"orderItemId":"OI-2","type":"Flight","inventoryId":"'
         + CAST(@InvId_AX002 AS NVARCHAR(36))
-        + N'","segmentRef":"SEG-2","passengerRefs":["PAX-1","PAX-2"],"unitPrice":1250.00,"taxes":182.50,"totalPrice":1432.50,"paymentReference":"AXPAY-0001","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000003"},{"passengerId":"PAX-2","eTicketNumber":"932-1000000004"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"2A"},{"passengerId":"PAX-2","seatNumber":"2K"}]},{"orderItemId":"OI-3","type":"Bag","segmentRef":"SEG-1","passengerRefs":["PAX-1"],"bagOfferId":"bo-business-bag1-v1","freeBagsIncluded":2,"additionalBags":1,"bagSequence":1,"unitPrice":60.00,"taxes":0.00,"totalPrice":60.00,"paymentReference":"AXPAY-0002"}],"payments":[{"paymentReference":"AXPAY-0001","description":"Fare — LHR-JFK-LHR, Business Flex, 2 PAX","method":"CreditCard","cardLast4":"4242","cardType":"Visa","authorisedAmount":2865.00,"settledAmount":2865.00,"currency":"GBP","status":"Settled","authorisedAt":"2026-03-17T10:30:00Z","settledAt":"2026-03-17T10:31:00Z"},{"paymentReference":"AXPAY-0002","description":"Bag ancillary — SEG-1, PAX-1","method":"CreditCard","cardLast4":"4242","cardType":"Visa","authorisedAmount":60.00,"settledAmount":60.00,"currency":"GBP","status":"Settled","authorisedAt":"2026-03-17T10:30:00Z","settledAt":"2026-03-17T10:32:00Z"}],"history":[{"event":"OrderCreated","at":"2026-03-17T10:29:00Z","by":"WEB"},{"event":"OrderConfirmed","at":"2026-03-17T10:31:00Z","by":"WEB"},{"event":"BagAncillaryAdded","at":"2026-03-17T10:32:00Z","by":"WEB"}]}';
+        + N'","segmentRef":"SEG-2","passengerRefs":["PAX-1","PAX-2"],"unitPrice":1250.00,"taxes":182.50,"totalPrice":1432.50,"paymentReference":"AXPAY-0001","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000001"},{"passengerId":"PAX-2","eTicketNumber":"932-1000000002"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"2A"},{"passengerId":"PAX-2","seatNumber":"2K"}]},{"orderItemId":"OI-3","type":"Bag","segmentRef":"SEG-1","passengerRefs":["PAX-1"],"bagOfferId":"bo-business-bag1-v1","freeBagsIncluded":2,"additionalBags":1,"bagSequence":1,"unitPrice":60.00,"taxes":0.00,"totalPrice":60.00,"paymentReference":"AXPAY-0002"}],"payments":[{"paymentReference":"AXPAY-0001","description":"Fare — LHR-JFK-LHR, Business Flex, 2 PAX","method":"CreditCard","cardLast4":"4242","cardType":"Visa","authorisedAmount":2865.00,"settledAmount":2865.00,"currency":"GBP","status":"Settled","authorisedAt":"2026-03-17T10:30:00Z","settledAt":"2026-03-17T10:31:00Z"},{"paymentReference":"AXPAY-0002","description":"Bag ancillary — SEG-1, PAX-1","method":"CreditCard","cardLast4":"4242","cardType":"Visa","authorisedAmount":60.00,"settledAmount":60.00,"currency":"GBP","status":"Settled","authorisedAt":"2026-03-17T10:30:00Z","settledAt":"2026-03-17T10:32:00Z"}],"history":[{"event":"OrderCreated","at":"2026-03-17T10:29:00Z","by":"WEB"},{"event":"OrderConfirmed","at":"2026-03-17T10:31:00Z","by":"WEB"},{"event":"BagAncillaryAdded","at":"2026-03-17T10:32:00Z","by":"WEB"}]}';
 
     INSERT INTO [order].[Order]
         (OrderId, BookingReference, OrderStatus, ChannelCode, CurrencyCode,
@@ -1858,39 +1865,48 @@ BEGIN TRY
     DECLARE @OrderData2 JSON =
         N'{"dataLists":{"passengers":[{"passengerId":"PAX-1","type":"ADT","givenName":"James","surname":"Chen","dob":"1979-11-05","gender":"Male","loyaltyNumber":"AX1234567","contacts":{"email":"james.chen@example.com","phone":"+447700900456"},"docs":[{"type":"PASSPORT","number":"PB9876543","issuingCountry":"GBR","expiryDate":"2031-05-30","nationality":"GBR"}]}]},"orderItems":[{"orderItemId":"OI-1","type":"Flight","inventoryId":"'
         + CAST(@InvId_AX411 AS NVARCHAR(36))
-        + N'","segmentRef":"SEG-1","passengerRefs":["PAX-1"],"unitPrice":199.00,"taxes":110.50,"totalPrice":309.50,"paymentReference":"AXPAY-0003","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000005"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"22A"}]}],"payments":[{"paymentReference":"AXPAY-0003","description":"Fare — LHR-DEL, Economy Light, 1 PAX","method":"CreditCard","cardLast4":"1234","cardType":"Mastercard","authorisedAmount":309.50,"settledAmount":309.50,"currency":"GBP","status":"Settled","authorisedAt":"2026-05-01T09:15:00Z","settledAt":"2026-05-01T09:16:00Z"}],"history":[{"event":"OrderCreated","at":"2026-05-01T09:14:00Z","by":"APP"},{"event":"OrderConfirmed","at":"2026-05-01T09:16:00Z","by":"APP"}]}';
+        + N'","segmentRef":"SEG-1","passengerRefs":["PAX-1"],"unitPrice":199.00,"taxes":110.50,"totalPrice":309.50,"paymentReference":"AXPAY-0003","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000003"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"22A"}]}],"payments":[{"paymentReference":"AXPAY-0003","description":"Fare — LHR-DEL, Economy Light, 1 PAX","method":"CreditCard","cardLast4":"1234","cardType":"Mastercard","authorisedAmount":309.50,"settledAmount":309.50,"currency":"GBP","status":"Settled","authorisedAt":"2026-05-01T09:15:00Z","settledAt":"2026-05-01T09:16:00Z"}],"history":[{"event":"OrderCreated","at":"2026-05-01T09:14:00Z","by":"APP"},{"event":"OrderConfirmed","at":"2026-05-01T09:16:00Z","by":"APP"}]}';
 
     INSERT INTO [order].[Order]
         (OrderId, BookingReference, OrderStatus, ChannelCode, CurrencyCode,
          TicketingTimeLimit, TotalAmount, OrderData)
     VALUES (@OrderId2,'JC0005','Confirmed','APP','GBP','2026-09-10T20:30:00Z',309.50, @OrderData2);
 
-    -- delivery.Ticket — AB1234 (4 tickets) + JC0005 (1 ticket) ---------------
-    DECLARE @TktId1 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @TktId2 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @TktId3 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @TktId4 UNIQUEIDENTIFIER = NEWID();
-    DECLARE @TktId5 UNIQUEIDENTIFIER = NEWID();
+    -- delivery.Ticket — AB1234 (2 tickets, one per passenger) + JC0005 (1 ticket) ----
+    -- One ticket per passenger covering ALL segments. Financial data (baseFare, currency,
+    -- taxes with coupon attribution) is stored in TicketData.fareConstruction JSON.
+    -- FareCalculation is the only typed financial column: used to derive per-coupon fare shares.
+    DECLARE @TktId1 UNIQUEIDENTIFIER = NEWID();  -- AB1234 / PAX-1 (Amara Okafor)
+    DECLARE @TktId2 UNIQUEIDENTIFIER = NEWID();  -- AB1234 / PAX-2 (Jordan Taylor)
+    DECLARE @TktId3 UNIQUEIDENTIFIER = NEWID();  -- JC0005 / PAX-1 (James Chen)
 
     -- TicketNumber is an IDENTITY column; use IDENTITY_INSERT to set seed values explicitly.
-    -- Seed rows occupy 1000000001–1000000005; production inserts start at 1000000006.
+    -- Seed rows occupy 1000000001–1000000003; production inserts start at 1000000004.
     SET IDENTITY_INSERT [delivery].[Ticket] ON;
     INSERT INTO [delivery].[Ticket]
-        (TicketId, TicketNumber, BookingReference, PassengerId, TicketData)
+        (TicketId, TicketNumber, BookingReference, PassengerId, FareCalculation, TicketData)
     VALUES
+    -- AB1234 / PAX-1: LHR→JFK (AX001 2026-08-15, coupon 1) + JFK→LHR (AX002 2026-08-25, coupon 2)
     (@TktId1, 1000000001, 'AB1234', 'PAX-1',
-     N'{"seatAssignment":{"seatNumber":"1A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
+     'LHR AX JFK 625.00 AX LHR 625.00 NUC1250.00 END ROE1.000000',
+     N'{"fareConstruction":{"baseFare":1250.00,"currency":"GBP","totalTaxes":182.50,"totalAmount":1432.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"US","amount":16.00,"currency":"GBP","couponNumbers":[2]},{"code":"XY","amount":11.00,"currency":"GBP","couponNumbers":[2]},{"code":"YC","amount":5.50,"currency":"GBP","couponNumbers":[2]},{"code":"XA","amount":9.50,"currency":"GBP","couponNumbers":[2]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[2]}]},"passenger":{"surname":"Okafor","givenName":"Amara","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1A","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2A","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+    ),
+    -- AB1234 / PAX-2: same itinerary, same fare, different seats
     (@TktId2, 1000000002, 'AB1234', 'PAX-2',
-     N'{"seatAssignment":{"seatNumber":"1K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId3, 1000000003, 'AB1234', 'PAX-1',
-     N'{"seatAssignment":{"seatNumber":"2A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId4, 1000000004, 'AB1234', 'PAX-2',
-     N'{"seatAssignment":{"seatNumber":"2K","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'),
-    (@TktId5, 1000000005, 'JC0005', 'PAX-1',
-     N'{"seatAssignment":{"seatNumber":"22A","positionType":"Window","deckCode":"M"},"ssrCodes":[],"apisData":null,"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}');
+     'LHR AX JFK 625.00 AX LHR 625.00 NUC1250.00 END ROE1.000000',
+     N'{"fareConstruction":{"baseFare":1250.00,"currency":"GBP","totalTaxes":182.50,"totalAmount":1432.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"US","amount":16.00,"currency":"GBP","couponNumbers":[2]},{"code":"XY","amount":11.00,"currency":"GBP","couponNumbers":[2]},{"code":"YC","amount":5.50,"currency":"GBP","couponNumbers":[2]},{"code":"XA","amount":9.50,"currency":"GBP","couponNumbers":[2]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[2]}]},"passenger":{"surname":"Taylor","givenName":"Jordan","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1K","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2K","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+    ),
+    -- JC0005 / PAX-1: LHR→DEL (AX411 2026-09-10, single coupon)
+    (@TktId3, 1000000003, 'JC0005', 'PAX-1',
+     'LHR AX DEL 199.00 NUC199.00 END ROE1.000000',
+     N'{"fareConstruction":{"baseFare":199.00,"currency":"GBP","totalTaxes":110.50,"totalAmount":309.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":10.00,"currency":"GBP","couponNumbers":[1]}]},"passenger":{"surname":"Chen","givenName":"James","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Mastercard","maskedPan":"XXXX-XXXX-XXXX-1234","expiryMmYy":"11/27","approvalCode":"AX-AUTH-003","amount":309.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":null,"tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX411"},"operating":{"carrier":"AX","flightNumber":"AX411"},"origin":"LHR","destination":"DEL","departureDate":"2026-09-10","departureTime":"20:30","classOfService":"Y","cabin":"ECONOMY","fareBasisCode":"YLIGHTGB","notValidBefore":"2026-09-10","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":1,"weightKg":23},"seat":"22A","attributedTaxCodes":["GB","UB","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+    );
     SET IDENTITY_INSERT [delivery].[Ticket] OFF;
 
     -- delivery.Manifest -------------------------------------------------------
+    -- 5 rows (one per passenger per segment). Both AB1234 return-leg rows now
+    -- reference @TktId1/@TktId2 (the single per-PAX ticket) instead of the old
+    -- per-segment ticket IDs.
     INSERT INTO [delivery].[Manifest]
         (TicketId, InventoryId, FlightNumber, DepartureDate, AircraftType,
          SeatNumber, CabinCode, BookingReference, ETicketNumber,
@@ -1898,9 +1914,9 @@ BEGIN TRY
     VALUES
     (@TktId1,@InvId_AX001,'AX001','2026-08-15','A351','1A', 'J','AB1234','932-1000000001','PAX-1','Amara', 'Okafor','08:00','11:10'),
     (@TktId2,@InvId_AX001,'AX001','2026-08-15','A351','1K', 'J','AB1234','932-1000000002','PAX-2','Jordan','Taylor','08:00','11:10'),
-    (@TktId3,@InvId_AX002,'AX002','2026-08-25','A351','2A', 'J','AB1234','932-1000000003','PAX-1','Amara', 'Okafor','13:00','01:15'),
-    (@TktId4,@InvId_AX002,'AX002','2026-08-25','A351','2K', 'J','AB1234','932-1000000004','PAX-2','Jordan','Taylor','13:00','01:15'),
-    (@TktId5,@InvId_AX411,'AX411','2026-09-10','B789','22A','Y','JC0005','932-1000000005','PAX-1','James', 'Chen',  '20:30','09:00');
+    (@TktId1,@InvId_AX002,'AX002','2026-08-25','A351','2A', 'J','AB1234','932-1000000001','PAX-1','Amara', 'Okafor','13:00','01:15'),
+    (@TktId2,@InvId_AX002,'AX002','2026-08-25','A351','2K', 'J','AB1234','932-1000000002','PAX-2','Jordan','Taylor','13:00','01:15'),
+    (@TktId3,@InvId_AX411,'AX411','2026-09-10','B789','22A','Y','JC0005','932-1000000003','PAX-1','James', 'Chen',  '20:30','09:00');
 
     -- delivery.Document — bag ancillary EMD for AB1234 ------------------------
     INSERT INTO [delivery].[Document]

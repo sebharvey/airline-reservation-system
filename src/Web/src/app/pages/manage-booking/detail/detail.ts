@@ -9,6 +9,8 @@ interface PassengerSeatInfo {
   seatNumber: string | null;
   eTicketNumber: string | null;
   isCheckedIn: boolean;
+  fareAmount: number | null;
+  totalAmount: number | null;
 }
 
 interface SegmentDisplay {
@@ -85,7 +87,10 @@ export class ManageBookingDetailComponent implements OnInit {
         const isCheckedIn = bps.some(
           bp => bp.passengerId === pax.passengerId && bp.flightNumber === seg.flightNumber
         );
-        return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn };
+        const flightItem = flightItems.find(oi => oi.passengerRefs.includes(pax.passengerId));
+        const fareAmount = flightItem?.unitPrice ?? null;
+        const totalAmount = flightItem?.totalPrice ?? null;
+        return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn, fareAmount, totalAmount };
       });
       const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
       const checkedInCount = passengerSeats.filter(ps => ps.isCheckedIn).length;

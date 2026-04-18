@@ -18,7 +18,13 @@ public sealed class PassengerDetail
     [JsonPropertyName("dob")] public string? Dob { get; init; }
     [JsonPropertyName("passengerTypeCode")] public string? PassengerTypeCode { get; init; }
     [JsonPropertyName("frequentFlyer")] public FrequentFlyerDetail? FrequentFlyer { get; init; }
+
+    /// <summary>
+    /// Per-passenger fare construction. Required for ticket issuance; must contain a parseable
+    /// fareCalculationLine and taxes that sum to totalTaxes.
+    /// </summary>
     [JsonPropertyName("fareConstruction")] public FareConstructionDetail? FareConstruction { get; init; }
+
     [JsonPropertyName("formOfPayment")] public FormOfPaymentDetail? FormOfPayment { get; init; }
     [JsonPropertyName("commission")] public CommissionDetail? Commission { get; init; }
     [JsonPropertyName("endorsementsRestrictions")] public string? EndorsementsRestrictions { get; init; }
@@ -39,7 +45,6 @@ public sealed class SegmentDetail
     [JsonPropertyName("operatingFlightNumber")] public string? OperatingFlightNumber { get; init; }
     [JsonPropertyName("stopoverIndicator")] public string? StopoverIndicator { get; init; }
     [JsonPropertyName("baggageAllowance")] public BaggageAllowanceDetail? BaggageAllowance { get; init; }
-    [JsonPropertyName("fareComponent")] public FareComponentDetail? FareComponent { get; init; }
     [JsonPropertyName("seatAssignments")] public List<SeatAssignmentDetail>? SeatAssignments { get; init; }
     [JsonPropertyName("ssrCodes")] public List<SsrCodeDetail>? SsrCodes { get; init; }
 }
@@ -71,14 +76,22 @@ public sealed class FareConstructionDetail
 {
     [JsonPropertyName("pricingCurrency")] public string PricingCurrency { get; init; } = string.Empty;
     [JsonPropertyName("collectingCurrency")] public string CollectingCurrency { get; init; } = string.Empty;
+
+    /// <summary>Base fare amount in the collecting currency (authoritative ticket fare).</summary>
     [JsonPropertyName("baseFare")] public decimal BaseFare { get; init; }
+
     [JsonPropertyName("equivalentFarePaid")] public decimal EquivalentFarePaid { get; init; }
     [JsonPropertyName("nucAmount")] public decimal NucAmount { get; init; }
     [JsonPropertyName("roeApplied")] public decimal RoeApplied { get; init; }
-    [JsonPropertyName("fareCalculationLine")] public string? FareCalculationLine { get; init; }
+
+    /// <summary>
+    /// IATA linear fare calculation string, e.g. "LON BA NYC 500.00 BA LON 500.00 NUC1000.00 END ROE0.800000".
+    /// Required. Must parse successfully and component NUC sum must equal nucAmount.
+    /// </summary>
+    [JsonPropertyName("fareCalculationLine")] public string FareCalculationLine { get; init; } = string.Empty;
+
     [JsonPropertyName("taxes")] public List<TaxDetail> Taxes { get; init; } = [];
     [JsonPropertyName("totalTaxes")] public decimal TotalTaxes { get; init; }
-    [JsonPropertyName("totalAmount")] public decimal TotalAmount { get; init; }
 }
 
 public sealed class TaxDetail
@@ -112,10 +125,4 @@ public sealed class BaggageAllowanceDetail
     [JsonPropertyName("type")] public string Type { get; init; } = string.Empty;
     [JsonPropertyName("quantity")] public int Quantity { get; init; }
     [JsonPropertyName("weightKg")] public int? WeightKg { get; init; }
-}
-
-public sealed class FareComponentDetail
-{
-    [JsonPropertyName("amount")] public decimal Amount { get; init; }
-    [JsonPropertyName("currency")] public string Currency { get; init; } = string.Empty;
 }

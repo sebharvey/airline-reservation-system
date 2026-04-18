@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
+using ReservationSystem.Microservices.Delivery.Domain.ValueObjects;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 
 namespace ReservationSystem.Microservices.Delivery.Models.Mappers;
@@ -27,6 +29,98 @@ public static class DeliveryMapper
             SegmentIds = segmentIds
         };
 
+    public static GetTicketResponse ToGetTicketResponse(Ticket ticket)
+    {
+        JsonElement? ticketDataElement = null;
+        decimal totalFareAmount = 0m;
+        string currency = string.Empty;
+        decimal totalTaxAmount = 0m;
+        decimal totalAmount = 0m;
+        var taxBreakdown = new List<TaxBreakdownResponse>();
+
+        if (!string.IsNullOrWhiteSpace(ticket.TicketData) && ticket.TicketData != "{}")
+        {
+            ticketDataElement = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
+
+            var root = JsonNode.Parse(ticket.TicketData)?.AsObject();
+            var fc = root?["fareConstruction"]?.AsObject();
+            if (fc is not null)
+            {
+                totalFareAmount = fc["baseFare"]?.GetValue<decimal>() ?? 0m;
+                currency = fc["currency"]?.GetValue<string>() ?? string.Empty;
+                totalTaxAmount = fc["totalTaxes"]?.GetValue<decimal>() ?? 0m;
+                totalAmount = fc["totalAmount"]?.GetValue<decimal>() ?? (totalFareAmount + totalTaxAmount);
+
+                var taxesArray = fc["taxes"]?.AsArray();
+                if (taxesArray is not null)
+                {
+                    foreach (var taxNode in taxesArray)
+                    {
+                        if (taxNode is not JsonObject tax) continue;
+                        var couponNumbers = tax["couponNumbers"]?.AsArray()
+                            ?.Select(n => n?.GetValue<int>() ?? 0)
+                            .OrderBy(n => n)
+                            .ToList() ?? [];
+                        taxBreakdown.Add(new TaxBreakdownResponse
+                        {
+                            TaxCode = tax["code"]?.GetValue<string>() ?? string.Empty,
+                            Amount = tax["amount"]?.GetValue<decimal>() ?? 0m,
+                            Currency = tax["currency"]?.GetValue<string>() ?? currency,
+                            AppliesToCouponNumbers = couponNumbers
+                        });
+                    }
+                }
+            }
+        }
+
+        // Derive structured fare components from the fare calculation string.
+        List<FareComponentResponse>? fareComponents = null;
+        if (!string.IsNullOrWhiteSpace(ticket.FareCalculation) &&
+            FareCalculation.TryParse(ticket.FareCalculation, out var parsed, out _) && parsed is not null)
+        {
+            fareComponents = parsed.Components.Select(c => new FareComponentResponse
+            {
+                Origin = c.Origin,
+                Carrier = c.Carrier,
+                Destination = c.Destination,
+                NucAmount = c.NucAmount,
+                FareBasis = c.FareBasis
+            }).ToList();
+        }
+
+        return new GetTicketResponse
+        {
+            TicketId = ticket.TicketId,
+            ETicketNumber = FormatETicketNumber(ticket.TicketNumber),
+            BookingReference = ticket.BookingReference,
+            PassengerId = ticket.PassengerId,
+            TotalFareAmount = totalFareAmount,
+            Currency = currency,
+            TotalTaxAmount = totalTaxAmount,
+            TotalAmount = totalAmount,
+            FareCalculation = ticket.FareCalculation,
+            FareComponents = fareComponents,
+            TaxBreakdown = taxBreakdown,
+            IsVoided = ticket.IsVoided,
+            VoidedAt = ticket.VoidedAt,
+            TicketData = ticketDataElement,
+            CreatedAt = ticket.CreatedAt,
+            UpdatedAt = ticket.UpdatedAt,
+            Version = ticket.Version
+        };
+    }
+
+    public static GetCouponValueResponse ToCouponValueResponse(string eTicketNumber, CouponValue value) =>
+        new()
+        {
+            ETicketNumber = eTicketNumber,
+            CouponNumber = value.CouponNumber,
+            FareShare = value.FareShare,
+            TaxShare = value.TaxShare,
+            Total = value.Total,
+            Currency = value.Currency
+        };
+
     public static CreateDocumentResponse ToCreateDocumentResponse(Document document) =>
         new()
         {
@@ -36,29 +130,6 @@ public static class DeliveryMapper
             BookingReference = document.BookingReference,
             CreatedAt = document.CreatedAt
         };
-
-    public static GetTicketResponse ToGetTicketResponse(Ticket ticket)
-    {
-        JsonElement? ticketData = null;
-        if (!string.IsNullOrWhiteSpace(ticket.TicketData) && ticket.TicketData != "{}")
-        {
-            ticketData = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
-        }
-
-        return new GetTicketResponse
-        {
-            TicketId = ticket.TicketId,
-            ETicketNumber = FormatETicketNumber(ticket.TicketNumber),
-            BookingReference = ticket.BookingReference,
-            PassengerId = ticket.PassengerId,
-            IsVoided = ticket.IsVoided,
-            VoidedAt = ticket.VoidedAt,
-            TicketData = ticketData,
-            CreatedAt = ticket.CreatedAt,
-            UpdatedAt = ticket.UpdatedAt,
-            Version = ticket.Version
-        };
-    }
 
     public static GetDocumentResponse ToGetDocumentResponse(Document document)
     {

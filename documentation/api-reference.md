@@ -320,7 +320,9 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/tickets` | Issue e-tickets (`delivery.Ticket` records) for all passengers and flight segments in a basket; each ticket carries the full fare snapshot and triggers a `TicketIssued` accounting event |
+| `GET` | `/v1/tickets` | Retrieve all tickets for a booking reference; response includes per-ticket fare amounts, fare calculation string, structured tax breakdown with coupon attribution, and derived fare components |
+| `POST` | `/v1/tickets` | Issue e-tickets — one per passenger covering all flight segments; request must include per-passenger fare construction with a valid IATA linear fare calculation string and tax breakdown; triggers a `TicketIssued` accounting event |
+| `GET` | `/v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value` | Return the derived attributed value for a single coupon (fareShare, taxShare, total); value is computed from the fare construction and tax breakdown, never stored |
 | `PATCH` | `/v1/tickets/{eTicketNumber}/void` | Void an issued e-ticket (used on flight change, cancellation, or IROPS); triggers a `TicketVoided` accounting event |
 | `POST` | `/v1/tickets/reissue` | Reissue e-tickets following a passenger detail update, seat change, or flight change; voids the original ticket and issues a replacement |
 

@@ -4,10 +4,6 @@ using ReservationSystem.Microservices.Delivery.Domain.Entities;
 
 namespace ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 
-/// <summary>
-/// Entity Framework Core DbContext for the Delivery bounded context.
-/// Maps to [delivery].[Ticket] and [delivery].[Document].
-/// </summary>
 public sealed class DeliveryDbContext : DbContext
 {
     public DeliveryDbContext(DbContextOptions<DeliveryDbContext> options) : base(options) { }
@@ -17,7 +13,7 @@ public sealed class DeliveryDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // ── Ticket ─────────────────────────────────────────────────────────
+        // ── Ticket ─────────────────────────────────────────────────────────────
         modelBuilder.Entity<Ticket>(entity =>
         {
             entity.ToTable("Ticket", "delivery", t =>
@@ -31,6 +27,7 @@ public sealed class DeliveryDbContext : DbContext
                 .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
             entity.Property(t => t.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(t => t.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(t => t.FareCalculation).HasColumnType("nvarchar(500)").HasMaxLength(500).IsRequired();
             entity.Property(t => t.IsVoided).HasColumnType("bit").IsRequired();
             entity.Property(t => t.VoidedAt).HasColumnType("datetime2").IsRequired(false);
             entity.Property(t => t.TicketData).HasColumnType("json").IsRequired();
@@ -42,7 +39,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.HasIndex(t => t.BookingReference);
         });
 
-        // ── Document ───────────────────────────────────────────────────────
+        // ── Document ───────────────────────────────────────────────────────────
         modelBuilder.Entity<Document>(entity =>
         {
             entity.ToTable("Document", "delivery", t =>
