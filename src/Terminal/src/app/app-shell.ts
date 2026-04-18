@@ -28,6 +28,7 @@ export class AppShell {
   #router = inject(Router);
 
   sidebarOpen = signal(false);
+  navCollapsed = signal(false);
 
   navGroups: NavGroup[] = [
     {
@@ -69,7 +70,11 @@ export class AppShell {
   ];
 
   toggleSidebar(): void {
-    this.sidebarOpen.update(v => !v);
+    if (window.innerWidth < 901) {
+      this.sidebarOpen.update(v => !v);
+    } else {
+      this.navCollapsed.update(v => !v);
+    }
   }
 
   closeSidebar(): void {

@@ -453,6 +453,21 @@
                 </tbody>
               </table>
             </div>
+            <!-- Mobile card list for active tickets -->
+            <div class="mobile-tickets-list">
+              @for (ticket of activeTickets(); track ticket.ticketId) {
+                <div class="mobile-ticket-card" (click)="openTicketModal(ticket)">
+                  <div class="mobile-ticket-main">
+                    <div class="mobile-ticket-num mono">{{ ticket.eTicketNumber }}</div>
+                    <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
+                    @if (ticket.ticketData?.fareConstruction?.totalAmount != null) {
+                      <div class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) }}</div>
+                    }
+                  </div>
+                  <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
+                </div>
+              }
+            </div>
           }
 
           <!-- Voided tickets -->
@@ -492,6 +507,18 @@
                   }
                 </tbody>
               </table>
+            </div>
+            <!-- Mobile card list for voided tickets -->
+            <div class="mobile-tickets-list mobile-tickets-voided">
+              @for (ticket of voidedTickets(); track ticket.ticketId) {
+                <div class="mobile-ticket-card" (click)="openTicketModal(ticket)">
+                  <div class="mobile-ticket-main">
+                    <div class="mobile-ticket-num mono muted">{{ ticket.eTicketNumber }}</div>
+                    <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
+                  </div>
+                  <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
+                </div>
+              }
             </div>
           }
 

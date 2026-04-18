@@ -865,6 +865,9 @@
 /* Mobile items card list — hidden on desktop */
 .mobile-items-list { display: none; }
 
+/* Mobile tickets card list — hidden on desktop */
+.mobile-tickets-list { display: none; }
+
 /* Mobile */
 @media (max-width: 600px) {
   .order-detail-page { padding: 12px; }
@@ -998,6 +1001,63 @@
   .mobile-grand-total-row .grand-total-label {
     font-size: 0.875rem;
     text-align: left;
+  }
+
+  .mobile-tickets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .mobile-tickets-voided {
+    opacity: 0.75;
+  }
+
+  .mobile-ticket-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .mobile-ticket-card:last-child { border-bottom: none; }
+  .mobile-ticket-card:active { background: rgba(102, 126, 234, 0.06); }
+
+  .mobile-ticket-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .mobile-ticket-num {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-ticket-pax {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .mobile-ticket-amount {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--grad-start);
+    margin-top: 2px;
   }
 }
 
