@@ -38,6 +38,8 @@ public static class DeliveryMapper
         decimal totalAmount = 0m;
         var taxBreakdown = new List<TaxBreakdownResponse>();
 
+        var fareCalcLine = string.Empty;
+
         if (!string.IsNullOrWhiteSpace(ticket.TicketData) && ticket.TicketData != "{}")
         {
             ticketDataElement = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
@@ -50,6 +52,7 @@ public static class DeliveryMapper
                 currency = fc["currency"]?.GetValue<string>() ?? string.Empty;
                 totalTaxAmount = fc["totalTaxes"]?.GetValue<decimal>() ?? 0m;
                 totalAmount = fc["totalAmount"]?.GetValue<decimal>() ?? (totalFareAmount + totalTaxAmount);
+                fareCalcLine = fc["fareCalculationLine"]?.GetValue<string>() ?? string.Empty;
 
                 var taxesArray = fc["taxes"]?.AsArray();
                 if (taxesArray is not null)
@@ -74,7 +77,6 @@ public static class DeliveryMapper
         }
 
         // Derive structured fare components from fareCalculationLine stored in fareConstruction JSON.
-        var fareCalcLine = fc?["fareCalculationLine"]?.GetValue<string>() ?? string.Empty;
         List<FareComponentResponse>? fareComponents = null;
         if (!string.IsNullOrWhiteSpace(fareCalcLine) &&
             FareCalculation.TryParse(fareCalcLine, out var parsed, out _) && parsed is not null)
