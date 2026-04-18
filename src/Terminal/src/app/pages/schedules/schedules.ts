@@ -277,6 +277,7 @@ export class SchedulesComponent implements OnInit {
     this.groupError.set('');
     try {
       const editing = this.editingGroup();
+      let preferredGroupId: string | undefined;
       if (editing) {
         await this.#scheduleService.updateScheduleGroup(editing.scheduleGroupId, {
           name: form.name,
@@ -292,10 +293,10 @@ export class SchedulesComponent implements OnInit {
           isActive: form.isActive,
           createdBy: 'ops-admin',
         });
-        this.selectedGroupId.set(created.scheduleGroupId);
+        preferredGroupId = created.scheduleGroupId;
       }
       this.showGroupModal.set(false);
-      await this.loadGroups();
+      await this.loadGroups(preferredGroupId);
     } catch {
       this.groupError.set('Failed to save schedule group.');
     } finally {
