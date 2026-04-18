@@ -138,7 +138,7 @@ public sealed class RunSimulatorHandler
     public async Task HandleAsync(CancellationToken ct = default)
     {
         var orderCount  = Random.Shared.Next(MinOrders, MaxOrders + 1);
-        var channelCode = $"SIM{Random.Shared.Next(100, 1000)}";
+        var channelCode = $"NDC{Random.Shared.Next(100, 1000)}";
         var created     = 0;
 
         _logger.LogInformation("Simulator: starting run — targeting {Count} orders, channel {ChannelCode}", orderCount, channelCode);
