@@ -48,34 +48,10 @@
 }
 
 /* ── Header ── */
-.page-header {
-  padding-bottom: 4px;
-}
-
-.header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 4px 0;
-}
-
 h3 {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
-  margin: 0;
-}
-
-.created-at {
-  font-size: 0.85rem;
-  color: var(--text-muted);
   margin: 0;
 }
 
@@ -366,12 +342,6 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.ref-heading-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .pax-checkin {
