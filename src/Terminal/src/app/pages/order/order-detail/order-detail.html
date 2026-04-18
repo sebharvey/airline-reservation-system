@@ -212,6 +212,67 @@
               }
             </table>
           </div>
+
+          <!-- Mobile card list (replaces table on small screens) -->
+          <div class="mobile-items-list">
+            @for (item of allOrderItems(); track item.itemId; let i = $index) {
+              @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
+                <div class="mobile-group-header">
+                  <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ itemTypeLabel(item.itemType) }}</span>
+                </div>
+              }
+              <div class="mobile-item-card" (click)="openItemModal(item)">
+                <div class="mobile-card-main">
+                  <div class="mobile-card-top">
+                    <span class="mobile-card-desc">{{ item.description ?? '—' }}</span>
+                    <span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span>
+                  </div>
+                  @if (item.passengerId) {
+                    <div class="mobile-card-pax muted">{{ getPassengerName(item.passengerId) }}</div>
+                  }
+                  <div class="mobile-card-amounts">
+                    <div class="mobile-amount-col">
+                      <span class="mobile-amount-label">Fare</span>
+                      <span class="mobile-amount-value">
+                        @if (item.fareAmount != null) {
+                          {{ formatAmount(item.fareAmount, item.currency) }}
+                        } @else if (item.amount != null) {
+                          {{ formatAmount(item.amount, item.currency) }}
+                        } @else {
+                          —
+                        }
+                      </span>
+                    </div>
+                    <div class="mobile-amount-col">
+                      <span class="mobile-amount-label">Tax</span>
+                      <span class="mobile-amount-value">{{ item.taxAmount != null ? formatAmount(item.taxAmount, item.currency) : '—' }}</span>
+                    </div>
+                    <div class="mobile-amount-col">
+                      <span class="mobile-amount-label">Total</span>
+                      <span class="mobile-amount-value mobile-amount-total">{{ item.lineTotal != null ? formatAmount(item.lineTotal, item.currency) : '—' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="row-chevron">›</span>
+              </div>
+            }
+            @if (itemTotals(); as totals) {
+              <div class="mobile-totals-card">
+                <div class="mobile-totals-row">
+                  <span class="mobile-amount-label">Subtotal fare</span>
+                  <span class="mobile-amount-value">{{ formatAmount(totals.subtotalFare, totals.currency) }}</span>
+                </div>
+                <div class="mobile-totals-row">
+                  <span class="mobile-amount-label">Subtotal tax</span>
+                  <span class="mobile-amount-value">{{ formatAmount(totals.subtotalTax, totals.currency) }}</span>
+                </div>
+                <div class="mobile-totals-row mobile-grand-total-row">
+                  <span class="grand-total-label">Order total</span>
+                  <span class="grand-total-value"><strong>{{ formatAmount(totals.grandTotal, totals.currency) }}</strong></span>
+                </div>
+              </div>
+            }
+          </div>
         }
 
         <!-- Add SSR section -->
