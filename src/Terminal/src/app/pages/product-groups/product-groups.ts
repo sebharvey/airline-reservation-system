@@ -118,8 +118,9 @@ export class ProductGroupsComponent implements OnInit {
     this.success.set('');
     try {
       await this.#service.delete(groupId);
-      this.success.set('Product group deleted successfully.');
       await this.loadGroups();
+      await this.reseedSortOrders();
+      this.success.set('Product group deleted successfully.');
     } catch (err) {
       if (err instanceof HttpErrorResponse && err.status === 409) {
         this.error.set('This product group cannot be deleted because it has products assigned to it.');
@@ -129,6 +130,20 @@ export class ProductGroupsComponent implements OnInit {
     } finally {
       this.deleting.set(null);
     }
+  }
+
+  private async reseedSortOrders(): Promise<void> {
+    const sorted = this.sortedGroups();
+    const updates = sorted
+      .map((g, i) => ({ group: g, newOrder: i + 1 }))
+      .filter(({ group, newOrder }) => group.sortOrder !== newOrder);
+    if (updates.length === 0) return;
+    await Promise.all(
+      updates.map(({ group, newOrder }) =>
+        this.#service.update(group.productGroupId, { name: group.name, sortOrder: newOrder, isActive: group.isActive })
+      )
+    );
+    await this.loadGroups();
   }
 
   async moveUp(group: ProductGroup): Promise<void> {
