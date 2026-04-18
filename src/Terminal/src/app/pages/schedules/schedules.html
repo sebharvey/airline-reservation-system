@@ -317,6 +317,13 @@
             }
           </div>
 
+          @if (ssimFileContent()) {
+            <div class="ssim-preview">
+              <label class="ssim-preview-label">File preview</label>
+              <textarea class="ssim-preview-area" readonly [value]="ssimFileContent()"></textarea>
+            </div>
+          }
+
           @if (ssimError()) {
             <div class="error-banner" role="alert" style="margin-top: 16px;">
               <span>&#9888;</span> {{ ssimError() }}
