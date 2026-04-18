@@ -10,21 +10,6 @@
     @if (order(); as o) {
       <div class="order-header-info">
         <div class="header-text">
-          <div class="header-ref-row">
-            <h1 class="header-ref mono">{{ o.bookingReference }}</h1>
-            <button
-              class="copy-btn"
-              [class.copied]="copied()"
-              (click)="copyToClipboard(o.bookingReference)"
-              [title]="copied() ? 'Copied!' : 'Copy PNR'"
-            >
-              @if (copied()) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              }
-            </button>
-          </div>
           <div class="header-meta">
             <span class="status-badge" [class]="statusBadgeClass(o.orderStatus)">{{ o.orderStatus }}</span>
             <span class="meta-item">{{ o.channelCode }}</span>
@@ -72,6 +57,22 @@
     <div class="order-info-panel">
       <div class="order-meta-col">
         <div class="meta-card">
+          <span class="meta-row-label">Booking Reference</span>
+          <span class="meta-row-value mono pnr-copy-wrap">
+            {{ o.bookingReference }}
+            <button
+              class="copy-btn"
+              [class.copied]="copied()"
+              (click)="copyToClipboard(o.bookingReference)"
+              [title]="copied() ? 'Copied!' : 'Copy PNR'"
+            >
+              @if (copied()) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              }
+            </button>
+          </span>
           <span class="meta-row-label">Created</span>
           <span class="meta-row-value">{{ formatDateTime(o.createdAt) }}</span>
           <span class="meta-row-label">Last updated</span>
@@ -161,14 +162,14 @@
                   @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
                     <tr class="group-header-row">
                       <td colspan="8">
-                        <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
+                        <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ itemTypeLabel(item.itemType) }}</span>
                       </td>
                     </tr>
                   }
                   <tr class="clickable-row" (click)="openItemModal(item)">
                     <td>
                       <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">
-                        {{ item.itemType }}
+                        {{ itemTypeLabel(item.itemType) }}
                       </span>
                     </td>
                     <td class="item-desc-cell">{{ item.description ?? '—' }}</td>
@@ -555,8 +556,8 @@
 
     <div class="modal-header">
       <div class="modal-title-row">
-        <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
-        <span class="modal-title item-modal-title">{{ item.description ?? item.itemType }}</span>
+        <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ itemTypeLabel(item.itemType) }}</span>
+        <span class="modal-title item-modal-title">{{ item.description ?? itemTypeLabel(item.itemType) }}</span>
       </div>
       <button class="modal-close-btn" (click)="closeItemModal()">&#x2715;</button>
     </div>
