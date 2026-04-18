@@ -499,9 +499,10 @@ CREATE TABLE [order].[Order] (
     OrderStatus        VARCHAR(20)      NOT NULL CONSTRAINT DF_Order_Status   DEFAULT 'Draft',
     ChannelCode        VARCHAR(20)      NOT NULL,
     CurrencyCode       CHAR(3)          NOT NULL CONSTRAINT DF_Order_Currency DEFAULT 'GBP',
-    TicketingTimeLimit DATETIME2            NULL,
-    TotalAmount        DECIMAL(10,2)        NULL,
-    CreatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Order_Created  DEFAULT SYSUTCDATETIME(),
+    TicketingTimeLimit    DATETIME2            NULL,
+    TotalAmount           DECIMAL(10,2)        NULL,
+    LastFlightArrivalAt   DATETIME2            NULL,
+    CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_Order_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Order_Updated  DEFAULT SYSUTCDATETIME(),
     Version            INT              NOT NULL CONSTRAINT DF_Order_Version  DEFAULT 1,
     OrderData          JSON             NOT NULL,
@@ -515,6 +516,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_BookingReference
     CREATE UNIQUE INDEX IX_Order_BookingReference
         ON [order].[Order] (BookingReference)
         WHERE BookingReference IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_LastFlightArrivalAt' AND object_id = OBJECT_ID('[order].[Order]'))
+    CREATE INDEX IX_Order_LastFlightArrivalAt
+        ON [order].[Order] (LastFlightArrivalAt)
+        WHERE LastFlightArrivalAt IS NOT NULL;
 GO
 
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]', 'TR') IS NULL

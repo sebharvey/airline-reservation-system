@@ -538,14 +538,15 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | TicketingTimeLimit | DATETIME2 | Yes | | | Latest time at which payment must complete; set at order creation; null until the order is confirmed |
 | TotalAmount | DECIMAL(10,2) | Yes | | | Total order value including all order items; null until confirmed |
+| LastFlightArrivalAt | DATETIME2 | Yes | | | Arrival datetime of the last flight segment; set when the order is confirmed; used by the `DeleteOperatedOrders` cleanup job to purge orders whose travel has completed |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
 
-> **Indexes:** `IX_Order_BookingReference` (unique, filtered) on `(BookingReference)` WHERE `BookingReference IS NOT NULL` — enforces uniqueness of booking references whilst permitting multiple rows with a `NULL` booking reference (unconfirmed orders in `OrderInit` or `Draft` status).
+> **Indexes:** `IX_Order_BookingReference` (unique, filtered) on `(BookingReference)` WHERE `BookingReference IS NOT NULL` — enforces uniqueness of booking references whilst permitting multiple rows with a `NULL` booking reference (unconfirmed orders in `OrderInit` or `Draft` status). `IX_Order_LastFlightArrivalAt` (filtered) on `(LastFlightArrivalAt)` WHERE `LastFlightArrivalAt IS NOT NULL` — supports the `DeleteOperatedOrders` cleanup job query.
 > **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
-> **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
+> **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `LastFlightArrivalAt`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
 
 **Example `OrderData` JSON document**

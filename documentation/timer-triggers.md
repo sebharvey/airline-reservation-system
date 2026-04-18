@@ -30,6 +30,13 @@ These four functions run concurrently at midnight UTC every day.
 - **Schedule** — `0 0 0 * * *`
 - **What it does** — Deletes orders in `Draft` status whose `UpdatedAt` is more than 24 hours in the past. Draft orders are created during the booking flow but never confirmed.
 
+### `DeleteOperatedOrders`
+
+- **Service** — Order microservice
+- **Class** — `OrderCleanupFunction`
+- **Schedule** — `0 0 0 * * *`
+- **What it does** — Deletes `Confirmed` and `Changed` orders whose `LastFlightArrivalAt` is more than 48 hours in the past. Once all flights on a booking have operated, the order record is no longer required for check-in, boarding, or disruption handling. The 48-hour grace period allows post-flight queries (e.g. loyalty accrual, accounting reconciliation) to complete before the row is purged. Uses the `IX_Order_LastFlightArrivalAt` filtered index for efficient range scan.
+
 ### `DeleteExpiredBaskets`
 
 - **Service** — Order microservice
@@ -78,6 +85,7 @@ These four functions run concurrently at midnight UTC every day.
        DeleteExpiredStoredOffers
        DeleteExpiredDraftOrders
        DeleteExpiredBaskets
+       DeleteOperatedOrders
 
 01:00  RollingInventoryImport
 ```
