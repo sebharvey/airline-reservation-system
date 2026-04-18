@@ -162,6 +162,12 @@ public sealed class GetAdminOrderDetailHandler
                 }
             }
 
+            var fareAmount  = item["baseFareAmount"] is JsonNode fareNode ? fareNode.DeepClone() : null;
+            var taxAmount   = item["taxAmount"]      is JsonNode taxNode  ? taxNode.DeepClone()  : null;
+            var itemTotal   = item["totalAmount"]    is JsonNode totNode  ? totNode.DeepClone()  : null;
+            var taxLines    = item["taxLines"]       is JsonNode tlNode   ? tlNode.DeepClone()   : null;
+            var currency    = orderData["currency"]  is JsonNode curNode  ? curNode.DeepClone()  : null;
+
             if (matchingETickets.Count > 0)
             {
                 foreach (var (paxId, eTicketNumber) in matchingETickets)
@@ -177,8 +183,12 @@ public sealed class GetAdminOrderDetailHandler
                         ["eTicketNumber"] = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
                         ["seatNumber"] = null,
                         ["bagWeightKg"] = null,
+                        ["fareAmount"]  = fareAmount?.DeepClone(),
+                        ["taxAmount"]   = taxAmount?.DeepClone(),
+                        ["totalAmount"] = itemTotal?.DeepClone(),
+                        ["taxLines"]    = taxLines?.DeepClone(),
                         ["amount"] = null,
-                        ["currency"] = null,
+                        ["currency"] = currency?.DeepClone(),
                     });
                 }
             }
@@ -195,8 +205,12 @@ public sealed class GetAdminOrderDetailHandler
                     ["eTicketNumber"] = null,
                     ["seatNumber"] = null,
                     ["bagWeightKg"] = null,
+                    ["fareAmount"]  = fareAmount?.DeepClone(),
+                    ["taxAmount"]   = taxAmount?.DeepClone(),
+                    ["totalAmount"] = itemTotal?.DeepClone(),
+                    ["taxLines"]    = taxLines?.DeepClone(),
                     ["amount"] = null,
-                    ["currency"] = null,
+                    ["currency"] = currency?.DeepClone(),
                 });
             }
         }

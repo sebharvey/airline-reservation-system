@@ -51,6 +51,12 @@ export interface FlightSegment {
   departureDate: string | null;
 }
 
+export interface TaxLine {
+  code: string;
+  amount: number;
+  description: string | null;
+}
+
 export interface OrderItem {
   itemId: string;
   itemType: string;
@@ -64,6 +70,10 @@ export interface OrderItem {
   ssrCode: string | null;
   name: string | null;
   amount: number | null;
+  fareAmount: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  taxLines: TaxLine[] | null;
   currency: string | null;
 }
 
