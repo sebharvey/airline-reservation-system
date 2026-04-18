@@ -833,7 +833,7 @@
 .mono     { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .small-mono { font-size: 0.72rem; }
 .amount-cell { font-weight: 600; text-align: right; }
-.th-numeric { text-align: right; }
+.data-table th.th-numeric { text-align: right; }
 
 /* Mobile */
 @media (max-width: 600px) {
