@@ -9,7 +9,6 @@
 
     @if (order(); as o) {
       <div class="order-header-info">
-        <div class="header-icon">&#128196;</div>
         <div class="header-text">
           <div class="header-ref-row">
             <h1 class="header-ref mono">{{ o.bookingReference }}</h1>
@@ -38,6 +37,13 @@
         <span class="amount-value">{{ formatAmount(o.totalAmount) }}</span>
         <span class="amount-label">Total</span>
       </div>
+      <button class="detail-refresh-btn" (click)="loadOrder()" [disabled]="loading()" title="Refresh order">
+        <svg [class.spinning]="loading()" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Refresh
+      </button>
       <!-- TODO: Remove debug button when debug endpoint is removed -->
       <button class="debug-btn" (click)="openDebug()" title="Show raw order record">
         Debug
@@ -149,9 +155,9 @@
                   <th>Type</th>
                   <th>Description</th>
                   <th class="hide-mobile">Passenger</th>
-                  <th>Fare</th>
-                  <th class="hide-mobile">Tax</th>
-                  <th class="hide-mobile">Total</th>
+                  <th class="th-numeric">Fare</th>
+                  <th class="hide-mobile th-numeric">Tax</th>
+                  <th class="hide-mobile th-numeric">Total</th>
                   <th class="hide-mobile">Status</th>
                   <th class="sr-only"></th>
                 </tr>
@@ -284,7 +290,7 @@
                 <tr>
                   <th>Payment ID</th>
                   <th>Method</th>
-                  <th>Amount</th>
+                  <th class="th-numeric">Amount</th>
                   <th>Status</th>
                   <th class="hide-mobile">Authorised</th>
                   <th class="hide-mobile">Settled</th>

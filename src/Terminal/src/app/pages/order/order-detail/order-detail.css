@@ -169,7 +169,7 @@
 
 .order-meta-col {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -832,7 +832,8 @@
 .muted    { color: var(--text-muted); }
 .mono     { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .small-mono { font-size: 0.72rem; }
-.amount-cell { font-weight: 600; }
+.amount-cell { font-weight: 600; text-align: right; }
+.th-numeric { text-align: right; }
 
 /* Mobile */
 @media (max-width: 600px) {
@@ -1211,6 +1212,26 @@
   from { transform: translateY(100%); opacity: 0.6; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+.detail-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--white);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.detail-refresh-btn:hover:not(:disabled) { background: var(--bg-light); }
+.detail-refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.detail-refresh-btn svg.spinning { animation: spin 0.7s linear infinite; }
 
 /* Debug button & modal — TODO: Remove when debug endpoints are removed */
 .debug-btn {
