@@ -155,7 +155,7 @@ public sealed class RollingInventoryImportHandler
             return;
 
         var allApplicableRules = await _repository.GetApplicableFareRulesForFlightsAsync(
-            flightNumbers, cabinCodes, targetDateOnly, cancellationToken: ct);
+            flightNumbers, cabinCodes, targetDateOnly, ct: ct);
 
         var rulesByCabinAndFlight = allApplicableRules
             .GroupBy(r => (r.CabinCode, r.FlightNumber))
