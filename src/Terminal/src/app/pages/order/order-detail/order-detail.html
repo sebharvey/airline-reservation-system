@@ -519,8 +519,8 @@
                       <tr>
                         <td><span class="item-type-badge item-ssr mono">{{ item.ssrCode }}</span></td>
                         <td>{{ getSsrLabel(item.ssrCode) }}</td>
-                        <td>{{ getPassengerName(item.passengerRef) }}</td>
-                        <td class="mono">{{ getSegmentLabel(item.segmentRef) }}</td>
+                        <td>{{ getPassengerName(item.passengerId ?? '') }}</td>
+                        <td class="mono">{{ getSegmentLabel(item.segmentId ?? '') }}</td>
                         <td>
                           <div class="ssr-row-actions">
                             <button class="edit-btn" [disabled]="ssrSaving() || ssrOptionsLoading()" (click)="startEditSsr(item)">Edit</button>

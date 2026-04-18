@@ -8,7 +8,7 @@ namespace ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
 
 /// <summary>
 /// Handles the <see cref="UpdateOrderSsrsCommand"/>.
-/// Processes add and remove actions against the ssrItems array in OrderData.
+/// Processes add and remove actions against SERVICE items in the orderItems array of OrderData.
 /// </summary>
 public sealed class UpdateOrderSsrsHandler
 {
@@ -55,14 +55,20 @@ public sealed class UpdateOrderSsrsHandler
         {
             var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
 
-            // Load existing ssrItems array
+            // Split orderItems into SERVICE (SSR) items and everything else so we can
+            // add/remove SSRs without disturbing flight, seat, or product items.
             var ssrItems = new List<JsonObject>();
-            if (orderJson["ssrItems"] is JsonArray existingItems)
+            var otherItems = new List<JsonObject>();
+            if (orderJson["orderItems"] is JsonArray existingOrderItems)
             {
-                foreach (var item in existingItems)
+                foreach (var item in existingOrderItems)
                 {
-                    if (item is JsonObject obj)
+                    if (item is not JsonObject obj) continue;
+                    var pt = obj["productType"]?.GetValue<string>();
+                    if (string.Equals(pt, "SERVICE", StringComparison.OrdinalIgnoreCase))
                         ssrItems.Add(obj.DeepClone().AsObject());
+                    else
+                        otherItems.Add(obj.DeepClone().AsObject());
                 }
             }
 
@@ -110,11 +116,13 @@ public sealed class UpdateOrderSsrsHandler
                 }
             }
 
-            // Write updated ssrItems back to orderData
-            var updatedArray = new JsonArray();
-            foreach (var item in ssrItems)
-                updatedArray.Add(item.DeepClone());
-            orderJson["ssrItems"] = updatedArray;
+            // Rebuild orderItems: non-SSR items first, then updated SERVICE items
+            var updatedOrderItems = new JsonArray();
+            foreach (var item in otherItems)
+                updatedOrderItems.Add(item.DeepClone());
+            foreach (var ssr in ssrItems)
+                updatedOrderItems.Add(ssr.DeepClone());
+            orderJson["orderItems"] = updatedOrderItems;
 
             var updated = Domain.Entities.Order.Reconstitute(
                 order.OrderId,
@@ -131,7 +139,7 @@ public sealed class UpdateOrderSsrsHandler
 
             await _repository.UpdateAsync(updated, cancellationToken);
 
-            _logger.LogInformation("Order {BookingReference} SSRs updated ({Count} items)",
+            _logger.LogInformation("Order {BookingReference} SSRs updated ({Count} SERVICE items)",
                 command.BookingReference, ssrItems.Count);
 
             return updated;

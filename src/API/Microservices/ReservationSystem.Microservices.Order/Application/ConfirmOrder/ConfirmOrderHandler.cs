@@ -221,9 +221,30 @@ public sealed class ConfirmOrderHandler
         if (basketJson["bags"]?.AsArray() is { Count: > 0 } bags)
             orderData["bagItems"] = bags.DeepClone();
         if (basketJson["ssrSelections"]?.AsArray() is { Count: > 0 } ssrs)
-            orderData["ssrItems"] = ssrs.DeepClone();
+        {
+            foreach (var ssr in ssrs)
+            {
+                if (ssr is not JsonObject ssrObj) continue;
+                flightOrderItems.Add(new JsonObject
+                {
+                    ["productType"] = "SERVICE",
+                    ["ssrCode"]     = ssrObj["ssrCode"]?.GetValue<string>(),
+                    ["passengerRef"] = ssrObj["passengerRef"]?.GetValue<string>(),
+                    ["segmentRef"]  = ssrObj["segmentRef"]?.GetValue<string>()
+                });
+            }
+        }
         if (basketJson["products"]?.AsArray() is { Count: > 0 } products)
-            orderData["productItems"] = products.DeepClone();
+        {
+            foreach (var product in products)
+            {
+                if (product is not JsonObject productObj) continue;
+                var productItem = new JsonObject { ["productType"] = "PRODUCT" };
+                foreach (var prop in productObj)
+                    productItem[prop.Key] = prop.Value?.DeepClone();
+                flightOrderItems.Add(productItem);
+            }
+        }
 
         if (draftData["pointsRedemption"] is JsonNode redemption)
             orderData["pointsRedemption"] = redemption.DeepClone();

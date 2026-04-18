@@ -235,6 +235,60 @@ public sealed class GetAdminOrderDetailHandler
             });
         }
 
+        // Pass through SERVICE (SSR) and PRODUCT items from raw orderItems,
+        // adding a human-readable description for display in the Order Items tab.
+        for (var p = 0; p < orderItemsNode.Count; p++)
+        {
+            var rawItem = orderItemsNode[p]?.AsObject();
+            if (rawItem is null) continue;
+            var pt = rawItem["productType"]?.GetValue<string>();
+
+            if (string.Equals(pt, "SERVICE", StringComparison.OrdinalIgnoreCase))
+            {
+                var ssrCode = rawItem["ssrCode"]?.GetValue<string>() ?? string.Empty;
+                var paxRef  = rawItem["passengerRef"]?.GetValue<string>() ?? string.Empty;
+                var segRef  = rawItem["segmentRef"]?.GetValue<string>() ?? string.Empty;
+                var segDesc = segmentDescriptions.TryGetValue(segRef, out var sd) ? $" — {sd}" : string.Empty;
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"]        = Guid.NewGuid().ToString(),
+                    ["itemType"]      = "SSR",
+                    ["description"]   = $"{ssrCode}{segDesc}",
+                    ["passengerId"]   = paxRef,
+                    ["segmentId"]     = segRef,
+                    ["status"]        = "Confirmed",
+                    ["ssrCode"]       = ssrCode,
+                    ["eTicketNumber"] = null,
+                    ["seatNumber"]    = null,
+                    ["bagWeightKg"]   = null,
+                    ["amount"]        = null,
+                    ["currency"]      = null,
+                });
+            }
+            else if (string.Equals(pt, "PRODUCT", StringComparison.OrdinalIgnoreCase))
+            {
+                var productName = rawItem["name"]?.GetValue<string>() ?? "Product";
+                var segRef      = rawItem["segmentRef"]?.GetValue<string>();
+                var segDesc     = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var sd2)
+                                  ? $" — {sd2}" : string.Empty;
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"]        = rawItem["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
+                    ["itemType"]      = "Product",
+                    ["description"]   = $"{productName}{segDesc}",
+                    ["passengerId"]   = rawItem["passengerId"]?.GetValue<string>(),
+                    ["segmentId"]     = segRef,
+                    ["status"]        = "Confirmed",
+                    ["eTicketNumber"] = null,
+                    ["seatNumber"]    = null,
+                    ["bagWeightKg"]   = null,
+                    ["name"]          = productName,
+                    ["amount"]        = rawItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                    ["currency"]      = rawItem["currency"]?.GetValue<string>(),
+                });
+            }
+        }
+
         if (enrichedItems.Count > 0)
             orderData["orderItems"] = enrichedItems;
     }

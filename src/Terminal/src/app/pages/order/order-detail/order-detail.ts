@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, SsrItem, Ticket } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -88,8 +88,8 @@ export class OrderDetailComponent implements OnInit {
     (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType !== 'Flight')
   );
 
-  ssrItems = computed<SsrItem[]>(() =>
-    this.order()?.orderData?.ssrItems ?? []
+  ssrItems = computed<OrderItem[]>(() =>
+    (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType === 'SSR')
   );
 
   ssrOptionsByCategory = computed<Record<string, SsrOption[]>>(() => {
@@ -331,18 +331,18 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  ssrKey(item: SsrItem): string {
-    return `${item.ssrCode}|${item.passengerRef}|${item.segmentRef}`;
+  ssrKey(item: OrderItem): string {
+    return `${item.ssrCode}|${item.passengerId}|${item.segmentId}`;
   }
 
-  async removeSsr(item: SsrItem): Promise<void> {
+  async removeSsr(item: OrderItem): Promise<void> {
     this.ssrSaving.set(true);
     this.ssrError.set('');
     const action: SsrPatchAction = {
       action: 'remove',
-      ssrCode: item.ssrCode,
-      passengerRef: item.passengerRef,
-      segmentRef: item.segmentRef,
+      ssrCode: item.ssrCode ?? '',
+      passengerRef: item.passengerId ?? '',
+      segmentRef: item.segmentId ?? '',
     };
     try {
       await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
@@ -358,12 +358,12 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  startEditSsr(item: SsrItem): void {
+  startEditSsr(item: OrderItem): void {
     this.editingSsrKey.set(this.ssrKey(item));
     this.editSsrForm.set({
-      ssrCode: item.ssrCode,
-      passengerRef: item.passengerRef,
-      segmentRef: item.segmentRef,
+      ssrCode: item.ssrCode ?? '',
+      passengerRef: item.passengerId ?? '',
+      segmentRef: item.segmentId ?? '',
     });
     this.ssrError.set('');
   }
@@ -380,13 +380,13 @@ export class OrderDetailComponent implements OnInit {
   ssrExistsForPaxSegment(ssrCode: string, passengerRef: string, segmentRef: string, excludeKey?: string): boolean {
     return this.ssrItems().some(item =>
       item.ssrCode === ssrCode &&
-      item.passengerRef === passengerRef &&
-      item.segmentRef === segmentRef &&
+      item.passengerId === passengerRef &&
+      item.segmentId === segmentRef &&
       (!excludeKey || this.ssrKey(item) !== excludeKey)
     );
   }
 
-  async saveEditSsr(original: SsrItem): Promise<void> {
+  async saveEditSsr(original: OrderItem): Promise<void> {
     const form = this.editSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
     if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef, this.ssrKey(original))) {
@@ -396,7 +396,7 @@ export class OrderDetailComponent implements OnInit {
     this.ssrSaving.set(true);
     this.ssrError.set('');
     const actions: SsrPatchAction[] = [
-      { action: 'remove', ssrCode: original.ssrCode, passengerRef: original.passengerRef, segmentRef: original.segmentRef },
+      { action: 'remove', ssrCode: original.ssrCode ?? '', passengerRef: original.passengerId ?? '', segmentRef: original.segmentId ?? '' },
       { action: 'add', ssrCode: form.ssrCode, passengerRef: form.passengerRef, segmentRef: form.segmentRef },
     ];
     try {
