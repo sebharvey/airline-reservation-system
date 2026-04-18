@@ -73,7 +73,6 @@ public sealed class IssueTicketsHandler
         var ticket = Ticket.Create(
             bookingReference,
             passenger.PassengerId,
-            fareCalculation: fc.FareCalculationLine,
             ticketData);
 
         await _ticketRepository.CreateAsync(ticket, cancellationToken);
@@ -169,6 +168,7 @@ public sealed class IssueTicketsHandler
         {
             fareConstruction = new
             {
+                fareCalculationLine = fc.FareCalculationLine,
                 baseFare = fc.BaseFare,
                 currency = fc.CollectingCurrency,
                 totalTaxes = fc.TotalTaxes,

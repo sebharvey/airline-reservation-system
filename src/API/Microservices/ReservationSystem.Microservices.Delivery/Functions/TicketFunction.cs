@@ -218,7 +218,6 @@ public sealed class TicketFunction
                 ticketNumber = t.TicketNumber,
                 bookingReference = t.BookingReference,
                 passengerId = t.PassengerId,
-                fareCalculation = t.FareCalculation,
                 isVoided = t.IsVoided,
                 voidedAt = t.VoidedAt,
                 version = t.Version,
