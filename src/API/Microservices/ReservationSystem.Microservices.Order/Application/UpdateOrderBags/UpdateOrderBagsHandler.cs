@@ -44,7 +44,45 @@ public sealed class UpdateOrderBagsHandler
 
         var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
         var bagsNode = JsonNode.Parse(command.BagsData);
-        orderJson["bags"] = bagsNode;
+
+        // Build new BAG items from the incoming payload
+        var newBagItems = new List<JsonObject>();
+        if (bagsNode is JsonArray bagsArray)
+        {
+            foreach (var bag in bagsArray)
+            {
+                if (bag is not JsonObject bagObj) continue;
+                newBagItems.Add(new JsonObject
+                {
+                    ["productType"]    = "BAG",
+                    ["passengerId"]    = bagObj["passengerId"]?.GetValue<string>(),
+                    ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
+                    ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
+                    ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
+                    ["price"]          = bagObj["price"]?.DeepClone(),
+                    ["currency"]       = bagObj["currency"]?.DeepClone(),
+                    ["paymentReference"] = bagObj["paymentReference"]?.GetValue<string>(),
+                });
+            }
+        }
+
+        // Rebuild orderItems: keep non-BAG items, append new BAG items
+        var updatedOrderItems = new JsonArray();
+        if (orderJson["orderItems"] is JsonArray existingOrderItems)
+        {
+            foreach (var item in existingOrderItems)
+            {
+                if (item is not JsonObject obj) continue;
+                var pt = obj["productType"]?.GetValue<string>();
+                if (!string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
+                    updatedOrderItems.Add(obj.DeepClone());
+            }
+        }
+        foreach (var bagItem in newBagItems)
+            updatedOrderItems.Add(bagItem);
+
+        orderJson["orderItems"] = updatedOrderItems;
+        orderJson.Remove("bags");
 
         var updated = Domain.Entities.Order.Reconstitute(
             order.OrderId,

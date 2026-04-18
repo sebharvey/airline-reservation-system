@@ -722,6 +722,36 @@
         </div>
       }
 
+      <!-- ── BAG ── -->
+      @if (item.itemType === 'Bag') {
+        <div class="modal-section seat-hero-section">
+          <div class="seat-number-hero">+{{ item.additionalBags ?? 1 }}</div>
+          <div class="seat-hero-label">Additional bag{{ (item.additionalBags ?? 1) === 1 ? '' : 's' }}</div>
+        </div>
+        <div class="modal-section">
+          <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Passenger</span>
+              <span class="field-value">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Flight</span>
+              <span class="field-value">{{ item.segmentId ? getSegmentLabel(item.segmentId) : '—' }}</span>
+            </div>
+            @if (item.amount != null) {
+              <div class="field-row">
+                <span class="field-label">Amount</span>
+                <span class="field-value">{{ formatAmount(item.amount, item.currency) }}</span>
+              </div>
+            }
+            <div class="field-row">
+              <span class="field-label">Status</span>
+              <span class="field-value"><span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span></span>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- ── PRODUCT ── -->
       @if (item.itemType === 'Product') {
         <div class="modal-section">

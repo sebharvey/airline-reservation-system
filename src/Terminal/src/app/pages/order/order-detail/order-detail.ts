@@ -79,7 +79,7 @@ export class OrderDetailComponent implements OnInit {
     this.order()?.orderData?.dataLists?.flightSegments ?? []
   );
 
-  readonly #itemTypePriority: Record<string, number> = { Flight: 0, Seat: 1, SSR: 2, Product: 3 };
+  readonly #itemTypePriority: Record<string, number> = { Flight: 0, Seat: 1, SSR: 2, Bag: 3, Product: 4 };
 
   allOrderItems = computed<OrderItem[]>(() => {
     const items = this.order()?.orderData?.orderItems ?? [];
