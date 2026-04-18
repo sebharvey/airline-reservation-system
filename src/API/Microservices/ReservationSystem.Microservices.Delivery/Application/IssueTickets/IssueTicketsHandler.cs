@@ -1,7 +1,9 @@
 using System.Text.Json;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
+using ReservationSystem.Microservices.Delivery.Domain.Services;
 using ReservationSystem.Microservices.Delivery.Models.Mappers;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
@@ -12,48 +14,120 @@ namespace ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 public sealed class IssueTicketsHandler
 {
     private readonly ITicketRepository _ticketRepository;
+    private readonly TaxAttributionService _taxAttribution;
+    private readonly IssueTicketsRequestValidator _validator;
     private readonly ILogger<IssueTicketsHandler> _logger;
 
-    public IssueTicketsHandler(ITicketRepository ticketRepository, ILogger<IssueTicketsHandler> logger)
+    public IssueTicketsHandler(
+        ITicketRepository ticketRepository,
+        TaxAttributionService taxAttribution,
+        ILogger<IssueTicketsHandler> logger)
     {
         _ticketRepository = ticketRepository;
+        _taxAttribution = taxAttribution;
+        _validator = new IssueTicketsRequestValidator();
         _logger = logger;
     }
 
     public async Task<IssueTicketsResponse> HandleAsync(IssueTicketsRequest request, CancellationToken cancellationToken = default)
     {
-        var ticketSummaries = new List<TicketSummary>();
+        var validationResult = _validator.Validate(request);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
+
         var segmentIds = request.Segments.Select(s => s.SegmentId).ToList();
+        var ticketSummaries = new List<TicketSummary>();
+
+        // Build coupon itinerary once — shared across all passengers (same flight segments).
+        var itinerary = request.Segments.Select((seg, idx) => new CouponItinerary(
+            CouponNumber: idx + 1,
+            Origin: seg.Origin,
+            Destination: seg.Destination
+        )).ToList();
 
         foreach (var passenger in request.Passengers)
         {
-            var ticket = await IssueTicketAsync(request.BookingReference, passenger, request.Segments, cancellationToken);
+            var ticket = await IssueTicketForPassengerAsync(
+                request.BookingReference, passenger, request.Segments, itinerary, cancellationToken);
+
             ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
-            _logger.LogInformation("Issued ticket {TicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
+            _logger.LogInformation(
+                "Issued ticket {TicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
                 ticket.TicketNumber, passenger.PassengerId, request.Segments.Count);
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
     }
 
-    private async Task<Ticket> IssueTicketAsync(
+    private async Task<Ticket> IssueTicketForPassengerAsync(
         string bookingReference,
         PassengerDetail passenger,
         List<SegmentDetail> segments,
+        List<CouponItinerary> itinerary,
         CancellationToken cancellationToken)
     {
-        var ticketDataJson = BuildTicketDataJson(passenger, segments);
-        // TicketNumber is assigned by the database IDENTITY on INSERT;
-        // EF Core reads it back automatically via SCOPE_IDENTITY().
-        var ticket = Ticket.Create(bookingReference, passenger.PassengerId, ticketDataJson);
+        var fc = passenger.FareConstruction!; // validator guarantees non-null
+
+        // Build TicketData JSON (operational data only — no fare amounts).
+        string ticketData = BuildTicketData(passenger, segments, fc);
+
+        var ticket = Ticket.Create(
+            bookingReference,
+            passenger.PassengerId,
+            totalFareAmount: fc.BaseFare,
+            currency: fc.CollectingCurrency,
+            totalTaxAmount: fc.TotalTaxes,
+            fareCalculation: fc.FareCalculationLine,
+            ticketData);
+
+        // Derive coupon attribution for each tax and attach to the ticket aggregate.
+        // For split taxes (e.g. YQ), AttributeTax returns one group per coupon with
+        // the per-coupon amount so GetAttributedValue can sum without double-counting.
+        string taxCurrency = fc.CollectingCurrency;
+        foreach (var tax in fc.Taxes)
+        {
+            string effectiveCurrency = tax.Currency.Length == 3 ? tax.Currency : taxCurrency;
+            var groups = _taxAttribution.AttributeTax(tax.Code, tax.Amount, itinerary);
+            foreach (var (amount, couponNumbers) in groups)
+            {
+                if (couponNumbers.Count == 0) continue;
+                var ticketTax = TicketTax.Create(ticket.TicketId, tax.Code, amount, effectiveCurrency, couponNumbers);
+                ticket.AddTax(ticketTax);
+            }
+        }
+
         await _ticketRepository.CreateAsync(ticket, cancellationToken);
         return ticket;
     }
 
-    private static string BuildTicketDataJson(PassengerDetail passenger, List<SegmentDetail> segments)
+    private string BuildTicketData(PassengerDetail passenger, List<SegmentDetail> segments, FareConstructionDetail fc)
     {
+        // Derive attributed tax codes per coupon so we can embed them in each coupon object.
+        var itinerary = segments.Select((seg, idx) => new CouponItinerary(
+            CouponNumber: idx + 1,
+            Origin: seg.Origin,
+            Destination: seg.Destination
+        )).ToList();
+
+        var taxCodesByCoupon = new Dictionary<int, List<string>>();
+        foreach (var tax in fc.Taxes)
+        {
+            var groups = _taxAttribution.AttributeTax(tax.Code, tax.Amount, itinerary);
+            foreach (var (_, couponNumbers) in groups)
+            {
+                foreach (var n in couponNumbers)
+                {
+                    if (!taxCodesByCoupon.TryGetValue(n, out var list))
+                        taxCodesByCoupon[n] = list = [];
+                    if (!list.Contains(tax.Code))
+                        list.Add(tax.Code);
+                }
+            }
+        }
+
         var coupons = segments.Select((segment, index) =>
         {
+            var couponNumber = index + 1;
             var seatAssignment = segment.SeatAssignments?
                 .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
 
@@ -63,10 +137,14 @@ public sealed class IssueTicketsHandler
                 ? marketingCarrier
                 : ExtractCarrierCode(segment.OperatingFlightNumber);
 
+            var attributedTaxCodes = taxCodesByCoupon.TryGetValue(couponNumber, out var codes)
+                ? (object)codes
+                : Array.Empty<string>();
+
             return (object)new
             {
-                couponNumber = index + 1,
-                status = "O",
+                couponNumber,
+                status = CouponStatus.Open,
                 marketing = new { carrier = marketingCarrier, flightNumber = segment.FlightNumber },
                 operating = new { carrier = operatingCarrier, flightNumber = operatingFlightNumber },
                 origin = segment.Origin,
@@ -80,12 +158,17 @@ public sealed class IssueTicketsHandler
                 notValidAfter = (string?)null,
                 stopoverIndicator = segment.StopoverIndicator ?? "O",
                 baggageAllowance = segment.BaggageAllowance != null
-                    ? new { type = segment.BaggageAllowance.Type, quantity = segment.BaggageAllowance.Quantity, weightKg = segment.BaggageAllowance.WeightKg }
+                    ? new
+                    {
+                        type = segment.BaggageAllowance.Type,
+                        quantity = segment.BaggageAllowance.Quantity,
+                        weightKg = segment.BaggageAllowance.WeightKg
+                    }
                     : (object?)null,
                 seat = seatAssignment?.SeatNumber,
-                fareComponent = segment.FareComponent != null
-                    ? new { amount = segment.FareComponent.Amount, currency = segment.FareComponent.Currency }
-                    : (object?)null
+                // attributedTaxCodes indicates which taxes from the ticket-level breakdown
+                // apply to this coupon. Value is derived; do not treat as authoritative amounts.
+                attributedTaxCodes
             };
         }).ToList();
 
@@ -103,24 +186,14 @@ public sealed class IssueTicketsHandler
                 givenName = passenger.GivenName,
                 passengerTypeCode = passenger.PassengerTypeCode ?? "ADT",
                 frequentFlyer = passenger.FrequentFlyer != null
-                    ? new { carrier = passenger.FrequentFlyer.Carrier, number = passenger.FrequentFlyer.Number, tier = passenger.FrequentFlyer.Tier }
+                    ? new
+                    {
+                        carrier = passenger.FrequentFlyer.Carrier,
+                        number = passenger.FrequentFlyer.Number,
+                        tier = passenger.FrequentFlyer.Tier
+                    }
                     : (object?)null
             },
-            fareConstruction = passenger.FareConstruction != null
-                ? new
-                {
-                    pricingCurrency = passenger.FareConstruction.PricingCurrency,
-                    collectingCurrency = passenger.FareConstruction.CollectingCurrency,
-                    baseFare = passenger.FareConstruction.BaseFare,
-                    equivalentFarePaid = passenger.FareConstruction.EquivalentFarePaid,
-                    nucAmount = passenger.FareConstruction.NucAmount,
-                    roeApplied = passenger.FareConstruction.RoeApplied,
-                    fareCalculationLine = passenger.FareConstruction.FareCalculationLine,
-                    taxes = passenger.FareConstruction.Taxes.Select(t => new { code = t.Code, amount = t.Amount, currency = t.Currency, description = t.Description }),
-                    totalTaxes = passenger.FareConstruction.TotalTaxes,
-                    totalAmount = passenger.FareConstruction.TotalAmount
-                }
-                : (object?)null,
             formOfPayment = passenger.FormOfPayment != null
                 ? new
                 {
@@ -147,7 +220,16 @@ public sealed class IssueTicketsHandler
             },
             coupons,
             ssrCodes,
-            changeHistory = new[] { new { eventType = "Issued", occurredAt = DateTime.UtcNow.ToString("o"), actor = "RetailAPI", detail = "Initial ticket issuance" } }
+            changeHistory = new[]
+            {
+                new
+                {
+                    eventType = "Issued",
+                    occurredAt = DateTime.UtcNow.ToString("o"),
+                    actor = "RetailAPI",
+                    detail = "Initial ticket issuance"
+                }
+            }
         };
 
         return JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);

@@ -42,7 +42,8 @@ Calls from orchestration APIs to the Delivery microservice are authenticated usi
 ### E-Ticket Numbers
 
 - E-ticket numbers follow the IATA format: a **3-digit airline code prefix** followed by a **10-digit serial number**, e.g. `932-1234567890` (Apex Air prefix: `932`).
-- Each e-ticket covers **one passenger on one flight segment**. A return booking for two passengers generates four e-ticket numbers.
+- Each e-ticket covers **one passenger across all flight segments in the booking**. A return booking for two passengers generates **two** e-ticket numbers (one per passenger). Each ticket contains coupons — one coupon per flight segment, ordered by coupon number.
+- The ticket is the **monetary unit**: total fare and taxes are stored at the ticket level. Coupon-level value is always **derived** from the fare construction and tax breakdown — never stored directly as an authoritative amount.
 - E-ticket numbers are **immutable after issuance** — post-booking changes trigger **reissuance** of a new e-ticket number against the same order item. The old ticket is voided; the new one is created. Amendment of an existing e-ticket number is never permitted.
 - `delivery.Ticket` rows are never deleted. Voiding sets `IsVoided = 1` and stamps `VoidedAt`. The voided row is retained permanently for audit.
 
@@ -86,21 +87,19 @@ Example: `M1TAYLOR/ALEX        EAB1234 LHRJFKAX 0003 042J001A0001 156>518 W6042 
 
 ### `delivery.Ticket`
 
-One row per issued e-ticket: one passenger on one flight segment. This is the accountable document and financial record of travel entitlement. Additional detail is stored in the `TicketData` JSON column for extensibility.
+One row per issued e-ticket: one passenger across all flight segments in the booking. This is the accountable document and monetary unit of travel entitlement. Coupon-level value is always derived from the stored fare data — never stored directly. Additional detail is stored in the `TicketData` JSON column for extensibility.
 
 | Column | Type | Nullable | Default | Key | Notes |
 |--------|------|----------|---------|-----|-------|
 | `TicketId` | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| `ETicketNumber` | VARCHAR(20) | No | | UK | e.g. `932-1234567890`. IATA format. Unique per issued ticket |
-| `InventoryId` | UNIQUEIDENTIFIER | No | | | Cross-schema ref to `offer.FlightInventory(InventoryId)`. Not a DB FK — referential integrity is the orchestration layer's responsibility |
-| `FlightNumber` | VARCHAR(10) | No | | | Denormalised snapshot, e.g. `AX003` |
-| `DepartureDate` | DATE | No | | | Denormalised for query convenience |
+| `TicketNumber` | BIGINT IDENTITY | No | | UK | System-generated sequential number. Combined with airline prefix to form the IATA e-ticket number, e.g. `932-1000000001` |
 | `BookingReference` | CHAR(6) | No | | | e.g. `AB1234` |
 | `PassengerId` | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
-| `GivenName` | VARCHAR(100) | No | | | Denormalised for document readability |
-| `Surname` | VARCHAR(100) | No | | | Denormalised for document readability |
-| `CabinCode` | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
-| `FareBasisCode` | VARCHAR(20) | No | | | e.g. `JFLEXGB` |
+| `TotalFareAmount` | DECIMAL(10,2) | No | `0` | | Passenger air fare in `Currency`. Excludes taxes. |
+| `Currency` | CHAR(3) | No | `'GBP'` | | ISO 4217 collecting currency |
+| `TotalTaxAmount` | DECIMAL(10,2) | No | `0` | | Sum of all taxes in `Currency` |
+| `TotalAmount` | DECIMAL(10,2) | No | `0` | | `TotalFareAmount + TotalTaxAmount`. Computed column |
+| `FareCalculation` | NVARCHAR(500) | No | `''` | | IATA linear fare calculation string, e.g. `LON BA NYC 500.00 BA LON 500.00 NUC1000.00 END ROE1.000000`. Used to derive per-coupon fare shares |
 | `IsVoided` | BIT | No | `0` | | Set to `1` on voluntary change, cancellation, or IROPS reissuance. Never deleted |
 | `VoidedAt` | DATETIME2 | Yes | | | Null until voided |
 | `TicketData` | NVARCHAR(MAX) | No | | | JSON document. See TicketData JSON Structure |
@@ -108,34 +107,87 @@ One row per issued e-ticket: one passenger on one flight segment. This is the ac
 | `UpdatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on every update** |
 | `Version` | INT | No | `1` | | Optimistic concurrency counter; incremented on every write |
 
-> **Indexes:** `IX_Ticket_ETicketNumber` (unique) on `(ETicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`. `IX_Ticket_Flight` on `(FlightNumber, DepartureDate)`.
-> **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`.
-> **Immutability:** Rows are never deleted. Voiding sets `IsVoided = 1`. Reissuance creates a new row with a new `ETicketNumber` and voids the old row in the same transaction.
+> **Indexes:** `IX_Ticket_TicketNumber` (unique) on `(TicketNumber)`. `IX_Ticket_BookingReference` on `(BookingReference)`.
+> **Constraints:** `CHK_TicketData` — `ISJSON(TicketData) = 1`. `CHK_Ticket_Ccy` — `LEN(RTRIM(Currency)) = 3`.
+> **Immutability:** Rows are never deleted. Voiding sets `IsVoided = 1`. Reissuance creates a new row with a new `TicketNumber` and voids the old row in the same transaction.
 
 #### TicketData JSON Structure
 
-Typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumber`, `departureDate`, `bookingReference`, `passengerId`, `givenName`, `surname`, `cabinCode`, `fareBasisCode`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) are excluded from the JSON — table columns are the single source of truth for those values. The JSON carries extensible detail: seat assignment, SSR codes, APIS data, and change history.
+Financial columns already on `delivery.Ticket` (`totalFareAmount`, `currency`, `totalTaxAmount`, `totalAmount`, `fareCalculation`) and identity columns (`ticketNumber`, `bookingReference`, `passengerId`, `isVoided`, `voidedAt`, `createdAt`, `updatedAt`) are excluded from the JSON. The JSON carries operational and extensible detail: passenger identity, coupons (one per flight segment), SSR codes, form of payment, and change history. Per-coupon **fare share and tax amounts are always derived** from the stored columns — they are not embedded in the JSON.
 
 ```json
 {
-  "seatAssignment": {
-    "seatNumber": "1A",
-    "positionType": "Window",
-    "deckCode": "M"
+  "passenger": {
+    "surname": "Taylor",
+    "givenName": "Alex",
+    "passengerTypeCode": "ADT",
+    "frequentFlyer": {
+      "carrier": "AX",
+      "number": "AX12345678",
+      "tier": "Gold"
+    }
   },
+  "formOfPayment": {
+    "type": "CC",
+    "cardType": "VI",
+    "maskedPan": "4111111111111111",
+    "expiryMmYy": "0830",
+    "approvalCode": "AUTH123",
+    "amount": 1100.00,
+    "currency": "GBP"
+  },
+  "commission": { "type": "PERCENT", "rate": 0, "amount": 0 },
+  "endorsementsRestrictions": "NON-END NON-REF",
+  "tourCode": null,
+  "originalIssue": {
+    "ticketNumber": null,
+    "issueDate": null,
+    "issuingLocation": null,
+    "fareAmount": null
+  },
+  "coupons": [
+    {
+      "couponNumber": 1,
+      "status": "Open",
+      "marketing": { "carrier": "AX", "flightNumber": "AX003" },
+      "operating": { "carrier": "AX", "flightNumber": "AX003" },
+      "origin": "LHR",
+      "destination": "JFK",
+      "departureDate": "2025-08-15",
+      "departureTime": "11:00",
+      "classOfService": "J",
+      "cabin": "Business",
+      "fareBasisCode": "JFLEXGB",
+      "notValidBefore": "2025-08-15",
+      "notValidAfter": null,
+      "stopoverIndicator": "O",
+      "baggageAllowance": { "type": "PC", "quantity": 2, "weightKg": null },
+      "seat": "1A",
+      "attributedTaxCodes": ["GB", "UB", "YQ"]
+    },
+    {
+      "couponNumber": 2,
+      "status": "Open",
+      "marketing": { "carrier": "AX", "flightNumber": "AX004" },
+      "operating": { "carrier": "AX", "flightNumber": "AX004" },
+      "origin": "JFK",
+      "destination": "LHR",
+      "departureDate": "2025-08-25",
+      "departureTime": "20:00",
+      "classOfService": "J",
+      "cabin": "Business",
+      "fareBasisCode": "JFLEXGB",
+      "notValidBefore": "2025-08-25",
+      "notValidAfter": null,
+      "stopoverIndicator": "O",
+      "baggageAllowance": { "type": "PC", "quantity": 2, "weightKg": null },
+      "seat": "2A",
+      "attributedTaxCodes": ["US", "XY", "YC", "XA", "YQ"]
+    }
+  ],
   "ssrCodes": [
     { "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" }
   ],
-  "apisData": {
-    "documentType": "PASSPORT",
-    "documentNumber": "PA1234567",
-    "issuingCountry": "GBR",
-    "expiryDate": "2030-01-01",
-    "nationality": "GBR",
-    "dateOfBirth": "1985-03-12",
-    "gender": "Male",
-    "residenceCountry": "GBR"
-  },
   "changeHistory": [
     {
       "eventType": "Issued",
@@ -149,12 +201,62 @@ Typed columns on `delivery.Ticket` (`eTicketNumber`, `inventoryId`, `flightNumbe
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `seatAssignment.seatNumber` | string | Assigned seat number, e.g. `1A` |
-| `seatAssignment.positionType` | string | `Window`, `Aisle`, or `Middle` |
-| `seatAssignment.deckCode` | string | `M` (main deck) or `U` (upper deck) |
-| `ssrCodes` | array | IATA SSR codes held against this ticket. Empty array `[]` if none. Each entry has `code`, `description`, and `segmentRef` |
-| `apisData` | object | Advance Passenger Information. `null` until collected at check-in for routes requiring it |
-| `changeHistory` | array | Append-only audit trail. One entry per mutation. Each entry has `eventType`, `occurredAt`, `actor`, and `detail` |
+| `passenger.surname` | string | Passenger surname |
+| `passenger.givenName` | string | Passenger given name |
+| `passenger.passengerTypeCode` | string | IATA type: `ADT`, `CHD`, `INF`, `YTH` |
+| `passenger.frequentFlyer` | object \| null | Frequent flyer details if provided; `null` if not enrolled |
+| `formOfPayment` | object \| null | Payment details. `null` if not captured at ticketing time |
+| `commission` | object | Agent commission. `{ type: "PERCENT", rate: 0, amount: 0 }` if no commission |
+| `endorsementsRestrictions` | string \| null | Fare endorsements, e.g. `NON-END NON-REF` |
+| `tourCode` | string \| null | Tour operator code if applicable |
+| `originalIssue` | object | Exchange reference fields. All `null` on initial issuance |
+| `coupons` | array | One coupon object per flight segment, in itinerary order |
+| `coupons[].couponNumber` | integer | 1-based sequence number within this ticket |
+| `coupons[].status` | string | `Open` · `CheckedIn` · `Lifted` · `Flown` · `Refunded` · `Void` · `Exchanged` · `PrintExchange` |
+| `coupons[].marketing` | object | Marketing carrier code and flight number |
+| `coupons[].operating` | object | Operating carrier and flight number. Matches marketing if no codeshare |
+| `coupons[].origin` / `destination` | string | IATA 3-letter airport codes |
+| `coupons[].departureDate` / `departureTime` | string | ISO 8601 date and local time |
+| `coupons[].classOfService` | string | Booking class code, e.g. `J` |
+| `coupons[].cabin` | string | Cabin name, e.g. `Business` |
+| `coupons[].fareBasisCode` | string | e.g. `JFLEXGB` |
+| `coupons[].notValidBefore` / `notValidAfter` | string \| null | Validity window dates; `notValidAfter` is `null` until exchange |
+| `coupons[].stopoverIndicator` | string | `O` = stopover permitted, `X` = transit only |
+| `coupons[].baggageAllowance` | object \| null | `{ type, quantity, weightKg }`. `null` if not provided |
+| `coupons[].seat` | string \| null | Seat number if assigned; `null` if not yet selected |
+| `coupons[].attributedTaxCodes` | array | Tax codes from the ticket-level tax breakdown that apply to this coupon. Informational — do not use for amounts; use `GET /v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value` for derived monetary values |
+| `ssrCodes` | array | IATA SSR codes across all segments for this passenger. Each entry has `code`, `description`, and `segmentRef` |
+| `changeHistory` | array | Append-only audit trail. Each entry: `eventType`, `occurredAt`, `actor`, `detail` |
+
+---
+
+### `delivery.TicketTax`
+
+One row per tax line per ticket. Stores the authoritative amount for each tax code collected. For taxes that split per coupon (YQ/YR carrier surcharges), the total is divided equally across coupons and stored as separate rows — one per coupon — to allow `GetAttributedValue` to sum without double-counting.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|--------|------|----------|---------|-----|-------|
+| `TicketTaxId` | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| `TicketId` | UNIQUEIDENTIFIER | No | | FK → `delivery.Ticket(TicketId)` | Cascade-deleted when parent ticket row is deleted (never happens in practice — tickets are voided not deleted) |
+| `TaxCode` | VARCHAR(4) | No | | | IATA tax code, e.g. `GB`, `YQ`, `US` |
+| `Amount` | DECIMAL(10,2) | No | | | Tax amount in `Currency` |
+| `Currency` | CHAR(3) | No | | | ISO 4217. Normally the same as the ticket's collecting currency; may differ for taxes quoted in a specific currency |
+
+> **Indexes:** `IX_TicketTax_TicketId` on `(TicketId)`.
+
+---
+
+### `delivery.TicketTaxCoupon`
+
+Junction table linking each `TicketTax` row to the coupon numbers it applies to. For departure/arrival taxes, one row per applicable coupon. For split-per-coupon surcharges (YQ/YR), each `TicketTax` row has exactly one `TicketTaxCoupon` row because the split produces one tax record per coupon.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|--------|------|----------|---------|-----|-------|
+| `TicketTaxCouponId` | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| `TicketTaxId` | UNIQUEIDENTIFIER | No | | FK → `delivery.TicketTax(TicketTaxId)` | |
+| `CouponNumber` | TINYINT | No | | | 1–4 (IATA coupon limit per ticket) |
+
+> **Constraints:** `CHK_TicketTaxCoupon_Number` — `CouponNumber BETWEEN 1 AND 4`. `UQ_TicketTaxCoupon` — unique on `(TicketTaxId, CouponNumber)`.
 
 ---
 
@@ -290,9 +392,9 @@ The `ancillaryDetail` object is a discriminated union — its shape depends on `
 
 ### POST /v1/tickets
 
-Issue e-tickets for all passengers and flight segments in a basket. Creates one `delivery.Ticket` row per passenger per flight segment. Publishes a `TicketIssued` event to the event bus for each ticket created.
+Issue e-tickets for all passengers in a booking. Creates one `delivery.Ticket` row **per passenger** (covering all flight segments). Publishes a `TicketIssued` event for each ticket created.
 
-**When to use:** Called by the Retail API immediately after payment authorisation, before inventory settlement and order confirmation. This is a critical step in the booking confirmation flow — if ticketing fails, the Retail API must abort, void the payment authorisation, and return an error to the channel. The order must not be confirmed until e-ticket numbers have been successfully issued.
+**When to use:** Called by the Retail API immediately after payment authorisation, before inventory settlement and order confirmation. If ticketing fails, the Retail API must abort, void the payment authorisation, and return an error to the channel. The order must not be confirmed until e-ticket numbers have been successfully issued.
 
 **Failure handling:** If ticket issuance fails, the Retail API must not proceed to inventory settlement or order confirmation. Payment authorisation must be voided and inventory released.
 
@@ -300,35 +402,82 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
 
 ```json
 {
-  "basketId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "bookingReference": "AB1234",
   "passengers": [
     {
       "passengerId": "PAX-1",
-      "givenName": "Alex",
       "surname": "Taylor",
-      "dob": "1985-03-12"
+      "givenName": "Alex",
+      "passengerTypeCode": "ADT",
+      "frequentFlyer": { "carrier": "AX", "number": "AX12345678", "tier": "Gold" },
+      "fareConstruction": {
+        "baseFare": 1000.00,
+        "collectingCurrency": "GBP",
+        "totalTaxes": 100.00,
+        "fareCalculationLine": "LON AX NYC 500.00 AX LON 500.00 NUC1000.00 END ROE1.000000",
+        "taxes": [
+          { "code": "GB", "amount": 26.00, "currency": "GBP" },
+          { "code": "UB", "amount": 24.00, "currency": "GBP" },
+          { "code": "YQ", "amount": 40.00, "currency": "GBP" },
+          { "code": "US", "amount": 10.00, "currency": "USD" }
+        ]
+      },
+      "formOfPayment": {
+        "type": "CC",
+        "cardType": "VI",
+        "maskedPan": "411111XXXXXX1111",
+        "expiryMmYy": "0830",
+        "approvalCode": "AUTH123",
+        "amount": 1100.00,
+        "currency": "GBP"
+      },
+      "endorsementsRestrictions": "NON-END NON-REF"
     },
     {
       "passengerId": "PAX-2",
-      "givenName": "Jordan",
       "surname": "Taylor",
-      "dob": "1987-07-22"
+      "givenName": "Jordan",
+      "passengerTypeCode": "ADT",
+      "fareConstruction": {
+        "baseFare": 1000.00,
+        "collectingCurrency": "GBP",
+        "totalTaxes": 100.00,
+        "fareCalculationLine": "LON AX NYC 500.00 AX LON 500.00 NUC1000.00 END ROE1.000000",
+        "taxes": [
+          { "code": "GB", "amount": 26.00, "currency": "GBP" },
+          { "code": "UB", "amount": 24.00, "currency": "GBP" },
+          { "code": "YQ", "amount": 40.00, "currency": "GBP" },
+          { "code": "US", "amount": 10.00, "currency": "USD" }
+        ]
+      },
+      "formOfPayment": {
+        "type": "CC",
+        "cardType": "VI",
+        "maskedPan": "411111XXXXXX1111",
+        "expiryMmYy": "0830",
+        "approvalCode": "AUTH456",
+        "amount": 1100.00,
+        "currency": "GBP"
+      }
     }
   ],
   "segments": [
     {
       "segmentId": "SEG-1",
-      "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "flightNumber": "AX003",
+      "operatingFlightNumber": null,
       "departureDate": "2025-08-15",
+      "departureTime": "11:00",
       "origin": "LHR",
       "destination": "JFK",
       "cabinCode": "J",
+      "cabinName": "Business",
       "fareBasisCode": "JFLEXGB",
+      "stopoverIndicator": "O",
+      "baggageAllowance": { "type": "PC", "quantity": 2, "weightKg": null },
       "seatAssignments": [
-        { "passengerId": "PAX-1", "seatNumber": "1A", "positionType": "Window", "deckCode": "M" },
-        { "passengerId": "PAX-2", "seatNumber": "1K", "positionType": "Window", "deckCode": "M" }
+        { "passengerId": "PAX-1", "seatNumber": "1A" },
+        { "passengerId": "PAX-2", "seatNumber": "1K" }
       ],
       "ssrCodes": [
         { "passengerId": "PAX-1", "code": "VGML", "description": "Vegetarian meal", "segmentRef": "SEG-1" }
@@ -336,16 +485,20 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
     },
     {
       "segmentId": "SEG-2",
-      "inventoryId": "7cb87a21-1234-4abc-9def-1a2b3c4d5e6f",
       "flightNumber": "AX004",
+      "operatingFlightNumber": null,
       "departureDate": "2025-08-25",
+      "departureTime": "20:00",
       "origin": "JFK",
       "destination": "LHR",
       "cabinCode": "J",
+      "cabinName": "Business",
       "fareBasisCode": "JFLEXGB",
+      "stopoverIndicator": "O",
+      "baggageAllowance": { "type": "PC", "quantity": 2, "weightKg": null },
       "seatAssignments": [
-        { "passengerId": "PAX-1", "seatNumber": "2A", "positionType": "Window", "deckCode": "M" },
-        { "passengerId": "PAX-2", "seatNumber": "2K", "positionType": "Window", "deckCode": "M" }
+        { "passengerId": "PAX-1", "seatNumber": "2A" },
+        { "passengerId": "PAX-2", "seatNumber": "2K" }
       ],
       "ssrCodes": []
     }
@@ -355,26 +508,39 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `basketId` | string (UUID) | Yes | The basket being confirmed; used for idempotency |
 | `bookingReference` | string | Yes | The 6-character booking reference |
-| `passengers` | array | Yes | List of all passengers on the booking |
+| `passengers` | array | Yes | List of all passengers on the booking. One ticket is issued per passenger |
 | `passengers[].passengerId` | string | Yes | PAX reference, e.g. `PAX-1` |
-| `passengers[].givenName` | string | Yes | Passenger's given name |
 | `passengers[].surname` | string | Yes | Passenger's surname |
-| `passengers[].dob` | string (date) | No | ISO 8601 date |
-| `segments` | array | Yes | List of all flight segments requiring e-tickets |
+| `passengers[].givenName` | string | Yes | Passenger's given name |
+| `passengers[].passengerTypeCode` | string | No | IATA type: `ADT` (default), `CHD`, `INF`, `YTH` |
+| `passengers[].frequentFlyer` | object | No | `{ carrier, number, tier }`. Omit if not enrolled |
+| `passengers[].fareConstruction` | object | **Yes** | Financial data for the ticket. Required for every passenger |
+| `passengers[].fareConstruction.baseFare` | number | Yes | Passenger air fare in `collectingCurrency`, excluding taxes. Must be > 0 |
+| `passengers[].fareConstruction.collectingCurrency` | string | Yes | ISO 4217, 3 characters |
+| `passengers[].fareConstruction.totalTaxes` | number | Yes | Sum of all taxes in `collectingCurrency`. Must be ≥ 0. Must equal the sum of `taxes[].amount` within ±0.02 |
+| `passengers[].fareConstruction.fareCalculationLine` | string | Yes | IATA linear fare calculation string. Must be parseable: city codes, carrier codes, NUC amounts, `NUCxxx`, `END`, `ROExxx` |
+| `passengers[].fareConstruction.taxes` | array | Yes | Per-tax breakdown. Each entry: `{ code, amount, currency }`. `currency` may be an empty string to inherit `collectingCurrency` |
+| `passengers[].formOfPayment` | object | No | Form of payment detail |
+| `passengers[].commission` | object | No | Agent commission: `{ type, rate, amount }`. Defaults to zero if omitted |
+| `passengers[].endorsementsRestrictions` | string | No | Free-text fare endorsements, e.g. `NON-END NON-REF` |
+| `segments` | array | Yes | List of all flight segments. 1–4 segments (IATA coupon limit per ticket) |
 | `segments[].segmentId` | string | Yes | Segment reference, e.g. `SEG-1` |
-| `segments[].inventoryId` | string (UUID) | Yes | Flight inventory identifier from `offer.FlightInventory` |
-| `segments[].flightNumber` | string | Yes | e.g. `AX003` |
+| `segments[].flightNumber` | string | Yes | Marketing flight number, e.g. `AX003` |
+| `segments[].operatingFlightNumber` | string | No | Operating flight number if codeshare; `null` if same as marketing |
 | `segments[].departureDate` | string (date) | Yes | ISO 8601 date |
+| `segments[].departureTime` | string (time) | No | Local departure time, `HH:mm` |
 | `segments[].origin` | string | Yes | IATA 3-letter airport code |
 | `segments[].destination` | string | Yes | IATA 3-letter airport code |
 | `segments[].cabinCode` | string | Yes | `F`, `J`, `W`, or `Y` |
-| `segments[].fareBasisCode` | string | Yes | e.g. `JFLEXGB` |
-| `segments[].seatAssignments` | array | No | Seat assignments per passenger for this segment. May be empty if no seat selected |
-| `segments[].ssrCodes` | array | No | SSR codes per passenger for this segment. Empty array if none |
+| `segments[].cabinName` | string | No | Human-readable cabin name, e.g. `Business` |
+| `segments[].fareBasisCode` | string | No | e.g. `JFLEXGB` |
+| `segments[].stopoverIndicator` | string | No | `O` (stopover) or `X` (transit). Defaults to `O` |
+| `segments[].baggageAllowance` | object | No | `{ type, quantity, weightKg }` |
+| `segments[].seatAssignments` | array | No | Per-passenger seat assignments: `{ passengerId, seatNumber }` |
+| `segments[].ssrCodes` | array | No | Per-passenger SSR codes: `{ passengerId, code, description, segmentRef }` |
 
-> **Idempotency:** Repeated calls with the same `basketId` return the same e-ticket numbers without creating duplicate records.
+> **Validation:** Returns `400 Bad Request` with FluentValidation error details if any required field is missing, `fareCalculationLine` cannot be parsed, or the tax breakdown sum does not match `totalTaxes` within ±0.02.
 
 #### Response — `201 Created`
 
@@ -383,35 +549,15 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
   "tickets": [
     {
       "ticketId": "e1f2a3b4-c5d6-7890-abcd-ef1234567890",
-      "eTicketNumber": "932-1234567890",
+      "eTicketNumber": "932-1000000001",
       "passengerId": "PAX-1",
-      "segmentId": "SEG-1",
-      "flightNumber": "AX003",
-      "departureDate": "2025-08-15"
+      "segmentIds": ["SEG-1", "SEG-2"]
     },
     {
       "ticketId": "f2a3b4c5-d6e7-8901-bcde-f12345678901",
-      "eTicketNumber": "932-1234567891",
+      "eTicketNumber": "932-1000000002",
       "passengerId": "PAX-2",
-      "segmentId": "SEG-1",
-      "flightNumber": "AX003",
-      "departureDate": "2025-08-15"
-    },
-    {
-      "ticketId": "a3b4c5d6-e7f8-9012-cdef-123456789012",
-      "eTicketNumber": "932-1234567892",
-      "passengerId": "PAX-1",
-      "segmentId": "SEG-2",
-      "flightNumber": "AX004",
-      "departureDate": "2025-08-25"
-    },
-    {
-      "ticketId": "b4c5d6e7-f8a9-0123-defa-234567890123",
-      "eTicketNumber": "932-1234567893",
-      "passengerId": "PAX-2",
-      "segmentId": "SEG-2",
-      "flightNumber": "AX004",
-      "departureDate": "2025-08-25"
+      "segmentIds": ["SEG-1", "SEG-2"]
     }
   ]
 }
@@ -419,20 +565,18 @@ Issue e-tickets for all passengers and flight segments in a basket. Creates one 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `tickets` | array | One entry per issued e-ticket, ordered by segment then passenger |
+| `tickets` | array | One entry per issued e-ticket — one per passenger |
 | `tickets[].ticketId` | string (UUID) | Internal ticket record identifier |
-| `tickets[].eTicketNumber` | string | IATA-format e-ticket number, e.g. `932-1234567890` |
+| `tickets[].eTicketNumber` | string | IATA-format e-ticket number, e.g. `932-1000000001` |
 | `tickets[].passengerId` | string | PAX reference identifying which passenger holds this ticket |
-| `tickets[].segmentId` | string | Segment reference identifying which flight segment this ticket covers |
-| `tickets[].flightNumber` | string | Flight number for this ticket |
-| `tickets[].departureDate` | string (date) | ISO 8601 departure date for this ticket |
+| `tickets[].segmentIds` | array | Segment IDs covered by this ticket (all segments in the booking) |
 
 #### Error Responses
 
 | Status | Reason |
 |--------|--------|
-| `400 Bad Request` | Missing required fields or invalid field format |
-| `409 Conflict` | Tickets have already been issued for this `basketId` (idempotency guard) |
+| `400 Bad Request` | Missing required fields, invalid fare calculation line, or tax breakdown mismatch |
+| `409 Conflict` | Tickets have already been issued for this booking reference |
 | `422 Unprocessable Entity` | Duplicate seat assignment detected — two passengers assigned to the same seat on the same segment |
 
 ---
@@ -587,6 +731,128 @@ Reissue e-tickets following a passenger name correction, seat change, flight cha
 | `400 Bad Request` | Missing required fields or invalid format |
 | `404 Not Found` | One or more `voidedETicketNumbers` not found |
 | `422 Unprocessable Entity` | One or more tickets in `voidedETicketNumbers` are already voided |
+
+---
+
+### GET /v1/tickets/{eTicketNumber}
+
+Retrieve full details for an issued e-ticket. Returns stored financial data and a derived fare-component breakdown parsed from the `FareCalculation` line.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `eTicketNumber` | string | IATA-format e-ticket number, e.g. `932-1000000001` |
+
+#### Response — `200 OK`
+
+```json
+{
+  "ticketId": "e1f2a3b4-c5d6-7890-abcd-ef1234567890",
+  "eTicketNumber": "932-1000000001",
+  "bookingReference": "AB1234",
+  "passengerId": "PAX-1",
+  "totalFareAmount": 1000.00,
+  "currency": "GBP",
+  "totalTaxAmount": 100.00,
+  "totalAmount": 1100.00,
+  "fareCalculation": "LON AX NYC 500.00 AX LON 500.00 NUC1000.00 END ROE1.000000",
+  "fareComponents": [
+    { "origin": "LON", "carrier": "AX", "destination": "NYC", "nucAmount": 500.00, "fareBasis": null },
+    { "origin": "NYC", "carrier": "AX", "destination": "LON", "nucAmount": 500.00, "fareBasis": null }
+  ],
+  "taxBreakdown": [
+    { "taxCode": "GB", "amount": 26.00, "currency": "GBP", "appliesToCouponNumbers": [1] },
+    { "taxCode": "UB", "amount": 24.00, "currency": "GBP", "appliesToCouponNumbers": [1] },
+    { "taxCode": "YQ", "amount": 20.00, "currency": "GBP", "appliesToCouponNumbers": [1] },
+    { "taxCode": "YQ", "amount": 20.00, "currency": "GBP", "appliesToCouponNumbers": [2] },
+    { "taxCode": "US", "amount": 10.00, "currency": "USD", "appliesToCouponNumbers": [2] }
+  ],
+  "isVoided": false,
+  "voidedAt": null,
+  "ticketData": { }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ticketId` | string (UUID) | Internal ticket identifier |
+| `eTicketNumber` | string | IATA-format e-ticket number |
+| `bookingReference` | string | 6-character booking reference |
+| `passengerId` | string | PAX reference |
+| `totalFareAmount` | number | Stored passenger air fare in `currency` |
+| `currency` | string | ISO 4217 collecting currency |
+| `totalTaxAmount` | number | Stored total tax amount |
+| `totalAmount` | number | `totalFareAmount + totalTaxAmount` |
+| `fareCalculation` | string | Stored IATA linear fare calculation string |
+| `fareComponents` | array \| null | Derived fare components parsed from `fareCalculation`. `null` if the string cannot be parsed |
+| `fareComponents[].origin` / `destination` | string | City code (3-letter alpha, may be city not airport) |
+| `fareComponents[].carrier` | string | 2-letter carrier code |
+| `fareComponents[].nucAmount` | number | NUC amount for this component |
+| `taxBreakdown` | array | Stored tax rows. YQ/YR appear as multiple rows (one per coupon) reflecting the even split |
+| `taxBreakdown[].taxCode` | string | IATA tax code |
+| `taxBreakdown[].amount` | number | Tax amount for the attributed coupons |
+| `taxBreakdown[].currency` | string | Currency of this tax amount |
+| `taxBreakdown[].appliesToCouponNumbers` | array | Coupon numbers this tax row covers |
+| `isVoided` | boolean | Whether the ticket has been voided |
+| `voidedAt` | string \| null | ISO 8601 UTC void timestamp, or `null` |
+| `ticketData` | object | Full TicketData JSON. See TicketData JSON Structure |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No ticket found for the given e-ticket number |
+
+---
+
+### GET /v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value
+
+Derive the monetary value attributed to a specific flight coupon. Returns the proportional fare share (weighted by NUC component amounts in the fare calculation) and the sum of taxes attributed to this coupon. All values are **derived** — they are never stored directly.
+
+**When to use:** Called by the Accounting MS when recognising revenue for a specific flight leg, or by any consumer needing per-segment financial attribution without performing the IATA fare calculation locally.
+
+**Attribution logic:**
+- **Fare share** — `(couponNUC / totalNUC) × TotalFareAmount`, where `couponNUC` is the NUC amount for the matching fare component in `FareCalculation`. Rounded to 2 decimal places (HALF_UP).
+- **Tax share** — sum of `TicketTax.Amount` for all tax rows whose `AppliedToCoupons` includes `couponNumber`. For split-per-coupon taxes (YQ/YR), the split is already stored as separate rows, so summation is correct without further division.
+
+#### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `eTicketNumber` | string | IATA-format e-ticket number |
+| `couponNumber` | integer | Coupon sequence number (1-based, 1–4) |
+
+#### Response — `200 OK`
+
+```json
+{
+  "eTicketNumber": "932-1000000001",
+  "couponNumber": 1,
+  "fareShare": 500.00,
+  "taxShare": 70.00,
+  "total": 570.00,
+  "currency": "GBP",
+  "valueSource": "derived"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `eTicketNumber` | string | The e-ticket number, echoed back |
+| `couponNumber` | integer | The coupon number, echoed back |
+| `fareShare` | number | Proportional fare amount attributed to this coupon |
+| `taxShare` | number | Sum of tax amounts attributed to this coupon |
+| `total` | number | `fareShare + taxShare` |
+| `currency` | string | ISO 4217 collecting currency |
+| `valueSource` | string | Always `"derived"` — signals this value is computed, not stored |
+
+#### Error Responses
+
+| Status | Reason |
+|--------|--------|
+| `404 Not Found` | No ticket found for the given e-ticket number, or coupon number is out of range for this ticket |
+| `422 Unprocessable Entity` | The ticket's `FareCalculation` string cannot be parsed or contains no component matching the requested coupon number |
 
 ---
 

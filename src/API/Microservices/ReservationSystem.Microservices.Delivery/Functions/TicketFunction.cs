@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ReservationSystem.Microservices.Delivery.Application.GetCouponValue;
 using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
@@ -11,9 +12,10 @@ using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using System.Collections.Generic;
-using System.Text.Json;
-using ReservationSystem.Shared.Common.Http;
 using System.Net;
+using System.Text.Json;
+using FluentValidation;
+using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
 
@@ -23,6 +25,7 @@ public sealed class TicketFunction
     private readonly IssueTicketsHandler _issueHandler;
     private readonly VoidTicketHandler _voidHandler;
     private readonly ReissueTicketsHandler _reissueHandler;
+    private readonly GetCouponValueHandler _couponValueHandler;
     private readonly ITicketRepository _ticketRepository;
     private readonly ILogger<TicketFunction> _logger;
 
@@ -31,6 +34,7 @@ public sealed class TicketFunction
         IssueTicketsHandler issueHandler,
         VoidTicketHandler voidHandler,
         ReissueTicketsHandler reissueHandler,
+        GetCouponValueHandler couponValueHandler,
         ITicketRepository ticketRepository,
         ILogger<TicketFunction> logger)
     {
@@ -38,6 +42,7 @@ public sealed class TicketFunction
         _issueHandler = issueHandler;
         _voidHandler = voidHandler;
         _reissueHandler = reissueHandler;
+        _couponValueHandler = couponValueHandler;
         _ticketRepository = ticketRepository;
         _logger = logger;
     }
@@ -64,8 +69,8 @@ public sealed class TicketFunction
 
     // POST /v1/tickets
     [Function("IssueTickets")]
-    [OpenApiOperation(operationId: "IssueTickets", tags: new[] { "Tickets" }, Summary = "Issue e-tickets for a booking")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(IssueTicketsRequest), Required = true, Description = "Ticket issuance request: bookingReference, passengers, segments")]
+    [OpenApiOperation(operationId: "IssueTickets", tags: new[] { "Tickets" }, Summary = "Issue e-tickets — one per passenger covering all flight segments")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(IssueTicketsRequest), Required = true, Description = "Ticket issuance request: bookingReference, passengers (each with fareConstruction), segments")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(IssueTicketsResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
@@ -76,25 +81,44 @@ public sealed class TicketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<IssueTicketsRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request.BookingReference))
-            return await req.BadRequestAsync("The 'bookingReference' field is required.");
-
-        if (request.Passengers.Count == 0)
-            return await req.BadRequestAsync("At least one passenger is required.");
-
-        if (request.Segments.Count == 0)
-            return await req.BadRequestAsync("At least one segment is required.");
-
         try
         {
             var result = await _issueHandler.HandleAsync(request, cancellationToken);
             return await req.CreatedAsync("/v1/tickets", result);
+        }
+        catch (ValidationException vex)
+        {
+            var messages = string.Join("; ", vex.Errors.Select(e => e.ErrorMessage));
+            return await req.BadRequestAsync(messages);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to issue tickets for booking {BookingRef}", request.BookingReference);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // GET /v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value
+    [Function("GetCouponValue")]
+    [OpenApiOperation(operationId: "GetCouponValue", tags: new[] { "Tickets" }, Summary = "Get the derived attributed value for a single coupon")]
+    [OpenApiParameter(name: "eTicketNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "Full IATA e-ticket number, e.g. 932-1000000001")]
+    [OpenApiParameter(name: "couponNumber", In = ParameterLocation.Path, Required = true, Type = typeof(int), Description = "1-based coupon number (1–4)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetCouponValueResponse), Description = "Derived coupon value (fareShare, taxShare, total)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Ticket or coupon not found")]
+    public async Task<HttpResponseData> GetCouponValue(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value")] HttpRequestData req,
+        string eTicketNumber,
+        int couponNumber,
+        CancellationToken cancellationToken)
+    {
+        if (couponNumber < 1 || couponNumber > 4)
+            return await req.BadRequestAsync("couponNumber must be between 1 and 4.");
+
+        var result = await _couponValueHandler.HandleAsync(eTicketNumber, couponNumber, cancellationToken);
+        if (result is null)
+            return await req.NotFoundAsync($"Ticket '{eTicketNumber}' or coupon {couponNumber} not found.");
+
+        return await req.OkJsonAsync(result);
     }
 
     // PATCH /v1/tickets/{eTicketNumber}/void
@@ -165,7 +189,6 @@ public sealed class TicketFunction
     }
 
     // GET /v1/debug/tickets?bookingRef={bookingRef}
-    // TODO: Remove this endpoint — temporary debug only
     [Function("DebugGetTicketsByBooking")]
     [OpenApiOperation(operationId: "DebugGetTicketsByBooking", tags: new[] { "Debug" }, Summary = "[TEMP] Return raw Ticket database rows by booking reference")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The booking reference")]
@@ -195,6 +218,11 @@ public sealed class TicketFunction
                 ticketNumber = t.TicketNumber,
                 bookingReference = t.BookingReference,
                 passengerId = t.PassengerId,
+                totalFareAmount = t.TotalFareAmount,
+                currency = t.Currency,
+                totalTaxAmount = t.TotalTaxAmount,
+                totalAmount = t.TotalAmount,
+                fareCalculation = t.FareCalculation,
                 isVoided = t.IsVoided,
                 voidedAt = t.VoidedAt,
                 version = t.Version,

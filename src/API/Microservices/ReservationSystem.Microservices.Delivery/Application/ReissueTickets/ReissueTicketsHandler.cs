@@ -22,7 +22,7 @@ public sealed class ReissueTicketsHandler
 
     public async Task<ReissueTicketsResponse> HandleAsync(ReissueTicketsRequest request, CancellationToken cancellationToken = default)
     {
-        // Void old tickets
+        // Void old tickets.
         foreach (var eTicketNumber in request.VoidedETicketNumbers)
         {
             var oldTicket = await _ticketRepository.GetByETicketNumberAsync(eTicketNumber, cancellationToken);
@@ -34,36 +34,29 @@ public sealed class ReissueTicketsHandler
             }
         }
 
-        // Issue new tickets
+        // Issue replacement tickets. Fare construction is passed per passenger in the request,
+        // identical to a fresh issuance. If not supplied, zero fare amounts are used so a
+        // subsequent amendment can correct them.
         var ticketSummaries = new List<TicketSummary>();
 
-        foreach (var segment in request.Segments)
+        foreach (var passenger in request.Passengers)
         {
-            foreach (var passenger in request.Passengers)
-            {
-                var seatAssignment = segment.SeatAssignments?
-                    .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+            var fc = passenger.FareConstruction;
 
-                var ticketData = new
-                {
-                    seatAssignment = seatAssignment != null ? new
-                    {
-                        seatNumber = seatAssignment.SeatNumber,
-                        positionType = seatAssignment.PositionType,
-                        deckCode = seatAssignment.DeckCode
-                    } : null,
-                    ssrCodes = Array.Empty<object>(),
-                    changeHistory = new[] { new { eventType = "Reissued", occurredAt = DateTime.UtcNow.ToString("o"), actor = request.Actor, detail = $"Reissued — reason: {request.Reason}" } }
-                };
+            var ticketData = BuildReissueTicketData(passenger, request.Segments, request.Reason, request.Actor);
 
-                var ticketDataJson = JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
+            var ticket = Ticket.Create(
+                request.BookingReference,
+                passenger.PassengerId,
+                totalFareAmount: fc?.BaseFare ?? 0m,
+                currency: fc?.CollectingCurrency ?? "GBP",
+                totalTaxAmount: fc?.TotalTaxes ?? 0m,
+                fareCalculation: fc?.FareCalculationLine ?? string.Empty,
+                ticketData);
 
-                // TicketNumber is assigned by the database IDENTITY on INSERT;
-                // EF Core reads it back automatically via SCOPE_IDENTITY().
-                var ticket = Ticket.Create(request.BookingReference, passenger.PassengerId, ticketDataJson);
-                await _ticketRepository.CreateAsync(ticket, cancellationToken);
-                ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, [segment.SegmentId]));
-            }
+            await _ticketRepository.CreateAsync(ticket, cancellationToken);
+            ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket,
+                request.Segments.Select(s => s.SegmentId).ToList()));
         }
 
         return new ReissueTicketsResponse
@@ -71,5 +64,78 @@ public sealed class ReissueTicketsHandler
             VoidedETicketNumbers = request.VoidedETicketNumbers,
             Tickets = ticketSummaries
         };
+    }
+
+    private static string BuildReissueTicketData(
+        PassengerDetail passenger,
+        List<SegmentDetail> segments,
+        string reason,
+        string actor)
+    {
+        var coupons = segments.Select((segment, index) =>
+        {
+            var seatAssignment = segment.SeatAssignments?
+                .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+
+            var marketingCarrier = ExtractCarrierCode(segment.FlightNumber);
+            var operatingFlightNumber = segment.OperatingFlightNumber ?? segment.FlightNumber;
+            var operatingCarrier = string.IsNullOrWhiteSpace(segment.OperatingFlightNumber)
+                ? marketingCarrier
+                : ExtractCarrierCode(segment.OperatingFlightNumber);
+
+            return (object)new
+            {
+                couponNumber = index + 1,
+                status = CouponStatus.Open,
+                marketing = new { carrier = marketingCarrier, flightNumber = segment.FlightNumber },
+                operating = new { carrier = operatingCarrier, flightNumber = operatingFlightNumber },
+                origin = segment.Origin,
+                destination = segment.Destination,
+                departureDate = segment.DepartureDate,
+                departureTime = segment.DepartureTime,
+                classOfService = segment.CabinCode,
+                cabin = segment.CabinName,
+                fareBasisCode = segment.FareBasisCode,
+                notValidBefore = segment.DepartureDate,
+                notValidAfter = (string?)null,
+                stopoverIndicator = segment.StopoverIndicator ?? "O",
+                baggageAllowance = segment.BaggageAllowance != null
+                    ? new { type = segment.BaggageAllowance.Type, quantity = segment.BaggageAllowance.Quantity, weightKg = segment.BaggageAllowance.WeightKg }
+                    : (object?)null,
+                seat = seatAssignment?.SeatNumber,
+                attributedTaxCodes = Array.Empty<string>()
+            };
+        }).ToList();
+
+        var ticketData = new
+        {
+            passenger = new
+            {
+                surname = passenger.Surname,
+                givenName = passenger.GivenName,
+                passengerTypeCode = passenger.PassengerTypeCode ?? "ADT"
+            },
+            coupons,
+            ssrCodes = Array.Empty<object>(),
+            changeHistory = new[]
+            {
+                new
+                {
+                    eventType = "Reissued",
+                    occurredAt = DateTime.UtcNow.ToString("o"),
+                    actor,
+                    detail = $"Reissued — reason: {reason}"
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(ticketData, SharedJsonOptions.CamelCase);
+    }
+
+    private static string ExtractCarrierCode(string flightNumber)
+    {
+        var i = 0;
+        while (i < flightNumber.Length && char.IsLetter(flightNumber[i])) i++;
+        return i > 0 ? flightNumber[0..i] : flightNumber;
     }
 }

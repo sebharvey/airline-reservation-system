@@ -8,6 +8,12 @@ public interface ITicketRepository
 
     Task<Ticket?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Retrieves a ticket by e-ticket number including its <see cref="TicketTax"/> breakdown
+    /// (required for <c>GetAttributedValue</c>).
+    /// </summary>
+    Task<Ticket?> GetByETicketNumberWithTaxesAsync(string eTicketNumber, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Ticket>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default);
 
     Task CreateAsync(Ticket ticket, CancellationToken cancellationToken = default);

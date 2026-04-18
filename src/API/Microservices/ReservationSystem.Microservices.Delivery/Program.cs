@@ -10,6 +10,7 @@ using ReservationSystem.Microservices.Delivery.Swagger;
 using ReservationSystem.Microservices.Delivery.Application.CreateDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
+using ReservationSystem.Microservices.Delivery.Application.GetCouponValue;
 using ReservationSystem.Microservices.Delivery.Application.GetTicketsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 using ReservationSystem.Microservices.Delivery.Application.ReissueTickets;
@@ -18,6 +19,7 @@ using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
+using ReservationSystem.Microservices.Delivery.Domain.Services;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Health;
@@ -60,6 +62,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
+        services.AddSingleton<TaxAttributionService>();
 
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("SqlHealthCheck", sp => ct => Task.FromResult(true));
@@ -67,6 +70,7 @@ var host = new HostBuilder()
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetTicketsByBookingHandler>();
         services.AddScoped<IssueTicketsHandler>();
+        services.AddScoped<GetCouponValueHandler>();
         services.AddScoped<VoidTicketHandler>();
         services.AddScoped<ReissueTicketsHandler>();
         services.AddScoped<CreateDocumentHandler>();

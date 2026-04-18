@@ -27,8 +27,6 @@ public sealed class EfTicketRepository : ITicketRepository
 
     public async Task<Ticket?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default)
     {
-        // eTicketNumber is the full formatted string, e.g. "932-1000000001".
-        // Parse out the numeric part and look up by the IDENTITY column.
         var ticketNumber = ParseTicketNumber(eTicketNumber);
         if (ticketNumber is null) return null;
 
@@ -37,17 +35,24 @@ public sealed class EfTicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber.Value, cancellationToken);
     }
 
-    private static long? ParseTicketNumber(string eTicketNumber)
+    public async Task<Ticket?> GetByETicketNumberWithTaxesAsync(string eTicketNumber, CancellationToken cancellationToken = default)
     {
-        var dashIndex = eTicketNumber.IndexOf('-');
-        if (dashIndex < 0) return null;
-        return long.TryParse(eTicketNumber[(dashIndex + 1)..], out var num) ? num : null;
+        var ticketNumber = ParseTicketNumber(eTicketNumber);
+        if (ticketNumber is null) return null;
+
+        return await _context.Tickets
+            .AsNoTracking()
+            .Include(t => t.TicketTaxes)
+                .ThenInclude(tx => tx.AppliedToCoupons)
+            .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber.Value, cancellationToken);
     }
 
     public async Task<IReadOnlyList<Ticket>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
         var tickets = await _context.Tickets
             .AsNoTracking()
+            .Include(t => t.TicketTaxes)
+                .ThenInclude(tx => tx.AppliedToCoupons)
             .Where(t => t.BookingReference == bookingReference)
             .OrderBy(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -81,8 +86,6 @@ public sealed class EfTicketRepository : ITicketRepository
     public async Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(
         string flightNumber, string origin, CancellationToken cancellationToken = default)
     {
-        // Broad SQL filter: pull tickets whose JSON data mentions this flight number,
-        // then refine in memory to match origin and extract assigned seats.
         var candidates = await _context.Tickets
             .AsNoTracking()
             .Where(t => !t.IsVoided && t.TicketData.Contains(flightNumber))
@@ -119,5 +122,12 @@ public sealed class EfTicketRepository : ITicketRepository
         }
 
         return seats.AsReadOnly();
+    }
+
+    private static long? ParseTicketNumber(string eTicketNumber)
+    {
+        var dashIndex = eTicketNumber.IndexOf('-');
+        if (dashIndex < 0) return null;
+        return long.TryParse(eTicketNumber[(dashIndex + 1)..], out var num) ? num : null;
     }
 }
