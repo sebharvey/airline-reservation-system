@@ -521,7 +521,7 @@
 
       <!-- ── FLIGHT ── -->
       @if (item.itemType === 'Flight') {
-        @let seg = segments().find(s => s.segmentId === (item.segmentId ?? ''));
+        @let seg = segments().find(s => s.segmentId === (item?.segmentId ?? ''));
         @if (seg) {
           <div class="modal-section">
             <div class="item-route">
