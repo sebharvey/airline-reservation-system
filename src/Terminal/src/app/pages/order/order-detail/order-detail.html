@@ -217,11 +217,11 @@
         <!-- Add SSR section -->
         <div class="add-ssr-section">
           @if (ssrOptionsLoading()) {
-            <div class="ssr-loading"><span class="spinner"></span><span>Loading SSR catalogue…</span></div>
+            <div class="ssr-loading"><span class="spinner"></span><span>Loading service catalogue…</span></div>
           } @else if (ssrOptionsError()) {
             <div class="alert alert-error"><span>&#9888;</span> {{ ssrOptionsError() }}</div>
           } @else if (!showAddSsr()) {
-            <button class="add-ssr-btn" (click)="showAddSsr.set(true); loadSsrOptions()">+ Add SSR</button>
+            <button class="add-ssr-btn" (click)="showAddSsr.set(true); loadSsrOptions()">+ Add service</button>
           } @else {
             <div class="ssr-add-form">
               <div class="ssr-form-title">Add special service request</div>
@@ -230,9 +230,9 @@
               }
               <div class="ssr-form-grid">
                 <div class="edit-field">
-                  <label class="field-label">SSR type</label>
+                  <label class="field-label">Service type</label>
                   <select class="edit-input" [value]="addSsrForm().ssrCode" (change)="updateAddSsrField('ssrCode', $any($event.target).value)">
-                    <option value="">Select SSR…</option>
+                    <option value="">Select service…</option>
                     @for (category of objectKeys(ssrOptionsByCategory()); track category) {
                       <optgroup [label]="category">
                         @for (opt of ssrOptionsByCategory()[category]; track opt.ssrCode) {
@@ -263,7 +263,7 @@
               </div>
               <div class="edit-actions">
                 <button class="save-btn" [disabled]="ssrSaving() || !addSsrForm().ssrCode || !addSsrForm().passengerRef || !addSsrForm().segmentRef" (click)="addSsr()">
-                  {{ ssrSaving() ? 'Adding…' : 'Add SSR' }}
+                  {{ ssrSaving() ? 'Adding…' : 'Add service' }}
                 </button>
                 <button class="cancel-btn" [disabled]="ssrSaving()" (click)="showAddSsr.set(false)">Cancel</button>
               </div>
@@ -712,7 +712,7 @@
         <div class="modal-section">
           <div class="field-grid">
             <div class="field-row">
-              <span class="field-label">SSR code</span>
+              <span class="field-label">Service code</span>
               <span class="field-value"><span class="item-type-badge item-ssr mono">{{ item.ssrCode ?? '—' }}</span></span>
             </div>
             <div class="field-row">
@@ -738,7 +738,7 @@
         }
         <div class="modal-actions">
           <button class="remove-ssr-btn modal-remove-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">
-            {{ ssrSaving() ? 'Removing…' : 'Remove SSR' }}
+            {{ ssrSaving() ? 'Removing…' : 'Remove service' }}
           </button>
         </div>
       }
@@ -995,7 +995,7 @@
         <!-- SSR codes on ticket -->
         @if (t.ticketData?.ssrCodes?.length) {
           <div class="modal-section">
-            <div class="modal-section-title">SSR codes</div>
+            <div class="modal-section-title">Service codes</div>
             <div class="ssr-chips">
               @for (ssr of t.ticketData!.ssrCodes; track ssr.code + ssr.segmentRef) {
                 <span class="ssr-chip"><span class="mono">{{ ssr.code }}</span> — {{ ssr.description }}</span>

@@ -364,7 +364,7 @@ export class OrderDetailComponent implements OnInit {
       const opts = await this.#orderService.getSsrOptions();
       this.ssrOptions.set(opts);
     } catch {
-      this.ssrOptionsError.set('Failed to load SSR catalogue.');
+      this.ssrOptionsError.set('Failed to load service catalogue.');
     } finally {
       this.ssrOptionsLoading.set(false);
     }
@@ -390,8 +390,8 @@ export class OrderDetailComponent implements OnInit {
     } catch (err: any) {
       this.ssrError.set(
         err?.status === 422
-          ? 'Cannot remove SSR: within the 24-hour amendment cut-off window.'
-          : 'Failed to remove SSR. Please try again.'
+          ? 'Cannot remove service: within the 24-hour amendment cut-off window.'
+          : 'Failed to remove service. Please try again.'
       );
     } finally {
       this.ssrSaving.set(false);
@@ -430,7 +430,7 @@ export class OrderDetailComponent implements OnInit {
     const form = this.editSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
     if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef, this.ssrKey(original))) {
-      this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
+      this.ssrError.set('A service already exists for this passenger and segment. Remove it before adding a new one.');
       return;
     }
     this.ssrSaving.set(true);
@@ -446,8 +446,8 @@ export class OrderDetailComponent implements OnInit {
     } catch (err: any) {
       this.ssrError.set(
         err?.status === 422
-          ? (err?.error?.message ?? 'Cannot edit SSR: within the 24-hour amendment cut-off window.')
-          : 'Failed to save SSR changes. Please try again.'
+          ? (err?.error?.message ?? 'Cannot edit service: within the 24-hour amendment cut-off window.')
+          : 'Failed to save service changes. Please try again.'
       );
     } finally {
       this.ssrSaving.set(false);
@@ -458,7 +458,7 @@ export class OrderDetailComponent implements OnInit {
     const form = this.addSsrForm();
     if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
     if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef)) {
-      this.ssrError.set('An SSR already exists for this passenger and segment. Remove it before adding a new one.');
+      this.ssrError.set('A service already exists for this passenger and segment. Remove it before adding a new one.');
       return;
     }
     this.ssrSaving.set(true);
@@ -477,8 +477,8 @@ export class OrderDetailComponent implements OnInit {
     } catch (err: any) {
       this.ssrError.set(
         err?.status === 422
-          ? (err?.error?.message ?? 'Cannot add SSR: within the 24-hour amendment cut-off window.')
-          : 'Failed to add SSR. Please try again.'
+          ? (err?.error?.message ?? 'Cannot add service: within the 24-hour amendment cut-off window.')
+          : 'Failed to add service. Please try again.'
       );
     } finally {
       this.ssrSaving.set(false);
