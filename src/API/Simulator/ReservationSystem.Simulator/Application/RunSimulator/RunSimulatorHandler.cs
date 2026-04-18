@@ -34,23 +34,31 @@ public sealed class RunSimulatorHandler
 
     // ── Route catalogue — all daily direct routes ──────────────────────────────
 
-    /// <summary>Outbound leg origin/destination pairs. Return uses the reverse.</summary>
-    private static readonly (string Origin, string Destination)[] Routes =
+    /// <summary>
+    /// Outbound leg origin/destination pairs with weights proportional to daily departures.
+    /// Return uses the reverse. Weights match the test schedule: JFK has 3 daily departures,
+    /// MIA and DEL each have 1.
+    /// </summary>
+    private static readonly (string Origin, string Destination, int Weight)[] Routes =
     [
-        ("LHR", "JFK"),
-        ("LHR", "MIA"),
-        ("LHR", "DEL"),
+        ("LHR", "JFK", 3),   // AX001 · AX003 · AX005
+        ("LHR", "MIA", 1),   // AX021
+        ("LHR", "DEL", 1),   // AX411
     ];
 
     // ── Connecting route catalogue — two-segment journeys via LHR ─────────────
 
-    /// <summary>Multi-segment itineraries connecting South Asia ↔ North America via LHR.</summary>
-    private static readonly (string Origin, string Hub, string Destination)[] ConnectingRoutes =
+    /// <summary>
+    /// Multi-segment itineraries connecting South Asia ↔ North America via LHR.
+    /// Weights are the product of daily departures on each leg, so higher-frequency
+    /// pairings are selected proportionally more often.
+    /// </summary>
+    private static readonly (string Origin, string Hub, string Destination, int Weight)[] ConnectingRoutes =
     [
-        ("DEL", "LHR", "JFK"),
-        ("DEL", "LHR", "MIA"),
-        ("JFK", "LHR", "DEL"),
-        ("MIA", "LHR", "DEL"),
+        ("DEL", "LHR", "JFK", 3),   // DEL→LHR(1) × LHR→JFK(3)
+        ("DEL", "LHR", "MIA", 1),   // DEL→LHR(1) × LHR→MIA(1)
+        ("JFK", "LHR", "DEL", 3),   // JFK→LHR(3) × LHR→DEL(1)
+        ("MIA", "LHR", "DEL", 1),   // MIA→LHR(1) × LHR→DEL(1)
     ];
 
     // ── Cabin preference weights ────────────────────────────────────────────────
@@ -169,7 +177,7 @@ public sealed class RunSimulatorHandler
         int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
-        var route = Routes[Random.Shared.Next(Routes.Length)];
+        var route = Routes[WeightedRandomIndex(Routes.Select(r => r.Weight).ToArray())];
 
         // ── Step 1: Search outbound ────────────────────────────────────────────
         // Pick randomly between today and tomorrow for the departure date.
@@ -312,7 +320,7 @@ public sealed class RunSimulatorHandler
         int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
-        var route = ConnectingRoutes[Random.Shared.Next(ConnectingRoutes.Length)];
+        var route = ConnectingRoutes[WeightedRandomIndex(ConnectingRoutes.Select(r => r.Weight).ToArray())];
 
         // ── Step 1: Search leg 1 (Origin → Hub) ───────────────────────────────
         var departureDateOffset = Random.Shared.Next(0, 2); // 0 = today, 1 = tomorrow
@@ -424,8 +432,29 @@ public sealed class RunSimulatorHandler
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns a randomly chosen leg whose departure is at least 1 hour from now
-    /// and no more than 48 hours from now. Returns null when no legs qualify.
+    /// Returns a random index from <paramref name="weights"/>, where each index is chosen
+    /// with probability proportional to its weight.
+    /// </summary>
+    private static int WeightedRandomIndex(int[] weights)
+    {
+        var total      = weights.Sum();
+        var roll       = Random.Shared.Next(total);
+        var cumulative = 0;
+
+        for (var i = 0; i < weights.Length; i++)
+        {
+            cumulative += weights[i];
+            if (roll < cumulative) return i;
+        }
+
+        return 0; // unreachable
+    }
+
+    /// <summary>
+    /// Returns a demand-weighted randomly chosen leg whose departure is at least 1 hour
+    /// from now and no more than 48 hours from now. Returns null when no legs qualify.
+    /// Morning departures carry higher weights, so they accumulate bookings faster and
+    /// sell out sooner, while all flights still receive meaningful traffic.
     /// </summary>
     private static SearchLeg? SelectValidLeg(SearchSliceResponse response, DateTime utcNow)
     {
@@ -434,16 +463,29 @@ public sealed class RunSimulatorHandler
 
         var validLegs = response.Itineraries
             .SelectMany(it => it.Legs)
-            .Where(leg =>
-            {
-                var departure = ParseDeparture(leg.DepartureDate, leg.DepartureTime);
-                return departure.HasValue && departure.Value > earliest && departure.Value <= latest;
-            })
+            .Select(leg => (Leg: leg, Departure: ParseDeparture(leg.DepartureDate, leg.DepartureTime)))
+            .Where(x => x.Departure.HasValue && x.Departure.Value > earliest && x.Departure.Value <= latest)
             .ToList();
 
         if (validLegs.Count == 0) return null;
-        return validLegs[Random.Shared.Next(validLegs.Count)];
+
+        var weights = validLegs.Select(x => DepartureDemandWeight(x.Departure!.Value)).ToArray();
+        return validLegs[WeightedRandomIndex(weights)].Leg;
     }
+
+    /// <summary>
+    /// Returns a demand weight for a flight based on its UTC departure hour.
+    /// Mirrors real-world booking patterns: morning departures attract the most demand
+    /// (business travellers, day-trip connections), evenings and overnight less so.
+    /// </summary>
+    private static int DepartureDemandWeight(DateTime utcDeparture) => utcDeparture.Hour switch
+    {
+        >= 6  and < 10 => 5,   // morning peak  — e.g. AX001 (LHR→JFK 08:00), AX412 (DEL→LHR 08:30)
+        >= 10 and < 14 => 4,   // mid-morning   — e.g. AX003 (LHR→JFK 12:00), AX021 (LHR→MIA 10:00)
+        >= 14 and < 18 => 3,   // afternoon
+        >= 18 and < 22 => 2,   // evening       — e.g. AX005 (LHR→JFK 17:00), AX411 (LHR→DEL 20:30)
+        _              => 1,   // overnight      — e.g. AX004/AX006 (JFK→LHR), AX022 (MIA→LHR)
+    };
 
     private static DateTime? ParseDeparture(string date, string time)
     {
