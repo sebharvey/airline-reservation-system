@@ -11,6 +11,8 @@ public sealed class AdminCreateBagPricingRequest
 
 public sealed class AdminUpdateBagPricingRequest
 {
+    public int BagSequence { get; init; }
+    public string CurrencyCode { get; init; } = string.Empty;
     public decimal Price { get; init; }
     public bool IsActive { get; init; }
     public string ValidFrom { get; init; } = string.Empty;
