@@ -30,7 +30,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'orderItems' | 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('orderItems');
+  activeTab = signal<'orderItems' | 'passengers' | 'payments' | 'history' | 'tickets'>('orderItems');
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
@@ -49,6 +49,8 @@ export class OrderDetailComponent implements OnInit {
   // Edit-in-place state for existing SSR rows
   editingSsrKey = signal<string | null>(null);
   editSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
+
+  selectedOrderItem = signal<OrderItem | null>(null);
 
   // Tickets tab state
   tickets = signal<Ticket[]>([]);
@@ -131,10 +133,20 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'orderItems' | 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'): void {
+  switchTab(tab: 'orderItems' | 'passengers' | 'payments' | 'history' | 'tickets'): void {
     this.activeTab.set(tab);
-    if (tab === 'ssrs') this.loadSsrOptions();
     if (tab === 'tickets') this.loadTickets();
+  }
+
+  openItemModal(item: OrderItem): void {
+    this.selectedOrderItem.set(item);
+    this.ssrError.set('');
+    if (item.itemType === 'SSR') this.loadSsrOptions();
+  }
+
+  closeItemModal(): void {
+    this.selectedOrderItem.set(null);
+    this.ssrError.set('');
   }
 
   goBack(): void {
@@ -346,6 +358,7 @@ export class OrderDetailComponent implements OnInit {
     };
     try {
       await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
+      this.closeItemModal();
       await this.loadOrder();
     } catch (err: any) {
       this.ssrError.set(
