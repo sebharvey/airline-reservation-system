@@ -235,7 +235,8 @@
 .route-mobile { font-size: 0.75rem; color: var(--text-muted); display: none; }
 
 .route-cell { color: var(--text-muted); font-size: 0.85rem; }
-.amount-cell { font-weight: 600; }
+.amount-cell { font-weight: 600; text-align: right; }
+.th-numeric { text-align: right; }
 
 /* Status badges */
 .status-badge {
