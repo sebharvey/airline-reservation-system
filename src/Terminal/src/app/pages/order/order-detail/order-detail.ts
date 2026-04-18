@@ -246,6 +246,10 @@ export class OrderDetailComponent implements OnInit {
     }[status] ?? 'badge-default';
   }
 
+  itemTypeLabel(type: string): string {
+    return type === 'SSR' ? 'Service' : type;
+  }
+
   itemTypeBadgeClass(type: string): string {
     return {
       Flight: 'item-flight',
