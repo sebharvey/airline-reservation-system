@@ -2,11 +2,10 @@
 
 **A modern airline retailing platform built with an agentic-code first approach.**
 
-Website:
-https://apex.omegasoft.co.uk
-
-Admin:
-https://terminal.apex.omegasoft.co.uk
+| App | Site |
+|--|--|
+| Website | https://apex.omegasoft.co.uk |
+| Admin | https://terminal.apex.omegasoft.co.uk |
 
 ---
 
