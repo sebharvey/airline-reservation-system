@@ -78,7 +78,7 @@ public sealed class OrderDbContext : DbContext
 
             entity.Property(b => b.BasketData)
                   .HasColumnName("BasketData")
-                  .HasColumnType("nvarchar(max)")
+                  .HasColumnType("json")
                   .IsRequired();
 
             entity.Property(b => b.CreatedAt)

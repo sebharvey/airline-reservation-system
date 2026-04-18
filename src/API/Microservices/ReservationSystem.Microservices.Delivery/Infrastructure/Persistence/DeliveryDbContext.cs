@@ -33,7 +33,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(t => t.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
             entity.Property(t => t.IsVoided).HasColumnType("bit").IsRequired();
             entity.Property(t => t.VoidedAt).HasColumnType("datetime2").IsRequired(false);
-            entity.Property(t => t.TicketData).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(t => t.TicketData).HasColumnType("json").IsRequired();
             entity.Property(t => t.CreatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(t => t.UpdatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(t => t.Version).HasColumnType("int").IsRequired();
@@ -62,7 +62,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(d => d.Amount).HasColumnType("decimal(10,2)").IsRequired();
             entity.Property(d => d.CurrencyCode).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
             entity.Property(d => d.IsVoided).HasColumnType("bit").IsRequired();
-            entity.Property(d => d.DocumentData).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(d => d.DocumentData).HasColumnType("json").IsRequired();
             entity.Property(d => d.CreatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(d => d.UpdatedAt).HasColumnType("datetime2").IsRequired();
 

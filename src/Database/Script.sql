@@ -165,7 +165,7 @@ CREATE TABLE [offer].[FlightInventory] (
     Origin            CHAR(3)          NOT NULL,
     Destination       CHAR(3)          NOT NULL,
     AircraftType      VARCHAR(4)       NOT NULL,
-    Cabins            NVARCHAR(MAX)    NOT NULL,
+    Cabins            JSON             NOT NULL,
     TotalSeats        SMALLINT         NOT NULL,
     SeatsAvailable    SMALLINT         NOT NULL,
     Status            VARCHAR(20)      NOT NULL CONSTRAINT DF_FlightInventory_Status  DEFAULT 'Active',
@@ -173,8 +173,7 @@ CREATE TABLE [offer].[FlightInventory] (
     UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Updated DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_FlightInventory          PRIMARY KEY (InventoryId),
     CONSTRAINT UQ_FlightInventory_Flight   UNIQUE      (FlightNumber, DepartureDate),
-    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled')),
-    CONSTRAINT CHK_FlightInventory_Cabins  CHECK (ISJSON(Cabins) = 1)
+    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled'))
 );
 GO
 
@@ -362,7 +361,7 @@ CREATE TABLE [offer].[FareRule] (
     ValidTo               DATETIME2            NULL,
     CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Created     DEFAULT SYSUTCDATETIME(),
     UpdatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Updated     DEFAULT SYSUTCDATETIME(),
-    TaxLines              NVARCHAR(MAX)        NULL,
+    TaxLines              JSON                 NULL,
     CONSTRAINT PK_FareRule          PRIMARY KEY (FareRuleId),
     CONSTRAINT CHK_FareRule_Cabin   CHECK (CabinCode IN ('F','J','W','Y')),
     CONSTRAINT CHK_FareRule_RuleType CHECK (RuleType IN ('Money','Points'))
@@ -412,7 +411,7 @@ IF OBJECT_ID('[offer].[StoredOffer]', 'U') IS NULL
 CREATE TABLE [offer].[StoredOffer] (
     StoredOfferId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_StoredOffer_Id      DEFAULT NEWID(),
     SessionId     UNIQUEIDENTIFIER NOT NULL,
-    FaresInfo     NVARCHAR(MAX)    NOT NULL,
+    FaresInfo     JSON             NOT NULL,
     CreatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Created DEFAULT SYSUTCDATETIME(),
     ExpiresAt     DATETIME2        NOT NULL,
     UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_StoredOffer_Updated DEFAULT SYSUTCDATETIME(),
@@ -463,10 +462,9 @@ CREATE TABLE [order].[Basket] (
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Basket_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Basket_Updated  DEFAULT SYSUTCDATETIME(),
     Version          INT              NOT NULL CONSTRAINT DF_Basket_Version  DEFAULT 1,
-    BasketData       NVARCHAR(MAX)    NOT NULL,
+    BasketData       JSON             NOT NULL,
     CONSTRAINT PK_Basket          PRIMARY KEY (BasketId),
-    CONSTRAINT CHK_Basket_Status  CHECK (BasketStatus IN ('Active','Expired','Abandoned','Confirmed')),
-    CONSTRAINT CHK_Basket_Data    CHECK (ISJSON(BasketData) = 1)
+    CONSTRAINT CHK_Basket_Status  CHECK (BasketStatus IN ('Active','Expired','Abandoned','Confirmed'))
 );
 GO
 
@@ -665,13 +663,12 @@ CREATE TABLE [delivery].[Ticket] (
     PassengerId      VARCHAR(20)      NOT NULL,
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided   DEFAULT 0,
     VoidedAt         DATETIME2            NULL,
-    TicketData       NVARCHAR(MAX)    NOT NULL,
+    TicketData       JSON             NOT NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Updated  DEFAULT SYSUTCDATETIME(),
     Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version  DEFAULT 1,
     CONSTRAINT PK_Ticket         PRIMARY KEY (TicketId),
-    CONSTRAINT UQ_Ticket_Number  UNIQUE (TicketNumber),
-    CONSTRAINT CHK_Ticket_Data   CHECK (ISJSON(TicketData) = 1)
+    CONSTRAINT UQ_Ticket_Number  UNIQUE (TicketNumber)
 );
 GO
 
@@ -764,13 +761,12 @@ CREATE TABLE [delivery].[Document] (
     Amount           DECIMAL(10,2)    NOT NULL,
     CurrencyCode     CHAR(3)          NOT NULL CONSTRAINT DF_Document_Currency DEFAULT 'GBP',
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Document_Voided   DEFAULT 0,
-    DocumentData     NVARCHAR(MAX)    NOT NULL,
+    DocumentData     JSON             NOT NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Document_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Document_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Document        PRIMARY KEY (DocumentId),
     CONSTRAINT UQ_Document_Number UNIQUE (DocumentNumber),
-    CONSTRAINT CHK_Document_Type  CHECK (DocumentType IN ('SeatAncillary','BagAncillary')),
-    CONSTRAINT CHK_Document_Data  CHECK (ISJSON(DocumentData) = 1)
+    CONSTRAINT CHK_Document_Type  CHECK (DocumentType IN ('SeatAncillary','BagAncillary'))
 );
 GO
 
@@ -806,12 +802,11 @@ CREATE TABLE [seat].[AircraftType] (
     Manufacturer     VARCHAR(50)  NOT NULL,
     FriendlyName     VARCHAR(100)     NULL,
     TotalSeats       SMALLINT     NOT NULL,
-    CabinCounts      NVARCHAR(MAX)    NULL,
+    CabinCounts      JSON             NULL,
     IsActive         BIT          NOT NULL CONSTRAINT DF_AircraftType_Active  DEFAULT 1,
     CreatedAt        DATETIME2    NOT NULL CONSTRAINT DF_AircraftType_Created DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2    NOT NULL CONSTRAINT DF_AircraftType_Updated DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_AircraftType PRIMARY KEY (AircraftTypeCode),
-    CONSTRAINT CHK_CabinCounts CHECK (CabinCounts IS NULL OR ISJSON(CabinCounts) = 1)
+    CONSTRAINT PK_AircraftType PRIMARY KEY (AircraftTypeCode)
 );
 GO
 
@@ -838,10 +833,9 @@ CREATE TABLE [seat].[Seatmap] (
     IsActive         BIT              NOT NULL CONSTRAINT DF_Seatmap_Active  DEFAULT 1,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Seatmap_Created DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Seatmap_Updated DEFAULT SYSUTCDATETIME(),
-    CabinLayout      NVARCHAR(MAX)    NOT NULL,
+    CabinLayout      JSON             NOT NULL,
     CONSTRAINT PK_Seatmap              PRIMARY KEY (SeatmapId),
-    CONSTRAINT FK_Seatmap_AircraftType FOREIGN KEY (AircraftTypeCode) REFERENCES [seat].[AircraftType](AircraftTypeCode),
-    CONSTRAINT CHK_Seatmap_Layout      CHECK (ISJSON(CabinLayout) = 1)
+    CONSTRAINT FK_Seatmap_AircraftType FOREIGN KEY (AircraftTypeCode) REFERENCES [seat].[AircraftType](AircraftTypeCode)
 );
 GO
 
