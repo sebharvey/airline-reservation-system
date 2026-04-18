@@ -665,6 +665,12 @@
               <span class="field-label">Passenger</span>
               <span class="field-value">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</span>
             </div>
+            @if ((item.passengerCount ?? 1) > 1) {
+              <div class="field-row">
+                <span class="field-label">Passengers</span>
+                <span class="field-value">{{ item.passengerCount }}</span>
+              </div>
+            }
             <div class="field-row">
               <span class="field-label">Cabin</span>
               <span class="field-value">{{ seg?.cabinClass ?? '—' }}</span>
@@ -699,13 +705,23 @@
               @if (item.fareAmount != null) {
                 <div class="fare-line">
                   <span class="fare-line-label">Base fare</span>
-                  <span class="fare-line-value">{{ formatAmount(item.fareAmount, item.currency) }}</span>
+                  <span class="fare-line-value">
+                    {{ formatAmount(item.fareAmount, item.currency) }}
+                    @if ((item.passengerCount ?? 1) > 1) {
+                      <span class="fare-per-pax muted">({{ item.passengerCount }} &times; {{ formatAmount(item.fareAmount / item.passengerCount!, item.currency) }})</span>
+                    }
+                  </span>
                 </div>
               }
               @if (item.taxAmount != null) {
                 <div class="fare-line">
                   <span class="fare-line-label">Taxes &amp; charges</span>
-                  <span class="fare-line-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+                  <span class="fare-line-value">
+                    {{ formatAmount(item.taxAmount, item.currency) }}
+                    @if ((item.passengerCount ?? 1) > 1) {
+                      <span class="fare-per-pax muted">({{ item.passengerCount }} &times; {{ formatAmount(item.taxAmount / item.passengerCount!, item.currency) }})</span>
+                    }
+                  </span>
                 </div>
                 @if (item.taxLines && item.taxLines.length > 0) {
                   @for (tl of item.taxLines; track tl.code) {

@@ -139,6 +139,7 @@ public sealed class ConfirmOrderHandler
                 "origin", "destination", "aircraftType",
                 "fareBasisCode", "fareFamily",
                 "totalAmount", "baseFareAmount", "taxAmount",
+                "unitAmount", "unitBaseFareAmount", "unitTaxAmount", "passengerCount",
                 "isRefundable", "isChangeable",
                 "pointsPrice", "pointsTaxes"
             })
@@ -156,6 +157,8 @@ public sealed class ConfirmOrderHandler
                 item["baseFareAmount"] = enriched.BaseFareAmount;
                 item["taxAmount"]      = enriched.TaxAmount;
                 item["totalAmount"]    = enriched.TotalAmount;
+                if (enriched.PassengerCount > 0)
+                    item["passengerCount"] = enriched.PassengerCount;
 
                 if (enriched.TaxLines is { Count: > 0 })
                 {
@@ -354,9 +357,10 @@ public sealed class ConfirmOrderHandler
 
                 map[key] = new EnrichedOfferEntry
                 {
-                    BaseFareAmount = item.TryGetProperty("baseFareAmount", out var bf) ? bf.GetDecimal() : 0m,
-                    TaxAmount      = item.TryGetProperty("taxAmount",      out var ta) ? ta.GetDecimal() : 0m,
+                    BaseFareAmount = item.TryGetProperty("baseFareAmount", out var bf)  ? bf.GetDecimal()  : 0m,
+                    TaxAmount      = item.TryGetProperty("taxAmount",      out var ta)  ? ta.GetDecimal()  : 0m,
                     TotalAmount    = item.TryGetProperty("totalAmount",    out var tot) ? tot.GetDecimal() : 0m,
+                    PassengerCount = item.TryGetProperty("passengerCount", out var pc)  ? pc.GetInt32()    : 0,
                     TaxLines       = taxLines
                 };
             }
@@ -371,6 +375,7 @@ public sealed class ConfirmOrderHandler
         public decimal BaseFareAmount { get; init; }
         public decimal TaxAmount { get; init; }
         public decimal TotalAmount { get; init; }
+        public int PassengerCount { get; init; }
         public List<TaxLineEntry>? TaxLines { get; init; }
     }
 
