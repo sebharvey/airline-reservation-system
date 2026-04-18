@@ -98,7 +98,6 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th>Order</th>
             <th>Status</th>
             <th>Created</th>
             <th>Actions</th>
@@ -108,7 +107,6 @@
           @for (group of sortedGroups(); track group.productGroupId; let first = $first; let last = $last) {
             <tr class="rule-row">
               <td class="name-cell">{{ group.name }}</td>
-              <td class="mono">{{ group.sortOrder }}</td>
               <td>
                 <span class="badge" [class.badge-yes]="group.isActive" [class.badge-no]="!group.isActive">
                   {{ group.isActive ? 'Active' : 'Inactive' }}
@@ -133,7 +131,7 @@
           }
           @if (groups().length === 0 && loaded()) {
             <tr>
-              <td colspan="5" class="empty-row">No product groups found. Click "New Group" to create one.</td>
+              <td colspan="4" class="empty-row">No product groups found. Click "New Group" to create one.</td>
             </tr>
           }
         </tbody>
