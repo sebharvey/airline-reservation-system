@@ -106,7 +106,7 @@ sequenceDiagram
     DisruptionAPI->>OfferMS: PATCH /v1/inventory/cancel (inventoryId, flightNumber, departureDate)
     OfferMS-->>DisruptionAPI: 200 OK — cancelled flight inventory closed (SeatsAvailable = 0, status = Cancelled)
 
-    Note over DisruptionAPI: Queue rebooking job on Service Bus with full event payload; return 202 immediately
+    Note over DisruptionAPI: Queue rebooking job on Service Bus with full event payload, return 202 immediately
     DisruptionAPI-->>FOS: 202 Accepted — event received, inventory closed, rebooking queued for async processing
 
     Note over DisruptionAPI: Async worker picks up the queued rebooking job from Service Bus
