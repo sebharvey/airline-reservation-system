@@ -89,8 +89,6 @@ public sealed class IssueTicketsHandler
         // Pre-compute tax attribution: splits YQ/YR per coupon, attributes country taxes to
         // the relevant departure/arrival coupon. Results are embedded in fareConstruction.taxes
         // so GetCouponValueHandler can sum them without re-running attribution at read time.
-        record FcTaxEntry(string Code, decimal Amount, string Currency, IReadOnlyList<int> CouponNumbers);
-
         var fcTaxEntries = new List<FcTaxEntry>();
         foreach (var tax in fc.Taxes)
         {
@@ -244,4 +242,6 @@ public sealed class IssueTicketsHandler
         while (i < flightNumber.Length && char.IsLetter(flightNumber[i])) i++;
         return i > 0 ? flightNumber[0..i] : flightNumber;
     }
+
+    private sealed record FcTaxEntry(string Code, decimal Amount, string Currency, IReadOnlyList<int> CouponNumbers);
 }
