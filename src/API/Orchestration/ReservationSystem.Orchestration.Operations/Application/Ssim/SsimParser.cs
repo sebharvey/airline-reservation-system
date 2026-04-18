@@ -43,15 +43,17 @@ public static class SsimParser
             {
                 case '2' when line.Length >= 14:
                     // Type 2: carrier header — extract airline designator, season code and validity.
+                    // Layout (0-indexed): [0]='2', [1-2]=airline (2-char), [3-4]=spaces, [5-7]=season code,
+                    // [8-15]=period start YYYYMMDD, [16]=space, [17-24]=period end YYYYMMDD.
                     carrierCode = line.Substring(1, 2).Trim();
-                    seasonCode  = line.Substring(3, 3).Trim();
-                    if (line.Length >= 22 && DateTime.TryParseExact(
-                            line.Substring(5, 8), "yyyyMMdd",
+                    seasonCode  = line.Length >= 8  ? line.Substring(5, 3).Trim() : string.Empty;
+                    if (line.Length >= 16 && DateTime.TryParseExact(
+                            line.Substring(8, 8), "yyyyMMdd",
                             System.Globalization.CultureInfo.InvariantCulture,
                             System.Globalization.DateTimeStyles.None, out var sf))
                         seasonStart = sf.ToString("yyyy-MM-dd");
-                    if (line.Length >= 22 && DateTime.TryParseExact(
-                            line.Substring(14, 8), "yyyyMMdd",
+                    if (line.Length >= 25 && DateTime.TryParseExact(
+                            line.Substring(17, 8), "yyyyMMdd",
                             System.Globalization.CultureInfo.InvariantCulture,
                             System.Globalization.DateTimeStyles.None, out var st))
                         seasonEnd = st.ToString("yyyy-MM-dd");
