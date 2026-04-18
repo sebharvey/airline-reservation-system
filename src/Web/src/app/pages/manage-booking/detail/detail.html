@@ -19,23 +19,33 @@
 
   <!-- Order loaded -->
   @if (order(); as o) {
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-row">
-        <div>
-          <div class="ref-heading-wrap">
-            <h2>Booking {{ o.bookingReference }}</h2>
-            <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
-              @if (copiedText() === o.bookingReference) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              }
-            </button>
+    <!-- Order Meta -->
+    <div class="section">
+      <h3 class="section-title">Order</h3>
+      <div class="card">
+        <div class="pax-details">
+          <div class="pax-detail-row">
+            <span class="pax-detail-label">Booking Reference</span>
+            <span class="copy-wrap mono">
+              {{ o.bookingReference }}
+              <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                @if (copiedText() === o.bookingReference) {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                }
+              </button>
+            </span>
           </div>
-          <p class="created-at">Booked {{ formatDate(o.createdAt) }}</p>
+          <div class="pax-detail-row">
+            <span class="pax-detail-label">Status</span>
+            <span class="status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
+          </div>
+          <div class="pax-detail-row">
+            <span class="pax-detail-label">Booked</span>
+            <span>{{ formatDate(o.createdAt) }}</span>
+          </div>
         </div>
-        <span class="status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
       </div>
     </div>
 
