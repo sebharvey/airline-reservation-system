@@ -262,30 +262,53 @@ public sealed class GetOrderHandler
                 {
                     foreach (var oi in oiEl.EnumerateArray())
                     {
-                        if (!oi.TryGetProperty("productType", out var ptEl) ||
-                            !string.Equals(ptEl.GetString(), "BAG", StringComparison.OrdinalIgnoreCase))
-                            continue;
+                        var oiProductType = oi.TryGetProperty("productType", out var ptEl) ? ptEl.GetString() : null;
 
-                        var paxId    = oi.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
-                        var segId    = oi.TryGetProperty("segmentId",      out var bsid) ? bsid.GetString() ?? "" : "";
-                        var addBags  = oi.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()          : 1;
-                        var bagPrice = oi.TryGetProperty("price",          out var bp)   ? bp.GetDecimal()        : 0m;
-
-                        orderItems.Add(new ManagedOrderItem
+                        if (string.Equals(oiProductType, "BAG", StringComparison.OrdinalIgnoreCase))
                         {
-                            OrderItemId      = $"bag-{paxId}-{segId}",
-                            Type             = "Bag",
-                            SegmentRef       = segId,
-                            PassengerRefs    = [paxId],
-                            UnitPrice        = bagPrice,
-                            Taxes            = 0m,
-                            TotalPrice       = bagPrice,
-                            IsRefundable     = false,
-                            IsChangeable     = false,
-                            AdditionalBags   = addBags,
-                            PaymentReference = "",
-                            ETickets         = []
-                        });
+                            var paxId    = oi.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
+                            var segId    = oi.TryGetProperty("segmentId",      out var bsid) ? bsid.GetString() ?? "" : "";
+                            var addBags  = oi.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()          : 1;
+                            var bagPrice = oi.TryGetProperty("price",          out var bp)   ? bp.GetDecimal()        : 0m;
+
+                            orderItems.Add(new ManagedOrderItem
+                            {
+                                OrderItemId      = $"bag-{paxId}-{segId}",
+                                Type             = "Bag",
+                                SegmentRef       = segId,
+                                PassengerRefs    = [paxId],
+                                UnitPrice        = bagPrice,
+                                Taxes            = 0m,
+                                TotalPrice       = bagPrice,
+                                IsRefundable     = false,
+                                IsChangeable     = false,
+                                AdditionalBags   = addBags,
+                                PaymentReference = "",
+                                ETickets         = []
+                            });
+                        }
+                        else if (string.Equals(oiProductType, "SERVICE", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var ssrCode    = oi.TryGetProperty("ssrCode",      out var sc)   ? sc.GetString()  ?? "" : "";
+                            var passengerRef = oi.TryGetProperty("passengerRef", out var pr)  ? pr.GetString()  ?? "" : "";
+                            var segmentRef = oi.TryGetProperty("segmentRef",   out var sr)   ? sr.GetString()  ?? "" : "";
+
+                            orderItems.Add(new ManagedOrderItem
+                            {
+                                OrderItemId      = $"ssr-{ssrCode}-{passengerRef}-{segmentRef}",
+                                Type             = "SSR",
+                                SegmentRef       = segmentRef,
+                                PassengerRefs    = string.IsNullOrEmpty(passengerRef) ? [] : [passengerRef],
+                                SsrCode          = ssrCode,
+                                UnitPrice        = 0m,
+                                Taxes            = 0m,
+                                TotalPrice       = 0m,
+                                IsRefundable     = false,
+                                IsChangeable     = false,
+                                PaymentReference = "",
+                                ETickets         = []
+                            });
+                        }
                     }
                 }
             }

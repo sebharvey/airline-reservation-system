@@ -95,6 +95,7 @@ public sealed class UpdateOrderSsrsHandler
 
                         ssrItems.Add(new JsonObject
                         {
+                            ["productType"] = "SERVICE",
                             ["ssrCode"] = ssrCode,
                             ["passengerRef"] = passengerRef,
                             ["segmentRef"] = segmentRef

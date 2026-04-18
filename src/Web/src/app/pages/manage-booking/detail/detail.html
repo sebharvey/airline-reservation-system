@@ -226,6 +226,9 @@
               @if (item.additionalBags) {
                 <span class="ancillary-detail">+{{ item.additionalBags }} bag(s)</span>
               }
+              @if (item.ssrCode) {
+                <span class="ancillary-detail">{{ item.ssrCode }}</span>
+              }
               <span class="ancillary-price">{{ formatCurrency(item.totalPrice, o.currency) }}</span>
             </div>
           }
