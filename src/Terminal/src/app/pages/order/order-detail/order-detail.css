@@ -154,6 +154,33 @@
 .chip-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .chip-value { font-size: 0.85rem; font-weight: 600; color: var(--text); }
 
+.meta-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 20px;
+  row-gap: 7px;
+  align-items: baseline;
+}
+
+.meta-row-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.meta-row-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* Two-column info panel: meta left, passengers right */
 .order-info-panel {
   display: grid;
@@ -983,8 +1010,62 @@
 
 .modal-section-meta { background: none; }
 
+.flight-route-section {
+  background: var(--bg-light);
+  border-radius: var(--radius-sm);
+  margin: -4px -4px 0;
+  padding: 16px !important;
+}
+
+.fare-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.fare-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.fare-line:last-child { border-bottom: none; }
+
+.fare-line-label { color: var(--text-muted); }
+
+.fare-line-value { font-weight: 600; color: var(--text); }
+
+.fare-line-total {
+  background: var(--bg-light);
+}
+
+.fare-line-total .fare-line-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fare-line-total .fare-line-value {
+  font-size: 1rem;
+  color: var(--grad-start);
+}
+
+.tax-breakdown-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
 .tax-list {
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;

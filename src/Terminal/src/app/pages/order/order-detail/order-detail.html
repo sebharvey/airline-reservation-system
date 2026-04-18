@@ -71,23 +71,17 @@
     <!-- Info panel: order meta (left) + passenger list (right) -->
     <div class="order-info-panel">
       <div class="order-meta-col">
-        <div class="meta-chip">
-          <span class="chip-label">Created</span>
-          <span class="chip-value">{{ formatDateTime(o.createdAt) }}</span>
-        </div>
-        <div class="meta-chip">
-          <span class="chip-label">Last updated</span>
-          <span class="chip-value">{{ formatDateTime(o.updatedAt) }}</span>
-        </div>
-        @if (o.ticketingTimeLimit) {
-          <div class="meta-chip">
-            <span class="chip-label">Ticketing limit</span>
-            <span class="chip-value">{{ formatDateTime(o.ticketingTimeLimit) }}</span>
-          </div>
-        }
-        <div class="meta-chip">
-          <span class="chip-label">Version</span>
-          <span class="chip-value">{{ o.version }}</span>
+        <div class="meta-card">
+          <span class="meta-row-label">Created</span>
+          <span class="meta-row-value">{{ formatDateTime(o.createdAt) }}</span>
+          <span class="meta-row-label">Last updated</span>
+          <span class="meta-row-value">{{ formatDateTime(o.updatedAt) }}</span>
+          @if (o.ticketingTimeLimit) {
+            <span class="meta-row-label">Ticketing limit</span>
+            <span class="meta-row-value">{{ formatDateTime(o.ticketingTimeLimit) }}</span>
+          }
+          <span class="meta-row-label">Version</span>
+          <span class="meta-row-value">{{ o.version }}</span>
         </div>
       </div>
 
@@ -572,8 +566,10 @@
       <!-- ── FLIGHT ── -->
       @if (item.itemType === 'Flight') {
         @let seg = segments().find(s => s.segmentId === (item?.segmentId ?? ''));
+
+        <!-- Route hero -->
         @if (seg) {
-          <div class="modal-section">
+          <div class="modal-section flight-route-section">
             <div class="item-route">
               <div class="item-route-point">
                 <span class="airport-code">{{ seg.origin }}</span>
@@ -593,19 +589,26 @@
             </div>
           </div>
         }
+
+        <!-- Details -->
         <div class="modal-section">
+          <div class="modal-section-title">Details</div>
           <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Passenger</span>
+              <span class="field-value">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</span>
+            </div>
             <div class="field-row">
               <span class="field-label">Cabin</span>
               <span class="field-value">{{ seg?.cabinClass ?? '—' }}</span>
             </div>
             <div class="field-row">
-              <span class="field-label">Passenger</span>
-              <span class="field-value">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</span>
+              <span class="field-label">Status</span>
+              <span class="field-value"><span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span></span>
             </div>
             @if (item.eTicketNumber) {
               <div class="field-row field-row-full">
-                <span class="field-label">E-ticket</span>
+                <span class="field-label">E-ticket number</span>
                 <span class="field-value mono loyalty-copy-wrap">
                   {{ item.eTicketNumber }}
                   <button class="copy-btn" [class.copied]="copiedText() === item.eTicketNumber" (click)="copyText(item.eTicketNumber!)" [title]="copiedText() === item.eTicketNumber ? 'Copied!' : 'Copy e-ticket'">
@@ -618,36 +621,35 @@
                 </span>
               </div>
             }
-            <div class="field-row">
-              <span class="field-label">Status</span>
-              <span class="field-value"><span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span></span>
-            </div>
           </div>
         </div>
+
+        <!-- Fare -->
         @if (item.fareAmount != null || item.taxAmount != null || item.totalAmount != null) {
           <div class="modal-section">
             <div class="modal-section-title">Fare</div>
-            <div class="field-grid">
+            <div class="fare-summary">
               @if (item.fareAmount != null) {
-                <div class="field-row">
-                  <span class="field-label">Base fare</span>
-                  <span class="field-value">{{ formatAmount(item.fareAmount, item.currency) }}</span>
+                <div class="fare-line">
+                  <span class="fare-line-label">Base fare</span>
+                  <span class="fare-line-value">{{ formatAmount(item.fareAmount, item.currency) }}</span>
                 </div>
               }
               @if (item.taxAmount != null) {
-                <div class="field-row">
-                  <span class="field-label">Total taxes</span>
-                  <span class="field-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+                <div class="fare-line">
+                  <span class="fare-line-label">Taxes &amp; charges</span>
+                  <span class="fare-line-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
                 </div>
               }
               @if (item.totalAmount != null) {
-                <div class="field-row">
-                  <span class="field-label">Total</span>
-                  <span class="field-value">{{ formatAmount(item.totalAmount, item.currency) }}</span>
+                <div class="fare-line fare-line-total">
+                  <span class="fare-line-label">Total</span>
+                  <span class="fare-line-value">{{ formatAmount(item.totalAmount, item.currency) }}</span>
                 </div>
               }
             </div>
             @if (item.taxLines && item.taxLines.length > 0) {
+              <div class="tax-breakdown-label">Tax breakdown</div>
               <div class="tax-list">
                 @for (tl of item.taxLines; track tl.code) {
                   <div class="tax-row">
