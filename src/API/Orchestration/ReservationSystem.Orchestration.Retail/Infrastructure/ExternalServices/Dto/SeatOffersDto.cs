@@ -15,4 +15,5 @@ public sealed record SeatOfferDto(
     bool IsSelectable,
     bool IsChargeable,
     decimal Price,
+    decimal Tax,
     string CurrencyCode);

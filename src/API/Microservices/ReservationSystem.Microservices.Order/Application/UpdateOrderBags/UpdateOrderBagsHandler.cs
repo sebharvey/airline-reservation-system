@@ -60,6 +60,7 @@ public sealed class UpdateOrderBagsHandler
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
                     ["price"]          = bagObj["price"]?.DeepClone(),
+                    ["tax"]            = bagObj["tax"]?.DeepClone(),
                     ["currency"]       = bagObj["currency"]?.DeepClone(),
                     ["paymentReference"] = bagObj["paymentReference"]?.GetValue<string>(),
                 });
