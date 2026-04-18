@@ -86,6 +86,12 @@
 
     <!-- Tabs -->
     <div class="tabs">
+      <button class="tab" [class.tab-active]="activeTab() === 'orderItems'" (click)="switchTab('orderItems')">
+        Order Items
+        @if (allOrderItems().length) {
+          <span class="tab-count">{{ allOrderItems().length }}</span>
+        }
+      </button>
       <button class="tab" [class.tab-active]="activeTab() === 'itinerary'" (click)="switchTab('itinerary')">
         Itinerary
       </button>
@@ -126,6 +132,48 @@
         }
       </button>
     </div>
+
+    <!-- ── ORDER ITEMS TAB ── -->
+    @if (activeTab() === 'orderItems') {
+      <div class="tab-content fade-in">
+        @if (allOrderItems().length === 0) {
+          <p class="empty-tab">No order items on record.</p>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Passenger</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of allOrderItems(); track item.itemId; let i = $index) {
+                <tr>
+                  <td class="muted">{{ i + 1 }}</td>
+                  <td>
+                    <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">
+                      {{ item.itemType }}
+                    </span>
+                  </td>
+                  <td>{{ item.description ?? '—' }}</td>
+                  <td>{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</td>
+                  <td>{{ item.amount != null ? formatAmount(item.amount, item.currency) : '—' }}</td>
+                  <td>
+                    <span class="status-badge" [class]="statusBadgeClass(item.status)">
+                      {{ item.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
 
     <!-- ── ITINERARY TAB ── -->
     @if (activeTab() === 'itinerary') {

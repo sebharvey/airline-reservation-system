@@ -86,6 +86,9 @@ public sealed class GetAdminOrderDetailHandler
         var flightSegments = new JsonArray();
         var enrichedItems = new JsonArray();
 
+        // Build segment description lookup (inventoryId → "AX001 LHR→JFK") for use by seat items below.
+        var segmentDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         for (var n = 0; n < orderItemsNode.Count; n++)
         {
             var item = orderItemsNode[n]?.AsObject();
@@ -127,6 +130,9 @@ public sealed class GetAdminOrderDetailHandler
                 ["departureDate"] = depDate,
             });
 
+            var segDesc = $"{flightDetail.FlightNumber} {flightDetail.Origin}→{flightDetail.Destination}";
+            segmentDescriptions[inventoryIdStr] = segDesc;
+
             // Build one enriched orderItem per passenger for this segment, carrying the e-ticket
             // number so the Terminal can look it up by passengerId + segmentId.
             if (eTicketsNode is not null)
@@ -155,6 +161,7 @@ public sealed class GetAdminOrderDetailHandler
                     {
                         ["itemId"] = Guid.NewGuid().ToString(),
                         ["itemType"] = "Flight",
+                        ["description"] = segDesc,
                         ["passengerId"] = paxId,
                         ["segmentId"] = inventoryIdStr,
                         ["status"] = "Confirmed",
@@ -182,19 +189,23 @@ public sealed class GetAdminOrderDetailHandler
             if (seatItem is null) continue;
             var seatPt = seatItem["productType"]?.GetValue<string>();
             if (!string.Equals(seatPt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
+            var seatNum = seatItem["seatNumber"]?.GetValue<string>() ?? string.Empty;
+            var seatSegId = seatItem["segmentId"]?.GetValue<string>() ?? string.Empty;
+            var seatFlightDesc = segmentDescriptions.TryGetValue(seatSegId, out var sd) ? $" — {sd}" : string.Empty;
             enrichedItems.Add(new JsonObject
             {
-                ["itemId"]       = Guid.NewGuid().ToString(),
-                ["itemType"]     = "Seat",
-                ["passengerId"]  = seatItem["passengerId"]?.GetValue<string>(),
-                ["segmentId"]    = seatItem["segmentId"]?.GetValue<string>(),
-                ["status"]       = "Confirmed",
+                ["itemId"]        = Guid.NewGuid().ToString(),
+                ["itemType"]      = "Seat",
+                ["description"]   = $"Seat {seatNum}{seatFlightDesc}",
+                ["passengerId"]   = seatItem["passengerId"]?.GetValue<string>(),
+                ["segmentId"]     = seatSegId,
+                ["status"]        = "Confirmed",
                 ["eTicketNumber"] = null,
-                ["seatNumber"]   = seatItem["seatNumber"]?.GetValue<string>(),
-                ["bagWeightKg"]  = null,
-                ["name"]         = null,
-                ["amount"]       = seatItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
-                ["currency"]     = seatItem["currency"]?.GetValue<string>(),
+                ["seatNumber"]    = seatNum,
+                ["bagWeightKg"]   = null,
+                ["name"]          = null,
+                ["amount"]        = seatItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                ["currency"]      = seatItem["currency"]?.GetValue<string>(),
             });
         }
 
@@ -207,19 +218,21 @@ public sealed class GetAdminOrderDetailHandler
             {
                 var product = productNode?.AsObject();
                 if (product is null) continue;
+                var productName = product["name"]?.GetValue<string>() ?? "Product";
                 enrichedItems.Add(new JsonObject
                 {
-                    ["itemId"] = product["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
-                    ["itemType"] = "Product",
-                    ["passengerId"] = product["passengerId"]?.GetValue<string>(),
-                    ["segmentId"] = product["segmentRef"]?.GetValue<string>(),
-                    ["status"] = "Confirmed",
+                    ["itemId"]        = product["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
+                    ["itemType"]      = "Product",
+                    ["description"]   = productName,
+                    ["passengerId"]   = product["passengerId"]?.GetValue<string>(),
+                    ["segmentId"]     = product["segmentRef"]?.GetValue<string>(),
+                    ["status"]        = "Confirmed",
                     ["eTicketNumber"] = null,
-                    ["seatNumber"] = null,
-                    ["bagWeightKg"] = null,
-                    ["name"] = product["name"]?.GetValue<string>(),
-                    ["amount"] = product["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
-                    ["currency"] = product["currency"]?.GetValue<string>(),
+                    ["seatNumber"]    = null,
+                    ["bagWeightKg"]   = null,
+                    ["name"]          = productName,
+                    ["amount"]        = product["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                    ["currency"]      = product["currency"]?.GetValue<string>(),
                 });
             }
         }

@@ -54,6 +54,7 @@ export interface FlightSegment {
 export interface OrderItem {
   itemId: string;
   itemType: string;
+  description: string | null;
   passengerId: string | null;
   segmentId: string | null;
   status: string;
