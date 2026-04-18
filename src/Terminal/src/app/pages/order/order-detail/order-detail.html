@@ -137,7 +137,14 @@
                 </tr>
               </thead>
               <tbody>
-                @for (item of allOrderItems(); track item.itemId) {
+                @for (item of allOrderItems(); track item.itemId; let i = $index) {
+                  @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
+                    <tr class="group-header-row">
+                      <td colspan="6">
+                        <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
+                      </td>
+                    </tr>
+                  }
                   <tr class="clickable-row" (click)="openItemModal(item)">
                     <td>
                       <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">
