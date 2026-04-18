@@ -116,6 +116,7 @@ public sealed class ConfirmOrderHandler
         // Carry forward bookingType and any reward redemption data from the draft OrderData
         var draftData = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
         var bookingType = draftData["bookingType"]?.GetValue<string>() ?? "Revenue";
+        var itemStatus  = bookingType == "Standby" ? "Standby" : "Confirmed";
 
         JsonNode? paymentsNode = null;
         try { paymentsNode = JsonNode.Parse(command.PaymentReferencesJson); } catch { }
@@ -174,6 +175,7 @@ public sealed class ConfirmOrderHandler
                 }
             }
 
+            item["status"]      = itemStatus;
             item["productType"] = "FLIGHT";
             flightOrderItems.Add(item);
         }
@@ -209,7 +211,7 @@ public sealed class ConfirmOrderHandler
             foreach (var seat in seats)
             {
                 if (seat is not JsonObject seatObj) continue;
-                var seatItem = new JsonObject { ["productType"] = "SEAT" };
+                var seatItem = new JsonObject { ["productType"] = "SEAT", ["status"] = itemStatus };
                 foreach (var prop in seatObj)
                 {
                     if (prop.Key is "basketItemRef" or "cabinCode" or "seatOfferId" or "basketItemId") continue;
@@ -226,6 +228,7 @@ public sealed class ConfirmOrderHandler
                 flightOrderItems.Add(new JsonObject
                 {
                     ["productType"]    = "BAG",
+                    ["status"]         = itemStatus,
                     ["passengerId"]    = bagObj["passengerId"]?.GetValue<string>(),
                     ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
@@ -244,6 +247,7 @@ public sealed class ConfirmOrderHandler
                 flightOrderItems.Add(new JsonObject
                 {
                     ["productType"] = "SERVICE",
+                    ["status"]      = itemStatus,
                     ["ssrCode"]     = ssrObj["ssrCode"]?.GetValue<string>(),
                     ["passengerRef"] = ssrObj["passengerRef"]?.GetValue<string>(),
                     ["segmentRef"]  = ssrObj["segmentRef"]?.GetValue<string>()
@@ -255,7 +259,7 @@ public sealed class ConfirmOrderHandler
             foreach (var product in products)
             {
                 if (product is not JsonObject productObj) continue;
-                var productItem = new JsonObject { ["productType"] = "PRODUCT" };
+                var productItem = new JsonObject { ["productType"] = "PRODUCT", ["status"] = itemStatus };
                 foreach (var prop in productObj)
                     productItem[prop.Key] = prop.Value?.DeepClone();
                 flightOrderItems.Add(productItem);
