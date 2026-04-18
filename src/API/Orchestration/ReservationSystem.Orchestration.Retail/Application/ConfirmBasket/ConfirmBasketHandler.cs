@@ -369,8 +369,11 @@ public sealed class ConfirmBasketHandler
             var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
             if (passengers.Count == 0 || segments.Count == 0) return [];
 
-            var formOfPayment = BuildFormOfPayment(command, paymentId, totalAmount, currency);
-            var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers, passengers.Count);
+            var perPaxAmount = passengers.Count > 0
+                ? Math.Round(totalAmount / passengers.Count, 2, MidpointRounding.AwayFromZero)
+                : totalAmount;
+            var formOfPayment = BuildFormOfPayment(command, paymentId, perPaxAmount, currency);
+            var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers);
             var passengersWithPayment = passengers
                 .Select(p => new TicketPassenger
                 {
@@ -684,11 +687,8 @@ public sealed class ConfirmBasketHandler
 
     private static TicketFareConstruction? BuildFareConstruction(
         string basketDataJson,
-        Dictionary<Guid, RepriceOfferDto> repricedOffers,
-        int numPassengers)
+        Dictionary<Guid, RepriceOfferDto> repricedOffers)
     {
-        if (numPassengers <= 0) return null;
-
         try
         {
             using var doc = JsonDocument.Parse(basketDataJson);
@@ -699,6 +699,8 @@ public sealed class ConfirmBasketHandler
                 return null;
 
             // Collect ordered per-segment fare components and aggregate taxes.
+            // The Offer MS reprice returns per-pax amounts; these are used directly as the
+            // per-passenger NUC fare components for the IATA fare calculation line.
             var components = new List<(string Origin, string Carrier, string Destination, decimal NucAmount)>();
             var taxAccumulator = new Dictionary<string, (decimal Total, string Currency, string? Description)>(StringComparer.OrdinalIgnoreCase);
             string? collectingCurrency = null;
@@ -728,8 +730,8 @@ public sealed class ConfirmBasketHandler
 
                 collectingCurrency ??= item.CurrencyCode;
 
-                // Per-passenger NUC component: round each one; NUC total = sum of rounded components.
-                var perPaxComponent = Math.Round(item.BaseFareAmount / numPassengers, 2, MidpointRounding.AwayFromZero);
+                // The Offer MS returns per-pax amounts; use directly as the NUC component.
+                var perPaxComponent = Math.Round(item.BaseFareAmount, 2, MidpointRounding.AwayFromZero);
                 components.Add((origin.ToUpperInvariant(), carrier.ToUpperInvariant(), destination.ToUpperInvariant(), perPaxComponent));
 
                 if (item.TaxLines != null)
@@ -746,14 +748,14 @@ public sealed class ConfirmBasketHandler
 
             if (components.Count == 0 || string.IsNullOrEmpty(collectingCurrency)) return null;
 
-            // NUC total = sum of per-passenger component amounts (already rounded individually).
+            // NUC total = sum of per-pax component amounts across all segments.
             var nucTotal = components.Sum(c => c.NucAmount);
 
-            // Build per-passenger tax lines, dividing aggregated amounts by pax count.
+            // Per-pax tax lines from the Offer MS reprice — already per-pax amounts.
             var taxLines = taxAccumulator.Select(kv => new TicketTaxLine
             {
                 Code        = kv.Key,
-                Amount      = Math.Round(kv.Value.Total / numPassengers, 2, MidpointRounding.AwayFromZero),
+                Amount      = Math.Round(kv.Value.Total, 2, MidpointRounding.AwayFromZero),
                 Currency    = kv.Value.Currency,
                 Description = kv.Value.Description
             }).ToList();
