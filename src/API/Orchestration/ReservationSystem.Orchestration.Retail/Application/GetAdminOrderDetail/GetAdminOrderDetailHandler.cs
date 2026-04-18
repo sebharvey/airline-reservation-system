@@ -308,6 +308,31 @@ public sealed class GetAdminOrderDetailHandler
                     ["currency"]      = rawItem["currency"]?.GetValue<string>(),
                 });
             }
+            else if (string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
+            {
+                var addBags  = rawItem["additionalBags"] is JsonNode abNode ? abNode.GetValue<int>() : 1;
+                var paxId    = rawItem["passengerId"]?.GetValue<string>();
+                var segRef   = rawItem["segmentId"]?.GetValue<string>();
+                var segDesc  = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var bsd)
+                               ? $" — {bsd}" : string.Empty;
+                var bagPrice = rawItem["price"] is JsonNode bagPriceNode ? bagPriceNode.DeepClone() : null;
+                enrichedItems.Add(new JsonObject
+                {
+                    ["itemId"]         = Guid.NewGuid().ToString(),
+                    ["itemType"]       = "Bag",
+                    ["description"]    = $"+{addBags} bag{(addBags == 1 ? "" : "s")}{segDesc}",
+                    ["passengerId"]    = paxId,
+                    ["segmentId"]      = segRef,
+                    ["status"]         = "Confirmed",
+                    ["eTicketNumber"]  = null,
+                    ["seatNumber"]     = null,
+                    ["bagWeightKg"]    = null,
+                    ["additionalBags"] = addBags,
+                    ["amount"]         = bagPrice?.DeepClone(),
+                    ["lineTotal"]      = bagPrice?.DeepClone(),
+                    ["currency"]       = rawItem["currency"]?.GetValue<string>(),
+                });
+            }
         }
 
         if (enrichedItems.Count > 0)

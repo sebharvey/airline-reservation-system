@@ -257,33 +257,34 @@ public sealed class GetOrderHandler
                     }
                 }
 
-                // ── Bag items ─────────────────────────────────────────────────
-                JsonElement bagSource;
-                var hasBags = data.TryGetProperty("bagItems", out bagSource) ||
-                              data.TryGetProperty("bags", out bagSource);
-                if (hasBags && bagSource.ValueKind == JsonValueKind.Array)
+                // ── Bag items (stored as productType=BAG within orderItems) ──
+                if (data.TryGetProperty("orderItems", out var oiEl) && oiEl.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var bag in bagSource.EnumerateArray())
+                    foreach (var oi in oiEl.EnumerateArray())
                     {
-                        var paxId = bag.TryGetProperty("passengerId", out var bpid) ? bpid.GetString() ?? "" : "";
-                        var segId = bag.TryGetProperty("segmentId", out var bsid) ? bsid.GetString() ?? "" : "";
-                        var addBags = bag.TryGetProperty("additionalBags", out var ab) ? ab.GetInt32() : 1;
-                        var bagPrice = bag.TryGetProperty("price", out var bp) ? bp.GetDecimal() : 0m;
+                        if (!oi.TryGetProperty("productType", out var ptEl) ||
+                            !string.Equals(ptEl.GetString(), "BAG", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        var paxId    = oi.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
+                        var segId    = oi.TryGetProperty("segmentId",      out var bsid) ? bsid.GetString() ?? "" : "";
+                        var addBags  = oi.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()          : 1;
+                        var bagPrice = oi.TryGetProperty("price",          out var bp)   ? bp.GetDecimal()        : 0m;
 
                         orderItems.Add(new ManagedOrderItem
                         {
-                            OrderItemId = $"bag-{paxId}-{segId}",
-                            Type = "Bag",
-                            SegmentRef = segId,
-                            PassengerRefs = [paxId],
-                            UnitPrice = bagPrice,
-                            Taxes = 0m,
-                            TotalPrice = bagPrice,
-                            IsRefundable = false,
-                            IsChangeable = false,
-                            AdditionalBags = addBags,
+                            OrderItemId      = $"bag-{paxId}-{segId}",
+                            Type             = "Bag",
+                            SegmentRef       = segId,
+                            PassengerRefs    = [paxId],
+                            UnitPrice        = bagPrice,
+                            Taxes            = 0m,
+                            TotalPrice       = bagPrice,
+                            IsRefundable     = false,
+                            IsChangeable     = false,
+                            AdditionalBags   = addBags,
                             PaymentReference = "",
-                            ETickets = []
+                            ETickets         = []
                         });
                     }
                 }

@@ -219,7 +219,22 @@ public sealed class ConfirmOrderHandler
             }
         }
         if (basketJson["bags"]?.AsArray() is { Count: > 0 } bags)
-            orderData["bagItems"] = bags.DeepClone();
+        {
+            foreach (var bag in bags)
+            {
+                if (bag is not JsonObject bagObj) continue;
+                flightOrderItems.Add(new JsonObject
+                {
+                    ["productType"]    = "BAG",
+                    ["passengerId"]    = bagObj["passengerId"]?.GetValue<string>(),
+                    ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
+                    ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
+                    ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
+                    ["price"]          = bagObj["price"]?.DeepClone(),
+                    ["currency"]       = bagObj["currency"]?.DeepClone(),
+                });
+            }
+        }
         if (basketJson["ssrSelections"]?.AsArray() is { Count: > 0 } ssrs)
         {
             foreach (var ssr in ssrs)

@@ -536,15 +536,16 @@ public sealed class ConfirmBasketHandler
 
             // Build bag allowances lookup: passengerId -> list of formatted allowance strings
             var bagsByPassenger = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            JsonElement bagsSource;
-            var hasBags = root.TryGetProperty("bagItems", out bagsSource) ||
-                          root.TryGetProperty("bags",     out bagsSource);
-            if (hasBags && bagsSource.ValueKind == JsonValueKind.Array)
+            if (root.TryGetProperty("orderItems", out var oiSource) && oiSource.ValueKind == JsonValueKind.Array)
             {
-                foreach (var bag in bagsSource.EnumerateArray())
+                foreach (var oi in oiSource.EnumerateArray())
                 {
-                    var paxId   = bag.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
-                    var addBags = bag.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()         : 1;
+                    if (!oi.TryGetProperty("productType", out var ptEl) ||
+                        !string.Equals(ptEl.GetString(), "BAG", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var paxId   = oi.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
+                    var addBags = oi.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()          : 1;
                     if (!string.IsNullOrEmpty(paxId))
                     {
                         if (!bagsByPassenger.ContainsKey(paxId))
