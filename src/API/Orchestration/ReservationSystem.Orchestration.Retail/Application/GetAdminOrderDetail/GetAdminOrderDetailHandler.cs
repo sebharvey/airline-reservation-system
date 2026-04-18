@@ -182,7 +182,10 @@ public sealed class GetAdminOrderDetailHandler
             {
                 var perPaxFare  = allPaxFare.HasValue  ? Math.Round(allPaxFare.Value  / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null;
                 var perPaxTax   = allPaxTax.HasValue   ? Math.Round(allPaxTax.Value   / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null;
-                var perPaxTotal = allPaxTotal.HasValue ? Math.Round(allPaxTotal.Value / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null;
+                // Derive lineTotal from the already-rounded fare + tax so per-row and footer totals are consistent.
+                var perPaxTotal = perPaxFare.HasValue || perPaxTax.HasValue
+                    ? (decimal?)((perPaxFare ?? 0m) + (perPaxTax ?? 0m))
+                    : (allPaxTotal.HasValue ? Math.Round(allPaxTotal.Value / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null);
 
                 // Divide tax lines proportionally so the Fare modal shows per-pax line items.
                 JsonNode? perPaxTaxLines = null;
@@ -386,14 +389,14 @@ public sealed class GetAdminOrderDetailHandler
         // Compute order item subtotals server-side so the Terminal never calculates totals itself.
         decimal subtotalFare = 0m;
         decimal subtotalTax  = 0m;
-        decimal grandTotal   = 0m;
         foreach (var node in enrichedItems)
         {
             if (node is not JsonObject ei) continue;
             subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
             subtotalTax  += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
-            grandTotal   += ei["lineTotal"]?.GetValue<decimal>() ?? 0m;
         }
+        // Derive grandTotal from subtotals so all three figures are always internally consistent.
+        var grandTotal = Math.Round(subtotalFare + subtotalTax, 2);
 
         var orderCurrency = orderData["currency"]?.GetValue<string>() ?? "GBP";
         orderData["itemTotals"] = new JsonObject
