@@ -78,9 +78,14 @@ export class OrderDetailComponent implements OnInit {
     this.order()?.orderData?.dataLists?.flightSegments ?? []
   );
 
-  allOrderItems = computed<OrderItem[]>(() =>
-    this.order()?.orderData?.orderItems ?? []
-  );
+  readonly #itemTypePriority: Record<string, number> = { Flight: 0, Seat: 1, SSR: 2, Product: 3 };
+
+  allOrderItems = computed<OrderItem[]>(() => {
+    const items = this.order()?.orderData?.orderItems ?? [];
+    return [...items].sort((a, b) =>
+      (this.#itemTypePriority[a.itemType] ?? 99) - (this.#itemTypePriority[b.itemType] ?? 99)
+    );
+  });
 
   flightItems = computed<OrderItem[]>(() =>
     (this.order()?.orderData?.orderItems ?? []).filter(i => i.itemType === 'Flight')

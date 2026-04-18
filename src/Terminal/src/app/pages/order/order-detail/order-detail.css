@@ -910,6 +910,15 @@
   .ssr-form-grid { grid-template-columns: 1fr; }
 }
 
+/* Order Items group header rows */
+.group-header-row td {
+  padding: 10px 14px 6px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+.group-header-row:first-child td { border-top: none; }
+
 /* Clickable table rows */
 .clickable-row {
   cursor: pointer;
