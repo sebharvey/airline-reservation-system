@@ -302,6 +302,9 @@ export class FareRulesComponent implements OnInit {
   }
 
   async deleteRule(fareRuleId: string): Promise<void> {
+    if (!window.confirm('Are you sure you want to delete this fare rule? This action cannot be undone.')) {
+      return;
+    }
     this.deleting.set(fareRuleId);
     this.error.set('');
     this.success.set('');
