@@ -48,7 +48,6 @@ public sealed class ReissueTicketsHandler
             var ticket = Ticket.Create(
                 request.BookingReference,
                 passenger.PassengerId,
-                fareCalculation: fc?.FareCalculationLine ?? string.Empty,
                 ticketData);
 
             await _ticketRepository.CreateAsync(ticket, cancellationToken);
@@ -108,6 +107,7 @@ public sealed class ReissueTicketsHandler
 
         object? fareConstruction = fc is null ? null : new
         {
+            fareCalculationLine = fc.FareCalculationLine,
             baseFare = fc.BaseFare,
             currency = fc.CollectingCurrency,
             totalTaxes = fc.TotalTaxes,

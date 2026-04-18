@@ -20,10 +20,10 @@ public sealed class GetCouponValueHandler
 
     /// <summary>
     /// Returns the attributed value for a single coupon on the given ticket.
-    /// Fare share is derived from FareCalculation (typed column); tax share is summed from
-    /// TicketData.fareConstruction.taxes where couponNumbers includes the requested coupon.
-    /// Returns <c>null</c> if the ticket is not found, fare calculation is unparseable,
-    /// or the coupon number is out of range.
+    /// Fare share is derived from TicketData.fareConstruction.fareCalculationLine;
+    /// tax share is summed from TicketData.fareConstruction.taxes where couponNumbers
+    /// includes the requested coupon. Returns <c>null</c> if the ticket is not found,
+    /// fare calculation is absent or unparseable, or the coupon number is out of range.
     /// </summary>
     public async Task<GetCouponValueResponse?> HandleAsync(
         string eTicketNumber, int couponNumber, CancellationToken cancellationToken = default)
@@ -37,8 +37,9 @@ public sealed class GetCouponValueHandler
 
         var baseFare = fc["baseFare"]?.GetValue<decimal>() ?? 0m;
         var currency = fc["currency"]?.GetValue<string>() ?? string.Empty;
+        var fareCalcLine = fc["fareCalculationLine"]?.GetValue<string>() ?? string.Empty;
 
-        if (!FareCalculation.TryParse(ticket.FareCalculation, out var fareCalc, out _) || fareCalc is null)
+        if (!FareCalculation.TryParse(fareCalcLine, out var fareCalc, out _) || fareCalc is null)
         {
             _logger.LogWarning("Fare calculation unparseable on ticket {ETicketNumber}", eTicketNumber);
             return null;

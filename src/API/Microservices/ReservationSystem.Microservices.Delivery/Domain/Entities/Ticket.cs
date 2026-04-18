@@ -16,9 +16,9 @@ public sealed record CouponInfo(
 /// Aggregate root for an issued e-ticket. One ticket covers one passenger across all flight
 /// segments in the booking. Each segment is represented by a coupon stored in TicketData.coupons.
 ///
-/// <c>FareCalculation</c> is stored as a typed column. All other financial data (baseFare,
-/// currency, taxes with coupon attribution) lives in <c>TicketData.fareConstruction</c>.
-/// Coupon-level value is always <em>derived</em> — never stored directly.
+/// All financial data (baseFare, currency, fareCalculationLine, taxes with coupon attribution)
+/// lives in <c>TicketData.fareConstruction</c>. Coupon-level value is always <em>derived</em>
+/// — never stored directly.
 /// </summary>
 public sealed class Ticket
 {
@@ -32,9 +32,6 @@ public sealed class Ticket
 
     public string BookingReference { get; private set; } = string.Empty;
     public string PassengerId { get; private set; } = string.Empty;
-
-    /// <summary>Raw IATA linear fare calculation string, e.g. LON BA NYC 500.00 BA LON 500.00 NUC1000.00 END ROE0.800000.</summary>
-    public string FareCalculation { get; private set; } = string.Empty;
 
     public bool IsVoided { get; private set; }
     public DateTime? VoidedAt { get; private set; }
@@ -54,7 +51,6 @@ public sealed class Ticket
     public static Ticket Create(
         string bookingReference,
         string passengerId,
-        string fareCalculation,
         string ticketData = "{}")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
@@ -66,7 +62,6 @@ public sealed class Ticket
             TicketNumber = 0, // assigned by the database IDENTITY on INSERT
             BookingReference = bookingReference,
             PassengerId = passengerId,
-            FareCalculation = fareCalculation,
             IsVoided = false,
             VoidedAt = null,
             TicketData = ticketData,
@@ -78,8 +73,7 @@ public sealed class Ticket
 
     public static Ticket Reconstitute(
         Guid ticketId, long ticketNumber, string bookingReference,
-        string passengerId, string fareCalculation,
-        bool isVoided, DateTime? voidedAt,
+        string passengerId, bool isVoided, DateTime? voidedAt,
         string ticketData, DateTime createdAt, DateTime updatedAt, int version)
     {
         return new Ticket
@@ -88,7 +82,6 @@ public sealed class Ticket
             TicketNumber = ticketNumber,
             BookingReference = bookingReference,
             PassengerId = passengerId,
-            FareCalculation = fareCalculation,
             IsVoided = isVoided,
             VoidedAt = voidedAt,
             TicketData = ticketData,

@@ -73,10 +73,11 @@ public static class DeliveryMapper
             }
         }
 
-        // Derive structured fare components from the fare calculation string.
+        // Derive structured fare components from fareCalculationLine stored in fareConstruction JSON.
+        var fareCalcLine = fc?["fareCalculationLine"]?.GetValue<string>() ?? string.Empty;
         List<FareComponentResponse>? fareComponents = null;
-        if (!string.IsNullOrWhiteSpace(ticket.FareCalculation) &&
-            FareCalculation.TryParse(ticket.FareCalculation, out var parsed, out _) && parsed is not null)
+        if (!string.IsNullOrWhiteSpace(fareCalcLine) &&
+            FareCalculation.TryParse(fareCalcLine, out var parsed, out _) && parsed is not null)
         {
             fareComponents = parsed.Components.Select(c => new FareComponentResponse
             {
@@ -98,7 +99,7 @@ public static class DeliveryMapper
             Currency = currency,
             TotalTaxAmount = totalTaxAmount,
             TotalAmount = totalAmount,
-            FareCalculation = ticket.FareCalculation,
+            FareCalculation = fareCalcLine,
             FareComponents = fareComponents,
             TaxBreakdown = taxBreakdown,
             IsVoided = ticket.IsVoided,
