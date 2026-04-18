@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ScheduleService, ScheduleSummary, ScheduleGroupSummary } from '../../services/schedule.service';
+import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, ImportSsimResponse } from '../../services/schedule.service';
 
 @Component({
   selector: 'app-schedules',
@@ -35,6 +35,14 @@ export class SchedulesComponent implements OnInit {
   importing = signal(false);
   importError = signal('');
   importSuccess = signal('');
+
+  // Import SSIM state
+  showSsimModal = signal(false);
+  importingSsim = signal(false);
+  ssimFileName = signal('');
+  ssimFileContent = signal('');
+  ssimError = signal('');
+  ssimResult = signal<ImportSsimResponse | null>(null);
 
   ngOnInit(): void {
     this.loadGroups();
@@ -177,6 +185,54 @@ export class SchedulesComponent implements OnInit {
       this.importError.set('Failed to import schedules to inventory. Please try again.');
     } finally {
       this.importing.set(false);
+    }
+  }
+
+  // ── Import SSIM ─────────────────────────────────────────────────────────────
+
+  openSsimModal(): void {
+    this.ssimFileName.set('');
+    this.ssimFileContent.set('');
+    this.ssimError.set('');
+    this.ssimResult.set(null);
+    this.showSsimModal.set(true);
+  }
+
+  closeSsimModal(): void {
+    this.showSsimModal.set(false);
+  }
+
+  onSsimFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.ssimFileName.set(file.name);
+    this.ssimError.set('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.ssimFileContent.set(reader.result as string);
+    };
+    reader.onerror = () => {
+      this.ssimError.set('Failed to read the selected file.');
+    };
+    reader.readAsText(file);
+  }
+
+  async importSsimFile(): Promise<void> {
+    const groupId = this.selectedGroupId();
+    const content = this.ssimFileContent();
+    if (!groupId || !content) return;
+    this.importingSsim.set(true);
+    this.ssimError.set('');
+    this.ssimResult.set(null);
+    try {
+      const result = await this.#scheduleService.importSsim(groupId, content);
+      this.ssimResult.set(result);
+      await this.loadGroups();
+    } catch {
+      this.ssimError.set('Failed to import SSIM file. Please check the file format and try again.');
+    } finally {
+      this.importingSsim.set(false);
     }
   }
 
