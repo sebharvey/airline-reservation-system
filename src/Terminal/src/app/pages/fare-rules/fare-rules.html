@@ -234,6 +234,12 @@
                 Changeable
               </label>
             </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" [ngModel]="form().isPrivate" (ngModelChange)="updateField('isPrivate', $event)" />
+                Private fare
+              </label>
+            </div>
             <div class="form-group">
               <label>Change Fee</label>
               <input type="number" [ngModel]="form().changeFeeAmount" (ngModelChange)="updateField('changeFeeAmount', $event)" min="0" step="0.01" />
@@ -328,6 +334,7 @@
             <th class="text-right">Max</th>
             <th class="hide-tablet">Refund</th>
             <th class="hide-tablet">Change</th>
+            <th class="hide-tablet">Private</th>
             <th class="hide-tablet">Valid Period</th>
             <th>Actions</th>
           </tr>
@@ -364,6 +371,11 @@
               <td class="hide-tablet">
                 <span class="badge" [class.badge-yes]="rule.isChangeable" [class.badge-no]="!rule.isChangeable">
                   {{ rule.isChangeable ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="hide-tablet">
+                <span class="badge" [class.badge-yes]="rule.isPrivate" [class.badge-no]="!rule.isPrivate">
+                  {{ rule.isPrivate ? 'Yes' : 'No' }}
                 </span>
               </td>
               <td class="hide-tablet muted">
