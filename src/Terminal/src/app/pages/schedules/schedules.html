@@ -8,6 +8,9 @@
     </div>
     @if (loaded()) {
       <div class="header-actions">
+        <button class="btn-ssim" (click)="openSsimModal()" [disabled]="loading() || !selectedGroupId()">
+          Import SSIM File
+        </button>
         <button class="btn-inventory" (click)="openImportModal()" [disabled]="loading() || schedules().length === 0">
           Add to Inventory
         </button>
@@ -275,6 +278,81 @@
             {{ editingGroup() ? 'Save Changes' : 'Create Group' }}
           }
         </button>
+      </div>
+    </div>
+  }
+
+  <!-- Import SSIM File modal -->
+  @if (showSsimModal()) {
+    <div class="modal-backdrop" (click)="closeSsimModal()"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Import SSIM File</h2>
+        <button class="modal-close" (click)="closeSsimModal()" [disabled]="importingSsim()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        @if (!ssimResult()) {
+          <p class="modal-description">
+            Select an IATA SSIM Chapter 7 file from your computer. All schedules in the file will be imported
+            into <strong>{{ selectedGroup()?.name }}</strong>, replacing any existing schedules in that group.
+          </p>
+
+          <div class="ssim-file-picker">
+            <input
+              type="file"
+              id="ssimFileInput"
+              class="ssim-file-input"
+              accept=".ssim,.txt"
+              (change)="onSsimFileSelected($event)"
+              [disabled]="importingSsim()"
+            />
+            <label for="ssimFileInput" class="btn-choose-file" [class.disabled]="importingSsim()">
+              Choose File
+            </label>
+            @if (ssimFileName()) {
+              <span class="ssim-file-name">{{ ssimFileName() }}</span>
+            } @else {
+              <span class="ssim-file-placeholder">No file selected</span>
+            }
+          </div>
+
+          @if (ssimError()) {
+            <div class="error-banner" role="alert" style="margin-top: 16px;">
+              <span>&#9888;</span> {{ ssimError() }}
+            </div>
+          }
+        } @else {
+          <div class="ssim-success">
+            <div class="ssim-success-icon">&#10003;</div>
+            <p class="ssim-success-title">Import complete</p>
+            <div class="ssim-result-stats">
+              <div class="ssim-stat">
+                <span class="ssim-stat-value">{{ ssimResult()!.imported }}</span>
+                <span class="ssim-stat-label">Schedules imported</span>
+              </div>
+              <div class="ssim-stat">
+                <span class="ssim-stat-value">{{ ssimResult()!.deleted }}</span>
+                <span class="ssim-stat-label">Previous records removed</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        @if (!ssimResult()) {
+          <button class="btn-secondary" (click)="closeSsimModal()" [disabled]="importingSsim()">Cancel</button>
+          <button class="btn-primary" (click)="importSsimFile()" [disabled]="importingSsim() || !ssimFileContent()">
+            @if (importingSsim()) {
+              <span class="btn-spinner"></span> Importing…
+            } @else {
+              Import
+            }
+          </button>
+        } @else {
+          <button class="btn-primary" (click)="closeSsimModal()">Done</button>
+        }
       </div>
     </div>
   }

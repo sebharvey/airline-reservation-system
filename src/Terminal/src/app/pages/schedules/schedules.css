@@ -409,6 +409,27 @@
   gap: 10px;
 }
 
+/* Import SSIM File button */
+.btn-ssim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--transition), transform var(--transition);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
+.btn-ssim:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-ssim:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Add to Inventory button */
 .btn-inventory {
   display: flex;
@@ -699,6 +720,110 @@
 
 .btn-add-cabin:hover:not(:disabled) { background: rgba(102, 126, 234, 0.05); border-color: var(--grad-start); }
 .btn-add-cabin:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* SSIM file picker */
+.ssim-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ssim-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.btn-choose-file {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  background: var(--white);
+  color: #7c3aed;
+  border: 1.5px solid #7c3aed;
+  border-radius: var(--radius-sm);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+
+.btn-choose-file:hover:not(.disabled) { background: rgba(124, 58, 237, 0.06); }
+.btn-choose-file.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ssim-file-name {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  word-break: break-all;
+}
+
+.ssim-file-placeholder {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* SSIM success result */
+.ssim-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.ssim-success-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ssim-success-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 4px 0 12px;
+}
+
+.ssim-result-stats {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+}
+
+.ssim-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ssim-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #7c3aed;
+  line-height: 1;
+}
+
+.ssim-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
 /* Modal responsive */
 @media (max-width: 600px) {

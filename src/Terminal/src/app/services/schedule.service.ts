@@ -75,6 +75,22 @@ export interface ImportSchedulesToInventoryResponse {
   faresCreated: number;
 }
 
+export interface ImportedScheduleItem {
+  scheduleId: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  validFrom: string;
+  validTo: string;
+  operatingDateCount: number;
+}
+
+export interface ImportSsimResponse {
+  imported: number;
+  deleted: number;
+  schedules: ImportedScheduleItem[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class ScheduleService {
   #http = inject(HttpClient);
@@ -119,6 +135,16 @@ export class ScheduleService {
   async importSchedulesToInventory(request: ImportSchedulesToInventoryRequest): Promise<ImportSchedulesToInventoryResponse> {
     return firstValueFrom(
       this.#http.post<ImportSchedulesToInventoryResponse>(`${this.#baseUrl}/schedules/import-inventory`, request)
+    );
+  }
+
+  async importSsim(scheduleGroupId: string, ssimContent: string): Promise<ImportSsimResponse> {
+    return firstValueFrom(
+      this.#http.post<ImportSsimResponse>(
+        `${this.#baseUrl}/schedules/ssim?scheduleGroupId=${scheduleGroupId}`,
+        ssimContent,
+        { headers: { 'Content-Type': 'text/plain' } }
+      )
     );
   }
 }
