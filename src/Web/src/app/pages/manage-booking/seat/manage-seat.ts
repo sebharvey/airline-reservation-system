@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, Passenger } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer } from '../../../models/flight.model';
@@ -9,12 +10,17 @@ interface SeatSelection {
   passengerId: string;
   segmentId: string;
   seatNumber: string;
+  seatOfferId: string;
+  inventoryId: string;
+  cabinCode: string;
+  price: number;
+  currency: string;
 }
 
 @Component({
   selector: 'app-manage-seat',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './manage-seat.html',
   styleUrl: './manage-seat.css'
 })
@@ -26,6 +32,7 @@ export class ManageSeatComponent implements OnInit {
   errorMessage = signal('');
   successMessage = signal('');
   submitting = signal(false);
+  submitted = signal(false);
 
   bookingRef = signal('');
   givenName = signal('');
@@ -33,6 +40,13 @@ export class ManageSeatComponent implements OnInit {
 
   activePassengerIndex = signal(0);
   selections = signal<SeatSelection[]>([]);
+
+  // Payment form fields (shown only when paid seats are selected)
+  cardholderName = signal('');
+  cardNumber = signal('');
+  expiryMonth = signal('');
+  expiryYear = signal('');
+  cvv = signal('');
 
   readonly activeCabin = computed((): CabinSeatmap | null => {
     const sm = this.seatmap();
@@ -49,21 +63,37 @@ export class ManageSeatComponent implements OnInit {
     return o.passengers[this.activePassengerIndex()] ?? null;
   });
 
-  readonly totalSeatCost = computed((): number => {
-    const sm = this.seatmap();
-    const cabin = this.activeCabin();
-    if (!sm || !cabin) return 0;
-    return this.selections().reduce((sum, sel) => {
-      const seat = cabin.seats.find(s => s.seatNumber === sel.seatNumber);
-      return sum + (seat?.price ?? 0);
-    }, 0);
-  });
+  readonly totalSeatCost = computed((): number =>
+    this.selections().reduce((sum, sel) => sum + sel.price, 0)
+  );
 
   readonly currency = computed((): string => {
+    const sel = this.selections().find(s => s.price > 0);
+    if (sel) return sel.currency;
     const cabin = this.activeCabin();
-    if (!cabin) return 'GBP';
-    return cabin.seats.find(s => s.price > 0)?.currency ?? 'GBP';
+    return cabin?.seats.find(s => s.price > 0)?.currency ?? 'GBP';
   });
+
+  readonly hasPaidSeats = computed(() => this.totalSeatCost() > 0);
+
+  readonly cardDisplayNumber = computed(() => {
+    const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
+    return raw.replace(/(.{4})/g, '$1 ').trim();
+  });
+
+  readonly expiryYears = computed(() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 12 }, (_, i) => current + i);
+  });
+
+  readonly expiryMonths = [
+    { value: '01', label: '01 - Jan' }, { value: '02', label: '02 - Feb' },
+    { value: '03', label: '03 - Mar' }, { value: '04', label: '04 - Apr' },
+    { value: '05', label: '05 - May' }, { value: '06', label: '06 - Jun' },
+    { value: '07', label: '07 - Jul' }, { value: '08', label: '08 - Aug' },
+    { value: '09', label: '09 - Sep' }, { value: '10', label: '10 - Oct' },
+    { value: '11', label: '11 - Nov' }, { value: '12', label: '12 - Dec' }
+  ];
 
   readonly seatRows = computed((): { rowNumber: number; seats: (SeatOffer | null)[] }[] => {
     const cabin = this.activeCabin();
@@ -119,7 +149,7 @@ export class ManageSeatComponent implements OnInit {
         if (seg) {
           this.loadSeatmap(seg.segmentId, seg.flightNumber, seg.aircraftType, seg.cabinCode);
         }
-        // Pre-populate existing seat selections
+        // Pre-populate existing seat assignments (free — no offer ID needed)
         const existing: SeatSelection[] = [];
         for (const pax of order.passengers) {
           for (const seg2 of order.flightSegments) {
@@ -127,7 +157,16 @@ export class ManageSeatComponent implements OnInit {
               oi => oi.type === 'Seat' && oi.segmentRef === seg2.segmentId && oi.passengerRefs.includes(pax.passengerId)
             );
             if (seatItem?.seatNumber) {
-              existing.push({ passengerId: pax.passengerId, segmentId: seg2.segmentId, seatNumber: seatItem.seatNumber });
+              existing.push({
+                passengerId: pax.passengerId,
+                segmentId: seg2.segmentId,
+                seatNumber: seatItem.seatNumber,
+                seatOfferId: '',
+                inventoryId: seg2.segmentId,
+                cabinCode: seg2.cabinCode,
+                price: 0,
+                currency: order.currency ?? 'GBP'
+              });
             }
           }
         }
@@ -178,13 +217,23 @@ export class ManageSeatComponent implements OnInit {
     if (seat.availability !== 'available' || this.isSeatTakenByOther(seat)) return;
     const pax = this.activePassenger();
     const seg = this.order()?.flightSegments[0];
-    if (!pax || !seg) return;
+    const sm = this.seatmap();
+    if (!pax || !seg || !sm) return;
 
     const updated = this.selections().filter(
       s => !(s.passengerId === pax.passengerId && s.segmentId === seg.segmentId)
     );
     if (!this.isSeatSelected(seat)) {
-      updated.push({ passengerId: pax.passengerId, segmentId: seg.segmentId, seatNumber: seat.seatNumber });
+      updated.push({
+        passengerId: pax.passengerId,
+        segmentId: seg.segmentId,
+        seatNumber: seat.seatNumber,
+        seatOfferId: seat.price > 0 ? seat.seatOfferId : '',
+        inventoryId: sm.flightId,
+        cabinCode: seat.cabinCode,
+        price: seat.price,
+        currency: seat.currency
+      });
     }
     this.selections.set(updated);
   }
@@ -195,11 +244,49 @@ export class ManageSeatComponent implements OnInit {
     return sel?.seatNumber ?? 'Not selected';
   }
 
+  onCardNumberInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').substring(0, 16);
+    this.cardNumber.set(digits);
+    input.value = digits.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  isPaymentFormValid(): boolean {
+    if (!this.hasPaidSeats()) return true;
+    const name = this.cardholderName().trim();
+    const num = this.cardNumber().replace(/\D/g, '');
+    const month = this.expiryMonth();
+    const year = this.expiryYear();
+    const cvv = this.cvv().trim();
+    return !!(name && num.length === 16 && month && year && cvv.length >= 3);
+  }
+
   confirmSelection(): void {
+    this.submitted.set(true);
     if (this.submitting()) return;
+    if (!this.isPaymentFormValid()) return;
+
     this.submitting.set(true);
     this.errorMessage.set('');
-    this.retailApi.updateSeats(this.bookingRef(), this.selections()).subscribe({
+
+    const seatSelections = this.selections().map(s => ({
+      passengerId: s.passengerId,
+      segmentId: s.segmentId,
+      seatNumber: s.seatNumber,
+      seatOfferId: s.seatOfferId || undefined,
+      inventoryId: s.inventoryId || undefined,
+      cabinCode: s.cabinCode || undefined
+    }));
+
+    const payment = this.hasPaidSeats() ? {
+      method: 'CreditCard',
+      cardNumber: this.cardNumber().replace(/\D/g, ''),
+      expiryDate: `${this.expiryMonth()}/${this.expiryYear()}`,
+      cvv: this.cvv().trim(),
+      cardholderName: this.cardholderName().trim()
+    } : undefined;
+
+    this.retailApi.updateSeats(this.bookingRef(), seatSelections, payment).subscribe({
       next: (res) => {
         this.submitting.set(false);
         if (res.success) {

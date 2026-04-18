@@ -117,10 +117,11 @@ public sealed class DeliveryServiceClient
 
     public async Task IssueDocumentAsync(
         string bookingReference, string documentType, string passengerId,
-        string inventoryId, decimal amount, string currency,
+        string segmentRef, decimal amount, string currency,
+        string? paymentReference,
         CancellationToken ct)
     {
-        var payload = new { bookingReference, documentType, passengerId, inventoryId, amount, currency };
+        var payload = new { bookingReference, documentType, passengerId, segmentRef, amount, currencyCode = currency, paymentReference };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/documents", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
