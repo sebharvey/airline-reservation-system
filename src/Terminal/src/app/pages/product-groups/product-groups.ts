@@ -27,9 +27,12 @@ export class ProductGroupsComponent implements OnInit {
   editing = signal<ProductGroup | null>(null);
   saving = signal(false);
   deleting = signal<string | null>(null);
+  reordering = signal(false);
 
-  createForm = signal<CreateProductGroupRequest>({ name: '', sortOrder: 0 });
+  createForm = signal<CreateProductGroupRequest>({ name: '', sortOrder: 1 });
   updateForm = signal<UpdateProductGroupRequest>({ name: '', sortOrder: 0, isActive: true });
+
+  sortedGroups = computed(() => [...this.groups()].sort((a, b) => a.sortOrder - b.sortOrder));
 
   stats = computed(() => {
     const all = this.groups();
@@ -57,7 +60,9 @@ export class ProductGroupsComponent implements OnInit {
 
   openCreateForm(): void {
     this.editing.set(null);
-    this.createForm.set({ name: '', sortOrder: 0 });
+    const groups = this.groups();
+    const nextOrder = groups.length > 0 ? Math.max(...groups.map(g => g.sortOrder)) + 1 : 1;
+    this.createForm.set({ name: '', sortOrder: nextOrder });
     this.showForm.set(true);
     this.error.set('');
     this.success.set('');
@@ -123,6 +128,36 @@ export class ProductGroupsComponent implements OnInit {
       }
     } finally {
       this.deleting.set(null);
+    }
+  }
+
+  async moveUp(group: ProductGroup): Promise<void> {
+    const sorted = this.sortedGroups();
+    const idx = sorted.findIndex(g => g.productGroupId === group.productGroupId);
+    if (idx <= 0) return;
+    await this.swapOrder(sorted[idx], sorted[idx - 1]);
+  }
+
+  async moveDown(group: ProductGroup): Promise<void> {
+    const sorted = this.sortedGroups();
+    const idx = sorted.findIndex(g => g.productGroupId === group.productGroupId);
+    if (idx < 0 || idx >= sorted.length - 1) return;
+    await this.swapOrder(sorted[idx], sorted[idx + 1]);
+  }
+
+  private async swapOrder(a: ProductGroup, b: ProductGroup): Promise<void> {
+    this.reordering.set(true);
+    this.error.set('');
+    try {
+      await Promise.all([
+        this.#service.update(a.productGroupId, { name: a.name, sortOrder: b.sortOrder, isActive: a.isActive }),
+        this.#service.update(b.productGroupId, { name: b.name, sortOrder: a.sortOrder, isActive: b.isActive }),
+      ]);
+      await this.loadGroups();
+    } catch {
+      this.error.set('Failed to reorder product groups. Please try again.');
+    } finally {
+      this.reordering.set(false);
     }
   }
 
