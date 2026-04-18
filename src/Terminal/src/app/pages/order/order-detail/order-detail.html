@@ -364,6 +364,7 @@
                     <th>E-ticket number</th>
                     <th>Passenger</th>
                     <th class="hide-mobile">Issued</th>
+                    <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -384,6 +385,7 @@
                       </td>
                       <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
+                      <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
                   }
@@ -402,6 +404,7 @@
                     <th>E-ticket number</th>
                     <th>Passenger</th>
                     <th class="hide-mobile">Voided</th>
+                    <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -422,6 +425,7 @@
                       </td>
                       <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
+                      <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
                   }
