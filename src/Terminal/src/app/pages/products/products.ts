@@ -43,6 +43,7 @@ export class ProductsComponent implements OnInit {
   editingPrice = signal<ProductPrice | null>(null);
   savingPrice = signal(false);
   deletingPrice = signal<string | null>(null);
+  pendingPrices = signal<CreateProductPriceRequest[]>([]);
 
   createForm = signal<CreateProductRequest>({
     productGroupId: '',
@@ -104,6 +105,7 @@ export class ProductsComponent implements OnInit {
   openCreateForm(): void {
     this.editing.set(null);
     this.showPriceForm.set(false);
+    this.pendingPrices.set([]);
     this.createForm.set({
       productGroupId: this.groups()[0]?.productGroupId ?? '',
       name: '',
@@ -140,6 +142,7 @@ export class ProductsComponent implements OnInit {
     this.editing.set(null);
     this.showPriceForm.set(false);
     this.editingPrice.set(null);
+    this.pendingPrices.set([]);
   }
 
   updateCreateField(field: keyof CreateProductRequest, value: unknown): void {
@@ -185,7 +188,11 @@ export class ProductsComponent implements OnInit {
         await this.#service.update(editingProduct.productId, this.updateForm());
         this.success.set('Product updated successfully.');
       } else {
-        await this.#service.create(this.createForm());
+        const created = await this.#service.create(this.createForm());
+        for (const price of this.pendingPrices()) {
+          await this.#service.createPrice(created.productId, price);
+        }
+        this.pendingPrices.set([]);
         this.success.set('Product created successfully.');
       }
       this.showForm.set(false);
@@ -241,9 +248,25 @@ export class ProductsComponent implements OnInit {
     this.priceUpdateForm.update(f => ({ ...f, [field]: value }));
   }
 
+  removePendingPrice(index: number): void {
+    this.pendingPrices.update(prices => prices.filter((_, i) => i !== index));
+  }
+
   async savePrice(): Promise<void> {
     const product = this.editing();
-    if (!product) return;
+    if (!product) {
+      const form = this.priceCreateForm();
+      if (this.pendingPrices().some(p => p.currencyCode === form.currencyCode)) {
+        this.error.set('A price for this currency is already configured.');
+        return;
+      }
+      this.pendingPrices.update(prices => [
+        ...prices,
+        { ...form, tax: +(form.price * 0.2).toFixed(2) },
+      ]);
+      this.showPriceForm.set(false);
+      return;
+    }
 
     this.savingPrice.set(true);
     this.error.set('');

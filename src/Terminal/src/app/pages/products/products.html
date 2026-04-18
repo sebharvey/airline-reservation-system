@@ -160,65 +160,94 @@
           </div>
         </div>
 
-        <!-- Prices (edit mode only) -->
-        @if (editing()) {
-          <div class="form-section">
-            <div class="prices-header">
-              <h3 class="section-heading prices-heading">Prices by Currency</h3>
-              @if (!showPriceForm()) {
-                <button class="add-price-btn" type="button" (click)="openAddPriceForm()">+ Add Price</button>
-              }
-            </div>
-
-            @if (showPriceForm()) {
-              <div class="price-inline-form">
-                <div class="price-form-title">{{ editingPrice() ? 'Edit Price' : 'Add Price' }}</div>
-                <div class="form-grid grid-3">
-                  @if (!editingPrice()) {
-                    <div class="form-group">
-                      <label>Currency *</label>
-                      <input type="text" [ngModel]="priceCreateForm().currencyCode" (ngModelChange)="updatePriceCreateField('currencyCode', $event.toUpperCase())" maxlength="3" class="uppercase-input" placeholder="GBP" />
-                    </div>
-                    <div class="form-group">
-                      <label>Price *</label>
-                      <input type="number" [ngModel]="priceCreateForm().price" (ngModelChange)="updatePriceCreateField('price', +$event)" min="0" step="0.01" />
-                    </div>
-                    <div class="form-group">
-                      <label>Tax (20% — auto-calculated)</label>
-                      <input type="text" [value]="(+(priceCreateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
-                    </div>
-                  } @else {
-                    <div class="form-group">
-                      <label>Currency</label>
-                      <input type="text" [value]="editingPrice()!.currencyCode" disabled />
-                    </div>
-                    <div class="form-group">
-                      <label>Price *</label>
-                      <input type="number" [ngModel]="priceUpdateForm().price" (ngModelChange)="updatePriceUpdateField('price', +$event)" min="0" step="0.01" />
-                    </div>
-                    <div class="form-group">
-                      <label>Tax (20% — auto-calculated)</label>
-                      <input type="text" [value]="(+(priceUpdateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
-                    </div>
-                    <div class="form-group checkbox-group">
-                      <label>
-                        <input type="checkbox" [ngModel]="priceUpdateForm().isActive" (ngModelChange)="updatePriceUpdateField('isActive', $event)" />
-                        Active
-                      </label>
-                    </div>
-                  }
-                </div>
-                <div class="price-form-actions">
-                  <button class="cancel-btn" type="button" (click)="cancelPriceForm()" [disabled]="savingPrice()">Cancel</button>
-                  <button class="save-btn" type="button" (click)="savePrice()" [disabled]="savingPrice()">
-                    @if (savingPrice()) { <span class="btn-spinner"></span> Saving… } @else {
-                      {{ editingPrice() ? 'Update Price' : 'Add Price' }}
-                    }
-                  </button>
-                </div>
-              </div>
+        <!-- Prices -->
+        <div class="form-section">
+          <div class="prices-header">
+            <h3 class="section-heading prices-heading">Prices by Currency</h3>
+            @if (!showPriceForm()) {
+              <button class="add-price-btn" type="button" (click)="openAddPriceForm()">+ Add Price</button>
             }
+          </div>
 
+          @if (showPriceForm()) {
+            <div class="price-inline-form">
+              <div class="price-form-title">{{ editingPrice() ? 'Edit Price' : 'Add Price' }}</div>
+              <div class="form-grid grid-3">
+                @if (!editingPrice()) {
+                  <div class="form-group">
+                    <label>Currency *</label>
+                    <input type="text" [ngModel]="priceCreateForm().currencyCode" (ngModelChange)="updatePriceCreateField('currencyCode', $event.toUpperCase())" maxlength="3" class="uppercase-input" placeholder="GBP" />
+                  </div>
+                  <div class="form-group">
+                    <label>Price *</label>
+                    <input type="number" [ngModel]="priceCreateForm().price" (ngModelChange)="updatePriceCreateField('price', +$event)" min="0" step="0.01" />
+                  </div>
+                  <div class="form-group">
+                    <label>Tax (20% — auto-calculated)</label>
+                    <input type="text" [value]="(+(priceCreateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
+                  </div>
+                } @else {
+                  <div class="form-group">
+                    <label>Currency</label>
+                    <input type="text" [value]="editingPrice()!.currencyCode" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Price *</label>
+                    <input type="number" [ngModel]="priceUpdateForm().price" (ngModelChange)="updatePriceUpdateField('price', +$event)" min="0" step="0.01" />
+                  </div>
+                  <div class="form-group">
+                    <label>Tax (20% — auto-calculated)</label>
+                    <input type="text" [value]="(+(priceUpdateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
+                  </div>
+                  <div class="form-group checkbox-group">
+                    <label>
+                      <input type="checkbox" [ngModel]="priceUpdateForm().isActive" (ngModelChange)="updatePriceUpdateField('isActive', $event)" />
+                      Active
+                    </label>
+                  </div>
+                }
+              </div>
+              <div class="price-form-actions">
+                <button class="cancel-btn" type="button" (click)="cancelPriceForm()" [disabled]="savingPrice()">Cancel</button>
+                <button class="save-btn" type="button" (click)="savePrice()" [disabled]="savingPrice()">
+                  @if (savingPrice()) { <span class="btn-spinner"></span> Saving… } @else {
+                    {{ editingPrice() ? 'Update Price' : 'Add Price' }}
+                  }
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (!editing()) {
+            @if (pendingPrices().length > 0) {
+              <table class="price-table">
+                <thead>
+                  <tr>
+                    <th>Currency</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Tax</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of pendingPrices(); track p.currencyCode; let i = $index) {
+                    <tr>
+                      <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
+                      <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
+                      <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
+                      <td>
+                        <div class="action-btns">
+                          <button class="action-btn delete-btn" type="button" (click)="removePendingPrice(i)">Del</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else if (!showPriceForm()) {
+              <p class="no-prices-msg">No prices configured yet. Click "Add Price" to add a currency price.</p>
+            }
+          } @else {
             @if (currentPrices().length > 0) {
               <table class="price-table">
                 <thead>
@@ -263,8 +292,8 @@
             } @else if (!showPriceForm()) {
               <p class="no-prices-msg">No prices configured. Click "Add Price" to add a currency price.</p>
             }
-          </div>
-        }
+          }
+        </div>
 
       </div>
 
