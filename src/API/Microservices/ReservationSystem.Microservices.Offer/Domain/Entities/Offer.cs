@@ -363,6 +363,7 @@ public sealed class FareRule
     public bool IsChangeable { get; private set; }
     public decimal ChangeFeeAmount { get; private set; }
     public decimal CancellationFeeAmount { get; private set; }
+    public bool IsPrivate { get; private set; }
     public DateTimeOffset? ValidFrom { get; private set; }
     public DateTimeOffset? ValidTo { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
@@ -377,6 +378,7 @@ public sealed class FareRule
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        bool isPrivate,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
         return new FareRule
@@ -390,6 +392,7 @@ public sealed class FareRule
             TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
+            IsPrivate = isPrivate,
             ValidFrom = validFrom, ValidTo = validTo,
             CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -402,6 +405,7 @@ public sealed class FareRule
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        bool isPrivate,
         DateTimeOffset? validFrom, DateTimeOffset? validTo, DateTimeOffset createdAt, DateTimeOffset updatedAt)
     {
         return new FareRule
@@ -414,6 +418,7 @@ public sealed class FareRule
             TaxLines = taxLines,
             IsRefundable = isRefundable, IsChangeable = isChangeable,
             ChangeFeeAmount = changeFeeAmount, CancellationFeeAmount = cancellationFeeAmount,
+            IsPrivate = isPrivate,
             ValidFrom = validFrom, ValidTo = validTo,
             CreatedAt = createdAt, UpdatedAt = updatedAt
         };
@@ -426,6 +431,7 @@ public sealed class FareRule
         int? minPoints, int? maxPoints, decimal? pointsTaxes,
         string? taxLines,
         bool isRefundable, bool isChangeable, decimal changeFeeAmount, decimal cancellationFeeAmount,
+        bool isPrivate,
         DateTimeOffset? validFrom, DateTimeOffset? validTo)
     {
         RuleType = ruleType; FlightNumber = flightNumber;
@@ -436,6 +442,7 @@ public sealed class FareRule
         TaxLines = taxLines;
         IsRefundable = isRefundable; IsChangeable = isChangeable;
         ChangeFeeAmount = changeFeeAmount; CancellationFeeAmount = cancellationFeeAmount;
+        IsPrivate = isPrivate;
         ValidFrom = validFrom; ValidTo = validTo;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

@@ -24,6 +24,7 @@ public sealed class AdminCreateFareRuleRequest
     public bool IsChangeable { get; init; }
     public decimal ChangeFeeAmount { get; init; }
     public decimal CancellationFeeAmount { get; init; }
+    public bool IsPrivate { get; init; }
     public string? ValidFrom { get; init; }
     public string? ValidTo { get; init; }
 }
@@ -47,6 +48,7 @@ public sealed class AdminUpdateFareRuleRequest
     public bool IsChangeable { get; init; }
     public decimal ChangeFeeAmount { get; init; }
     public decimal CancellationFeeAmount { get; init; }
+    public bool IsPrivate { get; init; }
     public string? ValidFrom { get; init; }
     public string? ValidTo { get; init; }
 }

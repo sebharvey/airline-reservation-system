@@ -45,6 +45,7 @@ public sealed class SearchFlightsHandler
             command.DepartureDate,
             command.PaxCount,
             command.BookingType,
+            command.IncludePrivateFares,
             cancellationToken);
 
         if (directResult.Flights.Count > 0)
@@ -110,7 +111,7 @@ public sealed class SearchFlightsHandler
         // Leg 1: origin → LHR on the requested departure date.
         var leg1Result = await _offerServiceClient.SearchAsync(
             command.Origin, Hub, command.DepartureDate,
-            command.PaxCount, command.BookingType, cancellationToken);
+            command.PaxCount, command.BookingType, command.IncludePrivateFares, cancellationToken);
 
         if (leg1Result.Flights.Count == 0)
             return new SliceSearchResponse { Itineraries = [] };
@@ -125,7 +126,7 @@ public sealed class SearchFlightsHandler
         var leg2Tasks = uniqueArrivalDates.Select(d =>
             _offerServiceClient.SearchAsync(
                 Hub, command.Destination, d.ToString("yyyy-MM-dd"),
-                command.PaxCount, command.BookingType, cancellationToken));
+                command.PaxCount, command.BookingType, command.IncludePrivateFares, cancellationToken));
 
         var leg2ResultsArray = await Task.WhenAll(leg2Tasks);
 

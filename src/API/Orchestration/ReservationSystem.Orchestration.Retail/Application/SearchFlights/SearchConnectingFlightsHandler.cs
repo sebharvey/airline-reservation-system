@@ -38,7 +38,7 @@ public sealed class SearchConnectingFlightsHandler
         // Step 1 — search first leg: origin → LHR.
         var leg1Result = await _offerServiceClient.SearchAsync(
             command.Origin, Hub, command.DepartureDate,
-            command.PaxCount, command.BookingType, cancellationToken);
+            command.PaxCount, command.BookingType, command.IncludePrivateFares, cancellationToken);
 
         if (leg1Result.Flights.Count == 0)
             return new ConnectingSearchResponse { Itineraries = [] };
@@ -54,7 +54,7 @@ public sealed class SearchConnectingFlightsHandler
         var leg2Tasks = uniqueArrivalDates.Select(d =>
             _offerServiceClient.SearchAsync(
                 Hub, command.Destination, d.ToString("yyyy-MM-dd"),
-                command.PaxCount, command.BookingType, cancellationToken));
+                command.PaxCount, command.BookingType, command.IncludePrivateFares, cancellationToken));
 
         var leg2ResultsArray = await Task.WhenAll(leg2Tasks);
 

@@ -703,7 +703,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode, MinAmount, MaxAmount,
                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   IsPrivate, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  FareRuleId = @FareRuleId;
             """;
@@ -723,7 +723,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode, MinAmount, MaxAmount,
                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   IsPrivate, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             ORDER BY FareBasisCode, CabinCode;
             """;
@@ -743,7 +743,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode, MinAmount, MaxAmount,
                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   IsPrivate, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  (@Query IS NULL OR @Query = ''
                     OR FareBasisCode LIKE '%' + @EscapedQuery + '%' ESCAPE '\'
@@ -766,7 +766,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     }
 
     public async Task<IReadOnlyList<FareRule>> GetApplicableFareRulesAsync(
-        string flightNumber, string cabinCode, DateOnly departureDate, CancellationToken ct = default)
+        string flightNumber, string cabinCode, DateOnly departureDate,
+        bool includePrivateFares = false, CancellationToken ct = default)
     {
         // Returns all fare rules that apply to the given flight/cabin/date, ordered from least to
         // most specific so the caller can apply a last-wins cascade:
@@ -778,9 +779,10 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode, MinAmount, MaxAmount,
                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   IsPrivate, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  CabinCode = @CabinCode
+              AND (@IncludePrivateFares = 1 OR IsPrivate = 0)
               AND (
                   (FlightNumber IS NULL      AND ValidFrom IS NULL AND ValidTo IS NULL)
                OR (FlightNumber = @FlightNumber AND ValidFrom IS NULL AND ValidTo IS NULL)
@@ -802,7 +804,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             {
                 CabinCode = cabinCode,
                 FlightNumber = flightNumber,
-                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
+                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue),
+                IncludePrivateFares = includePrivateFares ? 1 : 0
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(MapToFareRule).ToList().AsReadOnly();
@@ -810,7 +813,7 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     public async Task<IReadOnlyList<FareRule>> GetApplicableFareRulesForFlightsAsync(
         IReadOnlyList<string> flightNumbers, IReadOnlyList<string> cabinCodes,
-        DateOnly departureDate, CancellationToken ct = default)
+        DateOnly departureDate, bool includePrivateFares = false, CancellationToken ct = default)
     {
         // Single query that retrieves all fare rules applicable to any of the supplied
         // (flightNumber, cabinCode) combinations for the given departure date, ordered
@@ -820,9 +823,10 @@ public sealed class SqlOfferRepository : IOfferRepository
                    CurrencyCode, MinAmount, MaxAmount,
                    MinPoints, MaxPoints, PointsTaxes, TaxLines,
                    IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                   ValidFrom, ValidTo, CreatedAt, UpdatedAt
+                   IsPrivate, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [offer].[FareRule]
             WHERE  CabinCode IN @CabinCodes
+              AND (@IncludePrivateFares = 1 OR IsPrivate = 0)
               AND (
                   (FlightNumber IS NULL      AND ValidFrom IS NULL AND ValidTo IS NULL)
                OR (FlightNumber IN @FlightNumbers AND ValidFrom IS NULL AND ValidTo IS NULL)
@@ -843,9 +847,10 @@ public sealed class SqlOfferRepository : IOfferRepository
         var rows = await connection.QueryAsync<dynamic>(
             new CommandDefinition(sql, new
             {
-                CabinCodes    = cabinCodes,
-                FlightNumbers = flightNumbers,
-                DepartureDate = departureDate.ToDateTime(TimeOnly.MinValue)
+                CabinCodes          = cabinCodes,
+                FlightNumbers       = flightNumbers,
+                DepartureDate       = departureDate.ToDateTime(TimeOnly.MinValue),
+                IncludePrivateFares = includePrivateFares ? 1 : 0
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         return rows.Select(MapToFareRule).ToList().AsReadOnly();
@@ -859,12 +864,12 @@ public sealed class SqlOfferRepository : IOfferRepository
                     CurrencyCode, MinAmount, MaxAmount,
                     MinPoints, MaxPoints, PointsTaxes, TaxLines,
                     IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
-                    ValidFrom, ValidTo)
+                    IsPrivate, ValidFrom, ValidTo)
             VALUES (@FareRuleId, @RuleType, @FlightNumber, @FareBasisCode, @FareFamily, @CabinCode, @BookingClass,
                     @CurrencyCode, @MinAmount, @MaxAmount,
                     @MinPoints, @MaxPoints, @PointsTaxes, @TaxLines,
                     @IsRefundable, @IsChangeable, @ChangeFeeAmount, @CancellationFeeAmount,
-                    @ValidFrom, @ValidTo);
+                    @IsPrivate, @ValidFrom, @ValidTo);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -896,6 +901,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                    IsChangeable          = @IsChangeable,
                    ChangeFeeAmount       = @ChangeFeeAmount,
                    CancellationFeeAmount = @CancellationFeeAmount,
+                   IsPrivate             = @IsPrivate,
                    ValidFrom             = @ValidFrom,
                    ValidTo               = @ValidTo
             WHERE  FareRuleId = @FareRuleId;
@@ -1118,6 +1124,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             isChangeable: (bool)row.IsChangeable,
             changeFeeAmount: (decimal)row.ChangeFeeAmount,
             cancellationFeeAmount: (decimal)row.CancellationFeeAmount,
+            isPrivate: (bool)row.IsPrivate,
             validFrom: ToNullableDateTimeOffset((DateTime?)row.ValidFrom),
             validTo: ToNullableDateTimeOffset((DateTime?)row.ValidTo),
             createdAt: new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
@@ -1146,6 +1153,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             fareRule.IsChangeable,
             fareRule.ChangeFeeAmount,
             fareRule.CancellationFeeAmount,
+            fareRule.IsPrivate,
             fareRule.ValidFrom,
             fareRule.ValidTo
         };

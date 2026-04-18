@@ -18,4 +18,7 @@ public sealed class SearchOffersRequest
 
     [JsonPropertyName("bookingType")]
     public string BookingType { get; init; } = "Revenue";
+
+    [JsonPropertyName("includePrivateFares")]
+    public bool IncludePrivateFares { get; init; }
 }

@@ -18,5 +18,6 @@ public sealed record CreateFareRuleCommand(
     bool IsChangeable,
     decimal ChangeFeeAmount,
     decimal CancellationFeeAmount,
+    bool IsPrivate,
     string? ValidFrom,
     string? ValidTo);

@@ -55,8 +55,8 @@ public interface IOfferRepository
     Task<Entities.FareRule?> GetFareRuleByIdAsync(Guid fareRuleId, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FareRule>> GetAllFareRulesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FareRule>> SearchFareRulesAsync(string? query, CancellationToken ct = default);
-    Task<IReadOnlyList<Entities.FareRule>> GetApplicableFareRulesAsync(string flightNumber, string cabinCode, DateOnly departureDate, CancellationToken ct = default);
-    Task<IReadOnlyList<Entities.FareRule>> GetApplicableFareRulesForFlightsAsync(IReadOnlyList<string> flightNumbers, IReadOnlyList<string> cabinCodes, DateOnly departureDate, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FareRule>> GetApplicableFareRulesAsync(string flightNumber, string cabinCode, DateOnly departureDate, bool includePrivateFares = false, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FareRule>> GetApplicableFareRulesForFlightsAsync(IReadOnlyList<string> flightNumbers, IReadOnlyList<string> cabinCodes, DateOnly departureDate, bool includePrivateFares = false, CancellationToken ct = default);
     Task CreateFareRuleAsync(Entities.FareRule fareRule, CancellationToken ct = default);
     Task UpdateFareRuleAsync(Entities.FareRule fareRule, CancellationToken ct = default);
     Task<bool> DeleteFareRuleAsync(Guid fareRuleId, CancellationToken ct = default);

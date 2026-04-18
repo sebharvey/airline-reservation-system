@@ -118,6 +118,7 @@ public sealed class FareRuleFunction
             IsChangeable: body.GetProperty("isChangeable").GetBoolean(),
             ChangeFeeAmount: body.GetProperty("changeFeeAmount").GetDecimal(),
             CancellationFeeAmount: body.GetProperty("cancellationFeeAmount").GetDecimal(),
+            IsPrivate: body.TryGetProperty("isPrivate", out var ip) && ip.ValueKind == JsonValueKind.True,
             ValidFrom: body.TryGetProperty("validFrom", out var vf) && vf.ValueKind != JsonValueKind.Null ? vf.GetString() : null,
             ValidTo: body.TryGetProperty("validTo", out var vt) && vt.ValueKind != JsonValueKind.Null ? vt.GetString() : null);
 
@@ -165,6 +166,7 @@ public sealed class FareRuleFunction
             IsChangeable: body.GetProperty("isChangeable").GetBoolean(),
             ChangeFeeAmount: body.GetProperty("changeFeeAmount").GetDecimal(),
             CancellationFeeAmount: body.GetProperty("cancellationFeeAmount").GetDecimal(),
+            IsPrivate: body.TryGetProperty("isPrivate", out var ip) && ip.ValueKind == JsonValueKind.True,
             ValidFrom: body.TryGetProperty("validFrom", out var vf) && vf.ValueKind != JsonValueKind.Null ? vf.GetString() : null,
             ValidTo: body.TryGetProperty("validTo", out var vt) && vt.ValueKind != JsonValueKind.Null ? vt.GetString() : null);
 
