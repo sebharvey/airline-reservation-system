@@ -131,7 +131,8 @@
                   <th>Type</th>
                   <th>Description</th>
                   <th class="hide-mobile">Passenger</th>
-                  <th>Amount</th>
+                  <th>Fare</th>
+                  <th class="hide-mobile">Tax</th>
                   <th class="hide-mobile">Status</th>
                   <th class="sr-only"></th>
                 </tr>
@@ -140,7 +141,7 @@
                 @for (item of allOrderItems(); track item.itemId; let i = $index) {
                   @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
                     <tr class="group-header-row">
-                      <td colspan="6">
+                      <td colspan="7">
                         <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
                       </td>
                     </tr>
@@ -153,7 +154,16 @@
                     </td>
                     <td class="item-desc-cell">{{ item.description ?? '—' }}</td>
                     <td class="hide-mobile muted">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</td>
-                    <td class="amount-cell">{{ item.amount != null ? formatAmount(item.amount, item.currency) : '—' }}</td>
+                    <td class="amount-cell">
+                      @if (item.fareAmount != null) {
+                        {{ formatAmount(item.fareAmount, item.currency) }}
+                      } @else if (item.amount != null) {
+                        {{ formatAmount(item.amount, item.currency) }}
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td class="hide-mobile amount-cell">{{ item.taxAmount != null ? formatAmount(item.taxAmount, item.currency) : '—' }}</td>
                     <td class="hide-mobile">
                       <span class="status-badge" [class]="statusBadgeClass(item.status)">
                         {{ item.status }}
@@ -574,6 +584,42 @@
             </div>
           </div>
         </div>
+        @if (item.fareAmount != null || item.taxAmount != null || item.totalAmount != null) {
+          <div class="modal-section">
+            <div class="modal-section-title">Fare</div>
+            <div class="field-grid">
+              @if (item.fareAmount != null) {
+                <div class="field-row">
+                  <span class="field-label">Base fare</span>
+                  <span class="field-value">{{ formatAmount(item.fareAmount, item.currency) }}</span>
+                </div>
+              }
+              @if (item.taxAmount != null) {
+                <div class="field-row">
+                  <span class="field-label">Total taxes</span>
+                  <span class="field-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+                </div>
+              }
+              @if (item.totalAmount != null) {
+                <div class="field-row">
+                  <span class="field-label">Total</span>
+                  <span class="field-value">{{ formatAmount(item.totalAmount, item.currency) }}</span>
+                </div>
+              }
+            </div>
+            @if (item.taxLines && item.taxLines.length > 0) {
+              <div class="tax-list">
+                @for (tl of item.taxLines; track tl.code) {
+                  <div class="tax-row">
+                    <span class="mono">{{ tl.code }}</span>
+                    <span>{{ tl.description ?? tl.code }}</span>
+                    <span>{{ formatAmount(tl.amount, item.currency) }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       }
 
       <!-- ── SEAT ── -->
