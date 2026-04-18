@@ -218,6 +218,7 @@ export class ManageBookingDetailComponent implements OnInit {
     switch (type) {
       case 'Seat': return 'Seat Ancillary';
       case 'Bag': return 'Baggage Ancillary';
+      case 'SSR': return 'Service';
       default: return type;
     }
   }
