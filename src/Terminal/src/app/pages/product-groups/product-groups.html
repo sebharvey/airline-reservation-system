@@ -35,28 +35,20 @@
         @if (!editing()) {
           <div class="form-section">
             <h3 class="section-heading">Group Details</h3>
-            <div class="form-grid grid-2">
+            <div class="form-grid grid-1">
               <div class="form-group">
                 <label>Name *</label>
                 <input type="text" [ngModel]="createForm().name" (ngModelChange)="updateCreateField('name', $event)" placeholder="e.g. Duty Free" required />
-              </div>
-              <div class="form-group">
-                <label>Sort Order</label>
-                <input type="number" [ngModel]="createForm().sortOrder" (ngModelChange)="updateCreateField('sortOrder', +$event)" placeholder="0" min="0" />
               </div>
             </div>
           </div>
         } @else {
           <div class="form-section">
             <h3 class="section-heading">Group Details</h3>
-            <div class="form-grid grid-2">
+            <div class="form-grid grid-1">
               <div class="form-group">
                 <label>Name *</label>
                 <input type="text" [ngModel]="updateForm().name" (ngModelChange)="updateUpdateField('name', $event)" required />
-              </div>
-              <div class="form-group">
-                <label>Sort Order</label>
-                <input type="number" [ngModel]="updateForm().sortOrder" (ngModelChange)="updateUpdateField('sortOrder', +$event)" min="0" />
               </div>
             </div>
           </div>
@@ -113,7 +105,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (group of groups(); track group.productGroupId) {
+          @for (group of sortedGroups(); track group.productGroupId; let first = $first; let last = $last) {
             <tr class="rule-row">
               <td class="name-cell">{{ group.name }}</td>
               <td class="mono">{{ group.sortOrder }}</td>
@@ -125,6 +117,8 @@
               <td class="mono muted">{{ formatDate(group.createdAt) }}</td>
               <td>
                 <div class="action-btns">
+                  <button class="action-btn sort-btn" (click)="moveUp(group)" [disabled]="reordering() || first" title="Move up">&#8593;</button>
+                  <button class="action-btn sort-btn" (click)="moveDown(group)" [disabled]="reordering() || last" title="Move down">&#8595;</button>
                   <button class="action-btn edit-btn" (click)="openEditForm(group)">Edit</button>
                   <button
                     class="action-btn delete-btn"
