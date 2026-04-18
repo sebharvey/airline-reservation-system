@@ -131,7 +131,7 @@ public sealed class UpdateOrderSeatsHandler
                     .Select(s => ((string?)s.SeatNumber, (string?)s.PassengerId))
                     .ToList();
                 await _offerServiceClient.HoldInventoryAsync(
-                    grp.Key.InventoryId, grp.Key.CabinCode, passengers, order.OrderId, ct: ct);
+                    grp.Key.InventoryId, grp.Key.CabinCode, passengers, order.OrderId, cancellationToken: ct);
             }
 
             var sellItems = validatedSeats
