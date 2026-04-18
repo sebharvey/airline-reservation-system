@@ -323,8 +323,8 @@
             <th>Cabin</th>
             <th class="hide-mobile">Flight</th>
             <th class="hide-mobile">Family</th>
-            <th>Min</th>
-            <th>Max</th>
+            <th class="text-right">Min</th>
+            <th class="text-right">Max</th>
             <th class="hide-tablet">Refund</th>
             <th class="hide-tablet">Change</th>
             <th class="hide-tablet">Valid Period</th>
@@ -349,11 +349,11 @@
               <td class="hide-mobile mono">{{ rule.flightNumber ?? 'All' }}</td>
               <td class="hide-mobile">{{ rule.fareFamily ?? '-' }}</td>
               @if (rule.ruleType === 'Money') {
-                <td class="mono">{{ formatAmount(rule.minAmount, rule.currencyCode) }}</td>
-                <td class="mono">{{ formatAmount(rule.maxAmount, rule.currencyCode) }}</td>
+                <td class="mono text-right">{{ formatAmount(rule.minAmount, rule.currencyCode) }}</td>
+                <td class="mono text-right">{{ formatAmount(rule.maxAmount, rule.currencyCode) }}</td>
               } @else {
-                <td class="mono">{{ formatPoints(rule.minPoints) }} pts</td>
-                <td class="mono">{{ formatPoints(rule.maxPoints) }} pts</td>
+                <td class="mono text-right">{{ formatPoints(rule.minPoints) }} pts</td>
+                <td class="mono text-right">{{ formatPoints(rule.maxPoints) }} pts</td>
               }
               <td class="hide-tablet">
                 <span class="badge" [class.badge-yes]="rule.isRefundable" [class.badge-no]="!rule.isRefundable">

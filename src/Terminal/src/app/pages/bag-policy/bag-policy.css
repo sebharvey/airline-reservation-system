@@ -395,6 +395,8 @@
   .form-actions button { width: 100%; justify-content: center; }
 }
 
+.text-right { text-align: right; }
+
 @media (min-width: 901px) {
   .bag-policy-page { padding: 0; max-width: none; }
 }

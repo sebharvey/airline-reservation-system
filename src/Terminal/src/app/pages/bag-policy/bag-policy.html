@@ -148,8 +148,8 @@
           <tr>
             <th>Cabin</th>
             <th>Class</th>
-            <th>Free Bags</th>
-            <th>Max Weight</th>
+            <th class="text-right">Free Bags</th>
+            <th class="text-right">Max Weight</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -161,8 +161,8 @@
                 <span class="badge badge-cabin">{{ policy.cabinCode }}</span>
               </td>
               <td>{{ cabinLabel(policy.cabinCode) }}</td>
-              <td class="mono">{{ policy.freeBagsIncluded }}</td>
-              <td class="mono">{{ policy.maxWeightKgPerBag }} kg</td>
+              <td class="mono text-right">{{ policy.freeBagsIncluded }}</td>
+              <td class="mono text-right">{{ policy.maxWeightKgPerBag }} kg</td>
               <td>
                 <span class="badge" [class.badge-yes]="policy.isActive" [class.badge-no]="!policy.isActive">
                   {{ policy.isActive ? 'Active' : 'Inactive' }}

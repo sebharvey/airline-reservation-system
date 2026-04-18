@@ -191,7 +191,7 @@
           <tr>
             <th>Cabin</th>
             <th>Position</th>
-            <th>Price</th>
+            <th class="text-right">Price</th>
             <th>Status</th>
             <th class="hide-mobile">Valid From</th>
             <th class="hide-mobile">Valid To</th>
@@ -207,7 +207,7 @@
                 <span class="cabin-label">{{ cabinLabel(pricing.cabinCode) }}</span>
               </td>
               <td>{{ pricing.seatPosition }}</td>
-              <td class="mono">{{ formatPrice(pricing.price, pricing.currencyCode) }}</td>
+              <td class="mono text-right">{{ formatPrice(pricing.price, pricing.currencyCode) }}</td>
               <td>
                 <span class="badge" [class.badge-active]="pricing.isActive" [class.badge-inactive]="!pricing.isActive">
                   {{ pricing.isActive ? 'Active' : 'Inactive' }}
