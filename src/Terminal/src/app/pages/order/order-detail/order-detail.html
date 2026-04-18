@@ -133,6 +133,7 @@
                   <th class="hide-mobile">Passenger</th>
                   <th>Fare</th>
                   <th class="hide-mobile">Tax</th>
+                  <th class="hide-mobile">Total</th>
                   <th class="hide-mobile">Status</th>
                   <th class="sr-only"></th>
                 </tr>
@@ -141,7 +142,7 @@
                 @for (item of allOrderItems(); track item.itemId; let i = $index) {
                   @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
                     <tr class="group-header-row">
-                      <td colspan="7">
+                      <td colspan="8">
                         <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
                       </td>
                     </tr>
@@ -164,6 +165,7 @@
                       }
                     </td>
                     <td class="hide-mobile amount-cell">{{ item.taxAmount != null ? formatAmount(item.taxAmount, item.currency) : '—' }}</td>
+                    <td class="hide-mobile amount-cell">{{ item.lineTotal != null ? formatAmount(item.lineTotal, item.currency) : '—' }}</td>
                     <td class="hide-mobile">
                       <span class="status-badge" [class]="statusBadgeClass(item.status)">
                         {{ item.status }}
@@ -173,6 +175,22 @@
                   </tr>
                 }
               </tbody>
+              @if (itemTotals(); as totals) {
+                <tfoot>
+                  <tr class="totals-row">
+                    <td colspan="3" class="hide-mobile"></td>
+                    <td class="amount-cell totals-label hide-mobile">{{ formatAmount(totals.subtotalFare, totals.currency) }}</td>
+                    <td class="amount-cell hide-mobile">{{ formatAmount(totals.subtotalTax, totals.currency) }}</td>
+                    <td class="amount-cell hide-mobile"><strong>{{ formatAmount(totals.grandTotal, totals.currency) }}</strong></td>
+                    <td colspan="2" class="hide-mobile"></td>
+                  </tr>
+                  <tr class="grand-total-row">
+                    <td colspan="5" class="grand-total-label">Order total</td>
+                    <td class="amount-cell grand-total-value"><strong>{{ formatAmount(totals.grandTotal, totals.currency) }}</strong></td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              }
             </table>
           </div>
         }

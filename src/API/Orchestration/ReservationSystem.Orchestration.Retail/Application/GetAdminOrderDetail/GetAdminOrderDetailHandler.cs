@@ -186,6 +186,7 @@ public sealed class GetAdminOrderDetailHandler
                         ["fareAmount"]  = fareAmount?.DeepClone(),
                         ["taxAmount"]   = taxAmount?.DeepClone(),
                         ["totalAmount"] = itemTotal?.DeepClone(),
+                        ["lineTotal"]   = itemTotal?.DeepClone(),
                         ["taxLines"]    = taxLines?.DeepClone(),
                         ["amount"] = null,
                         ["currency"] = currency?.DeepClone(),
@@ -208,6 +209,7 @@ public sealed class GetAdminOrderDetailHandler
                     ["fareAmount"]  = fareAmount?.DeepClone(),
                     ["taxAmount"]   = taxAmount?.DeepClone(),
                     ["totalAmount"] = itemTotal?.DeepClone(),
+                    ["lineTotal"]   = itemTotal?.DeepClone(),
                     ["taxLines"]    = taxLines?.DeepClone(),
                     ["amount"] = null,
                     ["currency"] = currency?.DeepClone(),
@@ -232,6 +234,7 @@ public sealed class GetAdminOrderDetailHandler
             var seatNum = seatItem["seatNumber"]?.GetValue<string>() ?? string.Empty;
             var seatSegId = seatItem["segmentId"]?.GetValue<string>() ?? string.Empty;
             var seatFlightDesc = segmentDescriptions.TryGetValue(seatSegId, out var sd) ? $" — {sd}" : string.Empty;
+            var seatPrice = seatItem["price"] is JsonNode seatPriceNode ? seatPriceNode.DeepClone() : null;
             enrichedItems.Add(new JsonObject
             {
                 ["itemId"]        = Guid.NewGuid().ToString(),
@@ -244,7 +247,8 @@ public sealed class GetAdminOrderDetailHandler
                 ["seatNumber"]    = seatNum,
                 ["bagWeightKg"]   = null,
                 ["name"]          = null,
-                ["amount"]        = seatItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                ["amount"]        = seatPrice?.DeepClone(),
+                ["lineTotal"]     = seatPrice?.DeepClone(),
                 ["currency"]      = seatItem["currency"]?.GetValue<string>(),
             });
         }
@@ -276,6 +280,7 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]    = null,
                     ["bagWeightKg"]   = null,
                     ["amount"]        = null,
+                    ["lineTotal"]     = null,
                     ["currency"]      = null,
                 });
             }
@@ -285,6 +290,7 @@ public sealed class GetAdminOrderDetailHandler
                 var segRef      = rawItem["segmentRef"]?.GetValue<string>();
                 var segDesc     = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var sd2)
                                   ? $" — {sd2}" : string.Empty;
+                var productPrice = rawItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null;
                 enrichedItems.Add(new JsonObject
                 {
                     ["itemId"]        = rawItem["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
@@ -297,7 +303,8 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]    = null,
                     ["bagWeightKg"]   = null,
                     ["name"]          = productName,
-                    ["amount"]        = rawItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                    ["amount"]        = productPrice?.DeepClone(),
+                    ["lineTotal"]     = productPrice?.DeepClone(),
                     ["currency"]      = rawItem["currency"]?.GetValue<string>(),
                 });
             }
@@ -305,6 +312,27 @@ public sealed class GetAdminOrderDetailHandler
 
         if (enrichedItems.Count > 0)
             orderData["orderItems"] = enrichedItems;
+
+        // Compute order item subtotals server-side so the Terminal never calculates totals itself.
+        decimal subtotalFare = 0m;
+        decimal subtotalTax  = 0m;
+        decimal grandTotal   = 0m;
+        foreach (var node in enrichedItems)
+        {
+            if (node is not JsonObject ei) continue;
+            subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
+            subtotalTax  += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
+            grandTotal   += ei["lineTotal"]?.GetValue<decimal>() ?? 0m;
+        }
+
+        var orderCurrency = orderData["currency"]?.GetValue<string>() ?? "GBP";
+        orderData["itemTotals"] = new JsonObject
+        {
+            ["subtotalFare"] = Math.Round(subtotalFare, 2),
+            ["subtotalTax"]  = Math.Round(subtotalTax,  2),
+            ["grandTotal"]   = Math.Round(grandTotal,   2),
+            ["currency"]     = orderCurrency,
+        };
     }
 
     /// <summary>

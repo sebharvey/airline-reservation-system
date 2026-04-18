@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, ItemTotals } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -107,6 +107,10 @@ export class OrderDetailComponent implements OnInit {
     }
     return groups;
   });
+
+  itemTotals = computed<ItemTotals | null>(() =>
+    this.order()?.orderData?.itemTotals ?? null
+  );
 
   payments = computed<OrderPayment[]>(() =>
     this.order()?.orderData?.payments ?? []
