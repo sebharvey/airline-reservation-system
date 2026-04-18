@@ -1412,6 +1412,38 @@
 /* Add SSR section in Order Items tab */
 .add-ssr-section { margin-top: 16px; }
 
+/* Add SSR modal form */
+.ssr-modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 540px) {
+  .ssr-modal-form-grid { grid-template-columns: 1fr; }
+}
+
+.all-segments-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.all-segments-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--grad-start);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 /* Item modal — flight route display */
 .item-route {
   display: flex;

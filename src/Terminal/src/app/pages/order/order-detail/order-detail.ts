@@ -45,6 +45,7 @@ export class OrderDetailComponent implements OnInit {
   ssrError = signal('');
   showAddSsr = signal(false);
   addSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
+  addSsrAllSegments = signal(false);
 
   // Edit-in-place state for existing SSR rows
   editingSsrKey = signal<string | null>(null);
@@ -459,23 +460,33 @@ export class OrderDetailComponent implements OnInit {
 
   async addSsr(): Promise<void> {
     const form = this.addSsrForm();
-    if (!form.ssrCode || !form.passengerRef || !form.segmentRef) return;
-    if (this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, form.segmentRef)) {
-      this.ssrError.set('A service already exists for this passenger and segment. Remove it before adding a new one.');
+    const allSegments = this.addSsrAllSegments();
+    if (!form.ssrCode || !form.passengerRef) return;
+    if (!allSegments && !form.segmentRef) return;
+
+    const segmentRefs = allSegments
+      ? this.segments().map(s => s.segmentId)
+      : [form.segmentRef];
+
+    const duplicate = segmentRefs.find(segRef =>
+      this.ssrExistsForPaxSegment(form.ssrCode, form.passengerRef, segRef)
+    );
+    if (duplicate) {
+      this.ssrError.set('A service already exists for this passenger on one or more selected segments. Remove it before adding a new one.');
       return;
     }
+
     this.ssrSaving.set(true);
     this.ssrError.set('');
-    const action: SsrPatchAction = {
+    const actions: SsrPatchAction[] = segmentRefs.map(segRef => ({
       action: 'add',
       ssrCode: form.ssrCode,
       passengerRef: form.passengerRef,
-      segmentRef: form.segmentRef,
-    };
+      segmentRef: segRef,
+    }));
     try {
-      await this.#orderService.updateOrderSsrs(this.bookingRef, [action]);
-      this.showAddSsr.set(false);
-      this.addSsrForm.set({ ssrCode: '', passengerRef: '', segmentRef: '' });
+      await this.#orderService.updateOrderSsrs(this.bookingRef, actions);
+      this.cancelAddSsr();
       await this.loadOrder();
     } catch (err: any) {
       this.ssrError.set(
@@ -486,6 +497,13 @@ export class OrderDetailComponent implements OnInit {
     } finally {
       this.ssrSaving.set(false);
     }
+  }
+
+  cancelAddSsr(): void {
+    this.showAddSsr.set(false);
+    this.addSsrForm.set({ ssrCode: '', passengerRef: '', segmentRef: '' });
+    this.addSsrAllSegments.set(false);
+    this.ssrError.set('');
   }
 
   updateAddSsrField(field: keyof SsrEditForm, value: string): void {
