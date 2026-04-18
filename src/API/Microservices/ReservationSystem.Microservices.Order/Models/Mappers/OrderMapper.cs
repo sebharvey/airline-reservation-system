@@ -146,7 +146,8 @@ public static class OrderMapper
                             BaseFareAmount = item.TryGetProperty("baseFareAmount", out v) ? v.GetDecimal() : 0m,
                             TaxAmount      = item.TryGetProperty("taxAmount",      out v) ? v.GetDecimal() : 0m,
                             TotalAmount    = item.TryGetProperty("totalAmount",    out v) ? v.GetDecimal() : 0m,
-                            TaxLines       = taxLines
+                            TaxLines       = taxLines,
+                            ProductType    = item.TryGetProperty("productType", out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null
                         });
                     }
                 }

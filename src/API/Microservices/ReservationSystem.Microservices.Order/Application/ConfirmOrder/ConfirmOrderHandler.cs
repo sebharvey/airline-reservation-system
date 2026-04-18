@@ -174,6 +174,7 @@ public sealed class ConfirmOrderHandler
                 }
             }
 
+            item["productType"] = "FLIGHT";
             flightOrderItems.Add(item);
         }
 

@@ -66,6 +66,9 @@ public sealed class ConfirmedOrderItem
 
     [JsonPropertyName("taxLines")]
     public IReadOnlyList<ConfirmedTaxLine>? TaxLines { get; init; }
+
+    [JsonPropertyName("productType")]
+    public string? ProductType { get; init; }
 }
 
 public sealed class ConfirmedTaxLine
