@@ -242,9 +242,10 @@ export class OrderDetailComponent implements OnInit {
   statusBadgeClass(status: string): string {
     return {
       Confirmed: 'badge-confirmed',
+      Standby:   'badge-standby',
       Cancelled: 'badge-cancelled',
-      Changed: 'badge-changed',
-      Draft: 'badge-draft',
+      Changed:   'badge-changed',
+      Draft:     'badge-draft',
     }[status] ?? 'badge-default';
   }
 

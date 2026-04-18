@@ -83,6 +83,9 @@ public sealed class GetAdminOrderDetailHandler
 
         var eTicketsNode = orderData["eTickets"]?.AsArray();
 
+        var bookingType = orderData["bookingType"]?.GetValue<string>() ?? "Revenue";
+        var itemStatus  = bookingType == "Standby" ? "Standby" : "Confirmed";
+
         var flightSegments = new JsonArray();
         var enrichedItems = new JsonArray();
 
@@ -179,7 +182,7 @@ public sealed class GetAdminOrderDetailHandler
                         ["description"] = segDesc,
                         ["passengerId"] = paxId,
                         ["segmentId"] = inventoryIdStr,
-                        ["status"] = "Confirmed",
+                        ["status"] = itemStatus,
                         ["eTicketNumber"] = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
                         ["seatNumber"] = null,
                         ["bagWeightKg"] = null,
@@ -202,7 +205,7 @@ public sealed class GetAdminOrderDetailHandler
                     ["description"] = segDesc,
                     ["passengerId"] = null,
                     ["segmentId"] = inventoryIdStr,
-                    ["status"] = "Confirmed",
+                    ["status"] = itemStatus,
                     ["eTicketNumber"] = null,
                     ["seatNumber"] = null,
                     ["bagWeightKg"] = null,
