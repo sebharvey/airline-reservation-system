@@ -160,8 +160,56 @@ public sealed class TicketPassenger
     [JsonPropertyName("dob")]
     public string? Dob { get; init; }
 
+    [JsonPropertyName("fareConstruction")]
+    public TicketFareConstruction? FareConstruction { get; init; }
+
     [JsonPropertyName("formOfPayment")]
     public TicketFormOfPayment? FormOfPayment { get; init; }
+}
+
+public sealed class TicketFareConstruction
+{
+    [JsonPropertyName("pricingCurrency")]
+    public string PricingCurrency { get; init; } = string.Empty;
+
+    [JsonPropertyName("collectingCurrency")]
+    public string CollectingCurrency { get; init; } = string.Empty;
+
+    [JsonPropertyName("baseFare")]
+    public decimal BaseFare { get; init; }
+
+    [JsonPropertyName("equivalentFarePaid")]
+    public decimal EquivalentFarePaid { get; init; }
+
+    [JsonPropertyName("nucAmount")]
+    public decimal NucAmount { get; init; }
+
+    [JsonPropertyName("roeApplied")]
+    public decimal RoeApplied { get; init; }
+
+    [JsonPropertyName("fareCalculationLine")]
+    public string FareCalculationLine { get; init; } = string.Empty;
+
+    [JsonPropertyName("taxes")]
+    public List<TicketTaxLine> Taxes { get; init; } = [];
+
+    [JsonPropertyName("totalTaxes")]
+    public decimal TotalTaxes { get; init; }
+}
+
+public sealed class TicketTaxLine
+{
+    [JsonPropertyName("code")]
+    public string Code { get; init; } = string.Empty;
+
+    [JsonPropertyName("amount")]
+    public decimal Amount { get; init; }
+
+    [JsonPropertyName("currency")]
+    public string Currency { get; init; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string? Description { get; init; }
 }
 
 public sealed class TicketFormOfPayment
