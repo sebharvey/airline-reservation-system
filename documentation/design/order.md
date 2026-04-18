@@ -148,7 +148,7 @@ sequenceDiagram
     end
 
     RetailAPI->>OrderMS: POST /v1/orders/confirm (orderId, basketId, paymentReferences)
-    Note over OrderMS: Validates passengers and segments present; rejects if any flight departs within 1 hour (ticketing closed);<br/>assigns booking reference; writes payment references into OrderData;<br/>transitions OrderStatus to Confirmed; deletes basket
+    Note over OrderMS: Validates passengers and segments present, rejects if any flight departs within 1 hour (ticketing closed),<br/>assigns booking reference, writes payment references into OrderData,<br/>transitions OrderStatus to Confirmed, deletes basket
     OrderMS-->>RetailAPI: 200 OK — order confirmed (bookingReference, orderStatus=Confirmed)
 
     RetailAPI->>DeliveryMS: POST /v1/tickets (basketId, bookingReference, passenger details, flight segments)
