@@ -48,9 +48,6 @@ public sealed class ReissueTicketsHandler
             var ticket = Ticket.Create(
                 request.BookingReference,
                 passenger.PassengerId,
-                totalFareAmount: fc?.BaseFare ?? 0m,
-                currency: fc?.CollectingCurrency ?? "GBP",
-                totalTaxAmount: fc?.TotalTaxes ?? 0m,
                 fareCalculation: fc?.FareCalculationLine ?? string.Empty,
                 ticketData);
 
@@ -72,6 +69,8 @@ public sealed class ReissueTicketsHandler
         string reason,
         string actor)
     {
+        var fc = passenger.FareConstruction;
+
         var coupons = segments.Select((segment, index) =>
         {
             var seatAssignment = segment.SeatAssignments?
@@ -107,8 +106,24 @@ public sealed class ReissueTicketsHandler
             };
         }).ToList();
 
+        object? fareConstruction = fc is null ? null : new
+        {
+            baseFare = fc.BaseFare,
+            currency = fc.CollectingCurrency,
+            totalTaxes = fc.TotalTaxes,
+            totalAmount = fc.BaseFare + fc.TotalTaxes,
+            taxes = fc.Taxes.Select(t => new
+            {
+                code = t.Code,
+                amount = t.Amount,
+                currency = t.Currency.Length == 3 ? t.Currency : fc.CollectingCurrency,
+                couponNumbers = Array.Empty<int>() // attribution not re-computed on reissue; use IssueTickets for new bookings
+            }).ToList()
+        };
+
         var ticketData = new
         {
+            fareConstruction,
             passenger = new
             {
                 surname = passenger.Surname,

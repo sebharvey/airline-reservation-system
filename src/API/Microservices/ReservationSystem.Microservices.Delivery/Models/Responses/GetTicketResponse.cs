@@ -22,7 +22,7 @@ public sealed class GetTicketResponse
     /// <summary>Structured fare components derived from the fare calculation string (derived, not stored).</summary>
     [JsonPropertyName("fareComponents")] public List<FareComponentResponse>? FareComponents { get; init; }
 
-    /// <summary>Stored tax breakdown with coupon attribution (stored).</summary>
+    /// <summary>Tax breakdown parsed from TicketData.fareConstruction.taxes (stored in JSON, not typed columns).</summary>
     [JsonPropertyName("taxBreakdown")] public List<TaxBreakdownResponse> TaxBreakdown { get; init; } = [];
 
     // ── Operational data ─────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ public sealed class FareComponentResponse
     [JsonPropertyName("fareBasis")] public string? FareBasis { get; init; }
 }
 
-/// <summary>A tax line with coupon attribution (stored in TicketTax + TicketTaxCoupon tables).</summary>
+/// <summary>A tax line with coupon attribution (from TicketData.fareConstruction.taxes).</summary>
 public sealed class TaxBreakdownResponse
 {
     [JsonPropertyName("taxCode")] public string TaxCode { get; init; } = string.Empty;

@@ -51,10 +51,12 @@ PRINT 'Triggers dropped.';
 
 -- Drop tables (child-before-parent order to respect FK constraints) -----------
 
--- delivery
-IF OBJECT_ID('[delivery].[Document]',  'U') IS NOT NULL DROP TABLE [delivery].[Document];
-IF OBJECT_ID('[delivery].[Manifest]',  'U') IS NOT NULL DROP TABLE [delivery].[Manifest];
-IF OBJECT_ID('[delivery].[Ticket]',    'U') IS NOT NULL DROP TABLE [delivery].[Ticket];
+-- delivery (child-before-parent order)
+IF OBJECT_ID('[delivery].[TicketTaxCoupon]', 'U') IS NOT NULL DROP TABLE [delivery].[TicketTaxCoupon];
+IF OBJECT_ID('[delivery].[TicketTax]',       'U') IS NOT NULL DROP TABLE [delivery].[TicketTax];
+IF OBJECT_ID('[delivery].[Document]',        'U') IS NOT NULL DROP TABLE [delivery].[Document];
+IF OBJECT_ID('[delivery].[Manifest]',        'U') IS NOT NULL DROP TABLE [delivery].[Manifest];
+IF OBJECT_ID('[delivery].[Ticket]',          'U') IS NOT NULL DROP TABLE [delivery].[Ticket];
 
 -- payment
 IF OBJECT_ID('[payment].[PaymentEvent]', 'U') IS NOT NULL DROP TABLE [payment].[PaymentEvent];
@@ -655,28 +657,25 @@ GO
 -- =============================================================================
 
 -- delivery.Ticket -------------------------------------------------------------
+-- One row per e-ticket (one passenger, all segments). Financial data lives in
+-- TicketData.fareConstruction JSON; FareCalculation is a typed column so coupon
+-- fare shares can be derived without parsing the full JSON blob.
 IF OBJECT_ID('[delivery].[Ticket]', 'U') IS NULL
 CREATE TABLE [delivery].[Ticket] (
-    TicketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Ticket_Id        DEFAULT NEWID(),
+    TicketId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Ticket_Id       DEFAULT NEWID(),
     TicketNumber     BIGINT           NOT NULL IDENTITY(1000000001, 1),
     BookingReference CHAR(6)          NOT NULL,
     PassengerId      VARCHAR(20)      NOT NULL,
-    -- Fare amounts — the ticket is the monetary unit; coupon value is always derived.
-    TotalFareAmount  DECIMAL(10,2)    NOT NULL CONSTRAINT DF_Ticket_Fare      DEFAULT 0,
-    Currency         CHAR(3)          NOT NULL CONSTRAINT DF_Ticket_Currency  DEFAULT 'GBP',
-    TotalTaxAmount   DECIMAL(10,2)    NOT NULL CONSTRAINT DF_Ticket_Tax       DEFAULT 0,
-    TotalAmount      DECIMAL(10,2)    NOT NULL CONSTRAINT DF_Ticket_Total     DEFAULT 0,
-    -- IATA linear fare calculation string; NUC amounts + ROE; coupon value derived from this.
-    FareCalculation  NVARCHAR(500)    NOT NULL CONSTRAINT DF_Ticket_FareCalc  DEFAULT '',
-    IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided    DEFAULT 0,
+    -- IATA linear fare calc; NUC amounts + ROE; coupon fare share derived from this + TicketData.fareConstruction.baseFare.
+    FareCalculation  NVARCHAR(500)    NOT NULL CONSTRAINT DF_Ticket_FareCalc DEFAULT '',
+    IsVoided         BIT              NOT NULL CONSTRAINT DF_Ticket_Voided   DEFAULT 0,
     VoidedAt         DATETIME2            NULL,
     TicketData       JSON             NOT NULL,
-    CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Created   DEFAULT SYSUTCDATETIME(),
-    UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Updated   DEFAULT SYSUTCDATETIME(),
-    Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version   DEFAULT 1,
-    CONSTRAINT PK_Ticket         PRIMARY KEY (TicketId),
-    CONSTRAINT UQ_Ticket_Number  UNIQUE (TicketNumber),
-    CONSTRAINT CHK_Ticket_Ccy    CHECK (LEN(RTRIM(Currency)) = 3)
+    CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Created  DEFAULT SYSUTCDATETIME(),
+    UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Ticket_Updated  DEFAULT SYSUTCDATETIME(),
+    Version          INT              NOT NULL CONSTRAINT DF_Ticket_Version  DEFAULT 1,
+    CONSTRAINT PK_Ticket        PRIMARY KEY (TicketId),
+    CONSTRAINT UQ_Ticket_Number UNIQUE (TicketNumber)
 );
 GO
 
@@ -697,38 +696,6 @@ BEGIN
             INNER JOIN inserted i ON t.TicketId = i.TicketId;
     ');
 END
-GO
-
--- delivery.TicketTax ----------------------------------------------------------
--- Normalised tax breakdown. Each row is one tax code on one ticket.
-IF OBJECT_ID('[delivery].[TicketTax]', 'U') IS NULL
-CREATE TABLE [delivery].[TicketTax] (
-    TicketTaxId  UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_TicketTax_Id       DEFAULT NEWID(),
-    TicketId     UNIQUEIDENTIFIER NOT NULL,
-    TaxCode      VARCHAR(4)       NOT NULL,
-    Amount       DECIMAL(10,2)    NOT NULL,
-    Currency     CHAR(3)          NOT NULL CONSTRAINT DF_TicketTax_Currency DEFAULT 'GBP',
-    CONSTRAINT PK_TicketTax        PRIMARY KEY (TicketTaxId),
-    CONSTRAINT FK_TicketTax_Ticket FOREIGN KEY (TicketId) REFERENCES [delivery].[Ticket](TicketId)
-);
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_TicketTax_TicketId' AND object_id = OBJECT_ID('[delivery].[TicketTax]'))
-    CREATE INDEX IX_TicketTax_TicketId ON [delivery].[TicketTax] (TicketId);
-GO
-
--- delivery.TicketTaxCoupon ----------------------------------------------------
--- Coupon numbers that each tax line applies to (1–4 per ticket).
-IF OBJECT_ID('[delivery].[TicketTaxCoupon]', 'U') IS NULL
-CREATE TABLE [delivery].[TicketTaxCoupon] (
-    TicketTaxCouponId  UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_TicketTaxCoupon_Id DEFAULT NEWID(),
-    TicketTaxId        UNIQUEIDENTIFIER NOT NULL,
-    CouponNumber       TINYINT          NOT NULL,
-    CONSTRAINT PK_TicketTaxCoupon           PRIMARY KEY (TicketTaxCouponId),
-    CONSTRAINT FK_TicketTaxCoupon_Tax       FOREIGN KEY (TicketTaxId) REFERENCES [delivery].[TicketTax](TicketTaxId),
-    CONSTRAINT CHK_TicketTaxCoupon_Number   CHECK (CouponNumber BETWEEN 1 AND 4),
-    CONSTRAINT UQ_TicketTaxCoupon           UNIQUE (TicketTaxId, CouponNumber)
-);
 GO
 
 -- delivery.Manifest -----------------------------------------------------------
@@ -1906,9 +1873,9 @@ BEGIN TRY
     VALUES (@OrderId2,'JC0005','Confirmed','APP','GBP','2026-09-10T20:30:00Z',309.50, @OrderData2);
 
     -- delivery.Ticket — AB1234 (2 tickets, one per passenger) + JC0005 (1 ticket) ----
-    -- One ticket per passenger covering ALL segments in the booking (IATA convention).
-    -- Each ticket has coupon(s) — one per segment — inside TicketData.coupons.
-    -- Coupon value is always derived from FareCalculation + TicketTax; never stored on the coupon.
+    -- One ticket per passenger covering ALL segments. Financial data (baseFare, currency,
+    -- taxes with coupon attribution) is stored in TicketData.fareConstruction JSON.
+    -- FareCalculation is the only typed financial column: used to derive per-coupon fare shares.
     DECLARE @TktId1 UNIQUEIDENTIFIER = NEWID();  -- AB1234 / PAX-1 (Amara Okafor)
     DECLARE @TktId2 UNIQUEIDENTIFIER = NEWID();  -- AB1234 / PAX-2 (Jordan Taylor)
     DECLARE @TktId3 UNIQUEIDENTIFIER = NEWID();  -- JC0005 / PAX-1 (James Chen)
@@ -1917,107 +1884,24 @@ BEGIN TRY
     -- Seed rows occupy 1000000001–1000000003; production inserts start at 1000000004.
     SET IDENTITY_INSERT [delivery].[Ticket] ON;
     INSERT INTO [delivery].[Ticket]
-        (TicketId, TicketNumber, BookingReference, PassengerId,
-         TotalFareAmount, Currency, TotalTaxAmount, TotalAmount, FareCalculation,
-         TicketData)
+        (TicketId, TicketNumber, BookingReference, PassengerId, FareCalculation, TicketData)
     VALUES
     -- AB1234 / PAX-1: LHR→JFK (AX001 2026-08-15, coupon 1) + JFK→LHR (AX002 2026-08-25, coupon 2)
     (@TktId1, 1000000001, 'AB1234', 'PAX-1',
-     1250.00, 'GBP', 182.50, 1432.50,
      'LHR AX JFK 625.00 AX LHR 625.00 NUC1250.00 END ROE1.000000',
-     N'{"passenger":{"surname":"Okafor","givenName":"Amara","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1A","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2A","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+     N'{"fareConstruction":{"baseFare":1250.00,"currency":"GBP","totalTaxes":182.50,"totalAmount":1432.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"US","amount":16.00,"currency":"GBP","couponNumbers":[2]},{"code":"XY","amount":11.00,"currency":"GBP","couponNumbers":[2]},{"code":"YC","amount":5.50,"currency":"GBP","couponNumbers":[2]},{"code":"XA","amount":9.50,"currency":"GBP","couponNumbers":[2]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[2]}]},"passenger":{"surname":"Okafor","givenName":"Amara","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1A","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2A","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
     ),
     -- AB1234 / PAX-2: same itinerary, same fare, different seats
     (@TktId2, 1000000002, 'AB1234', 'PAX-2',
-     1250.00, 'GBP', 182.50, 1432.50,
      'LHR AX JFK 625.00 AX LHR 625.00 NUC1250.00 END ROE1.000000',
-     N'{"passenger":{"surname":"Taylor","givenName":"Jordan","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1K","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2K","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+     N'{"fareConstruction":{"baseFare":1250.00,"currency":"GBP","totalTaxes":182.50,"totalAmount":1432.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"US","amount":16.00,"currency":"GBP","couponNumbers":[2]},{"code":"XY","amount":11.00,"currency":"GBP","couponNumbers":[2]},{"code":"YC","amount":5.50,"currency":"GBP","couponNumbers":[2]},{"code":"XA","amount":9.50,"currency":"GBP","couponNumbers":[2]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":20.00,"currency":"GBP","couponNumbers":[2]}]},"passenger":{"surname":"Taylor","givenName":"Jordan","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Visa","maskedPan":"XXXX-XXXX-XXXX-4242","expiryMmYy":"09/28","approvalCode":"AX-AUTH-001","amount":1432.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":"NON-ENDORSE/NON-REROUTE","tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX001"},"operating":{"carrier":"AX","flightNumber":"AX001"},"origin":"LHR","destination":"JFK","departureDate":"2026-08-15","departureTime":"08:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-15","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"1K","attributedTaxCodes":["GB","UB","YQ"]},{"couponNumber":2,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX002"},"operating":{"carrier":"AX","flightNumber":"AX002"},"origin":"JFK","destination":"LHR","departureDate":"2026-08-25","departureTime":"13:00","classOfService":"J","cabin":"BUSINESS","fareBasisCode":"JFLEXGB","notValidBefore":"2026-08-25","notValidAfter":null,"stopoverIndicator":"X","baggageAllowance":{"type":"PIECE","quantity":2,"weightKg":32},"seat":"2K","attributedTaxCodes":["US","XY","YC","XA","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-03-17T10:31:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
     ),
-    -- JC0005 / PAX-1: LHR→DEL (AX411 2026-09-10, coupon 1 only)
+    -- JC0005 / PAX-1: LHR→DEL (AX411 2026-09-10, single coupon)
     (@TktId3, 1000000003, 'JC0005', 'PAX-1',
-     199.00, 'GBP', 110.50, 309.50,
      'LHR AX DEL 199.00 NUC199.00 END ROE1.000000',
-     N'{"passenger":{"surname":"Chen","givenName":"James","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Mastercard","maskedPan":"XXXX-XXXX-XXXX-1234","expiryMmYy":"11/27","approvalCode":"AX-AUTH-003","amount":309.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":null,"tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX411"},"operating":{"carrier":"AX","flightNumber":"AX411"},"origin":"LHR","destination":"DEL","departureDate":"2026-09-10","departureTime":"20:30","classOfService":"Y","cabin":"ECONOMY","fareBasisCode":"YLIGHTGB","notValidBefore":"2026-09-10","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":1,"weightKg":23},"seat":"22A","attributedTaxCodes":["GB","UB","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
+     N'{"fareConstruction":{"baseFare":199.00,"currency":"GBP","totalTaxes":110.50,"totalAmount":309.50,"taxes":[{"code":"GB","amount":87.00,"currency":"GBP","couponNumbers":[1]},{"code":"UB","amount":13.50,"currency":"GBP","couponNumbers":[1]},{"code":"YQ","amount":10.00,"currency":"GBP","couponNumbers":[1]}]},"passenger":{"surname":"Chen","givenName":"James","passengerTypeCode":"ADT","frequentFlyer":null},"formOfPayment":{"type":"CreditCard","cardType":"Mastercard","maskedPan":"XXXX-XXXX-XXXX-1234","expiryMmYy":"11/27","approvalCode":"AX-AUTH-003","amount":309.50,"currency":"GBP"},"commission":{"type":"PERCENT","rate":0,"amount":0},"endorsementsRestrictions":null,"tourCode":null,"originalIssue":{"ticketNumber":null,"issueDate":null,"issuingLocation":null,"fareAmount":null},"coupons":[{"couponNumber":1,"status":"OPEN","marketing":{"carrier":"AX","flightNumber":"AX411"},"operating":{"carrier":"AX","flightNumber":"AX411"},"origin":"LHR","destination":"DEL","departureDate":"2026-09-10","departureTime":"20:30","classOfService":"Y","cabin":"ECONOMY","fareBasisCode":"YLIGHTGB","notValidBefore":"2026-09-10","notValidAfter":null,"stopoverIndicator":"O","baggageAllowance":{"type":"PIECE","quantity":1,"weightKg":23},"seat":"22A","attributedTaxCodes":["GB","UB","YQ"]}],"ssrCodes":[],"changeHistory":[{"eventType":"Issued","occurredAt":"2026-05-01T09:16:00Z","actor":"RetailAPI","detail":"Initial ticket issuance"}]}'
     );
     SET IDENTITY_INSERT [delivery].[Ticket] OFF;
-
-    -- delivery.TicketTax + delivery.TicketTaxCoupon — tax breakdown for seed tickets ----
-    -- AB1234 / PAX-1 taxes (182.50 GBP total): GB + UB → coupon 1 only; US/XY/YC/XA → coupon 2;
-    -- YQ split equally: 20.00 per coupon (total 40.00).
-    INSERT INTO [delivery].[TicketTax] (TicketTaxId, TicketId, TaxCode, Amount, Currency)
-    VALUES
-    (NEWID(), @TktId1, 'GB', 87.00, 'GBP'),
-    (NEWID(), @TktId1, 'UB', 13.50, 'GBP'),
-    (NEWID(), @TktId1, 'US', 16.00, 'GBP'),
-    (NEWID(), @TktId1, 'XY', 11.00, 'GBP'),
-    (NEWID(), @TktId1, 'YC',  5.50, 'GBP'),
-    (NEWID(), @TktId1, 'XA',  9.50, 'GBP'),
-    (NEWID(), @TktId1, 'YQ', 20.00, 'GBP'),
-    (NEWID(), @TktId1, 'YQ', 20.00, 'GBP');
-
-    -- Coupon attribution for PAX-1 taxes (must match the TicketTaxIds just inserted).
-    -- Use a temp table approach: insert TicketTaxes, then reference their generated IDs.
-    DECLARE @TaxGB1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'GB');
-    DECLARE @TaxUB1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'UB');
-    DECLARE @TaxUS1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'US');
-    DECLARE @TaxXY1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'XY');
-    DECLARE @TaxYC1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'YC');
-    DECLARE @TaxXA1  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'XA');
-    DECLARE @TaxYQ1a UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'YQ' ORDER BY TicketTaxId ASC);
-    DECLARE @TaxYQ1b UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId1 AND TaxCode = 'YQ' ORDER BY TicketTaxId DESC);
-
-    INSERT INTO [delivery].[TicketTaxCoupon] (TicketTaxCouponId, TicketTaxId, CouponNumber)
-    VALUES
-    (NEWID(), @TaxGB1,  1),  -- GB applies to coupon 1 (departure LHR, UK)
-    (NEWID(), @TaxUB1,  1),  -- UB applies to coupon 1
-    (NEWID(), @TaxUS1,  2),  -- US applies to coupon 2 (arrival JFK, US)
-    (NEWID(), @TaxXY1,  2),  -- XY applies to coupon 2
-    (NEWID(), @TaxYC1,  2),  -- YC applies to coupon 2
-    (NEWID(), @TaxXA1,  2),  -- XA applies to coupon 2
-    (NEWID(), @TaxYQ1a, 1),  -- YQ outbound (20.00) applies to coupon 1
-    (NEWID(), @TaxYQ1b, 2);  -- YQ inbound  (20.00) applies to coupon 2
-
-    -- AB1234 / PAX-2 — identical tax structure to PAX-1.
-    INSERT INTO [delivery].[TicketTax] (TicketTaxId, TicketId, TaxCode, Amount, Currency)
-    VALUES
-    (NEWID(), @TktId2, 'GB', 87.00, 'GBP'),
-    (NEWID(), @TktId2, 'UB', 13.50, 'GBP'),
-    (NEWID(), @TktId2, 'US', 16.00, 'GBP'),
-    (NEWID(), @TktId2, 'XY', 11.00, 'GBP'),
-    (NEWID(), @TktId2, 'YC',  5.50, 'GBP'),
-    (NEWID(), @TktId2, 'XA',  9.50, 'GBP'),
-    (NEWID(), @TktId2, 'YQ', 20.00, 'GBP'),
-    (NEWID(), @TktId2, 'YQ', 20.00, 'GBP');
-
-    DECLARE @TaxGB2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'GB');
-    DECLARE @TaxUB2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'UB');
-    DECLARE @TaxUS2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'US');
-    DECLARE @TaxXY2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'XY');
-    DECLARE @TaxYC2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'YC');
-    DECLARE @TaxXA2  UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'XA');
-    DECLARE @TaxYQ2a UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'YQ' ORDER BY TicketTaxId ASC);
-    DECLARE @TaxYQ2b UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId2 AND TaxCode = 'YQ' ORDER BY TicketTaxId DESC);
-
-    INSERT INTO [delivery].[TicketTaxCoupon] (TicketTaxCouponId, TicketTaxId, CouponNumber)
-    VALUES
-    (NEWID(), @TaxGB2,  1), (NEWID(), @TaxUB2,  1),
-    (NEWID(), @TaxUS2,  2), (NEWID(), @TaxXY2,  2), (NEWID(), @TaxYC2,  2), (NEWID(), @TaxXA2,  2),
-    (NEWID(), @TaxYQ2a, 1), (NEWID(), @TaxYQ2b, 2);
-
-    -- JC0005 / PAX-1 taxes (110.50 GBP): all apply to coupon 1 (single-segment ticket).
-    INSERT INTO [delivery].[TicketTax] (TicketTaxId, TicketId, TaxCode, Amount, Currency)
-    VALUES
-    (NEWID(), @TktId3, 'GB', 87.00, 'GBP'),
-    (NEWID(), @TktId3, 'UB', 13.50, 'GBP'),
-    (NEWID(), @TktId3, 'YQ', 10.00, 'GBP');
-
-    DECLARE @TaxGB3 UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId3 AND TaxCode = 'GB');
-    DECLARE @TaxUB3 UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId3 AND TaxCode = 'UB');
-    DECLARE @TaxYQ3 UNIQUEIDENTIFIER = (SELECT TOP 1 TicketTaxId FROM [delivery].[TicketTax] WHERE TicketId = @TktId3 AND TaxCode = 'YQ');
-
-    INSERT INTO [delivery].[TicketTaxCoupon] (TicketTaxCouponId, TicketTaxId, CouponNumber)
-    VALUES
-    (NEWID(), @TaxGB3, 1), (NEWID(), @TaxUB3, 1), (NEWID(), @TaxYQ3, 1);
 
     -- delivery.Manifest -------------------------------------------------------
     -- 5 rows (one per passenger per segment). Both AB1234 return-leg rows now

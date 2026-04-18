@@ -1,5 +1,4 @@
 using System.Text.Json.Nodes;
-using ReservationSystem.Microservices.Delivery.Domain.ValueObjects;
 
 namespace ReservationSystem.Microservices.Delivery.Domain.Entities;
 
@@ -15,16 +14,14 @@ public sealed record CouponInfo(
 
 /// <summary>
 /// Aggregate root for an issued e-ticket. One ticket covers one passenger across all flight
-/// segments in the booking. Each segment is represented by a <see cref="TicketTax"/>-attributed
-/// coupon stored in the TicketData JSON.
+/// segments in the booking. Each segment is represented by a coupon stored in TicketData.coupons.
 ///
-/// Financial fields (fare amounts, tax breakdown, fare calculation) are first-class properties
-/// on the aggregate. Coupon-level value is always <em>derived</em> — never stored directly.
+/// <c>FareCalculation</c> is stored as a typed column. All other financial data (baseFare,
+/// currency, taxes with coupon attribution) lives in <c>TicketData.fareConstruction</c>.
+/// Coupon-level value is always <em>derived</em> — never stored directly.
 /// </summary>
 public sealed class Ticket
 {
-    private readonly List<TicketTax> _ticketTaxes = [];
-
     public Guid TicketId { get; private set; }
 
     /// <summary>
@@ -36,26 +33,15 @@ public sealed class Ticket
     public string BookingReference { get; private set; } = string.Empty;
     public string PassengerId { get; private set; } = string.Empty;
 
-    // ── Fare amounts (authoritative; coupon values are derived from these) ──────
-
-    public decimal TotalFareAmount { get; private set; }
-    public string Currency { get; private set; } = string.Empty;
-    public decimal TotalTaxAmount { get; private set; }
-
-    /// <summary>TotalFareAmount + TotalTaxAmount.</summary>
-    public decimal TotalAmount { get; private set; }
-
     /// <summary>Raw IATA linear fare calculation string, e.g. LON BA NYC 500.00 BA LON 500.00 NUC1000.00 END ROE0.800000.</summary>
     public string FareCalculation { get; private set; } = string.Empty;
-
-    // ── Status / audit ──────────────────────────────────────────────────────────
 
     public bool IsVoided { get; private set; }
     public DateTime? VoidedAt { get; private set; }
 
     /// <summary>
-    /// Passenger info, coupons (operational data), form of payment, commission,
-    /// endorsements, change history. Financial amounts are NOT duplicated here.
+    /// Passenger info, fareConstruction (baseFare, currency, taxes with coupon attribution),
+    /// coupons, form of payment, commission, endorsements, change history.
     /// </summary>
     public string TicketData { get; private set; } = "{}";
 
@@ -63,22 +49,15 @@ public sealed class Ticket
     public DateTime UpdatedAt { get; private set; }
     public int Version { get; private set; }
 
-    /// <summary>Tax lines with coupon attribution — loaded via EF navigation property.</summary>
-    public IReadOnlyCollection<TicketTax> TicketTaxes => _ticketTaxes;
-
     private Ticket() { }
 
     public static Ticket Create(
         string bookingReference,
         string passengerId,
-        decimal totalFareAmount,
-        string currency,
-        decimal totalTaxAmount,
         string fareCalculation,
         string ticketData = "{}")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
-        ArgumentException.ThrowIfNullOrWhiteSpace(currency);
 
         var now = DateTime.UtcNow;
         return new Ticket
@@ -87,10 +66,6 @@ public sealed class Ticket
             TicketNumber = 0, // assigned by the database IDENTITY on INSERT
             BookingReference = bookingReference,
             PassengerId = passengerId,
-            TotalFareAmount = totalFareAmount,
-            Currency = currency,
-            TotalTaxAmount = totalTaxAmount,
-            TotalAmount = totalFareAmount + totalTaxAmount,
             FareCalculation = fareCalculation,
             IsVoided = false,
             VoidedAt = null,
@@ -103,8 +78,7 @@ public sealed class Ticket
 
     public static Ticket Reconstitute(
         Guid ticketId, long ticketNumber, string bookingReference,
-        string passengerId, decimal totalFareAmount, string currency,
-        decimal totalTaxAmount, decimal totalAmount, string fareCalculation,
+        string passengerId, string fareCalculation,
         bool isVoided, DateTime? voidedAt,
         string ticketData, DateTime createdAt, DateTime updatedAt, int version)
     {
@@ -114,10 +88,6 @@ public sealed class Ticket
             TicketNumber = ticketNumber,
             BookingReference = bookingReference,
             PassengerId = passengerId,
-            TotalFareAmount = totalFareAmount,
-            Currency = currency,
-            TotalTaxAmount = totalTaxAmount,
-            TotalAmount = totalAmount,
             FareCalculation = fareCalculation,
             IsVoided = isVoided,
             VoidedAt = voidedAt,
@@ -128,9 +98,6 @@ public sealed class Ticket
         };
     }
 
-    /// <summary>Adds a tax line to the ticket's in-memory collection (called before first save).</summary>
-    public void AddTax(TicketTax tax) => _ticketTaxes.Add(tax);
-
     public void Void()
     {
         IsVoided = true;
@@ -138,40 +105,9 @@ public sealed class Ticket
         UpdatedAt = DateTime.UtcNow;
     }
 
-    // ── Derived coupon value ────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Calculates the attributed value for coupon <paramref name="couponNumber"/>.
-    ///
-    /// Fare share is proportional to the coupon's NUC weight in the fare construction.
-    /// Tax share is the sum of all <see cref="TicketTaxes"/> whose attribution includes
-    /// this coupon. Requires <see cref="TicketTaxes"/> to have been loaded.
-    ///
-    /// Returns <c>null</c> if the fare calculation cannot be parsed or the coupon is out of range.
-    /// </summary>
-    public CouponValue? GetAttributedValue(int couponNumber)
-    {
-        if (!FareCalculation.TryParse(FareCalculation, out var parsed, out _) || parsed is null)
-            return null;
-
-        if (couponNumber < 1 || couponNumber > parsed.Components.Count)
-            return null;
-
-        decimal fareShare = parsed.GetFareShareForCoupon(couponNumber, TotalFareAmount);
-
-        decimal taxShare = _ticketTaxes
-            .Where(tx => tx.AppliedToCoupons.Any(tc => tc.CouponNumber == couponNumber))
-            .Sum(tx => tx.Amount);
-
-        return new CouponValue(couponNumber, fareShare, taxShare, fareShare + taxShare, Currency);
-    }
-
     // ── Coupon status mutations (TicketData JSON) ───────────────────────────────
 
-    /// <summary>
-    /// Sets status to <see cref="CouponStatus.CheckedIn"/> on every coupon whose origin matches
-    /// <paramref name="departureAirport"/>. Returns the number of coupons updated.
-    /// </summary>
+    /// <summary>Sets status to CheckedIn on every coupon departing from <paramref name="departureAirport"/>. Returns count updated.</summary>
     public int CheckInCouponsForOrigin(string departureAirport, string actor)
     {
         var root = JsonNode.Parse(TicketData)?.AsObject();

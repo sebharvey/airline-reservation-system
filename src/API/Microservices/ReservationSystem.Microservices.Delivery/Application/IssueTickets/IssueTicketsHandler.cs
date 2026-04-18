@@ -68,60 +68,51 @@ public sealed class IssueTicketsHandler
     {
         var fc = passenger.FareConstruction!; // validator guarantees non-null
 
-        // Build TicketData JSON (operational data only — no fare amounts).
-        string ticketData = BuildTicketData(passenger, segments, fc);
+        string ticketData = BuildTicketData(passenger, segments, fc, itinerary);
 
         var ticket = Ticket.Create(
             bookingReference,
             passenger.PassengerId,
-            totalFareAmount: fc.BaseFare,
-            currency: fc.CollectingCurrency,
-            totalTaxAmount: fc.TotalTaxes,
             fareCalculation: fc.FareCalculationLine,
             ticketData);
-
-        // Derive coupon attribution for each tax and attach to the ticket aggregate.
-        // For split taxes (e.g. YQ), AttributeTax returns one group per coupon with
-        // the per-coupon amount so GetAttributedValue can sum without double-counting.
-        string taxCurrency = fc.CollectingCurrency;
-        foreach (var tax in fc.Taxes)
-        {
-            string effectiveCurrency = tax.Currency.Length == 3 ? tax.Currency : taxCurrency;
-            var groups = _taxAttribution.AttributeTax(tax.Code, tax.Amount, itinerary);
-            foreach (var (amount, couponNumbers) in groups)
-            {
-                if (couponNumbers.Count == 0) continue;
-                var ticketTax = TicketTax.Create(ticket.TicketId, tax.Code, amount, effectiveCurrency, couponNumbers);
-                ticket.AddTax(ticketTax);
-            }
-        }
 
         await _ticketRepository.CreateAsync(ticket, cancellationToken);
         return ticket;
     }
 
-    private string BuildTicketData(PassengerDetail passenger, List<SegmentDetail> segments, FareConstructionDetail fc)
+    private string BuildTicketData(
+        PassengerDetail passenger,
+        List<SegmentDetail> segments,
+        FareConstructionDetail fc,
+        List<CouponItinerary> itinerary)
     {
-        // Derive attributed tax codes per coupon so we can embed them in each coupon object.
-        var itinerary = segments.Select((seg, idx) => new CouponItinerary(
-            CouponNumber: idx + 1,
-            Origin: seg.Origin,
-            Destination: seg.Destination
-        )).ToList();
+        // Pre-compute tax attribution: splits YQ/YR per coupon, attributes country taxes to
+        // the relevant departure/arrival coupon. Results are embedded in fareConstruction.taxes
+        // so GetCouponValueHandler can sum them without re-running attribution at read time.
+        record FcTaxEntry(string Code, decimal Amount, string Currency, IReadOnlyList<int> CouponNumbers);
 
-        var taxCodesByCoupon = new Dictionary<int, List<string>>();
+        var fcTaxEntries = new List<FcTaxEntry>();
         foreach (var tax in fc.Taxes)
         {
+            string effectiveCurrency = tax.Currency.Length == 3 ? tax.Currency : fc.CollectingCurrency;
             var groups = _taxAttribution.AttributeTax(tax.Code, tax.Amount, itinerary);
-            foreach (var (_, couponNumbers) in groups)
+            foreach (var (amount, couponNumbers) in groups)
             {
-                foreach (var n in couponNumbers)
-                {
-                    if (!taxCodesByCoupon.TryGetValue(n, out var list))
-                        taxCodesByCoupon[n] = list = [];
-                    if (!list.Contains(tax.Code))
-                        list.Add(tax.Code);
-                }
+                if (couponNumbers.Count == 0) continue;
+                fcTaxEntries.Add(new FcTaxEntry(tax.Code, amount, effectiveCurrency, couponNumbers));
+            }
+        }
+
+        // Derive attributedTaxCodes per coupon (convenience field on each coupon object).
+        var taxCodesByCoupon = new Dictionary<int, List<string>>();
+        foreach (var entry in fcTaxEntries)
+        {
+            foreach (var n in entry.CouponNumbers)
+            {
+                if (!taxCodesByCoupon.TryGetValue(n, out var list))
+                    taxCodesByCoupon[n] = list = [];
+                if (!list.Contains(entry.Code))
+                    list.Add(entry.Code);
             }
         }
 
@@ -166,8 +157,6 @@ public sealed class IssueTicketsHandler
                     }
                     : (object?)null,
                 seat = seatAssignment?.SeatNumber,
-                // attributedTaxCodes indicates which taxes from the ticket-level breakdown
-                // apply to this coupon. Value is derived; do not treat as authoritative amounts.
                 attributedTaxCodes
             };
         }).ToList();
@@ -180,6 +169,20 @@ public sealed class IssueTicketsHandler
 
         var ticketData = new
         {
+            fareConstruction = new
+            {
+                baseFare = fc.BaseFare,
+                currency = fc.CollectingCurrency,
+                totalTaxes = fc.TotalTaxes,
+                totalAmount = fc.BaseFare + fc.TotalTaxes,
+                taxes = fcTaxEntries.Select(e => new
+                {
+                    code = e.Code,
+                    amount = e.Amount,
+                    currency = e.Currency,
+                    couponNumbers = e.CouponNumbers
+                }).ToList()
+            },
             passenger = new
             {
                 surname = passenger.Surname,

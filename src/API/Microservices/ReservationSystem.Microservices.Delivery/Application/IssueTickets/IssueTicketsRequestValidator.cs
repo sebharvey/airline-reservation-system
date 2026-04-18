@@ -6,7 +6,6 @@ namespace ReservationSystem.Microservices.Delivery.Application.IssueTickets;
 
 public sealed class IssueTicketsRequestValidator : AbstractValidator<IssueTicketsRequest>
 {
-    private const int MaxCouponsPerTicket = 4;
     private const decimal RoundingTolerance = 0.02m; // IATA allows per-ticket rounding
 
     public IssueTicketsRequestValidator()
@@ -19,9 +18,7 @@ public sealed class IssueTicketsRequestValidator : AbstractValidator<IssueTicket
             .NotEmpty().WithMessage("At least one passenger is required.");
 
         RuleFor(r => r.Segments)
-            .NotEmpty().WithMessage("At least one segment is required.")
-            .Must(s => s.Count <= MaxCouponsPerTicket)
-            .WithMessage($"A single ticket may cover at most {MaxCouponsPerTicket} segments (IATA coupon limit). Use conjunction tickets for longer itineraries.");
+            .NotEmpty().WithMessage("At least one segment is required.");
 
         RuleForEach(r => r.Passengers).ChildRules(pax =>
         {

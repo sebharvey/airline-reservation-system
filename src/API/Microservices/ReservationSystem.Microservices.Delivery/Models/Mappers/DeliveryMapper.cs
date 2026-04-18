@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.ValueObjects;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
@@ -30,10 +31,46 @@ public static class DeliveryMapper
 
     public static GetTicketResponse ToGetTicketResponse(Ticket ticket)
     {
-        JsonElement? ticketData = null;
+        JsonElement? ticketDataElement = null;
+        decimal totalFareAmount = 0m;
+        string currency = string.Empty;
+        decimal totalTaxAmount = 0m;
+        decimal totalAmount = 0m;
+        var taxBreakdown = new List<TaxBreakdownResponse>();
+
         if (!string.IsNullOrWhiteSpace(ticket.TicketData) && ticket.TicketData != "{}")
         {
-            ticketData = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
+            ticketDataElement = JsonSerializer.Deserialize<JsonElement>(ticket.TicketData);
+
+            var root = JsonNode.Parse(ticket.TicketData)?.AsObject();
+            var fc = root?["fareConstruction"]?.AsObject();
+            if (fc is not null)
+            {
+                totalFareAmount = fc["baseFare"]?.GetValue<decimal>() ?? 0m;
+                currency = fc["currency"]?.GetValue<string>() ?? string.Empty;
+                totalTaxAmount = fc["totalTaxes"]?.GetValue<decimal>() ?? 0m;
+                totalAmount = fc["totalAmount"]?.GetValue<decimal>() ?? (totalFareAmount + totalTaxAmount);
+
+                var taxesArray = fc["taxes"]?.AsArray();
+                if (taxesArray is not null)
+                {
+                    foreach (var taxNode in taxesArray)
+                    {
+                        if (taxNode is not JsonObject tax) continue;
+                        var couponNumbers = tax["couponNumbers"]?.AsArray()
+                            ?.Select(n => n?.GetValue<int>() ?? 0)
+                            .OrderBy(n => n)
+                            .ToList() ?? [];
+                        taxBreakdown.Add(new TaxBreakdownResponse
+                        {
+                            TaxCode = tax["code"]?.GetValue<string>() ?? string.Empty,
+                            Amount = tax["amount"]?.GetValue<decimal>() ?? 0m,
+                            Currency = tax["currency"]?.GetValue<string>() ?? currency,
+                            AppliesToCouponNumbers = couponNumbers
+                        });
+                    }
+                }
+            }
         }
 
         // Derive structured fare components from the fare calculation string.
@@ -51,30 +88,22 @@ public static class DeliveryMapper
             }).ToList();
         }
 
-        var taxBreakdown = ticket.TicketTaxes.Select(tx => new TaxBreakdownResponse
-        {
-            TaxCode = tx.TaxCode,
-            Amount = tx.Amount,
-            Currency = tx.Currency,
-            AppliesToCouponNumbers = tx.AppliedToCoupons.Select(tc => tc.CouponNumber).OrderBy(n => n).ToList()
-        }).ToList();
-
         return new GetTicketResponse
         {
             TicketId = ticket.TicketId,
             ETicketNumber = FormatETicketNumber(ticket.TicketNumber),
             BookingReference = ticket.BookingReference,
             PassengerId = ticket.PassengerId,
-            TotalFareAmount = ticket.TotalFareAmount,
-            Currency = ticket.Currency,
-            TotalTaxAmount = ticket.TotalTaxAmount,
-            TotalAmount = ticket.TotalAmount,
+            TotalFareAmount = totalFareAmount,
+            Currency = currency,
+            TotalTaxAmount = totalTaxAmount,
+            TotalAmount = totalAmount,
             FareCalculation = ticket.FareCalculation,
             FareComponents = fareComponents,
             TaxBreakdown = taxBreakdown,
             IsVoided = ticket.IsVoided,
             VoidedAt = ticket.VoidedAt,
-            TicketData = ticketData,
+            TicketData = ticketDataElement,
             CreatedAt = ticket.CreatedAt,
             UpdatedAt = ticket.UpdatedAt,
             Version = ticket.Version

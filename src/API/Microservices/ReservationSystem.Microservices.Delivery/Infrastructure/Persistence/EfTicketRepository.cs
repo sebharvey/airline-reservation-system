@@ -35,24 +35,10 @@ public sealed class EfTicketRepository : ITicketRepository
             .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber.Value, cancellationToken);
     }
 
-    public async Task<Ticket?> GetByETicketNumberWithTaxesAsync(string eTicketNumber, CancellationToken cancellationToken = default)
-    {
-        var ticketNumber = ParseTicketNumber(eTicketNumber);
-        if (ticketNumber is null) return null;
-
-        return await _context.Tickets
-            .AsNoTracking()
-            .Include(t => t.TicketTaxes)
-                .ThenInclude(tx => tx.AppliedToCoupons)
-            .FirstOrDefaultAsync(t => t.TicketNumber == ticketNumber.Value, cancellationToken);
-    }
-
     public async Task<IReadOnlyList<Ticket>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default)
     {
         var tickets = await _context.Tickets
             .AsNoTracking()
-            .Include(t => t.TicketTaxes)
-                .ThenInclude(tx => tx.AppliedToCoupons)
             .Where(t => t.BookingReference == bookingReference)
             .OrderBy(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
