@@ -95,6 +95,13 @@ textarea {
   border-color: var(--border);
 }
 
+input.readonly-field:disabled {
+  background-color: var(--input-disabled-bg);
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 1;
+}
+
 a {
   color: inherit;
   text-decoration: none;
