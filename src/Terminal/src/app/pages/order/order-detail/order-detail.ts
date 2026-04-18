@@ -465,7 +465,7 @@ export class OrderDetailComponent implements OnInit {
     if (!allSegments && !form.segmentRef) return;
 
     const segmentRefs = allSegments
-      ? this.segments().map(s => s.segmentId)
+      ? [...new Set(this.segments().map(s => s.segmentId))]
       : [form.segmentRef];
 
     const duplicate = segmentRefs.find(segRef =>
