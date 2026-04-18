@@ -30,6 +30,7 @@ public static class FareRuleMapper
             isChangeable = r.IsChangeable,
             changeFeeAmount = r.ChangeFeeAmount,
             cancellationFeeAmount = r.CancellationFeeAmount,
+            isPrivate = r.IsPrivate,
             validFrom = r.ValidFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             validTo = r.ValidTo?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             createdAt = r.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),

@@ -227,6 +227,18 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
 
+### Fare rule management
+
+Staff-only endpoints for managing fare pricing rules. All routes require a valid staff JWT. Responses include the `isPrivate` flag; when `true`, the fare is suppressed from the public Retail API and web channel — it is only visible via the admin Retail API (Contact Centre) and these Operations API endpoints.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/admin/fare-rules/search` | Search fare rules by optional free-text query; returns all matching fare rules including their `isPrivate` flag |
+| `GET`  | `/v1/admin/fare-rules/{fareRuleId}` | Retrieve a single fare rule by ID; returns all fields including `isPrivate` |
+| `POST` | `/v1/admin/fare-rules` | Create a new fare rule; accepts `isPrivate` boolean — when `true`, the fare is hidden from the public search channel and only available to Contact Centre agents |
+| `PUT`  | `/v1/admin/fare-rules/{fareRuleId}` | Update an existing fare rule including its `isPrivate` flag; `404` if not found |
+| `DELETE` | `/v1/admin/fare-rules/{fareRuleId}` | Permanently delete a fare rule; `404` if not found |
+
 ---
 
 ## Schedule Microservice — [Full API Spec](api-specs/schedule-microservice.md)
@@ -255,7 +267,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/flights` | Create a new flight inventory record for a specific operating date and cabin; called by the Operations API during schedule generation; initialises `SeatsAvailable = TotalSeats`, `SeatsHeld = 0`, `SeatsSold = 0`; returns `inventoryId` |
 | `POST` | `/v1/flights/batch` | Batch-create flight inventory records; for each item in the request, creates a new `FlightInventory` record if one does not already exist for that `flightNumber`/`departureDate`/`cabinCode` combination, otherwise skips it; returns `created`, `skipped`, and the list of newly created inventory records |
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Operations API to attribute pricing to inventory after creation; returns `fareId` |
-| `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, pax count) across all cabin classes and return priced, stored-offer-snapshotted offers; creates one `StoredOffer` row per flight containing all cabin fares in `FaresInfo` JSON; returns a `sessionId` shared across all rows produced by the search; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches |
+| `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, pax count) across all cabin classes and return priced, stored-offer-snapshotted offers; creates one `StoredOffer` row per flight containing all cabin fares in `FaresInfo` JSON; returns a `sessionId` shared across all rows produced by the search; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches; accepts optional `includePrivateFares` boolean (default `false`) — the public Retail API always sends `false`, the admin Retail API (Contact Centre) sends `true` to surface private fares |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer by the per-fare `offerId` (found inside `FaresInfo`); validates `ExpiresAt > now`; resolves flight details from `offer.FlightInventory` at read time; accepts optional `?sessionId=` query parameter to scope the lookup to the indexed session for efficiency |
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight — returns one entry per selectable seat with `SeatOfferId` (deterministic) and availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory`; does **not** return pricing (pricing is owned by the Seat MS via `GET /v1/seat-offers?flightId=`); Retail API merges this availability data with the Seat MS offer response and the seatmap layout before returning to the channel |
 | `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
@@ -267,6 +279,16 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
 | `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel, flight change rollback, and basket expiry) |
 | `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Disruption API on flight cancellation) |
+
+**Fare rule management (internal — called by Operations API)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/fare-rules/search` | Search fare rules by optional `query` string; returns all matching rules including `isPrivate` flag |
+| `GET`  | `/v1/fare-rules/{fareRuleId}` | Retrieve a single fare rule by ID; returns all fields including `isPrivate` |
+| `POST` | `/v1/fare-rules` | Create a new fare rule; accepts `isPrivate` boolean (default `false`); private fare rules are excluded from public `POST /v1/search` results unless `includePrivateFares = true` |
+| `PUT`  | `/v1/fare-rules/{fareRuleId}` | Replace all fields of an existing fare rule including `isPrivate`; `404` if not found |
+| `DELETE` | `/v1/fare-rules/{fareRuleId}` | Permanently delete a fare rule; `404` if not found |
 
 ---
 

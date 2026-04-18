@@ -280,7 +280,8 @@ public sealed class OfferFunction
             Destination: body.GetProperty("destination").GetString()!,
             DepartureDate: body.GetProperty("departureDate").GetString()!,
             PaxCount: body.GetProperty("paxCount").GetInt32(),
-            BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue");
+            BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue",
+            IncludePrivateFares: body.TryGetProperty("includePrivateFares", out var ipf) && ipf.ValueKind == JsonValueKind.True);
 
         var result = await _searchHandler.HandleAsync(command, ct);
 

@@ -47,9 +47,10 @@ public sealed class OfferServiceClient
         string departureDate,
         int paxCount,
         string bookingType,
+        bool includePrivateFares = false,
         CancellationToken cancellationToken = default)
     {
-        var body = new { origin, destination, departureDate, paxCount, bookingType };
+        var body = new { origin, destination, departureDate, paxCount, bookingType, includePrivateFares };
 
         var response = await _httpClient.PostAsJsonAsync("/api/v1/search", body, JsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();

@@ -359,6 +359,7 @@ CREATE TABLE [offer].[FareRule] (
     IsChangeable          BIT              NOT NULL CONSTRAINT DF_FareRule_Changeable  DEFAULT 0,
     ChangeFeeAmount       DECIMAL(10,2)    NOT NULL CONSTRAINT DF_FareRule_ChangeFee   DEFAULT 0.00,
     CancellationFeeAmount DECIMAL(10,2)    NOT NULL CONSTRAINT DF_FareRule_CancelFee   DEFAULT 0.00,
+    IsPrivate             BIT              NOT NULL CONSTRAINT DF_FareRule_IsPrivate    DEFAULT 0,
     ValidFrom             DATETIME2            NULL,
     ValidTo               DATETIME2            NULL,
     CreatedAt             DATETIME2        NOT NULL CONSTRAINT DF_FareRule_Created     DEFAULT SYSUTCDATETIME(),
@@ -372,6 +373,9 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'TaxLines')
     ALTER TABLE [offer].[FareRule] ADD TaxLines NVARCHAR(MAX) NULL;
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'IsPrivate')
+    ALTER TABLE [offer].[FareRule] ADD IsPrivate BIT NOT NULL CONSTRAINT DF_FareRule_IsPrivate DEFAULT 0;
 
 IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FareRule]') AND name = 'TaxAmount')
     ALTER TABLE [offer].[FareRule] DROP COLUMN TaxAmount;

@@ -25,6 +25,7 @@ public sealed class CreateFareRuleHandler
             command.TaxLines,
             command.IsRefundable, command.IsChangeable,
             command.ChangeFeeAmount, command.CancellationFeeAmount,
+            command.IsPrivate,
             string.IsNullOrEmpty(command.ValidFrom) ? null : DateTimeOffset.Parse(command.ValidFrom),
             string.IsNullOrEmpty(command.ValidTo) ? null : DateTimeOffset.Parse(command.ValidTo));
 

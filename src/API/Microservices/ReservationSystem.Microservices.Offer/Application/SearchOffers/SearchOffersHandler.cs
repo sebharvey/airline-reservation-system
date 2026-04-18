@@ -60,7 +60,7 @@ public sealed class SearchOffersHandler
 
         // 3. Single DB round-trip for all fare rules needed by this search.
         var allRules = await _repository.GetApplicableFareRulesForFlightsAsync(
-            flightNumbers, cabinCodes, departureDate, ct);
+            flightNumbers, cabinCodes, departureDate, command.IncludePrivateFares, ct);
 
         var sessionId         = Guid.NewGuid();
         var allInventoryFares = new List<(FlightInventory Inventory, IReadOnlyList<(Fare Fare, Guid FareRuleId)> Fares)>();

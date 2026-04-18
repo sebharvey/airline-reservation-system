@@ -80,7 +80,8 @@ public sealed class AdminBookingFunction
             request.Destination,
             request.DepartureDate,
             request.PaxCount,
-            request.BookingType);
+            request.BookingType,
+            IncludePrivateFares: true);
 
         var result = await _searchHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);

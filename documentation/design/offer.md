@@ -276,6 +276,39 @@ The interpolated price is calculated once at search time and locked into the `St
 > **Points pricing:** A fare with non-null `PointsPrice` can be redeemed for points. When searching in points mode, `PointsPrice` and `PointsTaxes` are the primary pricing fields. Revenue-only fares (`PointsPrice = NULL`) do not appear in points searches.
 > **Change and cancellation fees:** Stored so the Retail API can calculate `totalDue = changeFee + addCollect` and `refundableAmount = totalPaid − cancellationFee` without a separate lookup.
 
+### `offer.FareRule`
+
+Master fare-pricing rules used to derive `offer.Fare` snapshots at search time. Each rule defines the pricing parameters for a given fare basis code and cabin, optionally scoped to a specific flight number and/or date window (three-tier cascade: global default → flight default → flight + date window).
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| FareRuleId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| RuleType | VARCHAR(10) | No | `'Money'` | | `Money` or `Points` |
+| FlightNumber | VARCHAR(10) | Yes | | Indexed | `NULL` = global default applying to all flights |
+| FareBasisCode | VARCHAR(20) | No | | Indexed | e.g. `YLOWUK`, `JFLEXGB` |
+| FareFamily | VARCHAR(50) | Yes | | | e.g. `Economy Light`, `Business Flex` |
+| CabinCode | CHAR(1) | No | | Indexed | `F` · `J` · `W` · `Y` |
+| BookingClass | CHAR(1) | No | | | |
+| CurrencyCode | CHAR(3) | Yes | `'GBP'` | | ISO 4217 |
+| MinAmount | DECIMAL(10,2) | Yes | | | Floor price for continuous pricing interpolation |
+| MaxAmount | DECIMAL(10,2) | Yes | | | Ceiling price for continuous pricing interpolation; `NULL` disables interpolation |
+| MinPoints | INT | Yes | | | Floor points price; `NULL` = revenue-only fare |
+| MaxPoints | INT | Yes | | | Ceiling points price |
+| PointsTaxes | DECIMAL(10,2) | Yes | | | Cash taxes when redeeming points |
+| TaxLines | NVARCHAR(MAX) | Yes | | | JSON array of tax line objects with `code` and `amount` |
+| IsRefundable | BIT | No | 0 | | |
+| IsChangeable | BIT | No | 0 | | |
+| ChangeFeeAmount | DECIMAL(10,2) | No | `0.00` | | |
+| CancellationFeeAmount | DECIMAL(10,2) | No | `0.00` | | |
+| IsPrivate | BIT | No | 0 | | When `1`, the fare is hidden from the public Retail API and web channel; visible only via the admin Retail API (Contact Centre) and Operations API |
+| ValidFrom | DATETIME2 | Yes | | | Inclusive start of the booking window; `NULL` = no lower bound |
+| ValidTo | DATETIME2 | Yes | | | Exclusive end of the booking window; `NULL` = no upper bound |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
+
+> **Private fares:** Fare rules with `IsPrivate = 1` are excluded from the public search path (`POST /v1/search/slice`, `POST /v1/search/connecting`). They are included when the admin search path (`POST /v1/admin/search/slice`) is called by an authenticated staff member, making them available to the Contact Centre for staff travel, partner travel, and other discounted or restricted pricing programmes.
+> **Three-tier cascade:** Rules are ordered least-to-most-specific at query time. For each `(FareFamily, RuleType)` key the most-specific rule wins: Tier 0 (global, no `FlightNumber`, no date bounds) → Tier 1 (flight-specific, no date bounds) → Tier 2 (flight-specific with date window).
+
 ### `offer.StoredOffer`
 
 One row per **search session**. All matching flights and their cabin fares are stored together in the `FaresInfo` JSON column as an `inventories[]` array. Flight details (origin, destination, times, aircraft type) are not stored here — they are resolved from `offer.FlightInventory` at read time.

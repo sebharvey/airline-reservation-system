@@ -58,6 +58,9 @@ public sealed class FareRuleResponse
     [JsonPropertyName("cancellationFeeAmount")]
     public decimal CancellationFeeAmount { get; init; }
 
+    [JsonPropertyName("isPrivate")]
+    public bool IsPrivate { get; init; }
+
     [JsonPropertyName("validFrom")]
     public string? ValidFrom { get; init; }
 

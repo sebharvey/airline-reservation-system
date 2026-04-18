@@ -5,4 +5,5 @@ public sealed record SearchFlightsCommand(
     string Destination,
     string DepartureDate,
     int PaxCount,
-    string BookingType);
+    string BookingType,
+    bool IncludePrivateFares = false);

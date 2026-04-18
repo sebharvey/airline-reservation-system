@@ -20,6 +20,7 @@ public sealed class FareRuleDto
     public bool IsChangeable { get; init; }
     public decimal ChangeFeeAmount { get; init; }
     public decimal CancellationFeeAmount { get; init; }
+    public bool IsPrivate { get; init; }
     public string? ValidFrom { get; init; }
     public string? ValidTo { get; init; }
     public string CreatedAt { get; init; } = string.Empty;
