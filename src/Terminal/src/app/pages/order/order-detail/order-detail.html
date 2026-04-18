@@ -62,40 +62,58 @@
 
   @if (order(); as o) {
 
-    <!-- Meta strip -->
-    <div class="meta-strip">
-      <div class="meta-chip">
-        <span class="chip-label">Created</span>
-        <span class="chip-value">{{ formatDateTime(o.createdAt) }}</span>
-      </div>
-      <div class="meta-chip">
-        <span class="chip-label">Last updated</span>
-        <span class="chip-value">{{ formatDateTime(o.updatedAt) }}</span>
-      </div>
-      @if (o.ticketingTimeLimit) {
+    <!-- Info panel: order meta (left) + passenger list (right) -->
+    <div class="order-info-panel">
+      <div class="order-meta-col">
         <div class="meta-chip">
-          <span class="chip-label">Ticketing limit</span>
-          <span class="chip-value">{{ formatDateTime(o.ticketingTimeLimit) }}</span>
+          <span class="chip-label">Created</span>
+          <span class="chip-value">{{ formatDateTime(o.createdAt) }}</span>
         </div>
-      }
-      <div class="meta-chip">
-        <span class="chip-label">Version</span>
-        <span class="chip-value">{{ o.version }}</span>
+        <div class="meta-chip">
+          <span class="chip-label">Last updated</span>
+          <span class="chip-value">{{ formatDateTime(o.updatedAt) }}</span>
+        </div>
+        @if (o.ticketingTimeLimit) {
+          <div class="meta-chip">
+            <span class="chip-label">Ticketing limit</span>
+            <span class="chip-value">{{ formatDateTime(o.ticketingTimeLimit) }}</span>
+          </div>
+        }
+        <div class="meta-chip">
+          <span class="chip-label">Version</span>
+          <span class="chip-value">{{ o.version }}</span>
+        </div>
+      </div>
+
+      <div class="order-pax-col">
+        <div class="pax-col-header">
+          <span class="pax-col-title">Passengers</span>
+          @if (passengers().length) {
+            <span class="tab-count">{{ passengers().length }}</span>
+          }
+        </div>
+        @if (passengers().length === 0) {
+          <p class="empty-tab" style="font-size:0.82rem;margin:8px 0 0">No passengers on record.</p>
+        }
+        @for (pax of passengers(); track pax.passengerId) {
+          <button class="pax-card-compact" (click)="openPaxModal(pax)">
+            <div class="pax-avatar pax-avatar-sm">{{ pax.givenName[0] }}</div>
+            <div class="pax-compact-info">
+              <span class="pax-compact-name">{{ pax.givenName }} {{ pax.surname }}</span>
+              <span class="pax-compact-type">{{ passengerTypeLabel(pax.type) }}</span>
+            </div>
+            <span class="pax-chevron">›</span>
+          </button>
+        }
       </div>
     </div>
 
-    <!-- Tabs -->
+    <!-- Tabs (Passengers tab removed — now shown inline above) -->
     <div class="tabs">
       <button class="tab" [class.tab-active]="activeTab() === 'orderItems'" (click)="switchTab('orderItems')">
         Order Items
         @if (allOrderItems().length) {
           <span class="tab-count">{{ allOrderItems().length }}</span>
-        }
-      </button>
-      <button class="tab" [class.tab-active]="activeTab() === 'passengers'" (click)="switchTab('passengers')">
-        Passengers
-        @if (passengers().length) {
-          <span class="tab-count">{{ passengers().length }}</span>
         }
       </button>
       <button class="tab" [class.tab-active]="activeTab() === 'payments'" (click)="switchTab('payments')">
@@ -133,6 +151,7 @@
                   <th class="hide-mobile">Passenger</th>
                   <th>Fare</th>
                   <th class="hide-mobile">Tax</th>
+                  <th class="hide-mobile">Total</th>
                   <th class="hide-mobile">Status</th>
                   <th class="sr-only"></th>
                 </tr>
@@ -141,7 +160,7 @@
                 @for (item of allOrderItems(); track item.itemId; let i = $index) {
                   @if (i === 0 || item.itemType !== allOrderItems()[i - 1].itemType) {
                     <tr class="group-header-row">
-                      <td colspan="7">
+                      <td colspan="8">
                         <span class="item-type-badge" [class]="itemTypeBadgeClass(item.itemType)">{{ item.itemType }}</span>
                       </td>
                     </tr>
@@ -164,6 +183,7 @@
                       }
                     </td>
                     <td class="hide-mobile amount-cell">{{ item.taxAmount != null ? formatAmount(item.taxAmount, item.currency) : '—' }}</td>
+                    <td class="hide-mobile amount-cell">{{ item.lineTotal != null ? formatAmount(item.lineTotal, item.currency) : '—' }}</td>
                     <td class="hide-mobile">
                       <span class="status-badge" [class]="statusBadgeClass(item.status)">
                         {{ item.status }}
@@ -173,6 +193,22 @@
                   </tr>
                 }
               </tbody>
+              @if (itemTotals(); as totals) {
+                <tfoot>
+                  <tr class="totals-row">
+                    <td colspan="3" class="hide-mobile"></td>
+                    <td class="amount-cell totals-label hide-mobile">{{ formatAmount(totals.subtotalFare, totals.currency) }}</td>
+                    <td class="amount-cell hide-mobile">{{ formatAmount(totals.subtotalTax, totals.currency) }}</td>
+                    <td class="amount-cell hide-mobile"><strong>{{ formatAmount(totals.grandTotal, totals.currency) }}</strong></td>
+                    <td colspan="2" class="hide-mobile"></td>
+                  </tr>
+                  <tr class="grand-total-row">
+                    <td colspan="5" class="grand-total-label">Order total</td>
+                    <td class="amount-cell grand-total-value"><strong>{{ formatAmount(totals.grandTotal, totals.currency) }}</strong></td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              }
             </table>
           </div>
         }
@@ -233,119 +269,6 @@
             </div>
           }
         </div>
-      </div>
-    }
-
-    <!-- ── PASSENGERS TAB ── -->
-    @if (activeTab() === 'passengers') {
-      <div class="tab-content fade-in">
-        @if (passengers().length === 0) {
-          <p class="empty-tab">No passenger data on record.</p>
-        }
-        @for (pax of passengers(); track pax.passengerId; let i = $index) {
-          <div class="info-card">
-            <div class="info-card-header">
-              <div class="pax-avatar">{{ pax.givenName[0] }}</div>
-              <div class="pax-header-text">
-                <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
-                <span class="pax-type">{{ passengerTypeLabel(pax.type) }}</span>
-              </div>
-              @if (editingPaxId() !== pax.passengerId) {
-                <button class="edit-btn" (click)="startEdit(pax)">Edit</button>
-              }
-            </div>
-
-            @if (editingPaxId() === pax.passengerId) {
-              <!-- Edit form -->
-              <div class="edit-form">
-                <div class="edit-form-grid">
-                  <div class="edit-field">
-                    <label class="field-label">First name</label>
-                    <input class="edit-input" type="text" [value]="editForm().givenName" (input)="updateEditField('givenName', $any($event.target).value)" />
-                  </div>
-                  <div class="edit-field">
-                    <label class="field-label">Surname</label>
-                    <input class="edit-input" type="text" [value]="editForm().surname" (input)="updateEditField('surname', $any($event.target).value)" />
-                  </div>
-                  <div class="edit-field">
-                    <label class="field-label">Date of birth</label>
-                    <input class="edit-input" type="date" [value]="editForm().dob ?? ''" (input)="updateEditField('dob', $any($event.target).value)" />
-                  </div>
-                  <div class="edit-field">
-                    <label class="field-label">Email</label>
-                    <input class="edit-input" type="email" [value]="editForm().email ?? ''" (input)="updateEditField('email', $any($event.target).value)" />
-                  </div>
-                  <div class="edit-field">
-                    <label class="field-label">Phone</label>
-                    <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
-                  </div>
-                </div>
-                @if (editError()) {
-                  <div class="edit-error">{{ editError() }}</div>
-                }
-                <div class="edit-actions">
-                  <button class="save-btn" [disabled]="editSaving()" (click)="saveEdit(pax)">
-                    {{ editSaving() ? 'Saving…' : 'Save changes' }}
-                  </button>
-                  <button class="cancel-btn" [disabled]="editSaving()" (click)="cancelEdit()">Cancel</button>
-                </div>
-              </div>
-            } @else {
-              <!-- Read-only view -->
-              <div class="field-grid">
-                <div class="field-row">
-                  <span class="field-label">Date of birth</span>
-                  <span class="field-value">{{ formatDate(pax.dob) }}</span>
-                </div>
-                <div class="field-row">
-                  <span class="field-label">Email</span>
-                  <span class="field-value">{{ pax.contacts?.email || '—' }}</span>
-                </div>
-                <div class="field-row">
-                  <span class="field-label">Phone</span>
-                  <span class="field-value">{{ pax.contacts?.phone || '—' }}</span>
-                </div>
-                @if (pax.loyaltyNumber) {
-                  <div class="field-row">
-                    <span class="field-label">Loyalty no.</span>
-                    <span class="field-value mono loyalty-copy-wrap">
-                      {{ pax.loyaltyNumber }}
-                      <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyText(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
-                        @if (copiedText() === pax.loyaltyNumber) {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        } @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        }
-                      </button>
-                    </span>
-                  </div>
-                }
-                @for (doc of pax.docs; track doc.number) {
-                  <div class="field-row">
-                    <span class="field-label">Document</span>
-                    <span class="field-value">{{ doc.type }} {{ doc.number }}</span>
-                  </div>
-                  <div class="field-row">
-                    <span class="field-label">Expiry</span>
-                    <span class="field-value">{{ formatDate(doc.expiryDate) }}</span>
-                  </div>
-                  <div class="field-row">
-                    <span class="field-label">Nationality</span>
-                    <span class="field-value">{{ doc.nationality || '—' }}</span>
-                  </div>
-                }
-
-                <!-- Seats for this passenger -->
-                @for (seg of segments(); track seg.segmentId) {
-                  <div class="field-row">
-                    <span class="field-label">Seat ({{ seg.flightNumber }})</span>
-                    <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
       </div>
     }
 
@@ -513,6 +436,117 @@
   }
 
 </div>
+
+<!-- ── PASSENGER DETAIL MODAL ── -->
+@if (selectedPassenger(); as pax) {
+  <div class="modal-backdrop" (click)="closePaxModal()"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <div class="pax-avatar">{{ pax.givenName[0] }}</div>
+        <span class="modal-title">{{ pax.givenName }} {{ pax.surname }}</span>
+        <span class="pax-type-badge">{{ passengerTypeLabel(pax.type) }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        @if (editingPaxId() !== pax.passengerId) {
+          <button class="edit-btn" (click)="startEdit(pax)">Edit</button>
+        }
+        <button class="modal-close-btn" (click)="closePaxModal()">&#x2715;</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      @if (editingPaxId() === pax.passengerId) {
+        <div class="modal-section">
+          <div class="edit-form-grid">
+            <div class="edit-field">
+              <label class="field-label">First name</label>
+              <input class="edit-input" type="text" [value]="editForm().givenName" (input)="updateEditField('givenName', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Surname</label>
+              <input class="edit-input" type="text" [value]="editForm().surname" (input)="updateEditField('surname', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Date of birth</label>
+              <input class="edit-input" type="date" [value]="editForm().dob ?? ''" (input)="updateEditField('dob', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Email</label>
+              <input class="edit-input" type="email" [value]="editForm().email ?? ''" (input)="updateEditField('email', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Phone</label>
+              <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
+            </div>
+          </div>
+          @if (editError()) {
+            <div class="edit-error" style="margin-top:10px">{{ editError() }}</div>
+          }
+          <div class="edit-actions" style="margin-top:14px">
+            <button class="save-btn" [disabled]="editSaving()" (click)="saveEdit(pax)">
+              {{ editSaving() ? 'Saving…' : 'Save changes' }}
+            </button>
+            <button class="cancel-btn" [disabled]="editSaving()" (click)="cancelEdit()">Cancel</button>
+          </div>
+        </div>
+      } @else {
+        <div class="modal-section">
+          <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Date of birth</span>
+              <span class="field-value">{{ formatDate(pax.dob) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Email</span>
+              <span class="field-value">{{ pax.contacts?.email || '—' }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Phone</span>
+              <span class="field-value">{{ pax.contacts?.phone || '—' }}</span>
+            </div>
+            @if (pax.loyaltyNumber) {
+              <div class="field-row">
+                <span class="field-label">Loyalty no.</span>
+                <span class="field-value mono loyalty-copy-wrap">
+                  {{ pax.loyaltyNumber }}
+                  <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyText(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
+                    @if (copiedText() === pax.loyaltyNumber) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    }
+                  </button>
+                </span>
+              </div>
+            }
+            @for (doc of pax.docs; track doc.number) {
+              <div class="field-row">
+                <span class="field-label">Document</span>
+                <span class="field-value">{{ doc.type }} {{ doc.number }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Expiry</span>
+                <span class="field-value">{{ formatDate(doc.expiryDate) }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Nationality</span>
+                <span class="field-value">{{ doc.nationality || '—' }}</span>
+              </div>
+            }
+            @for (seg of segments(); track seg.segmentId) {
+              <div class="field-row">
+                <span class="field-label">Seat ({{ seg.flightNumber }})</span>
+                <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
 
 <!-- ── ORDER ITEM DETAIL MODAL ── -->
 @if (selectedOrderItem(); as item) {

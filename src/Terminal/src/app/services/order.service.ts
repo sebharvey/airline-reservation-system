@@ -73,8 +73,16 @@ export interface OrderItem {
   fareAmount: number | null;
   taxAmount: number | null;
   totalAmount: number | null;
+  lineTotal: number | null;
   taxLines: TaxLine[] | null;
   currency: string | null;
+}
+
+export interface ItemTotals {
+  subtotalFare: number;
+  subtotalTax: number;
+  grandTotal: number;
+  currency: string;
 }
 
 export interface SsrOption {
@@ -199,6 +207,7 @@ export interface OrderData {
   orderItems: OrderItem[];
   payments: OrderPayment[];
   history: OrderHistoryEvent[];
+  itemTotals: ItemTotals | null;
 }
 
 export interface OrderDetail {
