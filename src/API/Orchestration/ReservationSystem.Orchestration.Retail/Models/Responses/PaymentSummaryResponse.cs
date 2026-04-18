@@ -57,6 +57,7 @@ public sealed class PaymentSummarySeatSelection
     /// <summary>Flight number of the associated flight offer.</summary>
     public string FlightNumber { get; init; } = string.Empty;
     public decimal Price { get; init; }
+    public decimal Tax { get; init; }
     public string Currency { get; init; } = string.Empty;
 }
 
@@ -67,6 +68,7 @@ public sealed class PaymentSummaryBagSelection
     /// <summary>Flight number of the associated flight offer.</summary>
     public string FlightNumber { get; init; } = string.Empty;
     public decimal Price { get; init; }
+    public decimal Tax { get; init; }
     public string Currency { get; init; } = string.Empty;
 }
 
@@ -75,6 +77,7 @@ public sealed class PaymentSummaryProductSelection
     public string PassengerId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public decimal Price { get; init; }
+    public decimal Tax { get; init; }
     public string Currency { get; init; } = string.Empty;
     /// <summary>References a basketItemId if the product is segment-specific; null for journey-wide products.</summary>
     public string? SegmentRef { get; init; }

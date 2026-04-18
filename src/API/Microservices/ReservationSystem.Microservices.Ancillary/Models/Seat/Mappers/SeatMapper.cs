@@ -128,6 +128,7 @@ public static class SeatMapper
             SeatPosition = seatPricing.SeatPosition,
             CurrencyCode = seatPricing.CurrencyCode,
             Price = seatPricing.Price,
+            Tax = seatPricing.Tax,
             IsActive = seatPricing.IsActive,
             ValidFrom = seatPricing.ValidFrom,
             ValidTo = seatPricing.ValidTo,

@@ -58,6 +58,7 @@ public sealed class AncillaryDbContext : DbContext
                 .HasConversion<byte>();
             entity.Property(p => p.CurrencyCode).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
             entity.Property(p => p.Price).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(p => p.Tax).HasColumnType("decimal(10,2)").IsRequired();
             entity.Property(p => p.IsActive).HasColumnType("bit").IsRequired();
             entity.Property(p => p.ValidFrom).HasColumnType("datetime2").IsRequired();
             entity.Property(p => p.ValidTo).HasColumnType("datetime2").IsRequired(false);

@@ -43,6 +43,9 @@ public sealed class BagOfferItem
     [JsonPropertyName("price")]
     public decimal Price { get; init; }
 
+    [JsonPropertyName("tax")]
+    public decimal Tax { get; init; }
+
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; init; } = string.Empty;
 }
@@ -69,6 +72,9 @@ public sealed class BagOfferValidationResponse
 
     [JsonPropertyName("price")]
     public decimal Price { get; init; }
+
+    [JsonPropertyName("tax")]
+    public decimal Tax { get; init; }
 
     [JsonPropertyName("currencyCode")]
     public string CurrencyCode { get; init; } = string.Empty;

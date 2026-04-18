@@ -231,6 +231,7 @@ public sealed class ConfirmOrderHandler
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
                     ["price"]          = bagObj["price"]?.DeepClone(),
+                    ["tax"]            = bagObj["tax"]?.DeepClone(),
                     ["currency"]       = bagObj["currency"]?.DeepClone(),
                 });
             }

@@ -22,6 +22,7 @@ public sealed class UpdateBagPricingHandler
 
         var updated = BagPricing.Reconstitute(
             command.PricingId, command.BagSequence, command.CurrencyCode, command.Price,
+            Math.Round(command.Price * 0.20m, 2),
             command.IsActive, command.ValidFrom, command.ValidTo,
             existing.CreatedAt, DateTime.UtcNow);
 

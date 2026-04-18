@@ -24,7 +24,7 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     public async Task<SeatPricing?> GetByIdAsync(Guid seatPricingId, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [seat].[SeatPricing]
             WHERE  SeatPricingId = @SeatPricingId;
             """;
@@ -37,7 +37,7 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     public async Task<IReadOnlyList<SeatPricing>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [seat].[SeatPricing]
             ORDER  BY CabinCode, SeatPosition;
             """;
@@ -50,7 +50,7 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     public async Task<IReadOnlyList<SeatPricing>> GetAllActiveAsync(CancellationToken cancellationToken = default)
     {
         const string sql = """
-            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [seat].[SeatPricing]
             WHERE  IsActive = 1
             ORDER  BY CabinCode, SeatPosition;
@@ -64,10 +64,10 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     public async Task<SeatPricing> CreateAsync(SeatPricing sp, CancellationToken cancellationToken = default)
     {
         const string sql = """
-            INSERT INTO [seat].[SeatPricing] (SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo)
-            VALUES (@SeatPricingId, @CabinCode, @SeatPosition, @CurrencyCode, @Price, @IsActive, @ValidFrom, @ValidTo);
+            INSERT INTO [seat].[SeatPricing] (SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo)
+            VALUES (@SeatPricingId, @CabinCode, @SeatPosition, @CurrencyCode, @Price, @Tax, @IsActive, @ValidFrom, @ValidTo);
 
-            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [seat].[SeatPricing]
             WHERE  SeatPricingId = @SeatPricingId;
             """;
@@ -75,7 +75,7 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
         var r = await conn.QuerySingleAsync<SeatPricingRecord>(
             new CommandDefinition(sql, new
             {
-                sp.SeatPricingId, sp.CabinCode, sp.SeatPosition, sp.CurrencyCode, sp.Price, sp.IsActive, sp.ValidFrom, sp.ValidTo
+                sp.SeatPricingId, sp.CabinCode, sp.SeatPosition, sp.CurrencyCode, sp.Price, sp.Tax, sp.IsActive, sp.ValidFrom, sp.ValidTo
             }, commandTimeout: _options.CommandTimeoutSeconds));
         _logger.LogInformation("Created SeatPricing {Id} for {Cabin}/{Position}", sp.SeatPricingId, sp.CabinCode, sp.SeatPosition);
         return Map(r);
@@ -85,16 +85,16 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     {
         const string sql = """
             UPDATE [seat].[SeatPricing]
-            SET    Price = @Price, IsActive = @IsActive, ValidFrom = @ValidFrom, ValidTo = @ValidTo
+            SET    Price = @Price, Tax = @Tax, IsActive = @IsActive, ValidFrom = @ValidFrom, ValidTo = @ValidTo
             WHERE  SeatPricingId = @SeatPricingId;
 
-            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
+            SELECT SeatPricingId, CabinCode, SeatPosition, CurrencyCode, Price, Tax, IsActive, ValidFrom, ValidTo, CreatedAt, UpdatedAt
             FROM   [seat].[SeatPricing]
             WHERE  SeatPricingId = @SeatPricingId;
             """;
         using var conn = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         var r = await conn.QuerySingleOrDefaultAsync<SeatPricingRecord>(
-            new CommandDefinition(sql, new { sp.SeatPricingId, sp.Price, sp.IsActive, sp.ValidFrom, sp.ValidTo },
+            new CommandDefinition(sql, new { sp.SeatPricingId, sp.Price, sp.Tax, sp.IsActive, sp.ValidFrom, sp.ValidTo },
                 commandTimeout: _options.CommandTimeoutSeconds));
         return r is null ? null : Map(r);
     }
@@ -109,11 +109,11 @@ public sealed class SqlSeatPricingRepository : ISeatPricingRepository
     }
 
     private static SeatPricing Map(SeatPricingRecord r) =>
-        SeatPricing.Reconstitute(r.SeatPricingId, r.CabinCode, r.SeatPosition, r.CurrencyCode, r.Price,
+        SeatPricing.Reconstitute(r.SeatPricingId, r.CabinCode, r.SeatPosition, r.CurrencyCode, r.Price, r.Tax,
             r.IsActive, r.ValidFrom, r.ValidTo, r.CreatedAt, r.UpdatedAt);
 
     private sealed record SeatPricingRecord(
-        Guid SeatPricingId, string CabinCode, string SeatPosition, string CurrencyCode, decimal Price,
+        Guid SeatPricingId, string CabinCode, string SeatPosition, string CurrencyCode, decimal Price, decimal Tax,
         bool IsActive, DateTime ValidFrom, DateTime? ValidTo,
         DateTime CreatedAt, DateTime UpdatedAt);
 }

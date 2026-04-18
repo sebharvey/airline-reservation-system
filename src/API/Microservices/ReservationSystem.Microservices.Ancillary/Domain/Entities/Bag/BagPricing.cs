@@ -3,7 +3,7 @@ namespace ReservationSystem.Microservices.Ancillary.Domain.Entities.Bag;
 /// <summary>
 /// Core domain entity representing the pricing for an additional bag.
 /// Pricing is per bag sequence (1st additional, 2nd additional, 99=catch-all),
-/// fleet-wide and route-agnostic.
+/// fleet-wide and route-agnostic. Tax is automatically calculated as 20% of price.
 /// </summary>
 public sealed class BagPricing
 {
@@ -11,6 +11,7 @@ public sealed class BagPricing
     public int BagSequence { get; private set; }
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
+    public decimal Tax { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime ValidFrom { get; private set; }
     public DateTime? ValidTo { get; private set; }
@@ -28,6 +29,7 @@ public sealed class BagPricing
             BagSequence = bagSequence,
             CurrencyCode = currencyCode,
             Price = price,
+            Tax = Math.Round(price * 0.20m, 2),
             IsActive = true,
             ValidFrom = validFrom,
             ValidTo = validTo,
@@ -37,7 +39,7 @@ public sealed class BagPricing
     }
 
     public static BagPricing Reconstitute(
-        Guid pricingId, int bagSequence, string currencyCode, decimal price,
+        Guid pricingId, int bagSequence, string currencyCode, decimal price, decimal tax,
         bool isActive, DateTime validFrom, DateTime? validTo,
         DateTime createdAt, DateTime updatedAt)
     {
@@ -47,6 +49,7 @@ public sealed class BagPricing
             BagSequence = bagSequence,
             CurrencyCode = currencyCode,
             Price = price,
+            Tax = tax,
             IsActive = isActive,
             ValidFrom = validFrom,
             ValidTo = validTo,

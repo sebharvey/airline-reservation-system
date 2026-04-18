@@ -686,6 +686,18 @@
                 <span class="field-value">{{ formatAmount(item.amount, item.currency) }}</span>
               </div>
             }
+            @if (item.taxAmount != null) {
+              <div class="field-row">
+                <span class="field-label">Tax</span>
+                <span class="field-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+              </div>
+            }
+            @if (item.lineTotal != null) {
+              <div class="field-row">
+                <span class="field-label">Line total</span>
+                <span class="field-value"><strong>{{ formatAmount(item.lineTotal, item.currency) }}</strong></span>
+              </div>
+            }
             <div class="field-row">
               <span class="field-label">Status</span>
               <span class="field-value"><span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span></span>
@@ -752,6 +764,18 @@
                 <span class="field-value">{{ formatAmount(item.amount, item.currency) }}</span>
               </div>
             }
+            @if (item.taxAmount != null) {
+              <div class="field-row">
+                <span class="field-label">Tax</span>
+                <span class="field-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+              </div>
+            }
+            @if (item.lineTotal != null) {
+              <div class="field-row">
+                <span class="field-label">Line total</span>
+                <span class="field-value"><strong>{{ formatAmount(item.lineTotal, item.currency) }}</strong></span>
+              </div>
+            }
             <div class="field-row">
               <span class="field-label">Status</span>
               <span class="field-value"><span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span></span>
@@ -782,6 +806,18 @@
               <div class="field-row">
                 <span class="field-label">Amount</span>
                 <span class="field-value">{{ formatAmount(item.amount, item.currency) }}</span>
+              </div>
+            }
+            @if (item.taxAmount != null) {
+              <div class="field-row">
+                <span class="field-label">Tax</span>
+                <span class="field-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+              </div>
+            }
+            @if (item.lineTotal != null) {
+              <div class="field-row">
+                <span class="field-label">Line total</span>
+                <span class="field-value"><strong>{{ formatAmount(item.lineTotal, item.currency) }}</strong></span>
               </div>
             }
             <div class="field-row">

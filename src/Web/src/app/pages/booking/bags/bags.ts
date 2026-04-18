@@ -196,6 +196,7 @@ export class BagsComponent implements OnInit {
           bagOfferId: sel.selectedBagOffer.bagOfferId,
           additionalBags: sel.additionalBags,
           price: sel.selectedBagOffer.price * sel.additionalBags,
+          tax: (sel.selectedBagOffer.tax ?? 0) * sel.additionalBags,
           currency: sel.selectedBagOffer.currency
         });
       }

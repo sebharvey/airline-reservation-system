@@ -63,6 +63,7 @@ export interface SeatOffer {
   position: SeatPosition;
   cabinCode: CabinCode;
   price: number;
+  tax: number;
   currency: string;
   availability: AvailabilityStatus;
   attributes: string[];
@@ -95,6 +96,7 @@ export interface BagOffer {
   bagOfferId: string;
   bagSequence: number;
   price: number;
+  tax: number;
   currency: string;
   label: string;
 }

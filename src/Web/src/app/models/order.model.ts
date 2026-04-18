@@ -150,6 +150,7 @@ export interface BasketSeatSelection {
   seatNumber: string;
   seatPosition: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -160,6 +161,7 @@ export interface BasketBagSelection {
   bagOfferId: string;
   additionalBags: number;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -178,6 +180,7 @@ export interface BasketProductSelection {
   /** Populated for segment-specific products; references the flightOffer.basketItemId */
   segmentRef?: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -271,6 +274,7 @@ export interface PaymentSummarySeatSelection {
   seatPosition: string;
   flightNumber: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -279,6 +283,7 @@ export interface PaymentSummaryBagSelection {
   additionalBags: number;
   flightNumber: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
@@ -286,6 +291,7 @@ export interface PaymentSummaryProductSelection {
   passengerId: string;
   name: string;
   price: number;
+  tax: number;
   currency: string;
   segmentRef: string | null;
 }

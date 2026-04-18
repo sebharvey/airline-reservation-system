@@ -70,6 +70,7 @@ public sealed class BagOfferFunction
             BagSequence = p.BagSequence,
             Description = BagMapper.GetBagDescription(p.BagSequence),
             Price = p.Price,
+            Tax = p.Tax,
             CurrencyCode = p.CurrencyCode
         }).ToList();
 
@@ -141,6 +142,7 @@ public sealed class BagOfferFunction
             BagSequence = bagSequence,
             Description = BagMapper.GetBagDescription(bagSequence),
             Price = pricing.Price,
+            Tax = pricing.Tax,
             CurrencyCode = pricing.CurrencyCode,
             IsValid = true
         };
