@@ -62,12 +62,6 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
       };
     });
 
-    const seatsForSeg = basket.seatSelections.filter(s => s.basketItemRef === fo.basketItemId);
-    const seatAssignments = seatsForSeg.map(s => ({
-      passengerId: s.passengerId,
-      seatNumber: s.seatNumber
-    }));
-
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Flight',
@@ -81,8 +75,7 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
       isRefundable: fo.isRefundable,
       isChangeable: fo.isChangeable,
       paymentReference: payRef,
-      eTickets,
-      seatAssignments
+      eTickets
     });
   });
 

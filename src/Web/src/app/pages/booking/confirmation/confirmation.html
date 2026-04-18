@@ -56,10 +56,10 @@
           <span *ngIf="item.isChangeable === true" class="fare-tag fare-ok">Changeable</span>
           <span *ngIf="item.isChangeable === false" class="fare-tag fare-no">Non-changeable</span>
         </div>
-        <div class="seat-info" *ngIf="item.seatAssignments && item.seatAssignments.length > 0">
+        <div class="seat-info" *ngIf="getSeatsForSegment(item.segmentRef).length > 0">
           <strong>Seats:</strong>
-          <span *ngFor="let sa of item.seatAssignments">
-            {{ getPassengerName(sa.passengerId) }}: <strong>{{ sa.seatNumber }}</strong>
+          <span *ngFor="let seat of getSeatsForSegment(item.segmentRef)">
+            {{ getPassengerName(seat.passengerRefs[0]) }}: <strong>{{ seat.seatNumber }}</strong>
           </span>
         </div>
 

@@ -43,8 +43,32 @@ public sealed class UpdateOrderSeatsHandler
         }
 
         var orderJson = JsonNode.Parse(order.OrderData)?.AsObject() ?? new JsonObject();
-        var seatsNode = JsonNode.Parse(command.SeatsData);
-        orderJson["seatAssignments"] = seatsNode;
+
+        // Rebuild orderItems: retain all non-SEAT items, then append the new seat items.
+        var existingItems = orderJson["orderItems"]?.AsArray() ?? new JsonArray();
+        var updatedItems = new JsonArray();
+        foreach (var item in existingItems)
+        {
+            if (item is not JsonObject obj) continue;
+            var pt = obj["productType"]?.GetValue<string>();
+            if (string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
+            updatedItems.Add(obj.DeepClone());
+        }
+
+        var newSeats = JsonNode.Parse(command.SeatsData);
+        if (newSeats is JsonArray seatArray)
+        {
+            foreach (var seat in seatArray)
+            {
+                if (seat is not JsonObject seatObj) continue;
+                var seatItem = new JsonObject { ["productType"] = "SEAT" };
+                foreach (var prop in seatObj)
+                    seatItem[prop.Key] = prop.Value?.DeepClone();
+                updatedItems.Add(seatItem);
+            }
+        }
+
+        orderJson["orderItems"] = updatedItems;
 
         var updated = Domain.Entities.Order.Reconstitute(
             order.OrderId,

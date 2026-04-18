@@ -67,7 +67,6 @@ export interface OrderItem {
   isChangeable?: boolean;
   paymentReference: string;
   eTickets?: ETicket[];
-  seatAssignments?: SeatAssignment[];
   seatNumber?: string;
   seatPosition?: string;
   additionalBags?: number;

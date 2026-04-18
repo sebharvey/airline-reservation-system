@@ -117,28 +117,6 @@ public sealed class GetOrderHandler
                     }
                 }
 
-                // ── Seat assignments lookup ───────────────────────────────────
-                // seatAssignments stored as: [{ passengerId, segmentId, seatNumber }]
-                var seatsBySegment = new Dictionary<string, List<ManagedSeatAssignment>>(StringComparer.OrdinalIgnoreCase);
-                JsonElement seatsSource;
-                var hasSeats = data.TryGetProperty("seatAssignments", out seatsSource) ||
-                               data.TryGetProperty("seats", out seatsSource);
-                if (hasSeats && seatsSource.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var sa in seatsSource.EnumerateArray())
-                    {
-                        var paxId = sa.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
-                        var segId = sa.TryGetProperty("segmentId", out var ssid) ? ssid.GetString() ?? "" : "";
-                        var seatNum = sa.TryGetProperty("seatNumber", out var sn) ? sn.GetString() ?? "" : "";
-                        if (!string.IsNullOrEmpty(segId))
-                        {
-                            if (!seatsBySegment.ContainsKey(segId))
-                                seatsBySegment[segId] = new List<ManagedSeatAssignment>();
-                            seatsBySegment[segId].Add(new ManagedSeatAssignment { PassengerId = paxId, SeatNumber = seatNum });
-                        }
-                    }
-                }
-
                 // ── Payments ──────────────────────────────────────────────────
                 if (data.TryGetProperty("payments", out var paymentsArray) &&
                     paymentsArray.ValueKind == JsonValueKind.Array)
@@ -186,6 +164,34 @@ public sealed class GetOrderHandler
                     var itemIndex = 1;
                     foreach (var item in itemsArray.EnumerateArray())
                     {
+                        var productType = item.TryGetProperty("productType", out var ptEl) ? ptEl.GetString() : null;
+
+                        // ── Seat items ────────────────────────────────────────
+                        if (string.Equals(productType, "SEAT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var paxId  = item.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
+                            var segId  = item.TryGetProperty("segmentId",   out var ssid) ? ssid.GetString() ?? "" : "";
+                            var seatNum = item.TryGetProperty("seatNumber", out var sn)   ? sn.GetString()   ?? "" : "";
+                            var price  = item.TryGetProperty("price",       out var pr)   ? pr.GetDecimal()       : 0m;
+                            orderItems.Add(new ManagedOrderItem
+                            {
+                                OrderItemId    = $"seat-{paxId}-{segId}",
+                                Type           = "Seat",
+                                SegmentRef     = segId,
+                                PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
+                                UnitPrice      = price,
+                                Taxes          = 0m,
+                                TotalPrice     = price,
+                                IsRefundable   = false,
+                                IsChangeable   = false,
+                                PaymentReference = payments.FirstOrDefault()?.PaymentReference ?? "",
+                                ETickets       = [],
+                                SeatNumber     = seatNum
+                            });
+                            itemIndex++;
+                            continue;
+                        }
+
                         var inventoryId = item.TryGetProperty("inventoryId", out var invId) ? invId.GetString() ?? "" : "";
                         var basketItemId = item.TryGetProperty("basketItemId", out var bid) ? bid.GetString() : null;
                         var segmentId = basketItemId ?? (string.IsNullOrEmpty(inventoryId) ? $"SEG-{itemIndex}" : inventoryId);
@@ -228,15 +234,6 @@ public sealed class GetOrderHandler
 
                         // e-tickets for this segment
                         eTicketsBySegment.TryGetValue(segmentId, out var segETickets);
-                        // Seat assignments are keyed by inventoryId (the web app stores
-                        // inventoryId as the seat's segmentId). The order item's segmentId
-                        // is basketItemId ("BI-1" etc.), so we must fall back to inventoryId.
-                        if (!seatsBySegment.TryGetValue(segmentId, out var seatsFound) &&
-                            !seatsBySegment.TryGetValue(inventoryId, out seatsFound))
-                        {
-                            seatsFound = new List<ManagedSeatAssignment>();
-                        }
-                        var segSeatAssignments = seatsFound ?? new List<ManagedSeatAssignment>();
 
                         // Flight order item
                         orderItems.Add(new ManagedOrderItem
@@ -253,8 +250,7 @@ public sealed class GetOrderHandler
                             IsRefundable = isRefundable,
                             IsChangeable = isChangeable,
                             PaymentReference = payments.FirstOrDefault()?.PaymentReference ?? "",
-                            ETickets = segETickets ?? [],
-                            SeatAssignments = segSeatAssignments
+                            ETickets = segETickets ?? []
                         });
 
                         itemIndex++;
@@ -287,8 +283,7 @@ public sealed class GetOrderHandler
                             IsChangeable = false,
                             AdditionalBags = addBags,
                             PaymentReference = "",
-                            ETickets = [],
-                            SeatAssignments = []
+                            ETickets = []
                         });
                     }
                 }

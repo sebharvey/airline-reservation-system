@@ -80,21 +80,15 @@ public sealed class ManagedOrderItem
     public bool IsChangeable { get; init; }
     public string PaymentReference { get; init; } = string.Empty;
     public IReadOnlyList<ManagedETicket> ETickets { get; init; } = [];
-    public IReadOnlyList<ManagedSeatAssignment> SeatAssignments { get; init; } = [];
     public int? AdditionalBags { get; init; }
     public int? FreeBagsIncluded { get; init; }
+    public string? SeatNumber { get; init; }
 }
 
 public sealed class ManagedETicket
 {
     public string PassengerId { get; init; } = string.Empty;
     public string ETicketNumber { get; init; } = string.Empty;
-}
-
-public sealed class ManagedSeatAssignment
-{
-    public string PassengerId { get; init; } = string.Empty;
-    public string SeatNumber { get; init; } = string.Empty;
 }
 
 public sealed class ManagedPayment

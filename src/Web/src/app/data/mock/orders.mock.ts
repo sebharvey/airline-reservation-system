@@ -81,10 +81,6 @@ export const MOCK_ORDER_AB1234: Order = {
       eTickets: [
         { passengerId: 'PAX-1', eTicketNumber: '932-1234567890' },
         { passengerId: 'PAX-2', eTicketNumber: '932-1234567891' }
-      ],
-      seatAssignments: [
-        { passengerId: 'PAX-1', seatNumber: '2A' },
-        { passengerId: 'PAX-2', seatNumber: '2K' }
       ]
     },
     {
@@ -100,11 +96,43 @@ export const MOCK_ORDER_AB1234: Order = {
       eTickets: [
         { passengerId: 'PAX-1', eTicketNumber: '932-1234567892' },
         { passengerId: 'PAX-2', eTicketNumber: '932-1234567893' }
-      ],
-      seatAssignments: [
-        { passengerId: 'PAX-1', seatNumber: '3A' },
-        { passengerId: 'PAX-2', seatNumber: '3K' }
       ]
+    },
+    {
+      orderItemId: 'OI-3',
+      type: 'Seat',
+      segmentRef: 'SEG-1',
+      passengerRefs: ['PAX-1'],
+      seatNumber: '2A',
+      unitPrice: 0, taxes: 0, totalPrice: 0,
+      paymentReference: 'AXPAY-0001'
+    },
+    {
+      orderItemId: 'OI-4',
+      type: 'Seat',
+      segmentRef: 'SEG-1',
+      passengerRefs: ['PAX-2'],
+      seatNumber: '2K',
+      unitPrice: 0, taxes: 0, totalPrice: 0,
+      paymentReference: 'AXPAY-0001'
+    },
+    {
+      orderItemId: 'OI-5',
+      type: 'Seat',
+      segmentRef: 'SEG-2',
+      passengerRefs: ['PAX-1'],
+      seatNumber: '3A',
+      unitPrice: 0, taxes: 0, totalPrice: 0,
+      paymentReference: 'AXPAY-0001'
+    },
+    {
+      orderItemId: 'OI-6',
+      type: 'Seat',
+      segmentRef: 'SEG-2',
+      passengerRefs: ['PAX-2'],
+      seatNumber: '3K',
+      unitPrice: 0, taxes: 0, totalPrice: 0,
+      paymentReference: 'AXPAY-0001'
     }
   ],
   payments: [
@@ -175,8 +203,7 @@ export const MOCK_ORDER_CD5678: Order = {
       unitPrice: 489.00, taxes: 112.00, totalPrice: 601.00,
       isRefundable: false, isChangeable: false,
       paymentReference: 'AXPAY-0002',
-      eTickets: [{ passengerId: 'PAX-1', eTicketNumber: '932-9876543210' }],
-      seatAssignments: []
+      eTickets: [{ passengerId: 'PAX-1', eTicketNumber: '932-9876543210' }]
     },
     {
       orderItemId: 'OI-2',
@@ -275,8 +302,7 @@ export const MOCK_ORDER_EF9012: Order = {
       isRefundable: false,
       isChangeable: false,
       paymentReference: 'AXPAY-0005',
-      eTickets: [{ passengerId: 'PAX-1', eTicketNumber: '932-1111222333' }],
-      seatAssignments: []
+      eTickets: [{ passengerId: 'PAX-1', eTicketNumber: '932-1111222333' }]
     }
   ],
   payments: [

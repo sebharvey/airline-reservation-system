@@ -30,7 +30,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('itinerary');
+  activeTab = signal<'orderItems' | 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'>('orderItems');
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
@@ -74,6 +74,10 @@ export class OrderDetailComponent implements OnInit {
 
   segments = computed<FlightSegment[]>(() =>
     this.order()?.orderData?.dataLists?.flightSegments ?? []
+  );
+
+  allOrderItems = computed<OrderItem[]>(() =>
+    this.order()?.orderData?.orderItems ?? []
   );
 
   flightItems = computed<OrderItem[]>(() =>
@@ -127,7 +131,7 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'): void {
+  switchTab(tab: 'orderItems' | 'itinerary' | 'passengers' | 'ancillaries' | 'payments' | 'history' | 'ssrs' | 'tickets'): void {
     this.activeTab.set(tab);
     if (tab === 'ssrs') this.loadSsrOptions();
     if (tab === 'tickets') this.loadTickets();
