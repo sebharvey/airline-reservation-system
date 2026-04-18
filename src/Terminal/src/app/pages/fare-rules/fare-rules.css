@@ -715,6 +715,8 @@
   .page-header { flex-direction: column; }
 }
 
+.text-right { text-align: right; }
+
 @media (min-width: 901px) {
   .fare-rules-page { padding: 0; max-width: none; }
 }

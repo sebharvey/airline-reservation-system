@@ -472,7 +472,9 @@
 .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .muted { color: var(--text-muted); }
 
-.price-cell { font-weight: 700; color: var(--text); }
+.price-cell { font-weight: 700; color: var(--text); text-align: right; }
+
+.text-right { text-align: right; }
 
 .empty-row { text-align: center; color: var(--text-muted); padding: 40px 16px !important; }
 

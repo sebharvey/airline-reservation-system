@@ -279,6 +279,8 @@
   .page-title { font-size: 1.25rem; }
 }
 
+.text-right { text-align: right; }
+
 @media (min-width: 901px) {
   .customer-list-page { padding: 0; max-width: none; }
 }

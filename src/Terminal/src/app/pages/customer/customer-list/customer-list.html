@@ -68,7 +68,7 @@
             <th>Customer</th>
             <th class="hide-mobile">Loyalty No.</th>
             <th>Tier</th>
-            <th class="hide-mobile">Points</th>
+            <th class="hide-mobile text-right">Points</th>
             <th class="hide-mobile">Member Since</th>
             <th>Status</th>
           </tr>
@@ -104,7 +104,7 @@
               <td>
                 <span class="badge" [class]="tierBadgeClass(customer.tierCode)">{{ customer.tierCode }}</span>
               </td>
-              <td class="hide-mobile">{{ formatPoints(customer.pointsBalance) }}</td>
+              <td class="hide-mobile text-right">{{ formatPoints(customer.pointsBalance) }}</td>
               <td class="hide-mobile muted">{{ formatDate(customer.createdAt) }}</td>
               <td>
                 <span class="badge" [class]="customer.isActive ? 'badge-active' : 'badge-inactive'">

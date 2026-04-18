@@ -396,7 +396,10 @@
   font-weight: 700;
   color: var(--text);
   font-size: 0.875rem;
+  text-align: right;
 }
+
+.text-right { text-align: right; }
 
 .empty-row {
   text-align: center;

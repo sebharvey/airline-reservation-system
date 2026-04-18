@@ -224,8 +224,8 @@
                 <thead>
                   <tr>
                     <th>Currency</th>
-                    <th>Price</th>
-                    <th>Tax</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Tax</th>
                     <th>Offer ID</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -236,7 +236,7 @@
                     <tr>
                       <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
                       <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
-                      <td class="mono muted">{{ formatAmount(p.tax, p.currencyCode) }}</td>
+                      <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
                       <td class="mono muted offer-id">{{ p.offerId }}</td>
                       <td>
                         <span class="badge" [class.badge-yes]="p.isActive" [class.badge-no]="!p.isActive">
