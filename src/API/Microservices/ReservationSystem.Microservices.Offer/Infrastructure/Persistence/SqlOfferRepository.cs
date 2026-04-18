@@ -693,6 +693,103 @@ public sealed class SqlOfferRepository : IOfferRepository
     }
 
     // -------------------------------------------------------------------------
+    // FareFamily
+    // -------------------------------------------------------------------------
+
+    public async Task<IReadOnlyList<FareFamily>> GetAllFareFamiliesAsync(CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT FareFamilyId, Name, Description, DisplayOrder, CreatedAt, UpdatedAt
+            FROM   [offer].[FareFamily]
+            ORDER BY DisplayOrder, Name;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, commandTimeout: _options.CommandTimeoutSeconds, cancellationToken: ct));
+
+        return rows.Select(MapToFareFamily).ToList().AsReadOnly();
+    }
+
+    public async Task<FareFamily?> GetFareFamilyByIdAsync(Guid fareFamilyId, CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT FareFamilyId, Name, Description, DisplayOrder, CreatedAt, UpdatedAt
+            FROM   [offer].[FareFamily]
+            WHERE  FareFamilyId = @FareFamilyId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var row = await connection.QuerySingleOrDefaultAsync<dynamic>(
+            new CommandDefinition(sql, new { FareFamilyId = fareFamilyId }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return row is null ? null : MapToFareFamily(row);
+    }
+
+    public async Task CreateFareFamilyAsync(FareFamily fareFamily, CancellationToken ct = default)
+    {
+        const string sql = """
+            INSERT INTO [offer].[FareFamily] (FareFamilyId, Name, Description, DisplayOrder)
+            VALUES (@FareFamilyId, @Name, @Description, @DisplayOrder);
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(sql, new
+            {
+                fareFamily.FareFamilyId,
+                fareFamily.Name,
+                fareFamily.Description,
+                fareFamily.DisplayOrder
+            }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug("Inserted FareFamily {FareFamilyId} ({Name})", fareFamily.FareFamilyId, fareFamily.Name);
+    }
+
+    public async Task UpdateFareFamilyAsync(FareFamily fareFamily, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE [offer].[FareFamily]
+            SET    Name         = @Name,
+                   Description  = @Description,
+                   DisplayOrder = @DisplayOrder
+            WHERE  FareFamilyId = @FareFamilyId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new
+            {
+                fareFamily.FareFamilyId,
+                fareFamily.Name,
+                fareFamily.Description,
+                fareFamily.DisplayOrder
+            }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        if (rowsAffected == 0)
+            _logger.LogWarning("UpdateFareFamilyAsync found no row for FareFamily {FareFamilyId}", fareFamily.FareFamilyId);
+    }
+
+    public async Task<bool> DeleteFareFamilyAsync(Guid fareFamilyId, CancellationToken ct = default)
+    {
+        const string sql = """
+            DELETE FROM [offer].[FareFamily]
+            WHERE  FareFamilyId = @FareFamilyId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { FareFamilyId = fareFamilyId }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rowsAffected > 0;
+    }
+
+    // -------------------------------------------------------------------------
     // FareRule
     // -------------------------------------------------------------------------
 
@@ -1102,6 +1199,15 @@ public sealed class SqlOfferRepository : IOfferRepository
 
     private static DateTimeOffset? ToNullableDateTimeOffset(DateTime? dt) =>
         dt.HasValue ? new DateTimeOffset(dt.Value, TimeSpan.Zero) : null;
+
+    private static FareFamily MapToFareFamily(dynamic row) =>
+        FareFamily.Reconstitute(
+            fareFamilyId: (Guid)row.FareFamilyId,
+            name:         (string)row.Name,
+            description:  (string?)row.Description,
+            displayOrder: (int)row.DisplayOrder,
+            createdAt:    new DateTimeOffset((DateTime)row.CreatedAt, TimeSpan.Zero),
+            updatedAt:    new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero));
 
     private static FareRule MapToFareRule(dynamic row)
     {

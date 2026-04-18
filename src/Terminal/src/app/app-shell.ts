@@ -45,8 +45,9 @@ export class AppShell {
     {
       label: 'Schedule & Fares',
       items: [
-        { path: '/schedules',  label: 'Schedules',  icon: '🗓', description: 'Flight schedule management' },
-        { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
+        { path: '/schedules',     label: 'Schedules',     icon: '🗓', description: 'Flight schedule management' },
+        { path: '/fare-families', label: 'Fare Families', icon: '🏷', description: 'Fare family names catalogue' },
+        { path: '/fare-rules',    label: 'Fare Rules',    icon: '💰', description: 'Fare pricing rules' },
       ],
     },
     {

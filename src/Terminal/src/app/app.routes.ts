@@ -57,6 +57,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/schedules/schedules').then(m => m.SchedulesComponent),
       },
       {
+        path: 'fare-families',
+        loadComponent: () => import('./pages/fare-families/fare-families').then(m => m.FareFamiliesComponent),
+      },
+      {
         path: 'fare-rules',
         loadComponent: () => import('./pages/fare-rules/fare-rules').then(m => m.FareRulesComponent),
       },

@@ -343,6 +343,50 @@ public sealed class StoredOffer
             new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })!;
 }
 
+public sealed class FareFamily
+{
+    public Guid FareFamilyId { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public string? Description { get; private set; }
+    public int DisplayOrder { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset UpdatedAt { get; private set; }
+
+    private FareFamily() { }
+
+    public static FareFamily Create(string name, string? description, int displayOrder) =>
+        new()
+        {
+            FareFamilyId = Guid.NewGuid(),
+            Name = name,
+            Description = description,
+            DisplayOrder = displayOrder,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+    public static FareFamily Reconstitute(
+        Guid fareFamilyId, string name, string? description, int displayOrder,
+        DateTimeOffset createdAt, DateTimeOffset updatedAt) =>
+        new()
+        {
+            FareFamilyId = fareFamilyId,
+            Name = name,
+            Description = description,
+            DisplayOrder = displayOrder,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+
+    public void Update(string name, string? description, int displayOrder)
+    {
+        Name = name;
+        Description = description;
+        DisplayOrder = displayOrder;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+}
+
 public sealed class FareRule
 {
     public Guid FareRuleId { get; private set; }
