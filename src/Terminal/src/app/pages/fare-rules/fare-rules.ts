@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType, TaxLine } from '../../services/fare-rules.service';
+import { FareFamiliesService, FareFamily } from '../../services/fare-families.service';
 
 @Component({
   selector: 'app-fare-rules',
@@ -10,8 +11,10 @@ import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType, TaxLine } 
 })
 export class FareRulesComponent implements OnInit {
   #fareRulesService = inject(FareRulesService);
+  #fareFamiliesService = inject(FareFamiliesService);
 
   rules = signal<FareRule[]>([]);
+  fareFamilies = signal<FareFamily[]>([]);
   filter = signal('');
   loading = signal(false);
   error = signal('');
@@ -82,6 +85,16 @@ export class FareRulesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRules();
+    this.loadFareFamilies();
+  }
+
+  async loadFareFamilies(): Promise<void> {
+    try {
+      const families = await this.#fareFamiliesService.getFareFamilies();
+      this.fareFamilies.set(families);
+    } catch {
+      // Families are optional for dropdown; fail silently
+    }
   }
 
   async loadRules(): Promise<void> {
@@ -304,11 +317,14 @@ export class FareRulesComponent implements OnInit {
     const bookingClass = (f.bookingClass || 'Y').toUpperCase();
     let code = bookingClass;
 
-    // Fare family indicator
-    if (f.fareFamily === 'Flex') {
-      code += 'FLEX';
-    } else if (f.fareFamily === 'Non-Flex') {
-      code += 'NRF';
+    // Fare family indicator — derive abbreviation from name
+    if (f.fareFamily) {
+      const upper = f.fareFamily.toUpperCase().replace(/\s+/g, '');
+      if (upper.includes('FLEX')) {
+        code += 'FLEX';
+      } else if (upper.includes('LIGHT') || upper.includes('NONREFUND') || upper.includes('NONFLX')) {
+        code += 'NRF';
+      }
     }
 
     // Advance purchase / restriction indicators

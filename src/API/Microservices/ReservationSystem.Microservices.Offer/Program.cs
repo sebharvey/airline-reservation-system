@@ -29,6 +29,11 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
+using ReservationSystem.Microservices.Offer.Application.GetFareFamilies;
+using ReservationSystem.Microservices.Offer.Application.GetFareFamily;
+using ReservationSystem.Microservices.Offer.Application.CreateFareFamily;
+using ReservationSystem.Microservices.Offer.Application.UpdateFareFamily;
+using ReservationSystem.Microservices.Offer.Application.DeleteFareFamily;
 using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
@@ -111,6 +116,11 @@ var host = new HostBuilder()
         services.AddScoped<GetFlightInventoryByDateHandler>();
         services.AddScoped<GetFlightByInventoryIdHandler>();
         services.AddScoped<GetInventoryHoldsHandler>();
+        services.AddScoped<GetFareFamiliesHandler>();
+        services.AddScoped<GetFareFamilyHandler>();
+        services.AddScoped<CreateFareFamilyHandler>();
+        services.AddScoped<UpdateFareFamilyHandler>();
+        services.AddScoped<DeleteFareFamilyHandler>();
     })
     .Build();
 

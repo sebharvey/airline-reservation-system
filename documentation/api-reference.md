@@ -227,6 +227,18 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
 
+### Fare family management
+
+Staff-only endpoints for managing the named fare family catalogue. Fare families are stored in `offer.FareFamily` and referenced by name in fare rules and search results. All routes require a valid staff JWT.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`    | `/v1/admin/fare-families` | List all fare families ordered by `displayOrder` then `name` |
+| `GET`    | `/v1/admin/fare-families/{fareFamilyId}` | Retrieve a single fare family by ID; `404` if not found |
+| `POST`   | `/v1/admin/fare-families` | Create a new fare family; requires `name` (unique, max 50 chars); optional `description` and `displayOrder` |
+| `PUT`    | `/v1/admin/fare-families/{fareFamilyId}` | Update name, description, and display order of an existing fare family; `404` if not found |
+| `DELETE` | `/v1/admin/fare-families/{fareFamilyId}` | Permanently delete a fare family; `404` if not found |
+
 ### Fare rule management
 
 Staff-only endpoints for managing fare pricing rules. All routes require a valid staff JWT. Responses include the `isPrivate` flag; when `true`, the fare is suppressed from the public Retail API and web channel — it is only visible via the admin Retail API (Contact Centre) and these Operations API endpoints.
@@ -279,6 +291,16 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
 | `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel, flight change rollback, and basket expiry) |
 | `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Disruption API on flight cancellation) |
+
+**Fare family management (internal — called by Operations API)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`    | `/v1/fare-families` | List all fare families ordered by `displayOrder` then `name` |
+| `GET`    | `/v1/fare-families/{fareFamilyId}` | Retrieve a single fare family by ID; `404` if not found |
+| `POST`   | `/v1/fare-families` | Create a new fare family; requires `name` (unique); optional `description` and `displayOrder` |
+| `PUT`    | `/v1/fare-families/{fareFamilyId}` | Update an existing fare family; `404` if not found |
+| `DELETE` | `/v1/fare-families/{fareFamilyId}` | Permanently delete a fare family; `404` if not found |
 
 **Fare rule management (internal — called by Operations API)**
 
