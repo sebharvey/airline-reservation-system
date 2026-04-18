@@ -135,6 +135,7 @@ export class FareRulesComponent implements OnInit {
       taxLines: [],
       isRefundable: false,
       isChangeable: false,
+      isPrivate: false,
       changeFeeAmount: 0,
       cancellationFeeAmount: 0,
       validFrom: '',
