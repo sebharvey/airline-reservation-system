@@ -120,6 +120,8 @@
               <span>Passenger</span>
               <span>Seat</span>
               <span>E-Ticket</span>
+              <span class="pax-col-right">Fare</span>
+              <span class="pax-col-right">Total</span>
               <span>Check-in</span>
             </div>
             @for (ps of sd.passengerSeats; track ps.passenger.passengerId) {
@@ -138,6 +140,8 @@
                     </button>
                   }
                 </span>
+                <span class="pax-fare">{{ ps.fareAmount != null ? formatCurrency(ps.fareAmount, o.currency) : '&ndash;' }}</span>
+                <span class="pax-total">{{ ps.totalAmount != null ? formatCurrency(ps.totalAmount, o.currency) : '&ndash;' }}</span>
                 <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
                   {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
                 </span>
