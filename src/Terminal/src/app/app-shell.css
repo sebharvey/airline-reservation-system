@@ -322,10 +322,6 @@
    ═══════════════════════════════════════ */
 @media (min-width: 901px) {
 
-  .burger {
-    display: none; /* hide burger on desktop — sidebar always visible */
-  }
-
   .agent-badge {
     display: flex;
   }
@@ -342,7 +338,7 @@
     font-size: 1.2rem;
   }
 
-  /* Sidebar is always visible, not overlaid */
+  /* Sidebar is always visible, not overlaid; animate width for collapse */
   .sidebar {
     position: sticky;
     top: var(--topbar-height);
@@ -350,6 +346,17 @@
     transform: none !important;
     box-shadow: none;
     flex-shrink: 0;
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Collapsed state — slide sidebar out of the way */
+  .sidebar.nav-collapsed {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-right: none;
   }
 
   /* No backdrop needed on desktop */

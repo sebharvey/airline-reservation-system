@@ -133,6 +133,8 @@ export class OrderDetailComponent implements OnInit {
       const result = await this.#orderService.getOrderByRef(this.bookingRef);
       if (result) {
         this.order.set(result);
+        this.tickets.set([]);
+        this.loadTickets();
       } else {
         this.error.set(`Order "${this.bookingRef}" was not found.`);
       }
