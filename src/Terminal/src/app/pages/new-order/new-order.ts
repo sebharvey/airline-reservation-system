@@ -791,36 +791,83 @@ export class NewOrderComponent {
 
   // #region TEMP: Random pax test data — remove before production
   fillRandomPaxData(): void {
+    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomDob = (minAge: number, maxAge: number): string => {
+      const now = new Date();
+      const year = now.getFullYear() - randInt(minAge, maxAge);
+      const month = randInt(1, 12).toString().padStart(2, '0');
+      const day = randInt(1, 28).toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     const adultPool = [
-      { givenName: 'James',  surname: 'Harrison', gender: 'Male',   dob: '1985-03-22' },
-      { givenName: 'Sarah',  surname: 'Mitchell',  gender: 'Female', dob: '1990-07-14' },
-      { givenName: 'Thomas', surname: 'Clarke',    gender: 'Male',   dob: '1978-11-05' },
-      { givenName: 'Emily',  surname: 'Watson',    gender: 'Female', dob: '1995-02-28' },
-      { givenName: 'Daniel', surname: 'Brown',     gender: 'Male',   dob: '1982-09-17' },
+      { givenName: 'James',     surname: 'Harrison',   gender: 'Male'   },
+      { givenName: 'Sarah',     surname: 'Mitchell',   gender: 'Female' },
+      { givenName: 'Thomas',    surname: 'Clarke',     gender: 'Male'   },
+      { givenName: 'Emily',     surname: 'Watson',     gender: 'Female' },
+      { givenName: 'Daniel',    surname: 'Brown',      gender: 'Male'   },
+      { givenName: 'Charlotte', surname: 'Hughes',     gender: 'Female' },
+      { givenName: 'William',   surname: 'Fletcher',   gender: 'Male'   },
+      { givenName: 'Priya',     surname: 'Patel',      gender: 'Female' },
+      { givenName: 'Mohammed',  surname: 'Ahmed',      gender: 'Male'   },
+      { givenName: 'Grace',     surname: 'O\'Sullivan', gender: 'Female' },
+      { givenName: 'Liam',      surname: 'Murphy',     gender: 'Male'   },
+      { givenName: 'Amara',     surname: 'Okafor',     gender: 'Female' },
+      { givenName: 'Carlos',    surname: 'Garcia',     gender: 'Male'   },
+      { givenName: 'Mei',       surname: 'Chen',       gender: 'Female' },
+      { givenName: 'Arjun',     surname: 'Kumar',      gender: 'Male'   },
+      { givenName: 'Natalie',   surname: 'Dubois',     gender: 'Female' },
+      { givenName: 'Stefan',    surname: 'Hoffmann',   gender: 'Male'   },
+      { givenName: 'Yuki',      surname: 'Tanaka',     gender: 'Female' },
+      { givenName: 'Oluwaseun', surname: 'Adeyemi',    gender: 'Male'   },
+      { givenName: 'Elena',     surname: 'Petrov',     gender: 'Female' },
     ];
-    const childPool = [
-      { givenName: 'Oliver', gender: 'Male',   dob: '2018-04-10' },
-      { givenName: 'Sophie', gender: 'Female', dob: '2016-08-23' },
-      { givenName: 'Jack',   gender: 'Male',   dob: '2019-12-01' },
+    const childGivenNames = [
+      { givenName: 'Oliver', gender: 'Male'   },
+      { givenName: 'Sophie', gender: 'Female' },
+      { givenName: 'Jack',   gender: 'Male'   },
+      { givenName: 'Ava',    gender: 'Female' },
+      { givenName: 'Leo',    gender: 'Male'   },
+      { givenName: 'Mia',    gender: 'Female' },
+      { givenName: 'Ethan',  gender: 'Male'   },
+      { givenName: 'Layla',  gender: 'Female' },
+      { givenName: 'Noah',   gender: 'Male'   },
+      { givenName: 'Zara',   gender: 'Female' },
     ];
-    const infantPool = [
-      { givenName: 'Noah', gender: 'Male',   dob: '2025-06-15' },
-      { givenName: 'Isla', gender: 'Female', dob: '2025-01-20' },
+    const infantGivenNames = [
+      { givenName: 'Isla',   gender: 'Female' },
+      { givenName: 'Finn',   gender: 'Male'   },
+      { givenName: 'Luna',   gender: 'Female' },
+      { givenName: 'Theo',   gender: 'Male'   },
+      { givenName: 'Rosie',  gender: 'Female' },
+      { givenName: 'Archie', gender: 'Male'   },
     ];
 
-    const leadSurname = adultPool[0].surname;
-    let ai = 0, ci = 0, ii = 0;
+    const leadAdult = pick(adultPool);
+    const usedAdults = new Set<string>([leadAdult.givenName]);
+    const leadSurname = leadAdult.surname;
+
     this.passengerForms.update(forms => forms.map((pax, idx) => {
       if (pax.type === 'ADT') {
-        const t = adultPool[ai++ % adultPool.length];
-        return { ...pax, givenName: t.givenName, surname: t.surname, dob: t.dob, gender: t.gender,
-          ...(idx === 0 ? { email: 'james.harrison@example.com', phone: '+44 7700 900123' } : {}) };
+        let adult = idx === 0 ? leadAdult : pick(adultPool);
+        if (idx !== 0) {
+          const candidates = adultPool.filter(a => !usedAdults.has(a.givenName));
+          adult = candidates.length ? pick(candidates) : pick(adultPool);
+          usedAdults.add(adult.givenName);
+        }
+        const dob = randomDob(18, 70);
+        return {
+          ...pax, givenName: adult.givenName, surname: adult.surname, dob, gender: adult.gender,
+          ...(idx === 0 ? { email: `${adult.givenName.toLowerCase()}.${adult.surname.toLowerCase().replace(/[^a-z]/g, '')}@example.com`, phone: `+44 7${randInt(100, 999)} ${randInt(100000, 999999)}` } : {}),
+        };
       } else if (pax.type === 'CHD') {
-        const t = childPool[ci++ % childPool.length];
-        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+        const t = pick(childGivenNames);
+        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: randomDob(2, 11), gender: t.gender };
       } else {
-        const t = infantPool[ii++ % infantPool.length];
-        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+        const t = pick(infantGivenNames);
+        const infantDob = new Date(Date.now() - randInt(30, 700) * 86400000).toISOString().slice(0, 10);
+        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: infantDob, gender: t.gender };
       }
     }));
   }
