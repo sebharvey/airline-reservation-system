@@ -504,11 +504,10 @@ CREATE TABLE [order].[Order] (
     CreatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Order_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt          DATETIME2        NOT NULL CONSTRAINT DF_Order_Updated  DEFAULT SYSUTCDATETIME(),
     Version            INT              NOT NULL CONSTRAINT DF_Order_Version  DEFAULT 1,
-    OrderData          NVARCHAR(MAX)    NOT NULL,
+    OrderData          JSON             NOT NULL,
     CONSTRAINT PK_Order          PRIMARY KEY (OrderId),
     CONSTRAINT CHK_Order_Status  CHECK (OrderStatus IN ('OrderInit','Draft','Confirmed','Changed','Cancelled')),
-    CONSTRAINT CHK_Order_Channel CHECK (ChannelCode IN ('WEB','APP','NDC','KIOSK','CC','AIRPORT')),
-    CONSTRAINT CHK_Order_Data    CHECK (ISJSON(OrderData) = 1)
+    CONSTRAINT CHK_Order_Channel CHECK (ChannelCode IN ('WEB','APP','NDC','KIOSK','CC','AIRPORT'))
 );
 GO
 
@@ -1808,7 +1807,7 @@ BEGIN TRY
     -- Flight orderItems carry only the inventory reference; flight details are
     -- resolved at read time via GET /v1/flights/{inventoryId} on the Offer MS.
     DECLARE @OrderId1  UNIQUEIDENTIFIER = NEWID();
-    DECLARE @OrderData1 NVARCHAR(MAX) =
+    DECLARE @OrderData1 JSON =
         N'{"dataLists":{"passengers":[{"passengerId":"PAX-1","type":"ADT","givenName":"Amara","surname":"Okafor","dob":"1988-03-22","gender":"Female","loyaltyNumber":"AX9876543","contacts":{"email":"amara.okafor@example.com","phone":"+447700900123"},"docs":[{"type":"PASSPORT","number":"PA1234567","issuingCountry":"GBR","expiryDate":"2030-01-01","nationality":"GBR"}]},{"passengerId":"PAX-2","type":"ADT","givenName":"Jordan","surname":"Taylor","dob":"1987-07-22","gender":"Male","loyaltyNumber":null,"contacts":null,"docs":[{"type":"PASSPORT","number":"PA7654321","issuingCountry":"GBR","expiryDate":"2028-06-30","nationality":"GBR"}]}]},"orderItems":[{"orderItemId":"OI-1","type":"Flight","inventoryId":"'
         + CAST(@InvId_AX001 AS NVARCHAR(36))
         + N'","segmentRef":"SEG-1","passengerRefs":["PAX-1","PAX-2"],"unitPrice":1250.00,"taxes":182.50,"totalPrice":1432.50,"paymentReference":"AXPAY-0001","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000001"},{"passengerId":"PAX-2","eTicketNumber":"932-1000000002"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"1A"},{"passengerId":"PAX-2","seatNumber":"1K"}]},{"orderItemId":"OI-2","type":"Flight","inventoryId":"'
@@ -1822,7 +1821,7 @@ BEGIN TRY
 
     -- order.Order — JC0005 (James, LHR→DEL Economy Light) --------------------
     DECLARE @OrderId2  UNIQUEIDENTIFIER = NEWID();
-    DECLARE @OrderData2 NVARCHAR(MAX) =
+    DECLARE @OrderData2 JSON =
         N'{"dataLists":{"passengers":[{"passengerId":"PAX-1","type":"ADT","givenName":"James","surname":"Chen","dob":"1979-11-05","gender":"Male","loyaltyNumber":"AX1234567","contacts":{"email":"james.chen@example.com","phone":"+447700900456"},"docs":[{"type":"PASSPORT","number":"PB9876543","issuingCountry":"GBR","expiryDate":"2031-05-30","nationality":"GBR"}]}]},"orderItems":[{"orderItemId":"OI-1","type":"Flight","inventoryId":"'
         + CAST(@InvId_AX411 AS NVARCHAR(36))
         + N'","segmentRef":"SEG-1","passengerRefs":["PAX-1"],"unitPrice":199.00,"taxes":110.50,"totalPrice":309.50,"paymentReference":"AXPAY-0003","eTickets":[{"passengerId":"PAX-1","eTicketNumber":"932-1000000005"}],"seatAssignments":[{"passengerId":"PAX-1","seatNumber":"22A"}]}],"payments":[{"paymentReference":"AXPAY-0003","description":"Fare — LHR-DEL, Economy Light, 1 PAX","method":"CreditCard","cardLast4":"1234","cardType":"Mastercard","authorisedAmount":309.50,"settledAmount":309.50,"currency":"GBP","status":"Settled","authorisedAt":"2026-05-01T09:15:00Z","settledAt":"2026-05-01T09:16:00Z"}],"history":[{"event":"OrderCreated","at":"2026-05-01T09:14:00Z","by":"APP"},{"event":"OrderConfirmed","at":"2026-05-01T09:16:00Z","by":"APP"}]}';
