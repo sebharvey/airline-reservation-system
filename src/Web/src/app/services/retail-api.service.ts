@@ -713,16 +713,21 @@ export class RetailApiService {
 
   /**
    * PATCH /v1/orders/{bookingRef}/seats  (post-sale seat change)
+   * For paid seats, include seatOfferId/inventoryId/cabinCode and a payment block.
    */
-  updateSeats(bookingRef: string, seatSelections: { passengerId: string; segmentId: string; seatNumber: string }[]): Observable<{ success: boolean }> {
+  updateSeats(
+    bookingRef: string,
+    seatSelections: { passengerId: string; segmentId: string; seatNumber: string; seatOfferId?: string; inventoryId?: string; cabinCode?: string; price?: number; tax?: number; currency?: string }[],
+    payment?: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }
+  ): Observable<{ success: boolean; paymentId?: string; totalSeatAmount?: number }> {
     const base = environment.retailApiBaseUrl;
-    const body = { seatSelections };
+    const body = { seatSelections, payment: payment ?? null };
     return this.#http
-      .patch<{ bookingReference: string; updated: boolean }>(
+      .patch<{ bookingReference: string; updated: boolean; paymentId?: string; totalSeatAmount?: number }>(
         `${base}/api/v1/orders/${encodeURIComponent(bookingRef)}/seats`, body
       )
       .pipe(
-        map(res => ({ success: res.updated })),
+        map(res => ({ success: res.updated, paymentId: res.paymentId, totalSeatAmount: res.totalSeatAmount })),
         catchError((err: HttpErrorResponse) => throwError(() => ({
           status: err.status,
           message: err.error?.message ?? 'Seat update failed. Please try again.'

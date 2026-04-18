@@ -117,7 +117,7 @@ public sealed class AddOrderBagsHandler
                 await _deliveryServiceClient.IssueDocumentAsync(
                     bookingReference, "BagAncillary",
                     bag.PassengerRef, bag.InventoryId,
-                    bag.Price, bag.Currency, ct);
+                    bag.Price, bag.Currency, paymentId, ct);
             }
             catch (Exception ex)
             {

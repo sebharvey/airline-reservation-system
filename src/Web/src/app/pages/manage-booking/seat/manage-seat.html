@@ -71,7 +71,8 @@
         <div class="card seatmap-wrap">
           <!-- Legend -->
           <div class="seatmap-legend">
-            <span class="legend-item"><span class="seat-demo seat-available"></span> Available</span>
+            <span class="legend-item"><span class="seat-demo seat-available"></span> Available (Free)</span>
+            <span class="legend-item"><span class="seat-demo seat-chargeable"></span> Available (Paid)</span>
             <span class="legend-item"><span class="seat-demo seat-selected"></span> Selected</span>
             <span class="legend-item"><span class="seat-demo seat-sold"></span> Taken</span>
           </div>
@@ -102,7 +103,8 @@
                     <button
                       type="button"
                       class="seat"
-                      [class.seat-available]="seat.availability === 'available' && !isSeatSelected(seat) && !isSeatTakenByOther(seat)"
+                      [class.seat-available]="seat.availability === 'available' && seat.price === 0 && !isSeatSelected(seat) && !isSeatTakenByOther(seat)"
+                      [class.seat-chargeable]="seat.availability === 'available' && seat.price > 0 && !isSeatSelected(seat) && !isSeatTakenByOther(seat)"
                       [class.seat-selected]="isSeatSelected(seat)"
                       [class.seat-sold]="seat.availability === 'sold' || isSeatTakenByOther(seat)"
                       [class.seat-held]="seat.availability === 'held' && !isSeatSelected(seat)"
@@ -128,7 +130,97 @@
           <span>Seat upgrade charge</span>
           <span class="price-amount">{{ formatCurrency(totalSeatCost(), currency()) }}</span>
         </div>
-        <p class="price-note">Payment will be collected on confirmation.</p>
+      </div>
+
+      <!-- Payment form -->
+      <div class="card payment-form">
+        <h3 class="section-title">Payment Details</h3>
+
+        <div class="form-group">
+          <label for="cardholderName">Cardholder name</label>
+          <input
+            id="cardholderName"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="submitted() && !cardholderName().trim()"
+            placeholder="Name as it appears on card"
+            [(ngModel)]="cardholderName"
+            [ngModelOptions]="{standalone: true}"
+          />
+          @if (submitted() && !cardholderName().trim()) {
+            <div class="invalid-feedback">Cardholder name is required.</div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="cardNumber">Card number</label>
+          <input
+            id="cardNumber"
+            type="text"
+            inputmode="numeric"
+            class="form-control"
+            [class.is-invalid]="submitted() && cardNumber().replace(/\\D/g,'').length !== 16"
+            placeholder="0000 0000 0000 0000"
+            [value]="cardDisplayNumber()"
+            (input)="onCardNumberInput($event)"
+            autocomplete="cc-number"
+          />
+          @if (submitted() && cardNumber().replace(/\D/g,'').length !== 16) {
+            <div class="invalid-feedback">Enter a valid 16-digit card number.</div>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group form-group--half">
+            <label>Expiry date</label>
+            <div class="expiry-selects">
+              <select
+                class="form-control"
+                [class.is-invalid]="submitted() && !expiryMonth()"
+                [(ngModel)]="expiryMonth"
+                [ngModelOptions]="{standalone: true}"
+              >
+                <option value="">MM</option>
+                @for (m of expiryMonths; track m.value) {
+                  <option [value]="m.value">{{ m.label }}</option>
+                }
+              </select>
+              <select
+                class="form-control"
+                [class.is-invalid]="submitted() && !expiryYear()"
+                [(ngModel)]="expiryYear"
+                [ngModelOptions]="{standalone: true}"
+              >
+                <option value="">YYYY</option>
+                @for (y of expiryYears(); track y) {
+                  <option [value]="y">{{ y }}</option>
+                }
+              </select>
+            </div>
+            @if (submitted() && (!expiryMonth() || !expiryYear())) {
+              <div class="invalid-feedback">Select an expiry date.</div>
+            }
+          </div>
+
+          <div class="form-group form-group--half">
+            <label for="cvv">CVV</label>
+            <input
+              id="cvv"
+              type="text"
+              inputmode="numeric"
+              class="form-control"
+              [class.is-invalid]="submitted() && cvv().trim().length < 3"
+              placeholder="123"
+              maxlength="4"
+              [(ngModel)]="cvv"
+              [ngModelOptions]="{standalone: true}"
+              autocomplete="cc-csc"
+            />
+            @if (submitted() && cvv().trim().length < 3) {
+              <div class="invalid-feedback">Enter a valid CVV.</div>
+            }
+          </div>
+        </div>
       </div>
     }
 
@@ -142,6 +234,8 @@
       >
         @if (submitting()) {
           <span class="spinner"></span> Updating&hellip;
+        } @else if (hasPaidSeats()) {
+          Pay {{ formatCurrency(totalSeatCost(), currency()) }} &amp; Confirm
         } @else {
           Confirm Seat Selection
         }

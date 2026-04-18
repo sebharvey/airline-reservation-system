@@ -36,6 +36,16 @@ public sealed class SeatServiceClient
         return await response.Content.ReadFromJsonAsync<SeatOffersDto>(JsonOptions, cancellationToken);
     }
 
+    public async Task<SeatOfferDto?> GetSeatOfferByIdAsync(string seatOfferId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"/api/v1/seat-offers/{Uri.EscapeDataString(seatOfferId)}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadFromJsonAsync<SeatOfferDto>(JsonOptions, cancellationToken);
+    }
+
     // ── Admin CRUD ────────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<SeatPricingDto>> GetAllSeatPricingsAsync(CancellationToken cancellationToken = default)

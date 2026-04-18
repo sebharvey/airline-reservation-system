@@ -265,6 +265,12 @@ h3 {
   border: 1.5px solid rgba(234, 179, 8, 0.4);
 }
 
+.seat-chargeable {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+  border: 1.5px solid rgba(99, 102, 241, 0.35);
+}
+
 .seat-empty {
   background: transparent;
   cursor: default;
@@ -365,4 +371,70 @@ h3 {
 
 .back-link:hover {
   text-decoration: underline;
+}
+
+/* ── Payment Form ── */
+.payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-group--half {
+  flex: 1;
+}
+
+.expiry-selects {
+  display: flex;
+  gap: 8px;
+}
+
+.expiry-selects select {
+  flex: 1;
+}
+
+.form-control {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  border-color: var(--grad-start);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.form-control.is-invalid {
+  border-color: #ef4444;
+}
+
+.invalid-feedback {
+  font-size: 0.8rem;
+  color: #ef4444;
 }
