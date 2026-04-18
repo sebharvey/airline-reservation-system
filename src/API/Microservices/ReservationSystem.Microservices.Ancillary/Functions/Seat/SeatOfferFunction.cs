@@ -105,11 +105,13 @@ public sealed class SeatOfferFunction
                     // Determine pricing: F/J are free, W/Y use position-based pricing
                     var isChargeable = cabinCode is "W" or "Y";
                     decimal price = 0m;
+                    decimal tax = 0m;
                     var currencyCode = "GBP";
 
                     if (isChargeable && pricingLookup.TryGetValue((cabinCode, position), out var pricing))
                     {
                         price = pricing.Price;
+                        tax = pricing.Tax;
                         currencyCode = pricing.CurrencyCode;
                     }
 
@@ -126,6 +128,7 @@ public sealed class SeatOfferFunction
                         IsSelectable = true,
                         IsChargeable = isChargeable,
                         Price = price,
+                        Tax = tax,
                         CurrencyCode = currencyCode
                     });
                 }
@@ -227,6 +230,7 @@ public sealed class SeatOfferFunction
         decimal price = 0m;
         var currencyCode = "GBP";
 
+        decimal tax = 0m;
         if (isChargeable && position is not null)
         {
             var activePricings = await _seatPricingRepository.GetAllActiveAsync(cancellationToken);
@@ -234,6 +238,7 @@ public sealed class SeatOfferFunction
             if (pricing is null)
                 return await req.NotFoundAsync($"The pricing rule underlying offer '{seatOfferId}' is no longer active.");
             price = pricing.Price;
+            tax = pricing.Tax;
             currencyCode = pricing.CurrencyCode;
         }
 
@@ -249,6 +254,7 @@ public sealed class SeatOfferFunction
             IsSelectable = true,
             IsChargeable = isChargeable,
             Price = price,
+            Tax = tax,
             CurrencyCode = currencyCode,
             IsValid = true
         };

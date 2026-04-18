@@ -71,6 +71,7 @@ public static class BagMapper
             BagSequence = pricing.BagSequence,
             CurrencyCode = pricing.CurrencyCode,
             Price = pricing.Price,
+            Tax = pricing.Tax,
             IsActive = pricing.IsActive,
             ValidFrom = pricing.ValidFrom,
             ValidTo = pricing.ValidTo,

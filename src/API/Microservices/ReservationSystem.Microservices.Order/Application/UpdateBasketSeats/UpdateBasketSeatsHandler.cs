@@ -76,7 +76,7 @@ public sealed class UpdateBasketSeatsHandler
 
         basketJson["seats"] = seatsNode;
 
-        // Calculate total seat amount from seat selections
+        // Calculate total seat amount (price + tax) from seat selections
         decimal totalSeatAmount = 0m;
         if (seatsNode is JsonArray seatsArray)
         {
@@ -91,7 +91,16 @@ public sealed class UpdateBasketSeatsHandler
                     else
                         price = priceNode.GetValue<decimal>();
                 }
-                totalSeatAmount += price;
+                var taxNode = seat?["tax"];
+                decimal tax = 0m;
+                if (taxNode is not null)
+                {
+                    if (taxNode.GetValueKind() == System.Text.Json.JsonValueKind.String)
+                        decimal.TryParse(taxNode.GetValue<string>(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out tax);
+                    else
+                        tax = taxNode.GetValue<decimal>();
+                }
+                totalSeatAmount += price + tax;
             }
         }
 
@@ -100,7 +109,7 @@ public sealed class UpdateBasketSeatsHandler
         if (basketJson["products"] is JsonArray existingProducts)
         {
             foreach (var product in existingProducts)
-                existingProductTotal += product?["price"]?.GetValue<decimal>() ?? 0m;
+                existingProductTotal += (product?["price"]?.GetValue<decimal>() ?? 0m) + (product?["tax"]?.GetValue<decimal>() ?? 0m);
         }
 
         var totalAmount = (basket.TotalFareAmount ?? 0m) + totalSeatAmount + basket.TotalBagAmount + existingProductTotal;

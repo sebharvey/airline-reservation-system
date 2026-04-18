@@ -227,6 +227,7 @@ export class SeatsComponent implements OnInit {
         seatNumber: sel.seatOffer.seatNumber,
         seatPosition: sel.seatOffer.position,
         price: sel.seatOffer.price,
+        tax: sel.seatOffer.tax ?? 0,
         currency: sel.seatOffer.currency
       });
     }

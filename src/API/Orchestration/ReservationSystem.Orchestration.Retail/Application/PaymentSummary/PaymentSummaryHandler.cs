@@ -81,7 +81,7 @@ public sealed class PaymentSummaryHandler
         var seatAmount   = basket.TotalSeatAmount;
         var bagAmount    = basket.TotalBagAmount;
 
-        var productAmount = productSelections.Sum(p => p.Price);
+        var productAmount = productSelections.Sum(p => p.Price + p.Tax);
         var grandTotal   = basket.TotalAmount ?? 0m;
 
         var pointsAmount = 0;
@@ -229,6 +229,7 @@ public sealed class PaymentSummaryHandler
             var flightNumber  = flightNumberByItemId.TryGetValue(basketItemRef, out var fn) ? fn : "";
 
             var price = GetDecimal(seat, "price");
+            var tax   = GetDecimal(seat, "tax");
 
             seats.Add(new PaymentSummarySeatSelection
             {
@@ -237,6 +238,7 @@ public sealed class PaymentSummaryHandler
                 SeatPosition = GetString(seat, "seatPosition"),
                 FlightNumber = flightNumber,
                 Price        = price,
+                Tax          = tax,
                 Currency     = GetString(seat, "currency")
             });
         }
@@ -270,6 +272,7 @@ public sealed class PaymentSummaryHandler
                 AdditionalBags = additionalBags,
                 FlightNumber   = flightNumber,
                 Price          = GetDecimal(bag, "price"),
+                Tax            = GetDecimal(bag, "tax"),
                 Currency       = GetString(bag, "currency")
             });
         }
@@ -297,6 +300,7 @@ public sealed class PaymentSummaryHandler
                 PassengerId = GetString(prod, "passengerId"),
                 Name        = GetString(prod, "name"),
                 Price       = GetDecimal(prod, "price"),
+                Tax         = GetDecimal(prod, "tax"),
                 Currency    = GetString(prod, "currency"),
                 SegmentRef  = segmentRef
             });

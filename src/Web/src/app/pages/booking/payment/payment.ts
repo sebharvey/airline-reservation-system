@@ -83,14 +83,15 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   basket.seatSelections.forEach(sel => {
     const fo = basket.flightOffers.find(f => f.basketItemId === sel.basketItemRef);
     const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
+    const seatTax = sel.tax ?? 0;
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Seat',
       segmentRef: segId,
       passengerRefs: [sel.passengerId],
       unitPrice: sel.price,
-      taxes: 0,
-      totalPrice: sel.price,
+      taxes: seatTax,
+      totalPrice: sel.price + seatTax,
       paymentReference: payRef,
       seatNumber: sel.seatNumber,
       seatPosition: sel.seatPosition
@@ -101,14 +102,15 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   basket.bagSelections.forEach(sel => {
     const fo = basket.flightOffers.find(f => f.basketItemId === sel.basketItemRef);
     const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
+    const bagTax = sel.tax ?? 0;
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Bag',
       segmentRef: segId,
       passengerRefs: [sel.passengerId],
       unitPrice: sel.price,
-      taxes: 0,
-      totalPrice: sel.price,
+      taxes: bagTax,
+      totalPrice: sel.price + bagTax,
       paymentReference: payRef,
       additionalBags: sel.additionalBags,
       freeBagsIncluded: 1
@@ -119,14 +121,15 @@ function buildOrderFromBasket(basket: Basket, cardLast4: string, cardType: strin
   basket.productSelections?.forEach(sel => {
     const fo = sel.segmentRef ? basket.flightOffers.find(f => f.basketItemId === sel.segmentRef) : null;
     const segId = fo ? `SEG-${basket.flightOffers.indexOf(fo) + 1}` : 'SEG-1';
+    const productTax = sel.tax ?? 0;
     orderItems.push({
       orderItemId: `OI-${randomNum(6)}`,
       type: 'Product',
       segmentRef: segId,
       passengerRefs: [sel.passengerId],
       unitPrice: sel.price,
-      taxes: 0,
-      totalPrice: sel.price,
+      taxes: productTax,
+      totalPrice: sel.price + productTax,
       paymentReference: payRef,
       productName: sel.name,
       productOfferId: sel.offerId

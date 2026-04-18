@@ -6,7 +6,7 @@ namespace ReservationSystem.Microservices.Ancillary.Application.Seat.UpdateSeatP
 
 /// <summary>
 /// Handles the <see cref="UpdateSeatPricingCommand"/>.
-/// Updates an existing seat pricing rule.
+/// Updates an existing seat pricing rule. Tax is recomputed as 20% of the new price.
 /// </summary>
 public sealed class UpdateSeatPricingHandler
 {
@@ -26,12 +26,14 @@ public sealed class UpdateSeatPricingHandler
         var existing = await _repository.GetByIdAsync(command.SeatPricingId, cancellationToken);
         if (existing is null) return null;
 
+        var newPrice = command.Price ?? existing.Price;
         var updated = SeatPricing.Reconstitute(
             command.SeatPricingId,
             command.CabinCode ?? existing.CabinCode,
             command.SeatPosition ?? existing.SeatPosition,
             command.CurrencyCode ?? existing.CurrencyCode,
-            command.Price ?? existing.Price,
+            newPrice,
+            Math.Round(newPrice * 0.20m, 2),
             command.IsActive ?? existing.IsActive,
             command.ValidFrom ?? existing.ValidFrom,
             command.ValidTo ?? existing.ValidTo,

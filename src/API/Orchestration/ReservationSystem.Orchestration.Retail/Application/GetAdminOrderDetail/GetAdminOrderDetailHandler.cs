@@ -234,7 +234,8 @@ public sealed class GetAdminOrderDetailHandler
             var seatNum = seatItem["seatNumber"]?.GetValue<string>() ?? string.Empty;
             var seatSegId = seatItem["segmentId"]?.GetValue<string>() ?? string.Empty;
             var seatFlightDesc = segmentDescriptions.TryGetValue(seatSegId, out var sd) ? $" — {sd}" : string.Empty;
-            var seatPrice = seatItem["price"] is JsonNode seatPriceNode ? seatPriceNode.DeepClone() : null;
+            var seatPrice = seatItem["price"] is JsonNode seatPriceNode ? seatPriceNode.GetValue<decimal>() : 0m;
+            var seatTax   = seatItem["tax"]   is JsonNode seatTaxNode   ? seatTaxNode.GetValue<decimal>()   : 0m;
             enrichedItems.Add(new JsonObject
             {
                 ["itemId"]        = Guid.NewGuid().ToString(),
@@ -247,8 +248,9 @@ public sealed class GetAdminOrderDetailHandler
                 ["seatNumber"]    = seatNum,
                 ["bagWeightKg"]   = null,
                 ["name"]          = null,
-                ["amount"]        = seatPrice?.DeepClone(),
-                ["lineTotal"]     = seatPrice?.DeepClone(),
+                ["amount"]        = seatPrice,
+                ["taxAmount"]     = seatTax,
+                ["lineTotal"]     = Math.Round(seatPrice + seatTax, 2),
                 ["currency"]      = seatItem["currency"]?.GetValue<string>(),
             });
         }
@@ -290,7 +292,8 @@ public sealed class GetAdminOrderDetailHandler
                 var segRef      = rawItem["segmentRef"]?.GetValue<string>();
                 var segDesc     = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var sd2)
                                   ? $" — {sd2}" : string.Empty;
-                var productPrice = rawItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null;
+                var productPrice = rawItem["price"] is JsonNode priceNode ? priceNode.GetValue<decimal>() : 0m;
+                var productTax   = rawItem["tax"]   is JsonNode taxNode2   ? taxNode2.GetValue<decimal>()   : 0m;
                 enrichedItems.Add(new JsonObject
                 {
                     ["itemId"]        = rawItem["basketItemId"]?.GetValue<string>() ?? Guid.NewGuid().ToString(),
@@ -303,8 +306,9 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]    = null,
                     ["bagWeightKg"]   = null,
                     ["name"]          = productName,
-                    ["amount"]        = productPrice?.DeepClone(),
-                    ["lineTotal"]     = productPrice?.DeepClone(),
+                    ["amount"]        = productPrice,
+                    ["taxAmount"]     = productTax,
+                    ["lineTotal"]     = Math.Round(productPrice + productTax, 2),
                     ["currency"]      = rawItem["currency"]?.GetValue<string>(),
                 });
             }
@@ -315,7 +319,8 @@ public sealed class GetAdminOrderDetailHandler
                 var segRef   = rawItem["segmentId"]?.GetValue<string>();
                 var segDesc  = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var bsd)
                                ? $" — {bsd}" : string.Empty;
-                var bagPrice = rawItem["price"] is JsonNode bagPriceNode ? bagPriceNode.DeepClone() : null;
+                var bagPrice = rawItem["price"] is JsonNode bagPriceNode ? bagPriceNode.GetValue<decimal>() : 0m;
+                var bagTax   = rawItem["tax"]   is JsonNode bagTaxNode   ? bagTaxNode.GetValue<decimal>()   : 0m;
                 enrichedItems.Add(new JsonObject
                 {
                     ["itemId"]         = Guid.NewGuid().ToString(),
@@ -328,8 +333,9 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]     = null,
                     ["bagWeightKg"]    = null,
                     ["additionalBags"] = addBags,
-                    ["amount"]         = bagPrice?.DeepClone(),
-                    ["lineTotal"]      = bagPrice?.DeepClone(),
+                    ["amount"]         = bagPrice,
+                    ["taxAmount"]      = bagTax,
+                    ["lineTotal"]      = Math.Round(bagPrice + bagTax, 2),
                     ["currency"]       = rawItem["currency"]?.GetValue<string>(),
                 });
             }

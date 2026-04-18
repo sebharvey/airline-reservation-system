@@ -11,6 +11,7 @@ public sealed class SeatPricing
     public string SeatPosition { get; private set; } = string.Empty;
     public string CurrencyCode { get; private set; } = string.Empty;
     public decimal Price { get; private set; }
+    public decimal Tax { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime ValidFrom { get; private set; }
     public DateTime? ValidTo { get; private set; }
@@ -21,6 +22,7 @@ public sealed class SeatPricing
 
     /// <summary>
     /// Factory method for creating a brand-new seat pricing rule.
+    /// Tax is automatically calculated as 20% of price.
     /// </summary>
     public static SeatPricing Create(
         string cabinCode,
@@ -41,6 +43,7 @@ public sealed class SeatPricing
             SeatPosition = seatPosition,
             CurrencyCode = currencyCode,
             Price = price,
+            Tax = Math.Round(price * 0.20m, 2),
             IsActive = true,
             ValidFrom = validFrom,
             ValidTo = validTo,
@@ -58,6 +61,7 @@ public sealed class SeatPricing
         string seatPosition,
         string currencyCode,
         decimal price,
+        decimal tax,
         bool isActive,
         DateTime validFrom,
         DateTime? validTo,
@@ -71,6 +75,7 @@ public sealed class SeatPricing
             SeatPosition = seatPosition,
             CurrencyCode = currencyCode,
             Price = price,
+            Tax = tax,
             IsActive = isActive,
             ValidFrom = validFrom,
             ValidTo = validTo,

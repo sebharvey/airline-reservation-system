@@ -45,12 +45,12 @@ public sealed class UpdateBasketProductsHandler
         var productsNode = JsonNode.Parse(command.ProductsData);
         basketJson["products"] = productsNode;
 
-        // Calculate total product amount from product selections
+        // Calculate total product amount (price + tax) from product selections
         decimal totalProductAmount = 0m;
         if (productsNode is JsonArray productsArray)
         {
             foreach (var product in productsArray)
-                totalProductAmount += product?["price"]?.GetValue<decimal>() ?? 0m;
+                totalProductAmount += (product?["price"]?.GetValue<decimal>() ?? 0m) + (product?["tax"]?.GetValue<decimal>() ?? 0m);
         }
 
         var totalAmount = (basket.TotalFareAmount ?? 0m) + basket.TotalSeatAmount + basket.TotalBagAmount + totalProductAmount;

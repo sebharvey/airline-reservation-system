@@ -10,6 +10,7 @@ public sealed class SeatPricingResponse
     public string SeatPosition { get; init; } = string.Empty;
     public string CurrencyCode { get; init; } = string.Empty;
     public decimal Price { get; init; }
+    public decimal Tax { get; init; }
     public bool IsActive { get; init; }
     public DateTime ValidFrom { get; init; }
     public DateTime? ValidTo { get; init; }

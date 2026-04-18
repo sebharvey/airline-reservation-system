@@ -216,6 +216,7 @@ export class ProductsComponent implements OnInit {
               passengerId: entry.passengerId,
               segmentRef: seg.basketItemId,
               price: priceEntry.price,
+              tax: priceEntry.tax ?? 0,
               currency
             });
           }
@@ -229,6 +230,7 @@ export class ProductsComponent implements OnInit {
             name: product.name,
             passengerId: entry.passengerId,
             price: priceEntry.price,
+            tax: priceEntry.tax ?? 0,
             currency
           });
         }

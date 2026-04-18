@@ -45,14 +45,15 @@ public sealed class UpdateBasketBagsHandler
         var bagsNode = JsonNode.Parse(command.BagsData);
         basketJson["bags"] = bagsNode;
 
-        // Calculate total bag amount from bag selections
+        // Calculate total bag amount (price + tax) from bag selections
         decimal totalBagAmount = 0m;
         if (bagsNode is JsonArray bagsArray)
         {
             foreach (var bag in bagsArray)
             {
                 var price = bag?["price"]?.GetValue<decimal>() ?? 0m;
-                totalBagAmount += price;
+                var tax = bag?["tax"]?.GetValue<decimal>() ?? 0m;
+                totalBagAmount += price + tax;
             }
         }
 
@@ -61,7 +62,7 @@ public sealed class UpdateBasketBagsHandler
         if (basketJson["products"] is JsonArray existingProducts)
         {
             foreach (var product in existingProducts)
-                existingProductTotal += product?["price"]?.GetValue<decimal>() ?? 0m;
+                existingProductTotal += (product?["price"]?.GetValue<decimal>() ?? 0m) + (product?["tax"]?.GetValue<decimal>() ?? 0m);
         }
 
         var totalAmount = (basket.TotalFareAmount ?? 0m) + basket.TotalSeatAmount + totalBagAmount + existingProductTotal;
