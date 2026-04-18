@@ -42,7 +42,7 @@ public interface IOfferRepository
 
     // InventoryHold
     Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
-    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, CancellationToken ct = default);
+    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default);
     Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
 

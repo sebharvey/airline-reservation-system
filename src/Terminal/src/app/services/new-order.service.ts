@@ -241,6 +241,7 @@ export class NewOrderService {
     destination: string,
     departureDate: string,
     paxCount: number,
+    bookingType: 'Revenue' | 'Standby' = 'Revenue',
   ): Promise<SearchResponse> {
     const res = await firstValueFrom(
       this.#http.post<ApiSliceSearchResponse>(`${this.#retailUrl}/search/slice`, {
@@ -248,7 +249,7 @@ export class NewOrderService {
         destination: destination.toUpperCase(),
         departureDate,
         paxCount,
-        bookingType: 'Revenue',
+        bookingType,
       })
     );
 
@@ -287,13 +288,13 @@ export class NewOrderService {
     return { offers };
   }
 
-  async createBasket(segments: { offerId: string; sessionId: string }[], passengerCount: number): Promise<BasketSummary> {
+  async createBasket(segments: { offerId: string; sessionId: string }[], passengerCount: number, bookingType: 'Revenue' | 'Standby' = 'Revenue'): Promise<BasketSummary> {
     return firstValueFrom(
       this.#http.post<BasketSummary>(`${this.#retailUrl}/basket`, {
         segments: segments.map(s => ({ offerId: s.offerId, sessionId: s.sessionId })),
         passengerCount,
         currency: 'GBP',
-        bookingType: 'Revenue',
+        bookingType,
         loyaltyNumber: null,
       })
     );
@@ -339,11 +340,13 @@ export class NewOrderService {
       cvv: string;
       cardholderName: string;
     },
+    bookingType: 'Revenue' | 'Standby' = 'Revenue',
   ): Promise<ConfirmResponse> {
     return firstValueFrom(
       this.#http.post<ConfirmResponse>(`${this.#retailUrl}/basket/${basketId}/confirm`, {
         channelCode: 'CC',
         payment,
+        bookingType,
       })
     );
   }

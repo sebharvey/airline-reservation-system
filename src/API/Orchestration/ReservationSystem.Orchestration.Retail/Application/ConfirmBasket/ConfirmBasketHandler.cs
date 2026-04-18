@@ -49,7 +49,9 @@ public sealed class ConfirmBasketHandler
 
         var totalAmount = basket.TotalAmount ?? 0m;
         var currency = basket.CurrencyCode;
-        var bookingType = command.LoyaltyPointsToRedeem.HasValue ? "Reward" : "Revenue";
+        var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
+            ? "Standby"
+            : command.LoyaltyPointsToRedeem.HasValue ? "Reward" : "Revenue";
 
         // 2. Create draft order in Order MS — no booking reference yet, basket remains active
         var draftOrder = await _orderServiceClient.CreateOrderAsync(
@@ -116,7 +118,7 @@ public sealed class ConfirmBasketHandler
         //   - Link order to customer loyalty account
         var basketDataJson = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
 
-        var inventoryTask = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, cancellationToken);
+        var inventoryTask = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
         var ticketsTask   = RunTicketIssuanceAsync(basketDataJson, command, paymentId, totalAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
         var settleTask    = _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
         var customerTask  = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
@@ -302,13 +304,18 @@ public sealed class ConfirmBasketHandler
     }
 
     private async Task RunInventorySellAsync(
-        string? basketDataJson, Guid orderId, Guid basketId, CancellationToken cancellationToken)
+        string? basketDataJson, Guid orderId, Guid basketId, bool isStandby, CancellationToken cancellationToken)
     {
         if (basketDataJson == null) return;
         try
         {
             var (inventoryItems, passengerIds, seatsByInventory) = ParseBasketDataForInventorySell(basketDataJson);
             if (inventoryItems.Count == 0 || passengerIds.Count == 0) return;
+
+            // Standby bookings use a priority of 50 (staff/leisure standby band).
+            // For Revenue bookings, use default hold type with no priority.
+            var holdType = isStandby ? "Standby" : "Revenue";
+            short? standbyPriority = isStandby ? (short)50 : null;
 
             // Hold all inventory segments in parallel
             await Task.WhenAll(inventoryItems.Select(item =>
@@ -320,18 +327,20 @@ public sealed class ConfirmBasketHandler
                 else
                     passengers = passengerIds.Select(id => ((string?)null, (string?)id)).ToList();
 
-                return _offerServiceClient.HoldInventoryAsync(inventoryId, cabinCode, passengers, orderId, cancellationToken);
+                return _offerServiceClient.HoldInventoryAsync(inventoryId, cabinCode, passengers, orderId, holdType, standbyPriority, cancellationToken);
             }));
 
-            await _offerServiceClient.SellInventoryAsync(orderId, inventoryItems, cancellationToken);
+            // Standby bookings do not decrement inventory — they queue on the standby list only.
+            if (!isStandby)
+                await _offerServiceClient.SellInventoryAsync(orderId, inventoryItems, cancellationToken);
         }
         catch (Exception ex)
         {
-            // Inventory sell failure is logged but does not roll back the confirmed order —
+            // Inventory operation failure is logged but does not roll back the confirmed order —
             // the booking is already committed and the customer paid. Inventory can be
             // reconciled manually if needed.
             System.Console.Error.WriteLine(
-                $"[ConfirmBasket] Inventory sell failed for basket {basketId}: {ex.Message}");
+                $"[ConfirmBasket] Inventory operation failed for basket {basketId}: {ex.Message}");
         }
     }
 

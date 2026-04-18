@@ -15,6 +15,12 @@ public sealed class HoldInventoryRequest
 
     [JsonPropertyName("orderId")]
     public Guid OrderId { get; init; }
+
+    [JsonPropertyName("holdType")]
+    public string HoldType { get; init; } = "Revenue";
+
+    [JsonPropertyName("standbyPriority")]
+    public short? StandbyPriority { get; init; }
 }
 
 public sealed class PaxHoldItem

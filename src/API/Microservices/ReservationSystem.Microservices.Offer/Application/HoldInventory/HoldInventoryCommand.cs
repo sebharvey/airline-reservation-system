@@ -6,4 +6,6 @@ public sealed record HoldInventoryCommand(
     Guid InventoryId,
     string CabinCode,
     IReadOnlyList<PaxHold> Passengers,
-    Guid OrderId);
+    Guid OrderId,
+    string HoldType = "Revenue",
+    short? StandbyPriority = null);

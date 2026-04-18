@@ -5,6 +5,7 @@ public sealed class ConfirmBasketRequest
     public string ChannelCode { get; init; } = string.Empty;
     public PaymentDetailsRequest Payment { get; init; } = new();
     public decimal? LoyaltyPointsToRedeem { get; init; }
+    public string? BookingType { get; init; }
 }
 
 public sealed class PaymentDetailsRequest

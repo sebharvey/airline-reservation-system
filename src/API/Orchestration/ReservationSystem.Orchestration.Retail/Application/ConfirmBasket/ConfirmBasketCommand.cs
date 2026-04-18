@@ -8,4 +8,5 @@ public sealed record ConfirmBasketCommand(
     string? ExpiryDate,
     string? Cvv,
     string? CardholderName,
-    decimal? LoyaltyPointsToRedeem);
+    decimal? LoyaltyPointsToRedeem,
+    string? BookingType = null);

@@ -126,6 +126,17 @@
             </div>
           </div>
 
+          <!-- Standby checkbox -->
+          <label class="standby-checkbox-label">
+            <input type="checkbox"
+              [checked]="isStandby()"
+              (change)="isStandby.set($any($event.target).checked)" />
+            <span class="standby-checkbox-text">
+              Standby booking
+              <span class="standby-hint">No inventory consumed — queues on hold list</span>
+            </span>
+          </label>
+
           <!-- Search button -->
           <button class="search-btn" (click)="search()"
             [disabled]="loading() || !origin() || !destination() || !outboundDate()">
@@ -910,7 +921,12 @@
           @if (confirmed(); as conf) {
             <div class="confirmed-card">
               <div class="confirmed-check">&#10003;</div>
-              <h2 class="confirmed-title">Booking Confirmed</h2>
+              <h2 class="confirmed-title">
+                @if (isStandby()) { Standby Booking Confirmed } @else { Booking Confirmed }
+              </h2>
+              @if (isStandby()) {
+                <div class="standby-confirmed-badge">STANDBY</div>
+              }
               <p class="confirmed-sub">
                 {{ formatAmount(conf.totalPrice, conf.currency) }}
                 &nbsp;·&nbsp; {{ conf.eTickets.length }} ticket{{ conf.eTickets.length !== 1 ? 's' : '' }} issued
@@ -950,6 +966,9 @@
       <div class="panel basket-panel">
         <div class="panel-header basket-panel-header">
           <span>&#128722;</span> Basket
+          @if (isStandby() && step() !== 'confirmed') {
+            <span class="standby-chip">STANDBY</span>
+          }
           @if (basket() && step() !== 'confirmed') {
             <span class="expiry-chip">exp. {{ formatExpiry(basket()!.expiresAt) }}</span>
           }

@@ -541,12 +541,12 @@ public sealed class SqlOfferRepository : IOfferRepository
                 commandTimeout: _options.CommandTimeoutSeconds));
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
                    (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, Status, HoldType, StandbyPriority)
-            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, 'Held', 'Revenue', NULL);
+            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, 'Held', @HoldType, @StandbyPriority);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -559,10 +559,12 @@ public sealed class SqlOfferRepository : IOfferRepository
                 OrderId = orderId,
                 CabinCode = cabinCode,
                 SeatNumber = seatNumber,
-                PassengerId = passengerId
+                PassengerId = passengerId,
+                HoldType = holdType,
+                StandbyPriority = standbyPriority
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}, SeatNumber {SeatNumber}", inventoryId, orderId, cabinCode, seatNumber);
+        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}, SeatNumber {SeatNumber}, HoldType {HoldType}", inventoryId, orderId, cabinCode, seatNumber, holdType);
     }
 
     public async Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
