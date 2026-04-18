@@ -8,7 +8,6 @@
 --   offer.FareRule           — fare pricing rules
 --   order.SsrCatalogue       — SSR reference catalogue
 --   offer.Fare               — per-flight fare data (regenerated on inventory import)
---   offer.FlightInventory    — flight inventory (regenerated on schedule import)
 --   schedule.*               — schedule groups and flight schedules
 --   seat.*                   — aircraft types, seatmaps, seat pricing
 --   bag.*                    — bag policy and pricing
@@ -18,6 +17,10 @@
 --   customer.Preferences     — customer preferences
 --   identity.UserAccount     — web/app user accounts
 --   user.User                — staff/employee accounts
+--
+-- MODIFIED (seat counts reset to zero):
+--   offer.FlightInventory    — SeatsAvailable reset to TotalSeats; every cabin's
+--                              seatsSold and seatsHeld reset to 0 in the JSON array
 --
 -- REMOVED (transactional data):
 --   delivery.Document        — ancillary documents
@@ -34,9 +37,11 @@
 --   disruption.DisruptionEvent — disruption log
 --   identity.RefreshToken    — active login sessions
 --
--- IMPORTANT: offer.Fare and offer.FlightInventory are intentionally left intact
--- so that existing fare data and inventory remain queryable. Run the inventory
--- import job after clearing orders if you want a full inventory reset too.
+-- IMPORTANT: offer.Fare is intentionally left intact so that per-flight fare
+-- data remains queryable.  offer.FlightInventory rows are kept but all seat
+-- counts (SeatsAvailable, and per-cabin seatsSold / seatsHeld) are zeroed so
+-- the inventory is ready for a fresh set of bookings without needing a full
+-- schedule re-import.
 -- =============================================================================
 
 SET NOCOUNT ON;
@@ -153,6 +158,31 @@ PRINT CONCAT('  disruption.DisruptionEvent:', @@ROWCOUNT, ' rows removed.');
 DELETE FROM [identity].[RefreshToken];
 PRINT CONCAT('  identity.RefreshToken:     ', @@ROWCOUNT, ' rows removed.');
 
+-- -----------------------------------------------------------------------------
+-- 14. offer.FlightInventory — reset seat counts
+--     Rebuilds the Cabins JSON array for every row, zeroing seatsSold and
+--     seatsHeld on each cabin while keeping cabinCode and totalSeats intact.
+--     SeatsAvailable is set back to TotalSeats at the same time.
+--     Runs inside the transaction so the reset is atomic with the
+--     InventoryHold delete above (step 8).
+-- -----------------------------------------------------------------------------
+
+UPDATE [offer].[FlightInventory]
+SET
+    SeatsAvailable = TotalSeats,
+    Cabins = (
+        SELECT c.cabinCode,
+               c.totalSeats,
+               0 AS seatsSold,
+               0 AS seatsHeld
+        FROM   OPENJSON(Cabins) WITH (
+                   cabinCode  NVARCHAR(1) '$.cabinCode',
+                   totalSeats INT         '$.totalSeats'
+               ) AS c
+        FOR JSON PATH
+    );
+PRINT CONCAT('  offer.FlightInventory:     ', @@ROWCOUNT, ' rows reset (seat counts cleared).');
+
 COMMIT TRANSACTION;
 
 -- -----------------------------------------------------------------------------
@@ -166,7 +196,8 @@ DBCC CHECKIDENT ('[delivery].[Ticket]', RESEED, 1000000000);
 PRINT '';
 PRINT 'Cleanup complete. E-ticket sequence reseeded to 1000000001.';
 PRINT '';
-PRINT 'Preserved: offer.FareRule, offer.Fare, offer.FlightInventory,';
+PRINT 'Preserved: offer.FareRule, offer.Fare,';
 PRINT '           schedule.*, seat.*, bag.*, product.*, order.SsrCatalogue,';
 PRINT '           customer.Customer, customer.TierConfig, customer.Preferences,';
 PRINT '           identity.UserAccount, user.User';
+PRINT 'Reset:     offer.FlightInventory seat counts (SeatsAvailable, cabin seatsSold/seatsHeld → 0)';
