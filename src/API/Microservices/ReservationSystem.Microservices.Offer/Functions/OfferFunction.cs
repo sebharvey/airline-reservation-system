@@ -495,6 +495,13 @@ public sealed class OfferFunction
             return await req.BadRequestAsync("Either 'passengers' array or 'paxCount' is required.");
         }
 
+        var holdType = body.TryGetProperty("holdType", out var htEl) && htEl.ValueKind == JsonValueKind.String
+            ? htEl.GetString() ?? "Revenue"
+            : "Revenue";
+        short? standbyPriority = body.TryGetProperty("standbyPriority", out var spEl) && spEl.ValueKind == JsonValueKind.Number
+            ? spEl.GetInt16()
+            : null;
+
         HoldInventoryCommand command;
         try
         {
@@ -502,7 +509,9 @@ public sealed class OfferFunction
                 InventoryId: body.GetProperty("inventoryId").GetGuid(),
                 CabinCode: body.GetProperty("cabinCode").GetString()!,
                 Passengers: passengers,
-                OrderId: body.GetProperty("orderId").GetGuid());
+                OrderId: body.GetProperty("orderId").GetGuid(),
+                HoldType: holdType,
+                StandbyPriority: standbyPriority);
         }
         catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
         {
@@ -917,13 +926,15 @@ public sealed class OfferFunction
 
         return await req.OkJsonAsync(holds.Select(h => new
         {
-            holdId      = h.HoldId,
-            orderId     = h.OrderId,
-            passengerId = h.PassengerId,
-            cabinCode   = h.CabinCode,
-            seatNumber  = h.SeatNumber,
-            status      = h.Status,
-            createdAt   = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            holdId          = h.HoldId,
+            orderId         = h.OrderId,
+            passengerId     = h.PassengerId,
+            cabinCode       = h.CabinCode,
+            seatNumber      = h.SeatNumber,
+            status          = h.Status,
+            holdType        = h.HoldType,
+            standbyPriority = h.StandbyPriority,
+            createdAt       = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
     }
 

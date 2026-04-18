@@ -103,6 +103,7 @@ export class NewOrderComponent {
   adults = signal(1);
   children = signal(0);
   infants = signal(0);
+  isStandby = signal(false);
 
   totalPax = computed(() => this.adults() + this.children() + this.infants());
 
@@ -253,11 +254,13 @@ export class NewOrderComponent {
     this.basket.set(null);
     this.confirmed.set(null);
     try {
+      const bookingType = this.isStandby() ? 'Standby' : 'Revenue';
       const res = await this.#svc.searchSlice(
         this.origin(),
         this.destination(),
         this.outboundDate(),
         this.totalPax(),
+        bookingType,
       );
       this.outboundOffers.set(res.offers);
       this.step.set('outbound-results');
@@ -280,6 +283,7 @@ export class NewOrderComponent {
           this.origin(),
           this.returnDate(),
           this.totalPax(),
+          this.isStandby() ? 'Standby' : 'Revenue',
         );
         this.inboundOffers.set(res.offers);
         this.step.set('inbound-results');
@@ -631,7 +635,7 @@ export class NewOrderComponent {
         expiryDate,
         cvv: this.cardCvv(),
         cardholderName: this.cardName(),
-      });
+      }, this.isStandby() ? 'Standby' : 'Revenue');
       this.confirmed.set(result);
       this.step.set('confirmed');
     } catch (err: any) {
@@ -674,6 +678,7 @@ export class NewOrderComponent {
 
   startOver(): void {
     this.step.set('search');
+    this.isStandby.set(false);
     this.outboundOffers.set([]);
     this.inboundOffers.set([]);
     this.selectedOutboundOffer.set(null);
@@ -887,7 +892,7 @@ export class NewOrderComponent {
     this.loading.set(true);
     this.error.set('');
     try {
-      const basketSummary = await this.#svc.createBasket(segments, passengerCount);
+      const basketSummary = await this.#svc.createBasket(segments, passengerCount, this.isStandby() ? 'Standby' : 'Revenue');
       this.basket.set(basketSummary);
       this.#initPassengerForms();
       this.step.set('passengers');

@@ -17,6 +17,7 @@ public sealed class HoldInventoryHandler
 
     public async Task<FlightInventory> HandleAsync(HoldInventoryCommand command, CancellationToken ct = default)
     {
+        var isStandby = string.Equals(command.HoldType, "Standby", StringComparison.OrdinalIgnoreCase);
         var requestedCount = command.Passengers.Count;
 
         var existingCount = await _repository.GetHoldCountAsync(command.InventoryId, command.OrderId, command.CabinCode, ct);
@@ -29,20 +30,24 @@ public sealed class HoldInventoryHandler
         var inventory = await _repository.GetInventoryByIdAsync(command.InventoryId, ct)
             ?? throw new KeyNotFoundException($"Inventory {command.InventoryId} not found.");
 
-        var cabin = inventory.Cabins.FirstOrDefault(c => c.CabinCode == command.CabinCode)
-            ?? throw new ArgumentException($"Cabin {command.CabinCode} not found on inventory {command.InventoryId}.");
+        if (!inventory.Cabins.Any(c => c.CabinCode == command.CabinCode))
+            throw new ArgumentException($"Cabin {command.CabinCode} not found on inventory {command.InventoryId}.");
 
-        if (cabin.SeatsAvailable < requestedCount)
-            throw new InvalidOperationException($"Insufficient seats in cabin {command.CabinCode}: {cabin.SeatsAvailable} available, {requestedCount} requested.");
+        if (!isStandby)
+        {
+            var cabin = inventory.Cabins.First(c => c.CabinCode == command.CabinCode);
+            if (cabin.SeatsAvailable < requestedCount)
+                throw new InvalidOperationException($"Insufficient seats in cabin {command.CabinCode}: {cabin.SeatsAvailable} available, {requestedCount} requested.");
 
-        inventory.HoldSeats(command.CabinCode, requestedCount);
-        await _repository.UpdateInventoryAsync(inventory, ct);
+            inventory.HoldSeats(command.CabinCode, requestedCount);
+            await _repository.UpdateInventoryAsync(inventory, ct);
+        }
 
         foreach (var pax in command.Passengers)
-            await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, pax.SeatNumber, pax.PassengerId, ct);
+            await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, pax.SeatNumber, pax.PassengerId, command.HoldType, command.StandbyPriority, ct);
 
-        _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for order {OrderId}",
-            requestedCount, command.InventoryId, command.OrderId);
+        _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for order {OrderId} (holdType: {HoldType})",
+            requestedCount, command.InventoryId, command.OrderId, command.HoldType);
 
         return inventory;
     }

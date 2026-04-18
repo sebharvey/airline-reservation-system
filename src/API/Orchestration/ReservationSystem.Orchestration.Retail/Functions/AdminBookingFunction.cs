@@ -202,7 +202,8 @@ public sealed class AdminBookingFunction
             request.Payment.ExpiryDate,
             request.Payment.Cvv,
             request.Payment.CardholderName,
-            request.LoyaltyPointsToRedeem);
+            request.LoyaltyPointsToRedeem,
+            request.BookingType);
 
         try
         {
