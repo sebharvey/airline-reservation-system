@@ -74,9 +74,11 @@ export class ManageBookingDetailComponent implements OnInit {
       const passengerSeats: PassengerSeatInfo[] = o.passengers.map(pax => {
         let seatNumber: string | null = null;
         let eTicketNumber: string | null = null;
+        const seatItem = o.orderItems.find(
+          oi => oi.type === 'Seat' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+        );
+        if (seatItem) seatNumber = seatItem.seatNumber ?? null;
         for (const item of flightItems) {
-          const seat = item.seatAssignments?.find(s => s.passengerId === pax.passengerId);
-          if (seat) seatNumber = seat.seatNumber;
           const ticket = item.eTickets?.find(t => t.passengerId === pax.passengerId);
           if (ticket) eTicketNumber = ticket.eTicketNumber;
         }

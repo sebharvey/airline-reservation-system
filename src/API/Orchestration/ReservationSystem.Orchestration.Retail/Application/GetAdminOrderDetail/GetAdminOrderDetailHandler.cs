@@ -174,31 +174,28 @@ public sealed class GetAdminOrderDetailHandler
         else
             orderData["dataLists"] = new JsonObject { ["flightSegments"] = flightSegments };
 
-        // Append seat ancillary items from seatAssignments so the Terminal passengers tab
-        // can display seat numbers via getSeatForPaxSegment (which looks for itemType=Seat).
-        // Seats are stored with segmentId = inventoryId (set by the web app at selection time).
-        var seatAssignmentsNode = orderData["seatAssignments"]?.AsArray();
-        if (seatAssignmentsNode is not null)
+        // Append seat ancillary items from orderItems (productType=SEAT) so the Terminal
+        // passengers tab can display seat numbers via getSeatForPaxSegment (itemType=Seat).
+        for (var s = 0; s < orderItemsNode.Count; s++)
         {
-            foreach (var seatNode in seatAssignmentsNode)
+            var seatItem = orderItemsNode[s]?.AsObject();
+            if (seatItem is null) continue;
+            var seatPt = seatItem["productType"]?.GetValue<string>();
+            if (!string.Equals(seatPt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
+            enrichedItems.Add(new JsonObject
             {
-                var seat = seatNode?.AsObject();
-                if (seat is null) continue;
-                enrichedItems.Add(new JsonObject
-                {
-                    ["itemId"] = Guid.NewGuid().ToString(),
-                    ["itemType"] = "Seat",
-                    ["passengerId"] = seat["passengerId"]?.GetValue<string>(),
-                    ["segmentId"] = seat["segmentId"]?.GetValue<string>(),
-                    ["status"] = "Confirmed",
-                    ["eTicketNumber"] = null,
-                    ["seatNumber"] = seat["seatNumber"]?.GetValue<string>(),
-                    ["bagWeightKg"] = null,
-                    ["name"] = null,
-                    ["amount"] = seat["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
-                    ["currency"] = seat["currency"]?.GetValue<string>(),
-                });
-            }
+                ["itemId"]       = Guid.NewGuid().ToString(),
+                ["itemType"]     = "Seat",
+                ["passengerId"]  = seatItem["passengerId"]?.GetValue<string>(),
+                ["segmentId"]    = seatItem["segmentId"]?.GetValue<string>(),
+                ["status"]       = "Confirmed",
+                ["eTicketNumber"] = null,
+                ["seatNumber"]   = seatItem["seatNumber"]?.GetValue<string>(),
+                ["bagWeightKg"]  = null,
+                ["name"]         = null,
+                ["amount"]       = seatItem["price"] is JsonNode priceNode ? priceNode.DeepClone() : null,
+                ["currency"]     = seatItem["currency"]?.GetValue<string>(),
+            });
         }
 
         // Append product ancillary items from productItems so the Terminal ancillaries tab

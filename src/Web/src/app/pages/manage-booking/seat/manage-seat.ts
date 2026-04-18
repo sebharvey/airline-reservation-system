@@ -123,12 +123,11 @@ export class ManageSeatComponent implements OnInit {
         const existing: SeatSelection[] = [];
         for (const pax of order.passengers) {
           for (const seg2 of order.flightSegments) {
-            const flightItem = order.orderItems.find(
-              oi => oi.type === 'Flight' && oi.segmentRef === seg2.segmentId && oi.passengerRefs.includes(pax.passengerId)
+            const seatItem = order.orderItems.find(
+              oi => oi.type === 'Seat' && oi.segmentRef === seg2.segmentId && oi.passengerRefs.includes(pax.passengerId)
             );
-            const seat = flightItem?.seatAssignments?.find(s => s.passengerId === pax.passengerId);
-            if (seat) {
-              existing.push({ passengerId: pax.passengerId, segmentId: seg2.segmentId, seatNumber: seat.seatNumber });
+            if (seatItem?.seatNumber) {
+              existing.push({ passengerId: pax.passengerId, segmentId: seg2.segmentId, seatNumber: seatItem.seatNumber });
             }
           }
         }

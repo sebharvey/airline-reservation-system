@@ -145,13 +145,15 @@ public sealed class InventoryManagementFunction
 
             // Seat-assignment lookup for holds created before PassengerId was stored.
             if (!string.IsNullOrEmpty(seatNumber) &&
-                data.TryGetProperty("seatAssignments", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+                data.TryGetProperty("orderItems", out var orderItemsEl) && orderItemsEl.ValueKind == JsonValueKind.Array)
             {
-                foreach (var seat in seatsEl.EnumerateArray())
+                foreach (var orderItem in orderItemsEl.EnumerateArray())
                 {
-                    var segId  = seat.TryGetProperty("segmentId",  out var sid) ? sid.GetString() : null;
-                    var sn     = seat.TryGetProperty("seatNumber", out var s)   ? s.GetString()   : null;
-                    var paxId  = seat.TryGetProperty("passengerId",out var pid) ? pid.GetString() : null;
+                    var pt    = orderItem.TryGetProperty("productType", out var ptEl) ? ptEl.GetString() : null;
+                    if (!string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
+                    var segId = orderItem.TryGetProperty("segmentId",   out var sid)  ? sid.GetString()  : null;
+                    var sn    = orderItem.TryGetProperty("seatNumber",  out var s)    ? s.GetString()    : null;
+                    var paxId = orderItem.TryGetProperty("passengerId", out var pid)  ? pid.GetString()  : null;
                     if (string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(sn, seatNumber, StringComparison.OrdinalIgnoreCase) &&
                         paxId != null && paxById.TryGetValue(paxId, out var name))

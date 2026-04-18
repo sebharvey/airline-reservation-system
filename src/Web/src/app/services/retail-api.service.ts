@@ -587,7 +587,9 @@ export class RetailApiService {
             oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
           );
           const eTicket = flightItem?.eTickets?.find(t => t.passengerId === pax.passengerId);
-          const seatAssignment = flightItem?.seatAssignments?.find(s => s.passengerId === pax.passengerId);
+          const seatItem = order.orderItems.find(
+            oi => oi.type === 'Seat' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+          );
 
           const seqNum = String(boardingPasses.length + 1).padStart(4, '0');
           boardingPasses.push({
@@ -599,11 +601,11 @@ export class RetailApiService {
             origin: seg.origin,
             destination: seg.destination,
             departureDateTime: seg.departureDateTime,
-            seatNumber: seatAssignment?.seatNumber ?? 'TBA',
+            seatNumber: seatItem?.seatNumber ?? 'TBA',
             cabinCode: seg.cabinCode,
             eTicketNumber: eTicket?.eTicketNumber ?? 'N/A',
             sequenceNumber: seqNum,
-            bcbpBarcode: buildBcbp(pax.surname, pax.givenName, order.bookingReference, seg, seatAssignment?.seatNumber ?? '001A', seqNum),
+            bcbpBarcode: buildBcbp(pax.surname, pax.givenName, order.bookingReference, seg, seatItem?.seatNumber ?? '001A', seqNum),
             gate: 'B45',
             boardingTime: getBoardingTime(seg.departureDateTime)
           });

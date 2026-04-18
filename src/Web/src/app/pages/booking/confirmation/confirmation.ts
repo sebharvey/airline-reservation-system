@@ -56,11 +56,16 @@ export class ConfirmationComponent implements OnInit {
       const flightItem = o.orderItems.find(
         oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId
       );
-      const passengerTickets = o.passengers.map(pax => ({
-        passenger: pax,
-        eTicketNumber: flightItem?.eTickets?.find(t => t.passengerId === pax.passengerId)?.eTicketNumber ?? 'N/A',
-        seatNumber: flightItem?.seatAssignments?.find(s => s.passengerId === pax.passengerId)?.seatNumber ?? 'Not assigned'
-      }));
+      const passengerTickets = o.passengers.map(pax => {
+        const seatItem = o.orderItems.find(
+          oi => oi.type === 'Seat' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+        );
+        return {
+          passenger: pax,
+          eTicketNumber: flightItem?.eTickets?.find(t => t.passengerId === pax.passengerId)?.eTicketNumber ?? 'N/A',
+          seatNumber: seatItem?.seatNumber ?? 'Not assigned'
+        };
+      });
       return { segment: seg, passengerTickets };
     });
   }
@@ -134,6 +139,10 @@ export class ConfirmationComponent implements OnInit {
 
   getFlightItems(): OrderItem[] {
     return this.order?.orderItems.filter(i => i.type === 'Flight') ?? [];
+  }
+
+  getSeatsForSegment(segmentRef: string): OrderItem[] {
+    return this.order?.orderItems.filter(i => i.type === 'Seat' && i.segmentRef === segmentRef) ?? [];
   }
 
   formatDateTime(dt: string): string {
