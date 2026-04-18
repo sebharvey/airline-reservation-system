@@ -640,6 +640,14 @@
                   <span class="fare-line-label">Taxes &amp; charges</span>
                   <span class="fare-line-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
                 </div>
+                @if (item.taxLines && item.taxLines.length > 0) {
+                  @for (tl of item.taxLines; track tl.code) {
+                    <div class="fare-line fare-line-tax-detail">
+                      <span class="fare-line-label">{{ tl.code }}{{ tl.description ? ' \u2014 ' + tl.description : '' }}</span>
+                      <span class="fare-line-value">{{ formatAmount(tl.amount, item.currency) }}</span>
+                    </div>
+                  }
+                }
               }
               @if (item.totalAmount != null) {
                 <div class="fare-line fare-line-total">
@@ -648,18 +656,6 @@
                 </div>
               }
             </div>
-            @if (item.taxLines && item.taxLines.length > 0) {
-              <div class="tax-breakdown-label">Tax breakdown</div>
-              <div class="tax-list">
-                @for (tl of item.taxLines; track tl.code) {
-                  <div class="tax-row">
-                    <span class="mono">{{ tl.code }}</span>
-                    <span>{{ tl.description ?? tl.code }}</span>
-                    <span>{{ formatAmount(tl.amount, item.currency) }}</span>
-                  </div>
-                }
-              </div>
-            }
           </div>
         }
       }

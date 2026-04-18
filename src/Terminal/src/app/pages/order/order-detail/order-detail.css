@@ -158,11 +158,11 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 14px 16px;
   display: grid;
   grid-template-columns: max-content 1fr;
   column-gap: 20px;
-  row-gap: 7px;
+  row-gap: 12px;
   align-items: baseline;
 }
 
@@ -1056,30 +1056,19 @@
   color: var(--grad-start);
 }
 
-.tax-breakdown-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.tax-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tax-row {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  padding: 4px 8px;
+.fare-line-tax-detail {
+  padding-left: 24px;
   background: var(--bg-light);
-  border-radius: 4px;
+}
+
+.fare-line-tax-detail .fare-line-label {
+  font-size: 0.78rem;
+}
+
+.fare-line-tax-detail .fare-line-value {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .field-row-full {
