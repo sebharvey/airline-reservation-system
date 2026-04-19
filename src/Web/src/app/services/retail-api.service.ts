@@ -61,16 +61,116 @@ export interface IssuedETicket {
   eTicketNumber: string;
 }
 
-export interface ConfirmBasketResponse {
-  bookingReference: string;
-  status: string;
+export interface ConfirmedPassengerContacts {
+  email: string | null;
+  phone: string | null;
+}
+
+export interface ConfirmedTravelDoc {
+  type: string;
+  number: string;
+  issuingCountry: string;
+  expiryDate: string;
+  nationality: string;
+}
+
+export interface ConfirmedPassenger {
+  passengerId: string;
+  type: string;
+  givenName: string;
+  surname: string;
+  dob: string | null;
+  gender: string | null;
+  loyaltyNumber: string | null;
+  contacts: ConfirmedPassengerContacts | null;
+  docs: ConfirmedTravelDoc[];
+}
+
+export interface ConfirmedFlightSegment {
+  segmentId: string;
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  departureDateTime: string;
+  arrivalDateTime: string;
+  aircraftType: string;
+  operatingCarrier: string;
+  marketingCarrier: string;
+  cabinCode: string;
+  bookingClass: string;
+}
+
+export interface ConfirmedETicket {
+  passengerId: string;
+  eTicketNumber: string;
+}
+
+export interface ConfirmedOrderItem {
+  orderItemId: string;
+  type: string;
+  segmentRef: string;
+  passengerRefs: string[];
+  fareFamily?: string;
+  fareBasisCode?: string;
+  unitPrice: number;
+  taxes: number;
   totalPrice: number;
+  isRefundable?: boolean;
+  isChangeable?: boolean;
+  paymentReference: string;
+  eTickets?: ConfirmedETicket[];
+  seatNumber?: string;
+  seatPosition?: string;
+  additionalBags?: number;
+  productName?: string;
+  productOfferId?: string;
+  ssrCode?: string;
+}
+
+export interface ConfirmedPayment {
+  paymentReference: string;
+  description: string;
+  method: string;
+  cardLast4: string;
+  cardType: string;
+  cardholderName?: string;
+  maskedCardNumber?: string;
+  authorisedAmount: number;
+  settledAmount: number;
+  currency: string;
+  status: string;
+  authorisedAt: string;
+  settledAt: string;
+}
+
+export interface ConfirmedPointsRedemption {
+  redemptionReference: string;
+  loyaltyNumber: string;
+  pointsRedeemed: number;
+  status: string;
+  authorisedAt: string;
+  settledAt: string;
+}
+
+export interface ConfirmBasketResponse {
+  orderId: string;
+  bookingReference: string;
+  orderStatus: string;
+  bookingType: string;
+  channelCode: string;
   currency: string;
   bookedAt: string;
-  eTickets: IssuedETicket[];
-  maskedCardNumber?: string;
-  cardType?: string;
-  cardholderName?: string;
+  fareTotal: number;
+  seatTotal: number;
+  bagTotal: number;
+  productTotal: number;
+  totalAmount: number;
+  totalPointsAmount?: number;
+  passengers: ConfirmedPassenger[];
+  flightSegments: ConfirmedFlightSegment[];
+  orderItems: ConfirmedOrderItem[];
+  payment: ConfirmedPayment | null;
+  pointsRedemption: ConfirmedPointsRedemption | null;
 }
 
 export interface RetrieveOrderParams {
