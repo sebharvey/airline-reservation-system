@@ -363,7 +363,7 @@
                 @if (product.prices.length > 0) {
                   <div class="price-chips">
                     @for (p of product.prices; track p.priceId) {
-                      <span class="price-chip">{{ p.price.toFixed(2) }} {{ p.currencyCode }}</span>
+                      <span class="price-chip" style="white-space: nowrap">{{ p.price.toFixed(2) }}&nbsp;{{ p.currencyCode }}</span>
                     }
                   </div>
                 } @else {

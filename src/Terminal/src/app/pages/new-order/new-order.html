@@ -556,7 +556,7 @@
                                   [class.sm-aisle]="hasAisle(cabin.layout, ci)"
                                   [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat, entry.flight.basketItemId)"
                                   (click)="selectSeat(seat, entry)"
-                                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.price + ' ' + seat.currency : '')">
+                                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.price + '\u00A0' + seat.currency : '')">
                                   <span class="sm-seat-num">{{ seat.seatNumber }}</span>
                                   <span class="sm-seat-price">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
                                 </button>
