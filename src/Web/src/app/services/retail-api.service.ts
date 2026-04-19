@@ -512,6 +512,7 @@ export class RetailApiService {
       productId: sel.productId,
       name: sel.name,
       price: sel.price,
+      tax: sel.tax,
       currency: sel.currency
     }));
     return this.#http.put<void>(`${base}/api/v1/basket/${basketId}/products`, body);
