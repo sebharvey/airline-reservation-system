@@ -324,12 +324,103 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Mobile */
+/* Mobile flight cards — hidden on desktop */
+.flight-cards { display: none; }
+
 @media (max-width: 768px) {
   .inventory-page { padding: 12px; }
   .page-header { flex-direction: column; align-items: flex-start; }
+  .header-controls { width: 100%; }
   .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .page-title { font-size: 1.25rem; }
+
+  /* Hide table, show cards */
+  .table-card { display: none; }
+  .flight-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .flight-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .flight-card-cancelled { opacity: 0.55; }
+
+  .fc-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .fc-flight {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .fc-route {
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .fc-times {
+    font-size: 0.8rem;
+  }
+
+  .fc-aircraft {
+    color: var(--text-muted);
+  }
+
+  .fc-cabins {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .fc-cabin-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .fc-cabin-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .fc-load {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fc-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .fc-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
 
   .modal {
     top: 0;

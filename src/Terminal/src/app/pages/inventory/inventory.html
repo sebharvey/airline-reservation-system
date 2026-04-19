@@ -73,7 +73,7 @@
     </div>
   }
 
-  <!-- Inventory table -->
+  <!-- Inventory table (desktop) -->
   @if (loaded()) {
     <div class="table-card">
       <table class="inventory-table">
@@ -155,6 +155,63 @@
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile card list -->
+    <div class="flight-cards">
+      @for (flight of flights(); track flight.flightNumber + flight.departureDate) {
+        <div class="flight-card" [class.flight-card-cancelled]="flight.status === 'Cancelled'">
+          <div class="fc-header">
+            <span class="fc-flight mono">{{ flight.flightNumber }}</span>
+            <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
+            <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+          </div>
+          <div class="fc-times mono muted">
+            {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
+            @if (flight.arrivalDayOffset > 0) {
+              <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+            }
+            <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
+          </div>
+          <div class="fc-cabins">
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">F</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">J</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">W</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">Y</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
+            </span>
+          </div>
+          <div class="fc-load">
+            <div class="load-bar-wrap">
+              <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+            </div>
+            <span class="load-pct muted">{{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} avail · {{ availPct(flight) }}% load</span>
+          </div>
+          <div class="fc-actions">
+            <button class="holds-btn fc-btn" (click)="openHoldsModal(flight)">Holds</button>
+            <button
+              class="disruption-btn fc-btn"
+              (click)="openDisruptionModal(flight)"
+              [disabled]="!canDisrupt(flight)"
+              [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+              Disruption
+            </button>
+          </div>
+        </div>
+      }
+      @if (flights().length === 0) {
+        <p class="empty-row">No flights found for this date.</p>
+      }
     </div>
 
     <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · Cabin columns show available / total seats</p>
