@@ -83,17 +83,18 @@ public sealed class ChangeOrderHandler
                 throw new InvalidOperationException("Payment details are required for this flight change.");
 
             changePaymentId = await _paymentServiceClient.InitialiseAsync(
-                paymentType: "FareChange",
-                method: command.Payment.Method,
-                currencyCode: currency,
-                amount: totalDue,
-                description: $"Flight change — {bookingReference}",
+                command.Payment.Method,
+                currency,
+                totalDue,
+                $"Flight change — {bookingReference}",
                 ct);
 
             try
             {
                 await _paymentServiceClient.AuthoriseAsync(
-                    changePaymentId, totalDue,
+                    changePaymentId,
+                    "FareChange",
+                    totalDue,
                     command.Payment.CardNumber,
                     command.Payment.ExpiryDate,
                     command.Payment.Cvv,
