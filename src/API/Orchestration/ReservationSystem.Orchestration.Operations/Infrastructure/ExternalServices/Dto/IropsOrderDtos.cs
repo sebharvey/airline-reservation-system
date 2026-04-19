@@ -102,6 +102,24 @@ public sealed class RebookOrderRequest
 
     [JsonPropertyName("bookingType")]
     public string BookingType { get; init; } = "Revenue";
+
+    [JsonPropertyName("fromFlightNumber")]
+    public string FromFlightNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("fromDepartureDate")]
+    public string FromDepartureDate { get; init; } = string.Empty;
+
+    [JsonPropertyName("toFlights")]
+    public IReadOnlyList<RebookToFlightDto> ToFlights { get; init; } = [];
+}
+
+public sealed class RebookToFlightDto
+{
+    [JsonPropertyName("flightNumber")]
+    public string FlightNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("departureDate")]
+    public string DepartureDate { get; init; } = string.Empty;
 }
 
 public sealed class CancelOrderRequest

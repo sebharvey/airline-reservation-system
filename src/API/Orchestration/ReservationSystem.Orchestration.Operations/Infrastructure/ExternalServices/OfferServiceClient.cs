@@ -229,6 +229,21 @@ public sealed class OfferServiceClient
                 $"Failed to hold {seats} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
+    public async Task SellInventoryAsync(
+        Guid inventoryId,
+        string cabinCode,
+        int seats,
+        string bookingReference,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { inventoryId, cabinCode, seats, bookingReference };
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/sell", body, JsonOptions, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to sell {seats} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
+    }
+
     public async Task ReleaseInventoryAsync(
         Guid inventoryId,
         string cabinCode,

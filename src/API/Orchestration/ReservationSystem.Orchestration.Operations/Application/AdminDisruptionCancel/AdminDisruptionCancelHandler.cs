@@ -390,9 +390,31 @@ public sealed class AdminDisruptionCancelHandler
             CancelledSegmentId = order.Segment.SegmentId,
             ReplacementOfferIds = replacement.Legs.Select(l => l.OfferId).ToList(),
             Reason = "FlightCancellation",
-            BookingType = order.BookingType
+            BookingType = order.BookingType,
+            FromFlightNumber = cancelledFlightNumber,
+            FromDepartureDate = cancelledDepartureDate,
+            ToFlights = replacement.Legs.Select(l => new RebookToFlightDto
+            {
+                FlightNumber = l.FlightNumber,
+                DepartureDate = l.DepartureDate
+            }).ToList()
         };
         await _orderServiceClient.RebookOrderAsync(order.BookingReference, rebookRequest, ct);
+
+        // Convert held seats to sold on the replacement flight(s)
+        foreach (var leg in replacement.Legs)
+        {
+            try
+            {
+                await _offerServiceClient.SellInventoryAsync(
+                    leg.InventoryId, replacement.CabinCode, passengerCount, order.BookingReference, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to sell inventory on leg {FlightNumber}/{Date} for booking {BookingRef} — seats remain held",
+                    leg.FlightNumber, leg.DepartureDate, order.BookingReference);
+            }
+        }
 
         // Release sold seats from the original cancelled flight now the order has moved
         try
