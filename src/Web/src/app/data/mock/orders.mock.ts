@@ -7,6 +7,10 @@ export const MOCK_ORDER_AB1234: Order = {
   bookingType: 'Revenue',
   channelCode: 'WEB',
   currency: 'GBP',
+  fareTotal: 4431.00,
+  seatTotal: 0.00,
+  bagTotal: 0.00,
+  productTotal: 0.00,
   totalAmount: 1749.00,
   createdAt: '2026-03-01T10:32:00Z',
   passengers: [
@@ -159,6 +163,10 @@ export const MOCK_ORDER_CD5678: Order = {
   bookingType: 'Revenue',
   channelCode: 'WEB',
   currency: 'GBP',
+  fareTotal: 601.00,
+  seatTotal: 70.00,
+  bagTotal: 60.00,
+  productTotal: 0.00,
   totalAmount: 857.00,
   createdAt: '2026-03-05T14:15:00Z',
   passengers: [
@@ -258,6 +266,10 @@ export const MOCK_ORDER_EF9012: Order = {
   bookingType: 'Revenue',
   channelCode: 'WEB',
   currency: 'GBP',
+  fareTotal: 489.00,
+  seatTotal: 0.00,
+  bagTotal: 0.00,
+  productTotal: 0.00,
   totalAmount: 489.00,
   createdAt: '2026-03-10T09:00:00Z',
   passengers: [
