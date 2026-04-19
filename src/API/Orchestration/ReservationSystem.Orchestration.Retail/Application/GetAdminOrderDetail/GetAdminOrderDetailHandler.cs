@@ -426,10 +426,6 @@ public sealed class GetAdminOrderDetailHandler
             if (payRef is null) continue;
 
             var paymentId = payRef["paymentReference"]?.GetValue<string>() ?? string.Empty;
-            var fallbackAmount = payRef["amount"] is JsonNode amtNode ? amtNode.GetValue<decimal>() : 0m;
-            var fallbackMethod = payRef["type"]?.GetValue<string>();
-
-            JsonObject enrichedPayment;
 
             if (Guid.TryParse(paymentId, out _))
             {
@@ -450,7 +446,7 @@ public sealed class GetAdminOrderDetailHandler
                         });
                     }
 
-                    enrichedPayment = new JsonObject
+                    enrichedPayments.Add(new JsonObject
                     {
                         ["paymentId"] = paymentId,
                         ["amount"] = detail.Amount,
@@ -462,21 +458,19 @@ public sealed class GetAdminOrderDetailHandler
                         ["authorisedAt"] = detail.AuthorisedAt?.ToString("o"),
                         ["settledAt"] = detail.SettledAt?.ToString("o"),
                         ["events"] = eventsNode,
-                    };
-
-                    enrichedPayments.Add(enrichedPayment);
+                    });
                     continue;
                 }
             }
 
-            // Fallback when payment record cannot be found
+            // Fallback when payment record cannot be found in the Payment MS
             enrichedPayments.Add(new JsonObject
             {
                 ["paymentId"] = paymentId,
-                ["amount"] = fallbackAmount,
+                ["amount"] = 0m,
                 ["currency"] = currencyCode,
                 ["status"] = "Unknown",
-                ["paymentMethod"] = fallbackMethod,
+                ["paymentMethod"] = null,
                 ["authorisedAt"] = null,
                 ["settledAt"] = null,
                 ["events"] = new JsonArray(),
