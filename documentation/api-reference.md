@@ -194,6 +194,16 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/admin/users/{userId}/reset-password` | Reset a user's password; unlocks the account and clears failed attempts |
 | `DELETE` | `/v1/admin/users/{userId}` | Permanently delete a user account; returns `404` if user does not exist |
 
+### Payment reporting
+
+Read-only staff endpoints for viewing payment transactions. All routes require a valid staff JWT with a `role` claim of `User`. Delegates to the Payment microservice.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/admin/payments?date=YYYY-MM-DD` | Retrieve all payments created on the given UTC date; each record includes a pre-computed `eventCount` so list views require no further round-trips; ordered most-recent-first |
+| `GET` | `/v1/admin/payments/{paymentId}` | Retrieve the full payment record by ID including current status and financial totals; `404` if not found |
+| `GET` | `/v1/admin/payments/{paymentId}/events` | Retrieve all payment events for a payment in chronological order; `404` if payment does not exist |
+
 ---
 
 ## Operations API — [Full API Spec](api-specs/operations-api.md)
@@ -353,6 +363,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/payment/{paymentId}/settle` | Settle a previously authorised payment; creates a `Settled` or `PartialSettlement` `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/void` | Void a previously authorised payment, releasing held funds; updates the `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
+| `GET` | `/v1/payment?date=YYYY-MM-DD` | Retrieve all payments created on the given UTC date; each record includes a pre-computed `eventCount`; ordered most-recent-first; called by the Admin API payment reporting endpoints |
 | `GET` | `/v1/payment/{paymentId}` | Retrieve a payment record by ID; returns the full payment including current status, authorised and settled amounts |
 | `GET` | `/v1/payment/{paymentId}/events` | Retrieve all payment events for a payment in chronological order; reflects the full lifecycle history (Authorised, Settled, Voided, Refunded, etc.) |
 

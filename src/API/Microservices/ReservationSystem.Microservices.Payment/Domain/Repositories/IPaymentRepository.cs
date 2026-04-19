@@ -23,4 +23,6 @@ public interface IPaymentRepository
     Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PaymentEvent>> GetEventsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<(Entities.Payment Payment, int EventCount)>> GetByDateWithEventCountAsync(DateOnly date, CancellationToken cancellationToken = default);
 }
