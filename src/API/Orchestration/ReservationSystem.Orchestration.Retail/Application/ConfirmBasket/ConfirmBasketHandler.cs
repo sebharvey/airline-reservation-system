@@ -92,7 +92,7 @@ public sealed class ConfirmBasketHandler
         //    Pass enriched offer data so the Order MS can lock confirmed fares + tax lines.
         var paymentRefs = new List<object>
         {
-            new { type = command.PaymentMethod, paymentReference = paymentId, amount = totalAmount }
+            new { paymentReference = paymentId }
         };
 
         var enrichedOffers = BuildEnrichedOffersPayload(basketDataJsonEarly, repricedOffers);
