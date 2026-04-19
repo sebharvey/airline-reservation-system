@@ -70,6 +70,7 @@ public sealed class BagOffersFunction
                 bagOfferId = o.BagOfferId,
                 bagSequence = o.BagSequence,
                 price = o.Price,
+                tax = o.Tax,
                 currency = o.CurrencyCode,
                 label = o.Description
             }).ToList()
