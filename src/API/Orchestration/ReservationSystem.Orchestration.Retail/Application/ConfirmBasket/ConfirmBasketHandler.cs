@@ -47,7 +47,9 @@ public sealed class ConfirmBasketHandler
         var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
         var repricedOffers = await RepriceAndValidateOffersAsync(basketDataJsonEarly, cancellationToken);
 
-        var totalAmount = basket.TotalAmount ?? 0m;
+        var fareAmount = basket.TotalFareAmount ?? 0m;
+        var seatAmount = basket.TotalSeatAmount;
+        var bagAmount  = basket.TotalBagAmount;
         var currency = basket.CurrencyCode;
         var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
             ? "Standby"
@@ -61,25 +63,47 @@ public sealed class ConfirmBasketHandler
             redemptionReference: null,
             cancellationToken);
 
-        // 3. Initialise and authorise payment
-        var paymentId = await _paymentServiceClient.InitialiseAsync(
+        // 3. Initialise one payment record per ancillary type present in the basket
+        var farePaymentId = await _paymentServiceClient.InitialiseAsync(
             paymentType: "Fare",
             method: command.PaymentMethod,
             currencyCode: currency,
-            amount: totalAmount,
-            description: $"Booking payment — basket {command.BasketId}",
+            amount: fareAmount,
+            description: $"Fare payment — basket {command.BasketId}",
             cancellationToken);
+
+        string? seatPaymentId = seatAmount > 0
+            ? await _paymentServiceClient.InitialiseAsync(
+                paymentType: "SeatAncillary",
+                method: command.PaymentMethod,
+                currencyCode: currency,
+                amount: seatAmount,
+                description: $"Seat ancillary — basket {command.BasketId}",
+                cancellationToken)
+            : null;
+
+        string? bagPaymentId = bagAmount > 0
+            ? await _paymentServiceClient.InitialiseAsync(
+                paymentType: "BagAncillary",
+                method: command.PaymentMethod,
+                currencyCode: currency,
+                amount: bagAmount,
+                description: $"Bag ancillary — basket {command.BasketId}",
+                cancellationToken)
+            : null;
 
         try
         {
-            await _paymentServiceClient.AuthoriseAsync(
-                paymentId, totalAmount,
-                command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName,
-                cancellationToken);
+            await _paymentServiceClient.AuthoriseAsync(farePaymentId, fareAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
+            if (seatPaymentId != null)
+                await _paymentServiceClient.AuthoriseAsync(seatPaymentId, seatAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
+            if (bagPaymentId != null)
+                await _paymentServiceClient.AuthoriseAsync(bagPaymentId, bagAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
         }
         catch
         {
-            await _paymentServiceClient.VoidAsync(paymentId, "PaymentAuthorisationFailure", cancellationToken);
+            foreach (var pid in new[] { farePaymentId, seatPaymentId, bagPaymentId }.Where(p => p != null))
+                try { await _paymentServiceClient.VoidAsync(pid!, "PaymentAuthorisationFailure", cancellationToken); } catch { }
             await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
@@ -87,10 +111,9 @@ public sealed class ConfirmBasketHandler
         // 4. Confirm order in Order MS — validates completeness, assigns booking reference,
         //    writes payment references into OrderData, and deletes the basket.
         //    Pass enriched offer data so the Order MS can lock confirmed fares + tax lines.
-        var paymentRefs = new List<object>
-        {
-            new { type = command.PaymentMethod, paymentReference = paymentId, amount = totalAmount }
-        };
+        var paymentRefs = new List<object> { new { type = command.PaymentMethod, paymentReference = farePaymentId, amount = fareAmount } };
+        if (seatPaymentId != null) paymentRefs.Add(new { type = command.PaymentMethod, paymentReference = seatPaymentId, amount = seatAmount });
+        if (bagPaymentId != null) paymentRefs.Add(new { type = command.PaymentMethod, paymentReference = bagPaymentId, amount = bagAmount });
 
         var enrichedOffers = BuildEnrichedOffersPayload(basketDataJsonEarly, repricedOffers);
 
@@ -106,7 +129,8 @@ public sealed class ConfirmBasketHandler
         }
         catch
         {
-            await _paymentServiceClient.VoidAsync(paymentId, "OrderConfirmationFailure", cancellationToken);
+            foreach (var pid in new[] { farePaymentId, seatPaymentId, bagPaymentId }.Where(p => p != null))
+                try { await _paymentServiceClient.VoidAsync(pid!, "OrderConfirmationFailure", cancellationToken); } catch { }
             await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
@@ -118,12 +142,16 @@ public sealed class ConfirmBasketHandler
         //   - Link order to customer loyalty account
         var basketDataJson = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
 
-        var inventoryTask = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
-        var ticketsTask   = RunTicketIssuanceAsync(basketDataJson, command, paymentId, totalAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
-        var settleTask    = _paymentServiceClient.SettleAsync(paymentId, totalAmount, cancellationToken);
-        var customerTask  = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
+        var inventoryTask  = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
+        var ticketsTask    = RunTicketIssuanceAsync(basketDataJson, command, farePaymentId, fareAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
+        var settleTask     = _paymentServiceClient.SettleAsync(farePaymentId, fareAmount, cancellationToken);
+        var customerTask   = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
+        var settleSeatTask = seatPaymentId != null ? _paymentServiceClient.SettleAsync(seatPaymentId, seatAmount, cancellationToken) : Task.CompletedTask;
+        var settleBagTask  = bagPaymentId  != null ? _paymentServiceClient.SettleAsync(bagPaymentId,  bagAmount,  cancellationToken) : Task.CompletedTask;
+        var seatEmdTask    = seatPaymentId != null ? RunSeatEmdIssuanceAsync(basketDataJson, confirmedOrder.BookingReference, seatPaymentId, cancellationToken) : Task.CompletedTask;
+        var bagEmdTask     = bagPaymentId  != null ? RunBagEmdIssuanceAsync(basketDataJson,  confirmedOrder.BookingReference, bagPaymentId,  cancellationToken) : Task.CompletedTask;
 
-        await Task.WhenAll(inventoryTask, ticketsTask, settleTask, customerTask);
+        await Task.WhenAll(inventoryTask, ticketsTask, settleTask, settleSeatTask, settleBagTask, customerTask, seatEmdTask, bagEmdTask);
 
         var issuedTickets = await ticketsTask;
 
@@ -146,7 +174,7 @@ public sealed class ConfirmBasketHandler
                 SegmentIds = t.SegmentIds,
                 ETicketNumber = t.ETicketNumber
             }).ToList(),
-            TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
+            TotalPrice = confirmedOrder.TotalAmount ?? (fareAmount + seatAmount + bagAmount),
             Currency = confirmedOrder.CurrencyCode,
             BookedAt = DateTime.UtcNow
         };
@@ -876,5 +904,84 @@ public sealed class ConfirmBasketHandler
             return parts.Length == 6 ? parts[5] : null;
         }
         catch { return null; }
+    }
+
+    private async Task RunSeatEmdIssuanceAsync(string? basketDataJson, string bookingReference, string seatPaymentId, CancellationToken ct)
+    {
+        foreach (var (passengerId, segmentId, amount, currency) in ParseSeatEmdItems(basketDataJson))
+        {
+            try
+            {
+                await _deliveryServiceClient.IssueDocumentAsync(bookingReference, "SeatAncillary", passengerId, segmentId, amount, currency, seatPaymentId, ct);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[ConfirmBasket] Seat EMD issuance failed for {passengerId}: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task RunBagEmdIssuanceAsync(string? basketDataJson, string bookingReference, string bagPaymentId, CancellationToken ct)
+    {
+        foreach (var (passengerId, segmentId, amount, currency) in ParseBagEmdItems(basketDataJson))
+        {
+            try
+            {
+                await _deliveryServiceClient.IssueDocumentAsync(bookingReference, "BagAncillary", passengerId, segmentId, amount, currency, bagPaymentId, ct);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[ConfirmBasket] Bag EMD issuance failed for {passengerId}: {ex.Message}");
+            }
+        }
+    }
+
+    private static List<(string PassengerId, string SegmentId, decimal Amount, string Currency)> ParseSeatEmdItems(string? basketDataJson)
+    {
+        var items = new List<(string, string, decimal, string)>();
+        if (basketDataJson == null) return items;
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("seats", out var seatsEl) || seatsEl.ValueKind != JsonValueKind.Array) return items;
+            foreach (var seat in seatsEl.EnumerateArray())
+            {
+                var paxId = seat.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+                var segId = seat.TryGetProperty("segmentId",   out var sid) ? sid.GetString() ?? "" : "";
+                var price = seat.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
+                var tax   = seat.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
+                var cur   = seat.TryGetProperty("currency",    out var c)   ? c.GetString() ?? "GBP" : "GBP";
+                if (price + tax > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
+                    items.Add((paxId, segId, price + tax, cur));
+            }
+        }
+        catch { }
+        return items;
+    }
+
+    private static List<(string PassengerId, string SegmentId, decimal Amount, string Currency)> ParseBagEmdItems(string? basketDataJson)
+    {
+        var items = new List<(string, string, decimal, string)>();
+        if (basketDataJson == null) return items;
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("orderItems", out var itemsEl) || itemsEl.ValueKind != JsonValueKind.Array) return items;
+            foreach (var item in itemsEl.EnumerateArray())
+            {
+                if (!item.TryGetProperty("productType", out var pt) || !string.Equals(pt.GetString(), "BAG", StringComparison.OrdinalIgnoreCase)) continue;
+                var paxId = item.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+                var segId = item.TryGetProperty("segmentId",   out var sid) ? sid.GetString() ?? "" : "";
+                var price = item.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
+                var tax   = item.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
+                var cur   = item.TryGetProperty("currency",    out var c)   ? c.GetString() ?? "GBP" : "GBP";
+                if (price + tax > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
+                    items.Add((paxId, segId, price + tax, cur));
+            }
+        }
+        catch { }
+        return items;
     }
 }

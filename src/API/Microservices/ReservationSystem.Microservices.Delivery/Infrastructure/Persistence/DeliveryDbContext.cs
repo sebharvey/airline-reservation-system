@@ -51,10 +51,10 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(d => d.DocumentNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
             entity.Property(d => d.DocumentType).HasColumnType("varchar(30)").HasMaxLength(30).IsRequired();
             entity.Property(d => d.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
-            entity.Property(d => d.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(d => d.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired(false);
             entity.Property(d => d.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
-            entity.Property(d => d.SegmentRef).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
-            entity.Property(d => d.PaymentReference).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(d => d.SegmentRef).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
+            entity.Property(d => d.PaymentReference).HasColumnType("varchar(50)").HasMaxLength(50).IsRequired();
             entity.Property(d => d.Amount).HasColumnType("decimal(10,2)").IsRequired();
             entity.Property(d => d.CurrencyCode).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
             entity.Property(d => d.IsVoided).HasColumnType("bit").IsRequired();

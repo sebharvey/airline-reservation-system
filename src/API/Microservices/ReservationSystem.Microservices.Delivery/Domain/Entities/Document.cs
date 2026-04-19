@@ -10,7 +10,7 @@ public sealed class Document
     public string DocumentNumber { get; private set; } = string.Empty;
     public string DocumentType { get; private set; } = string.Empty;
     public string BookingReference { get; private set; } = string.Empty;
-    public string ETicketNumber { get; private set; } = string.Empty;
+    public string? ETicketNumber { get; private set; }
     public string PassengerId { get; private set; } = string.Empty;
     public string SegmentRef { get; private set; } = string.Empty;
     public string PaymentReference { get; private set; } = string.Empty;
@@ -27,7 +27,7 @@ public sealed class Document
         string documentNumber,
         string documentType,
         string bookingReference,
-        string eTicketNumber,
+        string? eTicketNumber,
         string passengerId,
         string segmentRef,
         string paymentReference,
@@ -60,7 +60,7 @@ public sealed class Document
 
     public static Document Reconstitute(
         Guid documentId, string documentNumber, string documentType,
-        string bookingReference, string eTicketNumber, string passengerId,
+        string bookingReference, string? eTicketNumber, string passengerId,
         string segmentRef, string paymentReference, decimal amount,
         string currencyCode, bool isVoided, string documentData,
         DateTime createdAt, DateTime updatedAt)
