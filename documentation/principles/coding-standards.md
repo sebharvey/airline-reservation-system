@@ -85,7 +85,7 @@ Null is treated explicitly; implicit null references are not permitted.
 - `ArgumentNullException.ThrowIfNull` and `ArgumentException.ThrowIfNullOrWhiteSpace` are used for guard clauses at public method entry points in domain and application layers.
 - Null-coalescing (`??`) and null-conditional (`?.`) operators are preferred over explicit null checks for simple fallback and propagation patterns.
 - Returning `null` from a repository method (e.g. `GetByIdAsync` returning `null` when not found) is the standard not-found signal; callers must handle it explicitly.
-- `null!` (null-forgiving) is used only for genuine post-construction initialisation (e.g. EF Core / Dapper model binding); it must never suppress a real nullable warning.
+- `null!` (null-forgiving) is used only for genuine post-construction initialisation (e.g. EF Core model binding); it must never suppress a real nullable warning.
 
 ---
 
@@ -113,16 +113,15 @@ Structured logging via `ILogger<T>` is used throughout; plain string concatenati
 
 ---
 
-## SQL and Data Access
+## Data Access
 
-All data access uses Dapper with raw parameterised SQL; dynamic SQL built from user input is prohibited.
+All data access uses EF Core; raw SQL built from user input is prohibited.
 
-- SQL strings are defined as `const string sql = """ ... """;` (raw string literals) at the top of each method, never inline in the method call.
-- All SQL parameters use named Dapper parameters (`@ParameterName`), never positional parameters.
-- Queries use `CommandDefinition` with `commandTimeout: _options.CommandTimeoutSeconds` on every call.
-- `using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken)` opens and disposes the connection per method; connections are never shared across methods or stored as fields.
-- `SELECT *` is never used; column lists are explicit and match the target `Record` type exactly.
-- Schema-qualified table names are always used — `[offer].[Offers]`, never just `Offers`.
+- Repositories inject a scoped `DbContext` via constructor injection; the context lifetime is tied to the request.
+- Queries use LINQ expressions against typed `DbSet<T>` properties; `FromSqlRaw` or `ExecuteSqlRaw` are used only when EF Core cannot express the query, and only with parameterised inputs — never string interpolation or concatenation.
+- `cancellationToken` is passed to every async EF Core operation (`ToListAsync`, `FirstOrDefaultAsync`, `SaveChangesAsync`, etc.).
+- Schema-qualified table names are configured in `OnModelCreating` using `ToTable("TableName", "schema")`.
+- `DbContext` must declare all database triggers using `HasTrigger` inside the `ToTable` builder action; see the EF Core DbContext configuration section in `api.md`.
 
 ---
 
