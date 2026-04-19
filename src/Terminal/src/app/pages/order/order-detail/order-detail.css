@@ -940,6 +940,9 @@
   /* Switch table for card list on mobile */
   .table-card { display: none; }
 
+  /* Keep tables visible inside the ticket/document modal (coupons, change history) */
+  .modal-panel .table-card { display: block; overflow-x: auto; }
+
   .mobile-items-list {
     display: flex;
     flex-direction: column;
