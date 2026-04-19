@@ -792,10 +792,10 @@ CREATE TABLE [delivery].[Document] (
     DocumentNumber   VARCHAR(20)      NOT NULL,
     DocumentType     VARCHAR(30)      NOT NULL,
     BookingReference CHAR(6)          NOT NULL,
-    ETicketNumber    VARCHAR(20)      NOT NULL,
+    ETicketNumber    VARCHAR(20)      NULL,
     PassengerId      VARCHAR(20)      NOT NULL,
-    SegmentRef       VARCHAR(20)      NOT NULL,
-    PaymentReference VARCHAR(20)      NOT NULL,
+    SegmentRef       VARCHAR(50)      NOT NULL,
+    PaymentReference VARCHAR(50)      NOT NULL,
     Amount           DECIMAL(10,2)    NOT NULL,
     CurrencyCode     CHAR(3)          NOT NULL CONSTRAINT DF_Document_Currency DEFAULT 'GBP',
     IsVoided         BIT              NOT NULL CONSTRAINT DF_Document_Voided   DEFAULT 0,
@@ -806,6 +806,15 @@ CREATE TABLE [delivery].[Document] (
     CONSTRAINT UQ_Document_Number UNIQUE (DocumentNumber),
     CONSTRAINT CHK_Document_Type  CHECK (DocumentType IN ('SeatAncillary','BagAncillary'))
 );
+GO
+
+-- Widen columns on existing deployments
+IF COL_LENGTH('[delivery].[Document]', 'SegmentRef') < 50
+    ALTER TABLE [delivery].[Document] ALTER COLUMN SegmentRef VARCHAR(50) NOT NULL;
+IF COL_LENGTH('[delivery].[Document]', 'PaymentReference') < 50
+    ALTER TABLE [delivery].[Document] ALTER COLUMN PaymentReference VARCHAR(50) NOT NULL;
+IF COLUMNPROPERTY(OBJECT_ID('[delivery].[Document]'), 'ETicketNumber', 'AllowsNull') = 0
+    ALTER TABLE [delivery].[Document] ALTER COLUMN ETicketNumber VARCHAR(20) NULL;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Document_BookingReference' AND object_id = OBJECT_ID('[delivery].[Document]'))

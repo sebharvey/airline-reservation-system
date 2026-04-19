@@ -7,7 +7,7 @@ public sealed class CreateDocumentRequest
 {
     [JsonPropertyName("documentType")] public string DocumentType { get; init; } = string.Empty;
     [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
-    [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("eTicketNumber")] public string? ETicketNumber { get; init; }
     [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
     [JsonPropertyName("segmentRef")] public string SegmentRef { get; init; } = string.Empty;
     [JsonPropertyName("paymentReference")] public string PaymentReference { get; init; } = string.Empty;
