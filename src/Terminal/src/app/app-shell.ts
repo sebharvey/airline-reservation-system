@@ -58,7 +58,7 @@ export class AppShell {
         { path: '/seating',        label: 'Seating',        icon: '💺', description: 'Seat pricing rules' },
         { path: '/product-groups', label: 'Product Groups', icon: '📦', description: 'Ancillary product categories' },
         { path: '/products',       label: 'Products',       icon: '🛍', description: 'Duty free, meals and ancillary products' },
-        { path: '/ssr',            label: 'SSR Catalogue',  icon: '♿', description: 'Special Service Request catalogue' },
+        { path: '/ssr',            label: 'Service catalogue',  icon: '♿', description: 'Special Service Request catalogue' },
       ],
     },
     {

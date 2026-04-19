@@ -3,14 +3,14 @@
   <!-- ── Page header ── -->
   <div class="page-header">
     <div class="page-title-group">
-      <h1 class="page-title">SSR Catalogue</h1>
+      <h1 class="page-title">Service catalogue</h1>
       <p class="page-subtitle">Manage Special Service Request codes</p>
     </div>
     <div class="header-actions">
       @if (!showForm()) {
         <button class="btn-secondary" (click)="loadOptions()">Refresh</button>
         <button class="add-btn" (click)="showAddForm.update(v => !v)">
-          {{ showAddForm() ? 'Cancel' : '+ New SSR' }}
+          {{ showAddForm() ? 'Cancel' : '+ New service' }}
         </button>
       }
     </div>
