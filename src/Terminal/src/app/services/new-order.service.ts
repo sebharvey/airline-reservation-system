@@ -192,6 +192,7 @@ export interface SeatOffer {
   position: string;
   cabinCode: string;
   price: number;
+  tax: number;
   currency: string;
   availability: 'available' | 'held' | 'sold';
   attributes: string[];
@@ -222,6 +223,7 @@ export interface BasketSeatSelection {
   seatNumber: string;
   seatPosition: string;
   price: number;
+  tax: number;
   currency: string;
 }
 
