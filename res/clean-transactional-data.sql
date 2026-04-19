@@ -18,9 +18,10 @@
 --   identity.UserAccount     — web/app user accounts
 --   user.User                — staff/employee accounts
 --
--- MODIFIED (seat counts reset to zero):
+-- MODIFIED (seat counts reset to zero; cancelled flights reinstated):
 --   offer.FlightInventory    — SeatsAvailable reset to TotalSeats; every cabin's
---                              seatsSold and seatsHeld reset to 0 in the JSON array
+--                              seatsSold and seatsHeld reset to 0 in the JSON array;
+--                              Status reset from 'Cancelled' to 'Active'
 --
 -- REMOVED (transactional data):
 --   delivery.Document        — ancillary documents
@@ -159,10 +160,12 @@ DELETE FROM [identity].[RefreshToken];
 PRINT CONCAT('  identity.RefreshToken:     ', @@ROWCOUNT, ' rows removed.');
 
 -- -----------------------------------------------------------------------------
--- 14. offer.FlightInventory — reset seat counts
+-- 14. offer.FlightInventory — reset seat counts and reinstate cancelled flights
 --     Rebuilds the Cabins JSON array for every row, zeroing seatsSold and
 --     seatsHeld on each cabin while keeping cabinCode and totalSeats intact.
 --     SeatsAvailable is set back to TotalSeats at the same time.
+--     Status is reset from 'Cancelled' to 'Active' so cancelled flights are
+--     available for fresh bookings.
 --     Runs inside the transaction so the reset is atomic with the
 --     InventoryHold delete above (step 8).
 -- -----------------------------------------------------------------------------
@@ -170,6 +173,7 @@ PRINT CONCAT('  identity.RefreshToken:     ', @@ROWCOUNT, ' rows removed.');
 UPDATE [offer].[FlightInventory]
 SET
     SeatsAvailable = TotalSeats,
+    Status         = CASE WHEN Status = 'Cancelled' THEN 'Active' ELSE Status END,
     Cabins = (
         SELECT c.cabinCode,
                c.totalSeats,
@@ -181,7 +185,7 @@ SET
                ) AS c
         FOR JSON PATH
     );
-PRINT CONCAT('  offer.FlightInventory:     ', @@ROWCOUNT, ' rows reset (seat counts cleared).');
+PRINT CONCAT('  offer.FlightInventory:     ', @@ROWCOUNT, ' rows reset (seat counts cleared, cancelled flights reinstated).');
 
 COMMIT TRANSACTION;
 
@@ -201,3 +205,4 @@ PRINT '           schedule.*, seat.*, bag.*, product.*, order.SsrCatalogue,';
 PRINT '           customer.Customer, customer.TierConfig, customer.Preferences,';
 PRINT '           identity.UserAccount, user.User';
 PRINT 'Reset:     offer.FlightInventory seat counts (SeatsAvailable, cabin seatsSold/seatsHeld → 0)';
+PRINT '           offer.FlightInventory Status (Cancelled → Active)';
