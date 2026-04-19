@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, ItemTotals } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -60,19 +60,28 @@ export class OrderDetailComponent implements OnInit {
   ticketsError = signal('');
   selectedTicket = signal<Ticket | null>(null);
 
+  // Documents (EMDs) tab state
+  documents = signal<Document[]>([]);
+  documentsLoading = signal(false);
+  documentsError = signal('');
+  selectedDocument = signal<Document | null>(null);
+
   // Debug state — TODO: Remove when debug endpoints are removed
   showDebug = signal(false);
-  debugTab = signal<'order' | 'tickets'>('order');
+  debugTab = signal<'order' | 'tickets' | 'documents'>('order');
   debugOrderLoading = signal(false);
   debugOrderJson = signal('');
   debugOrderError = signal('');
   debugTicketsLoading = signal(false);
   debugTicketsJson = signal('');
   debugTicketsError = signal('');
-  copiedDebugTab = signal<'order' | 'tickets' | null>(null);
+  debugDocumentsLoading = signal(false);
+  debugDocumentsJson = signal('');
+  debugDocumentsError = signal('');
+  copiedDebugTab = signal<'order' | 'tickets' | 'documents' | null>(null);
 
-  copyDebugJson(tab: 'order' | 'tickets'): void {
-    const json = tab === 'order' ? this.debugOrderJson() : this.debugTicketsJson();
+  copyDebugJson(tab: 'order' | 'tickets' | 'documents'): void {
+    const json = tab === 'order' ? this.debugOrderJson() : tab === 'tickets' ? this.debugTicketsJson() : this.debugDocumentsJson();
     if (!json) return;
     navigator.clipboard.writeText(json).then(() => {
       this.copiedDebugTab.set(tab);
@@ -145,6 +154,7 @@ export class OrderDetailComponent implements OnInit {
       if (result) {
         this.order.set(result);
         this.tickets.set([]);
+        this.documents.set([]);
         this.loadTickets();
       } else {
         this.error.set(`Order "${this.bookingRef}" was not found.`);
@@ -158,7 +168,10 @@ export class OrderDetailComponent implements OnInit {
 
   switchTab(tab: 'orderItems' | 'payments' | 'history' | 'tickets'): void {
     this.activeTab.set(tab);
-    if (tab === 'tickets') this.loadTickets();
+    if (tab === 'tickets') {
+      this.loadTickets();
+      this.loadDocuments();
+    }
   }
 
   openPaxModal(pax: OrderPassenger): void {
@@ -371,6 +384,40 @@ export class OrderDetailComponent implements OnInit {
     this.selectedTicket.set(null);
   }
 
+  async loadDocuments(): Promise<void> {
+    if (this.documents().length > 0) return;
+    this.documentsLoading.set(true);
+    this.documentsError.set('');
+    try {
+      const result = await this.#orderService.getDocumentsByBookingRef(this.bookingRef);
+      this.documents.set(result);
+    } catch {
+      this.documentsError.set('Failed to load EMD documents. Please try again.');
+    } finally {
+      this.documentsLoading.set(false);
+    }
+  }
+
+  activeDocuments = computed<Document[]>(() =>
+    this.documents().filter(d => !d.isVoided)
+  );
+
+  voidedDocuments = computed<Document[]>(() =>
+    this.documents().filter(d => d.isVoided)
+  );
+
+  openDocumentModal(doc: Document): void {
+    this.selectedDocument.set(doc);
+  }
+
+  closeDocumentModal(): void {
+    this.selectedDocument.set(null);
+  }
+
+  documentTypeLabel(type: string): string {
+    return { SeatAncillary: 'Seat', BagAncillary: 'Bag', ProductAncillary: 'Product' }[type] ?? type;
+  }
+
   couponStatusLabel(status: string): string {
     return {
       O: 'Open', A: 'Airport control', C: 'Checked in',
@@ -535,7 +582,7 @@ export class OrderDetailComponent implements OnInit {
     this.switchDebugTab('order');
   }
 
-  async switchDebugTab(tab: 'order' | 'tickets'): Promise<void> {
+  async switchDebugTab(tab: 'order' | 'tickets' | 'documents'): Promise<void> {
     this.debugTab.set(tab);
     if (tab === 'order') {
       if (this.debugOrderJson()) return;
@@ -549,7 +596,7 @@ export class OrderDetailComponent implements OnInit {
       } finally {
         this.debugOrderLoading.set(false);
       }
-    } else {
+    } else if (tab === 'tickets') {
       if (this.debugTicketsJson()) return;
       this.debugTicketsLoading.set(true);
       this.debugTicketsError.set('');
@@ -560,6 +607,18 @@ export class OrderDetailComponent implements OnInit {
         this.debugTicketsError.set('Failed to load tickets debug data.');
       } finally {
         this.debugTicketsLoading.set(false);
+      }
+    } else {
+      if (this.debugDocumentsJson()) return;
+      this.debugDocumentsLoading.set(true);
+      this.debugDocumentsError.set('');
+      try {
+        const data = await this.#orderService.getOrderDebugDocuments(this.bookingRef);
+        this.debugDocumentsJson.set(JSON.stringify(data, null, 2));
+      } catch {
+        this.debugDocumentsError.set('Failed to load documents debug data.');
+      } finally {
+        this.debugDocumentsLoading.set(false);
       }
     }
   }

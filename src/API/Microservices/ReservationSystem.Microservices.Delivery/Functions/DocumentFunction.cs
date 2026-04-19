@@ -7,10 +7,12 @@ using ReservationSystem.Microservices.Delivery.Application.CreateDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocument;
 using ReservationSystem.Microservices.Delivery.Application.GetDocumentsByBooking;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
+using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
+using System.Text.Json;
 using System.Web;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
@@ -21,6 +23,7 @@ public sealed class DocumentFunction
     private readonly GetDocumentHandler _getHandler;
     private readonly GetDocumentsByBookingHandler _getByBookingHandler;
     private readonly VoidDocumentHandler _voidHandler;
+    private readonly IDocumentRepository _documentRepository;
     private readonly ILogger<DocumentFunction> _logger;
 
     public DocumentFunction(
@@ -28,12 +31,14 @@ public sealed class DocumentFunction
         GetDocumentHandler getHandler,
         GetDocumentsByBookingHandler getByBookingHandler,
         VoidDocumentHandler voidHandler,
+        IDocumentRepository documentRepository,
         ILogger<DocumentFunction> logger)
     {
         _createHandler = createHandler;
         _getHandler = getHandler;
         _getByBookingHandler = getByBookingHandler;
         _voidHandler = voidHandler;
+        _documentRepository = documentRepository;
         _logger = logger;
     }
 
@@ -163,5 +168,51 @@ public sealed class DocumentFunction
             _logger.LogError(ex, "Failed to void document {DocumentNumber}", documentNumber);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    // GET /v1/debug/documents?bookingRef={bookingRef}
+    [Function("DebugGetDocumentsByBooking")]
+    [OpenApiOperation(operationId: "DebugGetDocumentsByBooking", tags: new[] { "Debug" }, Summary = "[TEMP] Return raw Document database rows by booking reference")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Document rows as JSON")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> DebugGetDocumentsByBooking(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/documents")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var queryParams = HttpUtility.ParseQueryString(req.Url.Query);
+        var bookingRef = queryParams["bookingRef"]?.Trim().ToUpperInvariant();
+
+        if (string.IsNullOrEmpty(bookingRef))
+            return await req.BadRequestAsync("The 'bookingRef' query parameter is required.");
+
+        var documents = await _documentRepository.GetByBookingReferenceAsync(bookingRef, cancellationToken);
+
+        var rows = documents.Select(d =>
+        {
+            JsonElement docDataElement;
+            try { docDataElement = JsonSerializer.Deserialize<JsonElement>(d.DocumentData); }
+            catch { docDataElement = JsonSerializer.Deserialize<JsonElement>("{}"); }
+
+            return (object)new
+            {
+                documentId = d.DocumentId,
+                documentNumber = d.DocumentNumber,
+                documentType = d.DocumentType,
+                bookingReference = d.BookingReference,
+                eTicketNumber = d.ETicketNumber,
+                passengerId = d.PassengerId,
+                segmentRef = d.SegmentRef,
+                paymentReference = d.PaymentReference,
+                amount = d.Amount,
+                currencyCode = d.CurrencyCode,
+                isVoided = d.IsVoided,
+                createdAt = d.CreatedAt,
+                updatedAt = d.UpdatedAt,
+                documentData = docDataElement
+            };
+        });
+
+        return await req.OkJsonAsync(rows);
     }
 }

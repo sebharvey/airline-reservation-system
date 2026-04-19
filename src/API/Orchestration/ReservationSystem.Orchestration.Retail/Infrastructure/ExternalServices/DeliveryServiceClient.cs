@@ -130,6 +130,25 @@ public sealed class DeliveryServiceClient
             System.Console.Error.WriteLine($"[DeliveryServiceClient] Document issuance failed: {error}");
         }
     }
+
+    public async Task<List<AdminDocumentRecord>> GetDocumentsByBookingAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/documents?bookingRef={Uri.EscapeDataString(bookingReference)}", ct);
+        if (!response.IsSuccessStatusCode)
+            return [];
+
+        var result = await response.Content.ReadFromJsonAsync<List<AdminDocumentRecord>>(JsonOptions, ct);
+        return result ?? [];
+    }
+
+    // TODO: Remove — temporary debug method
+    public async Task<string?> GetDocumentsDebugRawAsync(string bookingReference, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"/api/v1/debug/documents?bookingRef={Uri.EscapeDataString(bookingReference)}", ct);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadAsStringAsync(ct);
+    }
 }
 
 public sealed class IssuedTicket
@@ -340,6 +359,24 @@ public sealed class BoardingCardItem
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
     [JsonPropertyName("gate")] public string Gate { get; init; } = string.Empty;
     [JsonPropertyName("boardingTime")] public string BoardingTime { get; init; } = string.Empty;
+}
+
+public sealed class AdminDocumentRecord
+{
+    [JsonPropertyName("documentId")] public Guid DocumentId { get; init; }
+    [JsonPropertyName("documentNumber")] public string DocumentNumber { get; init; } = string.Empty;
+    [JsonPropertyName("documentType")] public string DocumentType { get; init; } = string.Empty;
+    [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("eTicketNumber")] public string? ETicketNumber { get; init; }
+    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("segmentRef")] public string SegmentRef { get; init; } = string.Empty;
+    [JsonPropertyName("paymentReference")] public string PaymentReference { get; init; } = string.Empty;
+    [JsonPropertyName("amount")] public decimal Amount { get; init; }
+    [JsonPropertyName("currencyCode")] public string CurrencyCode { get; init; } = string.Empty;
+    [JsonPropertyName("isVoided")] public bool IsVoided { get; init; }
+    [JsonPropertyName("documentData")] public JsonElement? DocumentData { get; init; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; init; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; init; }
 }
 
 file sealed class IssueTicketsResult

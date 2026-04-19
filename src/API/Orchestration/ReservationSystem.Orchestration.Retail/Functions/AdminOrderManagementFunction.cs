@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrders;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
+using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDocuments;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
@@ -25,6 +26,7 @@ public sealed class AdminOrderManagementFunction
     private readonly GetAdminOrdersHandler _getAdminOrdersHandler;
     private readonly GetAdminOrderDetailHandler _getAdminOrderDetailHandler;
     private readonly GetAdminOrderTicketsHandler _getAdminOrderTicketsHandler;
+    private readonly GetAdminOrderDocumentsHandler _getAdminOrderDocumentsHandler;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<AdminOrderManagementFunction> _logger;
@@ -33,6 +35,7 @@ public sealed class AdminOrderManagementFunction
         GetAdminOrdersHandler getAdminOrdersHandler,
         GetAdminOrderDetailHandler getAdminOrderDetailHandler,
         GetAdminOrderTicketsHandler getAdminOrderTicketsHandler,
+        GetAdminOrderDocumentsHandler getAdminOrderDocumentsHandler,
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
         ILogger<AdminOrderManagementFunction> logger)
@@ -40,6 +43,7 @@ public sealed class AdminOrderManagementFunction
         _getAdminOrdersHandler = getAdminOrdersHandler;
         _getAdminOrderDetailHandler = getAdminOrderDetailHandler;
         _getAdminOrderTicketsHandler = getAdminOrderTicketsHandler;
+        _getAdminOrderDocumentsHandler = getAdminOrderDocumentsHandler;
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
@@ -110,6 +114,25 @@ public sealed class AdminOrderManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/{bookingRef}/documents
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetOrderDocuments")]
+    [OpenApiOperation(operationId: "AdminGetOrderDocuments", tags: new[] { "Admin Orders" }, Summary = "Get all EMD documents for an order by booking reference (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<AdminDocumentRecord>), Description = "OK")]
+    public async Task<HttpResponseData> GetOrderDocuments(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/{bookingRef}/documents")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        var result = await _getAdminOrderDocumentsHandler.HandleAsync(
+            bookingRef.ToUpperInvariant(), cancellationToken);
+
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
     // GET /v1/admin/orders/{bookingRef}/debug
     // TODO: Remove — temporary debug endpoint
     // -------------------------------------------------------------------------
@@ -149,6 +172,29 @@ public sealed class AdminOrderManagementFunction
         CancellationToken cancellationToken)
     {
         var raw = await _deliveryServiceClient.GetTicketsDebugRawAsync(
+            bookingRef.ToUpperInvariant(), cancellationToken);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync(raw ?? "[]", Encoding.UTF8);
+        return response;
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/{bookingRef}/debug/documents
+    // TODO: Remove — temporary debug endpoint
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDebugGetDocuments")]
+    [OpenApiOperation(operationId: "AdminDebugGetDocuments", tags: new[] { "Admin Orders" }, Summary = "[TEMP] Return raw Document database rows by booking reference (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Document rows as JSON")]
+    public async Task<HttpResponseData> DebugGetDocuments(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/{bookingRef}/debug/documents")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        var raw = await _deliveryServiceClient.GetDocumentsDebugRawAsync(
             bookingRef.ToUpperInvariant(), cancellationToken);
 
         var response = req.CreateResponse(HttpStatusCode.OK);

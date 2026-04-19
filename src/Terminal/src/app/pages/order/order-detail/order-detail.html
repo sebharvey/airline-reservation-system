@@ -532,6 +532,132 @@
           }
 
         }
+
+        <!-- ── EMD / MISC DOCUMENTS ── -->
+        @if (documentsError()) {
+          <div class="alert alert-error" role="alert">
+            <span>&#9888;</span> {{ documentsError() }}
+          </div>
+        }
+
+        @if (documentsLoading()) {
+          <div class="loading-state">
+            <span class="spinner"></span>
+            <span>Loading EMD documents…</span>
+          </div>
+        } @else if (documents().length > 0) {
+
+          <!-- Active EMDs -->
+          @if (activeDocuments().length > 0) {
+            <div class="tickets-section-label" style="margin-top:24px">EMD documents</div>
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Document number</th>
+                    <th>Type</th>
+                    <th>Passenger</th>
+                    <th class="hide-mobile">Segment</th>
+                    <th class="th-numeric hide-mobile">Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of activeDocuments(); track doc.documentId) {
+                    <tr class="ticket-list-row" (click)="openDocumentModal(doc)">
+                      <td class="mono">
+                        <span class="loyalty-copy-wrap">
+                          {{ doc.documentNumber }}
+                          <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber, $event)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
+                            @if (copiedText() === doc.documentNumber) {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            }
+                          </button>
+                        </span>
+                      </td>
+                      <td><span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span></td>
+                      <td>{{ getPassengerName(doc.passengerId) }}</td>
+                      <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
+                      <td class="amount-cell hide-mobile">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
+                      <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <!-- Mobile card list for active EMDs -->
+            <div class="mobile-tickets-list">
+              @for (doc of activeDocuments(); track doc.documentId) {
+                <div class="mobile-ticket-card" (click)="openDocumentModal(doc)">
+                  <div class="mobile-ticket-main">
+                    <div class="mobile-ticket-num mono">{{ doc.documentNumber }}</div>
+                    <div class="mobile-ticket-pax">{{ documentTypeLabel(doc.documentType) }} — {{ getPassengerName(doc.passengerId) }}</div>
+                    <div class="mobile-ticket-amount">{{ formatAmount(doc.amount, doc.currencyCode) }}</div>
+                  </div>
+                  <button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Voided EMDs -->
+          @if (voidedDocuments().length > 0) {
+            <div class="tickets-section-label tickets-section-voided" style="margin-top:16px">Voided EMD documents</div>
+            <div class="table-card">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Document number</th>
+                    <th>Type</th>
+                    <th>Passenger</th>
+                    <th class="hide-mobile">Segment</th>
+                    <th class="th-numeric hide-mobile">Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of voidedDocuments(); track doc.documentId) {
+                    <tr class="ticket-list-row ticket-voided-row" (click)="openDocumentModal(doc)">
+                      <td class="mono muted">
+                        <span class="loyalty-copy-wrap">
+                          {{ doc.documentNumber }}
+                          <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber, $event)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
+                            @if (copiedText() === doc.documentNumber) {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            } @else {
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            }
+                          </button>
+                        </span>
+                      </td>
+                      <td class="muted"><span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span></td>
+                      <td class="muted">{{ getPassengerName(doc.passengerId) }}</td>
+                      <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
+                      <td class="amount-cell hide-mobile muted">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
+                      <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <!-- Mobile card list for voided EMDs -->
+            <div class="mobile-tickets-list mobile-tickets-voided">
+              @for (doc of voidedDocuments(); track doc.documentId) {
+                <div class="mobile-ticket-card" (click)="openDocumentModal(doc)">
+                  <div class="mobile-ticket-main">
+                    <div class="mobile-ticket-num mono muted">{{ doc.documentNumber }}</div>
+                    <div class="mobile-ticket-pax muted">{{ documentTypeLabel(doc.documentType) }} — {{ getPassengerName(doc.passengerId) }}</div>
+                  </div>
+                  <button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button>
+                </div>
+              }
+            </div>
+          }
+
+        }
+
       </div>
     }
 
@@ -1189,6 +1315,213 @@
   </div>
 }
 
+<!-- ── EMD DOCUMENT DETAIL MODAL ── -->
+@if (selectedDocument(); as doc) {
+  <div class="modal-backdrop" (click)="closeDocumentModal()"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <span class="modal-title mono loyalty-copy-wrap">
+          {{ doc.documentNumber }}
+          <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
+            @if (copiedText() === doc.documentNumber) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            }
+          </button>
+        </span>
+        @if (doc.isVoided) {
+          <span class="status-badge badge-cancelled">Voided</span>
+        } @else {
+          <span class="status-badge badge-confirmed">Active</span>
+        }
+      </div>
+      <button class="modal-close-btn" (click)="closeDocumentModal()">&#x2715;</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Document summary -->
+      <div class="modal-section">
+        <div class="modal-section-title">Document</div>
+        <div class="field-grid">
+          <div class="field-row">
+            <span class="field-label">Type</span>
+            <span class="field-value">{{ documentTypeLabel(doc.documentType) }}</span>
+          </div>
+          @if (doc.documentData?.emdType) {
+            <div class="field-row">
+              <span class="field-label">EMD type</span>
+              <span class="field-value mono">{{ doc.documentData!.emdType }}</span>
+            </div>
+          }
+          @if (doc.documentData?.rfic) {
+            <div class="field-row">
+              <span class="field-label">RFIC / RFISC</span>
+              <span class="field-value mono">{{ doc.documentData!.rfic }}{{ doc.documentData!.rfisc ? ' / ' + doc.documentData!.rfisc : '' }}</span>
+            </div>
+          }
+          @if (doc.documentData?.serviceDescription) {
+            <div class="field-row field-row-full">
+              <span class="field-label">Description</span>
+              <span class="field-value">{{ doc.documentData!.serviceDescription }}</span>
+            </div>
+          }
+          @if (doc.documentData?.couponStatus) {
+            <div class="field-row">
+              <span class="field-label">Coupon status</span>
+              <span class="field-value">{{ doc.documentData!.couponStatus }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Passenger & segment -->
+      <div class="modal-section">
+        <div class="modal-section-title">Passenger &amp; segment</div>
+        <div class="field-grid">
+          <div class="field-row">
+            <span class="field-label">Passenger</span>
+            <span class="field-value">{{ getPassengerName(doc.passengerId) }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Passenger ID</span>
+            <span class="field-value mono">{{ doc.passengerId }}</span>
+          </div>
+          @if (doc.eTicketNumber) {
+            <div class="field-row">
+              <span class="field-label">E-ticket</span>
+              <span class="field-value mono">{{ doc.eTicketNumber }}</span>
+            </div>
+          }
+          <div class="field-row">
+            <span class="field-label">Segment</span>
+            <span class="field-value mono">{{ doc.segmentRef || '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ancillary detail -->
+      @if (doc.documentData?.ancillaryDetail) {
+        <div class="modal-section">
+          <div class="modal-section-title">Ancillary detail</div>
+          <div class="field-grid">
+            @if (doc.documentData!.ancillaryDetail!.type === 'SeatAncillary') {
+              <div class="field-row">
+                <span class="field-label">Seat</span>
+                <span class="field-value mono">{{ $any(doc.documentData!.ancillaryDetail).seatNumber }}</span>
+              </div>
+              @if ($any(doc.documentData!.ancillaryDetail).positionType) {
+                <div class="field-row">
+                  <span class="field-label">Position</span>
+                  <span class="field-value">{{ $any(doc.documentData!.ancillaryDetail).positionType }}</span>
+                </div>
+              }
+              @if ($any(doc.documentData!.ancillaryDetail).cabinCode) {
+                <div class="field-row">
+                  <span class="field-label">Cabin</span>
+                  <span class="field-value mono">{{ $any(doc.documentData!.ancillaryDetail).cabinCode }}</span>
+                </div>
+              }
+              @if ($any(doc.documentData!.ancillaryDetail).seatAttributes?.length) {
+                <div class="field-row field-row-full">
+                  <span class="field-label">Attributes</span>
+                  <span class="field-value">{{ $any(doc.documentData!.ancillaryDetail).seatAttributes.join(', ') }}</span>
+                </div>
+              }
+            }
+            @if (doc.documentData!.ancillaryDetail!.type === 'BagAncillary') {
+              @if ($any(doc.documentData!.ancillaryDetail).bagSequenceNumber != null) {
+                <div class="field-row">
+                  <span class="field-label">Bag number</span>
+                  <span class="field-value mono">{{ $any(doc.documentData!.ancillaryDetail).bagSequenceNumber }}</span>
+                </div>
+              }
+              @if ($any(doc.documentData!.ancillaryDetail).weightKg != null) {
+                <div class="field-row">
+                  <span class="field-label">Weight</span>
+                  <span class="field-value">{{ $any(doc.documentData!.ancillaryDetail).weightKg }} kg</span>
+                </div>
+              }
+              @if ($any(doc.documentData!.ancillaryDetail).bagTagNumber) {
+                <div class="field-row">
+                  <span class="field-label">Bag tag</span>
+                  <span class="field-value mono">{{ $any(doc.documentData!.ancillaryDetail).bagTagNumber }}</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Price breakdown -->
+      @if (doc.documentData?.priceBreakdown) {
+        <div class="modal-section">
+          <div class="modal-section-title">Price breakdown</div>
+          <div class="field-grid">
+            <div class="field-row">
+              <span class="field-label">Base amount</span>
+              <span class="field-value">{{ formatAmount(doc.documentData!.priceBreakdown!.baseAmount, doc.documentData!.priceBreakdown!.currencyCode) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Total</span>
+              <span class="field-value">{{ formatAmount(doc.documentData!.priceBreakdown!.totalAmount, doc.documentData!.priceBreakdown!.currencyCode) }}</span>
+            </div>
+          </div>
+          @if (doc.documentData!.priceBreakdown!.taxes.length > 0) {
+            <div class="tax-list">
+              @for (tax of doc.documentData!.priceBreakdown!.taxes; track tax.code) {
+                <div class="tax-row">
+                  <span class="mono">{{ tax.code }}</span>
+                  <span>{{ tax.description }}</span>
+                  <span>{{ formatAmount(tax.amount, doc.documentData!.priceBreakdown!.currencyCode) }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Void history -->
+      @if (doc.documentData?.voidHistory?.length) {
+        <div class="modal-section">
+          <div class="modal-section-title">Void history</div>
+          <div class="history-list">
+            @for (entry of doc.documentData!.voidHistory; track entry.occurredAt) {
+              <div class="history-row">
+                <span class="history-timestamp muted">{{ formatDateTime(entry.occurredAt) }}</span>
+                <span class="history-actor muted mono">{{ entry.actor }}</span>
+                <span class="history-detail">{{ entry.reason }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Record metadata -->
+      <div class="modal-section modal-section-meta">
+        <div class="field-grid">
+          <div class="field-row">
+            <span class="field-label">Issued</span>
+            <span class="field-value">{{ formatDateTime(doc.createdAt) }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Updated</span>
+            <span class="field-value">{{ formatDateTime(doc.updatedAt) }}</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Payment ref</span>
+            <span class="field-value mono">{{ doc.paymentReference || '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+}
+
 <!-- ── ADD SERVICE MODAL ── -->
 @if (showAddSsr()) {
   <div class="modal-backdrop" (click)="!ssrSaving() && cancelAddSsr()"></div>
@@ -1281,6 +1614,12 @@
           (click)="switchDebugTab('tickets')">
           Ticket rows
         </button>
+        <button
+          class="debug-tab"
+          [class.debug-tab-active]="debugTab() === 'documents'"
+          (click)="switchDebugTab('documents')">
+          Document rows
+        </button>
       </div>
       <div class="debug-modal-body">
         @if (debugTab() === 'order') {
@@ -1306,7 +1645,7 @@
               <pre class="debug-pre">{{ debugOrderJson() }}</pre>
             </div>
           }
-        } @else {
+        } @else if (debugTab() === 'tickets') {
           @if (debugTicketsLoading()) {
             <div class="debug-loading">Loading…</div>
           } @else if (debugTicketsError()) {
@@ -1327,6 +1666,29 @@
                 {{ copiedDebugTab() === 'tickets' ? 'Copied!' : 'Copy JSON' }}
               </button>
               <pre class="debug-pre">{{ debugTicketsJson() }}</pre>
+            </div>
+          }
+        } @else {
+          @if (debugDocumentsLoading()) {
+            <div class="debug-loading">Loading…</div>
+          } @else if (debugDocumentsError()) {
+            <div class="debug-error">{{ debugDocumentsError() }}</div>
+          } @else {
+            <div class="debug-pre-wrap">
+              <button
+                class="copy-btn debug-copy-btn"
+                [class.copied]="copiedDebugTab() === 'documents'"
+                (click)="copyDebugJson('documents')"
+                [title]="copiedDebugTab() === 'documents' ? 'Copied!' : 'Copy JSON'"
+              >
+                @if (copiedDebugTab() === 'documents') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                }
+                {{ copiedDebugTab() === 'documents' ? 'Copied!' : 'Copy JSON' }}
+              </button>
+              <pre class="debug-pre">{{ debugDocumentsJson() }}</pre>
             </div>
           }
         }
