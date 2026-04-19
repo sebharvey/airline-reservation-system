@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
+using ReservationSystem.Microservices.Payment.Domain.Entities;
 using ReservationSystem.Microservices.Payment.Application.GetPayment;
 using ReservationSystem.Microservices.Payment.Application.GetPaymentEvents;
 using ReservationSystem.Microservices.Payment.Application.GetPaymentsByDate;
@@ -161,15 +162,16 @@ public sealed class PaymentFunction
             cardholderName = request.CardDetails.CardholderName ?? string.Empty;
         }
 
-        if (string.IsNullOrWhiteSpace(request.ProductType))
-            return await req.BadRequestAsync("The 'productType' field is required.");
+        var productType = string.IsNullOrWhiteSpace(request.ProductType)
+            ? PaymentEvent.PaymentProductType.Fare
+            : request.ProductType;
 
         if (request.Amount.HasValue && request.Amount.Value <= 0)
             return await req.BadRequestAsync("The 'amount' must be greater than zero when provided.");
 
         var command = new AuthorisePaymentCommand(
             paymentGuid,
-            request.ProductType,
+            productType,
             request.Amount,
             cardNumber,
             expiryDate,
