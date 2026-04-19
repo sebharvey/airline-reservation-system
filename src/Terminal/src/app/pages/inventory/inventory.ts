@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap } from '../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-inventory',
@@ -165,9 +165,10 @@ export class InventoryComponent implements OnInit {
 
   // Disruption modal
   disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
-  disruptionStep = signal<'action' | 'confirm'>('action');
+  disruptionStep = signal<'action' | 'confirm' | 'result'>('action');
   disruptionLoading = signal(false);
   disruptionError = signal('');
+  disruptionResult = signal<DisruptionCancelResponse | null>(null);
 
   canDisrupt(flight: FlightInventoryGroup): boolean {
     return flight.status !== 'Cancelled' && flight.status !== 'Ticketing Closed';
@@ -177,11 +178,17 @@ export class InventoryComponent implements OnInit {
     this.disruptionModalFlight.set(flight);
     this.disruptionStep.set('action');
     this.disruptionError.set('');
+    this.disruptionResult.set(null);
   }
 
   closeDisruptionModal(): void {
     if (this.disruptionLoading()) return;
     this.disruptionModalFlight.set(null);
+  }
+
+  async closeDisruptionResult(): Promise<void> {
+    this.disruptionModalFlight.set(null);
+    await this.loadInventory();
   }
 
   startCancellationConfirm(): void {
@@ -195,12 +202,12 @@ export class InventoryComponent implements OnInit {
     this.disruptionLoading.set(true);
     this.disruptionError.set('');
     try {
-      await this.#inventoryService.cancelFlightInventory(
+      const result = await this.#inventoryService.cancelFlight(
         flight.flightNumber,
         flight.departureDate
       );
-      this.disruptionModalFlight.set(null);
-      await this.loadInventory();
+      this.disruptionResult.set(result);
+      this.disruptionStep.set('result');
     } catch {
       this.disruptionError.set('Failed to cancel flight. Please try again.');
     } finally {

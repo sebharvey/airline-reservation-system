@@ -579,9 +579,54 @@
           <ul class="disruption-confirm-effects">
             <li>The flight will be marked as cancelled immediately</li>
             <li>No new bookings will be accepted on this flight</li>
-            <li>Affected passengers will need to be rebooked</li>
+            <li>Affected passengers will be automatically rebooked where possible</li>
+            <li>Passengers with no available replacement will receive a full refund</li>
             <li>This action cannot be undone</li>
           </ul>
+        </div>
+      }
+
+      @if (disruptionStep() === 'result') {
+        @let result = disruptionResult()!;
+        <div class="disruption-result">
+          <div class="disruption-result-summary">
+            <div class="disruption-result-stat">
+              <span class="disruption-result-stat-value">{{ result.affectedPassengerCount }}</span>
+              <span class="disruption-result-stat-label">Affected</span>
+            </div>
+            <div class="disruption-result-stat disruption-result-stat-rebooked">
+              <span class="disruption-result-stat-value">{{ result.rebookedCount }}</span>
+              <span class="disruption-result-stat-label">Rebooked</span>
+            </div>
+            <div class="disruption-result-stat disruption-result-stat-refunded">
+              <span class="disruption-result-stat-value">{{ result.cancelledWithRefundCount }}</span>
+              <span class="disruption-result-stat-label">Refunded</span>
+            </div>
+            @if (result.failedCount > 0) {
+              <div class="disruption-result-stat disruption-result-stat-failed">
+                <span class="disruption-result-stat-value">{{ result.failedCount }}</span>
+                <span class="disruption-result-stat-label">Failed</span>
+              </div>
+            }
+          </div>
+
+          <div class="disruption-result-outcomes">
+            @for (outcome of result.outcomes; track outcome.bookingReference) {
+              <div class="disruption-outcome-row" [class]="'disruption-outcome-' + outcome.outcome.toLowerCase()">
+                <span class="disruption-outcome-ref">{{ outcome.bookingReference }}</span>
+                @if (outcome.outcome === 'Rebooked') {
+                  <span class="disruption-outcome-badge badge-active">Rebooked</span>
+                  <span class="disruption-outcome-detail">{{ outcome.replacementFlightNumber }} &bull; {{ outcome.replacementDepartureDate }}</span>
+                } @else if (outcome.outcome === 'CancelledWithRefund') {
+                  <span class="disruption-outcome-badge badge-refunded">Refunded</span>
+                  <span class="disruption-outcome-detail">No replacement available — full refund issued</span>
+                } @else {
+                  <span class="disruption-outcome-badge badge-inactive">Failed</span>
+                  <span class="disruption-outcome-detail">{{ outcome.failureReason }}</span>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
     </div>
@@ -597,11 +642,14 @@
         <button class="btn-danger" (click)="executeCancellation()" [disabled]="disruptionLoading()">
           @if (disruptionLoading()) {
             <span class="btn-spinner-white"></span>
-            Cancelling&hellip;
+            Processing&hellip;
           } @else {
             Yes, cancel flight
           }
         </button>
+      }
+      @if (disruptionStep() === 'result') {
+        <button class="btn-primary" (click)="closeDisruptionResult()">Done</button>
       }
     </div>
   </div>
