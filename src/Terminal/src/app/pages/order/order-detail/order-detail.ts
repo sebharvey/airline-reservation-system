@@ -69,6 +69,16 @@ export class OrderDetailComponent implements OnInit {
   debugTicketsLoading = signal(false);
   debugTicketsJson = signal('');
   debugTicketsError = signal('');
+  copiedDebugTab = signal<'order' | 'tickets' | null>(null);
+
+  copyDebugJson(tab: 'order' | 'tickets'): void {
+    const json = tab === 'order' ? this.debugOrderJson() : this.debugTicketsJson();
+    if (!json) return;
+    navigator.clipboard.writeText(json).then(() => {
+      this.copiedDebugTab.set(tab);
+      setTimeout(() => this.copiedDebugTab.set(null), 2000);
+    });
+  }
 
   readonly objectKeys = Object.keys;
 
