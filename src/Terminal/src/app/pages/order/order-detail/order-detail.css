@@ -625,6 +625,52 @@
 .pay-authorised { background: rgba(88, 166, 255, 0.12); color: #58a6ff; }
 .pay-refunded   { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 .pay-voided     { background: rgba(248, 81, 73, 0.12); color: #f85149; }
+.pay-partial    { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+
+/* Payment event sub-rows */
+.payment-events-row td {
+  padding: 0;
+  background: rgba(139, 149, 162, 0.04);
+}
+
+.payment-events-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px 4px 44px;
+  gap: 0;
+}
+
+.payment-event-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 0.78rem;
+  border-bottom: 1px solid rgba(139, 149, 162, 0.12);
+}
+.payment-event-item:last-child { border-bottom: none; }
+
+.pay-event-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  min-width: 76px;
+  text-align: center;
+}
+.pay-event-other { background: rgba(139, 149, 162, 0.1); color: #8b95a2; }
+
+.payment-event-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 80px;
+  text-align: right;
+}
+
+.payment-event-notes {
+  font-style: italic;
+}
 
 /* History */
 .history-list {
@@ -1116,6 +1162,30 @@
     gap: 2px;
     margin-top: 2px;
     font-size: 0.75rem;
+  }
+
+  .mobile-payment-events {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .mobile-payment-event-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.75rem;
+    border-bottom: 1px solid rgba(139, 149, 162, 0.1);
+  }
+  .mobile-payment-event-item:last-child { border-bottom: none; }
+
+  .mobile-payment-event-amount {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 }
 

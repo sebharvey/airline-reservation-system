@@ -51,7 +51,8 @@ public sealed class ConfirmBasketHandler
         var bagAmount  = basket.TotalBagAmount;
         // Recalculate total from repriced fares so the confirmed amount reflects the
         // latest pricing, not whatever was stored on the basket when offers were added.
-        var fareAmount = CalculateTotalFromRepriced(basketDataJsonEarly, repricedOffers, basket) - seatAmount - bagAmount;
+        var totalAmount = CalculateTotalFromRepriced(basketDataJsonEarly, repricedOffers, basket);
+        var fareAmount  = totalAmount - seatAmount - bagAmount;
         var currency = basket.CurrencyCode;
         var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
             ? "Standby"
@@ -65,47 +66,23 @@ public sealed class ConfirmBasketHandler
             redemptionReference: null,
             cancellationToken);
 
-        // 3. Initialise one payment record per ancillary type present in the basket
-        var farePaymentId = await _paymentServiceClient.InitialiseAsync(
+        // 3. Initialise one payment record for the full booking amount. Ancillary types
+        //    are broken into sequential auth/settle PaymentEvent pairs on the same record.
+        var paymentId = await _paymentServiceClient.InitialiseAsync(
             paymentType: "Fare",
             method: command.PaymentMethod,
             currencyCode: currency,
-            amount: fareAmount,
-            description: $"Fare payment — basket {command.BasketId}",
+            amount: totalAmount,
+            description: $"Booking payment — basket {command.BasketId}",
             cancellationToken);
-
-        string? seatPaymentId = seatAmount > 0
-            ? await _paymentServiceClient.InitialiseAsync(
-                paymentType: "SeatAncillary",
-                method: command.PaymentMethod,
-                currencyCode: currency,
-                amount: seatAmount,
-                description: $"Seat ancillary — basket {command.BasketId}",
-                cancellationToken)
-            : null;
-
-        string? bagPaymentId = bagAmount > 0
-            ? await _paymentServiceClient.InitialiseAsync(
-                paymentType: "BagAncillary",
-                method: command.PaymentMethod,
-                currencyCode: currency,
-                amount: bagAmount,
-                description: $"Bag ancillary — basket {command.BasketId}",
-                cancellationToken)
-            : null;
 
         try
         {
-            await _paymentServiceClient.AuthoriseAsync(farePaymentId, fareAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
-            if (seatPaymentId != null)
-                await _paymentServiceClient.AuthoriseAsync(seatPaymentId, seatAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
-            if (bagPaymentId != null)
-                await _paymentServiceClient.AuthoriseAsync(bagPaymentId, bagAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
+            await _paymentServiceClient.AuthoriseAsync(paymentId, fareAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
         }
         catch
         {
-            foreach (var pid in new[] { farePaymentId, seatPaymentId, bagPaymentId }.Where(p => p != null))
-                try { await _paymentServiceClient.VoidAsync(pid!, "PaymentAuthorisationFailure", cancellationToken); } catch { }
+            await _paymentServiceClient.VoidAsync(paymentId, "PaymentAuthorisationFailure", cancellationToken);
             await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
@@ -113,9 +90,10 @@ public sealed class ConfirmBasketHandler
         // 4. Confirm order in Order MS — validates completeness, assigns booking reference,
         //    writes payment references into OrderData, and deletes the basket.
         //    Pass enriched offer data so the Order MS can lock confirmed fares + tax lines.
-        var paymentRefs = new List<object> { new { type = command.PaymentMethod, paymentReference = farePaymentId, amount = fareAmount } };
-        if (seatPaymentId != null) paymentRefs.Add(new { type = command.PaymentMethod, paymentReference = seatPaymentId, amount = seatAmount });
-        if (bagPaymentId != null) paymentRefs.Add(new { type = command.PaymentMethod, paymentReference = bagPaymentId, amount = bagAmount });
+        var paymentRefs = new List<object>
+        {
+            new { type = command.PaymentMethod, paymentReference = paymentId, amount = totalAmount }
+        };
 
         var enrichedOffers = BuildEnrichedOffersPayload(basketDataJsonEarly, repricedOffers);
 
@@ -131,8 +109,7 @@ public sealed class ConfirmBasketHandler
         }
         catch
         {
-            foreach (var pid in new[] { farePaymentId, seatPaymentId, bagPaymentId }.Where(p => p != null))
-                try { await _paymentServiceClient.VoidAsync(pid!, "OrderConfirmationFailure", cancellationToken); } catch { }
+            try { await _paymentServiceClient.VoidAsync(paymentId, "OrderConfirmationFailure", cancellationToken); } catch { }
             await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
@@ -144,16 +121,14 @@ public sealed class ConfirmBasketHandler
         //   - Link order to customer loyalty account
         var basketDataJson = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
 
-        var inventoryTask  = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
-        var ticketsTask    = RunTicketIssuanceAsync(basketDataJson, command, farePaymentId, fareAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
-        var settleTask     = _paymentServiceClient.SettleAsync(farePaymentId, fareAmount, cancellationToken);
-        var customerTask   = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
-        var settleSeatTask = seatPaymentId != null ? _paymentServiceClient.SettleAsync(seatPaymentId, seatAmount, cancellationToken) : Task.CompletedTask;
-        var settleBagTask  = bagPaymentId  != null ? _paymentServiceClient.SettleAsync(bagPaymentId,  bagAmount,  cancellationToken) : Task.CompletedTask;
-        var seatEmdTask    = seatPaymentId != null ? RunSeatEmdIssuanceAsync(basketDataJson, confirmedOrder.BookingReference, seatPaymentId, cancellationToken) : Task.CompletedTask;
-        var bagEmdTask     = bagPaymentId  != null ? RunBagEmdIssuanceAsync(basketDataJson,  confirmedOrder.BookingReference, bagPaymentId,  cancellationToken) : Task.CompletedTask;
+        var inventoryTask = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
+        var ticketsTask   = RunTicketIssuanceAsync(basketDataJson, command, paymentId, fareAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
+        var settleTask    = RunSettleAndAuthAncillariesAsync(paymentId, fareAmount, seatAmount, bagAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
+        var customerTask  = RunCustomerLinkAsync(basketDataJson, confirmedOrder, cancellationToken);
+        var seatEmdTask   = seatAmount > 0 ? RunSeatEmdIssuanceAsync(basketDataJson, confirmedOrder.BookingReference, paymentId, cancellationToken) : Task.CompletedTask;
+        var bagEmdTask    = bagAmount  > 0 ? RunBagEmdIssuanceAsync(basketDataJson,  confirmedOrder.BookingReference, paymentId, cancellationToken) : Task.CompletedTask;
 
-        await Task.WhenAll(inventoryTask, ticketsTask, settleTask, settleSeatTask, settleBagTask, customerTask, seatEmdTask, bagEmdTask);
+        await Task.WhenAll(inventoryTask, ticketsTask, settleTask, customerTask, seatEmdTask, bagEmdTask);
 
         var issuedTickets = await ticketsTask;
 
@@ -176,7 +151,7 @@ public sealed class ConfirmBasketHandler
                 SegmentIds = t.SegmentIds,
                 ETicketNumber = t.ETicketNumber
             }).ToList(),
-            TotalPrice = confirmedOrder.TotalAmount ?? (fareAmount + seatAmount + bagAmount),
+            TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
             Currency = confirmedOrder.CurrencyCode,
             BookedAt = DateTime.UtcNow
         };
@@ -980,6 +955,28 @@ public sealed class ConfirmBasketHandler
             return parts.Length == 6 ? parts[5] : null;
         }
         catch { return null; }
+    }
+
+    private async Task RunSettleAndAuthAncillariesAsync(
+        string paymentId, decimal fareAmount, decimal seatAmount, decimal bagAmount,
+        string? cardNumber, string? expiryDate, string? cvv, string? cardholderName,
+        CancellationToken ct)
+    {
+        // Settle fare — updates the pre-confirm auth PaymentEvent to Settled; payment → Partial
+        await _paymentServiceClient.SettleAsync(paymentId, fareAmount, ct);
+
+        // Auth + settle each ancillary type as sequential pairs on the same Payment record
+        if (seatAmount > 0)
+        {
+            await _paymentServiceClient.AuthoriseAsync(paymentId, seatAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
+            await _paymentServiceClient.SettleAsync(paymentId, seatAmount, ct);
+        }
+
+        if (bagAmount > 0)
+        {
+            await _paymentServiceClient.AuthoriseAsync(paymentId, bagAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
+            await _paymentServiceClient.SettleAsync(paymentId, bagAmount, ct);
+        }
     }
 
     private async Task RunSeatEmdIssuanceAsync(string? basketDataJson, string bookingReference, string seatPaymentId, CancellationToken ct)

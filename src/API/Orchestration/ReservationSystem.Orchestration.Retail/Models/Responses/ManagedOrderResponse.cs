@@ -105,6 +105,17 @@ public sealed class ManagedPayment
     public string Status { get; init; } = string.Empty;
     public string? AuthorisedAt { get; init; }
     public string? SettledAt { get; init; }
+    public IReadOnlyList<ManagedPaymentEvent> Events { get; init; } = [];
+}
+
+public sealed class ManagedPaymentEvent
+{
+    public string PaymentEventId { get; init; } = string.Empty;
+    public string EventType { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public string? Notes { get; init; }
+    public DateTime CreatedAt { get; init; }
 }
 
 public sealed class ManagedPointsRedemption

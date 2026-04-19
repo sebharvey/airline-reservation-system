@@ -7,26 +7,28 @@ namespace ReservationSystem.Orchestration.Retail.Application.GetOrder;
 public sealed class GetOrderHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly PaymentServiceClient _paymentServiceClient;
 
-    public GetOrderHandler(OrderServiceClient orderServiceClient)
+    public GetOrderHandler(OrderServiceClient orderServiceClient, PaymentServiceClient paymentServiceClient)
     {
         _orderServiceClient = orderServiceClient;
+        _paymentServiceClient = paymentServiceClient;
     }
 
     public async Task<ManagedOrderResponse?> HandleRetrieveAsync(
         string bookingReference, string surname, CancellationToken cancellationToken)
     {
         var order = await _orderServiceClient.RetrieveOrderAsync(bookingReference, surname, cancellationToken);
-        return order is null ? null : MapToResponse(order);
+        return order is null ? null : await MapToResponseAsync(order, cancellationToken);
     }
 
     public async Task<ManagedOrderResponse?> HandleAsync(GetOrderQuery query, CancellationToken cancellationToken)
     {
         var order = await _orderServiceClient.GetOrderByRefAsync(query.BookingReference, cancellationToken);
-        return order is null ? null : MapToResponse(order);
+        return order is null ? null : await MapToResponseAsync(order, cancellationToken);
     }
 
-    private static ManagedOrderResponse MapToResponse(OrderMsOrderResult order)
+    private async Task<ManagedOrderResponse> MapToResponseAsync(OrderMsOrderResult order, CancellationToken cancellationToken)
     {
         var passengers = new List<ManagedPassenger>();
         var flightSegments = new List<ManagedFlightSegment>();
@@ -123,9 +125,30 @@ public sealed class GetOrderHandler
                 {
                     foreach (var p in paymentsArray.EnumerateArray())
                     {
+                        var paymentRef = p.TryGetProperty("paymentReference", out var pr) ? pr.GetString() ?? "" : "";
+
+                        IReadOnlyList<ManagedPaymentEvent> events = [];
+                        if (!string.IsNullOrEmpty(paymentRef))
+                        {
+                            try
+                            {
+                                var rawEvents = await _paymentServiceClient.GetPaymentEventsAsync(paymentRef, cancellationToken);
+                                events = rawEvents.Select(e => new ManagedPaymentEvent
+                                {
+                                    PaymentEventId = e.PaymentEventId.ToString(),
+                                    EventType      = e.EventType,
+                                    Amount         = e.Amount,
+                                    Currency       = e.CurrencyCode,
+                                    Notes          = e.Notes,
+                                    CreatedAt      = e.CreatedAt
+                                }).ToList();
+                            }
+                            catch { /* Non-fatal: return payment without events */ }
+                        }
+
                         payments.Add(new ManagedPayment
                         {
-                            PaymentReference = p.TryGetProperty("paymentReference", out var pr) ? pr.GetString() ?? "" : "",
+                            PaymentReference = paymentRef,
                             Description = p.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "",
                             Method = p.TryGetProperty("method", out var meth) ? meth.GetString() ?? "" : "",
                             CardLast4 = p.TryGetProperty("cardLast4", out var cl4) ? cl4.GetString() ?? "" : "",
@@ -135,7 +158,8 @@ public sealed class GetOrderHandler
                             Currency = p.TryGetProperty("currency", out var cur) ? cur.GetString() ?? order.CurrencyCode : order.CurrencyCode,
                             Status = p.TryGetProperty("status", out var st) ? st.GetString() ?? "" : "",
                             AuthorisedAt = p.TryGetProperty("authorisedAt", out var aat) ? aat.GetString() : null,
-                            SettledAt = p.TryGetProperty("settledAt", out var sat) ? sat.GetString() : null
+                            SettledAt = p.TryGetProperty("settledAt", out var sat) ? sat.GetString() : null,
+                            Events = events
                         });
                     }
                 }
