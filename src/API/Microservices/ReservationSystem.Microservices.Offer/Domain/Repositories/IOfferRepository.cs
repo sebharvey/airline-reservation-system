@@ -51,6 +51,13 @@ public interface IOfferRepository
     Task CreateSeatReservationsAsync(Guid inventoryId, Guid basketId, IEnumerable<string> seatNumbers, CancellationToken ct = default);
     Task UpdateSeatStatusAsync(Guid inventoryId, string seatNumber, string status, CancellationToken ct = default);
 
+    // FareFamily
+    Task<IReadOnlyList<Entities.FareFamily>> GetAllFareFamiliesAsync(CancellationToken ct = default);
+    Task<Entities.FareFamily?> GetFareFamilyByIdAsync(Guid fareFamilyId, CancellationToken ct = default);
+    Task CreateFareFamilyAsync(Entities.FareFamily fareFamily, CancellationToken ct = default);
+    Task UpdateFareFamilyAsync(Entities.FareFamily fareFamily, CancellationToken ct = default);
+    Task<bool> DeleteFareFamilyAsync(Guid fareFamilyId, CancellationToken ct = default);
+
     // FareRule
     Task<Entities.FareRule?> GetFareRuleByIdAsync(Guid fareRuleId, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FareRule>> GetAllFareRulesAsync(CancellationToken ct = default);

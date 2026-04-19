@@ -57,6 +57,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/schedules/schedules').then(m => m.SchedulesComponent),
       },
       {
+        path: 'fare-families',
+        loadComponent: () => import('./pages/fare-families/fare-families').then(m => m.FareFamiliesComponent),
+      },
+      {
         path: 'fare-rules',
         loadComponent: () => import('./pages/fare-rules/fare-rules').then(m => m.FareRulesComponent),
       },
@@ -79,6 +83,10 @@ export const routes: Routes = [
       {
         path: 'products',
         loadComponent: () => import('./pages/products/products').then(m => m.ProductsComponent),
+      },
+      {
+        path: 'payments',
+        loadComponent: () => import('./pages/payments/payment-list').then(m => m.PaymentListComponent),
       },
       {
         path: 'order-accounting',

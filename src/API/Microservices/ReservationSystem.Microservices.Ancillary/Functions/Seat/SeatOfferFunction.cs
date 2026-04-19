@@ -187,7 +187,7 @@ public sealed class SeatOfferFunction
         string? seatType = null;
         List<string>? attributes = null;
 
-        foreach (var sm in allSeatmaps.Where(s => s.IsActive && !string.IsNullOrEmpty(s.CabinLayout)))
+        foreach (var sm in allSeatmaps.Where(s => s.IsActive))
         {
             var fullSeatmap = await _seatmapRepository.GetByIdAsync(sm.SeatmapId, cancellationToken);
             if (fullSeatmap is null || string.IsNullOrEmpty(fullSeatmap.CabinLayout)) continue;

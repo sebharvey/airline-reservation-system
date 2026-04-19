@@ -1725,3 +1725,36 @@
 
 .debug-loading { color: #00ff88; font-family: monospace; font-size: 0.85rem; padding: 8px 0; }
 .debug-error   { color: #ff6b6b; font-family: monospace; font-size: 0.85rem; padding: 8px 0; }
+
+.debug-pre-wrap {
+  position: relative;
+}
+
+.debug-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: #a8ffcc;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.debug-copy-btn:hover {
+  opacity: 1;
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.debug-copy-btn.copied {
+  color: #00ff88;
+  border-color: rgba(0, 255, 136, 0.5);
+  opacity: 1;
+}

@@ -84,4 +84,25 @@ public sealed class EfPaymentRepository : IPaymentRepository
             .OrderBy(pe => pe.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<(Domain.Entities.Payment Payment, int EventCount)>> GetByDateWithEventCountAsync(
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        var start = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var end   = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+
+        var rows = await _dbContext.Payments
+            .AsNoTracking()
+            .Where(p => p.CreatedAt >= start && p.CreatedAt <= end)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new
+            {
+                Payment    = p,
+                EventCount = _dbContext.PaymentEvents.Count(e => e.PaymentId == p.PaymentId)
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(r => (r.Payment, r.EventCount)).ToList();
+    }
 }

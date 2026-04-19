@@ -265,6 +265,24 @@ public sealed class TicketSegment
 
     [JsonPropertyName("seatAssignments")]
     public List<SeatAssignmentItem> SeatAssignments { get; init; } = [];
+
+    [JsonPropertyName("ssrCodes")]
+    public List<SegmentSsrCode> SsrCodes { get; init; } = [];
+}
+
+public sealed class SegmentSsrCode
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("code")]
+    public string Code { get; init; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; init; } = string.Empty;
+
+    [JsonPropertyName("segmentRef")]
+    public string SegmentRef { get; init; } = string.Empty;
 }
 
 public sealed class SeatAssignmentItem

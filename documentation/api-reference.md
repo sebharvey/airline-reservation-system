@@ -23,7 +23,6 @@
 - [Admin API](#admin-api--full-api-spec)
   - [Authentication](#authentication-3)
   - [User Management](#user-management)
-- [Disruption API](#disruption-api--full-api-spec)
 - [Operations API](#operations-api--full-api-spec)
 - [Schedule Microservice](#schedule-microservice--full-api-spec)
 - [Offer Microservice](#offer-microservice--full-api-spec)
@@ -142,7 +141,7 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 | `POST` | `/v1/customers/{loyaltyNumber}/points/authorise` | Authorise a points redemption hold against the customer's balance for a reward booking; returns a `RedemptionReference`; verifies sufficient balance before placing hold |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/settle` | Settle a previously authorised points redemption; deducts points from balance and appends a `Redeem` transaction to the loyalty ledger |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/reverse` | Reverse a points authorisation hold, returning held points to the customer's available balance; used on booking failure rollback (e.g. ticketing failure after points authorisation) |
-| `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed; appends a `Reinstate` transaction to the loyalty ledger; used by Retail API on voluntary cancellation (reward bookings) and by Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost |
+| `POST` | `/v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed; appends a `Reinstate` transaction to the loyalty ledger; used by Retail API on voluntary cancellation (reward bookings) and by Retail API and Operations API when a flight change or IROPS rebooking reduces the points cost |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/add` | Add points directly to a customer's balance; caller supplies `transactionType` (must be one of `Earn`, `Redeem`, `Adjustment`, `Expiry`, `Reinstate`) and `description`; intended for manual adjustments and testing |
 | `POST` | `/v1/customers/{loyaltyNumber}/points/transfer` | Transfer points from the authenticated member's account to another loyalty account; requires the recipient's loyalty number and email address — both are verified to match the same account before points move; each account receives an `Adjustment` transaction recording the counterpart's loyalty number |
 | `GET` | `/v1/accounts/{userAccountId}/verify-email` | Verify ownership of an email address; called when the user follows the link in their registration confirmation email; delegates to Identity MS |
@@ -195,14 +194,15 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/admin/users/{userId}/reset-password` | Reset a user's password; unlocks the account and clears failed attempts |
 | `DELETE` | `/v1/admin/users/{userId}` | Permanently delete a user account; returns `404` if user does not exist |
 
----
+### Payment reporting
 
-## Disruption API — [Full API Spec](api-specs/disruption-api.md)
+Read-only staff endpoints for viewing payment transactions. All routes require a valid staff JWT with a `role` claim of `User`. Delegates to the Payment microservice.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests synchronously; returns `200 OK` when all records are updated |
-| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; **synchronously** closes flight inventory (Offer MS) and returns `202 Accepted`; per-passenger rebooking is processed **asynchronously** via Service Bus — each affected booking is published as an individual message and processed independently to prevent a single failure blocking the entire cohort; for the 72-hour no-rebooking window scenario, passengers are notified and bookings cancelled with full IROPS refund |
+| `GET` | `/v1/admin/payments?date=YYYY-MM-DD` | Retrieve all payments created on the given UTC date; each record includes a pre-computed `eventCount` so list views require no further round-trips; ordered most-recent-first |
+| `GET` | `/v1/admin/payments/{paymentId}` | Retrieve the full payment record by ID including current status and financial totals; `404` if not found |
+| `GET` | `/v1/admin/payments/{paymentId}/events` | Retrieve all payment events for a payment in chronological order; `404` if payment does not exist |
 
 ---
 
@@ -218,6 +218,9 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/schedules/ssim` | Import schedules from an IATA SSIM Chapter 7 plain-text file (`text/plain` body, required `?scheduleGroupId=` and optional `?createdBy=` query parameters); the Operations API parses all Type 3 scheduled-passenger leg records, converts them to the season schedule JSON payload format, and forwards to the Schedule MS `POST /v1/schedules`; returns `imported`, `deleted`, and per-schedule summary |
 | `POST` | `/v1/schedules/import-inventory` | Generate `FlightInventory` and `Fare` records in the Offer MS from schedules stored in the Schedule MS; optional `?scheduleGroupId=` to limit to a specific group; request body supplies cabin seat counts for every aircraft type in the fleet as `aircraftConfigs[]{aircraftTypeCode, cabins[]{cabinCode, totalSeats}}`; the handler matches each schedule row to the correct aircraft config by `AircraftType`, enumerates operating dates, batch-creates inventory, then attaches fares from stored fare rules in the Offer MS; skips operating dates where inventory already exists; returns `schedulesProcessed`, `inventoriesCreated`, `inventoriesSkipped`, and `faresCreated` |
 | `POST` | `/v1/admin/inventory/cancel` | Cancel all inventory for a flight; accepts `flightNumber` and `departureDate` (yyyy-MM-dd) in the request body; calls Offer MS `PATCH /v1/inventory/cancel` to set `SeatsAvailable = 0` and `Status = Cancelled` across all cabins; returns `204 No Content` on success; `404` if the flight is not found; `422` if already cancelled; staff JWT required |
+| `POST` | `/v1/admin/disruption/cancel` | Cancel a flight and **synchronously** rebook all affected passengers (IROPS); closes inventory, then processes every booking in priority order (cabin F→J→W→Y, loyalty tier Platinum→Gold→Silver→Blue, booking date earliest first); for each booking: holds inventory on the best available replacement flight (direct then connecting via LHR, 72-hour window, 60-min MCT), adjusts reward points, rebooks the order, reissues e-tickets, updates the manifest; cancels with full IROPS refund if no replacement is available; returns per-passenger outcomes; staff JWT required |
+| `POST` | `/v1/admin/disruption/change` | Handle aircraft type change disruption — future capability, not yet implemented; returns `501 Not Implemented`; staff JWT required |
+| `POST` | `/v1/admin/disruption/time` | Handle flight time change disruption — future capability, not yet implemented; returns `501 Not Implemented`; staff JWT required |
 | `GET`  | `/v1/flights/{flightNumber}/status` | Public endpoint — get real-time flight status derived from inventory state for today's date; calls the Offer MS to retrieve inventory for the flight, then maps inventory status and load factor into a `FlightStatus` response with scheduled/estimated times, gate, terminal, aircraft type, delay, and status message |
 | `GET`  | `/v1/flight-numbers` | Return distinct flight numbers with route details (origin, destination, departure time, arrival time) from schedules active for the current date; calls the Schedule MS and filters to schedules where today falls within `ValidFrom`–`ValidTo`; intended for populating flight selection dropdowns |
 | `POST` | `/v1/oci/retrieve` | Retrieve booking for online check-in by booking reference, lead PAX surname, and departure airport; optionally pre-fills passport data from loyalty profile when a loyalty number is supplied |
@@ -226,6 +229,18 @@ Staff-facing endpoints for managing employee user accounts. All routes require a
 | `POST` | `/v1/oci/bags` | Submit baggage selection during check-in (not implemented — returns success) |
 | `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
+
+### Fare family management
+
+Staff-only endpoints for managing the named fare family catalogue. Fare families are stored in `offer.FareFamily` and referenced by name in fare rules and search results. All routes require a valid staff JWT.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`    | `/v1/admin/fare-families` | List all fare families ordered by `displayOrder` then `name` |
+| `GET`    | `/v1/admin/fare-families/{fareFamilyId}` | Retrieve a single fare family by ID; `404` if not found |
+| `POST`   | `/v1/admin/fare-families` | Create a new fare family; requires `name` (unique, max 50 chars); optional `description` and `displayOrder` |
+| `PUT`    | `/v1/admin/fare-families/{fareFamilyId}` | Update name, description, and display order of an existing fare family; `404` if not found |
+| `DELETE` | `/v1/admin/fare-families/{fareFamilyId}` | Permanently delete a fare family; `404` if not found |
 
 ### Fare rule management
 
@@ -238,6 +253,15 @@ Staff-only endpoints for managing fare pricing rules. All routes require a valid
 | `POST` | `/v1/admin/fare-rules` | Create a new fare rule; accepts `isPrivate` boolean — when `true`, the fare is hidden from the public search channel and only available to Contact Centre agents |
 | `PUT`  | `/v1/admin/fare-rules/{fareRuleId}` | Update an existing fare rule including its `isPrivate` flag; `404` if not found |
 | `DELETE` | `/v1/admin/fare-rules/{fareRuleId}` | Permanently delete a fare rule; `404` if not found |
+
+### Disruption handling
+
+Endpoints called exclusively by the Flight Operations System (FOS). Authenticated via Azure Function Host Key (`x-functions-key`).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests synchronously; returns `200 OK` when all records are updated |
+| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; **synchronously** closes flight inventory (Offer MS) and returns `202 Accepted`; per-passenger rebooking is processed **asynchronously** via Service Bus — each affected booking is published as an individual message and processed independently to prevent a single failure blocking the entire cohort; for the 72-hour no-rebooking window scenario, passengers are notified and bookings cancelled with full IROPS refund |
 
 ---
 
@@ -278,7 +302,17 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/inventory/hold` | Hold seats against a new or replacement booking (increments SeatsHeld; decrements SeatsAvailable) |
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation (decrements SeatsHeld; increments SeatsSold; SeatsAvailable unchanged) |
 | `POST` | `/v1/inventory/release` | Release held or sold seats back to available inventory (increments SeatsAvailable; decrements SeatsHeld or SeatsSold — used on voluntary cancel, flight change rollback, and basket expiry) |
-| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Disruption API on flight cancellation) |
+| `PATCH` | `/v1/inventory/cancel` | Close a cancelled flight's inventory (sets SeatsAvailable = 0, status = Cancelled; used by Operations API on flight cancellation) |
+
+**Fare family management (internal — called by Operations API)**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`    | `/v1/fare-families` | List all fare families ordered by `displayOrder` then `name` |
+| `GET`    | `/v1/fare-families/{fareFamilyId}` | Retrieve a single fare family by ID; `404` if not found |
+| `POST`   | `/v1/fare-families` | Create a new fare family; requires `name` (unique); optional `description` and `displayOrder` |
+| `PUT`    | `/v1/fare-families/{fareFamilyId}` | Update an existing fare family; `404` if not found |
+| `DELETE` | `/v1/fare-families/{fareFamilyId}` | Permanently delete a fare family; `404` if not found |
 
 **Fare rule management (internal — called by Operations API)**
 
@@ -306,13 +340,13 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `DELETE` | `/v1/orders/{orderId}` | Delete a draft order by ID; only orders in `Draft` status may be deleted; returns `204` on success, `404` if not found or not in Draft status |
 | `POST` | `/v1/orders/confirm` | Confirm a draft order: validates required data (passengers, segments), writes payment references into OrderData, assigns a booking reference (PNR), transitions `OrderStatus` to `Confirmed`, and deletes the basket |
 | `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
-| `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Disruption API) |
+| `GET` | `/v1/orders` | Query orders by flight number and departure date (used by Operations API for disruption handling) |
 | `PATCH` | `/v1/orders/{bookingRef}/passengers` | Update passenger details on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/seats` | Update seat assignments on a confirmed order |
-| `PATCH` | `/v1/orders/{bookingRef}/segments` | Update segment departure/arrival times (used by Disruption API for delays) |
+| `PATCH` | `/v1/orders/{bookingRef}/segments` | Update segment departure/arrival times (used by Operations API for flight delay handling) |
 | `PATCH` | `/v1/orders/{bookingRef}/change` | Apply a confirmed flight change, recording new segment, add-collect, and payment reference |
 | `PATCH` | `/v1/orders/{bookingRef}/cancel` | Mark an order as cancelled with reason and any cancellation fee |
-| `PATCH` | `/v1/orders/{bookingRef}/rebook` | Rebook a passenger onto a replacement flight (used by Disruption API for cancellations) |
+| `PATCH` | `/v1/orders/{bookingRef}/rebook` | Rebook a passenger onto a replacement flight (used by Operations API for IROPS cancellation rebooking) |
 | `PATCH` | `/v1/orders/{bookingRef}/bags` | Add or update bag order items on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/ssrs` | Add, update, or remove SSR items on a confirmed order; publishes `OrderChanged` event |
 | `POST` | `/v1/orders/{bookingRef}/checkin` | Record check-in status and APIS data for passengers |
@@ -329,6 +363,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/payment/{paymentId}/settle` | Settle a previously authorised payment; creates a `Settled` or `PartialSettlement` `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/void` | Void a previously authorised payment, releasing held funds; updates the `PaymentEvent` row |
 | `POST` | `/v1/payment/{paymentId}/refund` | Refund a settled payment in full or in part (used on voluntary cancellation) |
+| `GET` | `/v1/payment?date=YYYY-MM-DD` | Retrieve all payments created on the given UTC date; each record includes a pre-computed `eventCount`; ordered most-recent-first; called by the Admin API payment reporting endpoints |
 | `GET` | `/v1/payment/{paymentId}` | Retrieve a payment record by ID; returns the full payment including current status, authorised and settled amounts |
 | `GET` | `/v1/payment/{paymentId}/events` | Retrieve all payment events for a payment in chronological order; reflects the full lifecycle history (Authorised, Settled, Voided, Refunded, etc.) |
 
@@ -355,9 +390,9 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 | `POST` | `/v1/manifest` | Write operational manifest entries (`delivery.Manifest` records) at booking confirmation or after rebooking |
 | `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
 | `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; used to record check-in status (OLCI) and to update SSR codes following a self-serve SSR change |
-| `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Disruption API for delays) |
+| `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Operations API for flight delay handling) |
 | `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
-| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Disruption API for cancellation rebooking and by DCS for check-in validation) |
+| `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Operations API for IROPS cancellation rebooking and by DCS for check-in validation) |
 
 ### Documents
 

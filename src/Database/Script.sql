@@ -20,6 +20,7 @@ SET NOCOUNT ON;
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]',  'TR') IS NOT NULL DROP TRIGGER [offer].[TR_FlightInventory_UpdatedAt];
 IF OBJECT_ID('[offer].[TR_Fare_UpdatedAt]',              'TR') IS NOT NULL DROP TRIGGER [offer].[TR_Fare_UpdatedAt];
 IF OBJECT_ID('[offer].[TR_FareRule_UpdatedAt]',          'TR') IS NOT NULL DROP TRIGGER [offer].[TR_FareRule_UpdatedAt];
+IF OBJECT_ID('[offer].[TR_FareFamily_UpdatedAt]',        'TR') IS NOT NULL DROP TRIGGER [offer].[TR_FareFamily_UpdatedAt];
 IF OBJECT_ID('[offer].[TR_StoredOffer_UpdatedAt]',       'TR') IS NOT NULL DROP TRIGGER [offer].[TR_StoredOffer_UpdatedAt];
 IF OBJECT_ID('[order].[TR_Basket_UpdatedAt]',            'TR') IS NOT NULL DROP TRIGGER [order].[TR_Basket_UpdatedAt];
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]',             'TR') IS NOT NULL DROP TRIGGER [order].[TR_Order_UpdatedAt];
@@ -69,6 +70,7 @@ IF OBJECT_ID('[order].[Basket]',       'U') IS NOT NULL DROP TABLE [order].[Bask
 
 -- offer
 IF OBJECT_ID('[offer].[StoredOffer]',     'U') IS NOT NULL DROP TABLE [offer].[StoredOffer];
+IF OBJECT_ID('[offer].[FareFamily]',      'U') IS NOT NULL DROP TABLE [offer].[FareFamily];
 IF OBJECT_ID('[offer].[FareRule]',        'U') IS NOT NULL DROP TABLE [offer].[FareRule];
 IF OBJECT_ID('[offer].[Fare]',            'U') IS NOT NULL DROP TABLE [offer].[Fare];
 IF OBJECT_ID('[offer].[InventoryHold]',   'U') IS NOT NULL DROP TABLE [offer].[InventoryHold];
@@ -175,7 +177,7 @@ CREATE TABLE [offer].[FlightInventory] (
     UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Updated DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_FlightInventory          PRIMARY KEY (InventoryId),
     CONSTRAINT UQ_FlightInventory_Flight   UNIQUE      (FlightNumber, DepartureDate),
-    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled'))
+    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled','Ticketing Closed'))
 );
 GO
 
@@ -445,6 +447,34 @@ BEGIN
             SET    UpdatedAt = SYSUTCDATETIME()
             FROM   [offer].[StoredOffer] t
             INNER JOIN inserted i ON t.StoredOfferId = i.StoredOfferId;
+    ');
+END
+GO
+
+-- offer.FareFamily ------------------------------------------------------------
+IF OBJECT_ID('[offer].[FareFamily]', 'U') IS NULL
+CREATE TABLE [offer].[FareFamily] (
+    FareFamilyId  UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_FareFamily_Id           DEFAULT NEWID(),
+    Name          VARCHAR(50)      NOT NULL,
+    Description   VARCHAR(255)         NULL,
+    DisplayOrder  INT              NOT NULL CONSTRAINT DF_FareFamily_DisplayOrder  DEFAULT 0,
+    CreatedAt     DATETIME2        NOT NULL CONSTRAINT DF_FareFamily_Created       DEFAULT SYSUTCDATETIME(),
+    UpdatedAt     DATETIME2        NOT NULL CONSTRAINT DF_FareFamily_Updated       DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_FareFamily      PRIMARY KEY (FareFamilyId),
+    CONSTRAINT UQ_FareFamily_Name UNIQUE (Name)
+);
+GO
+
+IF OBJECT_ID('[offer].[TR_FareFamily_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [offer].[TR_FareFamily_UpdatedAt]
+        ON [offer].[FareFamily]
+        AFTER UPDATE AS
+            UPDATE [offer].[FareFamily]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [offer].[FareFamily] t
+            INNER JOIN inserted i ON t.FareFamilyId = i.FareFamilyId;
     ');
 END
 GO
@@ -1644,6 +1674,7 @@ BEGIN TRY
     TRUNCATE TABLE [order].[Order];
     TRUNCATE TABLE [order].[Basket];
     TRUNCATE TABLE [offer].[StoredOffer];
+    TRUNCATE TABLE [offer].[FareFamily];
     TRUNCATE TABLE [offer].[FareRule];
     TRUNCATE TABLE [offer].[Fare];
     TRUNCATE TABLE [offer].[FlightInventory];
@@ -1812,6 +1843,12 @@ BEGIN TRY
     (@FareId_AX001_Y_Flex, @InvId_AX001,'YFLEXGB','Economy Flex', 'Y','Y', 350.00, 97.25, 447.25,1,1,0.00,  0.00, 35000, 97.25,'2025-01-01','2099-12-31'),
     (@FareId_AX001_Y_Light,@InvId_AX001,'YLOWUK', 'Economy Light','Y','Y', 149.00, 97.25, 246.25,0,0,0.00,149.00,  NULL,  NULL,'2025-01-01','2099-12-31'),
     (@FareId_AX411_Y_Light,@InvId_AX411,'YLOWUK', 'Economy Light','Y','Y', 199.00,110.50, 309.50,0,0,0.00,199.00,  NULL,  NULL,'2025-01-01','2099-12-31');
+
+    -- offer.FareFamily — named fare family catalogue ---------------------------
+    INSERT INTO [offer].[FareFamily] (Name, Description, DisplayOrder) VALUES
+    ('Economy Light', 'Non-refundable, non-changeable economy fare with no free bag allowance', 10),
+    ('Economy Flex',  'Fully refundable and changeable economy fare with generous bag allowance', 20),
+    ('Business Flex', 'Premium fully flexible business class fare with lounge access', 30);
 
     -- offer.FareRule — three-tier cascade drives search pricing --------------
     -- Tier 1 (global default):  FlightNumber IS NULL, ValidFrom IS NULL, ValidTo IS NULL

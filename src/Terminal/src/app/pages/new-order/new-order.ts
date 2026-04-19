@@ -498,6 +498,7 @@ export class NewOrderComponent {
         seatNumber: sel.seatOffer.seatNumber,
         seatPosition: sel.seatOffer.position,
         price: sel.seatOffer.price,
+        tax: sel.seatOffer.tax ?? 0,
         currency: sel.seatOffer.currency,
       });
     }
@@ -791,36 +792,55 @@ export class NewOrderComponent {
 
   // #region TEMP: Random pax test data — remove before production
   fillRandomPaxData(): void {
-    const adultPool = [
-      { givenName: 'James',  surname: 'Harrison', gender: 'Male',   dob: '1985-03-22' },
-      { givenName: 'Sarah',  surname: 'Mitchell',  gender: 'Female', dob: '1990-07-14' },
-      { givenName: 'Thomas', surname: 'Clarke',    gender: 'Male',   dob: '1978-11-05' },
-      { givenName: 'Emily',  surname: 'Watson',    gender: 'Female', dob: '1995-02-28' },
-      { givenName: 'Daniel', surname: 'Brown',     gender: 'Male',   dob: '1982-09-17' },
-    ];
-    const childPool = [
-      { givenName: 'Oliver', gender: 'Male',   dob: '2018-04-10' },
-      { givenName: 'Sophie', gender: 'Female', dob: '2016-08-23' },
-      { givenName: 'Jack',   gender: 'Male',   dob: '2019-12-01' },
-    ];
-    const infantPool = [
-      { givenName: 'Noah', gender: 'Male',   dob: '2025-06-15' },
-      { givenName: 'Isla', gender: 'Female', dob: '2025-01-20' },
-    ];
+    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const randomDob = (minAge: number, maxAge: number): string => {
+      const now = new Date();
+      const year = now.getFullYear() - randInt(minAge, maxAge);
+      const month = randInt(1, 12).toString().padStart(2, '0');
+      const day = randInt(1, 28).toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
-    const leadSurname = adultPool[0].surname;
-    let ai = 0, ci = 0, ii = 0;
+    const maleNames   = ['James', 'Thomas', 'Daniel', 'William', 'Mohammed', 'Liam', 'Carlos', 'Arjun', 'Stefan', 'Oluwaseun', 'Marcus', 'Henrik', 'Rajan', 'Dmitri', 'Kwame', 'Tariq', 'Brendan', 'Matteo', 'Hiroshi', 'Samuel'];
+    const femaleNames = ['Sarah', 'Emily', 'Charlotte', 'Priya', 'Grace', 'Amara', 'Mei', 'Natalie', 'Yuki', 'Elena', 'Fatima', 'Ingrid', 'Saoirse', 'Valentina', 'Adaeze', 'Leila', 'Brigitte', 'Chiara', 'Ananya', 'Miriam'];
+    const surnames    = ['Harrison', 'Mitchell', 'Clarke', 'Watson', 'Brown', 'Hughes', 'Fletcher', 'Patel', 'Ahmed', "O'Sullivan", 'Murphy', 'Okafor', 'Garcia', 'Chen', 'Kumar', 'Dubois', 'Hoffmann', 'Tanaka', 'Adeyemi', 'Petrov', 'Andersen', 'Kowalski', 'Nakamura', 'Ferreira', 'Al-Rashid', 'Johansson', 'Mensah', 'Reyes', 'Nguyen', 'Bergmann'];
+
+    const childMaleNames   = ['Oliver', 'Jack', 'Leo', 'Ethan', 'Noah', 'Remy', 'Kai', 'Idris', 'Matteo', 'Eli'];
+    const childFemaleNames = ['Sophie', 'Ava', 'Mia', 'Layla', 'Zara', 'Niamh', 'Aisha', 'Chloe', 'Freya', 'Imani'];
+    const infantMaleNames  = ['Finn', 'Theo', 'Archie', 'Rory', 'Ezra', 'Bodhi'];
+    const infantFemaleNames = ['Isla', 'Luna', 'Rosie', 'Ivy', 'Wren', 'Cora'];
+
+    const randomAdult = (usedGiven: Set<string>) => {
+      const gender: 'Male' | 'Female' = Math.random() < 0.5 ? 'Male' : 'Female';
+      const pool = gender === 'Male' ? maleNames : femaleNames;
+      const available = pool.filter(n => !usedGiven.has(n));
+      const givenName = pick(available.length ? available : pool);
+      usedGiven.add(givenName);
+      return { givenName, surname: pick(surnames), gender };
+    };
+
+    const usedGiven = new Set<string>();
+    const leadAdult = randomAdult(usedGiven);
+    const leadSurname = leadAdult.surname;
+
     this.passengerForms.update(forms => forms.map((pax, idx) => {
       if (pax.type === 'ADT') {
-        const t = adultPool[ai++ % adultPool.length];
-        return { ...pax, givenName: t.givenName, surname: t.surname, dob: t.dob, gender: t.gender,
-          ...(idx === 0 ? { email: 'james.harrison@example.com', phone: '+44 7700 900123' } : {}) };
+        const adult = idx === 0 ? leadAdult : randomAdult(usedGiven);
+        const dob = randomDob(18, 70);
+        return {
+          ...pax, givenName: adult.givenName, surname: adult.surname, dob, gender: adult.gender,
+          ...(idx === 0 ? { email: `${adult.givenName.toLowerCase()}.${adult.surname.toLowerCase().replace(/[^a-z]/g, '')}@example.com`, phone: `+44 7${randInt(100, 999)} ${randInt(100000, 999999)}` } : {}),
+        };
       } else if (pax.type === 'CHD') {
-        const t = childPool[ci++ % childPool.length];
-        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+        const isMale = Math.random() < 0.5;
+        const givenName = pick(isMale ? childMaleNames : childFemaleNames);
+        return { ...pax, givenName, surname: leadSurname, dob: randomDob(2, 11), gender: isMale ? 'Male' : 'Female' };
       } else {
-        const t = infantPool[ii++ % infantPool.length];
-        return { ...pax, givenName: t.givenName, surname: leadSurname, dob: t.dob, gender: t.gender };
+        const isMale = Math.random() < 0.5;
+        const givenName = pick(isMale ? infantMaleNames : infantFemaleNames);
+        const infantDob = new Date(Date.now() - randInt(30, 700) * 86400000).toISOString().slice(0, 10);
+        return { ...pax, givenName, surname: leadSurname, dob: infantDob, gender: isMale ? 'Male' : 'Female' };
       }
     }));
   }

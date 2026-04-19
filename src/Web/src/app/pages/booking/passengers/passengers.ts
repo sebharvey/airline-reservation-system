@@ -148,8 +148,16 @@ isFirstAdult(index: number): boolean {
   }
 
   fillRandomPaxData(): void {
-    const firstNames = ['James', 'Oliver', 'Harry', 'Jack', 'George', 'Emma', 'Olivia', 'Amelia', 'Isla', 'Sophie'];
-    const lastNames = ['Smith', 'Jones', 'Williams', 'Taylor', 'Brown', 'Davies', 'Evans', 'Wilson', 'Thomas', 'Roberts'];
+    const firstNames = [
+      'James', 'Oliver', 'Harry', 'Jack', 'George', 'Emma', 'Olivia', 'Amelia', 'Isla', 'Sophie',
+      'Charlotte', 'William', 'Priya', 'Mohammed', 'Grace', 'Liam', 'Amara', 'Carlos', 'Mei', 'Arjun',
+      'Natalie', 'Stefan', 'Yuki', 'Elena', 'Leo', 'Ava', 'Ethan', 'Layla', 'Zara', 'Finn',
+    ];
+    const lastNames = [
+      'Smith', 'Jones', 'Williams', 'Taylor', 'Brown', 'Davies', 'Evans', 'Wilson', 'Thomas', 'Roberts',
+      'Harrison', 'Mitchell', 'Clarke', 'Watson', 'Hughes', 'Fletcher', 'Patel', 'Ahmed', 'Murphy', 'Okafor',
+      'Garcia', 'Chen', 'Kumar', 'Dubois', 'Hoffmann', 'Tanaka', 'Adeyemi', 'Petrov', 'O\'Sullivan', 'Andersen',
+    ];
     const genders: Array<'Male' | 'Female' | 'Other'> = ['Male', 'Female', 'Other'];
 
     const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];

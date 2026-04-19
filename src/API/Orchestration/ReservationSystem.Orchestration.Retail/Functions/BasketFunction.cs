@@ -14,6 +14,7 @@ using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -28,6 +29,7 @@ public sealed class BasketFunction
     private readonly BasketSummaryHandler _basketSummaryHandler;
     private readonly PaymentSummaryHandler _paymentSummaryHandler;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly SeatServiceClient _seatServiceClient;
     private readonly ILogger<BasketFunction> _logger;
 
     public BasketFunction(
@@ -36,6 +38,7 @@ public sealed class BasketFunction
         BasketSummaryHandler basketSummaryHandler,
         PaymentSummaryHandler paymentSummaryHandler,
         OrderServiceClient orderServiceClient,
+        SeatServiceClient seatServiceClient,
         ILogger<BasketFunction> logger)
     {
         _createBasketHandler = createBasketHandler;
@@ -43,6 +46,7 @@ public sealed class BasketFunction
         _basketSummaryHandler = basketSummaryHandler;
         _paymentSummaryHandler = paymentSummaryHandler;
         _orderServiceClient = orderServiceClient;
+        _seatServiceClient = seatServiceClient;
         _logger = logger;
     }
 
@@ -192,6 +196,34 @@ public sealed class BasketFunction
         {
             _logger.LogWarning(ex, "Failed to read request body for UpdateSeats");
             return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        // Enrich each seat with authoritative price and tax from the Seat MS so that
+        // clients which omit or zero-out tax always store the correct values.
+        try
+        {
+            if (JsonNode.Parse(body) is JsonArray seatNodes && seatNodes.Count > 0)
+            {
+                var enrichTasks = seatNodes
+                    .OfType<JsonObject>()
+                    .Where(s => !string.IsNullOrEmpty(s["seatOfferId"]?.GetValue<string>()))
+                    .Select(async seatObj =>
+                    {
+                        var seatOfferId = seatObj["seatOfferId"]!.GetValue<string>();
+                        var offer = await _seatServiceClient.GetSeatOfferByIdAsync(seatOfferId, cancellationToken);
+                        // Only enrich when the Seat MS returned a meaningful price (non-empty position
+                        // means the seat was located in the seatmap and the pricing is authoritative).
+                        if (offer is null || string.IsNullOrEmpty(offer.Position)) return;
+                        seatObj["price"] = JsonValue.Create(offer.Price);
+                        seatObj["tax"]   = JsonValue.Create(offer.Tax);
+                    });
+                await Task.WhenAll(enrichTasks);
+                body = seatNodes.ToJsonString();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enrich seat pricing for basket {BasketId} — forwarding client values", basketId);
         }
 
         await _orderServiceClient.UpdateSeatsAsync(basketId, body, cancellationToken);

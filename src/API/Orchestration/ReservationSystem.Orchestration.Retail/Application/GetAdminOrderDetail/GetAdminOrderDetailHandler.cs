@@ -165,34 +165,72 @@ public sealed class GetAdminOrderDetailHandler
                 }
             }
 
-            var fareAmount  = item["baseFareAmount"] is JsonNode fareNode ? fareNode.DeepClone() : null;
-            var taxAmount   = item["taxAmount"]      is JsonNode taxNode  ? taxNode.DeepClone()  : null;
-            var itemTotal   = item["totalAmount"]    is JsonNode totNode  ? totNode.DeepClone()  : null;
-            var taxLines    = item["taxLines"]       is JsonNode tlNode   ? tlNode.DeepClone()   : null;
-            var currency    = orderData["currency"]  is JsonNode curNode  ? curNode.DeepClone()  : null;
+            var allPaxFare  = item["baseFareAmount"] is JsonNode fareNode ? fareNode.GetValue<decimal>() : (decimal?)null;
+            var allPaxTax   = item["taxAmount"]      is JsonNode taxNode  ? taxNode.GetValue<decimal>()  : (decimal?)null;
+            var allPaxTotal = item["totalAmount"]    is JsonNode totNode  ? totNode.GetValue<decimal>()  : (decimal?)null;
+            var taxLinesNode = item["taxLines"]      is JsonNode tlNode   ? tlNode.DeepClone()           : null;
+            var currency     = orderData["currency"] is JsonNode curNode  ? curNode.DeepClone()          : null;
+            var passengerCount = item["passengerCount"] is JsonNode pcNode ? pcNode.GetValue<int>() : 1;
+            if (passengerCount < 1) passengerCount = 1;
+
+            // Pre-ticketing: one item with all-pax amounts and "(N pax)" description.
+            // Ticketed: one item per passenger eTicket showing each passenger's per-pax share
+            // (so the subtotal row sums correctly without double-counting).
+            var itemDesc = passengerCount > 1 ? $"{segDesc} ({passengerCount} pax)" : segDesc;
 
             if (matchingETickets.Count > 0)
             {
+                var perPaxFare  = allPaxFare.HasValue  ? Math.Round(allPaxFare.Value  / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null;
+                var perPaxTax   = allPaxTax.HasValue   ? Math.Round(allPaxTax.Value   / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null;
+                // Derive lineTotal from the already-rounded fare + tax so per-row and footer totals are consistent.
+                var perPaxTotal = perPaxFare.HasValue || perPaxTax.HasValue
+                    ? (decimal?)((perPaxFare ?? 0m) + (perPaxTax ?? 0m))
+                    : (allPaxTotal.HasValue ? Math.Round(allPaxTotal.Value / passengerCount, 2, MidpointRounding.AwayFromZero) : (decimal?)null);
+
+                // Divide tax lines proportionally so the Fare modal shows per-pax line items.
+                JsonNode? perPaxTaxLines = null;
+                if (taxLinesNode is JsonArray tlArray && passengerCount > 1)
+                {
+                    var divided = new JsonArray();
+                    foreach (var tl in tlArray)
+                    {
+                        if (tl is not JsonObject tlObj) continue;
+                        var tlAmt = tlObj["amount"] is JsonNode a ? a.GetValue<decimal>() : 0m;
+                        divided.Add(new JsonObject
+                        {
+                            ["code"]        = tlObj["code"]?.DeepClone(),
+                            ["amount"]      = Math.Round(tlAmt / passengerCount, 2, MidpointRounding.AwayFromZero),
+                            ["description"] = tlObj["description"]?.DeepClone(),
+                        });
+                    }
+                    perPaxTaxLines = divided;
+                }
+                else
+                {
+                    perPaxTaxLines = taxLinesNode?.DeepClone();
+                }
+
                 foreach (var (paxId, eTicketNumber) in matchingETickets)
                 {
                     enrichedItems.Add(new JsonObject
                     {
-                        ["itemId"] = Guid.NewGuid().ToString(),
-                        ["itemType"] = "Flight",
-                        ["description"] = segDesc,
-                        ["passengerId"] = paxId,
-                        ["segmentId"] = inventoryIdStr,
-                        ["status"] = itemStatus,
-                        ["eTicketNumber"] = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
-                        ["seatNumber"] = null,
-                        ["bagWeightKg"] = null,
-                        ["fareAmount"]  = fareAmount?.DeepClone(),
-                        ["taxAmount"]   = taxAmount?.DeepClone(),
-                        ["totalAmount"] = itemTotal?.DeepClone(),
-                        ["lineTotal"]   = itemTotal?.DeepClone(),
-                        ["taxLines"]    = taxLines?.DeepClone(),
-                        ["amount"] = null,
-                        ["currency"] = currency?.DeepClone(),
+                        ["itemId"]         = Guid.NewGuid().ToString(),
+                        ["itemType"]       = "Flight",
+                        ["description"]    = segDesc,
+                        ["passengerId"]    = paxId,
+                        ["segmentId"]      = inventoryIdStr,
+                        ["status"]         = itemStatus,
+                        ["eTicketNumber"]  = !string.IsNullOrEmpty(eTicketNumber) ? (JsonNode)eTicketNumber : null,
+                        ["seatNumber"]     = null,
+                        ["bagWeightKg"]    = null,
+                        ["fareAmount"]     = perPaxFare.HasValue  ? (JsonNode)perPaxFare.Value  : null,
+                        ["taxAmount"]      = perPaxTax.HasValue   ? (JsonNode)perPaxTax.Value   : null,
+                        ["totalAmount"]    = perPaxTotal.HasValue ? (JsonNode)perPaxTotal.Value : null,
+                        ["lineTotal"]      = perPaxTotal.HasValue ? (JsonNode)perPaxTotal.Value : null,
+                        ["taxLines"]       = perPaxTaxLines?.DeepClone(),
+                        ["amount"]         = null,
+                        ["currency"]       = currency?.DeepClone(),
+                        ["passengerCount"] = 1,
                     });
                 }
             }
@@ -200,22 +238,23 @@ public sealed class GetAdminOrderDetailHandler
             {
                 enrichedItems.Add(new JsonObject
                 {
-                    ["itemId"] = Guid.NewGuid().ToString(),
-                    ["itemType"] = "Flight",
-                    ["description"] = segDesc,
-                    ["passengerId"] = null,
-                    ["segmentId"] = inventoryIdStr,
-                    ["status"] = itemStatus,
-                    ["eTicketNumber"] = null,
-                    ["seatNumber"] = null,
-                    ["bagWeightKg"] = null,
-                    ["fareAmount"]  = fareAmount?.DeepClone(),
-                    ["taxAmount"]   = taxAmount?.DeepClone(),
-                    ["totalAmount"] = itemTotal?.DeepClone(),
-                    ["lineTotal"]   = itemTotal?.DeepClone(),
-                    ["taxLines"]    = taxLines?.DeepClone(),
-                    ["amount"] = null,
-                    ["currency"] = currency?.DeepClone(),
+                    ["itemId"]         = Guid.NewGuid().ToString(),
+                    ["itemType"]       = "Flight",
+                    ["description"]    = itemDesc,
+                    ["passengerId"]    = null,
+                    ["segmentId"]      = inventoryIdStr,
+                    ["status"]         = itemStatus,
+                    ["eTicketNumber"]  = null,
+                    ["seatNumber"]     = null,
+                    ["bagWeightKg"]    = null,
+                    ["fareAmount"]     = allPaxFare.HasValue  ? (JsonNode)allPaxFare.Value  : null,
+                    ["taxAmount"]      = allPaxTax.HasValue   ? (JsonNode)allPaxTax.Value   : null,
+                    ["totalAmount"]    = allPaxTotal.HasValue ? (JsonNode)allPaxTotal.Value : null,
+                    ["lineTotal"]      = allPaxTotal.HasValue ? (JsonNode)allPaxTotal.Value : null,
+                    ["taxLines"]       = taxLinesNode?.DeepClone(),
+                    ["amount"]         = null,
+                    ["currency"]       = currency?.DeepClone(),
+                    ["passengerCount"] = passengerCount,
                 });
             }
         }
@@ -350,14 +389,14 @@ public sealed class GetAdminOrderDetailHandler
         // Compute order item subtotals server-side so the Terminal never calculates totals itself.
         decimal subtotalFare = 0m;
         decimal subtotalTax  = 0m;
-        decimal grandTotal   = 0m;
         foreach (var node in enrichedItems)
         {
             if (node is not JsonObject ei) continue;
             subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
             subtotalTax  += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
-            grandTotal   += ei["lineTotal"]?.GetValue<decimal>() ?? 0m;
         }
+        // Derive grandTotal from subtotals so all three figures are always internally consistent.
+        var grandTotal = Math.Round(subtotalFare + subtotalTax, 2);
 
         var orderCurrency = orderData["currency"]?.GetValue<string>() ?? "GBP";
         orderData["itemTotals"] = new JsonObject

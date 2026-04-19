@@ -30,7 +30,6 @@ export interface FlightInventoryGroup {
   totalSeats: number;
   totalSeatsAvailable: number;
   loadFactor: number;
-  ticketingStatus: string;
 }
 
 // Per-cabin entry within a single-flight inventory response.
@@ -96,6 +95,25 @@ export interface FlightSeatmap {
   cabins: CabinSeatmap[];
 }
 
+export interface DisruptionCancelOutcome {
+  bookingReference: string;
+  outcome: 'Rebooked' | 'CancelledWithRefund' | 'Failed';
+  replacementFlightNumber?: string;
+  replacementDepartureDate?: string;
+  failureReason?: string;
+}
+
+export interface DisruptionCancelResponse {
+  flightNumber: string;
+  departureDate: string;
+  affectedPassengerCount: number;
+  rebookedCount: number;
+  cancelledWithRefundCount: number;
+  failedCount: number;
+  outcomes: DisruptionCancelOutcome[];
+  processedAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   #http = inject(HttpClient);
@@ -111,10 +129,10 @@ export class InventoryService {
     );
   }
 
-  async cancelFlightInventory(flightNumber: string, departureDate: string): Promise<void> {
-    await firstValueFrom(
-      this.#http.post(
-        `${this.#operationsBaseUrl}/inventory/cancel`,
+  async cancelFlight(flightNumber: string, departureDate: string): Promise<DisruptionCancelResponse> {
+    return firstValueFrom(
+      this.#http.post<DisruptionCancelResponse>(
+        `${this.#operationsBaseUrl}/disruption/cancel`,
         { flightNumber, departureDate }
       )
     );

@@ -9,7 +9,7 @@ The Offer microservice is the system of record for flight inventory, fare defini
 
 > **Important:** The Offer microservice operates on individual flight **segments only**. It has no concept of multi-segment connecting itineraries. Connecting itinerary assembly (pairing legs, enforcing minimum connect time, combining prices) is exclusively the responsibility of the Retail API orchestration layer.
 
-> **Important:** The Offer microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API**, **Operations API**, **Schedule MS**, or **Disruption API** orchestration layers. See the [Security](#security) section for authentication details.
+> **Important:** The Offer microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API**, **Operations API**, **Schedule MS**, or **Operations API** orchestration layers. See the [Security](#security) section for authentication details.
 
 > **Implementation note:** The `src/API/Microservices/ReservationSystem.Microservices.Offer` project was scaffolded from the template and contains generic CRUD stubs that do not reflect the real Offer domain. When building this microservice, reuse that project as the starting point but **remove all placeholder CRUD operations and replace them with the real Offer domain implementation** as defined in this specification. Preserve the project structure, DI wiring, `host.json`, shared library references, and build pipeline.
 
@@ -81,9 +81,9 @@ The Offer MS owns **real-time seat availability** (available, held, or sold) per
 
 Code share is not in scope for the initial release. However, `offer.FlightInventory` must be designed to accommodate future `OperatingCarrier` and `OperatingFlightNumber` columns. API responses for `POST /v1/search` should include optional `operatingCarrier` and `operatingFlightNumber` fields (omitted/`null` for own-metal flights) so channels can handle them from launch.
 
-### Cancellation via Disruption API
+### Cancellation via Operations API
 
-When the Disruption API cancels a flight via `PATCH /v1/inventory/cancel`, `Status` is set to `Cancelled` and `SeatsAvailable` to `0`. Cancelled inventory is excluded from all search results. The Disruption API calls this endpoint synchronously before returning `202 Accepted` to the Flight Operations System.
+When the Operations API cancels a flight via `PATCH /v1/inventory/cancel`, `Status` is set to `Cancelled` and `SeatsAvailable` to `0`. Cancelled inventory is excluded from all search results. The Operations API calls this endpoint synchronously before returning `202 Accepted` to the Flight Operations System.
 
 ---
 
@@ -935,7 +935,7 @@ Update seat status on a flight. Used to mark seats as checked-in following OLCI 
 
 Hold seats against a new or replacement booking. Increments `SeatsHeld` and decrements `SeatsAvailable` for the specified inventory record and pax count. Called after validating the stored offer at basket creation.
 
-**When to use:** Called by the Retail API after `GET /v1/offers/{offerId}` confirms the offer is valid, as part of basket creation. Also called by the Disruption API when rebooking passengers onto a replacement flight. If the hold call fails, previously held inventory on other segments must be released via `POST /v1/inventory/release`.
+**When to use:** Called by the Retail API after `GET /v1/offers/{offerId}` confirms the offer is valid, as part of basket creation. Also called by the Operations API when rebooking passengers onto a replacement flight. If the hold call fails, previously held inventory on other segments must be released via `POST /v1/inventory/release`.
 
 > **Idempotency:** Calls with the same `basketId` and `inventoryId` combination return success without double-incrementing `SeatsHeld`.
 
@@ -1050,7 +1050,7 @@ Release held or sold seats back to available inventory. Increments `SeatsAvailab
 - **Basket creation failure:** If `POST /v1/inventory/hold` succeeds for one leg but fails for another in a connecting itinerary, the Retail API must release the successful hold.
 - **Voluntary cancellation:** Retail API releases sold seats after voiding e-tickets and confirming the cancellation.
 - **Flight change:** Retail API releases sold seats on the original flight after the replacement flight has been held.
-- **IROPS rollback:** Disruption API releases held seats if rebooking fails.
+- **IROPS rollback:** Operations API releases held seats if rebooking fails.
 
 #### Request
 
@@ -1093,9 +1093,9 @@ Release held or sold seats back to available inventory. Increments `SeatsAvailab
 
 ### PATCH /v1/inventory/cancel
 
-Close a cancelled flight's inventory. Sets `SeatsAvailable = 0` and `Status = Cancelled` for all inventory records matching the specified flight and date. Used exclusively by the Disruption API on flight cancellation.
+Close a cancelled flight's inventory. Sets `SeatsAvailable = 0` and `Status = Cancelled` for all inventory records matching the specified flight and date. Used exclusively by the Operations API on flight cancellation.
 
-**When to use:** Called by the Disruption API as the **first synchronous action** after receiving a flight cancellation event from the Flight Operations System — before returning `202 Accepted` to the FOS. This prevents new bookings from being accepted on the cancelled flight while passenger rebooking is processed asynchronously.
+**When to use:** Called by the Operations API as the **first synchronous action** after receiving a flight cancellation event from the Flight Operations System — before returning `202 Accepted` to the FOS. This prevents new bookings from being accepted on the cancelled flight while passenger rebooking is processed asynchronously.
 
 > **All cabins:** This endpoint cancels **all** inventory records for the given flight and departure date across all cabin classes in a single call, not per cabin.
 
@@ -1185,10 +1185,10 @@ When passenger selects seats:
 3. Old manifest deleted; new manifest written (Delivery MS).
 4. **Retail API → Offer MS:** `POST /v1/inventory/release` (`releaseType=Sold`) — release seats on original flight.
 
-### Flight Cancellation (Disruption API)
+### Flight Cancellation (Operations API)
 
-1. **Disruption API → Offer MS:** `PATCH /v1/inventory/cancel` — synchronous; takes all cabins off sale before `202 Accepted` is returned to FOS.
-2. (Async) For each passenger being rebooked: **Disruption API → Offer MS:** `POST /v1/search` — find replacement flight. `POST /v1/inventory/hold` — hold seats on replacement.
+1. **Operations API → Offer MS:** `PATCH /v1/inventory/cancel` — synchronous; takes all cabins off sale before `202 Accepted` is returned to FOS.
+2. (Async) For each passenger being rebooked: **Operations API → Offer MS:** `POST /v1/search` — find replacement flight. `POST /v1/inventory/hold` — hold seats on replacement.
 
 ### Schedule Generation (Operations API via Schedule MS)
 
@@ -1336,7 +1336,7 @@ curl -X POST https://{offer-ms-host}/v1/inventory/release \
   }'
 ```
 
-### Cancel a flight inventory (Disruption API → Offer MS)
+### Cancel a flight inventory (Operations API → Offer MS)
 
 ```bash
 curl -X PATCH https://{offer-ms-host}/v1/inventory/cancel \

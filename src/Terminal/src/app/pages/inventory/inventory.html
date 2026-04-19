@@ -73,7 +73,7 @@
     </div>
   }
 
-  <!-- Inventory table -->
+  <!-- Inventory table (desktop) -->
   @if (loaded()) {
     <div class="table-card">
       <table class="inventory-table">
@@ -86,12 +86,9 @@
             <th class="cabin-col">J</th>
             <th class="cabin-col">W</th>
             <th class="cabin-col">Y</th>
-            <th class="num-cell">Total Seats</th>
-            <th class="num-cell">Available</th>
             <th>Aircraft</th>
-            <th>Status</th>
             <th class="load-col">Load</th>
-            <th>Ticketing</th>
+            <th>Status</th>
             <th></th>
           </tr>
         </thead>
@@ -126,20 +123,15 @@
               <td class="cabin-col">
                 <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
               </td>
-              <td class="num-cell">{{ flight.totalSeats }}</td>
-              <td class="num-cell">{{ flight.totalSeatsAvailable }}</td>
               <td class="mono muted">{{ flight.aircraftType }}</td>
-              <td>
-                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
-              </td>
               <td class="load-col">
                 <div class="load-bar-wrap">
                   <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
                 </div>
-                <span class="load-pct muted">{{ flight.loadFactor }}%</span>
+                <span class="load-pct muted">({{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} – {{ availPct(flight) }}%)</span>
               </td>
               <td>
-                <span class="badge" [class]="ticketingClass(flight)">{{ flight.ticketingStatus }}</span>
+                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
               </td>
               <td class="action-col">
                 <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
@@ -149,7 +141,7 @@
                   class="disruption-btn"
                   (click)="openDisruptionModal(flight)"
                   [disabled]="!canDisrupt(flight)"
-                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.ticketingStatus === 'Closed' ? 'Flight is closed' : 'Manage disruption for this flight'">
+                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
                   Disruption
                 </button>
               </td>
@@ -158,11 +150,68 @@
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="14" class="empty-row">No flights found for this date.</td>
+              <td colspan="11" class="empty-row">No flights found for this date.</td>
             </tr>
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile card list -->
+    <div class="flight-cards">
+      @for (flight of flights(); track flight.flightNumber + flight.departureDate) {
+        <div class="flight-card" [class.flight-card-cancelled]="flight.status === 'Cancelled'">
+          <div class="fc-header">
+            <span class="fc-flight mono">{{ flight.flightNumber }}</span>
+            <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
+            <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+          </div>
+          <div class="fc-times mono muted">
+            {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
+            @if (flight.arrivalDayOffset > 0) {
+              <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+            }
+            <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
+          </div>
+          <div class="fc-cabins">
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">F</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">J</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">W</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">Y</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
+            </span>
+          </div>
+          <div class="fc-load">
+            <div class="load-bar-wrap">
+              <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+            </div>
+            <span class="load-pct muted">{{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} avail · {{ availPct(flight) }}% load</span>
+          </div>
+          <div class="fc-actions">
+            <button class="holds-btn fc-btn" (click)="openHoldsModal(flight)">Holds</button>
+            <button
+              class="disruption-btn fc-btn"
+              (click)="openDisruptionModal(flight)"
+              [disabled]="!canDisrupt(flight)"
+              [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+              Disruption
+            </button>
+          </div>
+        </div>
+      }
+      @if (flights().length === 0) {
+        <p class="empty-row">No flights found for this date.</p>
+      }
     </div>
 
     <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · Cabin columns show available / total seats</p>
@@ -259,7 +308,21 @@
                     <tr>
                       <td class="mono booking-ref">
                         @if (hold.bookingReference) {
-                          <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                          <span class="pnr-copy-wrap">
+                            <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                            <button
+                              class="copy-btn"
+                              [class.copied]="copiedHoldRef() === hold.bookingReference"
+                              (click)="copyBookingReference(hold.bookingReference, $event)"
+                              [title]="copiedHoldRef() === hold.bookingReference ? 'Copied!' : 'Copy booking reference'"
+                            >
+                              @if (copiedHoldRef() === hold.bookingReference) {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              }
+                            </button>
+                          </span>
                         } @else {
                           —
                         }
@@ -307,7 +370,21 @@
                       </td>
                       <td class="mono booking-ref">
                         @if (hold.bookingReference) {
-                          <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                          <span class="pnr-copy-wrap">
+                            <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                            <button
+                              class="copy-btn"
+                              [class.copied]="copiedHoldRef() === hold.bookingReference"
+                              (click)="copyBookingReference(hold.bookingReference, $event)"
+                              [title]="copiedHoldRef() === hold.bookingReference ? 'Copied!' : 'Copy booking reference'"
+                            >
+                              @if (copiedHoldRef() === hold.bookingReference) {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              }
+                            </button>
+                          </span>
                         } @else {
                           —
                         }
@@ -462,6 +539,24 @@
               </div>
             </div>
           </div>
+
+          <!-- Equipment change — coming soon -->
+          <div class="disruption-action-card disruption-action-disabled">
+            <div class="disruption-action-header">
+              <div class="disruption-action-icon disruption-icon-equipment">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2l3.6 3.6-1.1 2.9 2.9-1.1 3.6 3.6L9.7 22l3.6-3.5 3.6 3.5.9-2.8z"></path>
+                </svg>
+              </div>
+              <div class="disruption-action-text">
+                <div class="disruption-action-title">
+                  Equipment change
+                  <span class="badge-coming-soon">Coming soon</span>
+                </div>
+                <div class="disruption-action-desc">Switch the aircraft type for this flight. Seats will be remapped and affected passengers notified.</div>
+              </div>
+            </div>
+          </div>
         </div>
       }
 
@@ -484,9 +579,54 @@
           <ul class="disruption-confirm-effects">
             <li>The flight will be marked as cancelled immediately</li>
             <li>No new bookings will be accepted on this flight</li>
-            <li>Affected passengers will need to be rebooked</li>
+            <li>Affected passengers will be automatically rebooked where possible</li>
+            <li>Passengers with no available replacement will receive a full refund</li>
             <li>This action cannot be undone</li>
           </ul>
+        </div>
+      }
+
+      @if (disruptionStep() === 'result') {
+        @let result = disruptionResult()!;
+        <div class="disruption-result">
+          <div class="disruption-result-summary">
+            <div class="disruption-result-stat">
+              <span class="disruption-result-stat-value">{{ result.affectedPassengerCount }}</span>
+              <span class="disruption-result-stat-label">Affected</span>
+            </div>
+            <div class="disruption-result-stat disruption-result-stat-rebooked">
+              <span class="disruption-result-stat-value">{{ result.rebookedCount }}</span>
+              <span class="disruption-result-stat-label">Rebooked</span>
+            </div>
+            <div class="disruption-result-stat disruption-result-stat-refunded">
+              <span class="disruption-result-stat-value">{{ result.cancelledWithRefundCount }}</span>
+              <span class="disruption-result-stat-label">Refunded</span>
+            </div>
+            @if (result.failedCount > 0) {
+              <div class="disruption-result-stat disruption-result-stat-failed">
+                <span class="disruption-result-stat-value">{{ result.failedCount }}</span>
+                <span class="disruption-result-stat-label">Failed</span>
+              </div>
+            }
+          </div>
+
+          <div class="disruption-result-outcomes">
+            @for (outcome of result.outcomes; track outcome.bookingReference) {
+              <div class="disruption-outcome-row" [class]="'disruption-outcome-' + outcome.outcome.toLowerCase()">
+                <span class="disruption-outcome-ref">{{ outcome.bookingReference }}</span>
+                @if (outcome.outcome === 'Rebooked') {
+                  <span class="disruption-outcome-badge badge-active">Rebooked</span>
+                  <span class="disruption-outcome-detail">{{ outcome.replacementFlightNumber }} &bull; {{ outcome.replacementDepartureDate }}</span>
+                } @else if (outcome.outcome === 'CancelledWithRefund') {
+                  <span class="disruption-outcome-badge badge-refunded">Refunded</span>
+                  <span class="disruption-outcome-detail">No replacement available — full refund issued</span>
+                } @else {
+                  <span class="disruption-outcome-badge badge-inactive">Failed</span>
+                  <span class="disruption-outcome-detail">{{ outcome.failureReason }}</span>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
     </div>
@@ -502,11 +642,14 @@
         <button class="btn-danger" (click)="executeCancellation()" [disabled]="disruptionLoading()">
           @if (disruptionLoading()) {
             <span class="btn-spinner-white"></span>
-            Cancelling&hellip;
+            Processing&hellip;
           } @else {
             Yes, cancel flight
           }
         </button>
+      }
+      @if (disruptionStep() === 'result') {
+        <button class="btn-primary" (click)="closeDisruptionResult()">Done</button>
       }
     </div>
   </div>

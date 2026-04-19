@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
 using ReservationSystem.Microservices.Payment.Application.GetPayment;
 using ReservationSystem.Microservices.Payment.Application.GetPaymentEvents;
+using ReservationSystem.Microservices.Payment.Application.GetPaymentsByDate;
 using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
@@ -32,6 +33,7 @@ public sealed class PaymentFunction
     private readonly VoidPaymentHandler _voidHandler;
     private readonly GetPaymentHandler _getPaymentHandler;
     private readonly GetPaymentEventsHandler _getPaymentEventsHandler;
+    private readonly GetPaymentsByDateHandler _getPaymentsByDateHandler;
     private readonly ILogger<PaymentFunction> _logger;
 
     public PaymentFunction(
@@ -42,6 +44,7 @@ public sealed class PaymentFunction
         VoidPaymentHandler voidHandler,
         GetPaymentHandler getPaymentHandler,
         GetPaymentEventsHandler getPaymentEventsHandler,
+        GetPaymentsByDateHandler getPaymentsByDateHandler,
         ILogger<PaymentFunction> logger)
     {
         _initialiseHandler = initialiseHandler;
@@ -51,6 +54,7 @@ public sealed class PaymentFunction
         _voidHandler = voidHandler;
         _getPaymentHandler = getPaymentHandler;
         _getPaymentEventsHandler = getPaymentEventsHandler;
+        _getPaymentsByDateHandler = getPaymentsByDateHandler;
         _logger = logger;
     }
 
@@ -425,6 +429,42 @@ public sealed class PaymentFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve events for payment {PaymentId}", paymentId);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/payment?date=YYYY-MM-DD
+    // -------------------------------------------------------------------------
+
+    [Function("GetPaymentsByDate")]
+    [OpenApiOperation(operationId: "GetPaymentsByDate", tags: new[] { "Payments" }, Summary = "Get all payments created on a specific date")]
+    [OpenApiParameter(name: "date", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "Date in YYYY-MM-DD format (UTC)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(PaymentListItemResponse[]), Description = "OK – list of payments with event counts")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or missing date")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
+    public async Task<HttpResponseData> GetPaymentsByDate(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var dateStr = req.Url.Query
+            .TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(p => p.Split('=', 2))
+            .FirstOrDefault(p => p.Length == 2 && string.Equals(p[0], "date", StringComparison.OrdinalIgnoreCase))
+            ?[1];
+
+        if (string.IsNullOrWhiteSpace(dateStr) || !DateOnly.TryParse(Uri.UnescapeDataString(dateStr), out var date))
+            return await req.BadRequestAsync("The 'date' query parameter is required and must be in YYYY-MM-DD format.");
+
+        try
+        {
+            var result = await _getPaymentsByDateHandler.HandleAsync(new GetPaymentsByDateQuery(date), cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve payments for date {Date}", date);
             return await req.InternalServerErrorAsync();
         }
     }

@@ -1,0 +1,80 @@
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
+using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Orchestration.Operations.Application.HandleDelay;
+using ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
+using ReservationSystem.Orchestration.Operations.Models.Requests;
+using ReservationSystem.Orchestration.Operations.Models.Responses;
+using System.Net;
+
+namespace ReservationSystem.Orchestration.Operations.Functions;
+
+public sealed class DisruptionFunction
+{
+    private readonly HandleDelayHandler _handleDelayHandler;
+    private readonly HandleCancellationHandler _handleCancellationHandler;
+    private readonly ILogger<DisruptionFunction> _logger;
+
+    public DisruptionFunction(
+        HandleDelayHandler handleDelayHandler,
+        HandleCancellationHandler handleCancellationHandler,
+        ILogger<DisruptionFunction> logger)
+    {
+        _handleDelayHandler = handleDelayHandler;
+        _handleCancellationHandler = handleCancellationHandler;
+        _logger = logger;
+    }
+
+    [Function("HandleDelay")]
+    [OpenApiOperation(operationId: "HandleDelay", tags: new[] { "Disruptions" }, Summary = "Handle a flight delay")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HandleDelayRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(DisruptionResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> HandleDelay(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/delay")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<HandleDelayRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber) || request.DelayMinutes <= 0)
+            return await req.BadRequestAsync("The fields 'flightNumber' and 'delayMinutes' (greater than 0) are required.");
+
+        var command = new HandleDelayCommand(
+            request.FlightNumber,
+            request.ScheduledDeparture,
+            request.DelayMinutes,
+            request.Reason);
+
+        var result = await _handleDelayHandler.HandleAsync(command, cancellationToken);
+        return await req.OkJsonAsync(result);
+    }
+
+    [Function("HandleCancellation")]
+    [OpenApiOperation(operationId: "HandleCancellation", tags: new[] { "Disruptions" }, Summary = "Handle a flight cancellation with optional IROPS rebooking")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(HandleCancellationRequest), Required = true, Description = "Request body")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(DisruptionResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> HandleCancellation(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/disruptions/cancellation")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<HandleCancellationRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber))
+            return await req.BadRequestAsync("The field 'flightNumber' is required.");
+
+        var command = new HandleCancellationCommand(
+            request.FlightNumber,
+            request.ScheduledDeparture,
+            request.Reason,
+            request.EnableIropsRebooking);
+
+        var result = await _handleCancellationHandler.HandleAsync(command, cancellationToken);
+        return await req.OkJsonAsync(result);
+    }
+}

@@ -245,7 +245,7 @@
 .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Load factor bar */
-.load-col { min-width: 110px; }
+.load-col { min-width: 160px; }
 
 .load-bar-wrap {
   height: 6px;
@@ -284,6 +284,7 @@
 
 .badge-active   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
 .badge-inactive { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
+.badge-warning  { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 
 .muted { color: var(--text-muted); }
 .mono  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
@@ -323,12 +324,103 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Mobile */
+/* Mobile flight cards — hidden on desktop */
+.flight-cards { display: none; }
+
 @media (max-width: 768px) {
   .inventory-page { padding: 12px; }
   .page-header { flex-direction: column; align-items: flex-start; }
+  .header-controls { width: 100%; }
   .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); }
   .page-title { font-size: 1.25rem; }
+
+  /* Hide table, show cards */
+  .table-card { display: none; }
+  .flight-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .flight-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .flight-card-cancelled { opacity: 0.55; }
+
+  .fc-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .fc-flight {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  .fc-route {
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .fc-times {
+    font-size: 0.8rem;
+  }
+
+  .fc-aircraft {
+    color: var(--text-muted);
+  }
+
+  .fc-cabins {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .fc-cabin-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .fc-cabin-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .fc-load {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .fc-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .fc-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
 
   .modal {
     top: 0;
@@ -903,6 +995,11 @@
   color: #f0883e;
 }
 
+.disruption-icon-equipment {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+}
+
 .disruption-action-text {
   min-width: 0;
 }
@@ -994,4 +1091,93 @@
 
 .disruption-confirm-effects li {
   color: var(--text-muted);
+}
+
+/* Disruption result step */
+.disruption-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.disruption-result-summary {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.disruption-result-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 20px;
+  min-width: 80px;
+}
+
+.disruption-result-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.disruption-result-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.disruption-result-stat-rebooked .disruption-result-stat-value { color: var(--success); }
+.disruption-result-stat-refunded .disruption-result-stat-value { color: var(--warning, #f59e0b); }
+.disruption-result-stat-failed   .disruption-result-stat-value { color: var(--danger); }
+
+.disruption-result-outcomes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.disruption-outcome-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.disruption-outcome-row:nth-child(even) { background: var(--surface-2); }
+
+.disruption-outcome-ref {
+  font-family: monospace;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+
+.disruption-outcome-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-refunded {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.disruption-outcome-detail {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  flex: 1;
 }

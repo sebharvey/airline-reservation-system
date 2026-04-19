@@ -45,7 +45,7 @@ public sealed class IssueTicketsRequestValidator : AbstractValidator<IssueTicket
                     .Length(3).WithMessage("fareConstruction.collectingCurrency must be a 3-character ISO 4217 code.");
 
                 pax.RuleFor(p => p.FareConstruction!.BaseFare)
-                    .GreaterThan(0).WithMessage("fareConstruction.baseFare must be greater than zero.");
+                    .GreaterThanOrEqualTo(0).WithMessage("fareConstruction.baseFare must be non-negative.");
 
                 pax.RuleFor(p => p.FareConstruction!.TotalTaxes)
                     .GreaterThanOrEqualTo(0).WithMessage("fareConstruction.totalTaxes must be non-negative.");

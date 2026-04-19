@@ -1,0 +1,176 @@
+<div class="fare-families-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Fare Families</h1>
+      <p class="page-subtitle">Manage named fare family catalogue used in fare rules</p>
+    </div>
+    <div class="header-actions">
+      @if (loaded() && !showForm()) {
+        <button class="load-btn secondary-btn" (click)="loadFamilies()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+        <button class="load-btn" (click)="openCreateForm()">
+          + New Family
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Success -->
+  @if (success()) {
+    <div class="success-banner" role="status">
+      <span>&#10003;</span> {{ success() }}
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">{{ editing() ? 'Edit Fare Family' : 'Create Fare Family' }}</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
+
+      <div class="form-sections">
+        <div class="form-section">
+          <div class="form-grid grid-2">
+            <div class="form-group">
+              <label>Name *</label>
+              <input
+                type="text"
+                [ngModel]="form().name"
+                (ngModelChange)="updateField('name', $event)"
+                placeholder="e.g. Economy Flex"
+                maxlength="50"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Display Order</label>
+              <input
+                type="number"
+                [ngModel]="form().displayOrder"
+                (ngModelChange)="updateField('displayOrder', +$event)"
+                min="0"
+                step="10"
+              />
+              <p class="field-hint">Controls sort order in dropdowns. Lower numbers appear first.</p>
+            </div>
+          </div>
+          <div class="form-grid grid-1">
+            <div class="form-group">
+              <label>Description <span class="optional">(optional)</span></label>
+              <textarea
+                [ngModel]="form().description"
+                (ngModelChange)="updateField('description', $event)"
+                placeholder="Brief description of this fare family's characteristics…"
+                maxlength="255"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button class="save-btn" (click)="saveFamily()" [disabled]="saving() || !form().name.trim()">
+          @if (saving()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editing() ? 'Update Family' : 'Create Family' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats row -->
+  @if (loaded() && !showForm()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Fare Families</span>
+      </div>
+    </div>
+  }
+
+  <!-- Families table -->
+  @if (loaded() && !showForm()) {
+    <div class="table-card">
+      <table class="families-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th class="text-right">Order</th>
+            <th class="hide-mobile">Created</th>
+            <th class="hide-mobile">Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (family of families(); track family.fareFamilyId) {
+            <tr class="family-row">
+              <td>
+                <span class="family-name">{{ family.name }}</span>
+              </td>
+              <td class="muted description-cell">{{ family.description || '—' }}</td>
+              <td class="text-right mono">{{ family.displayOrder }}</td>
+              <td class="hide-mobile muted">{{ formatDate(family.createdAt) }}</td>
+              <td class="hide-mobile muted">{{ formatDate(family.updatedAt) }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(family)" title="Edit">Edit</button>
+                  <button
+                    class="action-btn delete-btn"
+                    (click)="deleteFamily(family.fareFamilyId)"
+                    [disabled]="deleting() === family.fareFamilyId"
+                    title="Delete"
+                  >
+                    @if (deleting() === family.fareFamilyId) {
+                      …
+                    } @else {
+                      Del
+                    }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (families().length === 0 && loaded()) {
+            <tr>
+              <td colspan="6" class="empty-row">
+                No fare families found. Click <strong>+ New Family</strong> to create one.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">{{ families().length }} fare {{ families().length === 1 ? 'family' : 'families' }}</p>
+  }
+
+  <!-- Loading state -->
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading fare families…</p>
+    </div>
+  }
+</div>

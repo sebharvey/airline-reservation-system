@@ -276,7 +276,7 @@ The following fields are needed on upstream events but are **not yet present** i
 
 ### `FlightDeparted` — new event required
 
-This event does not currently exist in the system. It is the trigger for ATL → Revenue recognition. It must be published by the Operations domain (or sourced from FOS via the Disruption API) and carry:
+This event does not currently exist in the system. It is the trigger for ATL → Revenue recognition. It must be published by the Operations domain (or sourced from FOS via the Operations API) and carry:
 
 | Field | Type | Notes |
 |---|---|---|

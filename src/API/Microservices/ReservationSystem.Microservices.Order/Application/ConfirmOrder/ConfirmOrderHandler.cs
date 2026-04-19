@@ -139,6 +139,7 @@ public sealed class ConfirmOrderHandler
                 "origin", "destination", "aircraftType",
                 "fareBasisCode", "fareFamily",
                 "totalAmount", "baseFareAmount", "taxAmount",
+                "unitAmount", "unitBaseFareAmount", "unitTaxAmount", "passengerCount",
                 "isRefundable", "isChangeable",
                 "pointsPrice", "pointsTaxes"
             })
@@ -156,6 +157,13 @@ public sealed class ConfirmOrderHandler
                 item["baseFareAmount"] = enriched.BaseFareAmount;
                 item["taxAmount"]      = enriched.TaxAmount;
                 item["totalAmount"]    = enriched.TotalAmount;
+                if (enriched.PassengerCount > 0)
+                {
+                    item["passengerCount"]      = enriched.PassengerCount;
+                    item["unitBaseFareAmount"]   = Math.Round(enriched.BaseFareAmount / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                    item["unitTaxAmount"]        = Math.Round(enriched.TaxAmount      / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                    item["unitAmount"]           = Math.Round(enriched.TotalAmount    / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                }
 
                 if (enriched.TaxLines is { Count: > 0 })
                 {
@@ -217,6 +225,10 @@ public sealed class ConfirmOrderHandler
                     if (prop.Key is "basketItemRef" or "cabinCode" or "seatOfferId" or "basketItemId") continue;
                     seatItem[prop.Key] = prop.Value?.DeepClone();
                 }
+                // Guarantee tax is always persisted — default to 0 when omitted by the client.
+                // This ensures GetAdminOrderDetailHandler can always read a tax value for paid seats.
+                if (seatItem["tax"] is null)
+                    seatItem["tax"] = JsonValue.Create(0m);
                 flightOrderItems.Add(seatItem);
             }
         }
@@ -354,9 +366,10 @@ public sealed class ConfirmOrderHandler
 
                 map[key] = new EnrichedOfferEntry
                 {
-                    BaseFareAmount = item.TryGetProperty("baseFareAmount", out var bf) ? bf.GetDecimal() : 0m,
-                    TaxAmount      = item.TryGetProperty("taxAmount",      out var ta) ? ta.GetDecimal() : 0m,
+                    BaseFareAmount = item.TryGetProperty("baseFareAmount", out var bf)  ? bf.GetDecimal()  : 0m,
+                    TaxAmount      = item.TryGetProperty("taxAmount",      out var ta)  ? ta.GetDecimal()  : 0m,
                     TotalAmount    = item.TryGetProperty("totalAmount",    out var tot) ? tot.GetDecimal() : 0m,
+                    PassengerCount = item.TryGetProperty("passengerCount", out var pc)  ? pc.GetInt32()    : 0,
                     TaxLines       = taxLines
                 };
             }
@@ -371,6 +384,7 @@ public sealed class ConfirmOrderHandler
         public decimal BaseFareAmount { get; init; }
         public decimal TaxAmount { get; init; }
         public decimal TotalAmount { get; init; }
+        public int PassengerCount { get; init; }
         public List<TaxLineEntry>? TaxLines { get; init; }
     }
 

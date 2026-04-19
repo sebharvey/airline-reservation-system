@@ -37,6 +37,7 @@ export class AppShell {
         { path: '/inventory', label: 'Inventory', icon: '✈',  description: 'Flight inventory & seat availability' },
         { path: '/new-order', label: 'New Order', icon: '➕', description: 'Create a new booking' },
         { path: '/order',     label: 'Order',     icon: '📋', description: 'Manage orders & payments' },
+        { path: '/payments',  label: 'Payments',  icon: '💳', description: 'Daily payment transactions' },
         { path: '/order-accounting', label: 'Order Accounting', icon: '🧾', description: 'Order accounting & financial records' },
         { path: '/customer',  label: 'Customer',  icon: '👤', description: 'Customer profiles & history' },
         { path: '/terminal',  label: 'Terminal',  icon: '⌨',  description: 'Cryptic command terminal' },
@@ -45,8 +46,9 @@ export class AppShell {
     {
       label: 'Schedule & Fares',
       items: [
-        { path: '/schedules',  label: 'Schedules',  icon: '🗓', description: 'Flight schedule management' },
-        { path: '/fare-rules', label: 'Fare Rules', icon: '💰', description: 'Fare pricing rules' },
+        { path: '/schedules',     label: 'Schedules',     icon: '🗓', description: 'Flight schedule management' },
+        { path: '/fare-families', label: 'Fare Families', icon: '🏷', description: 'Fare family names catalogue' },
+        { path: '/fare-rules',    label: 'Fare Rules',    icon: '💰', description: 'Fare pricing rules' },
       ],
     },
     {
@@ -57,7 +59,7 @@ export class AppShell {
         { path: '/seating',        label: 'Seating',        icon: '💺', description: 'Seat pricing rules' },
         { path: '/product-groups', label: 'Product Groups', icon: '📦', description: 'Ancillary product categories' },
         { path: '/products',       label: 'Products',       icon: '🛍', description: 'Duty free, meals and ancillary products' },
-        { path: '/ssr',            label: 'SSR Catalogue',  icon: '♿', description: 'Special Service Request catalogue' },
+        { path: '/ssr',            label: 'Service catalogue',  icon: '♿', description: 'Special Service Request catalogue' },
       ],
     },
     {

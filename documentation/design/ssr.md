@@ -8,7 +8,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - All SSRs carry no ancillary charge; **EU Regulation 1107/2006** requires carriers to accommodate disabled passengers without surcharge.
 - SSRs are segment-specific — a connecting passenger requires independent SSR entries per leg.
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
-- On IROPS rebooking, the Disruption API carries all SSR items from the cancelled segment to the replacement itinerary.
+- On IROPS rebooking, the Operations API carries all SSR items from the cancelled segment to the replacement itinerary.
 - The SSR catalogue is stored in `order.SsrCatalogue`, owned by the Order MS. The Retail API exposes `GET /v1/ssr/options` to channels by proxying to the Order MS `GET /v1/ssr/options` endpoint — the Retail API holds no direct database connection. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
 - Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
 

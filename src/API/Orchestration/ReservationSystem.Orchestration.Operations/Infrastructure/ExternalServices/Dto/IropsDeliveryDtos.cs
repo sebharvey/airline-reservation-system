@@ -1,0 +1,126 @@
+using System.Text.Json.Serialization;
+
+namespace ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
+
+public sealed class ManifestResponse
+{
+    [JsonPropertyName("entries")]
+    public IReadOnlyList<ManifestEntryDto> Entries { get; init; } = [];
+}
+
+public sealed class ManifestEntryDto
+{
+    [JsonPropertyName("bookingReference")]
+    public string BookingReference { get; init; } = string.Empty;
+
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("givenName")]
+    public string GivenName { get; init; } = string.Empty;
+
+    [JsonPropertyName("surname")]
+    public string Surname { get; init; } = string.Empty;
+
+    [JsonPropertyName("eTicketNumber")]
+    public string ETicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatNumber")]
+    public string? SeatNumber { get; init; }
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatPosition")]
+    public string? SeatPosition { get; init; } // "Window" | "Aisle" | "Middle"
+}
+
+public sealed class ReissueTicketsRequest
+{
+    [JsonPropertyName("bookingReference")]
+    public string BookingReference { get; init; } = string.Empty;
+
+    [JsonPropertyName("cancelledETicketNumbers")]
+    public IReadOnlyList<string> CancelledETicketNumbers { get; init; } = [];
+
+    [JsonPropertyName("replacementSegments")]
+    public IReadOnlyList<ReissueSegmentDto> ReplacementSegments { get; init; } = [];
+}
+
+public sealed class ReissueSegmentDto
+{
+    [JsonPropertyName("inventoryId")]
+    public Guid InventoryId { get; init; }
+
+    [JsonPropertyName("flightNumber")]
+    public string FlightNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("departureDate")]
+    public string DepartureDate { get; init; } = string.Empty;
+
+    [JsonPropertyName("origin")]
+    public string Origin { get; init; } = string.Empty;
+
+    [JsonPropertyName("destination")]
+    public string Destination { get; init; } = string.Empty;
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+}
+
+public sealed class ReissueTicketsResponse
+{
+    [JsonPropertyName("tickets")]
+    public IReadOnlyList<ReissuedTicketDto> Tickets { get; init; } = [];
+}
+
+public sealed class ReissuedTicketDto
+{
+    [JsonPropertyName("eTicketNumber")]
+    public string ETicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+}
+
+public sealed class WriteManifestRequest
+{
+    [JsonPropertyName("bookingReference")]
+    public string BookingReference { get; init; } = string.Empty;
+
+    [JsonPropertyName("inventoryId")]
+    public Guid InventoryId { get; init; }
+
+    [JsonPropertyName("flightNumber")]
+    public string FlightNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("departureDate")]
+    public string DepartureDate { get; init; } = string.Empty;
+
+    [JsonPropertyName("entries")]
+    public IReadOnlyList<WriteManifestEntryDto> Entries { get; init; } = [];
+}
+
+public sealed class WriteManifestEntryDto
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("givenName")]
+    public string GivenName { get; init; } = string.Empty;
+
+    [JsonPropertyName("surname")]
+    public string Surname { get; init; } = string.Empty;
+
+    [JsonPropertyName("eTicketNumber")]
+    public string ETicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatNumber")]
+    public string? SeatNumber { get; init; }
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatPosition")]
+    public string? SeatPosition { get; init; }
+}

@@ -236,6 +236,18 @@ Do not create components that call API services directly — delegate API calls 
 
 ---
 
+## UI conventions
+
+### Numeric column alignment in tables
+
+In all list-view tables in the Terminal Angular app (and by convention the Web app), any column that displays a monetary amount, price, tax, total, or loyalty points value must be **right-justified** — both the `<th>` column header and every `<td>` data cell in that column. This matches standard spreadsheet convention (e.g. Excel) and makes values easy to scan and compare vertically.
+
+Apply `class="text-right"` to the `<th>` and `class="text-right"` (or a semantic equivalent such as `amount-cell`) to each corresponding `<td>`.
+
+Applies to: fares, base prices, taxes, line totals, order amounts, payment amounts, bag pricing, seat pricing, loyalty points balances, points deltas, and any other monetary or points value rendered in a tabular list view.
+
+---
+
 ## TypeScript Models
 
 Models in `models/` are TypeScript interfaces that mirror the API response contracts defined in `api-reference.md`. Keep them in sync:

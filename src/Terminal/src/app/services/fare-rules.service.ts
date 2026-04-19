@@ -27,6 +27,7 @@ export interface FareRule {
   taxLines: TaxLine[] | null;
   isRefundable: boolean;
   isChangeable: boolean;
+  isPrivate: boolean;
   changeFeeAmount: number;
   cancellationFeeAmount: number;
   validFrom: string | null;
@@ -51,6 +52,7 @@ export interface CreateFareRuleRequest {
   taxLines?: TaxLine[] | null;
   isRefundable: boolean;
   isChangeable: boolean;
+  isPrivate: boolean;
   changeFeeAmount: number;
   cancellationFeeAmount: number;
   validFrom?: string | null;

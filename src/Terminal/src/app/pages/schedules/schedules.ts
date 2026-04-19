@@ -82,15 +82,15 @@ export class SchedulesComponent implements OnInit {
     };
   });
 
-  async loadGroups(): Promise<void> {
+  async loadGroups(preferredGroupId?: string): Promise<void> {
     this.loadingGroups.set(true);
     this.error.set('');
     try {
       const result = await this.#scheduleService.getScheduleGroups();
       this.groups.set(result.groups);
-      // Auto-select the active group, or the first group
+      const preferred = preferredGroupId ? result.groups.find(g => g.scheduleGroupId === preferredGroupId) : null;
       const active = result.groups.find(g => g.isActive);
-      const toSelect = active ?? result.groups[0];
+      const toSelect = preferred ?? active ?? result.groups[0];
       if (toSelect) {
         this.selectedGroupId.set(toSelect.scheduleGroupId);
         await this.loadSchedules();
@@ -228,7 +228,7 @@ export class SchedulesComponent implements OnInit {
     try {
       const result = await this.#scheduleService.importSsim(groupId, content);
       this.ssimResult.set(result);
-      await this.loadGroups();
+      await this.loadGroups(groupId);
     } catch {
       this.ssimError.set('Failed to import SSIM file. Please check the file format and try again.');
     } finally {
@@ -277,6 +277,7 @@ export class SchedulesComponent implements OnInit {
     this.groupError.set('');
     try {
       const editing = this.editingGroup();
+      let preferredGroupId: string | undefined;
       if (editing) {
         await this.#scheduleService.updateScheduleGroup(editing.scheduleGroupId, {
           name: form.name,
@@ -292,10 +293,10 @@ export class SchedulesComponent implements OnInit {
           isActive: form.isActive,
           createdBy: 'ops-admin',
         });
-        this.selectedGroupId.set(created.scheduleGroupId);
+        preferredGroupId = created.scheduleGroupId;
       }
       this.showGroupModal.set(false);
-      await this.loadGroups();
+      await this.loadGroups(preferredGroupId);
     } catch {
       this.groupError.set('Failed to save schedule group.');
     } finally {

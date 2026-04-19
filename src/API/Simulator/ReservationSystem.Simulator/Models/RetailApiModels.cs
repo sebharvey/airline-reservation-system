@@ -111,6 +111,7 @@ public sealed record SeatResult(
     string Position,
     string CabinCode,
     decimal Price,
+    decimal Tax,
     string Currency,
     string Availability);
 
@@ -125,6 +126,7 @@ public sealed record SeatAssignment(
     string SeatPosition,
     string CabinCode,
     decimal Price,
+    decimal Tax,
     string Currency);
 
 // ── SSRs ───────────────────────────────────────────────────────────────────────

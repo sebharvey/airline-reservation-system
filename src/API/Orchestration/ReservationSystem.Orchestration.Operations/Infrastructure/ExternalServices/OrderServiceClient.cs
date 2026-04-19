@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 
 namespace ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
@@ -80,6 +81,51 @@ public sealed class OrderServiceClient
         {
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Failed to update order passengers: {error}");
+        }
+    }
+
+    public async Task<AffectedOrdersResponse> GetOrdersByFlightAsync(
+        string flightNumber,
+        string departureDate,
+        string status,
+        CancellationToken ct)
+    {
+        var url = $"/api/v1/orders/irops?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={departureDate}&status={status}";
+        using var response = await _httpClient.GetAsync(url, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return new AffectedOrdersResponse();
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AffectedOrdersResponse>(JsonOptions, ct)
+            ?? new AffectedOrdersResponse();
+    }
+
+    public async Task RebookOrderAsync(string bookingReference, RebookOrderRequest request, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/rebook", content, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to rebook order {bookingReference}: {error}");
+        }
+    }
+
+    public async Task CancelOrderIropsAsync(string bookingReference, CancelOrderRequest request, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/cancel", content, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to cancel order {bookingReference}: {error}");
         }
     }
 }

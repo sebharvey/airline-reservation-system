@@ -172,7 +172,7 @@
                         {{ itemTypeLabel(item.itemType) }}
                       </span>
                     </td>
-                    <td class="item-desc-cell">{{ item.description ?? '—' }}</td>
+                    <td class="item-desc-cell">{{ item.itemType === 'Flight' ? getFlightDescription(item) : (item.description ?? '—') }}</td>
                     <td class="hide-mobile muted">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</td>
                     <td class="amount-cell">
                       @if (item.fareAmount != null) {
@@ -224,7 +224,7 @@
               <div class="mobile-item-card" (click)="openItemModal(item)">
                 <div class="mobile-card-main">
                   <div class="mobile-card-top">
-                    <span class="mobile-card-desc">{{ item.description ?? '—' }}</span>
+                    <span class="mobile-card-desc">{{ item.itemType === 'Flight' ? getFlightDescription(item) : (item.description ?? '—') }}</span>
                     <span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span>
                   </div>
                   @if (item.passengerId) {
@@ -665,6 +665,12 @@
               <span class="field-label">Passenger</span>
               <span class="field-value">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</span>
             </div>
+            @if ((item.passengerCount ?? 1) > 1) {
+              <div class="field-row">
+                <span class="field-label">Passengers</span>
+                <span class="field-value">{{ item.passengerCount }}</span>
+              </div>
+            }
             <div class="field-row">
               <span class="field-label">Cabin</span>
               <span class="field-value">{{ seg?.cabinClass ?? '—' }}</span>
@@ -699,13 +705,23 @@
               @if (item.fareAmount != null) {
                 <div class="fare-line">
                   <span class="fare-line-label">Base fare</span>
-                  <span class="fare-line-value">{{ formatAmount(item.fareAmount, item.currency) }}</span>
+                  <span class="fare-line-value">
+                    {{ formatAmount(item.fareAmount, item.currency) }}
+                    @if ((item.passengerCount ?? 1) > 1) {
+                      <span class="fare-per-pax muted">({{ item.passengerCount }} &times; {{ formatAmount(item.fareAmount / item.passengerCount!, item.currency) }})</span>
+                    }
+                  </span>
                 </div>
               }
               @if (item.taxAmount != null) {
                 <div class="fare-line">
                   <span class="fare-line-label">Taxes &amp; charges</span>
-                  <span class="fare-line-value">{{ formatAmount(item.taxAmount, item.currency) }}</span>
+                  <span class="fare-line-value">
+                    {{ formatAmount(item.taxAmount, item.currency) }}
+                    @if ((item.passengerCount ?? 1) > 1) {
+                      <span class="fare-per-pax muted">({{ item.passengerCount }} &times; {{ formatAmount(item.taxAmount / item.passengerCount!, item.currency) }})</span>
+                    }
+                  </span>
                 </div>
                 @if (item.taxLines && item.taxLines.length > 0) {
                   @for (tl of item.taxLines; track tl.code) {
@@ -1238,7 +1254,22 @@
           } @else if (debugOrderError()) {
             <div class="debug-error">{{ debugOrderError() }}</div>
           } @else {
-            <pre class="debug-pre">{{ debugOrderJson() }}</pre>
+            <div class="debug-pre-wrap">
+              <button
+                class="copy-btn debug-copy-btn"
+                [class.copied]="copiedDebugTab() === 'order'"
+                (click)="copyDebugJson('order')"
+                [title]="copiedDebugTab() === 'order' ? 'Copied!' : 'Copy JSON'"
+              >
+                @if (copiedDebugTab() === 'order') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                }
+                {{ copiedDebugTab() === 'order' ? 'Copied!' : 'Copy JSON' }}
+              </button>
+              <pre class="debug-pre">{{ debugOrderJson() }}</pre>
+            </div>
           }
         } @else {
           @if (debugTicketsLoading()) {
@@ -1246,7 +1277,22 @@
           } @else if (debugTicketsError()) {
             <div class="debug-error">{{ debugTicketsError() }}</div>
           } @else {
-            <pre class="debug-pre">{{ debugTicketsJson() }}</pre>
+            <div class="debug-pre-wrap">
+              <button
+                class="copy-btn debug-copy-btn"
+                [class.copied]="copiedDebugTab() === 'tickets'"
+                (click)="copyDebugJson('tickets')"
+                [title]="copiedDebugTab() === 'tickets' ? 'Copied!' : 'Copy JSON'"
+              >
+                @if (copiedDebugTab() === 'tickets') {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                }
+                {{ copiedDebugTab() === 'tickets' ? 'Copied!' : 'Copy JSON' }}
+              </button>
+              <pre class="debug-pre">{{ debugTicketsJson() }}</pre>
+            </div>
           }
         }
       </div>

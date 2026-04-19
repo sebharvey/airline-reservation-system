@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap } from '../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-inventory',
@@ -73,6 +73,11 @@ export class InventoryComponent implements OnInit {
     return 'cabin-ok';
   }
 
+  availPct(flight: FlightInventoryGroup): number {
+    if (flight.totalSeats === 0) return 0;
+    return Math.round(flight.totalSeatsAvailable / flight.totalSeats * 100);
+  }
+
   loadBarClass(loadFactor: number): string {
     if (loadFactor >= 90) return 'bar-critical';
     if (loadFactor >= 70) return 'bar-high';
@@ -81,11 +86,9 @@ export class InventoryComponent implements OnInit {
   }
 
   statusClass(status: string): string {
-    return status === 'Active' ? 'badge-active' : 'badge-inactive';
-  }
-
-  ticketingClass(flight: FlightInventoryGroup): string {
-    return flight.ticketingStatus === 'Open' ? 'badge-active' : 'badge-inactive';
+    if (status === 'Active') return 'badge-active';
+    if (status === 'Ticketing Closed') return 'badge-warning';
+    return 'badge-inactive';
   }
 
   // Holds modal
@@ -94,6 +97,15 @@ export class InventoryComponent implements OnInit {
   holdsLoading = signal(false);
   holdsError = signal('');
   holdsTab = signal<'confirmed' | 'standby' | 'seatmap'>('confirmed');
+  copiedHoldRef = signal<string | null>(null);
+
+  copyBookingReference(ref: string, event: Event): void {
+    event.stopPropagation();
+    navigator.clipboard.writeText(ref).then(() => {
+      this.copiedHoldRef.set(ref);
+      setTimeout(() => this.copiedHoldRef.set(null), 2000);
+    });
+  }
 
   confirmedHolds = computed(() =>
     this.holds().filter(h => h.holdType === 'Revenue')
@@ -153,23 +165,30 @@ export class InventoryComponent implements OnInit {
 
   // Disruption modal
   disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
-  disruptionStep = signal<'action' | 'confirm'>('action');
+  disruptionStep = signal<'action' | 'confirm' | 'result'>('action');
   disruptionLoading = signal(false);
   disruptionError = signal('');
+  disruptionResult = signal<DisruptionCancelResponse | null>(null);
 
   canDisrupt(flight: FlightInventoryGroup): boolean {
-    return flight.status !== 'Cancelled' && flight.ticketingStatus !== 'Closed';
+    return flight.status !== 'Cancelled' && flight.status !== 'Ticketing Closed';
   }
 
   openDisruptionModal(flight: FlightInventoryGroup): void {
     this.disruptionModalFlight.set(flight);
     this.disruptionStep.set('action');
     this.disruptionError.set('');
+    this.disruptionResult.set(null);
   }
 
   closeDisruptionModal(): void {
     if (this.disruptionLoading()) return;
     this.disruptionModalFlight.set(null);
+  }
+
+  async closeDisruptionResult(): Promise<void> {
+    this.disruptionModalFlight.set(null);
+    await this.loadInventory();
   }
 
   startCancellationConfirm(): void {
@@ -183,12 +202,12 @@ export class InventoryComponent implements OnInit {
     this.disruptionLoading.set(true);
     this.disruptionError.set('');
     try {
-      await this.#inventoryService.cancelFlightInventory(
+      const result = await this.#inventoryService.cancelFlight(
         flight.flightNumber,
         flight.departureDate
       );
-      this.disruptionModalFlight.set(null);
-      await this.loadInventory();
+      this.disruptionResult.set(result);
+      this.disruptionStep.set('result');
     } catch {
       this.disruptionError.set('Failed to cancel flight. Please try again.');
     } finally {

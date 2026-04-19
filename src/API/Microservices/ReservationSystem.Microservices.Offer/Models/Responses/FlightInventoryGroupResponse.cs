@@ -54,9 +54,6 @@ public sealed class FlightInventoryGroupResponse
 
     [JsonPropertyName("loadFactor")]
     public int LoadFactor { get; init; }
-
-    [JsonPropertyName("ticketingStatus")]
-    public string TicketingStatus { get; init; } = string.Empty;
 }
 
 public sealed class CabinInventory
