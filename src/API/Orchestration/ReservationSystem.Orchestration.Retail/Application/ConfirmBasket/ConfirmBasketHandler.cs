@@ -136,29 +136,14 @@ public sealed class ConfirmBasketHandler
 
         var issuedTickets = await ticketsTask;
 
-        // Build flights from confirmed order items (which carry locked fares + tax lines).
-        // Fall back to basket data parsing only if the Order MS returned no items.
-        var flights = confirmedOrder.OrderItems.Count > 0
-            ? BuildFlightsFromConfirmedItems(confirmedOrder.OrderItems)
-            : ParseFlightsFromBasketData(basketDataJson);
+        var bookedAt = DateTime.UtcNow.ToString("o");
+        var confirmedTotalAmount = confirmedOrder.TotalAmount ?? totalAmount;
+        var cardInfo = ExtractCardInfo(command.CardNumber, command.CardholderName);
 
-        return new OrderResponse
-        {
-            BookingReference = confirmedOrder.BookingReference,
-            Status = confirmedOrder.OrderStatus,
-            CustomerId = string.Empty,
-            Flights = flights,
-            Passengers = ParsePassengersFromBasketData(basketDataJson),
-            ETickets = issuedTickets.Select(t => new IssuedETicket
-            {
-                PassengerId = t.PassengerId,
-                SegmentIds = t.SegmentIds,
-                ETicketNumber = t.ETicketNumber
-            }).ToList(),
-            TotalPrice = confirmedOrder.TotalAmount ?? totalAmount,
-            Currency = confirmedOrder.CurrencyCode,
-            BookedAt = DateTime.UtcNow
-        };
+        return BuildOrderResponse(
+            confirmedOrder, basketDataJson, command, paymentId, cardInfo,
+            bookedAt, bookingType, fareAmount, seatAmount, bagAmount, productAmount,
+            confirmedTotalAmount, issuedTickets);
     }
 
     /// <summary>
@@ -253,39 +238,473 @@ public sealed class ConfirmBasketHandler
         return payload;
     }
 
-    /// <summary>
-    /// Builds the Flights list from confirmed order items returned by the Order MS.
-    /// These carry the locked fares and tax lines as stored in OrderData.
-    /// </summary>
-    private static List<OrderFlight> BuildFlightsFromConfirmedItems(
-        IEnumerable<ConfirmedOrderItemResult> items)
-    {
-        return items.Select(item =>
-        {
-            var depDt = DateTime.TryParse($"{item.DepartureDate}T{item.DepartureTime}", out var d) ? d : default;
-            var arrDt = DateTime.TryParse($"{item.DepartureDate}T{item.ArrivalTime}",   out var a) ? a : default;
+    // ── Response builders ─────────────────────────────────────────────────────
 
-            return new OrderFlight
+    private static (string CardType, string CardLast4, string? MaskedCardNumber) ExtractCardInfo(
+        string? cardNumber, string? cardholderName)
+    {
+        if (string.IsNullOrWhiteSpace(cardNumber))
+            return ("Card", "0000", null);
+
+        var digits = new string(cardNumber.Where(char.IsDigit).ToArray());
+        var last4 = digits.Length >= 4 ? digits[^4..] : digits.PadLeft(4, '0');
+        var masked = digits.Length >= 10
+            ? digits[..6] + new string('X', digits.Length - 10) + digits[^4..]
+            : null;
+
+        var cardType = digits.FirstOrDefault() switch
+        {
+            '4' => "Visa",
+            '5' => "Mastercard",
+            '3' => "Amex",
+            '6' => "Discover",
+            _ => "Card"
+        };
+
+        return (cardType, last4, masked);
+    }
+
+    private static OrderResponse BuildOrderResponse(
+        OrderMsConfirmOrderResult confirmedOrder,
+        string? basketDataJson,
+        ConfirmBasketCommand command,
+        string paymentId,
+        (string CardType, string CardLast4, string? MaskedCardNumber) cardInfo,
+        string bookedAt,
+        string bookingType,
+        decimal fareAmount,
+        decimal seatAmount,
+        decimal bagAmount,
+        decimal productAmount,
+        decimal totalAmount,
+        List<IssuedTicket> issuedTickets)
+    {
+        var (segments, passengerRefs) = ParseSegmentsAndPassengerRefs(basketDataJson);
+        var passengers = ParseFullPassengers(basketDataJson);
+
+        // Build e-ticket lookup: segmentId (basketItemId) → list of (passengerId, eTicketNumber)
+        var eTicketsBySegment = BuildETicketLookup(issuedTickets, segments);
+
+        var orderItems = new List<ConfirmedOrderItem>();
+        var idx = 1;
+        foreach (var seg in segments)
+        {
+            var matchedItem = confirmedOrder.OrderItems.FirstOrDefault(i =>
+                string.Equals(i.FlightNumber, seg.FlightNumber, StringComparison.OrdinalIgnoreCase));
+
+            var paxRefs = passengerRefs;
+            var eTickets = eTicketsBySegment.TryGetValue(seg.SegmentId, out var tickets)
+                ? tickets
+                : [];
+
+            orderItems.Add(new ConfirmedOrderItem
             {
-                FlightNumber     = item.FlightNumber,
-                Origin           = item.Origin,
-                Destination      = item.Destination,
-                DepartureTime    = depDt,
-                ArrivalTime      = arrDt,
-                CabinClass       = item.CabinCode,
-                FareFamily       = item.FareFamily,
-                FareBasisCode    = item.FareBasisCode,
-                BaseFareAmount   = item.BaseFareAmount,
-                TaxAmount        = item.TaxAmount,
-                TotalFareAmount  = item.TotalAmount,
-                TaxLines         = item.TaxLines?.Select(tl => new OrderFlightTaxLine
-                {
-                    Code        = tl.Code,
-                    Amount      = tl.Amount,
-                    Description = tl.Description
-                }).ToList()
+                OrderItemId    = $"OI-{idx++}",
+                Type           = "Flight",
+                SegmentRef     = seg.SegmentId,
+                PassengerRefs  = paxRefs,
+                FareFamily     = matchedItem?.FareFamily,
+                FareBasisCode  = matchedItem?.FareBasisCode,
+                UnitPrice      = matchedItem != null && paxRefs.Count > 0
+                    ? Math.Round(matchedItem.TotalAmount / Math.Max(paxRefs.Count, 1), 2, MidpointRounding.AwayFromZero)
+                    : matchedItem?.TotalAmount ?? 0m,
+                Taxes          = matchedItem?.TaxAmount ?? 0m,
+                TotalPrice     = matchedItem?.TotalAmount ?? 0m,
+                IsRefundable   = matchedItem != null ? ParseBoolFromItem(matchedItem, "isRefundable") : null,
+                IsChangeable   = matchedItem != null ? ParseBoolFromItem(matchedItem, "isChangeable") : null,
+                PaymentReference = paymentId,
+                ETickets       = eTickets.Count > 0 ? eTickets : null
+            });
+        }
+
+        AppendAncillaryItems(basketDataJson, orderItems, segments, paymentId, ref idx);
+
+        var isReward = string.Equals(bookingType, "Reward", StringComparison.OrdinalIgnoreCase);
+        var loyaltyNumber = basketDataJson != null ? ParseLoyaltyNumber(basketDataJson) : null;
+
+        ConfirmedPointsRedemption? pointsRedemption = null;
+        if (isReward && !string.IsNullOrEmpty(loyaltyNumber) && command.LoyaltyPointsToRedeem.HasValue)
+        {
+            pointsRedemption = new ConfirmedPointsRedemption
+            {
+                RedemptionReference = Guid.NewGuid().ToString(),
+                LoyaltyNumber       = loyaltyNumber,
+                PointsRedeemed      = command.LoyaltyPointsToRedeem.Value,
+                Status              = "Settled",
+                AuthorisedAt        = bookedAt,
+                SettledAt           = bookedAt
             };
-        }).ToList();
+        }
+
+        var paymentDescription = isReward ? "Taxes and fees" : "Full payment";
+        var payment = new ConfirmedPayment
+        {
+            PaymentReference  = paymentId,
+            Description       = paymentDescription,
+            Method            = command.PaymentMethod,
+            CardLast4         = cardInfo.CardLast4,
+            CardType          = cardInfo.CardType,
+            CardholderName    = command.CardholderName,
+            MaskedCardNumber  = cardInfo.MaskedCardNumber,
+            AuthorisedAmount  = totalAmount,
+            SettledAmount     = totalAmount,
+            Currency          = confirmedOrder.CurrencyCode,
+            Status            = "Settled",
+            AuthorisedAt      = bookedAt,
+            SettledAt         = bookedAt
+        };
+
+        return new OrderResponse
+        {
+            OrderId          = confirmedOrder.OrderId,
+            BookingReference = confirmedOrder.BookingReference,
+            OrderStatus      = confirmedOrder.OrderStatus,
+            BookingType      = bookingType,
+            ChannelCode      = command.ChannelCode,
+            Currency         = confirmedOrder.CurrencyCode,
+            BookedAt         = bookedAt,
+            FareTotal        = fareAmount,
+            SeatTotal        = seatAmount,
+            BagTotal         = bagAmount,
+            ProductTotal     = productAmount,
+            TotalAmount      = totalAmount,
+            TotalPointsAmount = isReward && command.LoyaltyPointsToRedeem.HasValue
+                ? command.LoyaltyPointsToRedeem.Value
+                : null,
+            Passengers       = passengers,
+            FlightSegments   = segments,
+            OrderItems       = orderItems,
+            Payment          = payment,
+            PointsRedemption = pointsRedemption
+        };
+    }
+
+    private static (List<ConfirmedFlightSegment> segments, List<string> passengerRefs)
+        ParseSegmentsAndPassengerRefs(string? basketDataJson)
+    {
+        var segments = new List<ConfirmedFlightSegment>();
+        var passengerRefs = new List<string>();
+
+        if (basketDataJson is null) return (segments, passengerRefs);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("passengers", out var paxEl) && paxEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var p in paxEl.EnumerateArray())
+                {
+                    if (p.TryGetProperty("passengerId", out var pid))
+                        passengerRefs.Add(pid.GetString() ?? "");
+                }
+            }
+
+            if (!root.TryGetProperty("flightOffers", out var offersEl) ||
+                offersEl.ValueKind != JsonValueKind.Array)
+                return (segments, passengerRefs);
+
+            var idx = 1;
+            foreach (var offer in offersEl.EnumerateArray())
+            {
+                var basketItemId = offer.TryGetProperty("basketItemId", out var bid)
+                    ? bid.GetString() ?? $"SEG-{idx}"
+                    : $"SEG-{idx}";
+
+                var depDate = offer.TryGetProperty("departureDate", out var dd) ? dd.GetString() ?? "" : "";
+                var depTime = offer.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                var arrTime = offer.TryGetProperty("arrivalTime",   out var at) ? at.GetString() ?? "00:00" : "00:00";
+                var flightNumber = offer.TryGetProperty("flightNumber", out var fn) ? fn.GetString() ?? "" : "";
+                var carrier = flightNumber.Length >= 2 ? new string(flightNumber.TakeWhile(char.IsLetter).ToArray()) : "AX";
+
+                segments.Add(new ConfirmedFlightSegment
+                {
+                    SegmentId         = basketItemId,
+                    FlightNumber      = flightNumber,
+                    Origin            = offer.TryGetProperty("origin",       out var o) ? o.GetString() ?? "" : "",
+                    Destination       = offer.TryGetProperty("destination",  out var d) ? d.GetString() ?? "" : "",
+                    DepartureDateTime = string.IsNullOrEmpty(depDate) ? "" : $"{depDate}T{depTime}:00Z",
+                    ArrivalDateTime   = string.IsNullOrEmpty(depDate) ? "" : $"{depDate}T{arrTime}:00Z",
+                    AircraftType      = offer.TryGetProperty("aircraftType", out var ac) ? ac.GetString() ?? "" : "",
+                    OperatingCarrier  = carrier,
+                    MarketingCarrier  = carrier,
+                    CabinCode         = offer.TryGetProperty("cabinCode",    out var cc) ? cc.GetString() ?? "" : "",
+                    BookingClass      = offer.TryGetProperty("fareBasisCode", out var fb)
+                        ? (fb.GetString() ?? "Y").Substring(0, 1)
+                        : "Y"
+                });
+                idx++;
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return (segments, passengerRefs);
+    }
+
+    private static List<ConfirmedPassenger> ParseFullPassengers(string? basketDataJson)
+    {
+        var passengers = new List<ConfirmedPassenger>();
+        if (basketDataJson is null) return passengers;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("passengers", out var paxEl) || paxEl.ValueKind != JsonValueKind.Array)
+                return passengers;
+
+            foreach (var p in paxEl.EnumerateArray())
+            {
+                ConfirmedPassengerContacts? contacts = null;
+                if (p.TryGetProperty("contacts", out var cEl) && cEl.ValueKind == JsonValueKind.Object)
+                {
+                    contacts = new ConfirmedPassengerContacts
+                    {
+                        Email = cEl.TryGetProperty("email", out var em) ? em.GetString() : null,
+                        Phone = cEl.TryGetProperty("phone", out var ph) ? ph.GetString() : null
+                    };
+                }
+
+                var docs = new List<ConfirmedTravelDoc>();
+                if (p.TryGetProperty("docs", out var docsEl) && docsEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var doc2 in docsEl.EnumerateArray())
+                    {
+                        docs.Add(new ConfirmedTravelDoc
+                        {
+                            Type           = doc2.TryGetProperty("type",           out var t)  ? t.GetString()  ?? "" : "",
+                            Number         = doc2.TryGetProperty("number",         out var n)  ? n.GetString()  ?? "" : "",
+                            IssuingCountry = doc2.TryGetProperty("issuingCountry", out var ic) ? ic.GetString() ?? "" : "",
+                            ExpiryDate     = doc2.TryGetProperty("expiryDate",     out var ed) ? ed.GetString() ?? "" : "",
+                            Nationality    = doc2.TryGetProperty("nationality",    out var na) ? na.GetString() ?? "" : ""
+                        });
+                    }
+                }
+
+                passengers.Add(new ConfirmedPassenger
+                {
+                    PassengerId   = p.TryGetProperty("passengerId",   out var pid) ? pid.GetString() ?? "" : "",
+                    Type          = p.TryGetProperty("type",          out var tp)  ? tp.GetString()  ?? "ADT" : "ADT",
+                    GivenName     = p.TryGetProperty("givenName",     out var gn)  ? gn.GetString()  ?? "" : "",
+                    Surname       = p.TryGetProperty("surname",       out var sn)  ? sn.GetString()  ?? "" : "",
+                    Dob           = p.TryGetProperty("dob",           out var dob) ? dob.GetString() : null,
+                    Gender        = p.TryGetProperty("gender",        out var gen) && gen.ValueKind != JsonValueKind.Null
+                        ? gen.GetString() : null,
+                    LoyaltyNumber = p.TryGetProperty("loyaltyNumber", out var ln) && ln.ValueKind != JsonValueKind.Null
+                        ? ln.GetString() : null,
+                    Contacts      = contacts,
+                    Docs          = docs
+                });
+            }
+        }
+        catch { /* Return whatever was parsed */ }
+
+        return passengers;
+    }
+
+    private static Dictionary<string, List<ConfirmedETicket>> BuildETicketLookup(
+        List<IssuedTicket> issuedTickets,
+        List<ConfirmedFlightSegment> segments)
+    {
+        var lookup = new Dictionary<string, List<ConfirmedETicket>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var ticket in issuedTickets)
+        {
+            foreach (var segRef in ticket.SegmentIds)
+            {
+                // SegmentIds on tickets are basketItemIds — match them directly to SegmentId
+                var segmentId = segments.FirstOrDefault(s =>
+                    string.Equals(s.SegmentId, segRef, StringComparison.OrdinalIgnoreCase))?.SegmentId
+                    ?? segRef;
+
+                if (!lookup.ContainsKey(segmentId))
+                    lookup[segmentId] = [];
+                lookup[segmentId].Add(new ConfirmedETicket
+                {
+                    PassengerId    = ticket.PassengerId,
+                    ETicketNumber  = ticket.ETicketNumber
+                });
+            }
+        }
+
+        return lookup;
+    }
+
+    private static void AppendAncillaryItems(
+        string? basketDataJson,
+        List<ConfirmedOrderItem> orderItems,
+        List<ConfirmedFlightSegment> segments,
+        string paymentId,
+        ref int idx)
+    {
+        if (basketDataJson is null) return;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            // Seats — segmentId on the basket seat is the inventoryId; resolve to basketItemId
+            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var seat in seatsEl.EnumerateArray())
+                {
+                    var inventoryId = seat.TryGetProperty("segmentId",    out var sid) ? sid.GetString() ?? "" : "";
+                    var paxId       = seat.TryGetProperty("passengerId",  out var pid) ? pid.GetString() ?? "" : "";
+                    var price       = seat.TryGetProperty("price",        out var p)   ? p.GetDecimal() : 0m;
+                    var tax         = seat.TryGetProperty("tax",          out var t)   ? t.GetDecimal() : 0m;
+                    var seatNumber  = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null);
+                    var seatPos     = seat.TryGetProperty("seatPosition", out var sp)  ? sp.GetString() : null;
+
+                    // Map inventoryId → basketItemId (SegmentId) for consistent cross-referencing
+                    var segRef = segments.FirstOrDefault(s =>
+                        root.TryGetProperty("flightOffers", out var offs) &&
+                        offs.ValueKind == JsonValueKind.Array &&
+                        offs.EnumerateArray().Any(o =>
+                            o.TryGetProperty("inventoryId", out var inv) &&
+                            string.Equals(inv.GetString(), inventoryId, StringComparison.OrdinalIgnoreCase) &&
+                            o.TryGetProperty("basketItemId", out var bk) &&
+                            string.Equals(bk.GetString(), s.SegmentId, StringComparison.OrdinalIgnoreCase)))
+                        ?.SegmentId ?? inventoryId;
+
+                    orderItems.Add(new ConfirmedOrderItem
+                    {
+                        OrderItemId    = $"OI-{idx++}",
+                        Type           = "Seat",
+                        SegmentRef     = segRef,
+                        PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
+                        UnitPrice      = price,
+                        Taxes          = tax,
+                        TotalPrice     = price + tax,
+                        PaymentReference = paymentId,
+                        SeatNumber     = seatNumber,
+                        SeatPosition   = seatPos
+                    });
+                }
+            }
+
+            // Bags
+            if (root.TryGetProperty("bags", out var bagsEl) && bagsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var bag in bagsEl.EnumerateArray())
+                {
+                    var inventoryId    = bag.TryGetProperty("segmentId",      out var sid) ? sid.GetString() ?? "" : "";
+                    var paxId          = bag.TryGetProperty("passengerId",    out var pid) ? pid.GetString() ?? "" : "";
+                    var price          = bag.TryGetProperty("price",          out var p)   ? p.GetDecimal() : 0m;
+                    var tax            = bag.TryGetProperty("tax",            out var t)   ? t.GetDecimal() : 0m;
+                    var additionalBags = bag.TryGetProperty("additionalBags", out var ab)  ? ab.GetInt32()  : 1;
+
+                    var segRef = ResolveSegmentRef(root, inventoryId, segments);
+
+                    orderItems.Add(new ConfirmedOrderItem
+                    {
+                        OrderItemId    = $"OI-{idx++}",
+                        Type           = "Bag",
+                        SegmentRef     = segRef,
+                        PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
+                        UnitPrice      = price,
+                        Taxes          = tax,
+                        TotalPrice     = price + tax,
+                        PaymentReference = paymentId,
+                        AdditionalBags = additionalBags
+                    });
+                }
+            }
+
+            // Products
+            if (root.TryGetProperty("products", out var productsEl) && productsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var product in productsEl.EnumerateArray())
+                {
+                    var paxId   = product.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+                    var segRef2 = product.TryGetProperty("segmentRef",  out var sr)  ? sr.GetString()  ?? "" : "";
+                    var price   = product.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
+                    var tax     = product.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
+                    var name    = product.TryGetProperty("name",        out var n)   ? n.GetString() : null;
+                    var offerId = product.TryGetProperty("offerId",     out var oid) ? oid.GetString() : null;
+
+                    // segmentRef on products is a basketItemId — map to SegmentId
+                    var resolvedSegRef = segments.FirstOrDefault(s =>
+                        string.Equals(s.SegmentId, segRef2, StringComparison.OrdinalIgnoreCase))?.SegmentId
+                        ?? segRef2;
+
+                    orderItems.Add(new ConfirmedOrderItem
+                    {
+                        OrderItemId    = $"OI-{idx++}",
+                        Type           = "Product",
+                        SegmentRef     = resolvedSegRef,
+                        PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
+                        UnitPrice      = price,
+                        Taxes          = tax,
+                        TotalPrice     = price + tax,
+                        PaymentReference = paymentId,
+                        ProductName    = name,
+                        ProductOfferId = offerId
+                    });
+                }
+            }
+
+            // SSRs (no charge)
+            if (root.TryGetProperty("ssrSelections", out var ssrsEl) && ssrsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ssr in ssrsEl.EnumerateArray())
+                {
+                    var ssrCode = ssr.TryGetProperty("ssrCode",      out var sc) ? sc.GetString() ?? "" : "";
+                    var paxRef  = ssr.TryGetProperty("passengerRef", out var pr) ? pr.GetString() ?? "" : "";
+                    var segRef3 = ssr.TryGetProperty("segmentRef",   out var sr) ? sr.GetString() ?? "" : "";
+
+                    var resolvedSegRef = segments.FirstOrDefault(s =>
+                        string.Equals(s.SegmentId, segRef3, StringComparison.OrdinalIgnoreCase))?.SegmentId
+                        ?? segRef3;
+
+                    orderItems.Add(new ConfirmedOrderItem
+                    {
+                        OrderItemId    = $"OI-{idx++}",
+                        Type           = "SSR",
+                        SegmentRef     = resolvedSegRef,
+                        PassengerRefs  = string.IsNullOrEmpty(paxRef) ? [] : [paxRef],
+                        UnitPrice      = 0m,
+                        Taxes          = 0m,
+                        TotalPrice     = 0m,
+                        PaymentReference = string.Empty,
+                        SsrCode        = ssrCode
+                    });
+                }
+            }
+        }
+        catch { /* Return whatever was appended */ }
+    }
+
+    private static string ResolveSegmentRef(
+        JsonElement root,
+        string inventoryId,
+        List<ConfirmedFlightSegment> segments)
+    {
+        if (!root.TryGetProperty("flightOffers", out var offersEl) ||
+            offersEl.ValueKind != JsonValueKind.Array)
+            return inventoryId;
+
+        foreach (var offer in offersEl.EnumerateArray())
+        {
+            if (!offer.TryGetProperty("inventoryId", out var inv)) continue;
+            if (!string.Equals(inv.GetString(), inventoryId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!offer.TryGetProperty("basketItemId", out var bk)) continue;
+            var basketItemId = bk.GetString() ?? "";
+            var matched = segments.FirstOrDefault(s =>
+                string.Equals(s.SegmentId, basketItemId, StringComparison.OrdinalIgnoreCase));
+            if (matched is not null) return matched.SegmentId;
+        }
+
+        return inventoryId;
+    }
+
+    private static bool? ParseBoolFromItem(ConfirmedOrderItemResult item, string propertyName)
+    {
+        // ConfirmedOrderItemResult doesn't currently expose isRefundable/isChangeable;
+        // return null (unknown) until the Order MS surfaces these.
+        return null;
     }
 
     private static decimal CalculateTotalFromRepriced(
@@ -559,121 +978,6 @@ public sealed class ConfirmBasketHandler
             Amount = amount,
             Currency = currency
         };
-    }
-
-    private static List<OrderFlight> ParseFlightsFromBasketData(string? basketDataJson)
-    {
-        var flights = new List<OrderFlight>();
-        if (basketDataJson == null) return flights;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(basketDataJson);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty("flightOffers", out var offersEl) &&
-                offersEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var offer in offersEl.EnumerateArray())
-                {
-                    var departureDate = offer.TryGetProperty("departureDate", out var ddv) ? ddv.GetString() ?? "" : "";
-                    var departureTime = offer.TryGetProperty("departureTime", out var dtv) ? dtv.GetString() ?? "00:00" : "00:00";
-                    var arrivalTime   = offer.TryGetProperty("arrivalTime",   out var atv) ? atv.GetString() ?? "00:00" : "00:00";
-
-                    var depDt = DateTime.TryParse($"{departureDate}T{departureTime}", out var d) ? d : default;
-                    var arrDt = DateTime.TryParse($"{departureDate}T{arrivalTime}",   out var a) ? a : default;
-
-                    flights.Add(new OrderFlight
-                    {
-                        FlightNumber   = offer.TryGetProperty("flightNumber", out var v) ? v.GetString() ?? "" : "",
-                        Origin         = offer.TryGetProperty("origin",       out v)     ? v.GetString() ?? "" : "",
-                        Destination    = offer.TryGetProperty("destination",  out v)     ? v.GetString() ?? "" : "",
-                        DepartureTime  = depDt,
-                        ArrivalTime    = arrDt,
-                        CabinClass     = offer.TryGetProperty("cabinCode",    out v)     ? v.GetString() ?? "" : ""
-                    });
-                }
-            }
-        }
-        catch { /* Return whatever was parsed */ }
-
-        return flights;
-    }
-
-    private static List<OrderPassenger> ParsePassengersFromBasketData(string? basketDataJson)
-    {
-        var passengers = new List<OrderPassenger>();
-        if (basketDataJson == null) return passengers;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(basketDataJson);
-            var root = doc.RootElement;
-
-            // Build seat lookup: passengerId -> ordered list of seat numbers across all segments
-            var seatsByPassenger = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var seat in seatsEl.EnumerateArray())
-                {
-                    var paxId   = seat.TryGetProperty("passengerId",  out var spid) ? spid.GetString() ?? "" : "";
-                    var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null) ?? "";
-                    if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(seatNum))
-                    {
-                        if (!seatsByPassenger.ContainsKey(paxId))
-                            seatsByPassenger[paxId] = [];
-                        seatsByPassenger[paxId].Add(seatNum);
-                    }
-                }
-            }
-
-            // Build bag allowances lookup: passengerId -> list of formatted allowance strings
-            var bagsByPassenger = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            if (root.TryGetProperty("orderItems", out var oiSource) && oiSource.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var oi in oiSource.EnumerateArray())
-                {
-                    if (!oi.TryGetProperty("productType", out var ptEl) ||
-                        !string.Equals(ptEl.GetString(), "BAG", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    var paxId   = oi.TryGetProperty("passengerId",    out var bpid) ? bpid.GetString() ?? "" : "";
-                    var addBags = oi.TryGetProperty("additionalBags", out var ab)   ? ab.GetInt32()          : 1;
-                    if (!string.IsNullOrEmpty(paxId))
-                    {
-                        if (!bagsByPassenger.ContainsKey(paxId))
-                            bagsByPassenger[paxId] = [];
-                        bagsByPassenger[paxId].Add($"+{addBags} bag{(addBags == 1 ? "" : "s")}");
-                    }
-                }
-            }
-
-            if (root.TryGetProperty("passengers", out var passengersEl) &&
-                passengersEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var p in passengersEl.EnumerateArray())
-                {
-                    var paxId = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
-
-                    seatsByPassenger.TryGetValue(paxId, out var seats);
-                    var seatNumber = seats is { Count: > 0 } ? string.Join(" / ", seats) : null;
-
-                    bagsByPassenger.TryGetValue(paxId, out var bags);
-
-                    passengers.Add(new OrderPassenger
-                    {
-                        PaxId          = paxId,
-                        FirstName      = p.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
-                        LastName       = p.TryGetProperty("surname",   out var sn) ? sn.GetString() ?? "" : "",
-                        SeatNumber     = seatNumber,
-                        BagAllowances  = bags ?? []
-                    });
-                }
-            }
-        }
-        catch { /* Return whatever was parsed */ }
-
-        return passengers;
     }
 
     private static (List<TicketPassenger> passengers, List<TicketSegment> segments) ParseBasketDataForTickets(

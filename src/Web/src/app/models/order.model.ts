@@ -108,6 +108,11 @@ export interface Order {
   bookingType: BookingType;
   channelCode: string;
   currency: string;
+  // Pre-computed totals returned by the API — never calculated in the UI
+  fareTotal: number;
+  seatTotal: number;
+  bagTotal: number;
+  productTotal: number;
   totalAmount: number;
   totalPointsAmount?: number;
   createdAt: string;
