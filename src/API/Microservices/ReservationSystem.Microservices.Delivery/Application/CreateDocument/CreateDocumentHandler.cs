@@ -22,15 +22,12 @@ public sealed class CreateDocumentHandler
 
     public async Task<CreateDocumentResponse> HandleAsync(CreateDocumentRequest request, CancellationToken cancellationToken = default)
     {
-        var sequence = await _documentRepository.GetDocumentCountAsync(cancellationToken) + 1;
-        var documentNumber = $"932-EMD-{sequence:D7}";
-
         var documentDataJson = request.DocumentData.HasValue
             ? request.DocumentData.Value.GetRawText()
             : "{}";
 
         var document = Document.Create(
-            documentNumber, request.DocumentType, request.BookingReference,
+            request.DocumentType, request.BookingReference,
             request.ETicketNumber, request.PassengerId, request.SegmentRef,
             request.PaymentReference, request.Amount, request.CurrencyCode,
             documentDataJson);
@@ -38,7 +35,7 @@ public sealed class CreateDocumentHandler
         await _documentRepository.CreateAsync(document, cancellationToken);
 
         _logger.LogInformation("Created document {DocumentNumber} ({DocumentType}) for {BookingReference}",
-            documentNumber, request.DocumentType, request.BookingReference);
+            DeliveryMapper.FormatDocumentNumber(document.DocumentNumber), request.DocumentType, request.BookingReference);
 
         return DeliveryMapper.ToCreateDocumentResponse(document);
     }

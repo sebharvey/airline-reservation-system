@@ -9,6 +9,4 @@ public interface IDocumentRepository
     Task<IReadOnlyList<Document>> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default);
 
     Task CreateAsync(Document document, CancellationToken cancellationToken = default);
-
-    Task<int> GetDocumentCountAsync(CancellationToken cancellationToken = default);
 }

@@ -804,7 +804,7 @@ GO
 IF OBJECT_ID('[delivery].[Document]', 'U') IS NULL
 CREATE TABLE [delivery].[Document] (
     DocumentId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Document_Id       DEFAULT NEWID(),
-    DocumentNumber   VARCHAR(20)      NOT NULL,
+    DocumentNumber   BIGINT           NOT NULL IDENTITY(1000000001, 1),
     DocumentType     VARCHAR(30)      NOT NULL,
     BookingReference CHAR(6)          NOT NULL,
     ETicketNumber    VARCHAR(20)      NULL,
@@ -835,6 +835,19 @@ IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_Document_Type' 
 BEGIN
     ALTER TABLE [delivery].[Document] DROP CONSTRAINT CHK_Document_Type;
     ALTER TABLE [delivery].[Document] ADD CONSTRAINT CHK_Document_Type CHECK (DocumentType IN ('SeatAncillary','BagAncillary','ProductAncillary'));
+END
+-- Convert DocumentNumber from VARCHAR to BIGINT IDENTITY on existing deployments
+IF EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'delivery' AND TABLE_NAME = 'Document'
+      AND COLUMN_NAME = 'DocumentNumber' AND DATA_TYPE = 'varchar'
+)
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_Document_Number' AND parent_object_id = OBJECT_ID('[delivery].[Document]'))
+        ALTER TABLE [delivery].[Document] DROP CONSTRAINT UQ_Document_Number;
+    ALTER TABLE [delivery].[Document] DROP COLUMN DocumentNumber;
+    ALTER TABLE [delivery].[Document] ADD DocumentNumber BIGINT NOT NULL IDENTITY(1000000001, 1);
+    ALTER TABLE [delivery].[Document] ADD CONSTRAINT UQ_Document_Number UNIQUE (DocumentNumber);
 END
 GO
 
@@ -1985,12 +1998,16 @@ BEGIN TRY
     (@TktId3,@InvId_AX411,'AX411','2026-09-10','B789','22A','Y','JC0005','932-1000000003','PAX-1','James', 'Chen',  '20:30','09:00');
 
     -- delivery.Document — bag ancillary EMD for AB1234 ------------------------
+    -- DocumentNumber is an IDENTITY column; use IDENTITY_INSERT to set seed values explicitly.
+    -- Seed rows occupy 1000000001; production inserts start at 1000000002.
+    SET IDENTITY_INSERT [delivery].[Document] ON;
     INSERT INTO [delivery].[Document]
         (DocumentNumber, DocumentType, BookingReference, ETicketNumber, PassengerId,
          SegmentRef, PaymentReference, Amount, DocumentData)
     VALUES
-    ('932-EMD-0000001','BagAncillary','AB1234','932-1000000001','PAX-1','SEG-1','AXPAY-0002',60.00,
+    (1000000001,'BagAncillary','AB1234','932-1000000001','PAX-1','SEG-1','AXPAY-0002',60.00,
      N'{"emdType":"EMD-A","rfic":"C","rfisc":"0GO","serviceDescription":"Additional Checked Bag — 23 kg","couponStatus":"Open","ancillaryDetail":{"type":"BagAncillary","bagSequenceNumber":1,"weightKg":23,"dimensionsCm":{"length":90,"width":75,"depth":43},"bagTagNumber":null},"priceBreakdown":{"baseAmount":60.00,"taxes":[],"totalAmount":60.00,"currencyCode":"GBP"},"voidHistory":[]}');
+    SET IDENTITY_INSERT [delivery].[Document] OFF;
 
     -- disruption.DisruptionEvent — historical delay on AX301 -----------------
     INSERT INTO [disruption].[DisruptionEvent]
