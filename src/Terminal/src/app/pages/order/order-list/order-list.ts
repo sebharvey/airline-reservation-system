@@ -53,7 +53,7 @@ export class OrderListComponent implements OnInit {
       if (result) {
         const segments = result.orderData?.dataLists?.flightSegments ?? [];
         const route = segments.length > 0
-          ? `${segments[0].origin} → ${segments[segments.length - 1].destination}`
+          ? `${segments[0].origin} → ${this.#getTurnaroundDestination(segments)}`
           : '';
         const passengers = result.orderData?.dataLists?.passengers ?? [];
         const leadPassengerName = passengers.length > 0
@@ -131,5 +131,17 @@ export class OrderListComponent implements OnInit {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
+  }
+
+  #getTurnaroundDestination(segments: { origin: string; destination: string }[]): string {
+    const visited = new Set<string>([segments[0].origin]);
+    for (let i = 0; i < segments.length; i++) {
+      const dest = segments[i].destination;
+      if (visited.has(dest)) {
+        return i > 0 ? segments[i - 1].destination : dest;
+      }
+      visited.add(dest);
+    }
+    return segments[segments.length - 1].destination;
   }
 }

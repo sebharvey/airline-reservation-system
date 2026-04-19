@@ -108,16 +108,36 @@ public sealed class GetAdminOrdersHandler
             catch { }
         }
 
-        // Build route from first-segment origin → last-segment destination
+        // Build route: origin → turnaround destination.
+        // For return trips (e.g. LHR→JFK→LHR or DEL→LHR→JFK→LHR→DEL) we show the
+        // furthest destination before the path revisits a known airport, not the final
+        // landing airport which would produce "LHR → LHR".
         if (inventoryIds.Count > 0)
         {
-            flightCache.TryGetValue(inventoryIds[0], out var firstFlight);
-            flightCache.TryGetValue(inventoryIds[^1], out var lastFlight);
+            var segments = inventoryIds
+                .Select(id => flightCache.TryGetValue(id, out var f) ? f : null)
+                .Where(f => f is not null)
+                .ToList();
 
-            if (firstFlight is not null && lastFlight is not null)
-                route = $"{firstFlight.Origin} → {lastFlight.Destination}";
-            else if (firstFlight is not null)
-                route = $"{firstFlight.Origin} → {firstFlight.Destination}";
+            if (segments.Count > 0)
+            {
+                var firstOrigin = segments[0]!.Origin;
+                var displayDestination = segments[^1]!.Destination;
+                var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { firstOrigin };
+
+                for (var i = 0; i < segments.Count; i++)
+                {
+                    var dest = segments[i]!.Destination;
+                    if (visited.Contains(dest))
+                    {
+                        displayDestination = i > 0 ? segments[i - 1]!.Destination : dest;
+                        break;
+                    }
+                    visited.Add(dest);
+                }
+
+                route = $"{firstOrigin} → {displayDestination}";
+            }
         }
 
         return new AdminOrderSummaryResponse
