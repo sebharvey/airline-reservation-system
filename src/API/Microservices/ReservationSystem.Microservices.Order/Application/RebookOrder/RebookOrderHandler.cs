@@ -47,9 +47,35 @@ public sealed class RebookOrderHandler
 
         if (rebookNode is not null)
         {
-            // Add rebook details to the order
             orderJson["rebookDetails"] = rebookNode.DeepClone();
             orderJson["rebookedAt"] = DateTime.UtcNow.ToString("o");
+
+            // Append a history entry recording the from → to disruption change
+            var historyEntry = new JsonObject
+            {
+                ["event"] = "IRROPSRebook",
+                ["timestamp"] = DateTime.UtcNow.ToString("o"),
+                ["reason"] = rebookNode["reason"]?.GetValue<string>() ?? "FlightCancellation"
+            };
+
+            var fromFlightNumber = rebookNode["fromFlightNumber"]?.GetValue<string>();
+            var fromDepartureDate = rebookNode["fromDepartureDate"]?.GetValue<string>();
+            if (fromFlightNumber is not null)
+            {
+                historyEntry["from"] = new JsonObject
+                {
+                    ["flightNumber"] = fromFlightNumber,
+                    ["departureDate"] = fromDepartureDate
+                };
+            }
+
+            var toFlights = rebookNode["toFlights"]?.AsArray();
+            if (toFlights is { Count: > 0 })
+                historyEntry["to"] = toFlights.DeepClone();
+
+            var history = orderJson["history"]?.AsArray() ?? new JsonArray();
+            history.Add(historyEntry);
+            orderJson["history"] = history;
         }
 
         var updated = Domain.Entities.Order.Reconstitute(
