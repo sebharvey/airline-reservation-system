@@ -220,6 +220,10 @@ public sealed class ConfirmOrderHandler
                     if (prop.Key is "basketItemRef" or "cabinCode" or "seatOfferId" or "basketItemId") continue;
                     seatItem[prop.Key] = prop.Value?.DeepClone();
                 }
+                // Guarantee tax is always persisted — default to 0 when omitted by the client.
+                // This ensures GetAdminOrderDetailHandler can always read a tax value for paid seats.
+                if (seatItem["tax"] is null)
+                    seatItem["tax"] = JsonValue.Create(0m);
                 flightOrderItems.Add(seatItem);
             }
         }
