@@ -10,7 +10,7 @@ This guide describes how to build backend APIs for the Apex Air Reservation Syst
 |-------|-----------|
 | Runtime | .NET 8, Azure Functions v4 (isolated worker) |
 | Architecture | Clean architecture — Domain, Application, Infrastructure, Models, Functions layers |
-| Database | Azure SQL (Dapper, no ORM) |
+| Database | Azure SQL (EF Core) |
 | Serialisation | `System.Text.Json` with camelCase naming |
 | HTTP | Azure Functions HTTP trigger (no ASP.NET routing middleware) |
 | DI | Built-in `Microsoft.Extensions.DependencyInjection` |
@@ -45,7 +45,7 @@ Generic, technology-level utilities with **no knowledge of the airline domain**.
 | `Shared.Common.Http` | `HttpRequestExtensions`, `HttpResponseExtensions`, `HttpResponseMessageExtensions`, `ApiError`, `CorrelationId`, `IdempotencyKey` | Reading requests, writing standardised responses, propagating correlation IDs and idempotency keys |
 | `Shared.Common.Health` | `HealthCheckFunction`, `HealthCheckService`, `HealthCheckExtensions`, `IHealthCheckProvider` | Registering and exposing the `/v1/health` endpoint |
 | `Shared.Common.Infrastructure.Configuration` | `DatabaseOptions` | Binding the `Database` config section for SQL connections |
-| `Shared.Common.Infrastructure.Persistence` | `SqlConnectionFactory` | Creating open `SqlConnection` instances for Dapper queries |
+| `Shared.Common.Infrastructure.Persistence` | `SqlConnectionFactory` | Creating open `SqlConnection` instances |
 | `Shared.Common.Json` | `SharedJsonOptions` | Accessing the standard `CamelCase` and `CamelCaseIgnoreNull` serialiser options |
 | `Shared.Common.Models` | `PagedResult<T>`, `PagedRequest` | Returning paginated results from list endpoints |
 | `Shared.Common.Validation` | `Guard` | Lightweight guard-clause helpers that throw `ArgumentException` on invalid inputs |
@@ -168,14 +168,14 @@ Application/
 
 Implements interfaces defined in the Domain layer.
 
-- `Persistence/Sql<EntityName>Repository.cs` — Dapper-based SQL repository implementation
+- `Persistence/Sql<EntityName>Repository.cs` — EF Core repository implementation
 - `Persistence/Scripts/schema.sql` — SQL schema definition for this service's data store
 - `ExternalServices/` — HTTP client implementations for external dependencies
 
 Schema conventions:
 - Schema name: `[<entity-lower>]` (e.g. `[offer]`, `[order]`)
 - Table name: `[<entity-lower>].[<EntityPlural>]` (e.g. `[offer].[Offers]`)
-- Column names: PascalCase — Dapper maps directly without attribute decorators
+- Column names: PascalCase — configured via `OnModelCreating` in the `DbContext`
 - JSON columns: must include an `ISJSON` check constraint
 - Indexes: add for common query patterns (status, date ranges, flight number)
 
@@ -185,7 +185,7 @@ HTTP-boundary data transfer objects — never used in domain or application logi
 
 - `Requests/` — inbound HTTP request bodies
 - `Responses/` — outbound HTTP response bodies
-- `Database/` — Dapper record types (flat, SQL-shaped)
+- `Database/` — EF Core entity types (flat, SQL-shaped)
 - `Database/JsonFields/` — strongly typed objects deserialised from JSON columns
 - `Mappers/` — static mapper classes; no AutoMapper
 
@@ -329,7 +329,7 @@ All mutating endpoints that operate on booking or ticket records accept a `versi
 
 ## Entity Framework Core DbContext configuration
 
-Some microservices use EF Core instead of Dapper for persistence. When configuring a `DbContext` for a table that has database triggers, EF Core **must** be told about those triggers explicitly.
+When configuring a `DbContext` for a table that has database triggers, EF Core **must** be told about those triggers explicitly.
 
 ### Why this is required
 
