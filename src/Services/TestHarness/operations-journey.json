@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Operations — SSIM import & inventory",
+    "name": "Operations \u2014 SSIM import & inventory",
     "description": "End-to-end journey covering SSIM file import via the Operations API. The Operations API parses the SSIM file, converts each Type 3 scheduled-passenger leg to the season schedule JSON format, and forwards the full payload to the Schedule MS POST /v1/schedules, which atomically replaces all existing schedule records. Tests successful import, validation error handling, and empty-body rejection.",
     "domain": "Operations",
     "baseUrls": [
@@ -14,7 +14,7 @@
   "steps": [
     {
       "step": 1,
-      "name": "Import SSIM — empty body",
+      "name": "Import SSIM \u2014 empty body",
       "description": "Submit a SSIM import request with an empty body. Validates that the Operations API rejects the request before attempting to parse or forward anything.",
       "type": "negative",
       "apiCall": {
@@ -29,24 +29,16 @@
         "body": ""
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "Request body must contain SSIM file content."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — request body is empty. The Operations API validates that the body is non-empty before attempting to parse. No call is made to Schedule MS.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "An empty or whitespace-only body is rejected immediately at the Operations API boundary."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 2,
-      "name": "Import SSIM — no valid Type 3 records",
+      "name": "Import SSIM \u2014 no valid Type 3 records",
       "description": "Submit a SSIM file that contains only header and trailer records (no Type 3 flight leg records). Validates that the Operations API returns 400 when the parsed record set is empty.",
       "type": "negative",
       "apiCall": {
@@ -61,24 +53,16 @@
         "body": "1IATA  AX              20260101 20261231AX  SCHED  20260326\n2AX  01W20260101 20261231\n5       0\n"
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "No valid Type 3 scheduled-passenger records found in the SSIM file."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — SSIM file contains no Type 3 records. The Operations API SsimParser finds zero flight leg records after processing and returns an error.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The SSIM file must contain at least one Type 3 record with service type Y (scheduled passenger). Files with only Type 1, 2, or 5 records are rejected."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 3,
-      "name": "Import SSIM — 2026 season schedule (48 flights)",
+      "name": "Import SSIM \u2014 2026 season schedule (48 flights)",
       "description": "Import the full 2026 season SSIM file for Apex Air (48 scheduled-passenger flight legs, hub LHR, routes to JFK/LAX/MIA/SFO/ORD/BOS/BGI/KIN/NAS/HKG/NRT/PVG/PEK/SIN/BOM/DEL/BLR). The Operations API parses the SSIM file, builds the season schedule JSON payload, and forwards to Schedule MS which atomically replaces all existing schedule records.",
       "type": "positive",
       "apiCall": {
@@ -93,22 +77,10 @@
         "bodyFile": "res/schedules/flight-schedule-2026.ssim"
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "imported": 48,
-          "deleted": 0,
-          "schedules": []
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — Operations API parses 48 Type 3 records from the SSIM file, builds the season schedule payload, and forwards to Schedule MS. Schedule MS deletes any pre-existing records and inserts 48 new FlightSchedule rows. Response contains imported=48, deleted (number of pre-existing records removed), and an array of 48 schedule summaries each with scheduleId, flightNumber, origin, destination, validFrom, validTo, and operatingDateCount.",
-        "keyFields": [
-          "imported",
-          "deleted",
-          "schedules"
-        ],
-        "validationNotes": "imported must equal 48. deleted indicates how many records were removed (0 if table was empty beforehand). schedules array must contain exactly 48 entries. Each entry must have a non-empty UUID scheduleId, valid IATA flightNumber (e.g. AX001), 3-char origin and destination IATA codes, ISO 8601 validFrom and validTo dates, and a positive operatingDateCount. Daily flights (daysOfWeek=127) over a full year should show operatingDateCount=365."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -119,7 +91,7 @@
     },
     {
       "step": 4,
-      "name": "Re-import SSIM — confirms full replacement",
+      "name": "Re-import SSIM \u2014 confirms full replacement",
       "description": "Re-import the same 2026 season SSIM file. Validates that the Schedule MS atomically replaces all records: deleted count should equal the number previously imported (48), and imported count should again equal 48.",
       "type": "positive",
       "apiCall": {
@@ -134,28 +106,16 @@
         "bodyFile": "res/schedules/flight-schedule-2026.ssim"
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "imported": 48,
-          "deleted": 48,
-          "schedules": []
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — second import confirms full-replacement semantics. deleted must equal 48 (the records inserted in Step 3 are removed before the new set is inserted). imported must again equal 48. All scheduleId values in the response will be new UUIDs, distinct from those returned in Step 3.",
-        "keyFields": [
-          "imported",
-          "deleted",
-          "schedules"
-        ],
-        "validationNotes": "deleted must equal 48. imported must equal 48. scheduleId values must differ from Step 3 (new UUIDs are generated on each import). This confirms the Schedule MS performs a full delete-and-reinsert rather than an upsert."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 5,
-      "name": "Import Inventory — empty cabins array",
+      "name": "Import Inventory \u2014 empty cabins array",
       "description": "Submit an import-inventory request with an empty cabins array. Validates that the Operations API rejects the request before calling Schedule MS or Offer MS.",
       "type": "negative",
       "apiCall": {
@@ -172,24 +132,16 @@
         }
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "At least one cabin definition is required."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — cabins array is empty. The Operations API validates the request body before making any downstream calls.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "An empty cabins array is rejected immediately at the Operations API boundary. No calls are made to Schedule MS or Offer MS."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 6,
-      "name": "Import Inventory — cabin with no fares",
+      "name": "Import Inventory \u2014 cabin with no fares",
       "description": "Submit an import-inventory request where a cabin definition has an empty fares array. Validates that the Operations API rejects the request.",
       "type": "negative",
       "apiCall": {
@@ -212,24 +164,16 @@
         }
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "Each cabin must have at least one fare definition."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — cabin Y has an empty fares array. Every cabin definition must include at least one fare.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The Operations API validates that each cabin entry contains at least one fare definition before proceeding."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 7,
-      "name": "Import Inventory — 2026 season (first run)",
+      "name": "Import Inventory \u2014 2026 season (first run)",
       "description": "Import all stored schedule records into the Offer MS inventory. The Operations API retrieves 48 schedules from Schedule MS, expands each to its operating dates, batch-creates FlightInventory records in Offer MS (J and Y cabin per date), then adds fares for each created inventory. First run expects all inventories to be created.",
       "type": "positive",
       "apiCall": {
@@ -301,30 +245,16 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "schedulesProcessed": 48,
-          "inventoriesCreated": 0,
-          "inventoriesSkipped": 0,
-          "faresCreated": 0
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — Operations API retrieves 48 schedules, expands each to its operating dates across the 2026 season, and batch-creates FlightInventory records (one per flight/date/cabin combination) in Offer MS. Fares are created for each new inventory record. schedulesProcessed=48. inventoriesCreated > 0 (total flight/date/cabin combinations across all 48 schedules). inventoriesSkipped=0 on first run. faresCreated equals inventoriesCreated multiplied by the number of fares defined per cabin.",
-        "keyFields": [
-          "schedulesProcessed",
-          "inventoriesCreated",
-          "inventoriesSkipped",
-          "faresCreated"
-        ],
-        "validationNotes": "schedulesProcessed must equal 48. inventoriesSkipped must equal 0. faresCreated must be positive and consistent with the number of fares per cabin (J has 1 fare, Y has 2 fares). A daily flight over 365 days with 2 cabins yields 730 inventory records; with 3 fares total that yields 2190 fare records for that flight alone."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 8,
-      "name": "Import Inventory — idempotency check (second run)",
+      "name": "Import Inventory \u2014 idempotency check (second run)",
       "description": "Re-run the same import-inventory request immediately after Step 7. All FlightInventory records already exist in Offer MS so all should be skipped. Validates idempotency: no duplicate inventory or fares are created.",
       "type": "positive",
       "apiCall": {
@@ -396,24 +326,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "schedulesProcessed": 48,
-          "inventoriesCreated": 0,
-          "inventoriesSkipped": 0,
-          "faresCreated": 0
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — all FlightInventory records from Step 7 already exist. inventoriesCreated must equal 0. inventoriesSkipped must equal the same value as inventoriesCreated in Step 7. faresCreated must equal 0 (fares are only created for newly created inventories).",
-        "keyFields": [
-          "schedulesProcessed",
-          "inventoriesCreated",
-          "inventoriesSkipped",
-          "faresCreated"
-        ],
-        "validationNotes": "inventoriesCreated must equal 0. inventoriesSkipped must be positive and equal the inventoriesCreated count from Step 7. faresCreated must equal 0. This confirms the batch endpoint skips existing flight/date/cabin combinations rather than overwriting or duplicating them."
+        "statusCode": 200
       },
       "chainsTo": []
     }

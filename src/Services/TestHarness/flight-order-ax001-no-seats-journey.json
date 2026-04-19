@@ -35,60 +35,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "itineraries": [
-            {
-              "legs": [
-                {
-                  "sessionId": "518c85cc-8618-4a20-8874-235461e10e11",
-                  "flightNumber": "AX001",
-                  "origin": "LHR",
-                  "destination": "JFK",
-                  "departureDate": "2026-04-07",
-                  "departureTime": "08:00",
-                  "arrivalTime": "11:10",
-                  "arrivalDayOffset": 0,
-                  "aircraftType": "A351",
-                  "cabins": [
-                    {
-                      "cabinCode": "Y",
-                      "availableSeats": 252,
-                      "fromPrice": 186.25,
-                      "currency": "GBP",
-                      "fareFamilies": [
-                        {
-                          "fareFamily": "Non-Flex",
-                          "offer": {
-                            "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d",
-                            "fareBasisCode": "YLOWGB",
-                            "basePrice": 89.0,
-                            "tax": 97.25,
-                            "totalPrice": 186.25,
-                            "currency": "GBP",
-                            "isRefundable": false,
-                            "isChangeable": false
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "connectionDurationMinutes": null,
-              "combinedFromPrice": 186.25,
-              "currency": "GBP"
-            }
-          ]
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 search results returned. AX001 appears as the first leg in the itineraries list. The leg's sessionId and a selected offerId are chained to Step 2.",
-        "keyFields": [
-          "itineraries"
-        ],
-        "validationNotes": "AX001 must be present for the requested departure date. sessionId is nested in itineraries[0].legs[0]. A random available offer is selected across all cabin fare families."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -146,18 +96,10 @@
         ]
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created \u2014 basket created. Returns a basketId (GUID) used for all subsequent basket operations.",
-        "keyFields": [
-          "basketId"
-        ],
-        "validationNotes": "basketId is a GUID. The single segment offerId must match a valid stored offer from the search session. The basket expires after 60 minutes of inactivity."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -194,22 +136,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
-          "status": "Active",
-          "currency": "GBP",
-          "flights": [
-            {
-              "validated": true,
-              "taxLines": []
-            }
-          ]
-        }
+        "statusCode": 200
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
         "assertions": [
           {
             "field": "flights",
@@ -343,25 +273,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
-          "status": "Active",
-          "totalFareAmount": 0.0,
-          "totalSeatAmount": 0.0,
-          "totalBagAmount": 0.0,
-          "totalPrice": 0.0,
-          "currency": "GBP"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 PAX-1 saved to the basket. contacts.email and contacts.phone are required for the primary passenger.",
-        "keyFields": [
-          "basketId",
-          "status"
-        ],
-        "validationNotes": "One entry per passenger up to the random paxCount for this run (1\u20136). passengerIds PAX-1\u2026PAX-N must be referenced consistently. type uses IATA passenger type codes (ADT)."
+        "statusCode": 200
       }
     },
     {
@@ -388,45 +303,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "601255b6-9eed-465a-8ff4-c0e9c378155f",
-          "channelCode": "WEB",
-          "currency": "GBP",
-          "basketStatus": "Active",
-          "basketData": {
-            "flightOffers": [
-              {
-                "offerId": "d8cf391f-67b2-4ab2-8b3b-423777f5156d",
-                "basketItemId": "BI-1",
-                "inventoryId": "806e766b-e87d-4153-9b69-bb2e7c4ee7f0",
-                "flightNumber": "AX001",
-                "aircraftType": "A351",
-                "cabinCode": "Y"
-              }
-            ],
-            "passengers": [
-              {
-                "passengerId": "PAX-1",
-                "type": "ADT",
-                "givenName": "__RAND_GIVEN_NAME__",
-                "surname": "__RAND_SURNAME__"
-              }
-            ],
-            "seats": [],
-            "bags": []
-          }
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 basket retrieved. basketStatus is Active. PAX-1 is present in passengers. seats array is empty as seat selection was skipped.",
-        "keyFields": [
-          "basketStatus",
-          "basketData.flightOffers",
-          "basketData.passengers"
-        ],
-        "validationNotes": "basketStatus must be Active. flightOffers must contain one entry for AX001. passengers must contain PAX-1. seats must be empty."
+        "statusCode": 200
       }
     },
     {
@@ -466,32 +346,10 @@
         ]
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "orderId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "bookingReference": "AX123456",
-          "status": "Confirmed",
-          "eTickets": [
-            {
-              "passengerId": "PAX-1",
-              "segmentIds": [
-                "BI-1"
-              ],
-              "eTicketNumber": "932-0000000001"
-            }
-          ]
-        }
+        "statusCode": 201
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created \u2014 order created for AX001 on 2026-04-07 without seats. The basket is marked Confirmed and the response contains the orderId (GUID) and the human-readable bookingReference.",
-        "keyFields": [
-          "orderId",
-          "bookingReference",
-          "status",
-          "eTickets"
-        ],
-        "validationNotes": "cardNumber 4111111111111111 is a standard Luhn-valid Visa test card. On success, basketStatus transitions to Confirmed and confirmedOrderId is populated on the basket resource. loyaltyPointsToRedeem is null for a standard card payment.",
         "assertions": [
           {
             "field": "eTickets",

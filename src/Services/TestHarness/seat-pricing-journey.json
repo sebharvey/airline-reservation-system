@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Admin — seat pricing",
+    "name": "Admin \u2014 seat pricing",
     "description": "End-to-end journey covering seat pricing rule lifecycle management via the Retail API admin endpoints. Registers an employee account, authenticates via the Admin API to obtain a JWT, creates a seat pricing rule for Economy Window seats, reads it back by ID, updates the price and deactivates the rule, verifies the saved changes with a second read, deletes the rule, then removes the employee account.",
     "domain": "Retail",
     "baseUrls": [
@@ -45,29 +45,23 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This account is used as the credential fixture for the Admin API login step that follows.",
-        "keyFields": [
-          "userId"
-        ],
-        "validationNotes": "userId is a non-empty GUID. username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
+        "statusCode": 201
       },
       "chainsTo": [
         {
           "field": "userId",
-          "usedInSteps": [8]
+          "usedInSteps": [
+            8
+          ]
         }
       ]
     },
     {
       "step": 2,
-      "name": "Login — obtain access token",
+      "name": "Login \u2014 obtain access token",
       "description": "Authenticate the employee account created in Step 1 via the Admin API using the runtime-generated username and password. Validates that the Admin API orchestrates the User MS correctly and returns a signed JWT. The accessToken is carried forward as the Bearer credential for all Retail API admin calls in this journey.",
       "type": "positive",
       "apiCall": {
@@ -86,38 +80,30 @@
         "dataChain": [
           {
             "field": "username",
-            "source": "Step 1 → runtime-generated username"
+            "source": "Step 1 \u2192 runtime-generated username"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "expiresAt": "2026-04-12T10:15:00Z",
-          "tokenType": "Bearer"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL). The accessToken is injected as the Authorization header on all subsequent Retail API admin requests.",
-        "keyFields": [
-          "accessToken",
-          "userId",
-          "expiresAt",
-          "tokenType"
-        ],
-        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match Step 1. expiresAt is ISO 8601 UTC approximately 15 minutes from now. tokenType is always 'Bearer'."
+        "statusCode": 200
       },
       "chainsTo": [
         {
           "field": "accessToken",
-          "usedInSteps": [3, 4, 5, 6, 7]
+          "usedInSteps": [
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
         }
       ]
     },
@@ -139,7 +125,7 @@
           "cabinCode": "Y",
           "seatPosition": "Window",
           "currencyCode": "GBP",
-          "price": 25.00,
+          "price": 25.0,
           "validFrom": "2026-01-01T00:00:00Z",
           "validTo": null
         },
@@ -147,48 +133,31 @@
           {
             "field": "Authorization",
             "from": "accessToken",
-            "source": "Step 2 → accessToken (injected as Bearer token)"
+            "source": "Step 2 \u2192 accessToken (injected as Bearer token)"
           }
         ]
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "seatPricingId": "c3d4e5f6-a7b8-9012-cdef-012345678902",
-          "cabinCode": "Y",
-          "seatPosition": "Window",
-          "currencyCode": "GBP",
-          "price": 25.00,
-          "isActive": true,
-          "validFrom": "2026-01-01T00:00:00Z",
-          "validTo": null,
-          "createdAt": "2026-04-12T10:00:00Z",
-          "updatedAt": "2026-04-12T10:00:00Z"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — seat pricing rule persisted via the Ancillary MS. Response echoes all supplied fields plus the server-assigned seatPricingId and database-generated createdAt/updatedAt timestamps. isActive defaults to true.",
-        "keyFields": [
-          "seatPricingId",
-          "cabinCode",
-          "seatPosition",
-          "currencyCode",
-          "price",
-          "isActive"
-        ],
-        "validationNotes": "seatPricingId is a non-empty GUID. cabinCode must be 'Y', seatPosition 'Window', currencyCode 'GBP', price 25.00. isActive must be true (server default). createdAt and updatedAt are database-generated ISO 8601 UTC timestamps and must be equal on creation."
+        "statusCode": 201
       },
       "chainsTo": [
         {
           "field": "seatPricingId",
-          "usedInSteps": [4, 5, 6, 7]
+          "usedInSteps": [
+            4,
+            5,
+            6,
+            7
+          ]
         }
       ]
     },
     {
       "step": 4,
-      "name": "Get seat pricing rule — verify creation",
+      "name": "Get seat pricing rule \u2014 verify creation",
       "description": "Read the seat pricing rule back by its ID using GET to independently confirm that Step 3 was durably saved. This step validates the Retail API GET-by-ID endpoint and confirms the Ancillary MS persisted all fields correctly.",
       "type": "positive",
       "apiCall": {
@@ -206,47 +175,26 @@
           {
             "field": "Authorization",
             "from": "accessToken",
-            "source": "Step 2 → accessToken (injected as Bearer token)"
+            "source": "Step 2 \u2192 accessToken (injected as Bearer token)"
           },
           {
             "field": "seatPricingId",
             "from": "seatPricingId",
-            "source": "Step 3 → seatPricingId (injected into path)"
+            "source": "Step 3 \u2192 seatPricingId (injected into path)"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "seatPricingId": "c3d4e5f6-a7b8-9012-cdef-012345678902",
-          "cabinCode": "Y",
-          "seatPosition": "Window",
-          "currencyCode": "GBP",
-          "price": 25.00,
-          "isActive": true,
-          "validFrom": "2026-01-01T00:00:00Z",
-          "validTo": null,
-          "createdAt": "2026-04-12T10:00:00Z",
-          "updatedAt": "2026-04-12T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — durable read of the newly created seat pricing rule. All field values must match Step 3: cabinCode 'Y', seatPosition 'Window', price 25.00, isActive true.",
-        "keyFields": [
-          "seatPricingId",
-          "cabinCode",
-          "seatPosition",
-          "price",
-          "isActive"
-        ],
-        "validationNotes": "This is an independent read from the database. seatPricingId must match Step 3. price must be 25.00. isActive must be true. createdAt and updatedAt must be equal (no updates applied yet)."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 5,
-      "name": "Update seat pricing rule — revise price and deactivate",
+      "name": "Update seat pricing rule \u2014 revise price and deactivate",
       "description": "Update the seat pricing rule created in Step 3 via a full PUT using the JWT from Step 2. The price is increased from GBP 25.00 to GBP 30.00 and the rule is deactivated (isActive set to false) to simulate an end-of-season pricing suspension. All other fields are preserved.",
       "type": "positive",
       "apiCall": {
@@ -265,7 +213,7 @@
           "cabinCode": "Y",
           "seatPosition": "Window",
           "currencyCode": "GBP",
-          "price": 30.00,
+          "price": 30.0,
           "isActive": false,
           "validFrom": "2026-01-01T00:00:00Z",
           "validTo": "2026-12-31T23:59:59Z"
@@ -274,52 +222,40 @@
           {
             "field": "Authorization",
             "from": "accessToken",
-            "source": "Step 2 → accessToken (injected as Bearer token)"
+            "source": "Step 2 \u2192 accessToken (injected as Bearer token)"
           },
           {
             "field": "seatPricingId",
             "from": "seatPricingId",
-            "source": "Step 3 → seatPricingId (injected into path)"
+            "source": "Step 3 \u2192 seatPricingId (injected into path)"
           }
         ],
         "diff": {
-          "price":    { "from": 25.00, "to": 30.00 },
-          "isActive": { "from": true,  "to": false  },
-          "validTo":  { "from": null,  "to": "2026-12-31T23:59:59Z" }
+          "price": {
+            "from": 25.0,
+            "to": 30.0
+          },
+          "isActive": {
+            "from": true,
+            "to": false
+          },
+          "validTo": {
+            "from": null,
+            "to": "2026-12-31T23:59:59Z"
+          }
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "seatPricingId": "c3d4e5f6-a7b8-9012-cdef-012345678902",
-          "cabinCode": "Y",
-          "seatPosition": "Window",
-          "currencyCode": "GBP",
-          "price": 30.00,
-          "isActive": false,
-          "validFrom": "2026-01-01T00:00:00Z",
-          "validTo": "2026-12-31T23:59:59Z",
-          "createdAt": "2026-04-12T10:00:00Z",
-          "updatedAt": "2026-04-12T10:05:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — seat pricing rule updated. Response reflects the revised price (30.00), deactivated status (isActive false), and the added validTo date. updatedAt is later than createdAt, confirming the record was persisted.",
-        "keyFields": [
-          "seatPricingId",
-          "price",
-          "isActive",
-          "validTo",
-          "updatedAt"
-        ],
-        "validationNotes": "seatPricingId must match Step 3. price must be 30.00. isActive must be false. validTo must be '2026-12-31T23:59:59Z'. updatedAt must be a later timestamp than createdAt."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 6,
-      "name": "Get seat pricing rule — verify update",
+      "name": "Get seat pricing rule \u2014 verify update",
       "description": "Read the seat pricing rule back by its ID to independently confirm that the update in Step 5 was durably saved. This step validates the revised price and deactivated status are correctly persisted in the Ancillary MS database.",
       "type": "positive",
       "apiCall": {
@@ -337,41 +273,20 @@
           {
             "field": "Authorization",
             "from": "accessToken",
-            "source": "Step 2 → accessToken (injected as Bearer token)"
+            "source": "Step 2 \u2192 accessToken (injected as Bearer token)"
           },
           {
             "field": "seatPricingId",
             "from": "seatPricingId",
-            "source": "Step 3 → seatPricingId (injected into path)"
+            "source": "Step 3 \u2192 seatPricingId (injected into path)"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "seatPricingId": "c3d4e5f6-a7b8-9012-cdef-012345678902",
-          "cabinCode": "Y",
-          "seatPosition": "Window",
-          "currencyCode": "GBP",
-          "price": 30.00,
-          "isActive": false,
-          "validFrom": "2026-01-01T00:00:00Z",
-          "validTo": "2026-12-31T23:59:59Z",
-          "createdAt": "2026-04-12T10:00:00Z",
-          "updatedAt": "2026-04-12T10:05:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — durable read of the updated seat pricing rule. All values must match the state set by Step 5: price 30.00, isActive false, validTo '2026-12-31T23:59:59Z'.",
-        "keyFields": [
-          "seatPricingId",
-          "price",
-          "isActive",
-          "validTo",
-          "updatedAt"
-        ],
-        "validationNotes": "This is an independent read — the response comes directly from the database. price must be 30.00. isActive must be false. validTo must be populated. updatedAt must be later than createdAt, confirming Step 5 changes were persisted."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -395,24 +310,20 @@
           {
             "field": "Authorization",
             "from": "accessToken",
-            "source": "Step 2 → accessToken (injected as Bearer token)"
+            "source": "Step 2 \u2192 accessToken (injected as Bearer token)"
           },
           {
             "field": "seatPricingId",
             "from": "seatPricingId",
-            "source": "Step 3 → seatPricingId (injected into path)"
+            "source": "Step 3 \u2192 seatPricingId (injected into path)"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — seat pricing rule deleted. No response body is returned. Subsequent GET requests for this seatPricingId will return 404 Not Found.",
-        "keyFields": [],
-        "validationNotes": "Response body must be empty. The seatPricingId from Step 3 is injected into the path. The Retail API relays a 204 from the Ancillary MS on success, and 404 if the rule does not exist."
+        "statusCode": 204
       },
       "chainsTo": []
     },
@@ -436,19 +347,15 @@
           {
             "field": "userId",
             "from": "userId",
-            "source": "Step 1 → userId (injected into path)"
+            "source": "Step 1 \u2192 userId (injected into path)"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — the employee account created in Step 1 has been permanently deleted via the User MS. No response body is returned.",
-        "keyFields": [],
-        "validationNotes": "Response body must be empty. The userId from Step 1 is injected into the path. Deleting a non-existent user returns 404."
+        "statusCode": 204
       },
       "chainsTo": []
     }

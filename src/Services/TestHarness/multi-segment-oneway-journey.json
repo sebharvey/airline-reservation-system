@@ -35,121 +35,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "itineraries": [
-            {
-              "leg1": {
-                "sessionId": "a1b2c3d4-0001-0001-0001-000000000001",
-                "flightNumber": "AX412",
-                "origin": "DEL",
-                "destination": "LHR",
-                "departureDate": "2026-05-20",
-                "departureTime": "03:30",
-                "arrivalTime": "08:00",
-                "arrivalDayOffset": 0,
-                "aircraftType": "B789",
-                "cabins": [
-                  {
-                    "cabinCode": "Y",
-                    "availableSeats": 207,
-                    "fromPrice": 186.25,
-                    "currency": "GBP",
-                    "fareFamilies": [
-                      {
-                        "fareFamily": "Flex",
-                        "offer": {
-                          "offerId": "a1b2c3d4-1111-1111-1111-000000000001",
-                          "fareBasisCode": "YFLEXGB",
-                          "basePrice": 249.0,
-                          "tax": 97.25,
-                          "totalPrice": 346.25,
-                          "currency": "GBP",
-                          "isRefundable": true,
-                          "isChangeable": true
-                        }
-                      },
-                      {
-                        "fareFamily": "Non-Flex",
-                        "offer": {
-                          "offerId": "a1b2c3d4-2222-2222-2222-000000000001",
-                          "fareBasisCode": "YLOWGB",
-                          "basePrice": 89.0,
-                          "tax": 97.25,
-                          "totalPrice": 186.25,
-                          "currency": "GBP",
-                          "isRefundable": false,
-                          "isChangeable": false
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "leg2": {
-                "sessionId": "a1b2c3d4-0002-0002-0002-000000000002",
-                "flightNumber": "AX003",
-                "origin": "LHR",
-                "destination": "JFK",
-                "departureDate": "2026-05-20",
-                "departureTime": "10:30",
-                "arrivalTime": "13:45",
-                "arrivalDayOffset": 0,
-                "aircraftType": "A351",
-                "cabins": [
-                  {
-                    "cabinCode": "Y",
-                    "availableSeats": 252,
-                    "fromPrice": 186.25,
-                    "currency": "GBP",
-                    "fareFamilies": [
-                      {
-                        "fareFamily": "Flex",
-                        "offer": {
-                          "offerId": "a1b2c3d4-3333-3333-3333-000000000003",
-                          "fareBasisCode": "YFLEXGB",
-                          "basePrice": 249.0,
-                          "tax": 97.25,
-                          "totalPrice": 346.25,
-                          "currency": "GBP",
-                          "isRefundable": true,
-                          "isChangeable": true
-                        }
-                      },
-                      {
-                        "fareFamily": "Non-Flex",
-                        "offer": {
-                          "offerId": "a1b2c3d4-4444-4444-4444-000000000004",
-                          "fareBasisCode": "YLOWGB",
-                          "basePrice": 89.0,
-                          "tax": 97.25,
-                          "totalPrice": 186.25,
-                          "currency": "GBP",
-                          "isRefundable": false,
-                          "isChangeable": false
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "connectionDurationMinutes": 150,
-              "combinedFromPrice": 372.5,
-              "currency": "GBP"
-            }
-          ]
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 one or more connecting itinerary options returned. Each itinerary has a Leg1 (DEL \u2192 LHR, AX412) and a Leg2 (LHR \u2192 JFK, one of AX003/AX005/AX007/AX009) that satisfies the 60-minute MCT. Itineraries are sorted by connectionDurationMinutes ascending. Leg1 and Leg2 each carry their own SessionId from their independent Offer MS search sessions.",
-        "keyFields": [
-          "itineraries",
-          "itineraries[0].leg1.sessionId",
-          "itineraries[0].leg2.sessionId",
-          "itineraries[0].connectionDurationMinutes"
-        ],
-        "validationNotes": "itineraries must be a non-empty array. Every itinerary's connectionDurationMinutes must be >= 60. Each leg's cabins array follows the same structure as a /v1/search/slice response. The Leg1 SessionId is shared across all itineraries (same DEL\u2192LHR search); each distinct Leg2 flight from the same LHR\u2192JFK search shares its own SessionId."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -236,18 +125,10 @@
         ]
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created \u2014 basket created with two flight segments. Returns basketId (GUID). The basket now holds both legs of the connecting itinerary as independent flight offers. The basket expires after 60 minutes.",
-        "keyFields": [
-          "basketId"
-        ],
-        "validationNotes": "basketId is a GUID. Two segments must be accepted; the Order MS stores each offer independently in BasketData.flightOffers. The basket expiry window (60 min) matches the StoredOffer expiry."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -287,22 +168,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
-          "status": "Active",
-          "currency": "GBP",
-          "flights": [
-            {
-              "validated": true,
-              "taxLines": []
-            }
-          ]
-        }
+        "statusCode": 200
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK \u2014 all offers repriced. Each flight entry has validated = true and taxLines populated from the FareRule.",
         "assertions": [
           {
             "field": "flights",
@@ -342,47 +211,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
-          "basketStatus": "Active",
-          "basketData": {
-            "flightOffers": [
-              {
-                "basketItemId": "BI-1",
-                "flightNumber": "AX412",
-                "origin": "DEL",
-                "destination": "LHR",
-                "cabinCode": "Y",
-                "inventoryId": "00000000-0000-0000-0000-000000000001",
-                "aircraftType": "B789",
-                "totalAmount": 186.25
-              },
-              {
-                "basketItemId": "BI-2",
-                "flightNumber": "AX003",
-                "origin": "LHR",
-                "destination": "JFK",
-                "cabinCode": "Y",
-                "inventoryId": "00000000-0000-0000-0000-000000000002",
-                "aircraftType": "A351",
-                "totalAmount": 186.25
-              }
-            ],
-            "passengers": [],
-            "seats": [],
-            "bags": []
-          }
-        }
+        "statusCode": 200
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK \u2014 basket retrieved. basketStatus is Active. basketData.flightOffers contains exactly two entries: Leg1 (DEL \u2192 LHR) and Leg2 (LHR \u2192 JFK), each carrying inventoryId and aircraftType used for seatmap retrieval.",
-        "keyFields": [
-          "basketStatus",
-          "basketData.flightOffers"
-        ],
-        "validationNotes": "basketData.flightOffers must contain two items. basketStatus must be 'Active'.",
         "assertions": [
           {
             "field": "basketData.flightOffers",
@@ -557,25 +389,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
-          "status": "Active",
-          "flights": [],
-          "totalFareAmount": 372.5,
-          "totalSeatAmount": 0.0,
-          "totalBagAmount": 0.0,
-          "totalPrice": 372.5,
-          "currency": "GBP"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 passenger details stored in the basket for all passengers (1\u20136, determined by __RAND_PAX_COUNT__). The basket remains Active. totalFareAmount is unchanged.",
-        "keyFields": [
-          "status",
-          "totalFareAmount"
-        ]
+        "statusCode": 200
       }
     },
     {
@@ -614,21 +431,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "flightId": "00000000-0000-0000-0000-000000000001",
-          "aircraftType": "B789",
-          "cabins": []
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 seatmap returned for Leg1 (DEL \u2192 LHR) filtered to the booked cabin. Contains cabin layout and seat availability for the B789 aircraft.",
-        "keyFields": [
-          "aircraftType",
-          "cabins"
-        ],
-        "validationNotes": "aircraftType should be B789 (AX412 aircraft type). Response contains only the booked cabin."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -681,21 +487,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "flightId": "00000000-0000-0000-0000-000000000002",
-          "aircraftType": "A351",
-          "cabins": []
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK \u2014 seatmap returned for Leg2 (LHR \u2192 JFK) filtered to the booked cabin. Contains cabin layout and seat availability for the A351 aircraft.",
-        "keyFields": [
-          "aircraftType",
-          "cabins"
-        ],
-        "validationNotes": "aircraftType should be A351 (AX003 aircraft type). Response contains only the booked cabin."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -854,20 +649,10 @@
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "basketId": "c0ffee00-1234-5678-abcd-000000000001",
-          "status": "Active",
-          "totalSeatAmount": 100.0
-        }
+        "statusCode": 200
       },
       "expected": {
         "statusCode": 200,
-        "description": "200 OK \u2014 seat selections stored. One seat assigned per passenger (1\u20136) per leg. The basket reflects the updated seat selections with non-zero totalSeatAmount.",
-        "keyFields": [
-          "status",
-          "totalSeatAmount"
-        ],
         "assertions": []
       }
     },
@@ -907,33 +692,10 @@
         ]
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "bookingReference": "ABC123",
-          "status": "Confirmed",
-          "eTickets": [
-            {
-              "passengerId": "PAX-1",
-              "segmentIds": [
-                "BI-1",
-                "BI-2"
-              ],
-              "eTicketNumber": "932-0000000001"
-            }
-          ],
-          "totalPrice": 372.5,
-          "currency": "GBP"
-        }
+        "statusCode": 201
       },
       "expected": {
         "statusCode": 201,
-        "description": "201 Created \u2014 booking confirmed. Returns a 6-character booking reference (PNR), order status Confirmed, and one e-ticket per passenger covering both legs of the connecting itinerary.",
-        "keyFields": [
-          "bookingReference",
-          "status",
-          "eTickets"
-        ],
-        "validationNotes": "bookingReference is a 6-character alphanumeric string. status must be 'Confirmed'. eTickets array must contain one entry per passenger (1\u20136); segmentIds lists both basket item IDs. E-ticket number format is '932-NNNNNNNNNN'.",
         "assertions": [
           {
             "field": "bookingReference",
