@@ -819,7 +819,7 @@ CREATE TABLE [delivery].[Document] (
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Document_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Document        PRIMARY KEY (DocumentId),
     CONSTRAINT UQ_Document_Number UNIQUE (DocumentNumber),
-    CONSTRAINT CHK_Document_Type  CHECK (DocumentType IN ('SeatAncillary','BagAncillary'))
+    CONSTRAINT CHK_Document_Type  CHECK (DocumentType IN ('SeatAncillary','BagAncillary','ProductAncillary'))
 );
 GO
 
@@ -830,6 +830,12 @@ IF COL_LENGTH('[delivery].[Document]', 'PaymentReference') < 50
     ALTER TABLE [delivery].[Document] ALTER COLUMN PaymentReference VARCHAR(50) NOT NULL;
 IF COLUMNPROPERTY(OBJECT_ID('[delivery].[Document]'), 'ETicketNumber', 'AllowsNull') = 0
     ALTER TABLE [delivery].[Document] ALTER COLUMN ETicketNumber VARCHAR(20) NULL;
+-- Add ProductAncillary to the DocumentType check constraint on existing deployments
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_Document_Type' AND parent_object_id = OBJECT_ID('[delivery].[Document]'))
+BEGIN
+    ALTER TABLE [delivery].[Document] DROP CONSTRAINT CHK_Document_Type;
+    ALTER TABLE [delivery].[Document] ADD CONSTRAINT CHK_Document_Type CHECK (DocumentType IN ('SeatAncillary','BagAncillary','ProductAncillary'));
+END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Document_BookingReference' AND object_id = OBJECT_ID('[delivery].[Document]'))

@@ -89,4 +89,5 @@ public static class DocumentTypeValues
 {
     public const string BagAncillary = "BagAncillary";
     public const string SeatAncillary = "SeatAncillary";
+    public const string ProductAncillary = "ProductAncillary";
 }
