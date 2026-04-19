@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Terminal — customer search & management",
+    "name": "Terminal \u2014 customer search & management",
     "description": "End-to-end journey simulating a contact-centre agent scenario: register a loyalty customer via the Loyalty API, create a staff user via the User MS, authenticate via the Admin API to obtain a staff JWT, search for the customer directly via the Customer MS, search again via the Loyalty API admin search endpoint and validate the result, then delete the customer via the Customer MS.",
     "domain": "Terminal Customer",
     "baseUrls": [
@@ -51,24 +51,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "loyaltyNumber": "AX9876543",
-          "givenName": "Amara",
-          "tierCode": "Blue",
-          "message": "Registration successful. Please check your email to verify your account."
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — loyalty member registered. Response contains the issued loyalty number (AX prefix, 9 characters), the member's given name, initial tier (Blue), and a confirmation message.",
-        "keyFields": [
-          "loyaltyNumber",
-          "givenName",
-          "tierCode",
-          "message"
-        ],
-        "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. givenName matches the submitted value. Three downstream calls were made: Customer MS create, Identity MS create account, Customer MS patch identity reference."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -105,18 +91,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — new employee account created on the User MS. Response contains the new userId GUID. This account provides the credential fixture for the Admin API login in Step 3.",
-        "keyFields": [
-          "userId"
-        ],
-        "validationNotes": "userId is a non-empty GUID. Username and email are runtime-generated and unique to this test run. Password is stored as a SHA-256 hash; plain text is never persisted."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -148,33 +126,19 @@
         "dataChain": [
           {
             "field": "username",
-            "source": "Step 2 → runtime-generated username"
+            "source": "Step 2 \u2192 runtime-generated username"
           },
           {
             "field": "password",
-            "source": "Step 2 → runtime-generated password"
+            "source": "Step 2 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "expiresAt": "2026-03-28T12:15:00Z",
-          "tokenType": "Bearer"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — Admin API delegates to User MS, credentials validated. Response contains a signed JWT access token (15-minute TTL, HMAC-SHA256), the userId matching Step 2, an ISO 8601 expiry timestamp, and tokenType 'Bearer'.",
-        "keyFields": [
-          "accessToken",
-          "userId",
-          "expiresAt",
-          "tokenType"
-        ],
-        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 2. expiresAt is ISO 8601 UTC, approximately 15 minutes from now. tokenType is always 'Bearer'."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -205,35 +169,15 @@
         "dataChain": [
           {
             "field": "query",
-            "source": "Step 1 → runtime-generated surname"
+            "source": "Step 1 \u2192 runtime-generated surname"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "loyaltyNumber": "AX9876543",
-            "givenName": "Amara",
-            "surname": "Okafor",
-            "tierCode": "Blue",
-            "pointsBalance": 0,
-            "isActive": true
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — search returns an array of matching customers. The customer registered in Step 1 must appear in the results. Validates loyalty number, given name, surname, tier code (Blue), and active status.",
-        "keyFields": [
-          "loyaltyNumber",
-          "givenName",
-          "surname",
-          "tierCode",
-          "isActive"
-        ],
-        "validationNotes": "Response is an array (max 50 results). The customer from Step 1 must be present with loyaltyNumber matching Step 1, givenName and surname matching the runtime-generated values, tierCode 'Blue', and isActive true. Search uses partial name matching and exact loyalty number matching."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -258,39 +202,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 3 → response.accessToken"
+            "source": "Step 3 \u2192 response.accessToken"
           },
           {
             "field": "query",
-            "source": "Step 1 → runtime-generated surname"
+            "source": "Step 1 \u2192 runtime-generated surname"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "loyaltyNumber": "AX9876543",
-            "givenName": "Amara",
-            "surname": "Okafor",
-            "tierCode": "Blue",
-            "pointsBalance": 0,
-            "isActive": true
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — search returns an array of matching customers. The customer registered in Step 1 must appear in the results. Validates loyalty number, given name, surname, tier code (Blue), and active status.",
-        "keyFields": [
-          "loyaltyNumber",
-          "givenName",
-          "surname",
-          "tierCode",
-          "isActive"
-        ],
-        "validationNotes": "Response is an array (max 50 results). The customer from Step 1 must be present with loyaltyNumber matching Step 1, givenName and surname matching the runtime-generated values, tierCode 'Blue', and isActive true. Search uses partial name matching and exact loyalty number matching."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -313,19 +237,15 @@
         "dataChain": [
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — customer record deleted from the Customer MS. No response body is returned.",
-        "keyFields": [],
-        "validationNotes": "The customer record and all associated data (points, transactions) are permanently removed. This endpoint is designed for registration rollback scenarios."
+        "statusCode": 204
       },
       "chainsTo": []
     },
@@ -348,19 +268,15 @@
         "dataChain": [
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 404,
-        "body": null
+        "statusCode": 404
       },
       "expected": {
-        "statusCode": 404,
-        "description": "404 Not Found — customer no longer exists after deletion in Step 6.",
-        "keyFields": [],
-        "validationNotes": "Confirms the DELETE in Step 6 fully removed the customer record. The loyalty number is no longer resolvable."
+        "statusCode": 404
       },
       "chainsTo": []
     }

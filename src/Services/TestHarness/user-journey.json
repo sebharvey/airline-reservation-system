@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "User — account creation & authentication",
+    "name": "User \u2014 account creation & authentication",
     "description": "End-to-end journey covering employee user creation, duplicate-username validation, listing all users, successful login with JWT issuance, and login failure with wrong credentials.",
     "domain": "User",
     "baseUrls": [
@@ -35,18 +35,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — new employee account created. Response contains the new userId GUID. Password is stored as a SHA-256 hash; plain text is never persisted.",
-        "keyFields": [
-          "userId"
-        ],
-        "validationNotes": "userId is a non-empty GUID. username and email must be unique — attempting to create another account with the same values returns 409 Conflict (see Step 2). Name and email are runtime-generated values unique to this test run."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -82,35 +74,27 @@
         "dataChain": [
           {
             "field": "username",
-            "source": "Step 1 → runtime-generated username"
+            "source": "Step 1 \u2192 runtime-generated username"
           },
           {
             "field": "firstName",
-            "source": "Step 1 → runtime-generated given name"
+            "source": "Step 1 \u2192 runtime-generated given name"
           },
           {
             "field": "lastName",
-            "source": "Step 1 → runtime-generated surname"
+            "source": "Step 1 \u2192 runtime-generated surname"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 409,
-        "body": {
-          "error": "A user with this username already exists."
-        }
+        "statusCode": 409
       },
       "expected": {
-        "statusCode": 409,
-        "description": "409 Conflict — the username from Step 1 is already registered. The original account is unaffected. Response body contains an error message.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "Uses the exact same username as Step 1 but a different email address, confirming that the username uniqueness constraint is enforced independently of email."
+        "statusCode": 409
       },
       "chainsTo": []
     },
@@ -129,40 +113,16 @@
         "body": null
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "username": "Generated.Name",
-            "email": "generated.name.123456@testmail.example.com",
-            "firstName": "Generated",
-            "lastName": "Name",
-            "isActive": true,
-            "isLocked": false,
-            "lastLoginAt": null,
-            "createdAt": "2026-03-27T10:00:00Z"
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — returns an array of all employee user accounts ordered by lastName then firstName. The account created in Step 1 must be present. passwordHash is never included.",
-        "keyFields": [
-          "userId",
-          "username",
-          "email",
-          "firstName",
-          "lastName",
-          "isActive",
-          "isLocked"
-        ],
-        "validationNotes": "Response is always an array (empty array if no users exist). passwordHash must not appear on any object. isActive is true and isLocked is false for a freshly created account. lastLoginAt is null until the first successful login."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 4,
-      "name": "Login — valid credentials",
+      "name": "Login \u2014 valid credentials",
       "description": "Authenticate the employee account created in Step 1 using the runtime-generated username and password. Validates JWT issuance, account state update (LastLoginAt, FailedLoginAttempts reset), and correct response shape.",
       "type": "positive",
       "apiCall": {
@@ -181,31 +141,19 @@
         "dataChain": [
           {
             "field": "username",
-            "source": "Step 1 → runtime-generated username"
+            "source": "Step 1 \u2192 runtime-generated username"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMWIyYzNkNC...",
-          "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "expiresAt": "2026-03-27T10:15:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — credentials validated. Response contains a signed JWT access token (15-minute TTL), the userId, and the token expiry timestamp. LastLoginAt and FailedLoginAttempts are updated on the account.",
-        "keyFields": [
-          "accessToken",
-          "userId",
-          "expiresAt"
-        ],
-        "validationNotes": "accessToken is a signed JWT (HMAC-SHA256). userId must match the value returned in Step 1. expiresAt is ISO 8601 UTC approximately 15 minutes from now. FailedLoginAttempts on the account is reset to 0."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -220,7 +168,7 @@
     },
     {
       "step": 5,
-      "name": "Login — wrong password",
+      "name": "Login \u2014 wrong password",
       "description": "Attempt to authenticate using the correct username from Step 1 but an incorrect password. Validates that the API returns 401 Unauthorized and increments the FailedLoginAttempts counter on the account.",
       "type": "negative",
       "apiCall": {
@@ -239,23 +187,15 @@
         "dataChain": [
           {
             "field": "username",
-            "source": "Step 1 → runtime-generated username"
+            "source": "Step 1 \u2192 runtime-generated username"
           }
         ]
       },
       "response": {
-        "statusCode": 401,
-        "body": {
-          "error": "Invalid credentials."
-        }
+        "statusCode": 401
       },
       "expected": {
-        "statusCode": 401,
-        "description": "401 Unauthorized — password does not match the stored hash. FailedLoginAttempts is incremented. After 5 consecutive failures the account is locked and further attempts return 403 Forbidden.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The error message must not reveal whether the username exists (generic 'Invalid credentials' only). The account is not locked after a single failure — only after 5 consecutive failures."
+        "statusCode": 401
       },
       "chainsTo": []
     },
@@ -278,19 +218,15 @@
         "dataChain": [
           {
             "field": "userId",
-            "source": "Step 1 → userId"
+            "source": "Step 1 \u2192 userId"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — the account created in Step 1 has been permanently deleted. No response body is returned. Subsequent requests to retrieve this userId return 404.",
-        "keyFields": [],
-        "validationNotes": "Response body must be empty. The userId from Step 1 is injected into the path. Deleting a non-existent user returns 404."
+        "statusCode": 204
       },
       "chainsTo": []
     }

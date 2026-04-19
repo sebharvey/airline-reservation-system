@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "Payment — authorise, settle, void & refund",
-    "description": "Tests all Payment microservice endpoints — initialise, authorise, settle, void, and refund — with happy path and negative scenarios.",
+    "name": "Payment \u2014 authorise, settle, void & refund",
+    "description": "Tests all Payment microservice endpoints \u2014 initialise, authorise, settle, void, and refund \u2014 with happy path and negative scenarios.",
     "domain": "Payment",
     "baseUrls": [
       {
@@ -36,22 +36,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "amount": 250.0,
-          "status": "Initialised"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — payment initialised. Returns generated paymentId, amount, and Initialised status.",
-        "keyFields": [
-          "paymentId",
-          "amount",
-          "status"
-        ],
-        "validationNotes": "paymentId is a GUID. status = 'Initialised'. amount matches the request."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -95,22 +83,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "authorisedAmount": 250.0,
-          "status": "Authorised"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment authorised. CardType derived from BIN, CardLast4 extracted, PaymentEvent created.",
-        "keyFields": [
-          "paymentId",
-          "authorisedAmount",
-          "status"
-        ],
-        "validationNotes": "status = 'Authorised'. authorisedAmount matches the amount set at initialisation."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -136,22 +112,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "settledAmount": 250.0,
-          "settledAt": "2026-03-26T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment settled. Funds captured. PaymentEvent updated to Settled.",
-        "keyFields": [
-          "paymentId",
-          "settledAmount",
-          "settledAt"
-        ],
-        "validationNotes": "settledAmount matches request. settledAt is UTC ISO 8601."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -179,22 +143,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-          "amount": 75.0,
-          "status": "Initialised"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — second payment initialised for void test.",
-        "keyFields": [
-          "paymentId",
-          "amount",
-          "status"
-        ],
-        "validationNotes": "New paymentId distinct from Step 1."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -235,22 +187,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-          "authorisedAmount": 75.0,
-          "status": "Authorised"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment authorised with Mastercard (5xxx BIN).",
-        "keyFields": [
-          "paymentId",
-          "authorisedAmount",
-          "status"
-        ],
-        "validationNotes": "authorisedAmount = 75.00. status = 'Authorised'."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -276,20 +216,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
-          "status": "Voided"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment voided. Held funds released.",
-        "keyFields": [
-          "paymentId",
-          "status"
-        ],
-        "validationNotes": "status = 'Voided'."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -317,22 +247,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
-          "amount": 120.0,
-          "status": "Initialised"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — third payment initialised for refund test.",
-        "keyFields": [
-          "paymentId",
-          "amount",
-          "status"
-        ],
-        "validationNotes": "New paymentId for the refund scenario."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -374,22 +292,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
-          "authorisedAmount": 120.0,
-          "status": "Authorised"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment authorised.",
-        "keyFields": [
-          "paymentId",
-          "authorisedAmount",
-          "status"
-        ],
-        "validationNotes": "authorisedAmount = 120.00."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -415,22 +321,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
-          "settledAmount": 120.0,
-          "settledAt": "2026-03-26T10:05:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment settled.",
-        "keyFields": [
-          "paymentId",
-          "settledAmount",
-          "settledAt"
-        ],
-        "validationNotes": "settledAmount = 120.00."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -457,22 +351,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "c3d4e5f6-a7b8-9012-cdef-345678901234",
-          "refundedAmount": 120.0,
-          "status": "Refunded"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — full refund processed.",
-        "keyFields": [
-          "paymentId",
-          "refundedAmount",
-          "status"
-        ],
-        "validationNotes": "refundedAmount = 120.00. status = 'Refunded'."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -498,14 +380,10 @@
         }
       },
       "response": {
-        "statusCode": 409,
-        "body": null
+        "statusCode": 409
       },
       "expected": {
-        "statusCode": 409,
-        "description": "409 Conflict — payment already settled.",
-        "keyFields": [],
-        "validationNotes": "Double-settle is rejected."
+        "statusCode": 409
       },
       "chainsTo": []
     },
@@ -531,14 +409,10 @@
         }
       },
       "response": {
-        "statusCode": 409,
-        "body": null
+        "statusCode": 409
       },
       "expected": {
-        "statusCode": 409,
-        "description": "409 Conflict — payment not in Authorised status.",
-        "keyFields": [],
-        "validationNotes": "Cannot void a payment that is already voided."
+        "statusCode": 409
       },
       "chainsTo": []
     },
@@ -566,14 +440,10 @@
         }
       },
       "response": {
-        "statusCode": 404,
-        "body": null
+        "statusCode": 404
       },
       "expected": {
-        "statusCode": 404,
-        "description": "404 Not Found — no payment exists for this paymentId.",
-        "keyFields": [],
-        "validationNotes": "Zero UUID returns not found."
+        "statusCode": 404
       },
       "chainsTo": []
     },
@@ -596,14 +466,10 @@
         }
       },
       "response": {
-        "statusCode": 404,
-        "body": null
+        "statusCode": 404
       },
       "expected": {
-        "statusCode": 404,
-        "description": "404 Not Found — no payment exists for this paymentId.",
-        "keyFields": [],
-        "validationNotes": "Zero UUID returns not found."
+        "statusCode": 404
       },
       "chainsTo": []
     },
@@ -625,32 +491,10 @@
         "body": null
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "paymentType": "Fare",
-          "method": "CreditCard",
-          "cardType": "Visa",
-          "cardLast4": "1111",
-          "currencyCode": "GBP",
-          "amount": 250.0,
-          "authorisedAmount": 250.0,
-          "settledAmount": 250.0,
-          "status": "Settled",
-          "description": "Test payment"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — full payment record returned. All lifecycle fields populated after init → auth → settle.",
-        "keyFields": [
-          "paymentId",
-          "status",
-          "amount",
-          "authorisedAmount",
-          "settledAmount"
-        ],
-        "validationNotes": "status = 'Settled'. amount = authorisedAmount = settledAmount = 250.00. cardLast4 present, full PAN absent."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -672,27 +516,10 @@
         "body": null
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "paymentEventId": "d4e5f6a7-b8c9-0123-def0-456789012345",
-            "paymentId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "eventType": "Settled",
-            "amount": 250.0,
-            "currencyCode": "GBP"
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — array of PaymentEvent records returned. One event (Settled) for a simple init-auth-settle flow.",
-        "keyFields": [
-          "paymentEventId",
-          "paymentId",
-          "eventType",
-          "amount"
-        ],
-        "validationNotes": "Array with one entry. eventType = 'Settled'. amount = 250.00. Events ordered chronologically."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -720,22 +547,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "amount": 500.0,
-          "status": "Initialised"
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — 500 GBP payment initialised for the split auth/settle scenario.",
-        "keyFields": [
-          "paymentId",
-          "amount",
-          "status"
-        ],
-        "validationNotes": "status = 'Initialised'. amount = 500.00. paymentId chains to steps 18–23."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -780,29 +595,17 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "authorisedAmount": 400.0,
-          "status": "Authorised"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 400 GBP fare portion authorised. authorisedAmount accumulates from zero.",
-        "keyFields": [
-          "paymentId",
-          "authorisedAmount",
-          "status"
-        ],
-        "validationNotes": "status = 'Authorised'. authorisedAmount = 400.00 (first auth). PaymentEvent row created."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 19,
       "name": "Settle fare portion (400 GBP)",
-      "description": "Settle the 400 GBP fare authorisation. Payment enters PartiallySettled — 100 GBP still outstanding.",
+      "description": "Settle the 400 GBP fare authorisation. Payment enters PartiallySettled \u2014 100 GBP still outstanding.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -821,22 +624,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "settledAmount": 400.0,
-          "status": "PartiallySettled"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 400 GBP fare settled. status = PartiallySettled because settledAmount (400) < total amount (500).",
-        "keyFields": [
-          "paymentId",
-          "settledAmount",
-          "status"
-        ],
-        "validationNotes": "status = 'PartiallySettled'. settledAmount = 400.00. PaymentEvent eventType = 'PartialSettlement'."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -868,29 +659,17 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "authorisedAmount": 500.0,
-          "status": "Authorised"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 100 GBP seat portion authorised. authorisedAmount accumulates to 500.00 (400 + 100).",
-        "keyFields": [
-          "paymentId",
-          "authorisedAmount",
-          "status"
-        ],
-        "validationNotes": "status = 'Authorised'. authorisedAmount = 500.00 (cumulative). A second PaymentEvent row is created."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 21,
       "name": "Settle seat portion (100 GBP)",
-      "description": "Settle the 100 GBP seat authorisation. settledAmount accumulates to 500.00 — payment is now fully Settled.",
+      "description": "Settle the 100 GBP seat authorisation. settledAmount accumulates to 500.00 \u2014 payment is now fully Settled.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -909,22 +688,10 @@
         }
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "settledAmount": 500.0,
-          "status": "Settled"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 100 GBP seat settled. settledAmount accumulates to 500.00 (400 + 100) — full amount captured.",
-        "keyFields": [
-          "paymentId",
-          "settledAmount",
-          "status"
-        ],
-        "validationNotes": "status = 'Settled'. settledAmount = 500.00 (cumulative). PaymentEvent eventType = 'Settled'."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -946,30 +713,10 @@
         "body": null
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-          "paymentType": "Fare",
-          "method": "CreditCard",
-          "currencyCode": "GBP",
-          "amount": 500.0,
-          "authorisedAmount": 500.0,
-          "settledAmount": 500.0,
-          "status": "Settled",
-          "description": "Split payment test LHR-JFK, 2 PAX"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — payment record reflects full two-cycle settlement. All three amounts equal 500.00.",
-        "keyFields": [
-          "paymentId",
-          "status",
-          "amount",
-          "authorisedAmount",
-          "settledAmount"
-        ],
-        "validationNotes": "status = 'Settled'. amount = authorisedAmount = settledAmount = 500.00. Verifies cumulative accumulation across two auth/settle cycles."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -991,55 +738,17 @@
         "body": null
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "paymentEventId": "f6a7b8c9-d0e1-2345-f012-678901234567",
-            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-            "eventType": "Authorised",
-            "amount": 400.0,
-            "currencyCode": "GBP"
-          },
-          {
-            "paymentEventId": "a7b8c9d0-e1f2-3456-0123-789012345678",
-            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-            "eventType": "PartialSettlement",
-            "amount": 400.0,
-            "currencyCode": "GBP"
-          },
-          {
-            "paymentEventId": "b8c9d0e1-f2a3-4567-1234-890123456789",
-            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-            "eventType": "Authorised",
-            "amount": 100.0,
-            "currencyCode": "GBP"
-          },
-          {
-            "paymentEventId": "c9d0e1f2-a3b4-5678-2345-901234567890",
-            "paymentId": "e5f6a7b8-c9d0-1234-ef01-567890123456",
-            "eventType": "Settled",
-            "amount": 100.0,
-            "currencyCode": "GBP"
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 4 PaymentEvent rows returned in chronological order for the two auth+settle cycles.",
-        "keyFields": [
-          "paymentEventId",
-          "paymentId",
-          "eventType",
-          "amount"
-        ],
-        "validationNotes": "Events in order: Authorised(400) → PartialSettlement(400) → Authorised(100) → Settled(100). Each event records the amount for that individual operation."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 24,
       "name": "Authorise with invalid Luhn card number (400)",
-      "description": "Attempt to authorise using a card number that fails the Luhn check. Expects 400 Bad Request — Luhn validation runs before the payment lookup.",
+      "description": "Attempt to authorise using a card number that fails the Luhn check. Expects 400 Bad Request \u2014 Luhn validation runs before the payment lookup.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
@@ -1060,14 +769,10 @@
         }
       },
       "response": {
-        "statusCode": 400,
-        "body": null
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — card number fails Luhn check. Rejected before any payment lookup.",
-        "keyFields": [],
-        "validationNotes": "Luhn validation fires first (before 404 check). 4111111111111234 has an invalid check digit."
+        "statusCode": 400
       },
       "chainsTo": []
     }

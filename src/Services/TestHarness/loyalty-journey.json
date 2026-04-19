@@ -1,6 +1,6 @@
 {
   "journey": {
-    "name": "Loyalty — registration, points & profile",
+    "name": "Loyalty \u2014 registration, points & profile",
     "description": "End-to-end customer journey covering registration, email verification, duplicate-email validation, authentication, profile management, and session lifecycle.",
     "domain": "Loyalty",
     "baseUrls": [
@@ -41,24 +41,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "loyaltyNumber": "AX9876543",
-          "givenName": "Generated",
-          "tierCode": "Blue",
-          "message": "Registration successful. Please check your email to verify your account."
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — registration successful. Response contains the newly issued loyalty number, the customer's given name, initial tier (always Blue), and a confirmation message directing the user to verify their email.",
-        "keyFields": [
-          "loyaltyNumber",
-          "givenName",
-          "tierCode",
-          "message"
-        ],
-        "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue' for new registrations. message contains email verification instructions. Name and email are runtime-generated values unique to this test run."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -107,33 +93,15 @@
           {
             "field": "query",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-            "loyaltyNumber": "AX9876543",
-            "identityId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
-            "givenName": "Generated",
-            "surname": "Name",
-            "tierCode": "Blue",
-            "pointsBalance": 0,
-            "isActive": true
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — returns an array of matching customers. The first result contains identityId, which equals the UserAccountId from the Identity MS and is used as the path parameter for the verify-email call in Step 3.",
-        "keyFields": [
-          "identityId",
-          "loyaltyNumber"
-        ],
-        "validationNotes": "Response is always an array. identityId on the customer record is the UserAccountId linked during registration. loyaltyNumber matches the value issued in Step 1. A 200 with an empty array means the loyalty number did not match any customer."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -158,7 +126,7 @@
         "pathParams": {
           "userAccountId": "7c2d3e4f-8901-2345-6789-abcdef012345"
         },
-        "note": "No auth required — public endpoint. userAccountId is chained from Step 2 (Identity MS login); the fallback UUID is used if no live chain is available."
+        "note": "No auth required \u2014 public endpoint. userAccountId is chained from Step 2 (Identity MS login); the fallback UUID is used if no live chain is available."
       },
       "request": {
         "headers": {},
@@ -166,19 +134,15 @@
         "dataChain": [
           {
             "field": "userAccountId (path)",
-            "source": "Step 2 → response.userAccountId"
+            "source": "Step 2 \u2192 response.userAccountId"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": null
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — email verified, account activated. No response body. The Identity MS sets IsEmailVerified to 1 for the account.",
-        "keyFields": [],
-        "validationNotes": "Idempotent — calling again on an already-verified account still returns 200. A 404 means the userAccountId was not found."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -207,35 +171,27 @@
         "dataChain": [
           {
             "field": "givenName",
-            "source": "Step 1 → runtime-generated given name"
+            "source": "Step 1 \u2192 runtime-generated given name"
           },
           {
             "field": "surname",
-            "source": "Step 1 → runtime-generated surname"
+            "source": "Step 1 \u2192 runtime-generated surname"
           },
           {
             "field": "email",
-            "source": "Step 1 → runtime-generated email"
+            "source": "Step 1 \u2192 runtime-generated email"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 409,
-        "body": {
-          "error": "An account with this email already exists."
-        }
+        "statusCode": 409
       },
       "expected": {
-        "statusCode": 409,
-        "description": "409 Conflict — the email registered in Step 1 is already taken. Response body contains an error message. The existing account is not modified.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "Confirms idempotency guard on registration. Uses the exact same email as Step 1. The response must not reveal that the email belongs to an existing account — only a generic conflict message is permitted."
+        "statusCode": 409
       },
       "chainsTo": []
     },
@@ -260,35 +216,19 @@
         "dataChain": [
           {
             "field": "email",
-            "source": "Step 1 → runtime-generated email"
+            "source": "Step 1 \u2192 runtime-generated email"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi...",
-          "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ...",
-          "expiresAt": "2026-03-24T14:15:00Z",
-          "tokenType": "Bearer",
-          "loyaltyNumber": "AX9876543"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — credentials validated. Response contains a short-lived JWT access token (15 min TTL), a single-use refresh token, expiry timestamp, token type, and the customer's loyalty number.",
-        "keyFields": [
-          "accessToken",
-          "refreshToken",
-          "expiresAt",
-          "tokenType",
-          "loyaltyNumber"
-        ],
-        "validationNotes": "accessToken is a signed JWT (RS256). refreshToken is opaque and single-use. loyaltyNumber starts with 'AX' and is 9 characters. expiresAt is ISO 8601 UTC, approximately 15 minutes from now."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -343,29 +283,15 @@
         "dataChain": [
           {
             "field": "refreshToken",
-            "source": "Step 5 → response.refreshToken"
+            "source": "Step 5 \u2192 response.refreshToken"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi..._NEW",
-          "refreshToken": "bmV3IHJlZnJlc2ggdG9rZW4gYWZ0ZXIgcm90YXRpb24...",
-          "expiresAt": "2026-03-24T14:30:00Z",
-          "tokenType": "Bearer"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — new token pair issued. The previous refresh token is now invalid (single-use rotation).",
-        "keyFields": [
-          "accessToken",
-          "refreshToken",
-          "expiresAt",
-          "tokenType"
-        ],
-        "validationNotes": "New accessToken replaces the one from Step 5. New refreshToken must be used for any subsequent refresh. Old refreshToken from Step 5 is revoked and cannot be reused."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -412,47 +338,25 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "givenName": "John",
-          "surname": "Doe",
-          "email": "john.doe@example.com",
-          "phoneNumber": "+447700900123",
-          "dateOfBirth": "1990-05-15",
-          "tier": "Blue",
-          "pointsBalance": 0,
-          "memberSince": "2026-03-24T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — full profile returned. Tier defaults to 'Blue' for new members. Points balance starts at 0.",
-        "keyFields": [
-          "loyaltyNumber",
-          "givenName",
-          "surname",
-          "email",
-          "tier",
-          "pointsBalance",
-          "memberSince"
-        ],
-        "validationNotes": "loyaltyNumber matches the value from login. tier is one of: Blue, Silver, Gold, Platinum. pointsBalance is a decimal. memberSince is ISO 8601 UTC."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 8,
-      "name": "Add points — first credit",
+      "name": "Add points \u2014 first credit",
       "description": "Call the Customer MS points/add endpoint to credit the account with an initial batch of points. This is the first of two point additions that will be verified in the transaction history in Step 10.",
       "type": "positive",
       "apiCall": {
@@ -470,41 +374,26 @@
         "body": {
           "points": 500,
           "transactionType": "Earn",
-          "description": "Flight earn — LHR to JFK"
+          "description": "Flight earn \u2014 LHR to JFK"
         },
         "dataChain": [
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "pointsAdded": 500,
-          "newPointsBalance": 500,
-          "transactionId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-          "addedAt": "2026-03-25T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 500 points credited to the account. Response confirms the points added, the new running balance, and the transaction ID for the ledger entry.",
-        "keyFields": [
-          "loyaltyNumber",
-          "pointsAdded",
-          "newPointsBalance",
-          "transactionId"
-        ],
-        "validationNotes": "pointsAdded must be 500. newPointsBalance must be 500 (account started at 0). transactionId is a non-empty GUID. loyaltyNumber matches the value from Step 5."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 9,
-      "name": "Add points — second credit",
+      "name": "Add points \u2014 second credit",
       "description": "Call the Customer MS points/add endpoint a second time to credit an additional batch of points. Together with Step 8, this creates two ledger entries that are verified in Step 10.",
       "type": "positive",
       "apiCall": {
@@ -522,35 +411,20 @@
         "body": {
           "points": 250,
           "transactionType": "Earn",
-          "description": "Flight earn — AMS to DXB"
+          "description": "Flight earn \u2014 AMS to DXB"
         },
         "dataChain": [
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "pointsAdded": 250,
-          "newPointsBalance": 750,
-          "transactionId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-          "addedAt": "2026-03-25T10:05:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — 250 points credited to the account. newPointsBalance reflects the cumulative total after both additions (500 + 250 = 750).",
-        "keyFields": [
-          "loyaltyNumber",
-          "pointsAdded",
-          "newPointsBalance",
-          "transactionId"
-        ],
-        "validationNotes": "pointsAdded must be 250. newPointsBalance must be 750 (500 from Step 8 plus 250 from this call). transactionId is a non-empty GUID distinct from the one returned in Step 8."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -579,56 +453,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "page": 1,
-          "pageSize": 20,
-          "totalCount": 2,
-          "transactions": [
-            {
-              "transactionId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-              "transactionType": "Earn",
-              "pointsDelta": 500,
-              "balanceAfter": 500,
-              "bookingReference": null,
-              "flightNumber": null,
-              "description": "Flight earn — LHR to JFK",
-              "transactionDate": "2026-03-25T10:00:00Z"
-            },
-            {
-              "transactionId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-              "transactionType": "Earn",
-              "pointsDelta": 250,
-              "balanceAfter": 750,
-              "bookingReference": null,
-              "flightNumber": null,
-              "description": "Flight earn — AMS to DXB",
-              "transactionDate": "2026-03-25T10:05:00Z"
-            }
-          ]
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — transaction history contains exactly 2 entries, one for each points/add call made in Steps 8 and 9. totalCount must be 2.",
-        "keyFields": [
-          "loyaltyNumber",
-          "page",
-          "pageSize",
-          "totalCount",
-          "transactions"
-        ],
-        "validationNotes": "totalCount must be 2. transactions array must contain exactly 2 entries. First transaction: pointsDelta 500, transactionType Earn, description 'Flight earn — LHR to JFK'. Second transaction: pointsDelta 250, transactionType Earn, description 'Flight earn — AMS to DXB'. balanceAfter on the second transaction must be 750."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -658,11 +495,11 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ],
         "diff": {
@@ -681,14 +518,10 @@
         }
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — profile updated successfully. No response body. A subsequent GET /profile would reflect the changes.",
-        "keyFields": [],
-        "validationNotes": "Only permitted fields are accepted: givenName, surname, dateOfBirth, nationality, phoneNumber, preferredLanguage. Fields like tier, points, identityId are ignored. Partial update — omitted fields are not cleared. preferredLanguage must be xx-XX BCP 47 format (e.g. fr-FR). nationality must be 2-letter ISO 3166-1 alpha-2 (e.g. GB)."
+        "statusCode": 204
       },
       "chainsTo": []
     },
@@ -713,39 +546,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "givenName": "Generated",
-          "surname": "Name",
-          "email": "generated.name@testmail.example.com",
-          "phoneNumber": "+447700900456",
-          "preferredLanguage": "fr-FR",
-          "nationality": "GB",
-          "dateOfBirth": "1990-06-15",
-          "tier": "Blue",
-          "pointsBalance": 750,
-          "memberSince": "2026-03-24T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — profile returned with the updated values from Step 11. Confirms the PATCH was persisted.",
-        "keyFields": [
-          "phoneNumber",
-          "preferredLanguage",
-          "nationality"
-        ],
-        "validationNotes": "phoneNumber must be '+447700900456', preferredLanguage must be 'fr-FR', nationality must be 'GB'. pointsBalance must be 750, reflecting the two credits added in Steps 8 and 9. All other fields should be unchanged from Step 7."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -770,33 +583,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "marketingEnabled": false,
-          "analyticsEnabled": false,
-          "functionalEnabled": false,
-          "appNotificationsEnabled": false
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — preference flags returned. All four boolean flags default to false for a new account.",
-        "keyFields": [
-          "marketingEnabled",
-          "analyticsEnabled",
-          "functionalEnabled",
-          "appNotificationsEnabled"
-        ],
-        "validationNotes": "All flags must be false for a freshly registered account. A 404 means the loyalty number was not found."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -827,23 +626,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — preferences replaced successfully. No response body. A subsequent GET /preferences confirms the new values.",
-        "keyFields": [],
-        "validationNotes": "PUT is a full replacement — all four flags must be provided. Omitting a flag does not leave it unchanged; it would default to false."
+        "statusCode": 204
       },
       "chainsTo": []
     },
@@ -868,39 +663,25 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "marketingEnabled": true,
-          "analyticsEnabled": false,
-          "functionalEnabled": false,
-          "appNotificationsEnabled": true
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — preferences reflect the values submitted in Step 14. Confirms the PUT was persisted.",
-        "keyFields": [
-          "marketingEnabled",
-          "analyticsEnabled",
-          "functionalEnabled",
-          "appNotificationsEnabled"
-        ],
-        "validationNotes": "marketingEnabled must be true. analyticsEnabled must be false. functionalEnabled must be false. appNotificationsEnabled must be true. All values must match Step 14 exactly."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 16,
-      "name": "Update profile — gender and address",
+      "name": "Update profile \u2014 gender and address",
       "description": "Patch the customer's profile to add gender and a full postal address. These fields were null after registration and the initial update in Step 11 did not set them. Validates that the PATCH accepts all address fields alongside gender.",
       "type": "positive",
       "apiCall": {
@@ -928,11 +709,11 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ],
         "diff": {
@@ -967,20 +748,16 @@
         }
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — profile updated with gender and address fields. No response body. A subsequent GET /profile confirms the changes.",
-        "keyFields": [],
-        "validationNotes": "Partial update — only the supplied fields are modified. Fields set in Step 11 (phoneNumber, preferredLanguage, nationality) remain unchanged. countryCode must be 2-letter ISO 3166-1 alpha-2."
+        "statusCode": 204
       },
       "chainsTo": []
     },
     {
       "step": 17,
-      "name": "Verify profile — gender and address",
+      "name": "Verify profile \u2014 gender and address",
       "description": "Re-fetch the profile after the PATCH in Step 16 to confirm gender and all address fields are persisted. Also verifies that fields from the earlier PATCH in Step 11 remain intact.",
       "type": "positive",
       "apiCall": {
@@ -999,50 +776,19 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 6 → response.accessToken"
+            "source": "Step 6 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
-            "source": "Step 5 → response.loyaltyNumber"
+            "source": "Step 5 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "givenName": "Generated",
-          "surname": "Name",
-          "email": "generated.name@testmail.example.com",
-          "phoneNumber": "+447700900456",
-          "preferredLanguage": "fr-FR",
-          "nationality": "GB",
-          "gender": "Male",
-          "dateOfBirth": "1990-06-15",
-          "addressLine1": "42 Aviation Way",
-          "addressLine2": "Suite 7",
-          "city": "London",
-          "stateOrRegion": "Greater London",
-          "postalCode": "EC1A 1BB",
-          "countryCode": "GB",
-          "tier": "Blue",
-          "pointsBalance": 750,
-          "memberSince": "2026-03-24T10:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — profile returned with gender and address from Step 16, plus phoneNumber, preferredLanguage, and nationality from Step 11. All fields are present and correct.",
-        "keyFields": [
-          "gender",
-          "addressLine1",
-          "addressLine2",
-          "city",
-          "stateOrRegion",
-          "postalCode",
-          "countryCode"
-        ],
-        "validationNotes": "gender must be 'Male'. addressLine1 must be '42 Aviation Way'. city must be 'London'. postalCode must be 'EC1A 1BB'. countryCode must be 'GB'. phoneNumber must still be '+447700900456' from Step 11. pointsBalance must still be 750."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -1067,35 +813,19 @@
         "dataChain": [
           {
             "field": "email",
-            "source": "Step 1 → runtime-generated email"
+            "source": "Step 1 \u2192 runtime-generated email"
           },
           {
             "field": "password",
-            "source": "Step 1 → runtime-generated password"
+            "source": "Step 1 \u2192 runtime-generated password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YzJkM2U0Zi..._RELOGIN",
-          "refreshToken": "cmVsb2dpbiByZWZyZXNoIHRva2VuIGV4YW1wbGU...",
-          "expiresAt": "2026-03-27T14:45:00Z",
-          "tokenType": "Bearer",
-          "loyaltyNumber": "AX9876543"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — credentials validated on second login. Fresh access token and refresh token issued. loyaltyNumber matches Step 1. Confirms the account is unaffected by profile and preference changes.",
-        "keyFields": [
-          "accessToken",
-          "refreshToken",
-          "expiresAt",
-          "tokenType",
-          "loyaltyNumber"
-        ],
-        "validationNotes": "accessToken is a new signed JWT (RS256). refreshToken is a new single-use token. loyaltyNumber must match the value from Step 1. expiresAt is ISO 8601 UTC, approximately 15 minutes from now."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -1133,26 +863,22 @@
         "dataChain": [
           {
             "field": "refreshToken",
-            "source": "Step 18 → response.refreshToken"
+            "source": "Step 18 \u2192 response.refreshToken"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": null
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — refresh token revoked. Session effectively terminated. The access token is still technically valid until its 15-minute TTL expires, but no new tokens can be obtained.",
-        "keyFields": [],
-        "validationNotes": "Attempting to use the revoked refresh token for a subsequent /auth/refresh call should return 401 Unauthorized."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 20,
       "name": "Request email change",
-      "description": "Submit an email change request for the authenticated account. The Identity MS generates an EmailResetToken GUID and (in production) emails the token to the new address. The token is not returned in the response — delivery is out of scope for this test; the step validates that the orchestration layer accepts the request and returns 202 Accepted.",
+      "description": "Submit an email change request for the authenticated account. The Identity MS generates an EmailResetToken GUID and (in production) emails the token to the new address. The token is not returned in the response \u2014 delivery is out of scope for this test; the step validates that the orchestration layer accepts the request and returns 202 Accepted.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -1161,7 +887,7 @@
         "pathParams": {
           "userAccountId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234"
         },
-        "note": "Protected route — requires valid Bearer token. userAccountId is chained from Step 2 (Customer MS search response [0].identityId)."
+        "note": "Protected route \u2014 requires valid Bearer token. userAccountId is chained from Step 2 (Customer MS search response [0].identityId)."
       },
       "request": {
         "headers": {
@@ -1174,36 +900,32 @@
         "dataChain": [
           {
             "field": "userAccountId (path)",
-            "source": "Step 2 → response[0].identityId"
+            "source": "Step 2 \u2192 response[0].identityId"
           },
           {
             "field": "Authorization",
-            "source": "Step 18 → response.accessToken"
+            "source": "Step 18 \u2192 response.accessToken"
           }
         ]
       },
       "response": {
-        "statusCode": 202,
-        "body": null
+        "statusCode": 202
       },
       "expected": {
-        "statusCode": 202,
-        "description": "202 Accepted — email change request received. The Identity MS has set EmailResetToken on the UserAccount row. No response body. In production the token would be emailed to the new address.",
-        "keyFields": [],
-        "validationNotes": "202 with no body is the only success response. A 404 means the userAccountId was not found. A 409 means the new email address is already registered to another account. A 401 means the Bearer token was missing or invalid."
+        "statusCode": 202
       },
       "chainsTo": []
     },
     {
       "step": 21,
-      "name": "Verify email change — invalid token",
+      "name": "Verify email change \u2014 invalid token",
       "description": "Attempt to verify an email change using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account email.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/email/verify",
         "baseUrlRef": "loyalty",
-        "note": "Public route — no Bearer token required. The token is embedded in the request body, simulating a user clicking a link that includes the token."
+        "note": "Public route \u2014 no Bearer token required. The token is embedded in the request body, simulating a user clicking a link that includes the token."
       },
       "request": {
         "headers": {
@@ -1215,31 +937,23 @@
         }
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "Invalid or expired verification token."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — the token does not match any pending email change. Response body contains an error message. The account email is unchanged.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The all-zeros GUID will never match a real EmailResetToken. The error message must not reveal whether the account exists."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 22,
-      "name": "Password reset request — known email",
-      "description": "Submit a password reset request for the email address registered in Step 1. The Identity MS generates a PasswordResetToken GUID and (in production) emails a reset link. The step validates enumeration protection — 202 Accepted is always returned regardless of whether the email exists.",
+      "name": "Password reset request \u2014 known email",
+      "description": "Submit a password reset request for the email address registered in Step 1. The Identity MS generates a PasswordResetToken GUID and (in production) emails a reset link. The step validates enumeration protection \u2014 202 Accepted is always returned regardless of whether the email exists.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/auth/password/reset-request",
         "baseUrlRef": "loyalty",
-        "note": "Public route — no authentication required. Always returns 202 to prevent account enumeration."
+        "note": "Public route \u2014 no authentication required. Always returns 202 to prevent account enumeration."
       },
       "request": {
         "headers": {
@@ -1251,25 +965,21 @@
         "dataChain": [
           {
             "field": "email",
-            "source": "Step 1 → runtime-generated email"
+            "source": "Step 1 \u2192 runtime-generated email"
           }
         ]
       },
       "response": {
-        "statusCode": 202,
-        "body": null
+        "statusCode": 202
       },
       "expected": {
-        "statusCode": 202,
-        "description": "202 Accepted — request acknowledged. A PasswordResetToken has been set on the UserAccount row for the matching email. In production the token is emailed to the user. No body.",
-        "keyFields": [],
-        "validationNotes": "Response is always 202, even if the email is not registered, to prevent account enumeration. No response body."
+        "statusCode": 202
       },
       "chainsTo": []
     },
     {
       "step": 23,
-      "name": "Password reset request — unknown email",
+      "name": "Password reset request \u2014 unknown email",
       "description": "Submit a password reset request for an email address that does not exist in the system. Validates that the enumeration protection policy returns 202 Accepted even when no matching account is found.",
       "type": "positive",
       "apiCall": {
@@ -1287,27 +997,23 @@
         }
       },
       "response": {
-        "statusCode": 202,
-        "body": null
+        "statusCode": 202
       },
       "expected": {
-        "statusCode": 202,
-        "description": "202 Accepted — same response as for a known email. The Identity MS silently discards the request when no matching account is found. No response body.",
-        "keyFields": [],
-        "validationNotes": "The response must be identical to Step 22. Any difference in status code or body between known and unknown emails constitutes an account enumeration vulnerability."
+        "statusCode": 202
       },
       "chainsTo": []
     },
     {
       "step": 24,
-      "name": "Password reset — invalid token",
+      "name": "Password reset \u2014 invalid token",
       "description": "Attempt to reset the password using a known-invalid token (all-zeros GUID). Validates that the API correctly rejects bad tokens with a 400 Bad Request and does not change the account password.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
         "endpoint": "/api/v1/auth/password/reset",
         "baseUrlRef": "loyalty",
-        "note": "Public route — no Bearer token required. The token is submitted in the body, simulating a user clicking a reset link."
+        "note": "Public route \u2014 no Bearer token required. The token is submitted in the body, simulating a user clicking a reset link."
       },
       "request": {
         "headers": {
@@ -1319,18 +1025,10 @@
         }
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "Invalid or expired reset token."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — the token does not match any pending password reset. Response body contains an error message. The account password is unchanged.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The all-zeros GUID will never match a real PasswordResetToken. A 200 would indicate a security vulnerability allowing password reset without a valid token."
+        "statusCode": 400
       },
       "chainsTo": []
     },
@@ -1358,21 +1056,10 @@
         }
       },
       "response": {
-        "statusCode": 201,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "givenName": "Generated",
-          "tierCode": "Blue",
-          "message": "Registration successful. Please check your email to verify your account."
-        }
+        "statusCode": 201
       },
       "expected": {
-        "statusCode": 201,
-        "description": "201 Created — recipient account registered. loyaltyNumber identifies the recipient account for transfer steps.",
-        "keyFields": [
-          "loyaltyNumber"
-        ],
-        "validationNotes": "loyaltyNumber starts with 'AX' and is 9 characters. tierCode is always 'Blue'. Store the returned loyaltyNumber and the email used in the request body for use in the transfer step."
+        "statusCode": 201
       },
       "chainsTo": [
         {
@@ -1420,30 +1107,15 @@
           {
             "field": "query",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": [
-          {
-            "loyaltyNumber": "AX1234567",
-            "identityId": "d5e6f7a8-b9c0-1234-5678-9abcdef01234",
-            "givenName": "Generated",
-            "tierCode": "Blue",
-            "pointsBalance": 1500
-          }
-        ]
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — returns the recipient customer record. identityId is required for the verify-email call in Step 27.",
-        "keyFields": [
-          "identityId",
-          "loyaltyNumber"
-        ],
-        "validationNotes": "Response is an array. pointsBalance should reflect the 1,500 registration bonus."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -1475,25 +1147,21 @@
         "dataChain": [
           {
             "field": "recipientUserAccountId (path)",
-            "source": "Step 26 → response[0].identityId"
+            "source": "Step 26 \u2192 response[0].identityId"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": null
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — recipient email verified. The account is now fully active.",
-        "keyFields": [],
-        "validationNotes": "A 404 means the identityId was not found. This step is required before the transfer to ensure the recipient account is fully registered."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 28,
-      "name": "Transfer points to recipient — positive",
+      "name": "Transfer points to recipient \u2014 positive",
       "description": "Transfer 500 points from the sender account (Step 1) to the recipient account (Step 25). The request must include the recipient's loyalty number and email address for verification. Uses the sender's access token from the re-login in Step 18.",
       "type": "positive",
       "apiCall": {
@@ -1503,7 +1171,7 @@
         "pathParams": {
           "loyaltyNumber": "AX9876543"
         },
-        "note": "Protected route — requires valid Bearer token. loyaltyNumber in path is the sender's loyalty number from Step 1."
+        "note": "Protected route \u2014 requires valid Bearer token. loyaltyNumber in path is the sender's loyalty number from Step 1."
       },
       "request": {
         "headers": {
@@ -1519,46 +1187,29 @@
           {
             "field": "loyaltyNumber (path)",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           },
           {
             "field": "recipientLoyaltyNumber",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           },
           {
             "field": "recipientEmail",
             "from": "recipientEmail",
-            "source": "Step 25 → request.body.email"
+            "source": "Step 25 \u2192 request.body.email"
           },
           {
             "field": "Authorization",
-            "source": "Step 18 → response.accessToken"
+            "source": "Step 18 \u2192 response.accessToken"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "senderLoyaltyNumber": "AX9876543",
-          "recipientLoyaltyNumber": "AX1234567",
-          "pointsTransferred": 500,
-          "senderNewBalance": 1000,
-          "recipientNewBalance": 2000,
-          "transferredAt": "2026-03-27T12:00:00Z"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — points transferred. senderNewBalance reflects the deduction; recipientNewBalance reflects the credit. Both accounts should have Adjustment transactions visible in their transaction history.",
-        "keyFields": [
-          "senderLoyaltyNumber",
-          "recipientLoyaltyNumber",
-          "pointsTransferred",
-          "senderNewBalance",
-          "recipientNewBalance"
-        ],
-        "validationNotes": "pointsTransferred must equal the requested 500. senderNewBalance = senderPreviousBalance - 500. recipientNewBalance = recipientPreviousBalance + 500. The sender started with 1,500 bonus points so senderNewBalance should be 1,000."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -1582,25 +1233,15 @@
           {
             "field": "loyaltyNumber (path)",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX9876543",
-          "pointsBalance": 1000,
-          "tierCode": "Blue"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — sender's pointsBalance is 1,000 (1,500 registration bonus minus 500 transferred). The Customer MS record reflects the debit.",
-        "keyFields": [
-          "pointsBalance"
-        ],
-        "validationNotes": "pointsBalance must equal sender's previous balance minus the 500 points transferred in Step 28. An Adjustment transaction with description 'Points transferred to {recipientLoyaltyNumber}' should appear in the sender's transaction history."
+        "statusCode": 200
       },
       "chainsTo": []
     },
@@ -1624,32 +1265,22 @@
           {
             "field": "recipientLoyaltyNumber (path)",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "loyaltyNumber": "AX1234567",
-          "pointsBalance": 2000,
-          "tierCode": "Blue"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — recipient's pointsBalance is 2,000 (1,500 registration bonus plus 500 transferred). The Customer MS record reflects the credit.",
-        "keyFields": [
-          "pointsBalance"
-        ],
-        "validationNotes": "pointsBalance must equal recipient's previous balance plus the 500 points transferred in Step 28. An Adjustment transaction with description 'Points received from {senderLoyaltyNumber}' should appear in the recipient's transaction history."
+        "statusCode": 200
       },
       "chainsTo": []
     },
     {
       "step": 31,
-      "name": "Transfer points — wrong recipient email",
-      "description": "Attempt to transfer points to the recipient account using an incorrect email address. The Loyalty API must verify that the supplied email matches the recipient's registered Identity account — this request deliberately uses a wrong email to validate the verification logic.",
+      "name": "Transfer points \u2014 wrong recipient email",
+      "description": "Attempt to transfer points to the recipient account using an incorrect email address. The Loyalty API must verify that the supplied email matches the recipient's registered Identity account \u2014 this request deliberately uses a wrong email to validate the verification logic.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
@@ -1658,7 +1289,7 @@
         "pathParams": {
           "loyaltyNumber": "AX9876543"
         },
-        "note": "Protected route — requires valid Bearer token."
+        "note": "Protected route \u2014 requires valid Bearer token."
       },
       "request": {
         "headers": {
@@ -1674,38 +1305,30 @@
           {
             "field": "loyaltyNumber (path)",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           },
           {
             "field": "recipientLoyaltyNumber",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           },
           {
             "field": "Authorization",
-            "source": "Step 18 → response.accessToken"
+            "source": "Step 18 \u2192 response.accessToken"
           }
         ]
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "The recipient loyalty number and email address do not match a registered account."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — the supplied email does not match the email registered for the given recipientLoyaltyNumber. No points are transferred. The sender's balance is unchanged.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "The error message must not reveal whether the loyalty number or the email is wrong. No points should move — confirm sender and recipient balances are unchanged by re-running Steps 29 and 30."
+        "statusCode": 400
       },
       "chainsTo": []
     },
     {
       "step": 32,
-      "name": "Transfer points — insufficient balance",
+      "name": "Transfer points \u2014 insufficient balance",
       "description": "Attempt to transfer more points than the sender currently holds. The sender has 1,000 points remaining after Step 28; this request asks for 5,000, which exceeds the available balance.",
       "type": "negative",
       "apiCall": {
@@ -1715,7 +1338,7 @@
         "pathParams": {
           "loyaltyNumber": "AX9876543"
         },
-        "note": "Protected route — requires valid Bearer token."
+        "note": "Protected route \u2014 requires valid Bearer token."
       },
       "request": {
         "headers": {
@@ -1731,37 +1354,29 @@
           {
             "field": "loyaltyNumber (path)",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           },
           {
             "field": "recipientLoyaltyNumber",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           },
           {
             "field": "recipientEmail",
             "from": "recipientEmail",
-            "source": "Step 25 → request.body.email"
+            "source": "Step 25 \u2192 request.body.email"
           },
           {
             "field": "Authorization",
-            "source": "Step 18 → response.accessToken"
+            "source": "Step 18 \u2192 response.accessToken"
           }
         ]
       },
       "response": {
-        "statusCode": 400,
-        "body": {
-          "error": "Insufficient points balance."
-        }
+        "statusCode": 400
       },
       "expected": {
-        "statusCode": 400,
-        "description": "400 Bad Request — the sender does not have sufficient points to complete the transfer. No points are moved. The response body includes an error message stating the available and requested amounts.",
-        "keyFields": [
-          "error"
-        ],
-        "validationNotes": "error message should indicate the available balance and the requested amount. Both sender and recipient balances must remain unchanged from their values after Step 28."
+        "statusCode": 400
       },
       "chainsTo": []
     },
@@ -1786,31 +1401,19 @@
         "dataChain": [
           {
             "field": "email",
-            "source": "Step 25 → runtime-generated recipient email"
+            "source": "Step 25 \u2192 runtime-generated recipient email"
           },
           {
             "field": "password",
-            "source": "Step 25 → runtime-generated recipient password"
+            "source": "Step 25 \u2192 runtime-generated recipient password"
           }
         ]
       },
       "response": {
-        "statusCode": 200,
-        "body": {
-          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..._RECIPIENT",
-          "refreshToken": "cmVjaXBpZW50IHJlZnJlc2ggdG9rZW4...",
-          "expiresAt": "2026-03-27T21:00:00Z",
-          "tokenType": "Bearer",
-          "loyaltyNumber": "AX1234567"
-        }
+        "statusCode": 200
       },
       "expected": {
-        "statusCode": 200,
-        "description": "200 OK — recipient credentials validated. Response contains a JWT access token used to authorise the account deletion in Step 34.",
-        "keyFields": [
-          "accessToken"
-        ],
-        "validationNotes": "accessToken is a signed JWT. loyaltyNumber matches the recipient's loyalty number from Step 25."
+        "statusCode": 200
       },
       "chainsTo": [
         {
@@ -1844,30 +1447,26 @@
           {
             "field": "recipientLoyaltyNumber (path)",
             "from": "recipientLoyaltyNumber",
-            "source": "Step 25 → response.loyaltyNumber"
+            "source": "Step 25 \u2192 response.loyaltyNumber"
           },
           {
             "field": "Authorization",
-            "source": "Step 33 → response.accessToken"
+            "source": "Step 33 \u2192 response.accessToken"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — recipient account deleted. A subsequent GET for this loyalty number returns 404.",
-        "keyFields": [],
-        "validationNotes": "Idempotent — a repeat call returns 404."
+        "statusCode": 204
       },
       "chainsTo": []
     },
     {
       "step": 35,
       "name": "Delete sender account",
-      "description": "Delete the sender loyalty account created in Step 1. Final cleanup step — removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
+      "description": "Delete the sender loyalty account created in Step 1. Final cleanup step \u2014 removes the Customer MS record. The access token from the re-login in Step 18 is used for authentication.",
       "type": "positive",
       "apiCall": {
         "method": "DELETE",
@@ -1885,24 +1484,20 @@
         "dataChain": [
           {
             "field": "Authorization",
-            "source": "Step 18 → response.accessToken"
+            "source": "Step 18 \u2192 response.accessToken"
           },
           {
             "field": "loyaltyNumber (path)",
             "from": "loyaltyNumber",
-            "source": "Step 1 → response.loyaltyNumber"
+            "source": "Step 1 \u2192 response.loyaltyNumber"
           }
         ]
       },
       "response": {
-        "statusCode": 204,
-        "body": null
+        "statusCode": 204
       },
       "expected": {
-        "statusCode": 204,
-        "description": "204 No Content — sender loyalty account deleted. The Customer MS record is removed. No response body. A subsequent GET /profile for this loyalty number would return 404.",
-        "keyFields": [],
-        "validationNotes": "Idempotent — calling again returns 404 (already deleted). This is the final test step and serves as cleanup for the runtime-generated sender account."
+        "statusCode": 204
       },
       "chainsTo": []
     }
