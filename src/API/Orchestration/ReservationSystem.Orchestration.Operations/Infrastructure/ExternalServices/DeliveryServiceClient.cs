@@ -1,7 +1,9 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 
 namespace ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
@@ -50,6 +52,66 @@ public sealed class DeliveryServiceClient
         }
         return await response.Content.ReadFromJsonAsync<OciBoardingDocsResult>(JsonOptions, ct)
             ?? throw new InvalidOperationException("Empty response from OCI boarding-docs.");
+    }
+
+    public async Task<ManifestResponse> GetManifestAsync(string flightNumber, string departureDate, CancellationToken ct)
+    {
+        var url = $"/api/v1/manifest?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={departureDate}";
+        using var response = await _httpClient.GetAsync(url, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return new ManifestResponse();
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ManifestResponse>(JsonOptions, ct)
+            ?? new ManifestResponse();
+    }
+
+    public async Task DeleteManifestFlightAsync(string bookingReference, string flightNumber, string departureDate, CancellationToken ct)
+    {
+        var url = $"/api/v1/manifest/{Uri.EscapeDataString(bookingReference)}/flight/{Uri.EscapeDataString(flightNumber)}/{departureDate}";
+        using var response = await _httpClient.DeleteAsync(url, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return; // already removed — treat as success
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to delete manifest for {bookingReference}/{flightNumber}/{departureDate}: {await response.ReadErrorMessageAsync(ct)}");
+    }
+
+    public async Task<ReissueTicketsResponse> ReissueTicketsAsync(ReissueTicketsRequest request, CancellationToken ct)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/tickets/reissue", request, JsonOptions, ct);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to reissue tickets for {request.BookingReference}: {await response.ReadErrorMessageAsync(ct)}");
+
+        return await response.Content.ReadFromJsonAsync<ReissueTicketsResponse>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from ticket reissue.");
+    }
+
+    public async Task WriteManifestAsync(WriteManifestRequest request, CancellationToken ct)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", request, JsonOptions, ct);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to write manifest for {request.BookingReference}: {await response.ReadErrorMessageAsync(ct)}");
+    }
+
+    public async Task VoidTicketAsync(string eTicketNumber, string reason, CancellationToken ct)
+    {
+        var payload = new { reason, actor = "OperationsAPI" };
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/tickets/{Uri.EscapeDataString(eTicketNumber)}/void", content, ct);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to void ticket {eTicketNumber}: {await response.ReadErrorMessageAsync(ct)}");
     }
 }
 

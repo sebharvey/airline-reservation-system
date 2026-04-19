@@ -759,6 +759,150 @@ Notify the reservation system of a flight cancellation. Inventory closure is **s
 
 ---
 
+---
+
+## Admin disruption management
+
+Staff-facing endpoints called by the Terminal app when operations staff act on a disrupted flight from the inventory screen. All routes require a valid staff JWT (`Authorization: Bearer <token>`) issued by the Admin API.
+
+> **Note:** These endpoints are distinct from the FOS-facing `POST /v1/disruptions/*` endpoints. The admin disruption endpoints are called by human operators; FOS disruption endpoints are called by automated systems.
+
+### POST /v1/admin/disruption/cancel
+
+Cancel a flight and synchronously rebook all affected passengers in a single API call. The endpoint closes inventory, processes every affected booking in IROPS priority order, and returns a full per-passenger outcome summary.
+
+#### Business logic
+
+1. Call Offer MS `PATCH /v1/inventory/cancel` to close the flight immediately.
+2. Retrieve flight details from Offer MS.
+3. Query all confirmed orders on the flight from Order MS.
+4. Retrieve the full passenger manifest from Delivery MS.
+5. Sort passengers: cabin class (F=highest) → loyalty tier (Platinum=highest) → booking date (earliest first).
+6. Search for replacement options across the 72-hour lookahead window: direct flights first, then connecting via LHR hub (60-min minimum connection time).
+7. For each booking in priority order:
+   - Find the best available replacement matching or upgrading cabin class.
+   - Hold inventory on the replacement flight(s); decrement tracked in-memory availability to prevent over-allocation across bookings.
+   - If the booking is a reward booking, reinstate any surplus points to the customer's loyalty account (Customer MS) if the replacement costs fewer points; absorb any additional points cost (IROPS policy — no charge to customer).
+   - Rebook the order (Order MS `PATCH /v1/orders/{bookingRef}/rebook` with `reason=FlightCancellation`).
+   - Delete old manifest entries (Delivery MS).
+   - Reissue e-tickets (Delivery MS `POST /v1/tickets/reissue`).
+   - Write new manifest entries per replacement leg (Delivery MS `POST /v1/manifest`).
+   - If no replacement available within 72 hours: void e-tickets, release held inventory, cancel with full IROPS refund.
+8. Return `200 OK` with aggregated counts and per-booking outcomes.
+
+#### Request
+
+```json
+{
+  "flightNumber": "AX205",
+  "departureDate": "2026-04-25",
+  "reason": "Aircraft technical failure"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `flightNumber` | string | Yes | Carrier code + flight number, e.g. `AX205` |
+| `departureDate` | string (date) | Yes | Scheduled departure date in `yyyy-MM-dd` format |
+| `reason` | string | No | Free-text reason for the cancellation; logged on each order |
+
+#### Response — `200 OK`
+
+```json
+{
+  "flightNumber": "AX205",
+  "departureDate": "2026-04-25",
+  "affectedPassengerCount": 142,
+  "rebookedCount": 128,
+  "cancelledWithRefundCount": 12,
+  "failedCount": 2,
+  "outcomes": [
+    {
+      "bookingReference": "AX12345",
+      "outcome": "Rebooked",
+      "replacementFlightNumber": "AX207",
+      "replacementDepartureDate": "2026-04-25"
+    },
+    {
+      "bookingReference": "AX12346",
+      "outcome": "CancelledWithRefund"
+    },
+    {
+      "bookingReference": "AX12347",
+      "outcome": "Failed",
+      "failureReason": "Order MS rebook call returned 500"
+    }
+  ],
+  "processedAt": "2026-04-25T09:15:32.0000000Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `flightNumber` | string | Cancelled flight number |
+| `departureDate` | string (date) | Cancelled flight departure date |
+| `affectedPassengerCount` | integer | Total number of confirmed bookings on the flight |
+| `rebookedCount` | integer | Bookings successfully rebooked onto a replacement flight |
+| `cancelledWithRefundCount` | integer | Bookings cancelled with full IROPS refund (no replacement available) |
+| `failedCount` | integer | Bookings that could not be processed due to a downstream error |
+| `outcomes` | array | Per-booking processing outcome |
+| `outcomes[].bookingReference` | string | PNR for this booking |
+| `outcomes[].outcome` | string | `"Rebooked"`, `"CancelledWithRefund"`, or `"Failed"` |
+| `outcomes[].replacementFlightNumber` | string \| null | Replacement flight number if rebooked; `null` otherwise |
+| `outcomes[].replacementDepartureDate` | string \| null | Replacement departure date if rebooked; `null` otherwise |
+| `outcomes[].failureReason` | string \| null | Downstream error detail if `outcome = "Failed"`; `null` otherwise |
+| `processedAt` | string (datetime) | UTC timestamp when all bookings were processed |
+
+#### Error responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `404 Not Found` | Flight not found in inventory |
+| `422 Unprocessable Entity` | Flight already cancelled |
+| `500 Internal Server Error` | Unexpected failure |
+
+---
+
+### POST /v1/admin/disruption/change
+
+> **Not yet implemented.** Returns `501 Not Implemented`. Stub endpoint reserved for future aircraft type change disruption handling.
+
+When implemented, this endpoint will handle the operational rebooking flow when an aircraft type change results in cabin reconfiguration that affects passenger seat assignments.
+
+#### Request
+
+```json
+{
+  "flightNumber": "AX205",
+  "departureDate": "2026-04-25",
+  "newAircraftType": "A319",
+  "reason": "Aircraft substitution"
+}
+```
+
+---
+
+### POST /v1/admin/disruption/time
+
+> **Not yet implemented.** Returns `501 Not Implemented`. Stub endpoint reserved for future flight time change disruption handling.
+
+When implemented, this endpoint will propagate a staff-initiated time change across all affected orders and manifests, including e-ticket reissuance where required by IATA ticketing rules.
+
+#### Request
+
+```json
+{
+  "flightNumber": "AX205",
+  "departureDate": "2026-04-25",
+  "newDepartureTime": "14:30",
+  "newArrivalTime": "17:45",
+  "reason": "ATC slot change"
+}
+```
+
+---
+
 ### Disruption business rules
 
 | Rule | Detail |

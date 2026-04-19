@@ -178,6 +178,105 @@ sequenceDiagram
 
 ---
 
+---
+
+## Admin disruption cancellation
+
+When operations staff cancel a flight from the Terminal app inventory screen, the system calls `POST /v1/admin/disruption/cancel`. This endpoint performs the full IROPS flow **synchronously within the same API call** — inventory is closed and all affected passengers are rebooked before the response is returned.
+
+> **Design note:** The synchronous approach is intentional for the current phase. Unlike the FOS-triggered `POST /v1/disruptions/cancellation` flow (which returns `202 Accepted` immediately and processes rebooking asynchronously via Service Bus), the admin endpoint blocks until all bookings are processed. This simplifies the Terminal app UX — staff see outcomes immediately. This may be moved to an async pattern in a future phase if flight sizes require it.
+
+```mermaid
+sequenceDiagram
+    participant Staff as Terminal App (Staff)
+    participant OpsAPI as Operations API
+    participant OfferMS as Offer [MS]
+    participant OrderMS as Order [MS]
+    participant CustomerMS as Customer [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Staff->>OpsAPI: POST /v1/admin/disruption/cancel (flightNumber, departureDate, reason?)
+    OpsAPI->>OfferMS: PATCH /v1/inventory/cancel
+    OfferMS-->>OpsAPI: 200 OK — inventory closed
+
+    OpsAPI->>OfferMS: GET /v1/flights/{flightNumber}/inventory
+    OfferMS-->>OpsAPI: Flight details (origin, destination, departure/arrival times)
+
+    OpsAPI->>OrderMS: GET /v1/orders?flightNumber=&departureDate=&status=Confirmed
+    OrderMS-->>OpsAPI: Affected orders
+
+    OpsAPI->>DeliveryMS: GET /v1/manifest?flightNumber=&departureDate=
+    DeliveryMS-->>OpsAPI: Passenger manifest
+
+    Note over OpsAPI: Sort passengers by cabin (F→J→W→Y), loyalty tier (Platinum→Blue), booking date (earliest first)
+    Note over OpsAPI: Search replacement flights — direct (72-hr window), then connecting via LHR (60-min MCT)
+
+    loop For each booking in priority order
+        alt Replacement available
+            OpsAPI->>OfferMS: POST /v1/inventory/hold (per leg)
+            OfferMS-->>OpsAPI: 200 OK
+
+            opt Reward booking — replacement costs fewer points
+                OpsAPI->>CustomerMS: POST /v1/customers/{loyaltyNumber}/points/reinstate
+                CustomerMS-->>OpsAPI: 200 OK
+            end
+
+            OpsAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (reason=FlightCancellation)
+            OrderMS-->>OpsAPI: 200 OK
+
+            OpsAPI->>DeliveryMS: DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}
+            DeliveryMS-->>OpsAPI: 200 OK
+
+            OpsAPI->>DeliveryMS: POST /v1/tickets/reissue
+            DeliveryMS-->>OpsAPI: New e-ticket numbers
+
+            OpsAPI->>DeliveryMS: POST /v1/manifest (per replacement leg)
+            DeliveryMS-->>OpsAPI: 201 Created
+        else No replacement within 72 hours
+            OpsAPI->>DeliveryMS: PATCH /v1/tickets/{eTicketNumber}/void (per ticket)
+            DeliveryMS-->>OpsAPI: 200 OK
+
+            OpsAPI->>OfferMS: POST /v1/inventory/release
+            OfferMS-->>OpsAPI: 200 OK
+
+            OpsAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/cancel (reason=FlightCancellation, full refund)
+            OrderMS-->>OpsAPI: 200 OK
+        end
+    end
+
+    OpsAPI-->>Staff: 200 OK — affectedPassengerCount, rebookedCount, cancelledWithRefundCount, failedCount, outcomes[]
+```
+
+*Ref: disruption — admin-initiated flight cancellation with synchronous IROPS passenger rebooking*
+
+### Rebooking priority
+
+Passengers are processed in the following order to ensure the best available seats are allocated to the highest-value travellers:
+
+1. **Cabin class** — First (F) → Business (J) → Premium Economy (W) → Economy (Y)
+2. **Loyalty tier** — Platinum → Gold → Silver → Blue → no loyalty
+3. **Booking date** — Earliest booking date first (reward for early commitment)
+
+### Replacement search
+
+For each passenger group, the handler searches for replacement flights:
+
+- **Direct flights** — searches the origin → destination route across three dates starting from the cancelled departure date.
+- **Connecting flights** — if no direct option is found and origin ≠ LHR and destination ≠ LHR, searches origin → LHR and LHR → destination and pairs legs with ≥ 60-min MCT.
+- Passengers are rebooked into the **same cabin class** where possible; if unavailable, they are **upgraded** to the next available cabin — no downgrade.
+- In-memory availability is tracked across bookings during the synchronous pass to prevent over-allocation (seats held by earlier bookings are deducted from counts before later bookings are evaluated).
+
+### Future admin disruption endpoints
+
+Two additional admin disruption endpoints are scaffolded for future implementation:
+
+- **`POST /v1/admin/disruption/change`** — Aircraft type change; will handle cabin reconfiguration rebooking when a different aircraft type is substituted.
+- **`POST /v1/admin/disruption/time`** — Flight time change; will propagate new departure/arrival times across orders and manifests, including e-ticket reissuance where required.
+
+Both return `501 Not Implemented` in the current release.
+
+---
+
 ## Data Schema — Disruption
 
 The Operations API has its own persistent store (a dedicated SQL database) used solely for deduplication and event-processing state. No reservation or fare data is stored here.
