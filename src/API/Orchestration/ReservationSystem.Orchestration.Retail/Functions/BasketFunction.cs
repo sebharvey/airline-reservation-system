@@ -211,7 +211,9 @@ public sealed class BasketFunction
                     {
                         var seatOfferId = seatObj["seatOfferId"]!.GetValue<string>();
                         var offer = await _seatServiceClient.GetSeatOfferByIdAsync(seatOfferId, cancellationToken);
-                        if (offer is null) return;
+                        // Only enrich when the Seat MS returned a meaningful price (non-empty position
+                        // means the seat was located in the seatmap and the pricing is authoritative).
+                        if (offer is null || string.IsNullOrEmpty(offer.Position)) return;
                         seatObj["price"] = JsonValue.Create(offer.Price);
                         seatObj["tax"]   = JsonValue.Create(offer.Tax);
                     });
