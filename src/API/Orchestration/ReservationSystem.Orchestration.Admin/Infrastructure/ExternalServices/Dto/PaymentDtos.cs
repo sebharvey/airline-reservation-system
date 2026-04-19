@@ -7,7 +7,6 @@ public sealed class PaymentListItemMsResponse
 {
     public Guid PaymentId { get; init; }
     public string? BookingReference { get; init; }
-    public string PaymentType { get; init; } = string.Empty;
     public string Method { get; init; } = string.Empty;
     public string? CardType { get; init; }
     public string? CardLast4 { get; init; }
@@ -28,7 +27,6 @@ public sealed class PaymentMsResponse
 {
     public Guid PaymentId { get; init; }
     public string? BookingReference { get; init; }
-    public string PaymentType { get; init; } = string.Empty;
     public string Method { get; init; } = string.Empty;
     public string? CardType { get; init; }
     public string? CardLast4 { get; init; }
@@ -49,6 +47,7 @@ public sealed class PaymentEventMsResponse
     public Guid PaymentEventId { get; init; }
     public Guid PaymentId { get; init; }
     public string EventType { get; init; } = string.Empty;
+    public string ProductType { get; init; } = string.Empty;
     public decimal Amount { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public string? Notes { get; init; }

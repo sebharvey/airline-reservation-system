@@ -90,9 +90,10 @@ public sealed class AuthorisePaymentHandler
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
             PaymentEventType.Authorised,
+            command.ProductType,
             amountToAuthorise,
             payment.CurrencyCode,
-            $"Payment authorised for {payment.PaymentType}");
+            $"{command.ProductType} authorised");
 
         await _repository.CreateEventAsync(paymentEvent, cancellationToken);
 

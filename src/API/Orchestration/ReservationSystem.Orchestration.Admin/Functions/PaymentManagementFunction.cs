@@ -58,7 +58,6 @@ public sealed class PaymentManagementFunction
             {
                 PaymentId        = p.PaymentId,
                 BookingReference = p.BookingReference,
-                PaymentType      = p.PaymentType,
                 Method           = p.Method,
                 CardType         = p.CardType,
                 CardLast4        = p.CardLast4,
@@ -109,7 +108,6 @@ public sealed class PaymentManagementFunction
             {
                 PaymentId        = payment.PaymentId,
                 BookingReference = payment.BookingReference,
-                PaymentType      = payment.PaymentType,
                 Method           = payment.Method,
                 CardType         = payment.CardType,
                 CardLast4        = payment.CardLast4,
@@ -162,6 +160,7 @@ public sealed class PaymentManagementFunction
                 PaymentEventId = e.PaymentEventId,
                 PaymentId      = e.PaymentId,
                 EventType      = e.EventType,
+                ProductType    = e.ProductType,
                 Amount         = e.Amount,
                 CurrencyCode   = e.CurrencyCode,
                 Notes          = e.Notes,

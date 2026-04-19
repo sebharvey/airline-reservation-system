@@ -8,6 +8,7 @@ using ReservationSystem.Microservices.Payment.Application.GetPaymentsByDate;
 using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
+using ReservationSystem.Microservices.Payment.Application.UpdateBookingReference;
 using ReservationSystem.Microservices.Payment.Application.VoidPayment;
 using ReservationSystem.Microservices.Payment.Models.Requests;
 using ReservationSystem.Microservices.Payment.Models.Responses;
@@ -31,6 +32,7 @@ public sealed class PaymentFunction
     private readonly SettlePaymentHandler _settleHandler;
     private readonly RefundPaymentHandler _refundHandler;
     private readonly VoidPaymentHandler _voidHandler;
+    private readonly UpdateBookingReferenceHandler _updateBookingReferenceHandler;
     private readonly GetPaymentHandler _getPaymentHandler;
     private readonly GetPaymentEventsHandler _getPaymentEventsHandler;
     private readonly GetPaymentsByDateHandler _getPaymentsByDateHandler;
@@ -42,6 +44,7 @@ public sealed class PaymentFunction
         SettlePaymentHandler settleHandler,
         RefundPaymentHandler refundHandler,
         VoidPaymentHandler voidHandler,
+        UpdateBookingReferenceHandler updateBookingReferenceHandler,
         GetPaymentHandler getPaymentHandler,
         GetPaymentEventsHandler getPaymentEventsHandler,
         GetPaymentsByDateHandler getPaymentsByDateHandler,
@@ -52,6 +55,7 @@ public sealed class PaymentFunction
         _settleHandler = settleHandler;
         _refundHandler = refundHandler;
         _voidHandler = voidHandler;
+        _updateBookingReferenceHandler = updateBookingReferenceHandler;
         _getPaymentHandler = getPaymentHandler;
         _getPaymentEventsHandler = getPaymentEventsHandler;
         _getPaymentsByDateHandler = getPaymentsByDateHandler;
@@ -75,9 +79,6 @@ public sealed class PaymentFunction
         var (request, error) = await req.TryDeserializeBodyAsync<InitialisePaymentRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (string.IsNullOrWhiteSpace(request.PaymentType))
-            return await req.BadRequestAsync("The 'paymentType' field is required.");
-
         if (string.IsNullOrWhiteSpace(request.Method))
             return await req.BadRequestAsync("The 'method' field is required.");
 
@@ -89,7 +90,6 @@ public sealed class PaymentFunction
 
         var command = new InitialisePaymentCommand(
             request.BookingReference,
-            request.PaymentType,
             request.Method,
             request.CurrencyCode,
             request.Amount,
@@ -161,11 +161,15 @@ public sealed class PaymentFunction
             cardholderName = request.CardDetails.CardholderName ?? string.Empty;
         }
 
+        if (string.IsNullOrWhiteSpace(request.ProductType))
+            return await req.BadRequestAsync("The 'productType' field is required.");
+
         if (request.Amount.HasValue && request.Amount.Value <= 0)
             return await req.BadRequestAsync("The 'amount' must be greater than zero when provided.");
 
         var command = new AuthorisePaymentCommand(
             paymentGuid,
+            request.ProductType,
             request.Amount,
             cardNumber,
             expiryDate,
@@ -465,6 +469,48 @@ public sealed class PaymentFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve payments for date {Date}", date);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/payment/{paymentId}/booking-reference
+    // -------------------------------------------------------------------------
+
+    [Function("UpdatePaymentBookingReference")]
+    [OpenApiOperation(operationId: "UpdatePaymentBookingReference", tags: new[] { "Payments" }, Summary = "Link a confirmed booking reference to a payment record")]
+    [OpenApiParameter(name: "paymentId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Payment ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(UpdateBookingReferenceRequest), Required = true, Description = "Booking reference to link")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateBookingReference(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/payment/{paymentId}/booking-reference")] HttpRequestData req,
+        string paymentId,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(paymentId, out var paymentGuid))
+            return await req.BadRequestAsync("Invalid paymentId format — must be a valid UUID.");
+
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateBookingReferenceRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request.BookingReference))
+            return await req.BadRequestAsync("The 'bookingReference' field is required.");
+
+        try
+        {
+            var found = await _updateBookingReferenceHandler.HandleAsync(
+                new UpdateBookingReferenceCommand(paymentGuid, request.BookingReference), cancellationToken);
+
+            if (!found)
+                return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
+
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update booking reference for payment {PaymentId}", paymentId);
             return await req.InternalServerErrorAsync();
         }
     }

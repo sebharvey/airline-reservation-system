@@ -49,6 +49,23 @@ public sealed class EfPaymentRepository : IPaymentRepository
             _logger.LogDebug("Updated Payment {PaymentId} in [payment].[Payment]", payment.PaymentId);
     }
 
+    public async Task UpdateBookingReferenceAsync(Guid paymentId, string bookingReference, CancellationToken cancellationToken = default)
+    {
+        var payment = await _dbContext.Payments
+            .FirstOrDefaultAsync(p => p.PaymentId == paymentId, cancellationToken);
+
+        if (payment is null)
+        {
+            _logger.LogWarning("UpdateBookingReferenceAsync found no row for Payment {PaymentId}", paymentId);
+            return;
+        }
+
+        payment.SetBookingReference(bookingReference);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Linked Payment {PaymentId} to booking {BookingReference}", paymentId, bookingReference);
+    }
+
     public async Task CreateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default)
     {
         _dbContext.PaymentEvents.Add(paymentEvent);
@@ -72,6 +89,15 @@ public sealed class EfPaymentRepository : IPaymentRepository
     {
         return await _dbContext.PaymentEvents
             .Where(pe => pe.PaymentId == paymentId && pe.EventType == PaymentEventType.Authorised)
+            .OrderByDescending(pe => pe.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<PaymentEvent?> GetLatestEventByTypeAsync(Guid paymentId, string eventType, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PaymentEvents
+            .AsNoTracking()
+            .Where(pe => pe.PaymentId == paymentId && pe.EventType == eventType)
             .OrderByDescending(pe => pe.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }

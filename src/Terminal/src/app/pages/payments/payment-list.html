@@ -71,7 +71,6 @@
           <tr>
             <th>Payment ID</th>
             <th class="hide-mobile">Booking ref</th>
-            <th class="hide-mobile">Type</th>
             <th>Method / card</th>
             <th>Status</th>
             <th class="th-numeric">Amount</th>
@@ -86,7 +85,6 @@
             <tr class="payment-row" (click)="openModal(payment)">
               <td class="mono id-cell">{{ formatPaymentId(payment.paymentId) }}&hellip;</td>
               <td class="hide-mobile mono">{{ payment.bookingReference ?? '—' }}</td>
-              <td class="hide-mobile muted">{{ payment.paymentType }}</td>
               <td class="card-cell">
                 <span class="card-info">{{ cardDisplay(payment) }}</span>
               </td>
@@ -109,7 +107,7 @@
 
           @if (payments().length === 0) {
             <tr>
-              <td colspan="10" class="empty-row">No payments found for {{ selectedDate() }}.</td>
+              <td colspan="9" class="empty-row">No payments found for {{ selectedDate() }}.</td>
             </tr>
           }
         </tbody>
@@ -175,10 +173,6 @@
                 <span class="detail-value mono">{{ payment.bookingReference ?? '—' }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Payment type</span>
-                <span class="detail-value">{{ payment.paymentType }}</span>
-              </div>
-              <div class="detail-row">
                 <span class="detail-label">Method / card</span>
                 <span class="detail-value">{{ cardDisplay(payment) }}</span>
               </div>
@@ -238,6 +232,7 @@
                   <div class="event-item">
                     <div class="event-header">
                       <span class="status-badge" [class]="eventTypeBadgeClass(event.eventType)">{{ event.eventType }}</span>
+                      <span class="status-badge badge-product">{{ event.productType }}</span>
                       <span class="event-amount">{{ formatAmount(event.amount, event.currencyCode) }}</span>
                       <span class="event-time muted">{{ formatDateTime(event.createdAt) }}</span>
                     </div>

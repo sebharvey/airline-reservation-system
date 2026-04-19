@@ -69,7 +69,6 @@ public sealed class ConfirmBasketHandler
         // 3. Initialise one payment record for the full booking amount. Ancillary types
         //    are broken into sequential auth/settle PaymentEvent pairs on the same record.
         var paymentId = await _paymentServiceClient.InitialiseAsync(
-            paymentType: "Fare",
             method: command.PaymentMethod,
             currencyCode: currency,
             amount: totalAmount,
@@ -78,7 +77,7 @@ public sealed class ConfirmBasketHandler
 
         try
         {
-            await _paymentServiceClient.AuthoriseAsync(paymentId, fareAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
+            await _paymentServiceClient.AuthoriseAsync(paymentId, "Fare", fareAmount, command.CardNumber, command.ExpiryDate, command.Cvv, command.CardholderName, cancellationToken);
         }
         catch
         {
@@ -113,6 +112,9 @@ public sealed class ConfirmBasketHandler
             await _orderServiceClient.DeleteDraftOrderAsync(draftOrder.OrderId, cancellationToken);
             throw;
         }
+
+        // 4b. Link booking reference to the payment record now that the order is confirmed.
+        try { await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, confirmedOrder.BookingReference, cancellationToken); } catch { }
 
         // 5–8. Run post-confirm operations in parallel:
         //   - Hold + sell inventory (holds run in parallel across segments, then sell)
@@ -968,13 +970,13 @@ public sealed class ConfirmBasketHandler
         // Auth + settle each ancillary type as sequential pairs on the same Payment record
         if (seatAmount > 0)
         {
-            await _paymentServiceClient.AuthoriseAsync(paymentId, seatAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
+            await _paymentServiceClient.AuthoriseAsync(paymentId, "Seat", seatAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
             await _paymentServiceClient.SettleAsync(paymentId, seatAmount, ct);
         }
 
         if (bagAmount > 0)
         {
-            await _paymentServiceClient.AuthoriseAsync(paymentId, bagAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
+            await _paymentServiceClient.AuthoriseAsync(paymentId, "Bag", bagAmount, cardNumber, expiryDate, cvv, cardholderName, ct);
             await _paymentServiceClient.SettleAsync(paymentId, bagAmount, ct);
         }
     }

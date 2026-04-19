@@ -14,9 +14,6 @@ public sealed class AdminPaymentListItemResponse
     [JsonPropertyName("bookingReference")]
     public string? BookingReference { get; init; }
 
-    [JsonPropertyName("paymentType")]
-    public string PaymentType { get; init; } = string.Empty;
-
     [JsonPropertyName("method")]
     public string Method { get; init; } = string.Empty;
 
@@ -71,9 +68,6 @@ public sealed class AdminPaymentResponse
 
     [JsonPropertyName("bookingReference")]
     public string? BookingReference { get; init; }
-
-    [JsonPropertyName("paymentType")]
-    public string PaymentType { get; init; } = string.Empty;
 
     [JsonPropertyName("method")]
     public string Method { get; init; } = string.Empty;

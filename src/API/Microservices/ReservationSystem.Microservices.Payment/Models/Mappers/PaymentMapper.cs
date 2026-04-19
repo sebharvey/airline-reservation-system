@@ -62,7 +62,6 @@ public static class PaymentMapper
         {
             PaymentId = payment.PaymentId,
             BookingReference = payment.BookingReference,
-            PaymentType = payment.PaymentType,
             Method = payment.Method,
             CardType = payment.CardType,
             CardLast4 = payment.CardLast4,
@@ -84,6 +83,7 @@ public static class PaymentMapper
             PaymentEventId = paymentEvent.PaymentEventId,
             PaymentId = paymentEvent.PaymentId,
             EventType = paymentEvent.EventType,
+            ProductType = paymentEvent.ProductType,
             Amount = paymentEvent.Amount,
             CurrencyCode = paymentEvent.CurrencyCode,
             Notes = paymentEvent.Notes,

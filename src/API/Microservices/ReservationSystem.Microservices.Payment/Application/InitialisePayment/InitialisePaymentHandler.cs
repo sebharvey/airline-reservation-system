@@ -28,7 +28,6 @@ public sealed class InitialisePaymentHandler
     {
         var payment = Domain.Entities.Payment.Initialise(
             bookingReference: command.BookingReference,
-            paymentType: command.PaymentType,
             method: command.Method,
             currencyCode: command.CurrencyCode,
             amount: command.Amount,

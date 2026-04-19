@@ -32,7 +32,6 @@ public sealed class GetPaymentsByDateHandler
         {
             PaymentId        = r.Payment.PaymentId,
             BookingReference = r.Payment.BookingReference,
-            PaymentType      = r.Payment.PaymentType,
             Method           = r.Payment.Method,
             CardType         = r.Payment.CardType,
             CardLast4        = r.Payment.CardLast4,

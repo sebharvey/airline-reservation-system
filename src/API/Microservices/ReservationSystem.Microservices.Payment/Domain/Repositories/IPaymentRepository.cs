@@ -16,11 +16,15 @@ public interface IPaymentRepository
 
     Task UpdateAsync(Entities.Payment payment, CancellationToken cancellationToken = default);
 
+    Task UpdateBookingReferenceAsync(Guid paymentId, string bookingReference, CancellationToken cancellationToken = default);
+
     Task CreateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
 
     Task UpdateEventAsync(PaymentEvent paymentEvent, CancellationToken cancellationToken = default);
 
     Task<PaymentEvent?> GetEventByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
+
+    Task<PaymentEvent?> GetLatestEventByTypeAsync(Guid paymentId, string eventType, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PaymentEvent>> GetEventsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
 

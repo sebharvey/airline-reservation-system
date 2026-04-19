@@ -9,6 +9,7 @@ public sealed class PaymentEventResponse
     public Guid PaymentEventId { get; init; }
     public Guid PaymentId { get; init; }
     public string EventType { get; init; } = string.Empty;
+    public string ProductType { get; init; } = string.Empty;
     public decimal Amount { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public string? Notes { get; init; }
