@@ -903,6 +903,11 @@
   color: #f0883e;
 }
 
+.disruption-icon-equipment {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+}
+
 .disruption-action-text {
   min-width: 0;
 }
