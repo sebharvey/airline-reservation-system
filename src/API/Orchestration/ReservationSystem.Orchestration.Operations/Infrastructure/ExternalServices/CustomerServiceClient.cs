@@ -31,6 +31,23 @@ public sealed class CustomerServiceClient
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadFromJsonAsync<CustomerProfile>(JsonOptions, ct);
     }
+
+    public async Task ReinstatePointsAsync(
+        string loyaltyNumber,
+        int points,
+        string bookingReference,
+        string reason,
+        CancellationToken ct)
+    {
+        var payload = new { points, bookingReference, reason };
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"/api/v1/customers/{Uri.EscapeDataString(loyaltyNumber)}/points/reinstate",
+            payload, JsonOptions, ct);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to reinstate {points} points for {loyaltyNumber}: {await response.ReadErrorMessageAsync(ct)}");
+    }
 }
 
 public sealed class CustomerProfile
