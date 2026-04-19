@@ -916,7 +916,7 @@
 .muted    { color: var(--text-muted); }
 .mono     { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }
 .small-mono { font-size: 0.72rem; }
-.amount-cell { font-weight: 600; text-align: right; }
+.amount-cell { font-weight: 600; text-align: right; white-space: nowrap; }
 .data-table th.th-numeric { text-align: right; }
 
 /* Mobile items card list — hidden on desktop */
