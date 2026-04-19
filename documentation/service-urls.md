@@ -11,7 +11,6 @@ All services are deployed to Azure App Service (Azure Functions v4, .NET 8 isola
 | Retail API | `https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net` | UK South |
 | Loyalty API | `https://reservation-system-db-api-loyalty-gufra2fxfdd2eka6.uksouth-01.azurewebsites.net` | UK South |
 | Operations API | `https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net` | UK South |
-| Disruption API | TBC | TBC |
 | Admin API | `https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net` | UK South |
 
 ---
@@ -61,6 +60,13 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Operations API | `ScheduleMs:HostKey` | Schedule MS — Azure Function host key |
 | Operations API | `OfferMs:BaseUrl` | Offer MS |
 | Operations API | `OfferMs:HostKey` | Offer MS — Azure Function host key |
+| Operations API | `OrderMs:BaseUrl` | Order MS |
+| Operations API | `OrderMs:HostKey` | Order MS — Azure Function host key |
+| Operations API | `DeliveryMs:BaseUrl` | Delivery MS |
+| Operations API | `DeliveryMs:HostKey` | Delivery MS — Azure Function host key |
+| Operations API | `CustomerMs:BaseUrl` | Customer MS |
+| Operations API | `CustomerMs:HostKey` | Customer MS — Azure Function host key |
+| Operations API | `PaymentMs:BaseUrl` | Payment MS |
 | Operations API | `AncillaryMs:BaseUrl` | Ancillary MS |
 | Operations API | `AncillaryMs:HostKey` | Ancillary MS — Azure Function host key |
 | Admin API | `UserMs:BaseUrl` | User MS |
@@ -79,9 +85,4 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Retail API | `PaymentMs:BaseUrl` | Payment MS |
 | Retail API | `DeliveryMs:BaseUrl` | Delivery MS |
 | Retail API | `AncillaryMs:BaseUrl` | Ancillary MS |
-| Disruption API | `OfferMs:BaseUrl` | Offer MS |
-| Disruption API | `OrderMs:BaseUrl` | Order MS |
-| Disruption API | `DeliveryMs:BaseUrl` | Delivery MS |
-| Disruption API | `CustomerMs:BaseUrl` | Customer MS |
-| Disruption API | `PaymentMs:BaseUrl` | Payment MS |
 | Timatic Simulator | `Timatic:ApiToken` | Expected Bearer token — SHA-256 hash compared against each incoming `Authorization: Bearer` value |

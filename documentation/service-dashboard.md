@@ -13,8 +13,7 @@ Orchestration APIs are channel-facing (or staff-facing) entry points. They coord
 |---------|-----------|-----------------|--------|
 | **Retail API** | `/v1` | Search flights, create baskets, confirm bookings, manage orders, SSR catalogue | `GET /health` |
 | **Loyalty API** | `/v1` | Member authentication, registration, profile management, points authorisation/settlement | `GET /health` |
-| **Disruption API** | `/v1` | Flight delay and cancellation orchestration; async passenger rebooking via Service Bus | `GET /health` |
-| **Operations API** | `/v1` | SSIM schedule import, schedule-to-inventory import, staff-facing schedule management | `GET /health` |
+| **Operations API** | `/v1` | SSIM schedule import, schedule-to-inventory import, staff-facing schedule management, flight delay and cancellation orchestration (IROPS), async passenger rebooking via Service Bus | `GET /health` |
 | **Admin API** | `/v1` | Staff authentication (delegates to User MS) | `GET /health` |
 
 ---
@@ -80,7 +79,7 @@ After step 2, flights are immediately live for offer search.
 | `POST` | `/v1/inventory/hold` | Hold seats for a basket |
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation |
 | `POST` | `/v1/inventory/release` | Release held or sold seats back to available |
-| `PATCH` | `/v1/inventory/cancel` | Cancel all inventory for a flight (Disruption API) |
+| `PATCH` | `/v1/inventory/cancel` | Cancel all inventory for a flight (Operations API) |
 
 ---
 
@@ -98,7 +97,7 @@ After step 2, flights are immediately live for offer search.
 | `customer` | `Customer`, `TierConfig`, `LoyaltyTransaction`, `Preferences` | Customer MS |
 | `identity` | `UserAccount`, `RefreshToken` | Identity MS |
 | `user` | `User` | User MS |
-| `disruption` | `DisruptionEvent` | Disruption API (event log only) |
+| `disruption` | `DisruptionEvent` | Operations API (event log only) |
 
 ---
 

@@ -596,7 +596,7 @@ Reverse a points authorisation hold, returning held points to the customer's ava
 
 ### POST /v1/customers/{loyaltyNumber}/points/reinstate
 
-Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed. Appends a `Reinstate` transaction to the loyalty ledger. Called by the Retail API on voluntary cancellation (reward bookings) and by the Retail API and Disruption API when a flight change or IROPS rebooking reduces the points cost.
+Reinstate points to a customer's balance following a completed cancellation or flight change that results in a net reduction in points redeemed. Appends a `Reinstate` transaction to the loyalty ledger. Called by the Retail API on voluntary cancellation (reward bookings) and by the Retail API and Operations API when a flight change or IROPS rebooking reduces the points cost.
 
 **When to use:** During voluntary cancellation of a reward booking (to restore all redeemed points), during a voluntary flight change where the replacement flight costs fewer points (to restore the surplus), or during IROPS rebooking where the replacement flight has a lower points cost (airline absorbs additional cost, reinstates surplus).
 

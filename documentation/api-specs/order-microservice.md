@@ -5,7 +5,7 @@
 > **Transport:** HTTPS (TLS 1.2 minimum)
 > **Content type:** `application/json`
 
-The Order microservice manages the complete booking lifecycle — from basket creation through confirmation, post-sale changes, and cancellation — built on the **IATA ONE Order** standard. It is the sole owner of order state; all changes — passenger updates, seat changes, flight changes, ancillary additions, cancellations, and IROPS rebooking — are orchestrated through the Retail API or Disruption API. No other microservice writes to the Order domain.
+The Order microservice manages the complete booking lifecycle — from basket creation through confirmation, post-sale changes, and cancellation — built on the **IATA ONE Order** standard. It is the sole owner of order state; all changes — passenger updates, seat changes, flight changes, ancillary additions, cancellations, and IROPS rebooking — are orchestrated through the Retail API or Operations API. No other microservice writes to the Order domain.
 
 The Order MS owns two primary structures: the **Basket** (`order.Basket`) — transient pre-sale state accumulating flight offers, seat and bag selections, and passenger details; and the **Order** (`order.Order`) — the confirmed post-sale record following the IATA ONE Order model, identified by a six-character **booking reference** (the functional equivalent of a PNR in legacy systems).
 
@@ -14,7 +14,7 @@ The Order MS publishes three event types to the Azure Service Bus on state chang
 - `OrderChanged` — consumed by Accounting MS (revenue adjustment).
 - `OrderCancelled` — consumed by Accounting MS (refund processing).
 
-> **Important:** The Order microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API** or **Disruption API** orchestration layers. See the [Security](#security) section for authentication details.
+> **Important:** The Order microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API** or **Operations API** orchestration layers. See the [Security](#security) section for authentication details.
 
 ---
 
@@ -674,7 +674,7 @@ Confirm a basket and create a permanent order record. Sets `OrderStatus = Confir
 
 Retrieve a confirmed order by booking reference and passenger name. Authentication is via name matching — the surname of the passenger must match a passenger on the booking.
 
-**When to use:** Called by the Retail API for manage-booking flows (flight change, cancellation, seat change, bag addition, SSR management) and for the check-in flow when the passenger retrieves their booking. Also called by the Disruption API to retrieve affected orders by flight.
+**When to use:** Called by the Retail API for manage-booking flows (flight change, cancellation, seat change, bag addition, SSR management) and for the check-in flow when the passenger retrieves their booking. Also called by the Operations API to retrieve affected orders by flight.
 
 #### Request
 
@@ -741,9 +741,9 @@ Returns the full order record including `OrderData` JSON:
 
 ### GET /v1/orders
 
-Query orders by flight number and departure date. Returns all confirmed orders on the specified flight. Used by the Disruption API to retrieve all affected passengers when processing a delay or cancellation.
+Query orders by flight number and departure date. Returns all confirmed orders on the specified flight. Used by the Operations API to retrieve all affected passengers when processing a delay or cancellation.
 
-**When to use:** Called by the Disruption API as the first step of disruption handling after receiving a flight event from the Flight Operations System.
+**When to use:** Called by the Operations API as the first step of disruption handling after receiving a flight event from the Flight Operations System.
 
 #### Query Parameters
 
@@ -922,9 +922,9 @@ Update seat assignments on a confirmed order. Updates `seatAssignments` within `
 
 ### PATCH /v1/orders/{bookingRef}/segments
 
-Update segment departure and arrival times on a confirmed order. Used by the Disruption API for flight delay propagation. Publishes `OrderChanged` event.
+Update segment departure and arrival times on a confirmed order. Used by the Operations API for flight delay propagation. Publishes `OrderChanged` event.
 
-**When to use:** Called by the Disruption API for every affected order during flight delay processing, after receiving the updated schedule from the Flight Operations System.
+**When to use:** Called by the Operations API for every affected order during flight delay processing, after receiving the updated schedule from the Flight Operations System.
 
 #### Path Parameters
 
@@ -1119,11 +1119,11 @@ Mark an order as cancelled with reason and any cancellation fee. Sets `OrderStat
 
 ### PATCH /v1/orders/{bookingRef}/rebook
 
-Rebook a passenger onto a replacement flight. Used exclusively by the Disruption API for IROPS flight cancellation rebooking. Sets `OrderStatus = Changed`. Publishes `OrderChanged` event with `changeType=IROPSRebook`.
+Rebook a passenger onto a replacement flight. Used exclusively by the Operations API for IROPS flight cancellation rebooking. Sets `OrderStatus = Changed`. Publishes `OrderChanged` event with `changeType=IROPSRebook`.
 
-**When to use:** Called by the Disruption API for each affected order during asynchronous IROPS cancellation processing, after new inventory has been held (Offer MS), old manifest deleted (Delivery MS), new e-tickets issued (Delivery MS), and new manifest written (Delivery MS).
+**When to use:** Called by the Operations API for each affected order during asynchronous IROPS cancellation processing, after new inventory has been held (Offer MS), old manifest deleted (Delivery MS), new e-tickets issued (Delivery MS), and new manifest written (Delivery MS).
 
-**IROPS fare override:** When `reason=FlightCancellation`, all fare change restrictions are waived regardless of the original fare conditions. The Order MS logs this override in the order's `changeHistory` for audit. The Retail API must never set `reason=FlightCancellation` — this flag is exclusively for the Disruption API.
+**IROPS fare override:** When `reason=FlightCancellation`, all fare change restrictions are waived regardless of the original fare conditions. The Order MS logs this override in the order's `changeHistory` for audit. The Retail API must never set `reason=FlightCancellation` — this flag is exclusively for the Operations API.
 
 #### Path Parameters
 
@@ -1445,13 +1445,13 @@ Record check-in status and APIS (Advance Passenger Information) data for passeng
 5. Manifest check-in updated (Delivery MS — `PATCH /v1/manifest/{bookingRef}`).
 6. Boarding cards generated (Delivery MS — `POST /v1/boarding-cards`).
 
-### Flight Delay (Disruption API)
+### Flight Delay (Operations API)
 
 1. `GET /v1/orders?flightNumber&departureDate&status=Confirmed` — retrieve affected orders.
 2. **`PATCH /v1/orders/{bookingRef}/segments`** — update departure/arrival times for each affected order.
 3. (Conditional) E-tickets reissued if delay > 60 minutes (Delivery MS); new e-ticket numbers passed back via `PATCH /v1/orders/{bookingRef}/segments` with `eTicketUpdates`.
 
-### IROPS Rebooking (Disruption API)
+### IROPS Rebooking (Operations API)
 
 1. `GET /v1/orders?flightNumber&departureDate&status=Confirmed` — retrieve affected orders.
 2. For each order: new inventory held (Offer MS); old manifest deleted; new e-tickets issued; new manifest written (Delivery MS).
@@ -1515,7 +1515,7 @@ curl -X POST https://{order-ms-host}/v1/orders/retrieve \
   -d '{ "bookingReference": "AB1234", "surname": "Taylor" }'
 ```
 
-### Query orders by flight (Disruption API → Order MS)
+### Query orders by flight (Operations API → Order MS)
 
 ```bash
 curl -X GET "https://{order-ms-host}/v1/orders?flightNumber=AX101&departureDate=2026-03-22&status=Confirmed" \
@@ -1540,7 +1540,7 @@ curl -X PATCH https://{order-ms-host}/v1/orders/AB1234/cancel \
   }'
 ```
 
-### IROPS rebook (Disruption API → Order MS)
+### IROPS rebook (Operations API → Order MS)
 
 ```bash
 curl -X PATCH https://{order-ms-host}/v1/orders/AB1234/rebook \

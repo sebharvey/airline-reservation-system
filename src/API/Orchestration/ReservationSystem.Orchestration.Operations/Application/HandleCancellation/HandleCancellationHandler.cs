@@ -1,7 +1,7 @@
-using ReservationSystem.Orchestration.Disruption.Infrastructure.ExternalServices;
-using ReservationSystem.Orchestration.Disruption.Models.Responses;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Models.Responses;
 
-namespace ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
+namespace ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
 
 public sealed class HandleCancellationHandler
 {

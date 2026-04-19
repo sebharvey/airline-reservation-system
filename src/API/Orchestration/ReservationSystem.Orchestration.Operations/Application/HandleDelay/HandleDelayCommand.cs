@@ -1,4 +1,4 @@
-namespace ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
+namespace ReservationSystem.Orchestration.Operations.Application.HandleDelay;
 
 public sealed record HandleDelayCommand(
     string FlightNumber,

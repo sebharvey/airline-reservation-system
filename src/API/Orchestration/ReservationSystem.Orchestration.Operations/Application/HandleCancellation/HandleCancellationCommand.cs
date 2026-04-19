@@ -1,4 +1,4 @@
-namespace ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
+namespace ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
 
 public sealed record HandleCancellationCommand(
     string FlightNumber,
