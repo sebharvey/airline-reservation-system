@@ -920,7 +920,7 @@ Change a confirmed flight to a new itinerary. Governed by the fare conditions of
 
 **Points recalculation (reward):** `pointsDifference = newPointsPrice − originalPointsAmount`. If positive, additional points are authorised and settled. If negative, surplus points are reinstated via `POST /v1/customers/{loyaltyNumber}/points/reinstate` with `reason=FlightChange`.
 
-**IROPS fare override:** When `reason=FlightCancellation` is present (Disruption API context), the Order MS overrides all fare conditions and allows free rebooking regardless of fare type.
+**IROPS fare override:** When `reason=FlightCancellation` is present (Operations API context), the Order MS overrides all fare conditions and allows free rebooking regardless of fare type.
 
 **Orchestration sequence:**
 1. Retrieve order — confirm `isChangeable = true`, collect `changeFee`, `originalBaseFare`, `originalPaymentId`.

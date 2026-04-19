@@ -1,4 +1,4 @@
-namespace ReservationSystem.Orchestration.Disruption.Models.Responses;
+namespace ReservationSystem.Orchestration.Operations.Models.Responses;
 
 public sealed class DisruptionResponse
 {

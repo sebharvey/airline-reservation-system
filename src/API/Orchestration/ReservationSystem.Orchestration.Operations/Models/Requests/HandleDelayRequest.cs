@@ -1,4 +1,4 @@
-namespace ReservationSystem.Orchestration.Disruption.Models.Requests;
+namespace ReservationSystem.Orchestration.Operations.Models.Requests;
 
 public sealed class HandleDelayRequest
 {

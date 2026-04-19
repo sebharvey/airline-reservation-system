@@ -4,19 +4,14 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
-using ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
-using ReservationSystem.Orchestration.Disruption.Application.HandleCancellation;
-using ReservationSystem.Orchestration.Disruption.Models.Requests;
-using ReservationSystem.Orchestration.Disruption.Models.Responses;
+using ReservationSystem.Orchestration.Operations.Application.HandleDelay;
+using ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
+using ReservationSystem.Orchestration.Operations.Models.Requests;
+using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
 
-namespace ReservationSystem.Orchestration.Disruption.Functions;
+namespace ReservationSystem.Orchestration.Operations.Functions;
 
-/// <summary>
-/// HTTP-triggered functions for operational disruption handling.
-/// Orchestrates calls across Offer, Order, Delivery, Customer, and Payment microservices
-/// to manage flight delays and cancellations including IROPS rebooking.
-/// </summary>
 public sealed class DisruptionFunction
 {
     private readonly HandleDelayHandler _handleDelayHandler;
@@ -32,10 +27,6 @@ public sealed class DisruptionFunction
         _handleCancellationHandler = handleCancellationHandler;
         _logger = logger;
     }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/disruptions/delay
-    // -------------------------------------------------------------------------
 
     [Function("HandleDelay")]
     [OpenApiOperation(operationId: "HandleDelay", tags: new[] { "Disruptions" }, Summary = "Handle a flight delay")]
@@ -61,10 +52,6 @@ public sealed class DisruptionFunction
         var result = await _handleDelayHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);
     }
-
-    // -------------------------------------------------------------------------
-    // POST /v1/disruptions/cancellation
-    // -------------------------------------------------------------------------
 
     [Function("HandleCancellation")]
     [OpenApiOperation(operationId: "HandleCancellation", tags: new[] { "Disruptions" }, Summary = "Handle a flight cancellation with optional IROPS rebooking")]

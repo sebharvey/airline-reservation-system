@@ -45,11 +45,7 @@ A Modern Airline Retailing system built on offer and order capability.
 - **Schedule** — flight schedule definition and bulk inventory generation
   - Schedule Management (creation with route/times/days/aircraft/window, operating date enumeration via DaysOfWeek bitmask)
   - Inventory Generation (bulk FlightInventory and Fare record creation, FlightsCreated count tracking)
-
-- **Disruption** — IROPS event orchestration across affected bookings
-  - Flight Delay (propagation to segments/manifests, material schedule change reissuance threshold)
-  - Flight Cancellation (inventory closure, affected order/manifest retrieval, replacement flight search, passenger rebooking, e-ticket void/reissuance/manifest recreation)
-  - Reliability (idempotency via disruptionEventId, async processing for large loads)
+  - Disruption (IROPS event orchestration via the Operations API — flight delay propagation, cancellation with async passenger rebooking, idempotency via disruptionEventId)
 
 - **Loyalty** — loyalty programme membership, authentication, and points
   - Registration & Verification (member enrolment, email verification)
@@ -104,7 +100,6 @@ graph LR
         LOYALTY_API[Loyalty API]
         AIRPORT_API[Airport API]
         FINANCE_API[Finance API]
-        DISRUPTION_API[Disruption API]
         OPERATIONS_API[Operations API]
         ADMIN_API[Admin API]
     end
@@ -219,7 +214,7 @@ graph LR
 
 ### External Systems
 
-- **Flight Operations System (FOS)** — source of disruption events (delays, cancellations). Pushes IROPS notifications into the Disruption API.
+- **Flight Operations System (FOS)** — source of disruption events (delays, cancellations). Pushes IROPS notifications into the Operations API.
 
 ### Orchestration APIs
 
@@ -227,8 +222,7 @@ graph LR
 - **Loyalty API** — handles member registration, authentication, profile management, and points operations via Identity and Customer microservices.
 - **Airport API** *(future)* — check-in, boarding, and gate operations; coordinates Order, Delivery, Customer, and Ancillary microservices.
 - **Finance API** *(future)* — financial reporting and reconciliation; routes to Accounting microservice.
-- **Disruption API** — receives IROPS events from FOS and orchestrates rebooking across Offer, Order, and Delivery microservices.
-- **Operations API** — schedule submission and inventory generation via Schedule and Offer microservices.
+- **Operations API** — schedule submission and inventory generation via Schedule and Offer microservices; also receives IROPS events from FOS and orchestrates disruption handling (delay propagation and cancellation rebooking) across Offer, Order, Delivery, and Customer microservices.
 - **Admin API** — internal staff authentication entry point; delegates credential validation and JWT issuance to the User microservice. Serves all back-office applications (Contact Centre, Airport, Finance, Operations).
 
 ### Microservices
@@ -289,7 +283,7 @@ Apex Air (IATA carrier code **AX**) operates a hub-and-spoke network from London
 - Delivery DB: owns Ticket, Manifest, Document tables; never reads from `order.Order` directly
 - Manifest seatmap validation: orchestration layer validates `SeatNumber` against active seatmap before calling Delivery MS
 - Delivery accounting events: `TicketIssued` and `DocumentIssued` events published to event bus
-- Disruption API idempotency: `disruptionEventId` deduplication
+- Disruption idempotency: `disruptionEventId` deduplication in Operations API
 - IROPS fare override: `reason=FlightCancellation` waives fare change restrictions
 - Disruption rebooking prioritisation: cabin class → loyalty tier → booking date
 

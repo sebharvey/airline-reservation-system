@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Disruption API orchestrates the reservation system's response to disruption events (delays and cancellations) notified by the airline's **Flight Operations System (FOS)**.
+The **Operations API** orchestrates the reservation system's response to disruption events (delays and cancellations) notified by the airline's **Flight Operations System (FOS)**.
 
 - Coordinates updates across the **Offer** (inventory), **Order**, and **Delivery** microservices to keep all affected bookings accurate and, where necessary, rebook passengers.
 - Write-only inbound interface from the FOS perspective — the FOS fires the event and the reservation system handles everything downstream with no synchronous per-passenger response expected.
@@ -10,11 +10,11 @@ The Disruption API orchestrates the reservation system's response to disruption 
 
 ```mermaid
 graph LR
-    FOS[Flight Operations System] -->|POST disruption event| DISRUPTION_API[Disruption API]
-    DISRUPTION_API -->|Read/write disruption event log| DISRUPTION_DB[(Disruption DB)]
-    DISRUPTION_API -->|Search available inventory| OFFER[Offer MS]
-    DISRUPTION_API -->|Update / rebook orders| ORDER[Order MS]
-    DISRUPTION_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
+    FOS[Flight Operations System] -->|POST disruption event| OPERATIONS_API[Operations API]
+    OPERATIONS_API -->|Read/write disruption event log| DISRUPTION_DB[(Disruption DB)]
+    OPERATIONS_API -->|Search available inventory| OFFER[Offer MS]
+    OPERATIONS_API -->|Update / rebook orders| ORDER[Order MS]
+    OPERATIONS_API -->|Reissue e-tickets & update manifest| DELIVERY[Delivery MS]
 ```
 
 *Ref: disruption API - FOS integration and downstream microservice orchestration overview*
@@ -34,7 +34,7 @@ A flight delay changes scheduled times without invalidating bookings or e-ticket
 ```mermaid
 sequenceDiagram
     participant FOS as Flight Operations System
-    participant DisruptionAPI as Disruption API
+    participant DisruptionAPI as Operations API
     participant OrderMS as Order [MS]
     participant DeliveryMS as Delivery [MS]
 
@@ -70,7 +70,7 @@ sequenceDiagram
 
 - The departure and arrival times on every confirmed `order.Order` segment record for the affected flight are updated to reflect the new scheduled times.
 - The `delivery.Manifest` records are updated to reflect the new departure time for gate management and check-in purposes.
-- E-ticket reissuance is required if the delay constitutes a "material schedule change" under IATA ticketing rules (typically a change of more than 60 minutes). The threshold is configurable. Where reissuance is required, the Disruption API calls the Delivery microservice to reissue and the Order microservice is updated with new e-ticket numbers.
+- E-ticket reissuance is required if the delay constitutes a "material schedule change" under IATA ticketing rules (typically a change of more than 60 minutes). The threshold is configurable. Where reissuance is required, the Operations API calls the Delivery microservice to reissue and the Order microservice is updated with new e-ticket numbers.
 - An `OrderChanged` event is published by the Order microservice to the event bus so downstream services (Accounting, Customer) are aware of the change.
 - Passengers whose check-in window has already opened (within 24 hours of the original departure) are notified immediately.
 
@@ -78,7 +78,7 @@ sequenceDiagram
 
 ## Flight Cancellation and Passenger Rebooking
 
-When the FOS notifies the Disruption API that a flight has been cancelled, the API takes the flight off sale and rebooks every affected passenger onto the next available alternative. The rebooking logic works as follows:
+When the FOS notifies the Operations API that a flight has been cancelled, the API takes the flight off sale and rebooks every affected passenger onto the next available alternative. The rebooking logic works as follows:
 
 1. The next available **direct** flight on the same origin–destination route with sufficient cabin availability is identified first.
 2. If no direct flight can accommodate the passengers within an acceptable timeframe, a **connecting itinerary** via an intermediate point is considered.
@@ -93,7 +93,7 @@ When the FOS notifies the Disruption API that a flight has been cancelled, the A
 ```mermaid
 sequenceDiagram
     participant FOS as Flight Operations System
-    participant DisruptionAPI as Disruption API
+    participant DisruptionAPI as Operations API
     participant OfferMS as Offer [MS]
     participant OrderMS as Order [MS]
     participant CustomerMS as Customer [MS]
@@ -169,8 +169,8 @@ sequenceDiagram
 **Cancellation handling rules:**
 
 - **The cancelled flight is taken off sale immediately and synchronously** — as the very first action after validating the event. This prevents new bookings from being accepted on the flight while rebooking is in progress. The `offer.FlightInventory` record is updated to `SeatsAvailable = 0` with a status of `Cancelled`. The `202 Accepted` response is returned to the FOS immediately after this step; all subsequent per-passenger rebooking work is queued onto Service Bus for async processing.
-- The Disruption API processes passengers in priority order: higher cabin class first, then loyalty tier (Platinum → Gold → Silver → Blue), then booking date (earliest first). This ensures the best available seats go to the highest-value passengers.
-- Seat assignments on the replacement flight are not pre-assigned by the Disruption API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
+- The Operations API processes passengers in priority order: higher cabin class first, then loyalty tier (Platinum → Gold → Silver → Blue), then booking date (earliest first). This ensures the best available seats go to the highest-value passengers.
+- Seat assignments on the replacement flight are not pre-assigned by the Operations API; passengers are assigned to an available seat of the same position type (Window/Aisle/Middle) where possible. Passengers may change their seat via the normal manage-booking flow after rebooking.
 - If no replacement flight is found within the 72-hour lookahead window, the booking is cancelled with a full IROPS refund (see step 7 of the rebooking logic above) and the passenger is notified.
 - Where the original fare conditions do not permit free rebooking (e.g. non-changeable fares), the airline's IROPS policy overrides these conditions — all passengers on a cancelled flight are entitled to free rebooking regardless of fare type. This waiver is applied by the Order microservice when the `reason=FlightCancellation` flag is present.
 - **Reward bookings:** Under IROPS, the airline absorbs any additional points cost if the replacement flight has a higher points price — the customer is never charged more points for an airline-initiated cancellation. If the replacement flight costs fewer points, the difference is reinstated to the customer's loyalty balance via the Customer microservice. Tax differences on IROPS rebookings are also absorbed by the airline.
@@ -180,7 +180,7 @@ sequenceDiagram
 
 ## Data Schema — Disruption
 
-The Disruption API has its own persistent store (a dedicated SQL database) used solely for deduplication and event-processing state. No reservation or fare data is stored here.
+The Operations API has its own persistent store (a dedicated SQL database) used solely for deduplication and event-processing state. No reservation or fare data is stored here.
 
 **disruption.DisruptionEvent**
 
@@ -201,13 +201,13 @@ The Disruption API has its own persistent store (a dedicated SQL database) used 
 
 > **Status transitions:** `Received` is written synchronously before the `202 Accepted` is returned to the FOS. The async Service Bus worker updates `Status` to `Processing` when it picks up the job, then to `Completed` (or `Failed`) once all per-passenger work is done. `ProcessedPassengerCount` is incremented after each individual booking is handled, giving operational staff a real-time progress indicator.
 
-> **Idempotency:** On receipt of a disruption event, the Disruption API performs an `INSERT IF NOT EXISTS` on `DisruptionEventId`. If the row already exists (duplicate delivery from FOS), the request is acknowledged with `202 Accepted` immediately — no downstream calls are made.
+> **Idempotency:** On receipt of a disruption event, the Operations API performs an `INSERT IF NOT EXISTS` on `DisruptionEventId`. If the row already exists (duplicate delivery from FOS), the request is acknowledged with `202 Accepted` immediately — no downstream calls are made.
 
 ---
 
-## Disruption API — Idempotency and Reliability
+## Disruption handling — idempotency and reliability
 
-The Disruption API must be idempotent — the FOS may send the same event more than once due to retries or network failures.
+The Operations API must be idempotent — the FOS may send the same event more than once due to retries or network failures.
 
 - Each event must include a unique `disruptionEventId`; events with an ID already in the `disruption.DisruptionEvent` table are acknowledged (`202 Accepted`) without re-processing.
 - Long-running cancellation rebooking operations (large passenger loads) are processed asynchronously; `202 Accepted` is returned to the FOS immediately after the `DisruptionEvent` row is written and inventory is closed.

@@ -5,7 +5,7 @@
 > **Transport:** HTTPS (TLS 1.2 minimum)
 > **Content type:** `application/json`
 
-The Operations API is the orchestration layer used by airline operations staff to manage flight schedules and schedule groups. It receives schedule definitions from the Ops Admin App, coordinates persistence via the Schedule MS, generates bulk `FlightInventory` and `Fare` records in the Offer domain via the Offer MS, and updates the schedule record with the count of flights created. The Operations API does not own any database tables itself — it orchestrates the Schedule MS and Offer MS exclusively.
+The Operations API is the orchestration layer used by airline operations staff to manage flight schedules and schedule groups, and is the integration point for the Flight Operations System (FOS) to notify the reservation system of disruption events. It receives schedule definitions from the Ops Admin App, coordinates persistence via the Schedule MS, generates bulk `FlightInventory` and `Fare` records in the Offer domain via the Offer MS, and updates the schedule record with the count of flights created. The Operations API does not own any database tables itself — it orchestrates the Schedule MS and Offer MS exclusively.
 
 Schedules are organised into **schedule groups** — named collections (e.g. "Summer 2026", "Annual 2026") that allow multiple schedule versions to coexist. The Ops Admin App provides a group dropdown to select which group to view and import into.
 
@@ -621,8 +621,172 @@ curl -X POST https://{operations-api-host}/v1/schedules \
 
 ---
 
+---
+
+## Disruption handling
+
+The Operations API receives IROPS events from the Flight Operations System (FOS) and orchestrates the reservation system's response across the Offer, Order, Delivery, and Customer microservices.
+
+> **Important:** The disruption endpoints are not channel-facing. They are called exclusively by FOS via internal service-to-service communication authenticated with an Azure Function Host Key (`x-functions-key`).
+
+### POST /v1/disruptions/delay
+
+Notify the reservation system of a flight delay. Processing is **synchronous** — the response is returned after all affected passenger records have been updated.
+
+#### Business logic
+
+1. Validate payload and perform idempotency check on `disruptionEventId`.
+2. Write a `DisruptionEvent` record with `Status = Received`.
+3. Call Order MS `GET /v1/orders?flightNumber={flightNumber}&departureDate={departureDate}&status=Confirmed` to retrieve affected bookings.
+4. For each affected order:
+   - Call Order MS `PATCH /v1/orders/{bookingRef}/segments` with updated times.
+   - Call Delivery MS `PATCH /v1/manifest/{bookingRef}/flight` with updated times.
+   - If delay exceeds the material schedule change threshold (default: 60 minutes): call Delivery MS `POST /v1/tickets/reissue` and update Order MS with new e-ticket numbers.
+   - Queue a passenger notification.
+5. Update `DisruptionEvent` to `Status = Completed` and return `200 OK`.
+
+#### Request
+
+```json
+{
+  "disruptionEventId": "FOS-DLY-20260320-AX101",
+  "flightNumber": "AX101",
+  "departureDate": "2026-03-22",
+  "newDepartureTime": "2026-03-22T16:30:00Z",
+  "newArrivalTime": "2026-03-22T19:45:00Z",
+  "delayMinutes": 90,
+  "reason": "ATC restrictions"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `disruptionEventId` | string | Yes | FOS-supplied unique event identifier; used for idempotency |
+| `flightNumber` | string | Yes | Carrier code + flight number, e.g. `AX101` |
+| `departureDate` | string (date) | Yes | ISO 8601 date of the scheduled departure |
+| `newDepartureTime` | string (datetime) | Yes | Updated departure time in ISO 8601 UTC |
+| `newArrivalTime` | string (datetime) | Yes | Updated arrival time in ISO 8601 UTC |
+| `delayMinutes` | integer | Yes | Delay duration in minutes relative to original scheduled departure |
+| `reason` | string | Yes | Reason for the delay |
+
+#### Response — `200 OK`
+
+```json
+{
+  "disruptionEventId": "FOS-DLY-20260320-AX101",
+  "status": "Completed",
+  "affectedPassengerCount": 186,
+  "processedPassengerCount": 186,
+  "ticketsReissued": true,
+  "receivedAt": "2026-03-20T14:05:00Z",
+  "completedAt": "2026-03-20T14:05:47Z"
+}
+```
+
+#### Error responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `422 Unprocessable Entity` | Flight not found in the system |
+| `500 Internal Server Error` | Downstream microservice call failed |
+
+---
+
+### POST /v1/disruptions/cancellation
+
+Notify the reservation system of a flight cancellation. Inventory closure is **synchronous** (before `202 Accepted` is returned). Per-passenger rebooking is **asynchronous** via Service Bus.
+
+#### Business logic — synchronous phase
+
+1. Validate payload and perform idempotency check on `disruptionEventId`.
+2. Call Offer MS `PATCH /v1/inventory/cancel` to close the flight immediately.
+3. Write a `DisruptionEvent` record with `Status = Received`.
+4. Publish a rebooking job to Service Bus.
+5. Return `202 Accepted`.
+
+#### Business logic — asynchronous phase
+
+1. Set `DisruptionEvent.Status = Processing`.
+2. Query affected orders (Order MS) and retrieve full manifest (Delivery MS).
+3. Search for replacement flights: direct first, then connecting via LHR hub (same logic as Retail API `POST /v1/search/connecting`).
+4. Process passengers in priority order: cabin class (F→J→W→Y) → loyalty tier (Platinum→Gold→Silver→Blue) → booking date (earliest first).
+5. For each affected order, if a replacement is found: hold inventory, adjust reward points if applicable (Customer MS), rebook order, remove old manifest, reissue e-tickets, write new manifest, notify passenger.
+6. If no replacement found within the 72-hour lookahead: cancel with full IROPS refund, void e-tickets, notify passenger.
+7. Update `DisruptionEvent` to `Status = Completed` or `Failed`.
+
+#### Request
+
+```json
+{
+  "disruptionEventId": "FOS-CXL-20260320-AX205",
+  "flightNumber": "AX205",
+  "departureDate": "2026-03-22",
+  "origin": "LHR",
+  "destination": "CDG",
+  "reason": "Aircraft technical failure"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `disruptionEventId` | string | Yes | FOS-supplied unique event identifier; used for idempotency |
+| `flightNumber` | string | Yes | Carrier code + flight number |
+| `departureDate` | string (date) | Yes | ISO 8601 date of the scheduled departure |
+| `origin` | string | Yes | IATA 3-letter departure airport code |
+| `destination` | string | Yes | IATA 3-letter arrival airport code |
+| `reason` | string | Yes | Reason for the cancellation |
+
+#### Response — `202 Accepted`
+
+```json
+{
+  "disruptionEventId": "FOS-CXL-20260320-AX205",
+  "status": "Received",
+  "affectedPassengerCount": 142,
+  "receivedAt": "2026-03-20T08:30:00Z",
+  "message": "Flight taken off sale. Passenger rebooking queued for processing."
+}
+```
+
+#### Error responses
+
+| Status | Reason |
+|--------|--------|
+| `400 Bad Request` | Missing required fields or invalid format |
+| `422 Unprocessable Entity` | Flight not found in inventory |
+| `500 Internal Server Error` | Failed to close inventory or write event record |
+
+---
+
+### Disruption business rules
+
+| Rule | Detail |
+|------|--------|
+| Idempotency | Events with a `disruptionEventId` already in the event log are acknowledged immediately without re-processing |
+| E-ticket reissuance threshold | Default 60 minutes; configurable via application settings |
+| Rebooking priority | Cabin class (F→J→W→Y) → loyalty tier (Platinum→Gold→Silver→Blue) → booking date (earliest first) |
+| IROPS fare override | `reason=FlightCancellation` on Order MS rebook call waives all fare restrictions |
+| IROPS refund policy | No suitable replacement within 72-hour lookahead = full fare refund regardless of fare conditions |
+| Reward booking IROPS | Airline absorbs additional points cost if replacement costs more; reinstates difference if cheaper |
+| Per-passenger Service Bus messages | Each passenger published as an individual message to prevent single-failure blocking the cohort |
+
+---
+
+### Disruption downstream service dependencies
+
+| Service | Endpoints Called | Purpose |
+|---------|-----------------|---------|
+| **Offer MS** | `PATCH /v1/inventory/cancel`, `POST /v1/search`, `POST /v1/inventory/hold` | Close inventory, search replacements, hold seats |
+| **Order MS** | `GET /v1/orders`, `PATCH /v1/orders/{bookingRef}/segments`, `PATCH /v1/orders/{bookingRef}/rebook` | Query affected orders, update times, rebook passengers |
+| **Delivery MS** | `PATCH /v1/manifest/{bookingRef}/flight`, `GET /v1/manifest`, `DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}`, `POST /v1/tickets/reissue`, `POST /v1/manifest` | Update/retrieve/remove manifests, reissue e-tickets |
+| **Customer MS** | `POST /v1/customers/{loyaltyNumber}/points/reinstate` | Reinstate surplus points on reward bookings |
+
+---
+
 ## Related Documentation
 
 - [API Endpoint Reference](../api-reference.md) — Summary of all microservice endpoints
 - [System Design](../system-overview.md) — Full domain design including sequence diagrams for schedule creation and inventory generation flows
+- [Disruption Design](../design/disruption.md) — Detailed disruption domain design, sequence diagrams, and business rules
 - [Schedule Microservice](schedule-microservice.md) — API specification for the Schedule MS (downstream persistence layer)

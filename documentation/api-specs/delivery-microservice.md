@@ -9,7 +9,7 @@ The Delivery microservice is the airline's system of record for issued travel do
 
 Where the Order MS owns the commercial booking record, the Delivery MS owns the departure-facing operational record. It also generates boarding cards and BCBP (Bar Coded Boarding Pass) barcode strings compliant with IATA Resolution 792.
 
-> **Important:** The Delivery microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API**, **Airport API**, or **Disruption API** orchestration layers. See the [Security](#security) section for authentication details.
+> **Important:** The Delivery microservice is an internal service. It is not called directly by channels (Web, App, NDC). All requests are routed through the **Retail API**, **Airport API**, or **Operations API** orchestration layers. See the [Security](#security) section for authentication details.
 
 ---
 
@@ -280,8 +280,8 @@ Operational source of truth for who is on a given flight. One row per passenger 
 | `GivenName` | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | `Surname` | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | `SsrCodes` | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`. Empty array `[]` when no SSRs held |
-| `DepartureTime` | TIME | No | | | Local departure time; updated by Disruption API on delay |
-| `ArrivalTime` | TIME | No | | | Local arrival time; updated by Disruption API on delay |
+| `DepartureTime` | TIME | No | | | Local departure time; updated by Operations API on delay |
+| `ArrivalTime` | TIME | No | | | Local arrival time; updated by Operations API on delay |
 | `CheckedIn` | BIT | No | `0` | | |
 | `CheckedInAt` | DATETIME2 | Yes | | | Null until check-in completed |
 | `CreatedAt` | DATETIME2 | No | SYSUTCDATETIME() | | **Read-only — SQL trigger-generated on insert** |
@@ -585,7 +585,7 @@ Issue e-tickets for all passengers in a booking. Creates one `delivery.Ticket` r
 
 Void an issued e-ticket. Sets `IsVoided = 1` and stamps `VoidedAt`. The row is retained permanently — ticket rows are never deleted. Publishes a `TicketVoided` event to the event bus.
 
-**When to use:** Called by the Retail API during voluntary flight change, voluntary cancellation, or IROPS processing (via Disruption API) before reissuance or order cancellation. All tickets on the affected segment(s) must be voided before new tickets are issued.
+**When to use:** Called by the Retail API during voluntary flight change, voluntary cancellation, or IROPS processing (via Operations API) before reissuance or order cancellation. All tickets on the affected segment(s) must be voided before new tickets are issued.
 
 **Reissuance pattern:** Void the old ticket via this endpoint, then call `POST /v1/tickets/reissue` to create new tickets. Both operations should be performed in close succession to minimise the window where a passenger has no valid ticket.
 
@@ -642,14 +642,14 @@ Void an issued e-ticket. Sets `IsVoided = 1` and stamps `VoidedAt`. The row is r
 
 Reissue e-tickets following a passenger name correction, seat change, flight change, or IROPS rebooking. Voids the original tickets and issues replacements in a single atomic operation. Publishes `TicketVoided` and `TicketIssued` events for each ticket pair.
 
-**When to use:** Called by the Retail API after a name correction, post-sale seat change, voluntary flight change, or by the Disruption API during IROPS rebooking. Reissuance is required whenever a change invalidates the data encoded in the existing ticket (passenger name is encoded in the BCBP barcode string; seat changes should trigger reissuance for consistency).
+**When to use:** Called by the Retail API after a name correction, post-sale seat change, voluntary flight change, or by the Operations API during IROPS rebooking. Reissuance is required whenever a change invalidates the data encoded in the existing ticket (passenger name is encoded in the BCBP barcode string; seat changes should trigger reissuance for consistency).
 
 **Scenarios requiring reissuance:**
 - PAX name correction (given name or surname changed)
 - Post-sale seat change (seat number is encoded on the boarding pass)
 - Voluntary flight change (new flight segment, new fare details)
 - IROPS rebooking (replacement flight, potentially different seat and fare)
-- Material schedule change exceeding the 60-minute threshold (departure/arrival times updated; Disruption API only)
+- Material schedule change exceeding the 60-minute threshold (departure/arrival times updated; Operations API only)
 
 **Scenarios that do NOT require reissuance:**
 - Passport/travel document updates
@@ -860,7 +860,7 @@ Derive the monetary value attributed to a specific flight coupon. Returns the pr
 
 Write operational manifest entries for a booking. Creates one `delivery.Manifest` row per passenger per flight segment. Called after order confirmation once e-ticket numbers, seat assignments, and booking reference are known.
 
-**When to use:** Called by the Retail API at order confirmation (after `POST /v1/orders` succeeds on the Order MS). Also called by the Disruption API when writing manifest entries for a replacement flight following IROPS rebooking.
+**When to use:** Called by the Retail API at order confirmation (after `POST /v1/orders` succeeds on the Order MS). Also called by the Operations API when writing manifest entries for a replacement flight following IROPS rebooking.
 
 **Seat validation:** The orchestration layer must validate all seat numbers against the active seatmap (via `GET /v1/seatmap/{aircraftType}` on the Seat MS) before calling this endpoint. The Delivery MS trusts the seat numbers provided.
 
@@ -1073,9 +1073,9 @@ Update manifest entries for a booking. Used to record check-in status (OLCI) and
 
 ### PATCH /v1/manifest/{bookingRef}/flight
 
-Update departure and arrival times on all manifest entries for a booking on a specific flight. Used exclusively by the Disruption API when a flight delay changes scheduled times.
+Update departure and arrival times on all manifest entries for a booking on a specific flight. Used exclusively by the Operations API when a flight delay changes scheduled times.
 
-**When to use:** Called by the Disruption API as part of the flight delay propagation flow, after updating segment times on the Order MS. Updates `DepartureTime` and `ArrivalTime` on every manifest row for the affected booking and flight.
+**When to use:** Called by the Operations API as part of the flight delay propagation flow, after updating segment times on the Order MS. Updates `DepartureTime` and `ArrivalTime` on every manifest row for the affected booking and flight.
 
 #### Path Parameters
 
@@ -1125,7 +1125,7 @@ Remove all manifest entries for a specific flight and booking. Hard-deletes all 
 **When to use:**
 - Called by the Retail API during voluntary cancellation (after voiding all tickets for the booking).
 - Called by the Retail API during voluntary flight change (before writing manifest for the replacement flight).
-- Called by the Disruption API during IROPS rebooking (before writing manifest for the replacement flight).
+- Called by the Operations API during IROPS rebooking (before writing manifest for the replacement flight).
 
 #### Path Parameters
 
@@ -1163,9 +1163,9 @@ DELETE /v1/manifest/AB1234/flight/AX003/2025-08-15
 
 ### GET /v1/manifest
 
-Retrieve the full passenger manifest for a flight. Returns all manifest entries for every passenger on the specified flight, regardless of booking reference. Used by the Disruption API for cancellation rebooking and by departure control systems (DCS) for check-in validation.
+Retrieve the full passenger manifest for a flight. Returns all manifest entries for every passenger on the specified flight, regardless of booking reference. Used by the Operations API for cancellation rebooking and by departure control systems (DCS) for check-in validation.
 
-**When to use:** Called by the Disruption API when processing a flight cancellation to retrieve all affected passengers. Also callable by the Airport API for gate management and ground handling operations.
+**When to use:** Called by the Operations API when processing a flight cancellation to retrieve all affected passengers. Also callable by the Airport API for gate management and ground handling operations.
 
 #### Query Parameters
 
@@ -1328,7 +1328,7 @@ Issue an ancillary document (`delivery.Document` record) for a post-sale ancilla
 
 Void an ancillary document. Sets `IsVoided = 1` and appends to `voidHistory` in the `DocumentData` JSON. Publishes a `DocumentVoided` event to the event bus. Used on voluntary cancellation or IROPS when ancillary charges are refunded.
 
-**When to use:** Called by the Retail API during voluntary cancellation where the booking included paid ancillaries (seats or bags). Also called by the Disruption API when IROPS cancellations result in full refunds that include ancillary charges.
+**When to use:** Called by the Retail API during voluntary cancellation where the booking included paid ancillaries (seats or bags). Also called by the Operations API when IROPS cancellations result in full refunds that include ancillary charges.
 
 #### Path Parameters
 
@@ -1483,12 +1483,12 @@ Ancillary documents (`POST /v1/documents`) are called for each paid seat or bag 
 1. **`PATCH /v1/manifest/{bookingRef}`** — set `checkedIn = true` and record `checkedInAt`.
 2. **`POST /v1/boarding-cards`** — generate BCBP boarding cards for checked-in passengers.
 
-### Flight Delay (Disruption API)
+### Flight Delay (Operations API)
 
 1. **`PATCH /v1/manifest/{bookingRef}/flight`** — update departure/arrival times on all manifest entries for the affected booking and flight.
 2. (Conditional) **`POST /v1/tickets/reissue`** — only if delay exceeds the 60-minute material schedule change threshold.
 
-### Flight Cancellation — IROPS Rebooking (Disruption API)
+### Flight Cancellation — IROPS Rebooking (Operations API)
 
 1. **`GET /v1/manifest`** — retrieve full passenger manifest for the cancelled flight.
 2. **`DELETE /v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}`** — remove manifest entries for the cancelled flight (per booking).
@@ -1554,7 +1554,7 @@ curl -X POST https://{delivery-ms-host}/v1/manifest \
   }'
 ```
 
-### Retrieve full flight manifest (Disruption API → Delivery MS)
+### Retrieve full flight manifest (Operations API → Delivery MS)
 
 ```bash
 curl -X GET "https://{delivery-ms-host}/v1/manifest?flightNumber=AX003&departureDate=2025-08-15" \
@@ -1587,7 +1587,7 @@ curl -X POST https://{delivery-ms-host}/v1/boarding-cards \
   }'
 ```
 
-### Update manifest times on delay (Disruption API → Delivery MS)
+### Update manifest times on delay (Operations API → Delivery MS)
 
 ```bash
 curl -X PATCH https://{delivery-ms-host}/v1/manifest/AB1234/flight \

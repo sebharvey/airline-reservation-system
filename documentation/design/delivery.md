@@ -223,8 +223,8 @@ The operational source of truth for who is on a given flight. One row per passen
 | GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | SsrCodes | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`; written at booking confirmation and updated on SSR change |
-| DepartureTime | TIME | No | | | Local departure time; updated by Disruption API on delay |
-| ArrivalTime | TIME | No | | | Local arrival time; updated by Disruption API on delay |
+| DepartureTime | TIME | No | | | Local departure time; updated by Operations API on delay |
+| ArrivalTime | TIME | No | | | Local arrival time; updated by Operations API on delay |
 | CheckedIn | BIT | No | `0` | | |
 | CheckedInAt | DATETIME2 | Yes | | | Null until check-in is completed |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |

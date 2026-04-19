@@ -14,6 +14,8 @@ using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToIn
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
 using ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
+using ReservationSystem.Orchestration.Operations.Application.HandleDelay;
+using ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
 
@@ -104,6 +106,8 @@ var host = new HostBuilder()
         services.AddScoped<OciRetrieveHandler>();
         services.AddScoped<OciPaxHandler>();
         services.AddScoped<OciCheckInHandler>();
+        services.AddScoped<HandleDelayHandler>();
+        services.AddScoped<HandleCancellationHandler>();
     })
     .Build();
 

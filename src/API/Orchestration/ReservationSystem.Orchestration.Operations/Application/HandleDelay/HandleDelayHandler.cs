@@ -1,7 +1,7 @@
-using ReservationSystem.Orchestration.Disruption.Infrastructure.ExternalServices;
-using ReservationSystem.Orchestration.Disruption.Models.Responses;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Models.Responses;
 
-namespace ReservationSystem.Orchestration.Disruption.Application.HandleDelay;
+namespace ReservationSystem.Orchestration.Operations.Application.HandleDelay;
 
 public sealed class HandleDelayHandler
 {
