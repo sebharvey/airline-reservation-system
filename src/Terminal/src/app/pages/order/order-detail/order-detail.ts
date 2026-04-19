@@ -319,10 +319,7 @@ export class OrderDetailComponent implements OnInit {
 
   formatAmount(amount: number | null | undefined, currency?: string | null): string {
     if (amount == null) return '—';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currency || this.order()?.currency || 'GBP',
-    }).format(amount);
+    return `${amount.toFixed(2)} ${currency || this.order()?.currency || 'GBP'}`;
   }
 
   formatDate(iso: string | null | undefined): string {

@@ -313,7 +313,7 @@ export class ProductsComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   formatAmount(amount: number, currency: string): string {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)} ${currency}`;
   }
 
   formatDate(iso: string): string {

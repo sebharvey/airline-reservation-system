@@ -44,7 +44,8 @@ export class BagPricingComponent implements OnInit {
     const active = all.filter(p => p.isActive).length;
     const minPrice = all.length ? Math.min(...all.map(p => p.price)) : 0;
     const maxPrice = all.length ? Math.max(...all.map(p => p.price)) : 0;
-    return { total: all.length, active, minPrice, maxPrice };
+    const currency = all.length ? all[0].currencyCode : 'GBP';
+    return { total: all.length, active, minPrice, maxPrice, currency };
   });
 
   ngOnInit(): void {
@@ -167,7 +168,7 @@ export class BagPricingComponent implements OnInit {
   }
 
   formatAmount(amount: number, currency: string): string {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${amount.toFixed(2)} ${currency}`;
   }
 
   formatDate(iso: string | null): string {

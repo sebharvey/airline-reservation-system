@@ -460,7 +460,7 @@ export class NewOrderComponent {
   getSeatPrice(seat: SeatOffer, cabinCode: string): string {
     if (cabinCode === 'J' || cabinCode === 'F') return 'Incl.';
     if (seat.price === 0) return 'Free';
-    return `${seat.currency} ${seat.price.toFixed(0)}`;
+    return `${seat.price.toFixed(0)} ${seat.currency}`;
   }
 
   getSelectedSeatForPaxFlight(passengerId: string, basketItemId: string): SelectedSeat | undefined {
@@ -736,7 +736,7 @@ export class NewOrderComponent {
   // ── Formatting helpers ───────────────────────────────────────────────────
 
   formatAmount(amount: number, currency = 'GBP'): string {
-    return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount);
+    return `${amount.toFixed(2)} ${currency}`;
   }
 
   formatDate(dateStr: string): string {
