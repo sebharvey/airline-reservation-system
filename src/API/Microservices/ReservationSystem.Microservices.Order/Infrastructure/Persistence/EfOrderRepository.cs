@@ -56,15 +56,17 @@ public sealed class EfOrderRepository : IOrderRepository
             try
             {
                 using var doc = JsonDocument.Parse(o.OrderData);
-                if (!doc.RootElement.TryGetProperty("dataLists", out var dataLists))
-                    return false;
-                if (!dataLists.TryGetProperty("flightSegments", out var segments))
+                if (!doc.RootElement.TryGetProperty("orderItems", out var items))
                     return false;
 
-                foreach (var segment in segments.EnumerateArray())
+                foreach (var item in items.EnumerateArray())
                 {
-                    var fn = segment.TryGetProperty("flightNumber", out var fnProp) ? fnProp.GetString() : null;
-                    var dd = segment.TryGetProperty("departureDate", out var ddProp) ? ddProp.GetString() : null;
+                    if (item.TryGetProperty("productType", out var pt) &&
+                        pt.GetString() != "FLIGHT")
+                        continue;
+
+                    var fn = item.TryGetProperty("flightNumber", out var fnProp) ? fnProp.GetString() : null;
+                    var dd = item.TryGetProperty("departureDate", out var ddProp) ? ddProp.GetString() : null;
 
                     if (fn == flightNumber && dd == departureDate)
                         return true;
