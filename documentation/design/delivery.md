@@ -244,7 +244,7 @@ Accountable document records for non-fare ancillary sales — analogous to Elect
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | DocumentId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| DocumentNumber | VARCHAR(20) | No | | UK | System-generated reference, e.g. `932-EMD-0001234`; unique per document |
+| DocumentNumber | BIGINT | No | IDENTITY(1000000001,1) | UK | Database-generated auto-increment; the numeric second part of the EMD document number. The full formatted string (e.g. `932-EMD-1000000001`) is assembled at the API layer by prepending the airline accounting code and `EMD-`. |
 | DocumentType | VARCHAR(30) | No | | | `SeatAncillary` · `BagAncillary` |
 | BookingReference | CHAR(6) | No | | | Associated booking reference |
 | ETicketNumber | VARCHAR(20) | No | | | Associated e-ticket (links the ancillary to the travel segment it covers) |

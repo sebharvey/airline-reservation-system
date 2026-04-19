@@ -39,9 +39,4 @@ public sealed class EfDocumentRepository : IDocumentRepository
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogDebug("Inserted Document {DocumentId} ({DocumentNumber})", document.DocumentId, document.DocumentNumber);
     }
-
-    public async Task<int> GetDocumentCountAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.Documents.CountAsync(cancellationToken);
-    }
 }

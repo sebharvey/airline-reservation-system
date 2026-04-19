@@ -48,7 +48,8 @@ public sealed class DeliveryDbContext : DbContext
             });
             entity.HasKey(d => d.DocumentId);
             entity.Property(d => d.DocumentId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
-            entity.Property(d => d.DocumentNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(d => d.DocumentNumber).HasColumnType("bigint").ValueGeneratedOnAdd()
+                .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
             entity.Property(d => d.DocumentType).HasColumnType("varchar(30)").HasMaxLength(30).IsRequired();
             entity.Property(d => d.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(d => d.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired(false);

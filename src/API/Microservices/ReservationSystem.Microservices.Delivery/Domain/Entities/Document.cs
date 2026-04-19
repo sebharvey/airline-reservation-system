@@ -7,7 +7,7 @@ namespace ReservationSystem.Microservices.Delivery.Domain.Entities;
 public sealed class Document
 {
     public Guid DocumentId { get; private set; }
-    public string DocumentNumber { get; private set; } = string.Empty;
+    public long DocumentNumber { get; private set; }
     public string DocumentType { get; private set; } = string.Empty;
     public string BookingReference { get; private set; } = string.Empty;
     public string? ETicketNumber { get; private set; }
@@ -24,7 +24,6 @@ public sealed class Document
     private Document() { }
 
     public static Document Create(
-        string documentNumber,
         string documentType,
         string bookingReference,
         string? eTicketNumber,
@@ -42,7 +41,6 @@ public sealed class Document
         return new Document
         {
             DocumentId = Guid.NewGuid(),
-            DocumentNumber = documentNumber,
             DocumentType = documentType,
             BookingReference = bookingReference,
             ETicketNumber = eTicketNumber,
@@ -59,7 +57,7 @@ public sealed class Document
     }
 
     public static Document Reconstitute(
-        Guid documentId, string documentNumber, string documentType,
+        Guid documentId, long documentNumber, string documentType,
         string bookingReference, string? eTicketNumber, string passengerId,
         string segmentRef, string paymentReference, decimal amount,
         string currencyCode, bool isVoided, string documentData,

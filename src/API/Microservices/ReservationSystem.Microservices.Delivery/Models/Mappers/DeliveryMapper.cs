@@ -20,6 +20,9 @@ public static class DeliveryMapper
     /// <summary>Formats a raw ticket number as the full IATA e-ticket string.</summary>
     public static string FormatETicketNumber(long ticketNumber) => $"{AirlinePrefix}{ticketNumber:D10}";
 
+    /// <summary>Formats a raw document number as the full EMD document string.</summary>
+    public static string FormatDocumentNumber(long documentNumber) => $"{AirlinePrefix}EMD-{documentNumber}";
+
     public static TicketSummary ToTicketSummary(Ticket ticket, List<string> segmentIds) =>
         new()
         {
@@ -128,7 +131,7 @@ public static class DeliveryMapper
         new()
         {
             DocumentId = document.DocumentId,
-            DocumentNumber = document.DocumentNumber,
+            DocumentNumber = FormatDocumentNumber(document.DocumentNumber),
             DocumentType = document.DocumentType,
             BookingReference = document.BookingReference,
             CreatedAt = document.CreatedAt
@@ -145,7 +148,7 @@ public static class DeliveryMapper
         return new GetDocumentResponse
         {
             DocumentId = document.DocumentId,
-            DocumentNumber = document.DocumentNumber,
+            DocumentNumber = FormatDocumentNumber(document.DocumentNumber),
             DocumentType = document.DocumentType,
             BookingReference = document.BookingReference,
             ETicketNumber = document.ETicketNumber,
