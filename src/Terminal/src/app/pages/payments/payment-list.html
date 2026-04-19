@@ -1,0 +1,259 @@
+<div class="payment-list-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Payments</h1>
+      <p class="page-subtitle">Daily payment transactions</p>
+    </div>
+    <button class="refresh-btn" (click)="loadPayments()" [disabled]="loading()" title="Refresh">
+      <svg [class.spinning]="loading()" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Date filter -->
+  <div class="filter-row">
+    <div class="date-field">
+      <label class="date-label" for="payment-date">Date</label>
+      <input
+        id="payment-date"
+        class="date-input"
+        type="date"
+        [value]="selectedDate()"
+        (change)="setDate($any($event.target).value)"
+        (change)="loadPayments()"
+      />
+    </div>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Summary stats -->
+  @if (loaded() && !loading() && payments().length > 0) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-label">Total payments</span>
+        <span class="stat-value">{{ payments().length }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total amount</span>
+        <span class="stat-value">{{ formatAmount(totalAmount(), payments()[0]?.currencyCode ?? 'GBP') }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Settled</span>
+        <span class="stat-value settled">{{ formatAmount(settledAmount(), payments()[0]?.currencyCode ?? 'GBP') }}</span>
+      </div>
+      @for (entry of statusCounEntries(); track entry.status) {
+        <div class="stat-card">
+          <span class="stat-label">{{ entry.status }}</span>
+          <span class="stat-value">
+            <span class="status-badge" [class]="statusBadgeClass(entry.status)">{{ entry.count }}</span>
+          </span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Payments table -->
+  @if (loaded() && !loading()) {
+    <div class="table-card">
+      <table class="payment-table">
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th class="hide-mobile">Booking ref</th>
+            <th class="hide-mobile">Type</th>
+            <th>Method / card</th>
+            <th>Status</th>
+            <th class="th-numeric">Amount</th>
+            <th class="th-numeric hide-mobile">Authorised</th>
+            <th class="th-numeric hide-mobile">Settled</th>
+            <th class="hide-mobile">Events</th>
+            <th class="hide-mobile">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of payments(); track payment.paymentId) {
+            <tr class="payment-row" (click)="openModal(payment)">
+              <td class="mono id-cell">{{ formatPaymentId(payment.paymentId) }}&hellip;</td>
+              <td class="hide-mobile mono">{{ payment.bookingReference ?? '—' }}</td>
+              <td class="hide-mobile muted">{{ payment.paymentType }}</td>
+              <td class="card-cell">
+                <span class="card-info">{{ cardDisplay(payment) }}</span>
+              </td>
+              <td>
+                <span class="status-badge" [class]="statusBadgeClass(payment.status)">
+                  {{ payment.status }}
+                </span>
+              </td>
+              <td class="amount-cell">{{ formatAmount(payment.amount, payment.currencyCode) }}</td>
+              <td class="amount-cell hide-mobile muted">{{ formatAmount(payment.authorisedAmount, payment.currencyCode) }}</td>
+              <td class="amount-cell hide-mobile">{{ formatAmount(payment.settledAmount, payment.currencyCode) }}</td>
+              <td class="hide-mobile">
+                <span class="event-count-badge" [class.has-events]="payment.eventCount > 0">
+                  {{ payment.eventCount }}
+                </span>
+              </td>
+              <td class="hide-mobile muted">{{ formatDateTime(payment.createdAt) }}</td>
+            </tr>
+          }
+
+          @if (payments().length === 0) {
+            <tr>
+              <td colspan="10" class="empty-row">No payments found for {{ selectedDate() }}.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">{{ payments().length }} payment{{ payments().length === 1 ? '' : 's' }} on {{ selectedDate() }}</p>
+  }
+
+  <!-- Loading state -->
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner large-spinner"></span>
+      <p>Loading payments&hellip;</p>
+    </div>
+  }
+
+</div>
+
+<!-- Payment detail modal -->
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Payment detail</h2>
+          @if (modalPayment()) {
+            <p class="modal-subtitle mono">{{ modalPayment()!.paymentId }}</p>
+          }
+        </div>
+        <button class="modal-close" (click)="closeModal()" aria-label="Close">&#10005;</button>
+      </div>
+
+      @if (modalLoading()) {
+        <div class="modal-loading">
+          <span class="btn-spinner large-spinner"></span>
+          <p>Loading&hellip;</p>
+        </div>
+      }
+
+      @if (modalError()) {
+        <div class="error-banner modal-error" role="alert">
+          <span>&#9888;</span> {{ modalError() }}
+        </div>
+      }
+
+      @if (!modalLoading() && modalPayment(); as payment) {
+        <div class="modal-body">
+
+          <!-- Payment record -->
+          <section class="detail-section">
+            <h3 class="section-title">Payment record</h3>
+            <div class="detail-grid">
+              <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">
+                  <span class="status-badge" [class]="statusBadgeClass(payment.status)">{{ payment.status }}</span>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Booking ref</span>
+                <span class="detail-value mono">{{ payment.bookingReference ?? '—' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Payment type</span>
+                <span class="detail-value">{{ payment.paymentType }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Method / card</span>
+                <span class="detail-value">{{ cardDisplay(payment) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Currency</span>
+                <span class="detail-value mono">{{ payment.currencyCode }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Amount</span>
+                <span class="detail-value amount-highlight">{{ formatAmount(payment.amount, payment.currencyCode) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Authorised</span>
+                <span class="detail-value">{{ formatAmount(payment.authorisedAmount, payment.currencyCode) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Settled</span>
+                <span class="detail-value settled">{{ formatAmount(payment.settledAmount, payment.currencyCode) }}</span>
+              </div>
+              @if (payment.description) {
+                <div class="detail-row">
+                  <span class="detail-label">Description</span>
+                  <span class="detail-value muted">{{ payment.description }}</span>
+                </div>
+              }
+              <div class="detail-row">
+                <span class="detail-label">Authorised at</span>
+                <span class="detail-value muted">{{ formatDateTime(payment.authorisedAt) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Settled at</span>
+                <span class="detail-value muted">{{ formatDateTime(payment.settledAt) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Created</span>
+                <span class="detail-value muted">{{ formatDateTime(payment.createdAt) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Updated</span>
+                <span class="detail-value muted">{{ formatDateTime(payment.updatedAt) }}</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Payment events -->
+          <section class="detail-section">
+            <h3 class="section-title">
+              Payment events
+              <span class="event-count-badge has-events">{{ modalEvents().length }}</span>
+            </h3>
+
+            @if (modalEvents().length === 0) {
+              <p class="no-events">No events recorded for this payment.</p>
+            } @else {
+              <div class="events-list">
+                @for (event of modalEvents(); track event.paymentEventId) {
+                  <div class="event-item">
+                    <div class="event-header">
+                      <span class="status-badge" [class]="eventTypeBadgeClass(event.eventType)">{{ event.eventType }}</span>
+                      <span class="event-amount">{{ formatAmount(event.amount, event.currencyCode) }}</span>
+                      <span class="event-time muted">{{ formatDateTime(event.createdAt) }}</span>
+                    </div>
+                    @if (event.notes) {
+                      <p class="event-notes muted">{{ event.notes }}</p>
+                    }
+                    <p class="event-id mono muted">{{ event.paymentEventId }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+
+        </div>
+      }
+
+    </div>
+  </div>
+}

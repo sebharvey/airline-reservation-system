@@ -45,12 +45,21 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
+        services.AddHttpClient("PaymentMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["PaymentMs:BaseUrl"] ?? "https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["PaymentMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
         // ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Infrastructure clients ─────────────────────────────────────────────
         services.AddScoped<UserServiceClient>();
         services.AddScoped<OrderServiceClient>();
+        services.AddScoped<PaymentServiceClient>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<LoginHandler>();
