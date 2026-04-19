@@ -97,6 +97,15 @@ export class InventoryComponent implements OnInit {
   holdsLoading = signal(false);
   holdsError = signal('');
   holdsTab = signal<'confirmed' | 'standby' | 'seatmap'>('confirmed');
+  copiedHoldRef = signal<string | null>(null);
+
+  copyBookingReference(ref: string, event: Event): void {
+    event.stopPropagation();
+    navigator.clipboard.writeText(ref).then(() => {
+      this.copiedHoldRef.set(ref);
+      setTimeout(() => this.copiedHoldRef.set(null), 2000);
+    });
+  }
 
   confirmedHolds = computed(() =>
     this.holds().filter(h => h.holdType === 'Revenue')
