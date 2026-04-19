@@ -221,6 +221,7 @@
 .badge-declined    { background: rgba(248, 81, 73, 0.12);   color: #f85149; }
 .badge-failed      { background: rgba(248, 81, 73, 0.12);   color: #f85149; }
 .badge-default     { background: rgba(139, 149, 162, 0.1);  color: #8b95a2; }
+.badge-product     { background: rgba(161, 104, 247, 0.15); color: #a168f7; }
 
 /* Event count badge */
 .event-count-badge {

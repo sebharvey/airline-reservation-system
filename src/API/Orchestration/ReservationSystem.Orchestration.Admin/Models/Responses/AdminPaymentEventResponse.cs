@@ -17,6 +17,9 @@ public sealed class AdminPaymentEventResponse
     [JsonPropertyName("eventType")]
     public string EventType { get; init; } = string.Empty;
 
+    [JsonPropertyName("productType")]
+    public string ProductType { get; init; } = string.Empty;
+
     [JsonPropertyName("amount")]
     public decimal Amount { get; init; }
 

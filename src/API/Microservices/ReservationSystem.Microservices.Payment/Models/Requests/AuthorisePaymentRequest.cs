@@ -11,6 +11,13 @@ namespace ReservationSystem.Microservices.Payment.Models.Requests;
 public sealed class AuthorisePaymentRequest
 {
     /// <summary>
+    /// Identifies the product being paid for (e.g. Fare, Seat, Bag, Product).
+    /// Recorded on the resulting PaymentEvent row. Required.
+    /// </summary>
+    [JsonPropertyName("productType")]
+    public string ProductType { get; init; } = string.Empty;
+
+    /// <summary>
     /// Amount to authorise. Optional — when omitted the full remaining uninitialised
     /// amount is authorised. Must be greater than zero when provided.
     /// </summary>

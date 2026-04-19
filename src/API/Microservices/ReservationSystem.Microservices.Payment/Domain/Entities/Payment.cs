@@ -2,14 +2,14 @@ namespace ReservationSystem.Microservices.Payment.Domain.Entities;
 
 /// <summary>
 /// Core domain entity representing a payment transaction.
-/// Contains business state and enforces invariants.
+/// A single Payment record acts as the grand container for a booking transaction;
+/// the per-product breakdown is tracked via PaymentEvent.ProductType.
 /// Has no dependency on infrastructure, persistence, or serialisation concerns.
 /// </summary>
 public sealed class Payment
 {
     public Guid PaymentId { get; private set; }
     public string? BookingReference { get; private set; }
-    public string PaymentType { get; private set; } = string.Empty;
     public string Method { get; private set; } = string.Empty;
     public string? CardType { get; private set; }
     public string? CardLast4 { get; private set; }
@@ -32,13 +32,11 @@ public sealed class Payment
     /// </summary>
     public static Payment Initialise(
         string? bookingReference,
-        string paymentType,
         string method,
         string currencyCode,
         decimal amount,
         string? description)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(paymentType);
         ArgumentException.ThrowIfNullOrWhiteSpace(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
 
@@ -48,7 +46,6 @@ public sealed class Payment
         {
             PaymentId = Guid.NewGuid(),
             BookingReference = bookingReference,
-            PaymentType = paymentType,
             Method = method,
             CardType = null,
             CardLast4 = null,
@@ -72,7 +69,6 @@ public sealed class Payment
     public static Payment Reconstitute(
         Guid paymentId,
         string? bookingReference,
-        string paymentType,
         string method,
         string? cardType,
         string? cardLast4,
@@ -91,7 +87,6 @@ public sealed class Payment
         {
             PaymentId = paymentId,
             BookingReference = bookingReference,
-            PaymentType = paymentType,
             Method = method,
             CardType = cardType,
             CardLast4 = cardLast4,
@@ -106,6 +101,16 @@ public sealed class Payment
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
+    }
+
+    /// <summary>
+    /// Links this payment to a booking after the order has been confirmed.
+    /// </summary>
+    public void SetBookingReference(string bookingReference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
+        BookingReference = bookingReference;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>

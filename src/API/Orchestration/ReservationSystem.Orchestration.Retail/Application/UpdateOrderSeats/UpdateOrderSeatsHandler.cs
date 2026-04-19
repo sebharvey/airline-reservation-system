@@ -99,7 +99,6 @@ public sealed class UpdateOrderSeatsHandler
 
         // 3. Initialise and authorise payment
         var paymentId = await _paymentServiceClient.InitialiseAsync(
-            paymentType: "SeatAncillary",
             method: command.Payment.Method,
             currencyCode: currency,
             amount: totalSeatAmount,
@@ -109,7 +108,7 @@ public sealed class UpdateOrderSeatsHandler
         try
         {
             await _paymentServiceClient.AuthoriseAsync(
-                paymentId, totalSeatAmount,
+                paymentId, "Seat", totalSeatAmount,
                 command.Payment.CardNumber,
                 command.Payment.ExpiryDate,
                 command.Payment.Cvv,
@@ -148,6 +147,7 @@ public sealed class UpdateOrderSeatsHandler
 
         // 5. Settle payment — capture funds
         await _paymentServiceClient.SettleAsync(paymentId, totalSeatAmount, ct);
+        try { await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, bookingReference, ct); } catch { }
 
         // 6. Update seat assignments in Order MS (paid and any free selections together)
         var seatsPayload = command.SeatSelections.Select(s =>

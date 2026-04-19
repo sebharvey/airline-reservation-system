@@ -39,11 +39,6 @@ public sealed class PaymentDbContext : DbContext
                   .HasColumnType("char(6)")
                   .IsRequired(false);
 
-            entity.Property(p => p.PaymentType)
-                  .HasColumnName("PaymentType")
-                  .HasColumnType("varchar(30)")
-                  .IsRequired();
-
             entity.Property(p => p.Method)
                   .HasColumnName("Method")
                   .HasColumnType("varchar(20)")
@@ -133,6 +128,11 @@ public sealed class PaymentDbContext : DbContext
             entity.Property(pe => pe.EventType)
                   .HasColumnName("EventType")
                   .HasColumnType("varchar(20)")
+                  .IsRequired();
+
+            entity.Property(pe => pe.ProductType)
+                  .HasColumnName("ProductType")
+                  .HasColumnType("varchar(30)")
                   .IsRequired();
 
             entity.Property(pe => pe.Amount)

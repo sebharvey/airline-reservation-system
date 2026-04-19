@@ -69,7 +69,6 @@ public sealed class AddOrderBagsHandler
 
         // 3. Authorise payment
         var paymentId = await _paymentServiceClient.InitialiseAsync(
-            paymentType: "BagAncillary",
             method: command.Payment.Method,
             currencyCode: currency,
             amount: totalBagAmount,
@@ -79,7 +78,7 @@ public sealed class AddOrderBagsHandler
         try
         {
             await _paymentServiceClient.AuthoriseAsync(
-                paymentId, totalBagAmount,
+                paymentId, "Bag", totalBagAmount,
                 command.Payment.CardNumber,
                 command.Payment.ExpiryDate,
                 command.Payment.Cvv,
@@ -94,6 +93,7 @@ public sealed class AddOrderBagsHandler
 
         // 4. Settle payment
         await _paymentServiceClient.SettleAsync(paymentId, totalBagAmount, ct);
+        try { await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, bookingReference, ct); } catch { }
 
         // 5. Update order bags in Order MS
         var bagsPayload = validatedBags.Select(b => new

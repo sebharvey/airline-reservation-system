@@ -13,6 +13,7 @@ using ReservationSystem.Microservices.Payment.Application.GetPaymentsByDate;
 using ReservationSystem.Microservices.Payment.Application.InitialisePayment;
 using ReservationSystem.Microservices.Payment.Application.RefundPayment;
 using ReservationSystem.Microservices.Payment.Application.SettlePayment;
+using ReservationSystem.Microservices.Payment.Application.UpdateBookingReference;
 using ReservationSystem.Microservices.Payment.Application.VoidPayment;
 using ReservationSystem.Microservices.Payment.Domain.Repositories;
 using ReservationSystem.Microservices.Payment.Infrastructure.Persistence;
@@ -67,6 +68,7 @@ var host = new HostBuilder()
         services.AddScoped<SettlePaymentHandler>();
         services.AddScoped<RefundPaymentHandler>();
         services.AddScoped<VoidPaymentHandler>();
+        services.AddScoped<UpdateBookingReferenceHandler>();
         services.AddScoped<GetPaymentHandler>();
         services.AddScoped<GetPaymentEventsHandler>();
         services.AddScoped<GetPaymentsByDateHandler>();

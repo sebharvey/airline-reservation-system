@@ -10,9 +10,14 @@ namespace ReservationSystem.Microservices.Payment.Application.AuthorisePayment;
 /// When provided it enables partial authorisation, allowing multiple auth+settle
 /// cycles against a single initialised payment.
 /// </para>
+/// <para>
+/// <see cref="ProductType"/> identifies the product being paid for (e.g. Fare, Seat, Bag)
+/// and is recorded on the resulting PaymentEvent row.
+/// </para>
 /// </summary>
 public sealed record AuthorisePaymentCommand(
     Guid PaymentId,
+    string ProductType,
     decimal? Amount,
     string CardNumber,
     string ExpiryDate,

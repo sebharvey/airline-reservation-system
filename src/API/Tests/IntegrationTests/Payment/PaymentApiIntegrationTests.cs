@@ -78,7 +78,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var request = new
         {
             bookingReference = BookingReference,
-            paymentType = "Fare",
             method = "CreditCard",
             currencyCode = "GBP",
             amount = _fareAmount,
@@ -105,6 +104,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         var request = new
         {
+            productType = "Fare",
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -158,7 +158,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_farePaymentId!.Value);
         body.BookingReference.Should().Be(BookingReference);
-        body.PaymentType.Should().Be("Fare");
         body.Method.Should().Be("CreditCard");
         body.CardType.Should().Be("Visa");
         body.CardLast4.Should().Be("1111");
@@ -187,12 +186,14 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         var authorisedEvent = events.Should().ContainSingle(e => e.EventType == "Authorised").Subject;
         authorisedEvent.PaymentId.Should().Be(_farePaymentId!.Value);
+        authorisedEvent.ProductType.Should().Be("Fare");
         authorisedEvent.Amount.Should().Be(_fareAmount);
         authorisedEvent.CurrencyCode.Should().Be("GBP");
         authorisedEvent.PaymentEventId.Should().NotBeEmpty();
 
         var settledEvent = events.Should().ContainSingle(e => e.EventType == "Settled").Subject;
         settledEvent.PaymentId.Should().Be(_farePaymentId!.Value);
+        settledEvent.ProductType.Should().Be("Fare");
         settledEvent.Amount.Should().Be(_fareAmount);
         settledEvent.CurrencyCode.Should().Be("GBP");
 
@@ -210,7 +211,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var request = new
         {
             bookingReference = BookingReference,
-            paymentType = "SeatAncillary",
             method = "CreditCard",
             currencyCode = "GBP",
             amount = _seatAmount,
@@ -240,6 +240,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         var request = new
         {
+            productType = "Seat",
             cardDetails = new
             {
                 cardNumber = "5500005555555559",
@@ -293,7 +294,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(_seatPaymentId!.Value);
         body.BookingReference.Should().Be(BookingReference);
-        body.PaymentType.Should().Be("SeatAncillary");
         body.CardType.Should().Be("Mastercard");
         body.CardLast4.Should().Be("5559");
         body.Amount.Should().Be(_seatAmount);
@@ -379,6 +379,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
     {
         var request = new
         {
+            productType = "Fare",
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -420,7 +421,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var request = new
         {
             bookingReference = "ZZ5000",
-            paymentType = "Fare",
             method = "CreditCard",
             currencyCode = "GBP",
             amount = _splitTotal,
@@ -448,6 +448,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         // Pass explicit amount to authorise only the fare portion of the 500 GBP total
         var request = new
         {
+            productType = "Fare",
             amount = _farePortion,
             cardDetails = new
             {
@@ -519,6 +520,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
 
         var request = new
         {
+            productType = "Seat",
             amount = _seatPortion,
             cardDetails = new
             {
@@ -637,7 +639,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var initRequest = new
         {
             bookingReference = "XY9999",
-            paymentType = "Fare",
             method = "CreditCard",
             currencyCode = "GBP",
             amount,
@@ -654,6 +655,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         // Authorise (no settle)
         var authRequest = new
         {
+            productType = "Fare",
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -676,7 +678,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         body.Should().NotBeNull();
         body!.PaymentId.Should().Be(paymentId);
         body.BookingReference.Should().Be("XY9999");
-        body.PaymentType.Should().Be("Fare");
         body.Method.Should().Be("CreditCard");
         body.CardType.Should().Be("Visa");
         body.CardLast4.Should().Be("1111");
@@ -715,7 +716,6 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         var initRequest = new
         {
             bookingReference = "XY9999",
-            paymentType = "BagAncillary",
             method = "DebitCard",
             currencyCode = "GBP",
             amount,
@@ -732,6 +732,7 @@ public class PaymentApiIntegrationTests : IAsyncLifetime
         // Authorise (no settle)
         var authRequest = new
         {
+            productType = "Bag",
             cardDetails = new
             {
                 cardNumber = "4111111111111111",
@@ -791,7 +792,6 @@ public sealed class PaymentResponse
 {
     public Guid PaymentId { get; init; }
     public string? BookingReference { get; init; }
-    public string PaymentType { get; init; } = string.Empty;
     public string Method { get; init; } = string.Empty;
     public string? CardType { get; init; }
     public string? CardLast4 { get; init; }
@@ -812,6 +812,7 @@ public sealed class PaymentEventResponse
     public Guid PaymentEventId { get; init; }
     public Guid PaymentId { get; init; }
     public string EventType { get; init; } = string.Empty;
+    public string ProductType { get; init; } = string.Empty;
     public decimal Amount { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public string? Notes { get; init; }

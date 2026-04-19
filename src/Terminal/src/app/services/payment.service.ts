@@ -6,7 +6,6 @@ import { environment } from '../environment';
 export interface PaymentListItem {
   paymentId: string;
   bookingReference: string | null;
-  paymentType: string;
   method: string;
   cardType: string | null;
   cardLast4: string | null;
@@ -26,7 +25,6 @@ export interface PaymentListItem {
 export interface PaymentDetail {
   paymentId: string;
   bookingReference: string | null;
-  paymentType: string;
   method: string;
   cardType: string | null;
   cardLast4: string | null;
@@ -46,6 +44,7 @@ export interface PaymentEvent {
   paymentEventId: string;
   paymentId: string;
   eventType: string;
+  productType: string;
   amount: number;
   currencyCode: string;
   notes: string | null;

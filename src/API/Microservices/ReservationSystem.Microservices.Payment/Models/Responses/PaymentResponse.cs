@@ -8,7 +8,6 @@ public sealed class PaymentResponse
 {
     public Guid PaymentId { get; init; }
     public string? BookingReference { get; init; }
-    public string PaymentType { get; init; } = string.Empty;
     public string Method { get; init; } = string.Empty;
     public string? CardType { get; init; }
     public string? CardLast4 { get; init; }

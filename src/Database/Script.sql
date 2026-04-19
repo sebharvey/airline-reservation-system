@@ -611,7 +611,6 @@ IF OBJECT_ID('[payment].[Payment]', 'U') IS NULL
 CREATE TABLE [payment].[Payment] (
     PaymentId        UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Payment_Id       DEFAULT NEWID(),
     BookingReference CHAR(6)              NULL,
-    PaymentType      VARCHAR(30)      NOT NULL,
     Method           VARCHAR(20)      NOT NULL,
     CardType         VARCHAR(20)          NULL,
     CardLast4        CHAR(4)              NULL,
@@ -626,9 +625,16 @@ CREATE TABLE [payment].[Payment] (
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Payment_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_Payment           PRIMARY KEY (PaymentId),
-    CONSTRAINT CHK_Payment_Type     CHECK (PaymentType IN ('Fare','SeatAncillary','BagAncillary','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes')),
     CONSTRAINT CHK_Payment_Status   CHECK (Status      IN ('Initialised','Authorised','Partial','Settled','Refunded','Declined','Voided'))
 );
+
+-- Drop PaymentType column from existing Payment table (it has moved to PaymentEvent.ProductType)
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[payment].[Payment]') AND name = 'PaymentType')
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('[payment].[Payment]') AND name = 'CHK_Payment_Type')
+        ALTER TABLE [payment].[Payment] DROP CONSTRAINT CHK_Payment_Type;
+    ALTER TABLE [payment].[Payment] DROP COLUMN PaymentType;
+END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Payment_BookingReference' AND object_id = OBJECT_ID('[payment].[Payment]'))
@@ -657,15 +663,24 @@ CREATE TABLE [payment].[PaymentEvent] (
     PaymentEventId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_PaymentEvent_Id       DEFAULT NEWID(),
     PaymentId      UNIQUEIDENTIFIER NOT NULL,
     EventType      VARCHAR(20)      NOT NULL,
+    ProductType    VARCHAR(30)      NOT NULL,
     Amount         DECIMAL(10,2)    NOT NULL,
     CurrencyCode   CHAR(3)          NOT NULL CONSTRAINT DF_PaymentEvent_Currency DEFAULT 'GBP',
     Notes          VARCHAR(255)         NULL,
     CreatedAt      DATETIME2        NOT NULL CONSTRAINT DF_PaymentEvent_Created  DEFAULT SYSUTCDATETIME(),
     UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_PaymentEvent_Updated  DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT PK_PaymentEvent         PRIMARY KEY (PaymentEventId),
-    CONSTRAINT FK_PaymentEvent_Payment FOREIGN KEY (PaymentId) REFERENCES [payment].[Payment](PaymentId),
-    CONSTRAINT CHK_PaymentEvent_Type   CHECK (EventType IN ('Authorised','Settled','Refunded','Declined','Voided'))
+    CONSTRAINT PK_PaymentEvent             PRIMARY KEY (PaymentEventId),
+    CONSTRAINT FK_PaymentEvent_Payment     FOREIGN KEY (PaymentId) REFERENCES [payment].[Payment](PaymentId),
+    CONSTRAINT CHK_PaymentEvent_Type       CHECK (EventType    IN ('Authorised','Settled','Refunded','Declined','Voided')),
+    CONSTRAINT CHK_PaymentEvent_Product    CHECK (ProductType  IN ('Fare','Seat','Bag','Product','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes'))
 );
+
+-- Add ProductType column to existing PaymentEvent table
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[payment].[PaymentEvent]') AND name = 'ProductType')
+BEGIN
+    ALTER TABLE [payment].[PaymentEvent] ADD ProductType VARCHAR(30) NOT NULL CONSTRAINT DF_PaymentEvent_ProductType DEFAULT 'Fare';
+    ALTER TABLE [payment].[PaymentEvent] ADD CONSTRAINT CHK_PaymentEvent_Product CHECK (ProductType IN ('Fare','Seat','Bag','Product','FareChange','Cancellation','Refund','RewardTaxes','RewardChangeTaxes'));
+END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PaymentEvent_PaymentId' AND object_id = OBJECT_ID('[payment].[PaymentEvent]'))

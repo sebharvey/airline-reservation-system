@@ -10,9 +10,6 @@ public sealed class InitialisePaymentRequest
     [JsonPropertyName("bookingReference")]
     public string? BookingReference { get; init; }
 
-    [JsonPropertyName("paymentType")]
-    public string PaymentType { get; init; } = string.Empty;
-
     [JsonPropertyName("method")]
     public string Method { get; init; } = string.Empty;
 

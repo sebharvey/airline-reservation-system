@@ -61,9 +61,18 @@ public sealed class RefundPaymentHandler
         payment.Refund(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
 
+        // Derive product type from the most recent Settled event when not supplied.
+        var productType = command.ProductType;
+        if (string.IsNullOrWhiteSpace(productType))
+        {
+            var settledEvent = await _repository.GetLatestEventByTypeAsync(payment.PaymentId, PaymentEventType.Settled, cancellationToken);
+            productType = settledEvent?.ProductType ?? PaymentProductType.Fare;
+        }
+
         var paymentEvent = PaymentEvent.Create(
             payment.PaymentId,
             PaymentEventType.Refunded,
+            productType,
             command.Amount,
             payment.CurrencyCode,
             $"Refund reason: {command.Reason}");

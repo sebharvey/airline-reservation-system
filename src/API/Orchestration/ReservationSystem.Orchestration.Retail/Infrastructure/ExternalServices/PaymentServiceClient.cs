@@ -25,11 +25,11 @@ public sealed class PaymentServiceClient
 
     /// <summary>Returns the paymentId from the Payment MS.</summary>
     public async Task<string> InitialiseAsync(
-        string paymentType, string method, string currencyCode,
+        string method, string currencyCode,
         decimal amount, string description,
         CancellationToken ct)
     {
-        var payload = new { paymentType, method, currencyCode, amount, description };
+        var payload = new { method, currencyCode, amount, description };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/payment/initialise", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -42,14 +42,14 @@ public sealed class PaymentServiceClient
     }
 
     public async Task AuthoriseAsync(
-        string paymentId, decimal amount,
+        string paymentId, string productType, decimal amount,
         string? cardNumber, string? expiryDate, string? cvv, string? cardholderName,
         CancellationToken ct)
     {
         var cardDetails = !string.IsNullOrEmpty(cardNumber)
             ? new { cardNumber, expiryDate, cvv, cardholderName }
             : (object?)null;
-        var payload = new { amount, cardDetails };
+        var payload = new { productType, amount, cardDetails };
         using var response = await _httpClient.PostAsJsonAsync($"/api/v1/payment/{paymentId}/authorise", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -79,6 +79,17 @@ public sealed class PaymentServiceClient
         {
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Payment void failed: {error}");
+        }
+    }
+
+    public async Task UpdateBookingReferenceAsync(string paymentId, string bookingReference, CancellationToken ct)
+    {
+        var payload = new { bookingReference };
+        using var response = await _httpClient.PatchAsJsonAsync($"/api/v1/payment/{paymentId}/booking-reference", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Payment booking reference update failed: {error}");
         }
     }
 
