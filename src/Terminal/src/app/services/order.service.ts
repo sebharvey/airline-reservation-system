@@ -110,6 +110,7 @@ export interface SsrPatchAction {
 
 export interface PaymentEvent {
   eventType: string;
+  productType: string;
   amount: number;
   currency: string;
   notes: string | null;

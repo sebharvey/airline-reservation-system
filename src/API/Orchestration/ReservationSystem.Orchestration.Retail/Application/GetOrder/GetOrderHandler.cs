@@ -137,6 +137,7 @@ public sealed class GetOrderHandler
                                 {
                                     PaymentEventId = e.PaymentEventId.ToString(),
                                     EventType      = e.EventType,
+                                    ProductType    = e.ProductType,
                                     Amount         = e.Amount,
                                     Currency       = e.CurrencyCode,
                                     Notes          = e.Notes,
