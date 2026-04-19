@@ -195,6 +195,6 @@ export class SeatingComponent implements OnInit {
   }
 
   formatPrice(price: number, currency: string): string {
-    return `${currency} ${price.toFixed(2)}`;
+    return `${price.toFixed(2)} ${currency}`;
   }
 }

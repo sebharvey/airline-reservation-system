@@ -109,10 +109,7 @@ export class PaymentListComponent implements OnInit {
 
   formatAmount(amount: number | null, currency: string): string {
     if (amount === null) return '—';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currency || 'GBP',
-    }).format(amount);
+    return `${amount.toFixed(2)} ${currency || 'GBP'}`;
   }
 
   formatDateTime(iso: string | null): string {

@@ -367,7 +367,7 @@ export class FareRulesComponent implements OnInit {
 
   formatAmount(amount: number | null, currency: string | null): string {
     if (amount == null) return '-';
-    return `${currency ?? ''} ${amount.toFixed(2)}`.trim();
+    return `${amount.toFixed(2)} ${currency ?? ''}`.trim();
   }
 
   formatPoints(points: number | null): string {
