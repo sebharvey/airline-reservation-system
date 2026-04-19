@@ -1351,6 +1351,10 @@
             <span class="field-label">Type</span>
             <span class="field-value">{{ documentTypeLabel(doc.documentType) }}</span>
           </div>
+          <div class="field-row">
+            <span class="field-label">Amount</span>
+            <span class="field-value">{{ formatAmount(doc.amount, doc.currencyCode) }}</span>
+          </div>
           @if (doc.documentData?.emdType) {
             <div class="field-row">
               <span class="field-label">EMD type</span>
