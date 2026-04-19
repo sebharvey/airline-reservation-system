@@ -90,7 +90,7 @@ public sealed class OrderServiceClient
         string status,
         CancellationToken ct)
     {
-        var url = $"/api/v1/orders?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={departureDate}&status={status}";
+        var url = $"/api/v1/orders/irops?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={departureDate}&status={status}";
         using var response = await _httpClient.GetAsync(url, ct);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
