@@ -564,4 +564,13 @@ export class OrderDetailComponent implements OnInit {
     const seg = this.segments().find(s => s.segmentId === segmentRef);
     return seg ? `${seg.flightNumber} (${seg.origin}→${seg.destination})` : segmentRef;
   }
+
+  getFlightDescription(item: OrderItem): string {
+    const parts: string[] = [];
+    if (item.segmentId) parts.push(this.getSegmentLabel(item.segmentId));
+    const seg = this.segments().find(s => s.segmentId === item.segmentId);
+    if (seg?.cabinClass) parts.push(seg.cabinClass);
+    if (item.passengerCount != null && item.passengerCount > 0) parts.push(`${item.passengerCount} pax`);
+    return parts.join(' · ') || item.description || '—';
+  }
 }

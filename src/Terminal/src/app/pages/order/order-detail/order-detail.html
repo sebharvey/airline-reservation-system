@@ -172,7 +172,7 @@
                         {{ itemTypeLabel(item.itemType) }}
                       </span>
                     </td>
-                    <td class="item-desc-cell">{{ item.description ?? '—' }}</td>
+                    <td class="item-desc-cell">{{ item.itemType === 'Flight' ? getFlightDescription(item) : (item.description ?? '—') }}</td>
                     <td class="hide-mobile muted">{{ item.passengerId ? getPassengerName(item.passengerId) : '—' }}</td>
                     <td class="amount-cell">
                       @if (item.fareAmount != null) {
@@ -224,7 +224,7 @@
               <div class="mobile-item-card" (click)="openItemModal(item)">
                 <div class="mobile-card-main">
                   <div class="mobile-card-top">
-                    <span class="mobile-card-desc">{{ item.description ?? '—' }}</span>
+                    <span class="mobile-card-desc">{{ item.itemType === 'Flight' ? getFlightDescription(item) : (item.description ?? '—') }}</span>
                     <span class="status-badge" [class]="statusBadgeClass(item.status)">{{ item.status }}</span>
                   </div>
                   @if (item.passengerId) {
