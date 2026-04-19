@@ -439,6 +439,7 @@ public sealed class GetAdminOrderDetailHandler
                         eventsNode.Add(new JsonObject
                         {
                             ["eventType"] = ev.EventType,
+                            ["productType"] = ev.ProductType,
                             ["amount"] = ev.Amount,
                             ["currency"] = ev.CurrencyCode,
                             ["notes"] = ev.Notes,
