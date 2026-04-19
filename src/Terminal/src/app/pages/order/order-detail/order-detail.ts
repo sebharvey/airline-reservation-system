@@ -156,6 +156,7 @@ export class OrderDetailComponent implements OnInit {
         this.tickets.set([]);
         this.documents.set([]);
         this.loadTickets();
+        this.loadDocuments();
       } else {
         this.error.set(`Order "${this.bookingRef}" was not found.`);
       }
