@@ -283,6 +283,42 @@ public sealed class ConfirmOrderHandler
 
         // ── Step 3: confirm order, persist, delete basket ─────────────────────
 
+        // Derive the confirmed total from the order items stored in OrderData — this is the
+        // authoritative source of truth and captures enriched/repriced offer amounts and
+        // ancillary prices that may differ from the basket-level totals.
+        // Reward bookings are excluded because their FLIGHT items carry the full cash fare
+        // amount rather than the taxes-only component the customer actually pays in cash;
+        // for those we fall back to the basket total which the Retail API sets correctly.
+        decimal confirmedTotalAmount;
+        if (bookingType == "Reward")
+        {
+            confirmedTotalAmount = basket.TotalAmount ?? order.TotalAmount ?? 0m;
+        }
+        else
+        {
+            confirmedTotalAmount = 0m;
+            foreach (var item in flightOrderItems)
+            {
+                if (item is not JsonObject itemObj) continue;
+                var productType = itemObj["productType"]?.GetValue<string>() ?? "";
+                switch (productType)
+                {
+                    case "FLIGHT":
+                        confirmedTotalAmount += itemObj["totalAmount"] is JsonNode flightAmt
+                            ? flightAmt.GetValue<decimal>() : 0m;
+                        break;
+                    case "SEAT":
+                    case "BAG":
+                    case "PRODUCT":
+                        var price = itemObj["price"] is JsonNode pNode ? pNode.GetValue<decimal>() : 0m;
+                        var tax   = itemObj["tax"]   is JsonNode tNode ? tNode.GetValue<decimal>() : 0m;
+                        confirmedTotalAmount += price + tax;
+                        break;
+                    // SERVICE (SSR): no charge
+                }
+            }
+        }
+
         // Generate a booking reference that is unique in the database, retrying on the rare
         // chance of a collision (keyspace is 36^6 ≈ 2.2 billion, but collisions are possible).
         const int maxPnrAttempts = 5;
@@ -306,7 +342,7 @@ public sealed class ConfirmOrderHandler
 
         order.Confirm(
             bookingReference,
-            basket.TotalAmount ?? order.TotalAmount ?? 0m,
+            confirmedTotalAmount,
             orderData.ToJsonString(),
             basket.ExpiresAt);
 

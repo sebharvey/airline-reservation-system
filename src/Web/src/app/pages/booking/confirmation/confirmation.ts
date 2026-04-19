@@ -110,6 +110,14 @@ export class ConfirmationComponent implements OnInit {
       .reduce((sum, oi) => sum + oi.totalPrice, 0) ?? 0;
   }
 
+  // Sum of all priced order items — the confirmation page source of truth.
+  // Reward bookings fall back to order.totalAmount because their flight items
+  // carry the full cash fare price, not the taxes-only amount paid in cash.
+  get grandTotal(): number {
+    if (this.isRewardBooking) return this.order?.totalAmount ?? 0;
+    return this.fareTotal + this.seatTotal + this.bagTotal + this.productTotal;
+  }
+
   getPassengerName(passengerId: string): string {
     const pax = this.order?.passengers.find(p => p.passengerId === passengerId);
     return pax ? `${pax.givenName} ${pax.surname}` : passengerId;
