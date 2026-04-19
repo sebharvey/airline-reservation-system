@@ -202,6 +202,58 @@ export interface Ticket {
   version: number;
 }
 
+export interface DocumentPriceBreakdown {
+  baseAmount: number;
+  taxes: Array<{ code: string; description: string; amount: number }>;
+  totalAmount: number;
+  currencyCode: string;
+}
+
+export interface SeatAncillaryDetail {
+  type: 'SeatAncillary';
+  seatNumber: string;
+  positionType: string | null;
+  deckCode: string | null;
+  cabinCode: string | null;
+  seatAttributes: string[];
+}
+
+export interface BagAncillaryDetail {
+  type: 'BagAncillary';
+  bagSequenceNumber: number | null;
+  weightKg: number | null;
+  dimensionsCm: { length: number; width: number; depth: number } | null;
+  bagTagNumber: string | null;
+}
+
+export interface DocumentData {
+  emdType: string | null;
+  rfic: string | null;
+  rfisc: string | null;
+  serviceDescription: string | null;
+  couponStatus: string | null;
+  ancillaryDetail: SeatAncillaryDetail | BagAncillaryDetail | null;
+  priceBreakdown: DocumentPriceBreakdown | null;
+  voidHistory: Array<{ occurredAt: string; actor: string; reason: string }>;
+}
+
+export interface Document {
+  documentId: string;
+  documentNumber: string;
+  documentType: string;
+  bookingReference: string;
+  eTicketNumber: string | null;
+  passengerId: string;
+  segmentRef: string;
+  paymentReference: string;
+  amount: number;
+  currencyCode: string;
+  isVoided: boolean;
+  documentData: DocumentData | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrderData {
   dataLists: {
     passengers: OrderPassenger[];
@@ -282,7 +334,23 @@ export class OrderService {
     );
   }
 
+  async getDocumentsByBookingRef(bookingRef: string): Promise<Document[]> {
+    return firstValueFrom(
+      this.#http.get<Document[]>(
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/documents`
+      )
+    );
+  }
+
   // TODO: Remove — temporary debug methods
+  async getOrderDebugDocuments(bookingRef: string): Promise<unknown> {
+    return firstValueFrom(
+      this.#http.get<unknown>(
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/debug/documents`
+      )
+    );
+  }
+
   async getOrderDebug(bookingRef: string): Promise<unknown> {
     return firstValueFrom(
       this.#http.get<unknown>(

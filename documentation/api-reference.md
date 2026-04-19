@@ -15,6 +15,7 @@
   - [Products](#products)
   - [Flights & Seatmaps](#flights--seatmaps)
   - [Check-in](#check-in)
+  - [Admin Order Management](#admin-order-management)
   - [Admin Inventory Management](#admin-inventory-management)
 - [Loyalty API](#loyalty-api--full-api-spec)
   - [Authentication](#authentication)
@@ -107,6 +108,17 @@
 | `POST` | `/v1/checkin/retrieve` | Retrieve booking details to begin the online check-in flow |
 | `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
 | `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
+
+### Admin order management
+
+Staff-only endpoints for searching and viewing orders. All routes require a valid staff JWT token (`Authorization: Bearer <token>`).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/admin/orders` | List the most recently created orders; accepts optional `?limit=` query parameter (default 10, max 100); returns order summary including booking reference, status, channel, total amount, creation date, lead passenger name, and route |
+| `GET` | `/v1/admin/orders/{bookingRef}` | Retrieve full order detail by booking reference including passengers, flight segments, order items, payments, history, and item totals; `404` if not found |
+| `GET` | `/v1/admin/orders/{bookingRef}/tickets` | Retrieve all issued e-tickets for a booking including ticket data (passenger, fare construction, coupons); returns both active and voided tickets |
+| `GET` | `/v1/admin/orders/{bookingRef}/documents` | Retrieve all issued EMD documents for a booking including document data (ancillary detail, price breakdown, coupon status); returns both active and voided documents |
 
 ### Admin inventory management
 
@@ -399,6 +411,8 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/documents` | Issue an ancillary document (`delivery.Document` record) for a post-sale ancillary purchase (e.g. seat selection or excess baggage); triggers a `DocumentIssued` accounting event; called by Retail API after successful ancillary payment settlement |
+| `GET` | `/v1/documents/{documentId}` | Retrieve a single document by its GUID; `404` if not found |
+| `GET` | `/v1/documents?bookingRef={bookingRef}` | Retrieve all documents for a booking reference; returns both active and voided documents with full `documentData` JSON |
 | `PATCH` | `/v1/documents/{documentNumber}/void` | Void an ancillary document (used on voluntary cancellation or IROPS when ancillary charges are refunded); triggers a `DocumentVoided` accounting event |
 
 ### Boarding Cards
