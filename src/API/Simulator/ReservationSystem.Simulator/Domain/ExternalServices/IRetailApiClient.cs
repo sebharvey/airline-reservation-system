@@ -20,5 +20,13 @@ public interface IRetailApiClient
 
     Task AddSsrsAsync(string basketId, List<SsrRequest> ssrs, CancellationToken ct = default);
 
+    Task<GetBagOffersResponse> GetBagOffersAsync(string inventoryId, string cabinCode, CancellationToken ct = default);
+
+    Task AddBagsAsync(string basketId, List<BagSelection> bags, CancellationToken ct = default);
+
+    Task<GetProductsResponse> GetProductsAsync(CancellationToken ct = default);
+
+    Task AddProductsAsync(string basketId, List<ProductSelection> products, CancellationToken ct = default);
+
     Task<ConfirmBasketResponse> ConfirmBasketAsync(string basketId, ConfirmBasketRequest request, CancellationToken ct = default);
 }

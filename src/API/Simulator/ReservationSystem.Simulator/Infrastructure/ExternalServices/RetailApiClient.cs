@@ -83,6 +83,37 @@ internal sealed class RetailApiClient : IRetailApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<GetBagOffersResponse> GetBagOffersAsync(string inventoryId, string cabinCode, CancellationToken ct = default)
+    {
+        var url = $"/api/v1/bags/offers?inventoryId={Uri.EscapeDataString(inventoryId)}&cabinCode={Uri.EscapeDataString(cabinCode)}";
+        var response = await _httpClient.GetAsync(url, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<GetBagOffersResponse>(JsonOptions, ct);
+        return result ?? throw new InvalidOperationException("Empty response from Retail API get bag offers.");
+    }
+
+    public async Task AddBagsAsync(string basketId, List<BagSelection> bags, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"/api/v1/basket/{basketId}/bags", bags, JsonOptions, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<GetProductsResponse> GetProductsAsync(CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetAsync("/api/v1/products", ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<GetProductsResponse>(JsonOptions, ct);
+        return result ?? throw new InvalidOperationException("Empty response from Retail API get products.");
+    }
+
+    public async Task AddProductsAsync(string basketId, List<ProductSelection> products, CancellationToken ct = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"/api/v1/basket/{basketId}/products", products, JsonOptions, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<ConfirmBasketResponse> ConfirmBasketAsync(string basketId, ConfirmBasketRequest request, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsJsonAsync($"/api/v1/basket/{basketId}/confirm", request, JsonOptions, ct);

@@ -26,6 +26,12 @@ public sealed class RunSimulatorHandler
     /// <summary>Probability (0–100) that a booking includes seat selection.</summary>
     private const int SeatSelectionProbabilityPct = 50;
 
+    /// <summary>Probability (0–100) that a booking includes additional bag purchases.</summary>
+    private const int BagSelectionProbabilityPct = 40;
+
+    /// <summary>Probability (0–100) that a booking includes retail product purchases.</summary>
+    private const int ProductSelectionProbabilityPct = 30;
+
     /// <summary>Probability (0–100) that a booking includes SSR selections.</summary>
     private const int SsrProbabilityPct = 35;
 
@@ -296,7 +302,46 @@ public sealed class RunSimulatorHandler
             }
         }
 
-        // ── Step 9: Confirm and pay ────────────────────────────────────────────
+        // ── Step 9: Additional bags (skipped ~60% of the time) ────────────────
+        if (Random.Shared.Next(100) < BagSelectionProbabilityPct)
+        {
+            var allBags = new List<BagSelection>();
+
+            foreach (var flight in flightOffers)
+            {
+                var bags = await TrySelectBagsAsync(flight, passengers, ct);
+                allBags.AddRange(bags);
+            }
+
+            if (allBags.Count > 0)
+            {
+                try
+                {
+                    await _retailApiClient.AddBagsAsync(basketId, allBags, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Simulator: bag add failed for basket {BasketId} — continuing without bags", basketId);
+                }
+            }
+        }
+
+        // ── Step 10: Retail products (skipped ~70% of the time) ───────────────
+        if (Random.Shared.Next(100) < ProductSelectionProbabilityPct)
+        {
+            try
+            {
+                var products = await TrySelectProductsAsync(flightOffers, passengers, ct);
+                if (products.Count > 0)
+                    await _retailApiClient.AddProductsAsync(basketId, products, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Simulator: product add failed for basket {BasketId} — continuing without products", basketId);
+            }
+        }
+
+        // ── Step 11: Confirm and pay ───────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
             ChannelCode: channelCode,
@@ -411,7 +456,46 @@ public sealed class RunSimulatorHandler
             }
         }
 
-        // ── Step 9: Confirm and pay ────────────────────────────────────────────
+        // ── Step 9: Additional bags (skipped ~60% of the time) ────────────────
+        if (Random.Shared.Next(100) < BagSelectionProbabilityPct)
+        {
+            var allBags = new List<BagSelection>();
+
+            foreach (var flight in flightOffers)
+            {
+                var bags = await TrySelectBagsAsync(flight, passengers, ct);
+                allBags.AddRange(bags);
+            }
+
+            if (allBags.Count > 0)
+            {
+                try
+                {
+                    await _retailApiClient.AddBagsAsync(basketId, allBags, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Simulator: bag add failed for basket {BasketId} — continuing without bags", basketId);
+                }
+            }
+        }
+
+        // ── Step 10: Retail products (skipped ~70% of the time) ───────────────
+        if (Random.Shared.Next(100) < ProductSelectionProbabilityPct)
+        {
+            try
+            {
+                var products = await TrySelectProductsAsync(flightOffers, passengers, ct);
+                if (products.Count > 0)
+                    await _retailApiClient.AddProductsAsync(basketId, products, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Simulator: product add failed for basket {BasketId} — continuing without products", basketId);
+            }
+        }
+
+        // ── Step 11: Confirm and pay ───────────────────────────────────────────
         var primary        = passengers[0];
         var confirmRequest = new ConfirmBasketRequest(
             ChannelCode: channelCode,
@@ -568,6 +652,125 @@ public sealed class RunSimulatorHandler
                 flight.FlightNumber);
             return [];
         }
+    }
+
+    /// <summary>
+    /// Fetches bag offers for a flight and returns bag selections for each passenger.
+    /// Each passenger gets 1–2 additional bags randomly chosen from the available offers.
+    /// Returns an empty list when bag offers are unavailable.
+    /// </summary>
+    private async Task<List<BagSelection>> TrySelectBagsAsync(
+        BasketFlightOffer flight, List<PassengerRequest> passengers, CancellationToken ct)
+    {
+        try
+        {
+            var bagOffers = await _retailApiClient.GetBagOffersAsync(flight.InventoryId, flight.CabinCode, ct);
+
+            if (bagOffers.AdditionalBagOffers.Count == 0)
+                return [];
+
+            var selections = new List<BagSelection>();
+
+            // Pick a random subset of passengers to buy additional bags
+            var paxToBuy = passengers
+                .OrderBy(_ => Random.Shared.Next())
+                .Take(Random.Shared.Next(1, passengers.Count + 1))
+                .ToList();
+
+            foreach (var pax in paxToBuy)
+            {
+                // Buy 1 or 2 additional bags; pick the lowest-sequence offer available
+                var additionalBags = Random.Shared.Next(1, 3);
+                var offer          = bagOffers.AdditionalBagOffers
+                    .OrderBy(o => o.BagSequence)
+                    .First();
+
+                selections.Add(new BagSelection(
+                    PassengerId:   pax.PassengerId,
+                    SegmentId:     flight.BasketItemId,
+                    BasketItemRef: flight.BasketItemId,
+                    BagOfferId:    offer.BagOfferId,
+                    AdditionalBags: additionalBags,
+                    Price:         offer.Price * additionalBags,
+                    Tax:           offer.Tax * additionalBags,
+                    Currency:      offer.Currency));
+            }
+
+            return selections;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex,
+                "Simulator: bag offers unavailable for flight {FlightNumber} — continuing without bags",
+                flight.FlightNumber);
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Fetches all retail products and returns a random selection for passengers.
+    /// Picks 1–2 products and assigns them to each passenger, respecting whether
+    /// the product is segment-specific. Returns an empty list when no products are available.
+    /// </summary>
+    private async Task<List<ProductSelection>> TrySelectProductsAsync(
+        List<BasketFlightOffer> flightOffers, List<PassengerRequest> passengers, CancellationToken ct)
+    {
+        var response = await _retailApiClient.GetProductsAsync(ct);
+
+        var allProducts = response.ProductGroups
+            .SelectMany(g => g.Products)
+            .Where(p => p.Prices.Any(pr => string.Equals(pr.CurrencyCode, "GBP", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (allProducts.Count == 0)
+            return [];
+
+        // Pick 1–2 distinct products at random
+        var productCount = Math.Min(Random.Shared.Next(1, 3), allProducts.Count);
+        var chosen = allProducts
+            .OrderBy(_ => Random.Shared.Next())
+            .Take(productCount)
+            .ToList();
+
+        var selections = new List<ProductSelection>();
+
+        foreach (var product in chosen)
+        {
+            var price = product.Prices.First(pr => string.Equals(pr.CurrencyCode, "GBP", StringComparison.OrdinalIgnoreCase));
+
+            foreach (var pax in passengers)
+            {
+                if (product.IsSegmentSpecific)
+                {
+                    foreach (var flight in flightOffers)
+                    {
+                        selections.Add(new ProductSelection(
+                            OfferId:     price.OfferId,
+                            ProductId:   product.ProductId,
+                            PassengerId: pax.PassengerId,
+                            SegmentRef:  flight.BasketItemId,
+                            Name:        product.Name,
+                            Price:       price.Price,
+                            Tax:         price.Tax,
+                            Currency:    "GBP"));
+                    }
+                }
+                else
+                {
+                    selections.Add(new ProductSelection(
+                        OfferId:     price.OfferId,
+                        ProductId:   product.ProductId,
+                        PassengerId: pax.PassengerId,
+                        SegmentRef:  null,
+                        Name:        product.Name,
+                        Price:       price.Price,
+                        Tax:         price.Tax,
+                        Currency:    "GBP"));
+                }
+            }
+        }
+
+        return selections;
     }
 
     /// <summary>

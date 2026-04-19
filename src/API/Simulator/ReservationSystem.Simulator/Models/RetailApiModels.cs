@@ -129,6 +129,70 @@ public sealed record SeatAssignment(
     decimal Tax,
     string Currency);
 
+// ── Bags ───────────────────────────────────────────────────────────────────────
+
+public sealed record GetBagOffersResponse(
+    BagPolicy Policy,
+    List<BagOffer> AdditionalBagOffers);
+
+public sealed record BagPolicy(
+    string CabinCode,
+    int FreeBagsIncluded,
+    int MaxWeightKgPerBag);
+
+public sealed record BagOffer(
+    string BagOfferId,
+    int BagSequence,
+    decimal Price,
+    decimal Tax,
+    string Currency,
+    string Label);
+
+public sealed record BagSelection(
+    string PassengerId,
+    string SegmentId,
+    string BasketItemRef,
+    string BagOfferId,
+    int AdditionalBags,
+    decimal Price,
+    decimal Tax,
+    string Currency);
+
+// ── Products ───────────────────────────────────────────────────────────────────
+
+public sealed record GetProductsResponse(
+    List<ProductGroup> ProductGroups);
+
+public sealed record ProductGroup(
+    string ProductGroupId,
+    string ProductGroupName,
+    List<Product> Products);
+
+public sealed record Product(
+    string ProductId,
+    string Name,
+    string Description,
+    bool IsSegmentSpecific,
+    string? SsrCode,
+    List<ProductPrice> Prices);
+
+public sealed record ProductPrice(
+    string PriceId,
+    string OfferId,
+    string CurrencyCode,
+    decimal Price,
+    decimal Tax);
+
+public sealed record ProductSelection(
+    string OfferId,
+    string ProductId,
+    string PassengerId,
+    string? SegmentRef,
+    string Name,
+    decimal Price,
+    decimal Tax,
+    string Currency);
+
 // ── SSRs ───────────────────────────────────────────────────────────────────────
 
 public sealed record SsrRequest(
