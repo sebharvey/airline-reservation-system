@@ -73,6 +73,11 @@ export class InventoryComponent implements OnInit {
     return 'cabin-ok';
   }
 
+  availPct(flight: FlightInventoryGroup): number {
+    if (flight.totalSeats === 0) return 0;
+    return Math.round(flight.totalSeatsAvailable / flight.totalSeats * 100);
+  }
+
   loadBarClass(loadFactor: number): string {
     if (loadFactor >= 90) return 'bar-critical';
     if (loadFactor >= 70) return 'bar-high';

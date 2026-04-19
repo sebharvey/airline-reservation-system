@@ -245,7 +245,7 @@
 .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Load factor bar */
-.load-col { min-width: 110px; }
+.load-col { min-width: 160px; }
 
 .load-bar-wrap {
   height: 6px;

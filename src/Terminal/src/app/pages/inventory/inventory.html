@@ -86,8 +86,6 @@
             <th class="cabin-col">J</th>
             <th class="cabin-col">W</th>
             <th class="cabin-col">Y</th>
-            <th class="num-cell">Total Seats</th>
-            <th class="num-cell">Available</th>
             <th>Aircraft</th>
             <th>Status</th>
             <th class="load-col">Load</th>
@@ -125,8 +123,6 @@
               <td class="cabin-col">
                 <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
               </td>
-              <td class="num-cell">{{ flight.totalSeats }}</td>
-              <td class="num-cell">{{ flight.totalSeatsAvailable }}</td>
               <td class="mono muted">{{ flight.aircraftType }}</td>
               <td>
                 <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
@@ -135,7 +131,7 @@
                 <div class="load-bar-wrap">
                   <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
                 </div>
-                <span class="load-pct muted">{{ flight.loadFactor }}%</span>
+                <span class="load-pct muted">({{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} – {{ availPct(flight) }}%)</span>
               </td>
               <td class="action-col">
                 <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
@@ -154,7 +150,7 @@
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="13" class="empty-row">No flights found for this date.</td>
+              <td colspan="11" class="empty-row">No flights found for this date.</td>
             </tr>
           }
         </tbody>
