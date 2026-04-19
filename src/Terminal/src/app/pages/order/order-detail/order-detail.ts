@@ -567,9 +567,16 @@ export class OrderDetailComponent implements OnInit {
 
   getFlightDescription(item: OrderItem): string {
     const parts: string[] = [];
-    if (item.segmentId) parts.push(this.getSegmentLabel(item.segmentId));
     const seg = this.segments().find(s => s.segmentId === item.segmentId);
+    if (item.segmentId) parts.push(this.getSegmentLabel(item.segmentId));
     if (seg?.cabinClass) parts.push(seg.cabinClass);
+    if (seg?.departureTime) {
+      const d = new Date(seg.departureTime);
+      const day = d.getUTCDate().toString().padStart(2, '0');
+      const month = d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+      const year = d.getUTCFullYear().toString().slice(-2);
+      parts.push(`${day}-${month}-${year}`);
+    }
     if (item.passengerCount != null && item.passengerCount > 0) parts.push(`${item.passengerCount} pax`);
     return parts.join(' · ') || item.description || '—';
   }
