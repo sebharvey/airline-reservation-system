@@ -280,7 +280,16 @@ export class OrderDetailComponent implements OnInit {
       Authorised: 'pay-authorised',
       Refunded: 'pay-refunded',
       Voided: 'pay-voided',
+      Partial: 'pay-partial',
     }[status] ?? '';
+  }
+
+  eventTypeClass(eventType: string): string {
+    return {
+      Authorised: 'pay-authorised',
+      Settled: 'pay-settled',
+      Voided: 'pay-voided',
+    }[eventType] ?? 'pay-event-other';
   }
 
   passengerTypeLabel(type: string): string {
