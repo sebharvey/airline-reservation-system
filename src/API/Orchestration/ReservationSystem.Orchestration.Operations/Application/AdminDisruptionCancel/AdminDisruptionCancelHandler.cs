@@ -394,6 +394,18 @@ public sealed class AdminDisruptionCancelHandler
         };
         await _orderServiceClient.RebookOrderAsync(order.BookingReference, rebookRequest, ct);
 
+        // Release sold seats from the original cancelled flight now the order has moved
+        try
+        {
+            await _offerServiceClient.ReleaseInventoryAsync(
+                order.Segment.InventoryId, order.Segment.CabinCode, passengerCount, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to release original inventory for rebooked booking {BookingRef} — rebook already committed, continuing",
+                order.BookingReference);
+        }
+
         // Remove old manifest entries for the cancelled flight
         await _deliveryServiceClient.DeleteManifestFlightAsync(
             order.BookingReference, cancelledFlightNumber, cancelledDepartureDate, ct);
