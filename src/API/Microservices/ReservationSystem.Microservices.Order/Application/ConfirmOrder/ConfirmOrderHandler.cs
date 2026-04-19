@@ -158,7 +158,12 @@ public sealed class ConfirmOrderHandler
                 item["taxAmount"]      = enriched.TaxAmount;
                 item["totalAmount"]    = enriched.TotalAmount;
                 if (enriched.PassengerCount > 0)
-                    item["passengerCount"] = enriched.PassengerCount;
+                {
+                    item["passengerCount"]      = enriched.PassengerCount;
+                    item["unitBaseFareAmount"]   = Math.Round(enriched.BaseFareAmount / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                    item["unitTaxAmount"]        = Math.Round(enriched.TaxAmount      / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                    item["unitAmount"]           = Math.Round(enriched.TotalAmount    / enriched.PassengerCount, 2, MidpointRounding.AwayFromZero);
+                }
 
                 if (enriched.TaxLines is { Count: > 0 })
                 {

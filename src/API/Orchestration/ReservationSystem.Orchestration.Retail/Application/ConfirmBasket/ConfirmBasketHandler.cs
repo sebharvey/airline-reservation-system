@@ -47,7 +47,9 @@ public sealed class ConfirmBasketHandler
         var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
         var repricedOffers = await RepriceAndValidateOffersAsync(basketDataJsonEarly, cancellationToken);
 
-        var totalAmount = basket.TotalAmount ?? 0m;
+        // Recalculate total from repriced fares so the confirmed amount reflects the
+        // latest pricing, not whatever was stored on the basket when offers were added.
+        var totalAmount = CalculateTotalFromRepriced(basketDataJsonEarly, repricedOffers, basket);
         var currency = basket.CurrencyCode;
         var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
             ? "Standby"
@@ -279,6 +281,43 @@ public sealed class ConfirmBasketHandler
         }).ToList();
     }
 
+    private static decimal CalculateTotalFromRepriced(
+        string? basketDataJson,
+        Dictionary<Guid, RepriceOfferDto> repricedOffers,
+        OrderMsBasketResult basket)
+    {
+        decimal flightTotal = 0m;
+        if (basketDataJson != null)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(basketDataJson);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("flightOffers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var offer in offersEl.EnumerateArray())
+                    {
+                        if (!offer.TryGetProperty("offerId", out var offerIdEl) || !offerIdEl.TryGetGuid(out var offerId))
+                            continue;
+                        if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
+                        var cabinCode = offer.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
+                        var item = repriced.Offers.FirstOrDefault(i =>
+                            string.Equals(i.CabinCode, cabinCode, StringComparison.OrdinalIgnoreCase))
+                            ?? repriced.Offers.FirstOrDefault();
+                        if (item is null) continue;
+                        var passengerCount = 1;
+                        if (offer.TryGetProperty("passengerCount", out var pcEl) && pcEl.TryGetInt32(out var pc) && pc > 0)
+                            passengerCount = pc;
+                        flightTotal += item.TotalAmount * passengerCount;
+                    }
+                }
+            }
+            catch { /* Fall through to basket total */ }
+        }
+
+        return flightTotal + basket.TotalSeatAmount + basket.TotalBagAmount;
+    }
+
     private static List<(Guid OfferId, Guid? SessionId)> ParseOfferRefsFromBasketData(string? basketDataJson)
     {
         var refs = new List<(Guid, Guid?)>();
@@ -369,11 +408,13 @@ public sealed class ConfirmBasketHandler
             var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
             if (passengers.Count == 0 || segments.Count == 0) return [];
 
-            var perPaxAmount = passengers.Count > 0
-                ? Math.Round(totalAmount / passengers.Count, 2, MidpointRounding.AwayFromZero)
-                : totalAmount;
-            var formOfPayment = BuildFormOfPayment(command, paymentId, perPaxAmount, currency);
             var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers);
+            // FOP amount on the e-ticket covers the air fare only (base + taxes per pax),
+            // not the entire order total which also includes seats and ancillaries.
+            var perPaxAmount = fareConstruction != null
+                ? Math.Round(fareConstruction.BaseFare + fareConstruction.TotalTaxes, 2, MidpointRounding.AwayFromZero)
+                : (passengers.Count > 0 ? Math.Round(totalAmount / passengers.Count, 2, MidpointRounding.AwayFromZero) : totalAmount);
+            var formOfPayment = BuildFormOfPayment(command, paymentId, perPaxAmount, currency);
             var passengersWithPayment = passengers
                 .Select(p => new TicketPassenger
                 {
@@ -633,6 +674,29 @@ public sealed class ConfirmBasketHandler
                 }
             }
 
+            // Build SSR lookup keyed by inventoryId (the segmentRef stored on each SSR selection).
+            var ssrsByInventoryId = new Dictionary<string, List<SegmentSsrCode>>(StringComparer.OrdinalIgnoreCase);
+            if (root.TryGetProperty("ssrSelections", out var ssrsEl) && ssrsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ssr in ssrsEl.EnumerateArray())
+                {
+                    var segRef  = ssr.TryGetProperty("segmentRef",   out var sr) ? sr.GetString() ?? "" : "";
+                    var paxRef  = ssr.TryGetProperty("passengerRef", out var pr) ? pr.GetString() ?? "" : "";
+                    var code    = ssr.TryGetProperty("ssrCode",      out var sc) ? sc.GetString() ?? "" : "";
+                    var desc    = ssr.TryGetProperty("description",  out var dv) ? dv.GetString() ?? "" : "";
+                    if (string.IsNullOrEmpty(segRef) || string.IsNullOrEmpty(code)) continue;
+                    if (!ssrsByInventoryId.ContainsKey(segRef))
+                        ssrsByInventoryId[segRef] = [];
+                    ssrsByInventoryId[segRef].Add(new SegmentSsrCode
+                    {
+                        PassengerId = paxRef,
+                        Code        = code,
+                        Description = desc,
+                        SegmentRef  = segRef
+                    });
+                }
+            }
+
             // Build a lookup of seat assignments keyed by inventoryId (which is how the
             // web app stores the segmentId on each seat selection in the basket).
             var seatsByInventoryId = new Dictionary<string, List<SeatAssignmentItem>>(StringComparer.OrdinalIgnoreCase);
@@ -674,7 +738,8 @@ public sealed class ConfirmBasketHandler
                         Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         FareBasisCode = offer.TryGetProperty("fareBasisCode", out v) ? v.GetString() : null,
-                        SeatAssignments = seatsByInventoryId.TryGetValue(inventoryId, out var segSeats) ? segSeats : []
+                        SeatAssignments = seatsByInventoryId.TryGetValue(inventoryId, out var segSeats) ? segSeats : [],
+                        SsrCodes = ssrsByInventoryId.TryGetValue(inventoryId, out var segSsrs) ? segSsrs : []
                     });
                     idx++;
                 }
