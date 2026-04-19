@@ -87,8 +87,8 @@
             <th class="cabin-col">W</th>
             <th class="cabin-col">Y</th>
             <th>Aircraft</th>
-            <th>Status</th>
             <th class="load-col">Load</th>
+            <th>Status</th>
             <th></th>
           </tr>
         </thead>
@@ -124,14 +124,14 @@
                 <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
               </td>
               <td class="mono muted">{{ flight.aircraftType }}</td>
-              <td>
-                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
-              </td>
               <td class="load-col">
                 <div class="load-bar-wrap">
                   <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
                 </div>
                 <span class="load-pct muted">({{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} – {{ availPct(flight) }}%)</span>
+              </td>
+              <td>
+                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
               </td>
               <td class="action-col">
                 <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
