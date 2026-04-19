@@ -558,6 +558,7 @@ public sealed class RunSimulatorHandler
                 SeatPosition:  seat.Position,
                 CabinCode:     seat.CabinCode,
                 Price:         seat.Price,
+                Tax:           seat.Tax,
                 Currency:      seat.Currency)).ToList();
         }
         catch (Exception ex)
