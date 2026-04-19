@@ -5,12 +5,12 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 namespace ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 
 /// <summary>
-/// Enriched flight inventory group with computed load factor and ticketing status.
+/// Enriched flight inventory group with computed load factor and effective status.
 /// </summary>
 public sealed record FlightInventoryGroupResult(
     FlightInventoryGroup Group,
     int LoadFactor,
-    string TicketingStatus);
+    string EffectiveStatus);
 
 public sealed class GetFlightInventoryByDateHandler
 {
@@ -36,12 +36,14 @@ public sealed class GetFlightInventoryByDateHandler
         return groups.Select(g =>
         {
             var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
-            var ticketingStatus = (departure - now).TotalHours > 1 ? "Open" : "Closed";
             var loadFactor = g.TotalSeats > 0
                 ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
                 : 0;
+            var effectiveStatus = g.Status == "Active" && (departure - now).TotalHours <= 1
+                ? "Ticketing Closed"
+                : g.Status;
 
-            return new FlightInventoryGroupResult(g, loadFactor, ticketingStatus);
+            return new FlightInventoryGroupResult(g, loadFactor, effectiveStatus);
         }).ToList().AsReadOnly();
     }
 }

@@ -91,7 +91,6 @@
             <th>Aircraft</th>
             <th>Status</th>
             <th class="load-col">Load</th>
-            <th>Ticketing</th>
             <th></th>
           </tr>
         </thead>
@@ -138,9 +137,6 @@
                 </div>
                 <span class="load-pct muted">{{ flight.loadFactor }}%</span>
               </td>
-              <td>
-                <span class="badge" [class]="ticketingClass(flight)">{{ flight.ticketingStatus }}</span>
-              </td>
               <td class="action-col">
                 <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
                   Holds
@@ -149,7 +145,7 @@
                   class="disruption-btn"
                   (click)="openDisruptionModal(flight)"
                   [disabled]="!canDisrupt(flight)"
-                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.ticketingStatus === 'Closed' ? 'Flight is closed' : 'Manage disruption for this flight'">
+                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
                   Disruption
                 </button>
               </td>
@@ -158,7 +154,7 @@
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="14" class="empty-row">No flights found for this date.</td>
+              <td colspan="13" class="empty-row">No flights found for this date.</td>
             </tr>
           }
         </tbody>

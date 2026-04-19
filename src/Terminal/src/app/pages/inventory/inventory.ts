@@ -81,11 +81,9 @@ export class InventoryComponent implements OnInit {
   }
 
   statusClass(status: string): string {
-    return status === 'Active' ? 'badge-active' : 'badge-inactive';
-  }
-
-  ticketingClass(flight: FlightInventoryGroup): string {
-    return flight.ticketingStatus === 'Open' ? 'badge-active' : 'badge-inactive';
+    if (status === 'Active') return 'badge-active';
+    if (status === 'Ticketing Closed') return 'badge-warning';
+    return 'badge-inactive';
   }
 
   // Holds modal
@@ -158,7 +156,7 @@ export class InventoryComponent implements OnInit {
   disruptionError = signal('');
 
   canDisrupt(flight: FlightInventoryGroup): boolean {
-    return flight.status !== 'Cancelled' && flight.ticketingStatus !== 'Closed';
+    return flight.status !== 'Cancelled' && flight.status !== 'Ticketing Closed';
   }
 
   openDisruptionModal(flight: FlightInventoryGroup): void {
