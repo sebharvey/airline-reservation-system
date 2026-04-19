@@ -284,6 +284,7 @@
 
 .badge-active   { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
 .badge-inactive { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
+.badge-warning  { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 
 .muted { color: var(--text-muted); }
 .mono  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; }

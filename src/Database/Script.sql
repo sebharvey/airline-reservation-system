@@ -177,7 +177,7 @@ CREATE TABLE [offer].[FlightInventory] (
     UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Updated DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_FlightInventory          PRIMARY KEY (InventoryId),
     CONSTRAINT UQ_FlightInventory_Flight   UNIQUE      (FlightNumber, DepartureDate),
-    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled'))
+    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled','Ticketing Closed'))
 );
 GO
 
