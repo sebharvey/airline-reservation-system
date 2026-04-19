@@ -62,9 +62,10 @@ public sealed class AddOrderBagsHandler
                 BagOfferId = sel.BagOfferId,
                 BagSequence = offer.BagSequence,
                 Price = offer.Price,
+                Tax = offer.Tax,
                 Currency = offer.CurrencyCode
             });
-            totalBagAmount += offer.Price;
+            totalBagAmount += offer.Price + offer.Tax;
         }
 
         // 3. Authorise payment
@@ -103,6 +104,7 @@ public sealed class AddOrderBagsHandler
             bagOfferId = b.BagOfferId,
             additionalBags = b.BagSequence,
             price = b.Price,
+            tax = b.Tax,
             currency = b.Currency,
             paymentReference = paymentId
         }).ToList();
@@ -140,6 +142,7 @@ public sealed class AddOrderBagsHandler
         public string BagOfferId { get; init; } = string.Empty;
         public int BagSequence { get; init; }
         public decimal Price { get; init; }
+        public decimal Tax { get; init; }
         public string Currency { get; init; } = string.Empty;
     }
 }
