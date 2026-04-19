@@ -131,8 +131,8 @@
       </button>
       <button class="tab" [class.tab-active]="activeTab() === 'tickets'" (click)="switchTab('tickets')">
         Tickets / Misc Docs
-        @if (tickets().length) {
-          <span class="tab-count">{{ tickets().length }}</span>
+        @if (tickets().length + documents().length) {
+          <span class="tab-count">{{ tickets().length + documents().length }}</span>
         }
       </button>
     </div>
