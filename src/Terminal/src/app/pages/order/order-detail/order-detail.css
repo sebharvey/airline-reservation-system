@@ -672,6 +672,16 @@
   font-style: italic;
 }
 
+.pay-product-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
 /* History */
 .history-list {
   display: flex;

@@ -321,6 +321,9 @@
                           @for (ev of pay.events; track ev.createdAt) {
                             <div class="payment-event-item">
                               <span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span>
+                              @if (ev.productType) {
+                                <span class="pay-product-type-badge">{{ ev.productType }}</span>
+                              }
                               <span class="payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</span>
                               <span class="muted">{{ formatDateTime(ev.createdAt) }}</span>
                               @if (ev.notes) {
@@ -364,6 +367,9 @@
                     @for (ev of pay.events; track ev.createdAt) {
                       <div class="mobile-payment-event-item">
                         <span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span>
+                        @if (ev.productType) {
+                          <span class="pay-product-type-badge">{{ ev.productType }}</span>
+                        }
                         <span class="mobile-payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</span>
                         <span class="muted">{{ formatDateTime(ev.createdAt) }}</span>
                       </div>
