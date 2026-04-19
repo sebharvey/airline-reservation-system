@@ -114,7 +114,7 @@ export class OrderListComponent implements OnInit {
 
   formatAmount(amount: number | null, currency: string): string {
     if (amount === null) return '—';
-    return `${amount.toFixed(2)} ${currency || 'GBP'}`;
+    return `${amount.toFixed(2)}\u00A0${currency || 'GBP'}`;
   }
 
   formatDate(iso: string): string {
