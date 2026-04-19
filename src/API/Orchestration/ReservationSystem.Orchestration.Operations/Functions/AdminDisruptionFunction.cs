@@ -61,7 +61,7 @@ public sealed class AdminDisruptionFunction
 
             var result = await _cancelHandler.HandleAsync(command, cancellationToken);
 
-            return await req.OkAsync(result, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (KeyNotFoundException ex)
         {
@@ -116,7 +116,7 @@ public sealed class AdminDisruptionFunction
 
             var result = await _changeHandler.HandleAsync(command, cancellationToken);
 
-            return await req.OkAsync(result, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (NotImplementedException)
         {
@@ -167,7 +167,7 @@ public sealed class AdminDisruptionFunction
 
             var result = await _timeHandler.HandleAsync(command, cancellationToken);
 
-            return await req.OkAsync(result, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (NotImplementedException)
         {
