@@ -105,6 +105,12 @@
     </div>
   </ng-container>
 
+  <!-- Seat Total -->
+  <div class="cost-summary" *ngIf="totalSeatCost() > 0">
+    <span>Seat Selection Total</span>
+    <strong>{{ currency() }} {{ totalSeatCost() | number:'1.2-2' }}</strong>
+  </div>
+
   <!-- Save error -->
   <div class="save-error" *ngIf="saveError()">{{ saveError() }}</div>
 
