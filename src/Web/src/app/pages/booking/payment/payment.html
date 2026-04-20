@@ -108,6 +108,10 @@
           <span>Card Payment Total</span>
           <strong>{{ formatPrice(summary.totals.grandTotal) }}</strong>
         </div>
+        <div class="tax-included-row" *ngIf="totalTaxAmount() > 0">
+          Includes {{ formatPrice(totalTaxAmount()) }} in taxes &mdash;
+          <button class="tax-breakdown-link" (click)="openTaxModal()">View tax breakdown</button>
+        </div>
       </div>
     </div>
 
@@ -195,6 +199,34 @@
 
   </ng-container>
 
+</div>
+
+<!-- Tax Breakdown Modal -->
+<div class="modal-backdrop" *ngIf="showTaxModal()" (click)="closeTaxModal()" role="dialog" aria-modal="true" aria-labelledby="pay-tax-modal-title">
+  <div class="modal-card fade-in" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="pay-tax-modal-title">Taxes &amp; Charges</h2>
+      <button class="modal-close" (click)="closeTaxModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <ng-container *ngIf="taxSections().length > 0; else noTaxDetail">
+        <div class="tax-section" *ngFor="let section of taxSections()">
+          <div class="tax-section-label">{{ section.label }}</div>
+          <div class="tax-line" *ngFor="let line of section.lines">
+            <span class="tax-line-desc">{{ line.desc }}</span>
+            <span class="tax-line-amount">{{ formatPrice(line.amount) }}</span>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #noTaxDetail>
+        <p class="tax-no-detail">Tax detail is not available for this booking.</p>
+      </ng-template>
+      <div class="tax-modal-total">
+        <span>Total Included Tax</span>
+        <span>{{ formatPrice(totalTaxAmount()) }}</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Payment Error Modal -->

@@ -452,6 +452,136 @@
   border: 1.5px solid var(--border);
 }
 
+/* ── Tax Included Row ── */
+.tax-included-row {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: right;
+  padding-top: 6px;
+}
+
+.tax-breakdown-link {
+  background: none;
+  border: none;
+  color: var(--grad-start);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: opacity 0.15s;
+}
+
+.tax-breakdown-link:hover { opacity: 0.75; }
+
+/* ── Tax Breakdown Modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  border: none;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tax-section { display: flex; flex-direction: column; gap: 2px; }
+
+.tax-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grad-start);
+  margin-bottom: 4px;
+}
+
+.tax-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.tax-line:last-child { border-bottom: none; }
+
+.tax-line-desc { color: var(--text); flex: 1; }
+.tax-line-amount { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+.tax-modal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 2px;
+  border-top: 2px solid var(--border);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tax-no-detail {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 0;
+}
+
 /* ── Points colour ── */
 .points-color {
   color: #e67e22 !important;

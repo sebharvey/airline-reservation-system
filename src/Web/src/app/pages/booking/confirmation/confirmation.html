@@ -67,6 +67,20 @@
     </div>
   </div>
 
+  <!-- Fare -->
+  <div class="section-card">
+    <h2>Fare</h2>
+    <div class="ancillary-row" *ngFor="let item of getFlightItems()">
+      <span class="ancillary-icon">&#9992;&#65039;</span>
+      <span class="ancillary-desc">
+        {{ getSegmentLabel(item.segmentRef) }}
+        <ng-container *ngIf="item.fareFamily">&ensp;&middot;&ensp;{{ item.fareFamily }}</ng-container>
+      </span>
+      <span class="ancillary-pax" *ngFor="let pRef of item.passengerRefs">{{ getPassengerName(pRef) }}</span>
+      <span class="ancillary-price">{{ formatPrice(item.totalPrice) }}</span>
+    </div>
+  </div>
+
   <!-- Passengers -->
   <div class="section-card">
     <h2>Passengers</h2>
@@ -116,6 +130,20 @@
           </div>
         </ng-container>
       </dl>
+    </div>
+  </div>
+
+  <!-- Seats -->
+  <div class="section-card" *ngIf="seatItems.length > 0">
+    <h2>Seats</h2>
+    <div class="ancillary-row" *ngFor="let item of seatItems">
+      <span class="ancillary-icon">&#128186;</span>
+      <span class="ancillary-desc">
+        Seat {{ item.seatNumber }} &middot; {{ item.seatPosition }}
+        &mdash; {{ getSegmentLabel(item.segmentRef) }}
+      </span>
+      <span class="ancillary-pax" *ngFor="let pRef of item.passengerRefs">{{ getPassengerName(pRef) }}</span>
+      <span class="ancillary-price">{{ formatPrice(item.totalPrice) }}</span>
     </div>
   </div>
 
@@ -216,6 +244,10 @@
       <strong>{{ isRewardBooking ? 'Total Card Payment' : 'Total Paid' }}</strong>
       <strong>{{ formatPrice(grandTotal) }}</strong>
     </div>
+    <div class="tax-included-row" *ngIf="totalTax > 0">
+      Includes {{ formatPrice(totalTax) }} in taxes &mdash;
+      <button class="tax-breakdown-link" (click)="openTaxModal()">View tax breakdown</button>
+    </div>
   </div>
 
   <!-- Action Links -->
@@ -225,4 +257,32 @@
     <a routerLink="/" class="btn-primary">&#127968; Return Home</a>
   </div>
 
+</div>
+
+<!-- Tax Breakdown Modal -->
+<div class="modal-backdrop" *ngIf="showTaxModal()" (click)="closeTaxModal()" role="dialog" aria-modal="true" aria-labelledby="conf-tax-modal-title">
+  <div class="modal-card fade-in" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="conf-tax-modal-title">Taxes &amp; Charges</h2>
+      <button class="modal-close" (click)="closeTaxModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <ng-container *ngIf="taxSections.length > 0; else noTaxDetail">
+        <div class="tax-section" *ngFor="let section of taxSections">
+          <div class="tax-section-label">{{ section.label }}</div>
+          <div class="tax-line" *ngFor="let line of section.lines">
+            <span class="tax-line-desc">{{ line.desc }}</span>
+            <span class="tax-line-amount">{{ formatPrice(line.amount) }}</span>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #noTaxDetail>
+        <p class="tax-no-detail">Tax detail is not available for this order.</p>
+      </ng-template>
+      <div class="tax-modal-total">
+        <span>Total Included Tax</span>
+        <span>{{ formatPrice(totalTax) }}</span>
+      </div>
+    </div>
+  </div>
 </div>

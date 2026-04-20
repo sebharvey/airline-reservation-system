@@ -265,6 +265,7 @@ export interface PaymentSummaryFlight {
   fareAmount: number;
   taxAmount: number;
   totalAmount: number;
+  taxLines?: SummaryTaxLine[] | null;
 }
 
 export interface PaymentSummaryPassenger {

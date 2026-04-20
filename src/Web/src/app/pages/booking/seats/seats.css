@@ -314,6 +314,26 @@
   opacity: 0.5;
 }
 
+/* ── Cost Summary ── */
+.cost-summary {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.cost-summary strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 /* ── Actions ── */
 .actions {
   width: 100%;

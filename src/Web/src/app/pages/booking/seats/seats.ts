@@ -70,6 +70,16 @@ export class SeatsComponent implements OnInit {
 
   readonly selectionCount = computed(() => this.selections().size);
 
+  readonly currency = computed(() => this.basket()?.currency ?? 'GBP');
+
+  readonly totalSeatCost = computed(() => {
+    let total = 0;
+    for (const sel of this.selections().values()) {
+      total += sel.seatOffer.price ?? 0;
+    }
+    return total;
+  });
+
   readonly activeCabin = computed((): CabinSeatmap | null => {
     const entry = this.activeEntry();
     if (!entry?.seatmap) return null;
