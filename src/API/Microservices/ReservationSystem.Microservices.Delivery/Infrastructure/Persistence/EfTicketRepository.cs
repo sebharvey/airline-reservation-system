@@ -73,7 +73,7 @@ public sealed class EfTicketRepository : ITicketRepository
         string flightNumber, string origin, CancellationToken cancellationToken = default)
     {
         var candidates = await _context.Tickets
-            .FromSqlInterpolated($"SELECT * FROM Tickets WHERE IsVoided = 0 AND CAST(TicketData AS nvarchar(max)) LIKE '%' + {flightNumber} + '%'")
+            .FromSqlInterpolated($"SELECT * FROM [delivery].[Ticket] WHERE IsVoided = 0 AND CAST(TicketData AS nvarchar(max)) LIKE '%' + {flightNumber} + '%'")
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
