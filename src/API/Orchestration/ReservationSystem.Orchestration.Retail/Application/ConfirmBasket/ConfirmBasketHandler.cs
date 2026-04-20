@@ -47,8 +47,8 @@ public sealed class ConfirmBasketHandler
         var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
         var repricedOffers = await RepriceAndValidateOffersAsync(basketDataJsonEarly, cancellationToken);
 
-        var seatAmount    = basket.TotalSeatAmount;
-        var bagAmount     = basket.TotalBagAmount;
+        var seatAmount    = ParseSeatAmountFromBasketData(basketDataJsonEarly);
+        var bagAmount     = ParseBagAmountFromBasketData(basketDataJsonEarly);
         var productAmount = ParseProductAmountFromBasketData(basketDataJsonEarly);
         // Recalculate total from repriced fares so the confirmed amount reflects the
         // latest pricing, not whatever was stored on the basket when offers were added.
@@ -137,7 +137,7 @@ public sealed class ConfirmBasketHandler
         var issuedTickets = await ticketsTask;
 
         var bookedAt = DateTime.UtcNow.ToString("o");
-        var confirmedTotalAmount = confirmedOrder.TotalAmount ?? totalAmount;
+        var confirmedTotalAmount = totalAmount;
         var cardInfo = ExtractCardInfo(command.CardNumber, command.CardholderName);
 
         return BuildOrderResponse(
@@ -577,7 +577,7 @@ public sealed class ConfirmBasketHandler
                         PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
                         UnitPrice      = price,
                         Taxes          = tax,
-                        TotalPrice     = price + tax,
+                        TotalPrice     = price,
                         PaymentReference = paymentId,
                         SeatNumber     = seatNumber,
                         SeatPosition   = seatPos
@@ -606,7 +606,7 @@ public sealed class ConfirmBasketHandler
                         PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
                         UnitPrice      = price,
                         Taxes          = tax,
-                        TotalPrice     = price + tax,
+                        TotalPrice     = price,
                         PaymentReference = paymentId,
                         AdditionalBags = additionalBags
                     });
@@ -638,7 +638,7 @@ public sealed class ConfirmBasketHandler
                         PassengerRefs  = string.IsNullOrEmpty(paxId) ? [] : [paxId],
                         UnitPrice      = price,
                         Taxes          = tax,
-                        TotalPrice     = price + tax,
+                        TotalPrice     = price,
                         PaymentReference = paymentId,
                         ProductName    = name,
                         ProductOfferId = offerId
@@ -741,7 +741,39 @@ public sealed class ConfirmBasketHandler
             catch { /* Fall through to basket total */ }
         }
 
-        return flightTotal + basket.TotalSeatAmount + basket.TotalBagAmount + ParseProductAmountFromBasketData(basketDataJson);
+        return flightTotal + ParseSeatAmountFromBasketData(basketDataJson) + ParseBagAmountFromBasketData(basketDataJson) + ParseProductAmountFromBasketData(basketDataJson);
+    }
+
+    private static decimal ParseSeatAmountFromBasketData(string? basketDataJson)
+    {
+        if (basketDataJson is null) return 0m;
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("seats", out var seatsEl) || seatsEl.ValueKind != JsonValueKind.Array) return 0m;
+            decimal total = 0m;
+            foreach (var seat in seatsEl.EnumerateArray())
+                total += seat.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
+            return total;
+        }
+        catch { return 0m; }
+    }
+
+    private static decimal ParseBagAmountFromBasketData(string? basketDataJson)
+    {
+        if (basketDataJson is null) return 0m;
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("bags", out var bagsEl) || bagsEl.ValueKind != JsonValueKind.Array) return 0m;
+            decimal total = 0m;
+            foreach (var bag in bagsEl.EnumerateArray())
+                total += bag.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
+            return total;
+        }
+        catch { return 0m; }
     }
 
     private static decimal ParseProductAmountFromBasketData(string? basketDataJson)
@@ -757,8 +789,7 @@ public sealed class ConfirmBasketHandler
             foreach (var product in productsEl.EnumerateArray())
             {
                 var price = product.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
-                var tax   = product.TryGetProperty("tax",   out var t) ? t.GetDecimal() : 0m;
-                total += price + tax;
+                total += price;
             }
             return total;
         }
@@ -1375,8 +1406,8 @@ public sealed class ConfirmBasketHandler
                 var price = seat.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
                 var tax   = seat.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
                 var cur   = seat.TryGetProperty("currency",    out var c)   ? c.GetString() ?? "GBP" : "GBP";
-                if (price + tax > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
-                    items.Add((paxId, segId, price + tax, cur));
+                if (price > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
+                    items.Add((paxId, segId, price, cur));
             }
         }
         catch { }
@@ -1399,8 +1430,8 @@ public sealed class ConfirmBasketHandler
                 var price = bag.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
                 var tax   = bag.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
                 var cur   = bag.TryGetProperty("currency",    out var c)   ? c.GetString() ?? "GBP" : "GBP";
-                if (price + tax > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
-                    items.Add((paxId, segId, price + tax, cur));
+                if (price > 0 && !string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId))
+                    items.Add((paxId, segId, price, cur));
             }
         }
         catch { }
@@ -1423,8 +1454,8 @@ public sealed class ConfirmBasketHandler
                 var price = product.TryGetProperty("price",       out var p)   ? p.GetDecimal() : 0m;
                 var tax   = product.TryGetProperty("tax",         out var t)   ? t.GetDecimal() : 0m;
                 var cur   = product.TryGetProperty("currency",    out var c)   ? c.GetString() ?? "GBP" : "GBP";
-                if (price + tax > 0)
-                    items.Add((paxId, segId, price + tax, cur));
+                if (price > 0)
+                    items.Add((paxId, segId, price, cur));
             }
         }
         catch { }
