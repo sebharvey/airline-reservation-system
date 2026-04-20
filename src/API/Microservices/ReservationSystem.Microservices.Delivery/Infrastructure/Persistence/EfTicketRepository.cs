@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
@@ -72,40 +71,22 @@ public sealed class EfTicketRepository : ITicketRepository
     public async Task<IReadOnlyList<string>> GetAssignedSeatsForFlightAsync(
         string flightNumber, string origin, CancellationToken cancellationToken = default)
     {
-        var candidates = await _context.Tickets
-            .FromSqlInterpolated($"SELECT * FROM [delivery].[Ticket] WHERE IsVoided = 0 AND CAST(TicketData AS nvarchar(max)) LIKE '%' + {flightNumber} + '%'")
-            .AsNoTracking()
+        var seats = await _context.Database
+            .SqlQuery<string>($"""
+                SELECT c.Seat
+                FROM [delivery].[Ticket] t
+                CROSS APPLY OPENJSON(t.TicketData, '$.coupons') WITH (
+                    FlightNumber NVARCHAR(10) '$.marketing.flightNumber',
+                    Origin       NVARCHAR(3)  '$.origin',
+                    Seat         NVARCHAR(10) '$.seat'
+                ) c
+                WHERE t.IsVoided = 0
+                  AND c.FlightNumber = {flightNumber}
+                  AND c.Origin       = {origin}
+                  AND c.Seat IS NOT NULL
+                  AND c.Seat <> ''
+                """)
             .ToListAsync(cancellationToken);
-
-        var seats = new List<string>();
-        foreach (var ticket in candidates)
-        {
-            try
-            {
-                var root = JsonNode.Parse(ticket.TicketData)?.AsObject();
-                var coupons = root?["coupons"]?.AsArray();
-                if (coupons is null) continue;
-
-                foreach (var node in coupons)
-                {
-                    if (node is not JsonObject coupon) continue;
-                    var couponOrigin = coupon["origin"]?.GetValue<string>() ?? "";
-                    var couponFlight = coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "";
-                    var seat = coupon["seat"]?.GetValue<string>();
-
-                    if (string.Equals(couponOrigin, origin, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(couponFlight, flightNumber, StringComparison.OrdinalIgnoreCase) &&
-                        !string.IsNullOrWhiteSpace(seat))
-                    {
-                        seats.Add(seat!);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse TicketData for seat allocation on ticket {TicketId}", ticket.TicketId);
-            }
-        }
 
         return seats.AsReadOnly();
     }
