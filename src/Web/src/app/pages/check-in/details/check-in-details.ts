@@ -121,6 +121,37 @@ export class CheckInDetailsComponent implements OnInit {
     }
   }
 
+  fillRandomPassportData(): void {
+    const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const letters = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+    const pickChar = () => letters[Math.floor(Math.random() * letters.length)];
+    const randomPassportNumber = () => `${pickChar()}${pickChar()}${randInt(1000000, 9999999)}`;
+    const randomIssueDate = (): string => {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - randInt(1, 9));
+      return d.toISOString().substring(0, 10);
+    };
+
+    const states = this.passengerStates().map(s => {
+      if (!s.selected) return s;
+      const issueDate = randomIssueDate();
+      const expiry = new Date(issueDate);
+      expiry.setFullYear(expiry.getFullYear() + 10);
+      return {
+        ...s,
+        travelDocument: {
+          type: 'PASSPORT' as const,
+          number: randomPassportNumber(),
+          issuingCountry: 'GBR',
+          nationality: 'GBR',
+          issueDate,
+          expiryDate: expiry.toISOString().substring(0, 10),
+        }
+      };
+    });
+    this.passengerStates.set(states);
+  }
+
   proceedToSeats(): void {
     if (this.saving()) return;
     const selected = this.passengerStates().filter(s => s.selected);
