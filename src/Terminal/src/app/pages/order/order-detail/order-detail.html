@@ -317,21 +317,32 @@
                   @if (pay.events && pay.events.length > 0) {
                     <tr class="payment-events-row">
                       <td colspan="6">
-                        <div class="payment-events-list">
-                          @for (ev of pay.events; track ev.createdAt) {
-                            <div class="payment-event-item">
-                              <span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span>
-                              @if (ev.productType) {
-                                <span class="pay-product-type-badge">{{ ev.productType }}</span>
-                              }
-                              <span class="payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</span>
-                              <span class="muted">{{ formatDateTime(ev.createdAt) }}</span>
-                              @if (ev.notes) {
-                                <span class="muted payment-event-notes">{{ ev.notes }}</span>
-                              }
-                            </div>
-                          }
-                        </div>
+                        <table class="payment-events-table">
+                          <thead>
+                            <tr>
+                              <th>Event</th>
+                              <th>Product</th>
+                              <th>Amount</th>
+                              <th>Date / time</th>
+                              <th>Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (ev of pay.events; track ev.createdAt) {
+                              <tr>
+                                <td><span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span></td>
+                                <td>
+                                  @if (ev.productType) {
+                                    <span class="pay-product-type-badge">{{ ev.productType }}</span>
+                                  }
+                                </td>
+                                <td class="payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</td>
+                                <td class="muted">{{ formatDateTime(ev.createdAt) }}</td>
+                                <td class="muted payment-event-notes">{{ ev.notes }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
                       </td>
                     </tr>
                   }
@@ -364,16 +375,30 @@
                 </div>
                 @if (pay.events && pay.events.length > 0) {
                   <div class="mobile-payment-events">
-                    @for (ev of pay.events; track ev.createdAt) {
-                      <div class="mobile-payment-event-item">
-                        <span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span>
-                        @if (ev.productType) {
-                          <span class="pay-product-type-badge">{{ ev.productType }}</span>
+                    <table class="payment-events-table payment-events-table--mobile">
+                      <thead>
+                        <tr>
+                          <th>Event</th>
+                          <th>Product</th>
+                          <th>Amount</th>
+                          <th>Date / time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (ev of pay.events; track ev.createdAt) {
+                          <tr>
+                            <td><span class="pay-event-badge" [class]="eventTypeClass(ev.eventType)">{{ ev.eventType }}</span></td>
+                            <td>
+                              @if (ev.productType) {
+                                <span class="pay-product-type-badge">{{ ev.productType }}</span>
+                              }
+                            </td>
+                            <td class="payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</td>
+                            <td class="muted">{{ formatDateTime(ev.createdAt) }}</td>
+                          </tr>
                         }
-                        <span class="mobile-payment-event-amount">{{ formatAmount(ev.amount, ev.currency) }}</span>
-                        <span class="muted">{{ formatDateTime(ev.createdAt) }}</span>
-                      </div>
-                    }
+                      </tbody>
+                    </table>
                   </div>
                 }
               </div>
