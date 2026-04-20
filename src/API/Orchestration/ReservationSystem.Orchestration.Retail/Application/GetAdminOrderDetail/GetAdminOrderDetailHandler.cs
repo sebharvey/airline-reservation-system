@@ -300,9 +300,10 @@ public sealed class GetAdminOrderDetailHandler
                 ["seatNumber"]    = seatNum,
                 ["bagWeightKg"]   = null,
                 ["name"]          = null,
-                ["amount"]        = seatPrice,
+                ["totalAmount"]   = seatPrice,
+                ["amount"]        = Math.Round(seatPrice - seatTax, 2),
                 ["taxAmount"]     = seatTax,
-                ["lineTotal"]     = Math.Round(seatPrice + seatTax, 2),
+                ["lineTotal"]     = seatPrice,
                 ["currency"]      = seatItem["currency"]?.GetValue<string>(),
             });
         }
@@ -358,9 +359,10 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]    = null,
                     ["bagWeightKg"]   = null,
                     ["name"]          = productName,
-                    ["amount"]        = productPrice,
+                    ["totalAmount"]   = productPrice,
+                    ["amount"]        = Math.Round(productPrice - productTax, 2),
                     ["taxAmount"]     = productTax,
-                    ["lineTotal"]     = Math.Round(productPrice + productTax, 2),
+                    ["lineTotal"]     = productPrice,
                     ["currency"]      = rawItem["currency"]?.GetValue<string>(),
                 });
             }
@@ -385,9 +387,10 @@ public sealed class GetAdminOrderDetailHandler
                     ["seatNumber"]     = null,
                     ["bagWeightKg"]    = null,
                     ["additionalBags"] = addBags,
-                    ["amount"]         = bagPrice,
+                    ["totalAmount"]    = bagPrice,
+                    ["amount"]         = Math.Round(bagPrice - bagTax, 2),
                     ["taxAmount"]      = bagTax,
-                    ["lineTotal"]      = Math.Round(bagPrice + bagTax, 2),
+                    ["lineTotal"]      = bagPrice,
                     ["currency"]       = rawItem["currency"]?.GetValue<string>(),
                 });
             }
@@ -404,10 +407,17 @@ public sealed class GetAdminOrderDetailHandler
         foreach (var node in enrichedItems)
         {
             if (node is not JsonObject ei) continue;
-            subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
             var isFlight = string.Equals(ei["itemType"]?.GetValue<string>(), "Flight", StringComparison.OrdinalIgnoreCase);
             if (isFlight)
-                subtotalTax += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
+            {
+                subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
+                subtotalTax  += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
+            }
+            else
+            {
+                // Use totalAmount (gross tax-inclusive price) so grandTotal matches the settled payment.
+                subtotalFare += ei["totalAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
+            }
         }
         // Derive grandTotal from subtotals so all three figures are always internally consistent.
         var grandTotal = Math.Round(subtotalFare + subtotalTax, 2);
