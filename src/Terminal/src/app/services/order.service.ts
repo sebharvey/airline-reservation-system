@@ -304,7 +304,7 @@ export class OrderService {
   async updateOrderPassengers(bookingRef: string, passengers: OrderPassenger[]): Promise<void> {
     await firstValueFrom(
       this.#http.patch(
-        `${environment.retailApiUrl}/api/v1/orders/${bookingRef.toUpperCase()}/passengers`,
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/passengers`,
         { passengers },
       )
     );

@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, PassengerTravelDocument, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -8,6 +8,7 @@ interface EditForm {
   dob: string | null;
   email: string | null;
   phone: string | null;
+  docs: PassengerTravelDocument[];
 }
 
 interface SsrEditForm {
@@ -34,7 +35,7 @@ export class OrderDetailComponent implements OnInit {
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
-  editForm = signal<EditForm>({ givenName: '', surname: '', dob: null, email: null, phone: null });
+  editForm = signal<EditForm>({ givenName: '', surname: '', dob: null, email: null, phone: null, docs: [] });
   editSaving = signal(false);
   editError = signal('');
 
@@ -226,6 +227,7 @@ export class OrderDetailComponent implements OnInit {
       dob: pax.dob,
       email: pax.contacts?.email ?? null,
       phone: pax.contacts?.phone ?? null,
+      docs: pax.docs.map(d => ({ ...d })),
     });
   }
 
@@ -234,8 +236,15 @@ export class OrderDetailComponent implements OnInit {
     this.editError.set('');
   }
 
-  updateEditField(field: keyof EditForm, value: string): void {
+  updateEditField(field: keyof Omit<EditForm, 'docs'>, value: string): void {
     this.editForm.update(f => ({ ...f, [field]: value || null }));
+  }
+
+  updateDocField(index: number, field: keyof PassengerTravelDocument, value: string): void {
+    this.editForm.update(f => ({
+      ...f,
+      docs: f.docs.map((d, i) => i === index ? { ...d, [field]: value || null } : d),
+    }));
   }
 
   async saveEdit(pax: OrderPassenger): Promise<void> {
@@ -248,6 +257,7 @@ export class OrderDetailComponent implements OnInit {
       surname: form.surname,
       dob: form.dob,
       contacts: { email: form.email, phone: form.phone },
+      docs: form.docs,
     };
     const updatedPassengers = this.passengers().map(p =>
       p.passengerId === pax.passengerId ? updated : p

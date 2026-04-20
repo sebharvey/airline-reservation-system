@@ -733,6 +733,36 @@
               <label class="field-label">Phone</label>
               <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
             </div>
+            @if (editForm().docs.length > 0) {
+              <div style="grid-column:1/-1;margin-top:6px">
+                <span class="modal-section-title">Travel documents</span>
+              </div>
+              @for (doc of editForm().docs; track $index; let i = $index) {
+                @if (i > 0) {
+                  <div style="grid-column:1/-1;border-top:1px solid var(--border);margin:4px 0"></div>
+                }
+                <div class="edit-field">
+                  <label class="field-label">Doc type</label>
+                  <input class="edit-input" type="text" [value]="doc.type ?? ''" (input)="updateDocField(i, 'type', $any($event.target).value)" />
+                </div>
+                <div class="edit-field">
+                  <label class="field-label">Doc number</label>
+                  <input class="edit-input" type="text" [value]="doc.number ?? ''" (input)="updateDocField(i, 'number', $any($event.target).value)" />
+                </div>
+                <div class="edit-field">
+                  <label class="field-label">Expiry date</label>
+                  <input class="edit-input" type="date" [value]="doc.expiryDate ?? ''" (input)="updateDocField(i, 'expiryDate', $any($event.target).value)" />
+                </div>
+                <div class="edit-field">
+                  <label class="field-label">Nationality</label>
+                  <input class="edit-input" type="text" placeholder="e.g. GBR" [value]="doc.nationality ?? ''" (input)="updateDocField(i, 'nationality', $any($event.target).value)" />
+                </div>
+                <div class="edit-field">
+                  <label class="field-label">Issuing country</label>
+                  <input class="edit-input" type="text" placeholder="e.g. GBR" [value]="doc.issuingCountry ?? ''" (input)="updateDocField(i, 'issuingCountry', $any($event.target).value)" />
+                </div>
+              }
+            }
           </div>
           @if (editError()) {
             <div class="edit-error" style="margin-top:10px">{{ editError() }}</div>
@@ -786,6 +816,10 @@
               <div class="field-row">
                 <span class="field-label">Nationality</span>
                 <span class="field-value">{{ doc.nationality || '—' }}</span>
+              </div>
+              <div class="field-row">
+                <span class="field-label">Issuing country</span>
+                <span class="field-value">{{ doc.issuingCountry || '—' }}</span>
               </div>
             }
             @for (seg of segments(); track seg.segmentId) {
