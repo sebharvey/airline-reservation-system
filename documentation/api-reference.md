@@ -119,6 +119,7 @@ Staff-only endpoints for searching and viewing orders. All routes require a vali
 | `GET` | `/v1/admin/orders/{bookingRef}` | Retrieve full order detail by booking reference including passengers, flight segments, order items, payments, history, and item totals; `404` if not found |
 | `GET` | `/v1/admin/orders/{bookingRef}/tickets` | Retrieve all issued e-tickets for a booking including ticket data (passenger, fare construction, coupons); returns both active and voided tickets |
 | `GET` | `/v1/admin/orders/{bookingRef}/documents` | Retrieve all issued EMD documents for a booking including document data (ancillary detail, price breakdown, coupon status); returns both active and voided documents |
+| `PATCH` | `/v1/admin/orders/{bookingRef}/passengers` | Update passenger details (names, contacts, travel documents) on a confirmed order; replaces the full passengers array; `204 No Content` on success; `404` if not found; staff JWT required |
 
 ### Admin inventory management
 

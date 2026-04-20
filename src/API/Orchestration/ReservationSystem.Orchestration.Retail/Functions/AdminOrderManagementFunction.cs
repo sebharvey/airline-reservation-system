@@ -10,6 +10,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDocuments;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using System.IO;
 using System.Net;
 using System.Text;
 
@@ -130,6 +131,45 @@ public sealed class AdminOrderManagementFunction
             bookingRef.ToUpperInvariant(), cancellationToken);
 
         return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /v1/admin/orders/{bookingRef}/passengers
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateOrderPassengers")]
+    [OpenApiOperation(operationId: "AdminUpdateOrderPassengers", tags: new[] { "Admin Orders" }, Summary = "Update passenger details on a confirmed order (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Full passengers array to replace existing passenger details")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateOrderPassengers(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/admin/orders/{bookingRef}/passengers")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminUpdateOrderPassengers");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+            return await req.BadRequestAsync("Request body is required.");
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderPassengersAsync(bookingRef.ToUpperInvariant(), body, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
     }
 
     // -------------------------------------------------------------------------
