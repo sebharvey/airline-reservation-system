@@ -35,8 +35,13 @@ public sealed class AdminDisruptionCancelHandler
         AdminDisruptionCancelCommand command,
         CancellationToken ct)
     {
+        _logger.LogInformation(
+            "IROPS admin cancellation started for flight {FlightNumber} on {DepartureDate} (reason: {Reason})",
+            command.FlightNumber, command.DepartureDate, command.Reason ?? "none");
+
         // 1. Close inventory immediately — prevents new bookings on the cancelled flight
         await _offerServiceClient.CancelFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
+        _logger.LogInformation("Inventory closed for flight {FlightNumber} on {DepartureDate}", command.FlightNumber, command.DepartureDate);
 
         // 2. Fetch flight details needed for replacement search
         var flightInventory = await _offerServiceClient.GetFlightInventoryAsync(
@@ -98,14 +103,29 @@ public sealed class AdminDisruptionCancelHandler
             }
         }
 
+        var affectedPassengerCount = sortedOrders.Sum(o => o.Passengers.Count);
+        var rebookedCount = outcomes.Count(o => o.Outcome == "Rebooked");
+        var cancelledWithRefundCount = outcomes.Count(o => o.Outcome == "CancelledWithRefund");
+        var failedCount = outcomes.Count(o => o.Outcome == "Failed");
+
+        _logger.LogInformation(
+            "IROPS admin cancellation complete for flight {FlightNumber} on {DepartureDate} — {AffectedPassengers} passengers: {Rebooked} rebooked, {CancelledWithRefund} cancelled with refund, {Failed} failed",
+            command.FlightNumber, command.DepartureDate,
+            affectedPassengerCount, rebookedCount, cancelledWithRefundCount, failedCount);
+
+        if (failedCount > 0)
+            _logger.LogWarning(
+                "IROPS admin cancellation for flight {FlightNumber} on {DepartureDate} completed with {Failed} booking failure(s) requiring manual follow-up",
+                command.FlightNumber, command.DepartureDate, failedCount);
+
         return new AdminDisruptionCancelResponse
         {
             FlightNumber = command.FlightNumber,
             DepartureDate = command.DepartureDate,
-            AffectedPassengerCount = sortedOrders.Sum(o => o.Passengers.Count),
-            RebookedCount = outcomes.Count(o => o.Outcome == "Rebooked"),
-            CancelledWithRefundCount = outcomes.Count(o => o.Outcome == "CancelledWithRefund"),
-            FailedCount = outcomes.Count(o => o.Outcome == "Failed"),
+            AffectedPassengerCount = affectedPassengerCount,
+            RebookedCount = rebookedCount,
+            CancelledWithRefundCount = cancelledWithRefundCount,
+            FailedCount = failedCount,
             Outcomes = outcomes,
             ProcessedAt = DateTime.UtcNow
         };

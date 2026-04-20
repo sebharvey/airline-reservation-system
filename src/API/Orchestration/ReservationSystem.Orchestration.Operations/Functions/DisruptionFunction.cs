@@ -43,6 +43,10 @@ public sealed class DisruptionFunction
         if (string.IsNullOrWhiteSpace(request!.FlightNumber) || request.DelayMinutes <= 0)
             return await req.BadRequestAsync("The fields 'flightNumber' and 'delayMinutes' (greater than 0) are required.");
 
+        _logger.LogInformation(
+            "HandleDelay invoked — flight {FlightNumber}, scheduled {ScheduledDeparture}, delay {DelayMinutes} min",
+            request.FlightNumber, request.ScheduledDeparture, request.DelayMinutes);
+
         var command = new HandleDelayCommand(
             request.FlightNumber,
             request.ScheduledDeparture,
@@ -67,6 +71,10 @@ public sealed class DisruptionFunction
 
         if (string.IsNullOrWhiteSpace(request!.FlightNumber))
             return await req.BadRequestAsync("The field 'flightNumber' is required.");
+
+        _logger.LogInformation(
+            "HandleCancellation invoked — flight {FlightNumber}, scheduled {ScheduledDeparture}, iropsRebooking {EnableIropsRebooking}",
+            request.FlightNumber, request.ScheduledDeparture, request.EnableIropsRebooking);
 
         var command = new HandleCancellationCommand(
             request.FlightNumber,
