@@ -50,9 +50,9 @@ public sealed class ConfirmBasketHandler
         var seatAmount    = ParseSeatAmountFromBasketData(basketDataJsonEarly);
         var bagAmount     = ParseBagAmountFromBasketData(basketDataJsonEarly);
         var productAmount = ParseProductAmountFromBasketData(basketDataJsonEarly);
-        // Recalculate total from repriced fares so the confirmed amount reflects the
-        // latest pricing, not whatever was stored on the basket when offers were added.
-        var totalAmount = CalculateTotalFromRepriced(basketDataJsonEarly, repricedOffers, basket);
+        // Prices are locked at search time in the stored offer snapshot (CLAUDE.md rule #3).
+        // Reprice is called for validation only — basket amounts are authoritative for charging.
+        var totalAmount = CalculateTotalFromBasket(basketDataJsonEarly);
         var fareAmount  = totalAmount - seatAmount - bagAmount - productAmount;
         var currency = basket.CurrencyCode;
         var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
@@ -216,13 +216,19 @@ public sealed class ConfirmBasketHandler
                     pcEl.TryGetInt32(out var pc) && pc > 0)
                     passengerCount = pc;
 
+                // Use basket-locked amounts — prices are fixed at search time (stored offer pattern).
+                // Repriced item amounts reflect current occupancy and must not override the locked price.
+                var lockedBaseFare = offer.TryGetProperty("baseFareAmount", out var bfa) ? bfa.GetDecimal() : item.BaseFareAmount * passengerCount;
+                var lockedTax      = offer.TryGetProperty("taxAmount",      out var ta)  ? ta.GetDecimal()  : item.TaxAmount      * passengerCount;
+                var lockedTotal    = offer.TryGetProperty("totalAmount",    out var tot) ? tot.GetDecimal() : item.TotalAmount    * passengerCount;
+
                 payload.Add(new
                 {
                     offerId        = offerId,
                     cabinCode      = item.CabinCode,
-                    baseFareAmount = item.BaseFareAmount * passengerCount,
-                    taxAmount      = item.TaxAmount      * passengerCount,
-                    totalAmount    = item.TotalAmount    * passengerCount,
+                    baseFareAmount = lockedBaseFare,
+                    taxAmount      = lockedTax,
+                    totalAmount    = lockedTotal,
                     passengerCount = passengerCount,
                     taxLines       = item.TaxLines?.Select(tl => new
                     {
@@ -707,10 +713,7 @@ public sealed class ConfirmBasketHandler
         return null;
     }
 
-    private static decimal CalculateTotalFromRepriced(
-        string? basketDataJson,
-        Dictionary<Guid, RepriceOfferDto> repricedOffers,
-        OrderMsBasketResult basket)
+    private static decimal CalculateTotalFromBasket(string? basketDataJson)
     {
         decimal flightTotal = 0m;
         if (basketDataJson != null)
@@ -723,22 +726,12 @@ public sealed class ConfirmBasketHandler
                 {
                     foreach (var offer in offersEl.EnumerateArray())
                     {
-                        if (!offer.TryGetProperty("offerId", out var offerIdEl) || !offerIdEl.TryGetGuid(out var offerId))
-                            continue;
-                        if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
-                        var cabinCode = offer.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
-                        var item = repriced.Offers.FirstOrDefault(i =>
-                            string.Equals(i.CabinCode, cabinCode, StringComparison.OrdinalIgnoreCase))
-                            ?? repriced.Offers.FirstOrDefault();
-                        if (item is null) continue;
-                        var passengerCount = 1;
-                        if (offer.TryGetProperty("passengerCount", out var pcEl) && pcEl.TryGetInt32(out var pc) && pc > 0)
-                            passengerCount = pc;
-                        flightTotal += item.TotalAmount * passengerCount;
+                        if (offer.TryGetProperty("totalAmount", out var tot) && tot.ValueKind == JsonValueKind.Number)
+                            flightTotal += tot.GetDecimal();
                     }
                 }
             }
-            catch { /* Fall through to basket total */ }
+            catch { }
         }
 
         return flightTotal + ParseSeatAmountFromBasketData(basketDataJson) + ParseBagAmountFromBasketData(basketDataJson) + ParseProductAmountFromBasketData(basketDataJson);
