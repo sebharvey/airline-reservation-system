@@ -135,6 +135,12 @@
           <span class="tab-count">{{ tickets().length + documents().length }}</span>
         }
       </button>
+      <button class="tab" [class.tab-active]="activeTab() === 'notes'" (click)="switchTab('notes')">
+        Notes
+        @if (notes().length) {
+          <span class="tab-count">{{ notes().length }}</span>
+        }
+      </button>
     </div>
 
     <!-- ── ORDER ITEMS TAB ── -->
@@ -422,6 +428,27 @@
                   <span class="event-type">{{ event.eventType }}</span>
                   <span class="event-desc">{{ event.description }}</span>
                   <span class="event-time muted">{{ formatDateTime(event.timestamp) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── NOTES TAB ── -->
+    @if (activeTab() === 'notes') {
+      <div class="tab-content fade-in">
+        @if (notes().length === 0) {
+          <p class="empty-tab">No notes on record for this order.</p>
+        } @else {
+          <div class="notes-list">
+            @for (note of notes(); track note.dateTime + note.type) {
+              <div class="note-item">
+                <div class="note-type-badge">{{ note.type }}</div>
+                <div class="note-body">
+                  <span class="note-message">{{ note.message }}</span>
+                  <span class="event-time muted">{{ formatDateTime(note.dateTime) }}</span>
                 </div>
               </div>
             }
