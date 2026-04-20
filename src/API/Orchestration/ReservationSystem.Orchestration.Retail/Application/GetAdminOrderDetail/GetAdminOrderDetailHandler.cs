@@ -31,6 +31,16 @@ public sealed class GetAdminOrderDetailHandler
             ? await EnrichOrderDataAsync(order.OrderData.Value, order.CurrencyCode, cancellationToken)
             : order.OrderData;
 
+        // Prefer the grandTotal computed from enriched itemTotals over the stale DB value,
+        // so the top-level totalAmount always reflects what was actually charged.
+        decimal? totalAmount = order.TotalAmount;
+        if (enrichedOrderData.HasValue
+            && enrichedOrderData.Value.TryGetProperty("itemTotals", out var itemTotalsEl)
+            && itemTotalsEl.TryGetProperty("grandTotal", out var grandTotalEl))
+        {
+            totalAmount = grandTotalEl.GetDecimal();
+        }
+
         return new AdminOrderDetailResponse
         {
             OrderId = order.OrderId,
@@ -38,7 +48,7 @@ public sealed class GetAdminOrderDetailHandler
             OrderStatus = order.OrderStatus,
             ChannelCode = order.ChannelCode,
             Currency = order.CurrencyCode,
-            TotalAmount = order.TotalAmount,
+            TotalAmount = totalAmount,
             TicketingTimeLimit = order.TicketingTimeLimit,
             CreatedAt = order.CreatedAt,
             UpdatedAt = order.UpdatedAt,
@@ -387,13 +397,17 @@ public sealed class GetAdminOrderDetailHandler
             orderData["orderItems"] = enrichedItems;
 
         // Compute order item subtotals server-side so the Terminal never calculates totals itself.
+        // Only flight taxes are collected at payment; ancillary taxes are excluded from subtotalTax
+        // so that grandTotal matches the actual settled payment amount.
         decimal subtotalFare = 0m;
         decimal subtotalTax  = 0m;
         foreach (var node in enrichedItems)
         {
             if (node is not JsonObject ei) continue;
             subtotalFare += ei["fareAmount"]?.GetValue<decimal>() ?? ei["amount"]?.GetValue<decimal>() ?? 0m;
-            subtotalTax  += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
+            var isFlight = string.Equals(ei["itemType"]?.GetValue<string>(), "Flight", StringComparison.OrdinalIgnoreCase);
+            if (isFlight)
+                subtotalTax += ei["taxAmount"]?.GetValue<decimal>() ?? 0m;
         }
         // Derive grandTotal from subtotals so all three figures are always internally consistent.
         var grandTotal = Math.Round(subtotalFare + subtotalTax, 2);
