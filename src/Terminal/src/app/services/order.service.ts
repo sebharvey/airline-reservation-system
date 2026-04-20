@@ -254,6 +254,12 @@ export interface Document {
   updatedAt: string;
 }
 
+export interface OrderNote {
+  dateTime: string;
+  type: string;
+  message: string;
+}
+
 export interface OrderData {
   dataLists: {
     passengers: OrderPassenger[];
@@ -262,6 +268,7 @@ export interface OrderData {
   orderItems: OrderItem[];
   payments: OrderPayment[];
   history: OrderHistoryEvent[];
+  notes: OrderNote[];
   itemTotals: ItemTotals | null;
 }
 

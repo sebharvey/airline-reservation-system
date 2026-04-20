@@ -86,6 +86,46 @@ public sealed class UpdateOrderCheckInHandler
             }
         }
 
+        // Append a CHECK-IN note
+        var paxDescriptions = new List<string>();
+        var passengersDataList = orderJson["dataLists"]?["passengers"] as JsonArray;
+        foreach (var pax in command.Passengers)
+        {
+            string paxLabel = pax.PassengerId;
+            if (passengersDataList != null)
+            {
+                foreach (var node in passengersDataList)
+                {
+                    if (node is JsonObject paxNode &&
+                        string.Equals(paxNode["passengerId"]?.GetValue<string>(), pax.PassengerId, StringComparison.Ordinal))
+                    {
+                        var given = paxNode["givenName"]?.GetValue<string>() ?? "";
+                        var surname = paxNode["surname"]?.GetValue<string>() ?? "";
+                        paxLabel = $"{given} {surname}".Trim();
+                        break;
+                    }
+                }
+            }
+            paxDescriptions.Add(paxLabel);
+        }
+
+        var noteMessage = $"Checked in for departure from {command.DepartureAirport}: {string.Join(", ", paxDescriptions)}";
+
+        var existingNotesJson = orderJson["notes"]?.ToJsonString();
+        orderJson.Remove("notes");
+        var notesArray = existingNotesJson != null
+            ? JsonNode.Parse(existingNotesJson)!.AsArray()
+            : new JsonArray();
+
+        notesArray.Add(new JsonObject
+        {
+            ["dateTime"] = command.CheckedInAt,
+            ["type"] = "CHECK-IN",
+            ["message"] = noteMessage
+        });
+
+        orderJson["notes"] = notesArray;
+
         var updated = Domain.Entities.Order.Reconstitute(
             order.OrderId,
             order.BookingReference,

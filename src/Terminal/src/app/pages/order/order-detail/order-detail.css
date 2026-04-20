@@ -742,6 +742,49 @@
   font-size: 0.75rem;
 }
 
+/* Notes */
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.note-type-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+  margin-top: 1px;
+}
+
+.note-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.note-message {
+  font-size: 0.85rem;
+  color: var(--text);
+  word-break: break-word;
+}
+
 /* Edit button */
 .edit-btn {
   margin-left: auto;

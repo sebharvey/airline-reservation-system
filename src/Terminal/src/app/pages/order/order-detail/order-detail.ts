@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { OrderService, OrderDetail, OrderPassenger, PassengerTravelDocument, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
+import { OrderService, OrderDetail, OrderPassenger, PassengerTravelDocument, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, OrderNote, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
 
 interface EditForm {
   givenName: string;
@@ -31,7 +31,7 @@ export class OrderDetailComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   order = signal<OrderDetail | null>(null);
-  activeTab = signal<'orderItems' | 'payments' | 'history' | 'tickets'>('orderItems');
+  activeTab = signal<'orderItems' | 'payments' | 'history' | 'tickets' | 'notes'>('orderItems');
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
@@ -142,6 +142,10 @@ export class OrderDetailComponent implements OnInit {
     this.order()?.orderData?.history ?? []
   );
 
+  notes = computed<OrderNote[]>(() =>
+    this.order()?.orderData?.notes ?? []
+  );
+
   ngOnInit(): void {
     this.bookingRef = this.#route.snapshot.paramMap.get('bookingRef') ?? '';
     this.loadOrder();
@@ -168,7 +172,7 @@ export class OrderDetailComponent implements OnInit {
     }
   }
 
-  switchTab(tab: 'orderItems' | 'payments' | 'history' | 'tickets'): void {
+  switchTab(tab: 'orderItems' | 'payments' | 'history' | 'tickets' | 'notes'): void {
     this.activeTab.set(tab);
     if (tab === 'tickets') {
       this.loadTickets();
