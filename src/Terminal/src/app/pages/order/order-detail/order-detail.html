@@ -150,7 +150,7 @@
                   <th>Type</th>
                   <th>Description</th>
                   <th class="hide-mobile">Passenger</th>
-                  <th class="th-numeric">Fare</th>
+                  <th class="th-numeric">Price</th>
                   <th class="hide-mobile th-numeric">Tax</th>
                   <th class="hide-mobile th-numeric">Total</th>
                   <th class="hide-mobile">Status</th>
@@ -232,7 +232,7 @@
                   }
                   <div class="mobile-card-amounts">
                     <div class="mobile-amount-col">
-                      <span class="mobile-amount-label">Fare</span>
+                      <span class="mobile-amount-label">Price</span>
                       <span class="mobile-amount-value">
                         @if (item.fareAmount != null) {
                           {{ formatAmount(item.fareAmount, item.currency) }}
