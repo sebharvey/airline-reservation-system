@@ -103,7 +103,7 @@ public sealed class PaymentSummaryHandler
             CabinCode        = f.CabinCode,
             CabinName        = CabinNames.TryGetValue(f.CabinCode, out var name) ? name : f.CabinCode,
             FareFamily       = f.FareFamily,
-            FareAmount       = isReward ? 0m : f.BaseFareAmount,
+            FareAmount       = isReward ? 0m : f.TotalAmount,
             TaxAmount        = f.TaxAmount,
             TotalAmount      = isReward ? f.TaxAmount : f.TotalAmount
         }).ToList();
