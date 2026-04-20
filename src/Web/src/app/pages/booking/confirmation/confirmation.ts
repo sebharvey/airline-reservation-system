@@ -26,6 +26,7 @@ export class ConfirmationComponent implements OnInit {
 
   order: Order | null = null;
   copiedText = signal<string | null>(null);
+  showTaxModal = signal(false);
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
@@ -91,6 +92,46 @@ export class ConfirmationComponent implements OnInit {
   get bagTotal(): number     { return this.order?.bagTotal     ?? 0; }
   get productTotal(): number { return this.order?.productTotal ?? 0; }
   get grandTotal(): number   { return this.order?.totalAmount  ?? 0; }
+
+  get totalTax(): number {
+    return (this.order?.orderItems ?? []).reduce((sum, i) => sum + (i.taxes ?? 0), 0);
+  }
+
+  get taxSections(): { label: string; lines: { desc: string; amount: number }[] }[] {
+    if (!this.order) return [];
+    const sections: { label: string; lines: { desc: string; amount: number }[] }[] = [];
+
+    const flightLines = this.order.orderItems
+      .filter(i => i.type === 'Flight' && (i.taxes ?? 0) > 0)
+      .map(i => ({ desc: this.getSegmentLabel(i.segmentRef), amount: i.taxes }));
+    if (flightLines.length > 0) sections.push({ label: 'Fare Taxes', lines: flightLines });
+
+    const seatLines = this.order.orderItems
+      .filter(i => i.type === 'Seat' && (i.taxes ?? 0) > 0)
+      .map(i => ({
+        desc: `Seat ${i.seatNumber ?? ''} \u00b7 ${i.seatPosition ?? ''} \u2013 ${this.getSegmentLabel(i.segmentRef)}`,
+        amount: i.taxes
+      }));
+    if (seatLines.length > 0) sections.push({ label: 'Seat Taxes', lines: seatLines });
+
+    const bagLines = this.order.orderItems
+      .filter(i => i.type === 'Bag' && (i.taxes ?? 0) > 0)
+      .map(i => ({
+        desc: `${i.additionalBags ?? 1} additional bag(s) \u2013 ${this.getSegmentLabel(i.segmentRef)}`,
+        amount: i.taxes
+      }));
+    if (bagLines.length > 0) sections.push({ label: 'Baggage Taxes', lines: bagLines });
+
+    const productLines = this.order.orderItems
+      .filter(i => i.type === 'Product' && (i.taxes ?? 0) > 0)
+      .map(i => ({ desc: i.productName ?? 'Product', amount: i.taxes }));
+    if (productLines.length > 0) sections.push({ label: 'Product Taxes', lines: productLines });
+
+    return sections;
+  }
+
+  openTaxModal(): void { this.showTaxModal.set(true); }
+  closeTaxModal(): void { this.showTaxModal.set(false); }
 
   getPassengerName(passengerId: string): string {
     const pax = this.order?.passengers.find(p => p.passengerId === passengerId);

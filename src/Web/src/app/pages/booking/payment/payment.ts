@@ -134,6 +134,58 @@ export class PaymentComponent implements OnInit {
   paying = signal(false);
   paymentError = signal('');
   showErrorModal = signal(false);
+  showTaxModal = signal(false);
+
+  readonly totalTaxAmount = computed(() => {
+    const summary = this.paymentSummary();
+    if (!summary) return 0;
+    const seatTax = summary.seatSelections.reduce((s, x) => s + (x.tax ?? 0), 0);
+    const bagTax = summary.bagSelections.reduce((s, x) => s + (x.tax ?? 0), 0);
+    const productTax = summary.productSelections.reduce((s, x) => s + (x.tax ?? 0), 0);
+    return summary.totals.taxAmount + seatTax + bagTax + productTax;
+  });
+
+  readonly taxSections = computed((): { label: string; lines: { desc: string; amount: number }[] }[] => {
+    const summary = this.paymentSummary();
+    if (!summary) return [];
+    const sections: { label: string; lines: { desc: string; amount: number }[] }[] = [];
+
+    if (summary.totals.taxAmount > 0) {
+      const lines: { desc: string; amount: number }[] = [];
+      for (const f of summary.flights) {
+        if ((f.taxAmount ?? 0) > 0) {
+          if (f.taxLines?.length) {
+            for (const tl of f.taxLines) {
+              lines.push({
+                desc: `${tl.code}${tl.description ? ' \u2013 ' + tl.description : ''} (${f.flightNumber})`,
+                amount: tl.amount
+              });
+            }
+          } else {
+            lines.push({ desc: `${f.flightNumber} ${f.origin} \u2192 ${f.destination}`, amount: f.taxAmount });
+          }
+        }
+      }
+      if (lines.length > 0) sections.push({ label: 'Fare Taxes', lines });
+    }
+
+    const seatLines = summary.seatSelections
+      .filter(s => (s.tax ?? 0) > 0)
+      .map(s => ({ desc: `Seat ${s.seatNumber} \u00b7 ${s.seatPosition} (${s.flightNumber})`, amount: s.tax }));
+    if (seatLines.length > 0) sections.push({ label: 'Seat Taxes', lines: seatLines });
+
+    const bagLines = summary.bagSelections
+      .filter(b => (b.tax ?? 0) > 0)
+      .map(b => ({ desc: `${b.additionalBags} additional bag(s) \u2013 ${b.flightNumber}`, amount: b.tax }));
+    if (bagLines.length > 0) sections.push({ label: 'Baggage Taxes', lines: bagLines });
+
+    const productLines = summary.productSelections
+      .filter(p => (p.tax ?? 0) > 0)
+      .map(p => ({ desc: p.name, amount: p.tax }));
+    if (productLines.length > 0) sections.push({ label: 'Product Taxes', lines: productLines });
+
+    return sections;
+  });
 
   readonly cardDisplayNumber = computed(() => {
     const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
@@ -255,6 +307,9 @@ export class PaymentComponent implements OnInit {
   dismissErrorModal(): void {
     this.showErrorModal.set(false);
   }
+
+  openTaxModal(): void { this.showTaxModal.set(true); }
+  closeTaxModal(): void { this.showTaxModal.set(false); }
 
   formatPrice(amount: number): string {
     const currency = this.paymentSummary()?.currency ?? this.basket()?.currency ?? 'GBP';
