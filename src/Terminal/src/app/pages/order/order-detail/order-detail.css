@@ -875,6 +875,81 @@
   .edit-form-grid { grid-template-columns: 1fr; }
 }
 
+/* Doc list in pax modal */
+.doc-list-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doc-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-light);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color var(--transition), background var(--transition);
+  font-family: inherit;
+}
+
+.doc-list-item:hover {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.04);
+}
+
+.doc-list-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.doc-list-type {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.doc-list-num {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.doc-list-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.doc-list-chevron {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Doc detail modal — sits above the pax modal */
+.doc-modal-backdrop {
+  z-index: 1002;
+}
+
+.doc-modal-panel {
+  z-index: 1003;
+  width: min(440px, calc(100vw - 32px));
+}
+
 /* SSR management */
 .ssr-table-card { margin-bottom: 20px; }
 

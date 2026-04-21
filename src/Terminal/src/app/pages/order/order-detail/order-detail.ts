@@ -17,6 +17,12 @@ interface SsrEditForm {
   segmentRef: string;
 }
 
+interface DocDetailState {
+  doc: PassengerTravelDocument;
+  index: number;
+  pax: OrderPassenger;
+}
+
 @Component({
   selector: 'app-order-detail',
   templateUrl: './order-detail.html',
@@ -66,6 +72,72 @@ export class OrderDetailComponent implements OnInit {
   documentsLoading = signal(false);
   documentsError = signal('');
   selectedDocument = signal<Document | null>(null);
+
+  // Doc detail modal state
+  selectedDocDetail = signal<DocDetailState | null>(null);
+  editingDoc = signal(false);
+  docEditForm = signal<PassengerTravelDocument>({ type: null, number: null, issuingCountry: null, expiryDate: null, nationality: null });
+  docEditSaving = signal(false);
+  docEditError = signal('');
+
+  readonly docTypes = ['Passport', 'National ID', 'Visa', 'Residence Permit', 'Emergency Passport', 'Travel Document'];
+
+  readonly countries = [
+    { code: 'AFG', name: 'Afghanistan' }, { code: 'ALB', name: 'Albania' }, { code: 'DZA', name: 'Algeria' },
+    { code: 'AND', name: 'Andorra' }, { code: 'AGO', name: 'Angola' }, { code: 'ARG', name: 'Argentina' },
+    { code: 'ARM', name: 'Armenia' }, { code: 'AUS', name: 'Australia' }, { code: 'AUT', name: 'Austria' },
+    { code: 'AZE', name: 'Azerbaijan' }, { code: 'BHS', name: 'Bahamas' }, { code: 'BHR', name: 'Bahrain' },
+    { code: 'BGD', name: 'Bangladesh' }, { code: 'BLR', name: 'Belarus' }, { code: 'BEL', name: 'Belgium' },
+    { code: 'BLZ', name: 'Belize' }, { code: 'BTN', name: 'Bhutan' }, { code: 'BOL', name: 'Bolivia' },
+    { code: 'BIH', name: 'Bosnia and Herzegovina' }, { code: 'BWA', name: 'Botswana' }, { code: 'BRA', name: 'Brazil' },
+    { code: 'BRN', name: 'Brunei' }, { code: 'BGR', name: 'Bulgaria' }, { code: 'BFA', name: 'Burkina Faso' },
+    { code: 'BDI', name: 'Burundi' }, { code: 'KHM', name: 'Cambodia' }, { code: 'CMR', name: 'Cameroon' },
+    { code: 'CAN', name: 'Canada' }, { code: 'CHL', name: 'Chile' }, { code: 'CHN', name: 'China' },
+    { code: 'COL', name: 'Colombia' }, { code: 'COD', name: 'Congo (DRC)' }, { code: 'COG', name: 'Congo (Republic)' },
+    { code: 'CRI', name: 'Costa Rica' }, { code: 'HRV', name: 'Croatia' }, { code: 'CUB', name: 'Cuba' },
+    { code: 'CYP', name: 'Cyprus' }, { code: 'CZE', name: 'Czech Republic' }, { code: 'DNK', name: 'Denmark' },
+    { code: 'DOM', name: 'Dominican Republic' }, { code: 'ECU', name: 'Ecuador' }, { code: 'EGY', name: 'Egypt' },
+    { code: 'SLV', name: 'El Salvador' }, { code: 'EST', name: 'Estonia' }, { code: 'ETH', name: 'Ethiopia' },
+    { code: 'FJI', name: 'Fiji' }, { code: 'FIN', name: 'Finland' }, { code: 'FRA', name: 'France' },
+    { code: 'GAB', name: 'Gabon' }, { code: 'GMB', name: 'Gambia' }, { code: 'GEO', name: 'Georgia' },
+    { code: 'DEU', name: 'Germany' }, { code: 'GHA', name: 'Ghana' }, { code: 'GRC', name: 'Greece' },
+    { code: 'GTM', name: 'Guatemala' }, { code: 'HTI', name: 'Haiti' }, { code: 'HND', name: 'Honduras' },
+    { code: 'HKG', name: 'Hong Kong' }, { code: 'HUN', name: 'Hungary' }, { code: 'ISL', name: 'Iceland' },
+    { code: 'IND', name: 'India' }, { code: 'IDN', name: 'Indonesia' }, { code: 'IRN', name: 'Iran' },
+    { code: 'IRQ', name: 'Iraq' }, { code: 'IRL', name: 'Ireland' }, { code: 'ISR', name: 'Israel' },
+    { code: 'ITA', name: 'Italy' }, { code: 'JAM', name: 'Jamaica' }, { code: 'JPN', name: 'Japan' },
+    { code: 'JOR', name: 'Jordan' }, { code: 'KAZ', name: 'Kazakhstan' }, { code: 'KEN', name: 'Kenya' },
+    { code: 'KOR', name: 'Korea (South)' }, { code: 'PRK', name: 'Korea (North)' }, { code: 'KWT', name: 'Kuwait' },
+    { code: 'KGZ', name: 'Kyrgyzstan' }, { code: 'LAO', name: 'Laos' }, { code: 'LVA', name: 'Latvia' },
+    { code: 'LBN', name: 'Lebanon' }, { code: 'LBY', name: 'Libya' }, { code: 'LIE', name: 'Liechtenstein' },
+    { code: 'LTU', name: 'Lithuania' }, { code: 'LUX', name: 'Luxembourg' }, { code: 'MAC', name: 'Macao' },
+    { code: 'MDG', name: 'Madagascar' }, { code: 'MWI', name: 'Malawi' }, { code: 'MYS', name: 'Malaysia' },
+    { code: 'MDV', name: 'Maldives' }, { code: 'MLI', name: 'Mali' }, { code: 'MLT', name: 'Malta' },
+    { code: 'MRT', name: 'Mauritania' }, { code: 'MUS', name: 'Mauritius' }, { code: 'MEX', name: 'Mexico' },
+    { code: 'MDA', name: 'Moldova' }, { code: 'MCO', name: 'Monaco' }, { code: 'MNG', name: 'Mongolia' },
+    { code: 'MNE', name: 'Montenegro' }, { code: 'MAR', name: 'Morocco' }, { code: 'MOZ', name: 'Mozambique' },
+    { code: 'MMR', name: 'Myanmar' }, { code: 'NAM', name: 'Namibia' }, { code: 'NPL', name: 'Nepal' },
+    { code: 'NLD', name: 'Netherlands' }, { code: 'NZL', name: 'New Zealand' }, { code: 'NIC', name: 'Nicaragua' },
+    { code: 'NER', name: 'Niger' }, { code: 'NGA', name: 'Nigeria' }, { code: 'MKD', name: 'North Macedonia' },
+    { code: 'NOR', name: 'Norway' }, { code: 'OMN', name: 'Oman' }, { code: 'PAK', name: 'Pakistan' },
+    { code: 'PAN', name: 'Panama' }, { code: 'PNG', name: 'Papua New Guinea' }, { code: 'PRY', name: 'Paraguay' },
+    { code: 'PER', name: 'Peru' }, { code: 'PHL', name: 'Philippines' }, { code: 'POL', name: 'Poland' },
+    { code: 'PRT', name: 'Portugal' }, { code: 'QAT', name: 'Qatar' }, { code: 'ROU', name: 'Romania' },
+    { code: 'RUS', name: 'Russia' }, { code: 'RWA', name: 'Rwanda' }, { code: 'SAU', name: 'Saudi Arabia' },
+    { code: 'SEN', name: 'Senegal' }, { code: 'SRB', name: 'Serbia' }, { code: 'SLE', name: 'Sierra Leone' },
+    { code: 'SGP', name: 'Singapore' }, { code: 'SVK', name: 'Slovakia' }, { code: 'SVN', name: 'Slovenia' },
+    { code: 'SOM', name: 'Somalia' }, { code: 'ZAF', name: 'South Africa' }, { code: 'SSD', name: 'South Sudan' },
+    { code: 'ESP', name: 'Spain' }, { code: 'LKA', name: 'Sri Lanka' }, { code: 'SDN', name: 'Sudan' },
+    { code: 'SUR', name: 'Suriname' }, { code: 'SWE', name: 'Sweden' }, { code: 'CHE', name: 'Switzerland' },
+    { code: 'SYR', name: 'Syria' }, { code: 'TWN', name: 'Taiwan' }, { code: 'TJK', name: 'Tajikistan' },
+    { code: 'TZA', name: 'Tanzania' }, { code: 'THA', name: 'Thailand' }, { code: 'TGO', name: 'Togo' },
+    { code: 'TTO', name: 'Trinidad and Tobago' }, { code: 'TUN', name: 'Tunisia' }, { code: 'TUR', name: 'Turkey' },
+    { code: 'TKM', name: 'Turkmenistan' }, { code: 'UGA', name: 'Uganda' }, { code: 'UKR', name: 'Ukraine' },
+    { code: 'ARE', name: 'United Arab Emirates' }, { code: 'GBR', name: 'United Kingdom' },
+    { code: 'USA', name: 'United States' }, { code: 'URY', name: 'Uruguay' }, { code: 'UZB', name: 'Uzbekistan' },
+    { code: 'VEN', name: 'Venezuela' }, { code: 'VNM', name: 'Vietnam' }, { code: 'YEM', name: 'Yemen' },
+    { code: 'ZMB', name: 'Zambia' }, { code: 'ZWE', name: 'Zimbabwe' },
+  ];
 
   // Debug state — TODO: Remove when debug endpoints are removed
   showDebug = signal(false);
@@ -238,6 +310,74 @@ export class OrderDetailComponent implements OnInit {
   cancelEdit(): void {
     this.editingPaxId.set(null);
     this.editError.set('');
+  }
+
+  openDocDetailModal(doc: PassengerTravelDocument, index: number, pax: OrderPassenger): void {
+    this.selectedDocDetail.set({ doc, index, pax });
+    this.editingDoc.set(false);
+    this.docEditError.set('');
+  }
+
+  closeDocDetailModal(): void {
+    this.selectedDocDetail.set(null);
+    this.editingDoc.set(false);
+    this.docEditError.set('');
+  }
+
+  startEditDoc(): void {
+    const state = this.selectedDocDetail();
+    if (!state) return;
+    this.editingDoc.set(true);
+    this.docEditError.set('');
+    this.docEditForm.set({ ...state.doc });
+  }
+
+  cancelEditDoc(): void {
+    this.editingDoc.set(false);
+    this.docEditError.set('');
+  }
+
+  updateDocEditField(field: keyof PassengerTravelDocument, value: string): void {
+    this.docEditForm.update(f => ({ ...f, [field]: value || null }));
+  }
+
+  async saveDocEdit(): Promise<void> {
+    const state = this.selectedDocDetail();
+    if (!state) return;
+    this.docEditSaving.set(true);
+    this.docEditError.set('');
+    const form = this.docEditForm();
+    const updatedDocs = state.pax.docs.map((d, i) => i === state.index ? { ...form } : d);
+    const updatedPax: OrderPassenger = { ...state.pax, docs: updatedDocs };
+    const updatedPassengers = this.passengers().map(p =>
+      p.passengerId === state.pax.passengerId ? updatedPax : p
+    );
+    try {
+      await this.#orderService.updateOrderPassengers(this.bookingRef, updatedPassengers);
+      this.editingDoc.set(false);
+      await this.loadOrder();
+      const refreshedPax = this.passengers().find(p => p.passengerId === state.pax.passengerId);
+      if (refreshedPax) {
+        this.selectedPassenger.set(refreshedPax);
+        const refreshedDoc = refreshedPax.docs[state.index];
+        this.selectedDocDetail.set(refreshedDoc
+          ? { doc: refreshedDoc, index: state.index, pax: refreshedPax }
+          : null);
+      } else {
+        this.selectedDocDetail.set(null);
+        this.selectedPassenger.set(null);
+      }
+    } catch {
+      this.docEditError.set('Failed to save changes. Please try again.');
+    } finally {
+      this.docEditSaving.set(false);
+    }
+  }
+
+  countryName(code: string | null | undefined): string {
+    if (!code) return '—';
+    const country = this.countries.find(c => c.code === code);
+    return country ? `${country.name} (${code})` : code;
   }
 
   updateEditField(field: keyof Omit<EditForm, 'docs'>, value: string): void {
