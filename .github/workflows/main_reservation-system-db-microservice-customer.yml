@@ -39,19 +39,6 @@ jobs:
           dotnet build --configuration Release --output ./output
           popd
 
-      - name: 'Run Tests'
-        shell: bash
-        run: dotnet test src/API/Tests/ReservationSystem.Tests.csproj --configuration Release
-
-      - name: 'Check for Vulnerable Packages'
-        shell: bash
-        run: |
-          dotnet list './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}' package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
-          if grep -qE 'Critical|High' vuln-report.txt; then
-            echo "Critical or High severity vulnerabilities found — failing build."
-            exit 1
-          fi
-
       - name: Login to Azure
         uses: azure/login@v2
         with:

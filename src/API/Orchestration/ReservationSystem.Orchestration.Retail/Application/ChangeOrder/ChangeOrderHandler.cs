@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Orchestration.Retail.Application.ChangeOrder;
@@ -24,22 +23,19 @@ public sealed class ChangeOrderHandler
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly CustomerServiceClient _customerServiceClient;
-    private readonly ILogger<ChangeOrderHandler> _logger;
 
     public ChangeOrderHandler(
         OrderServiceClient orderServiceClient,
         OfferServiceClient offerServiceClient,
         PaymentServiceClient paymentServiceClient,
         DeliveryServiceClient deliveryServiceClient,
-        CustomerServiceClient customerServiceClient,
-        ILogger<ChangeOrderHandler> logger)
+        CustomerServiceClient customerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
         _offerServiceClient = offerServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _customerServiceClient = customerServiceClient;
-        _logger = logger;
     }
 
     public async Task<ChangeOrderResponse> HandleAsync(
@@ -119,7 +115,7 @@ public sealed class ChangeOrderHandler
             try { await _deliveryServiceClient.VoidTicketAsync(eTicket, ct); }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ChangeOrder] Ticket void failed for {ETicket}", eTicket);
+                Console.Error.WriteLine($"[ChangeOrder] Ticket void failed for {eTicket}: {ex.Message}");
             }
         }
 
@@ -133,7 +129,7 @@ public sealed class ChangeOrderHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ChangeOrder] Inventory release failed for {InventoryId}", inventoryId);
+                Console.Error.WriteLine($"[ChangeOrder] Inventory release failed: {ex.Message}");
             }
         }
 
@@ -205,7 +201,7 @@ public sealed class ChangeOrderHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ChangeOrder] Ticket reissuance failed");
+                Console.Error.WriteLine($"[ChangeOrder] Ticket reissuance failed: {ex.Message}");
             }
         }
 

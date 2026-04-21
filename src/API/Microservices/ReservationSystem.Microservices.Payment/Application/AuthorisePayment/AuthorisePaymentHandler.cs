@@ -77,15 +77,11 @@ public sealed class AuthorisePaymentHandler
 
             cardType = DeriveCardType(command.CardNumber);
 
-            // KNOWN GAP (arch-review C-03): Payment gateway integration is not implemented.
-            // This is intentional for the current POC phase — the authorisation flow records
-            // state transitions correctly but does not move money.
-            //
-            // Before production: select a processor (Adyen, Stripe, or Worldpay), implement
-            // IPaymentGatewayClient, wire it into this handler, and add integration tests
-            // covering success, decline, and 3DS challenge flows.
-            // On decline the handler must set Status = Declined and return a 422 response.
-            // The full card number, expiry, and CVV must never be persisted to the database.
+            // TODO: Call payment gateway (e.g. Adyen, Stripe, Worldpay) to authorise the card.
+            // The gateway call should use the full card number, expiry, CVV, and amount held on
+            // the Payment record. On success, persist the gateway authorisation code / token
+            // (in memory only — never to the database). On decline, set Status = Declined and
+            // return a 422 response. The gateway adapter will sit behind an IPaymentGateway interface.
         }
 
         payment.Authorise(amountToAuthorise, cardType, cardLast4);
