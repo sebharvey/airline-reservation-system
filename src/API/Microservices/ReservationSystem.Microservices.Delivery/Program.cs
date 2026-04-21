@@ -18,6 +18,7 @@ using ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
 using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
+using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Domain.Services;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
@@ -62,6 +63,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
+        services.AddScoped<IManifestRepository, EfManifestRepository>();
         services.AddSingleton<TaxAttributionService>();
 
         // ── Health check ───────────────────────────────────────────────────────
@@ -79,6 +81,7 @@ var host = new HostBuilder()
         services.AddScoped<VoidDocumentHandler>();
         services.AddScoped<OciCheckInHandler>();
         services.AddScoped<OciBoardingDocsHandler>();
+        services.AddScoped<WriteManifestHandler>();
     })
     .Build();
 

@@ -983,7 +983,15 @@ public sealed class ConfirmBasketHandler
                 }).ToList();
 
                 await _deliveryServiceClient.WriteManifestAsync(
-                    bookingReference, inventoryId, segment.FlightNumber, segment.DepartureDate, entries, ct);
+                    bookingReference, inventoryId,
+                    segment.FlightNumber,
+                    segment.Origin,
+                    segment.Destination,
+                    segment.DepartureDate,
+                    segment.AircraftType,
+                    segment.DepartureTime,
+                    segment.ArrivalTime,
+                    entries, ct);
             }
         }
         catch (Exception ex)
@@ -1134,16 +1142,19 @@ public sealed class ConfirmBasketHandler
 
                     segments.Add(new TicketSegment
                     {
-                        SegmentId = segmentId,
-                        InventoryId = inventoryId,
-                        FlightNumber = offer.TryGetProperty("flightNumber", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        SegmentId     = segmentId,
+                        InventoryId   = inventoryId,
+                        FlightNumber  = offer.TryGetProperty("flightNumber",  out v) ? v.GetString() ?? string.Empty : string.Empty,
                         DepartureDate = offer.TryGetProperty("departureDate", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        Origin = offer.TryGetProperty("origin", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        Destination = offer.TryGetProperty("destination", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        CabinCode = offer.TryGetProperty("cabinCode", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        Origin        = offer.TryGetProperty("origin",        out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        Destination   = offer.TryGetProperty("destination",   out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        CabinCode     = offer.TryGetProperty("cabinCode",     out v) ? v.GetString() ?? string.Empty : string.Empty,
                         FareBasisCode = offer.TryGetProperty("fareBasisCode", out v) ? v.GetString() : null,
+                        DepartureTime = offer.TryGetProperty("departureTime", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        ArrivalTime   = offer.TryGetProperty("arrivalTime",   out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        AircraftType  = offer.TryGetProperty("aircraftType",  out v) ? v.GetString() ?? string.Empty : string.Empty,
                         SeatAssignments = seatsByInventoryId.TryGetValue(inventoryId, out var segSeats) ? segSeats : [],
-                        SsrCodes = ssrsByInventoryId.TryGetValue(inventoryId, out var segSsrs) ? segSsrs : []
+                        SsrCodes        = ssrsByInventoryId.TryGetValue(inventoryId, out var segSsrs)  ? segSsrs  : []
                     });
                     idx++;
                 }
