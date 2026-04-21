@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -8,6 +9,7 @@ namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices
 public sealed class DeliveryServiceClient
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<DeliveryServiceClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -15,9 +17,10 @@ public sealed class DeliveryServiceClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public DeliveryServiceClient(IHttpClientFactory httpClientFactory)
+    public DeliveryServiceClient(IHttpClientFactory httpClientFactory, ILogger<DeliveryServiceClient> logger)
     {
         _httpClient = httpClientFactory.CreateClient("DeliveryMs");
+        _logger = logger;
     }
 
     public async Task<List<IssuedTicket>> IssueTicketsAsync(
@@ -127,7 +130,7 @@ public sealed class DeliveryServiceClient
         {
             var error = await response.ReadErrorMessageAsync(ct);
             // Document issuance failure is non-fatal — log but do not roll back
-            System.Console.Error.WriteLine($"[DeliveryServiceClient] Document issuance failed: {error}");
+            _logger.LogWarning("[DeliveryServiceClient] Document issuance failed: {Error}", error);
         }
     }
 

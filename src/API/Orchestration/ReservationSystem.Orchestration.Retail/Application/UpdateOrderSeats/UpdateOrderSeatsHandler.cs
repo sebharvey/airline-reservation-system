@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
@@ -23,19 +24,22 @@ public sealed class UpdateOrderSeatsHandler
     private readonly OfferServiceClient _offerServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly ILogger<UpdateOrderSeatsHandler> _logger;
 
     public UpdateOrderSeatsHandler(
         OrderServiceClient orderServiceClient,
         SeatServiceClient seatServiceClient,
         OfferServiceClient offerServiceClient,
         PaymentServiceClient paymentServiceClient,
-        DeliveryServiceClient deliveryServiceClient)
+        DeliveryServiceClient deliveryServiceClient,
+        ILogger<UpdateOrderSeatsHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _seatServiceClient = seatServiceClient;
         _offerServiceClient = offerServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _logger = logger;
     }
 
     public async Task<UpdateOrderSeatsResponse> HandleAsync(
@@ -183,7 +187,7 @@ public sealed class UpdateOrderSeatsHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[UpdateOrderSeats] Document issuance failed for {seat.PassengerId}: {ex.Message}");
+                _logger.LogError(ex, "[UpdateOrderSeats] Document issuance failed for {PassengerId}", seat.PassengerId);
             }
         }
 

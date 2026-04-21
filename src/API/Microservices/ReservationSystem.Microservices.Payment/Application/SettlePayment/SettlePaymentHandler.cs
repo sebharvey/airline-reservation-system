@@ -57,9 +57,13 @@ public sealed class SettlePaymentHandler
                 $"Settlement amount ({command.Amount}) must equal the pending authorised amount ({pendingAmount}).");
         }
 
-        // TODO: Call payment gateway to capture / settle the authorised funds.
-        // Use the gateway authorisation reference obtained during the authorise step.
-        // On failure, leave the payment in Authorised status and return an error.
+        // KNOWN GAP (arch-review C-03): Payment gateway integration is not implemented.
+        // This is intentional for the current POC phase — settlement records state correctly
+        // but does not capture funds from the processor.
+        //
+        // Before production: use the gateway authorisation reference obtained during the
+        // authorise step to call the processor's capture endpoint. On failure, leave the
+        // payment in Authorised status and return an error.
 
         payment.Settle(command.Amount);
         await _repository.UpdateAsync(payment, cancellationToken);
