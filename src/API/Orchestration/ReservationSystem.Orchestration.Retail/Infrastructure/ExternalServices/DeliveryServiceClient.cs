@@ -149,6 +149,23 @@ public sealed class DeliveryServiceClient
         if (!response.IsSuccessStatusCode) return null;
         return await response.Content.ReadAsStringAsync(ct);
     }
+
+    public async Task WriteManifestAsync(
+        string bookingReference,
+        Guid inventoryId,
+        string flightNumber,
+        string departureDate,
+        List<ManifestPassengerEntry> entries,
+        CancellationToken ct)
+    {
+        var payload = new { bookingReference, inventoryId, flightNumber, departureDate, entries };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Manifest write failed for booking {bookingReference}: {error}");
+        }
+    }
 }
 
 public sealed class IssuedTicket
@@ -383,4 +400,28 @@ file sealed class IssueTicketsResult
 {
     [JsonPropertyName("tickets")]
     public List<IssuedTicket> Tickets { get; init; } = [];
+}
+
+public sealed class ManifestPassengerEntry
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("givenName")]
+    public string GivenName { get; init; } = string.Empty;
+
+    [JsonPropertyName("surname")]
+    public string Surname { get; init; } = string.Empty;
+
+    [JsonPropertyName("eTicketNumber")]
+    public string ETicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatNumber")]
+    public string? SeatNumber { get; init; }
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatPosition")]
+    public string? SeatPosition { get; init; }
 }

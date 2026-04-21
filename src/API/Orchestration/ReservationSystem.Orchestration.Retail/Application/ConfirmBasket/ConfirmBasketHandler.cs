@@ -136,6 +136,8 @@ public sealed class ConfirmBasketHandler
 
         var issuedTickets = await ticketsTask;
 
+        await RunManifestWriteAsync(basketDataJson, confirmedOrder.BookingReference, issuedTickets, cancellationToken);
+
         var bookedAt = DateTime.UtcNow.ToString("o");
         var confirmedTotalAmount = totalAmount;
         var cardInfo = ExtractCardInfo(command.CardNumber, command.CardholderName);
@@ -941,6 +943,52 @@ public sealed class ConfirmBasketHandler
         {
             System.Console.Error.WriteLine(
                 $"[ConfirmBasket] Customer order link failed for {confirmedOrder.BookingReference}: {ex.Message}");
+        }
+    }
+
+    private async Task RunManifestWriteAsync(
+        string? basketDataJson,
+        string bookingReference,
+        List<IssuedTicket> issuedTickets,
+        CancellationToken ct)
+    {
+        if (basketDataJson is null) return;
+        try
+        {
+            var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
+
+            foreach (var segment in segments)
+            {
+                if (!Guid.TryParse(segment.InventoryId, out var inventoryId)) continue;
+
+                var entries = passengers.Select(pax =>
+                {
+                    var ticket = issuedTickets.FirstOrDefault(t =>
+                        string.Equals(t.PassengerId, pax.PassengerId, StringComparison.OrdinalIgnoreCase) &&
+                        t.SegmentIds.Any(s => string.Equals(s, segment.SegmentId, StringComparison.OrdinalIgnoreCase)));
+
+                    var seat = segment.SeatAssignments.FirstOrDefault(s =>
+                        string.Equals(s.PassengerId, pax.PassengerId, StringComparison.OrdinalIgnoreCase));
+
+                    return new ManifestPassengerEntry
+                    {
+                        PassengerId   = pax.PassengerId,
+                        GivenName     = pax.GivenName,
+                        Surname       = pax.Surname,
+                        ETicketNumber = ticket?.ETicketNumber ?? string.Empty,
+                        SeatNumber    = string.IsNullOrEmpty(seat?.SeatNumber) ? null : seat.SeatNumber,
+                        CabinCode     = segment.CabinCode,
+                        SeatPosition  = null
+                    };
+                }).ToList();
+
+                await _deliveryServiceClient.WriteManifestAsync(
+                    bookingReference, inventoryId, segment.FlightNumber, segment.DepartureDate, entries, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Console.Error.WriteLine($"[ConfirmBasket] Manifest write failed for {bookingReference}: {ex.Message}");
         }
     }
 
