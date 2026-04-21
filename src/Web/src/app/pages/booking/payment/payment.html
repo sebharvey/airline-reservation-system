@@ -115,87 +115,15 @@
       </div>
     </div>
 
-    <!-- Payment Form -->
-    <div class="payment-card">
-      <div class="payment-title">
-        <span class="lock-icon">&#128274;</span>
-        Secure Payment
-      </div>
-
-      <div class="card-type-indicator" *ngIf="cardNumber().length >= 4">
-        {{ detectCardType() }}
-      </div>
-
-      <!-- Dev: fill test card -->
-      <div class="dev-fill-row">
-        <button type="button" class="btn-dev" (click)="fillTestCard()" title="Testing only — fills card details with a Visa test number">
-          &#127922; Fill Test Card
-        </button>
-      </div>
-
-      <!-- Cardholder Name -->
-      <div class="field" [class.error]="submitted() && !cardholderName().trim()">
-        <label>Cardholder Name</label>
-        <input type="text" [ngModel]="cardholderName()" (ngModelChange)="cardholderName.set($event)"
-               name="cardholderName" placeholder="As printed on card" autocomplete="cc-name" />
-        <span class="field-error" *ngIf="submitted() && !cardholderName().trim()">Required</span>
-      </div>
-
-      <!-- Card Number -->
-      <div class="field" [class.error]="submitted() && cardNumber().replace(' ','').length < 16">
-        <label>Card Number</label>
-        <input type="text" inputmode="numeric" [value]="cardDisplayNumber()"
-               (input)="onCardNumberInput($event)"
-               name="cardNumber" placeholder="1234 5678 9012 3456"
-               maxlength="19" autocomplete="cc-number" />
-        <span class="field-error" *ngIf="submitted() && cardNumber().replace(' ','').length < 16">
-          Enter a valid 16-digit card number
-        </span>
-      </div>
-
-      <!-- Expiry + CVV -->
-      <div class="field-row-split">
-        <div class="field" [class.error]="submitted() && !expiryMonth()">
-          <label>Expiry Month</label>
-          <select [ngModel]="expiryMonth()" (ngModelChange)="expiryMonth.set($event)" name="expiryMonth" autocomplete="cc-exp-month">
-            <option value="">MM</option>
-            <option *ngFor="let m of expiryMonths()" [value]="m.value">{{ m.label }}</option>
-          </select>
-          <span class="field-error" *ngIf="submitted() && !expiryMonth()">Required</span>
-        </div>
-
-        <div class="field" [class.error]="submitted() && !expiryYear()">
-          <label>Expiry Year</label>
-          <select [ngModel]="expiryYear()" (ngModelChange)="expiryYear.set($event)" name="expiryYear" autocomplete="cc-exp-year">
-            <option value="">YYYY</option>
-            <option *ngFor="let y of expiryYears()" [value]="y">{{ y }}</option>
-          </select>
-          <span class="field-error" *ngIf="submitted() && !expiryYear()">Required</span>
-        </div>
-
-        <div class="field" [class.error]="submitted() && cvv().trim().length < 3">
-          <label>CVV</label>
-          <input type="text" inputmode="numeric" [ngModel]="cvv()" (ngModelChange)="cvv.set($event)"
-                 name="cvv" placeholder="123" maxlength="4" autocomplete="cc-csc" />
-          <span class="field-error" *ngIf="submitted() && cvv().trim().length < 3">Required</span>
-        </div>
-      </div>
-
-      <!-- Pay Button -->
-      <button class="btn-pay" [class.loading]="paying()" [disabled]="paying() || summaryLoading()" (click)="onPay()">
-        <span class="btn-pay-content" *ngIf="!paying()">
-          {{ isRewardBooking() ? 'Redeem Points & Pay Taxes' : 'Pay' }} {{ formatGrandTotal() }}
-        </span>
-        <span class="btn-pay-content" *ngIf="paying()">
-          <span class="pay-spinner"></span>
-          Processing&hellip;
-        </span>
-      </button>
-
-      <p class="security-note">
-        &#128274; Your payment is encrypted and secure. We do not store your card details.
-      </p>
-    </div>
+    <!-- Shared Payment Form -->
+    <app-payment-form
+      [paying]="paying()"
+      [disabled]="summaryLoading()"
+      [payLabel]="isRewardBooking() ? 'Redeem Points & Pay Taxes ' + formatGrandTotal() : 'Pay ' + formatGrandTotal()"
+      [paymentError]="paymentError()"
+      (pay)="onPay($event)"
+      (errorDismissed)="paymentError.set('')">
+    </app-payment-form>
 
   </ng-container>
 
@@ -226,15 +154,5 @@
         <span>{{ formatPrice(totalTaxAmount()) }}</span>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Payment Error Modal -->
-<div class="error-modal-backdrop" *ngIf="showErrorModal()" (click)="dismissErrorModal()" role="dialog" aria-modal="true" aria-labelledby="payment-error-title">
-  <div class="error-modal-card fade-in" (click)="$event.stopPropagation()">
-    <div class="error-modal-icon">&#9888;</div>
-    <div class="error-modal-title" id="payment-error-title">Payment unsuccessful</div>
-    <div class="error-modal-message">{{ paymentError() }}</div>
-    <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>
   </div>
 </div>

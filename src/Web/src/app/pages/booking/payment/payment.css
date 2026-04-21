@@ -137,234 +137,6 @@
   background-clip: text;
 }
 
-/* ── Payment Card ── */
-.payment-card {
-  width: 100%;
-  background: var(--bg-light);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 22px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.payment-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.lock-icon { font-size: 1rem; }
-
-.card-type-indicator {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--grad-start);
-  background: rgba(102, 126, 234, 0.08);
-  padding: 4px 12px;
-  border-radius: 99px;
-  width: fit-content;
-}
-
-/* ── Form Fields ── */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.field input,
-.field select {
-  padding: 10px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  color: var(--text);
-  background: var(--input-bg);
-  transition: border-color 0.2s, box-shadow 0.2s;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.field input:focus,
-.field select:focus {
-  outline: none;
-  border-color: var(--grad-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
-}
-
-.field.error input,
-.field.error select {
-  border-color: #e74c3c;
-}
-
-.field-error {
-  font-size: 0.75rem;
-  color: #e74c3c;
-  font-weight: 500;
-}
-
-/* ── Expiry + CVV Row ── */
-.field-row-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr 90px;
-  gap: 12px;
-}
-
-/* ── Payment Error Modal ── */
-.error-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.error-modal-card {
-  background: var(--white);
-  border-radius: var(--radius-md);
-  padding: 32px 28px 28px;
-  max-width: 380px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.error-modal-icon {
-  font-size: 2.5rem;
-  color: #e74c3c;
-  line-height: 1;
-}
-
-.error-modal-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.error-modal-message {
-  font-size: 0.92rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.error-modal-btn {
-  margin-top: 8px;
-  padding: 11px 32px;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.error-modal-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-/* ── Pay Button ── */
-.btn-pay {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
-  margin-top: 4px;
-}
-
-.btn-pay:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-pay:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-pay.loading {
-  opacity: 0.8;
-}
-
-.btn-pay-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.pay-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.security-note {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.5;
-}
-
-/* ── Dev / Testing Button ── */
-.dev-fill-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 4px;
-}
-
-.btn-dev {
-  padding: 8px 14px;
-  background: #fff8e1;
-  color: #b45309;
-  border: 1.5px dashed #f59e0b;
-  border-radius: var(--radius-lg);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.btn-dev:hover {
-  background: #fef3c7;
-  border-color: #d97706;
-}
-
 /* ── Tax Included Row ── */
 .tax-included-row {
   font-size: 0.78rem;
@@ -386,6 +158,19 @@
 }
 
 .tax-breakdown-link:hover { opacity: 0.75; }
+
+/* ── Loading / Error States ── */
+.loading-text {
+  padding: 16px 18px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.error-text {
+  padding: 16px 18px;
+  font-size: 0.88rem;
+  color: #e74c3c;
+}
 
 /* ── Tax Breakdown Modal ── */
 .modal-backdrop {
@@ -499,14 +284,4 @@
 .points-color {
   color: #e67e22 !important;
   font-weight: 600;
-}
-
-@media (max-width: 480px) {
-  .field-row-split {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .field-row-split .field:last-child {
-    grid-column: 1 / -1;
-  }
 }

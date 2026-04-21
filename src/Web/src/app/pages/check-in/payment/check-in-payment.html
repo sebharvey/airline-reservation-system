@@ -4,7 +4,6 @@
     <p>Complete payment for your check-in additions</p>
   </div>
 
-  <!-- Loading order -->
   @if (loading()) {
     <div class="loading-state">
       <span class="spinner-dark"></span>
@@ -12,7 +11,6 @@
     </div>
   }
 
-  <!-- Error loading order -->
   @if (errorMessage() && !loading()) {
     <div class="error-banner">
       <span>&#9888;</span>
@@ -59,130 +57,15 @@
       </div>
     </div>
 
-    <!-- Payment form -->
-    <div class="section">
-      <h3 class="section-title">Card Details</h3>
-      <div class="card payment-card">
-
-        <!-- Cardholder name -->
-        <div class="field">
-          <label for="ci-cardholder">Cardholder Name</label>
-          <input
-            id="ci-cardholder"
-            type="text"
-            placeholder="Name as it appears on card"
-            [ngModel]="cardholderName()"
-            (ngModelChange)="cardholderName.set($event)"
-            name="ci-cardholder"
-            [class.field-error]="submitted() && !cardholderName().trim()"
-          />
-          @if (submitted() && !cardholderName().trim()) {
-            <span class="field-error-msg">Cardholder name is required</span>
-          }
-        </div>
-
-        <!-- Card number -->
-        <div class="field">
-          <label for="ci-cardnum">Card Number</label>
-          <input
-            id="ci-cardnum"
-            type="text"
-            inputmode="numeric"
-            placeholder="0000 0000 0000 0000"
-            [value]="cardDisplayNumber()"
-            (input)="onCardNumberInput($event)"
-            name="ci-cardnum"
-            maxlength="19"
-            [class.field-error]="submitted() && cardNumber().replace(' ','').length < 16"
-          />
-          @if (submitted() && cardNumber().replace(/\D/g, '').length < 16) {
-            <span class="field-error-msg">Enter a valid 16-digit card number</span>
-          }
-        </div>
-
-        <!-- Expiry + CVV -->
-        <div class="field-row">
-          <div class="field">
-            <label for="ci-month">Expiry Month</label>
-            <select
-              id="ci-month"
-              [ngModel]="expiryMonth()"
-              (ngModelChange)="expiryMonth.set($event)"
-              name="ci-month"
-              [class.field-error]="submitted() && !expiryMonth()"
-            >
-              <option value="">Month</option>
-              @for (m of expiryMonths; track m.value) {
-                <option [value]="m.value">{{ m.label }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label for="ci-year">Expiry Year</label>
-            <select
-              id="ci-year"
-              [ngModel]="expiryYear()"
-              (ngModelChange)="expiryYear.set($event)"
-              name="ci-year"
-              [class.field-error]="submitted() && !expiryYear()"
-            >
-              <option value="">Year</option>
-              @for (y of expiryYears(); track y) {
-                <option [value]="y">{{ y }}</option>
-              }
-            </select>
-          </div>
-          <div class="field field--cvv">
-            <label for="ci-cvv">CVV</label>
-            <input
-              id="ci-cvv"
-              type="password"
-              inputmode="numeric"
-              placeholder="&bull;&bull;&bull;"
-              [ngModel]="cvv()"
-              (ngModelChange)="cvv.set($event)"
-              name="ci-cvv"
-              maxlength="4"
-              [class.field-error]="submitted() && cvv().length < 3"
-            />
-          </div>
-        </div>
-        @if (submitted() && (!expiryMonth() || !expiryYear())) {
-          <span class="field-error-msg">Expiry date is required</span>
-        }
-
-      </div>
-    </div>
-
-    <!-- Pay button -->
-    <div class="action-buttons">
-      <button
-        type="button"
-        class="btn-primary"
-        [disabled]="paying()"
-        (click)="onPay()"
-      >
-        @if (paying()) {
-          <span class="spinner"></span> Processing&hellip;
-        } @else {
-          Pay {{ currency() }} {{ totalAmount().toFixed(2) }}
-        }
-      </button>
-    </div>
+    <!-- Shared Payment Form -->
+    <app-payment-form
+      [paying]="paying()"
+      [payLabel]="'Pay ' + currency() + ' ' + totalAmount().toFixed(2)"
+      [paymentError]="paymentError()"
+      (pay)="onPay($event)"
+      (errorDismissed)="paymentError.set('')">
+    </app-payment-form>
 
     <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
   }
 </div>
-
-<!-- Payment Error Modal -->
-@if (showErrorModal()) {
-  <div class="error-modal-backdrop" (click)="dismissErrorModal()" role="dialog" aria-modal="true" aria-labelledby="ci-payment-error-title">
-    <div class="error-modal-card" (click)="$event.stopPropagation()">
-      <div class="error-modal-icon">&#9888;</div>
-      <div class="error-modal-title" id="ci-payment-error-title">Payment unsuccessful</div>
-      <div class="error-modal-message">{{ paymentError() }}</div>
-      <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>
-    </div>
-  </div>
-}
-

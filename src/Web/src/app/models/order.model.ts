@@ -369,6 +369,17 @@ export interface OciOrder {
   flightSegments?: OciFlightSegment[];
 }
 
+export interface CardDetails {
+  cardholderName: string;
+  cardNumber: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  expiryDate: string;
+  cardType: string;
+  cardLast4: string;
+}
+
 export interface BoardingPass {
   bookingReference: string;
   passengerId: string;
