@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -9,12 +10,14 @@ namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices
 public sealed class OfferServiceClient
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<OfferServiceClient> _logger;
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = SharedJsonOptions.CamelCase;
 
-    public OfferServiceClient(IHttpClientFactory httpClientFactory)
+    public OfferServiceClient(IHttpClientFactory httpClientFactory, ILogger<OfferServiceClient> logger)
     {
         _httpClient = httpClientFactory.CreateClient("OfferMs");
+        _logger = logger;
     }
 
     public async Task<OfferDetailDto?> GetOfferAsync(Guid offerId, Guid? sessionId = null, CancellationToken cancellationToken = default)
@@ -113,7 +116,7 @@ public sealed class OfferServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(cancellationToken);
-            System.Console.Error.WriteLine($"[OfferServiceClient] Inventory release failed for {inventoryId}: {error}");
+            _logger.LogWarning("[OfferServiceClient] Inventory release failed for {InventoryId}: {Error}", inventoryId, error);
         }
     }
 

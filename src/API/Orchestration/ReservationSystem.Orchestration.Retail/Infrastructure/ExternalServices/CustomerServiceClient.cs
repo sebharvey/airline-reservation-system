@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -8,6 +9,7 @@ namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices
 public sealed class CustomerServiceClient
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<CustomerServiceClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -15,9 +17,10 @@ public sealed class CustomerServiceClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public CustomerServiceClient(IHttpClientFactory httpClientFactory)
+    public CustomerServiceClient(IHttpClientFactory httpClientFactory, ILogger<CustomerServiceClient> logger)
     {
         _httpClient = httpClientFactory.CreateClient("CustomerMs");
+        _logger = logger;
     }
 
     /// <summary>
@@ -62,8 +65,8 @@ public sealed class CustomerServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            Console.Error.WriteLine(
-                $"[CustomerServiceClient] Failed to link order {bookingReference} to {loyaltyNumber}: {response.StatusCode} — {body}");
+            _logger.LogWarning("[CustomerServiceClient] Failed to link order {BookingReference} to {LoyaltyNumber}: {StatusCode}",
+                bookingReference, loyaltyNumber, response.StatusCode);
         }
     }
 }

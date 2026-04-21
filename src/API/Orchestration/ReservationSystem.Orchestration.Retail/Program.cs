@@ -52,21 +52,33 @@ var host = new HostBuilder()
         services.AddHttpClient("OrderMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"] ?? "https://reservation-system-db-microservice-order-cnc3fpdzfucbhudc.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["OrderMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("AncillaryMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["AncillaryMs:BaseUrl"] ?? "https://reservation-system-microservice-ancillary-dkdfdjfba9fcbvfk.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["AncillaryMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("PaymentMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["PaymentMs:BaseUrl"] ?? "https://reservation-system-db-microservice-payment-f3amf7a6bmauhjd6.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["PaymentMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("DeliveryMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["DeliveryMs:BaseUrl"] ?? "https://reservation-system-db-microservice-delivery-ehe2f4c3dybehwat.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["DeliveryMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("CustomerMs", client =>
