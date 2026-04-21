@@ -420,13 +420,13 @@
         "statusCode": 201,
         "assertions": [
           {
-            "field": "eTickets",
+            "field": "orderItems[*].eTickets[*]",
             "assertion": "count",
             "expected": 2,
             "description": "Exactly two e-tickets must be issued \u2014 one per passenger."
           },
           {
-            "field": "eTickets[*].eTicketNumber",
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
             "assertion": "present",
             "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
