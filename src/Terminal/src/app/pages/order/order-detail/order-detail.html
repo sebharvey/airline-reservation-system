@@ -760,36 +760,6 @@
               <label class="field-label">Phone</label>
               <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
             </div>
-            @if (editForm().docs.length > 0) {
-              <div style="grid-column:1/-1;margin-top:6px">
-                <span class="modal-section-title">Travel documents</span>
-              </div>
-              @for (doc of editForm().docs; track $index; let i = $index) {
-                @if (i > 0) {
-                  <div style="grid-column:1/-1;border-top:1px solid var(--border);margin:4px 0"></div>
-                }
-                <div class="edit-field">
-                  <label class="field-label">Doc type</label>
-                  <input class="edit-input" type="text" [value]="doc.type ?? ''" (input)="updateDocField(i, 'type', $any($event.target).value)" />
-                </div>
-                <div class="edit-field">
-                  <label class="field-label">Doc number</label>
-                  <input class="edit-input" type="text" [value]="doc.number ?? ''" (input)="updateDocField(i, 'number', $any($event.target).value)" />
-                </div>
-                <div class="edit-field">
-                  <label class="field-label">Expiry date</label>
-                  <input class="edit-input" type="date" [value]="doc.expiryDate ?? ''" (input)="updateDocField(i, 'expiryDate', $any($event.target).value)" />
-                </div>
-                <div class="edit-field">
-                  <label class="field-label">Nationality</label>
-                  <input class="edit-input" type="text" placeholder="e.g. GBR" [value]="doc.nationality ?? ''" (input)="updateDocField(i, 'nationality', $any($event.target).value)" />
-                </div>
-                <div class="edit-field">
-                  <label class="field-label">Issuing country</label>
-                  <input class="edit-input" type="text" placeholder="e.g. GBR" [value]="doc.issuingCountry ?? ''" (input)="updateDocField(i, 'issuingCountry', $any($event.target).value)" />
-                </div>
-              }
-            }
           </div>
           @if (editError()) {
             <div class="edit-error" style="margin-top:10px">{{ editError() }}</div>
@@ -831,30 +801,128 @@
                 </span>
               </div>
             }
-            @for (doc of pax.docs; track doc.number) {
-              <div class="field-row">
-                <span class="field-label">Document</span>
-                <span class="field-value">{{ doc.type }} {{ doc.number }}</span>
-              </div>
-              <div class="field-row">
-                <span class="field-label">Expiry</span>
-                <span class="field-value">{{ formatDate(doc.expiryDate) }}</span>
-              </div>
-              <div class="field-row">
-                <span class="field-label">Nationality</span>
-                <span class="field-value">{{ doc.nationality || '—' }}</span>
-              </div>
-              <div class="field-row">
-                <span class="field-label">Issuing country</span>
-                <span class="field-value">{{ doc.issuingCountry || '—' }}</span>
-              </div>
-            }
             @for (seg of segments(); track seg.segmentId) {
               <div class="field-row">
                 <span class="field-label">Seat ({{ seg.flightNumber }})</span>
                 <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
               </div>
             }
+          </div>
+          @if (pax.docs.length > 0) {
+            <div class="doc-list-section">
+              <div class="modal-section-title">Travel documents</div>
+              <div class="doc-list">
+                @for (doc of pax.docs; track $index; let i = $index) {
+                  <button class="doc-list-item" (click)="openDocDetailModal(doc, i, pax)">
+                    <div class="doc-list-main">
+                      <span class="doc-list-type">{{ doc.type || 'Document' }}</span>
+                      <span class="doc-list-num">{{ doc.number || '—' }}</span>
+                    </div>
+                    @if (doc.expiryDate) {
+                      <span class="doc-list-meta">Exp {{ formatDate(doc.expiryDate) }}</span>
+                    }
+                    <svg xmlns="http://www.w3.org/2000/svg" class="doc-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- ── TRAVEL DOCUMENT DETAIL MODAL ── -->
+@if (selectedDocDetail(); as docState) {
+  <div class="modal-backdrop doc-modal-backdrop" (click)="closeDocDetailModal()"></div>
+  <div class="modal-panel doc-modal-panel" role="dialog" aria-modal="true">
+
+    <div class="modal-header">
+      <div class="modal-title-row">
+        <span class="modal-title">{{ docState.doc.type || 'Travel Document' }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        @if (!editingDoc()) {
+          <button class="edit-btn" (click)="startEditDoc()">Edit</button>
+        }
+        <button class="modal-close-btn" (click)="closeDocDetailModal()">&#x2715;</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      @if (editingDoc()) {
+        <div class="modal-section">
+          <div class="edit-form-grid" style="grid-template-columns:1fr">
+            <div class="edit-field">
+              <label class="field-label">Document type</label>
+              <select class="edit-input" [value]="docEditForm().type ?? ''" (change)="updateDocEditField('type', $any($event.target).value)">
+                <option value="">Select type…</option>
+                @for (dt of docTypes; track dt) {
+                  <option [value]="dt" [selected]="docEditForm().type === dt">{{ dt }}</option>
+                }
+              </select>
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Document number</label>
+              <input class="edit-input" type="text" [value]="docEditForm().number ?? ''" (input)="updateDocEditField('number', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Expiry date</label>
+              <input class="edit-input" type="date" [value]="docEditForm().expiryDate ?? ''" (input)="updateDocEditField('expiryDate', $any($event.target).value)" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Nationality</label>
+              <select class="edit-input" [value]="docEditForm().nationality ?? ''" (change)="updateDocEditField('nationality', $any($event.target).value)">
+                <option value="">Select country…</option>
+                @for (country of countries; track country.code) {
+                  <option [value]="country.code" [selected]="docEditForm().nationality === country.code">{{ country.name }} ({{ country.code }})</option>
+                }
+              </select>
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Issuing country</label>
+              <select class="edit-input" [value]="docEditForm().issuingCountry ?? ''" (change)="updateDocEditField('issuingCountry', $any($event.target).value)">
+                <option value="">Select country…</option>
+                @for (country of countries; track country.code) {
+                  <option [value]="country.code" [selected]="docEditForm().issuingCountry === country.code">{{ country.name }} ({{ country.code }})</option>
+                }
+              </select>
+            </div>
+          </div>
+          @if (docEditError()) {
+            <div class="edit-error" style="margin-top:10px">{{ docEditError() }}</div>
+          }
+          <div class="edit-actions" style="margin-top:14px">
+            <button class="save-btn" [disabled]="docEditSaving()" (click)="saveDocEdit()">
+              {{ docEditSaving() ? 'Saving…' : 'Save changes' }}
+            </button>
+            <button class="cancel-btn" [disabled]="docEditSaving()" (click)="cancelEditDoc()">Cancel</button>
+          </div>
+        </div>
+      } @else {
+        <div class="modal-section">
+          <div class="field-grid" style="grid-template-columns:1fr">
+            <div class="field-row">
+              <span class="field-label">Document type</span>
+              <span class="field-value">{{ docState.doc.type || '—' }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Document number</span>
+              <span class="field-value mono">{{ docState.doc.number || '—' }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Expiry date</span>
+              <span class="field-value">{{ formatDate(docState.doc.expiryDate) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Nationality</span>
+              <span class="field-value">{{ countryName(docState.doc.nationality) }}</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Issuing country</span>
+              <span class="field-value">{{ countryName(docState.doc.issuingCountry) }}</span>
+            </div>
           </div>
         </div>
       }
