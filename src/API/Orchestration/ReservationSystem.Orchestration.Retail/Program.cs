@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Business.Middleware;
+using ReservationSystem.Orchestration.Retail.Middleware;
 using ReservationSystem.Orchestration.Retail.Swagger;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 using ReservationSystem.Orchestration.Retail.Application.CreateBasket;
@@ -28,6 +29,7 @@ var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
     {
         worker.UseMiddleware<TerminalAuthenticationMiddleware>();
+        worker.UseMiddleware<TokenVerificationMiddleware>();
         worker.UseNewtonsoftJson();
     })
     .ConfigureOpenApi()
@@ -41,6 +43,14 @@ var host = new HostBuilder()
         services.ConfigureFunctionsApplicationInsights();
 
         // ── Named HttpClients for downstream microservices ─────────────────────
+        services.AddHttpClient("IdentityMs", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"] ?? "https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net/");
+            var hostKey = context.Configuration["IdentityMs:HostKey"];
+            if (!string.IsNullOrEmpty(hostKey))
+                client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
+        });
+
         services.AddHttpClient("OfferMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["OfferMs:BaseUrl"] ?? "https://reservation-system-db-microservice-offer-dnfdbebdezemaghp.uksouth-01.azurewebsites.net/");
@@ -81,6 +91,7 @@ var host = new HostBuilder()
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Infrastructure clients ─────────────────────────────────────────────
+        services.AddScoped<IdentityServiceClient>();
         services.AddScoped<OfferServiceClient>();
         services.AddScoped<OrderServiceClient>();
         services.AddScoped<PaymentServiceClient>();

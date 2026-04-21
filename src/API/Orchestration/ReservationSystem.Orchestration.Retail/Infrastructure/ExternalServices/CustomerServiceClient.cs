@@ -20,6 +20,22 @@ public sealed class CustomerServiceClient
         _httpClient = httpClientFactory.CreateClient("CustomerMs");
     }
 
+    public async Task<string?> GetLoyaltyNumberByIdentityIdAsync(
+        Guid identityId,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"/api/v1/customers/by-identity/{identityId}", cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<CustomerIdentityLookupResult>(JsonOptions, cancellationToken);
+        return result?.LoyaltyNumber;
+    }
+
     /// <summary>
     /// Reinstates points to a loyalty account (e.g. on cancellation or flight change surplus).
     /// POST /api/v1/customers/{loyaltyNumber}/points/reinstate
@@ -72,4 +88,10 @@ file sealed class ReinstatePointsResult
 {
     [JsonPropertyName("newPointsBalance")]
     public int NewPointsBalance { get; init; }
+}
+
+file sealed class CustomerIdentityLookupResult
+{
+    [JsonPropertyName("loyaltyNumber")]
+    public string LoyaltyNumber { get; init; } = string.Empty;
 }

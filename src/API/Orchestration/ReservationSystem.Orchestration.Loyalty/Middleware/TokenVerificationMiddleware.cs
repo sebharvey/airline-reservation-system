@@ -90,6 +90,11 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
         context.Items["UserAccountId"] = verifyResult.UserAccountId;
         context.Items["UserEmail"] = verifyResult.Email;
 
+        var customerClient = context.InstanceServices.GetRequiredService<CustomerServiceClient>();
+        var customer = await customerClient.GetCustomerByIdentityIdAsync(verifyResult.UserAccountId);
+        if (customer is not null)
+            context.Items["LoyaltyNumber"] = customer.LoyaltyNumber;
+
         await next(context);
     }
 
