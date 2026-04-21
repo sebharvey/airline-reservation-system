@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.SearchFlights;
+using ReservationSystem.Orchestration.Retail.Models;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 using System.Net;
@@ -55,12 +56,17 @@ public sealed class SearchFunction
             return await req.BadRequestAsync("The fields 'origin', 'destination', 'departureDate', and 'paxCount' are required.");
         }
 
+        var customerContext = req.FunctionContext.Items.TryGetValue("CustomerContext", out var ctxObj)
+            ? ctxObj as CustomerContext
+            : null;
+
         var command = new SearchFlightsCommand(
             request.Origin,
             request.Destination,
             request.DepartureDate,
             request.PaxCount,
-            request.BookingType);
+            request.BookingType,
+            CustomerContext: customerContext);
 
         var result = await _searchHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);
@@ -90,12 +96,17 @@ public sealed class SearchFunction
             return await req.BadRequestAsync("The fields 'origin', 'destination', 'departureDate', and 'paxCount' are required.");
         }
 
+        var customerContext = req.FunctionContext.Items.TryGetValue("CustomerContext", out var ctxObj)
+            ? ctxObj as CustomerContext
+            : null;
+
         var command = new SearchConnectingFlightsCommand(
             request.Origin,
             request.Destination,
             request.DepartureDate,
             request.PaxCount,
-            request.BookingType);
+            request.BookingType,
+            CustomerContext: customerContext);
 
         var result = await _connectingHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);
@@ -124,12 +135,17 @@ public sealed class SearchFunction
             return await req.BadRequestAsync("The fields 'origin', 'destination', and 'passengerCount' are required.");
         }
 
+        var customerContext = req.FunctionContext.Items.TryGetValue("CustomerContext", out var ctxObj)
+            ? ctxObj as CustomerContext
+            : null;
+
         var command = new SearchFlightsCommand(
             request.Origin,
             request.Destination,
             request.DepartureDate.ToString("yyyy-MM-dd"),
             request.PassengerCount,
-            "Revenue");
+            "Revenue",
+            CustomerContext: customerContext);
 
         var result = await _searchHandler.HandleAsync(command, cancellationToken);
         return await req.OkJsonAsync(result);

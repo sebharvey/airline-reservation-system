@@ -1,3 +1,4 @@
+using ReservationSystem.Orchestration.Retail.Models;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,7 +21,7 @@ public sealed class CustomerServiceClient
         _httpClient = httpClientFactory.CreateClient("CustomerMs");
     }
 
-    public async Task<string?> GetLoyaltyNumberByIdentityIdAsync(
+    public async Task<CustomerContext?> GetCustomerContextAsync(
         Guid identityId,
         CancellationToken cancellationToken = default)
     {
@@ -33,7 +34,10 @@ public sealed class CustomerServiceClient
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<CustomerIdentityLookupResult>(JsonOptions, cancellationToken);
-        return result?.LoyaltyNumber;
+        if (result is null || string.IsNullOrEmpty(result.LoyaltyNumber))
+            return null;
+
+        return new CustomerContext(result.LoyaltyNumber, result.TierCode);
     }
 
     /// <summary>
@@ -94,4 +98,7 @@ file sealed class CustomerIdentityLookupResult
 {
     [JsonPropertyName("loyaltyNumber")]
     public string LoyaltyNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("tierCode")]
+    public string TierCode { get; init; } = string.Empty;
 }

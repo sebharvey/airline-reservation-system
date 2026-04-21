@@ -1,3 +1,5 @@
+using ReservationSystem.Orchestration.Retail.Models;
+
 namespace ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 
 public sealed record SearchConnectingFlightsCommand(
@@ -6,4 +8,5 @@ public sealed record SearchConnectingFlightsCommand(
     string DepartureDate,
     int PaxCount,
     string BookingType,
-    bool IncludePrivateFares = false);
+    bool IncludePrivateFares = false,
+    CustomerContext? CustomerContext = null);

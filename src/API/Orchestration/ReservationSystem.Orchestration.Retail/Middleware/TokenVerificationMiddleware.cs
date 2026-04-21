@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.DependencyInjection;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Retail.Models;
 
 namespace ReservationSystem.Orchestration.Retail.Middleware;
 
@@ -64,9 +65,9 @@ public sealed class TokenVerificationMiddleware : IFunctionsWorkerMiddleware
         context.Items["UserEmail"] = verifyResult.Email;
 
         var customerClient = context.InstanceServices.GetRequiredService<CustomerServiceClient>();
-        var loyaltyNumber = await customerClient.GetLoyaltyNumberByIdentityIdAsync(verifyResult.UserAccountId);
-        if (!string.IsNullOrEmpty(loyaltyNumber))
-            context.Items["LoyaltyNumber"] = loyaltyNumber;
+        var customerContext = await customerClient.GetCustomerContextAsync(verifyResult.UserAccountId);
+        if (customerContext is not null)
+            context.Items["CustomerContext"] = customerContext;
 
         await next(context);
     }
