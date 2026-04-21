@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 
@@ -21,20 +20,17 @@ public sealed class CancelOrderHandler
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly OfferServiceClient _offerServiceClient;
     private readonly CustomerServiceClient _customerServiceClient;
-    private readonly ILogger<CancelOrderHandler> _logger;
 
     public CancelOrderHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
         OfferServiceClient offerServiceClient,
-        CustomerServiceClient customerServiceClient,
-        ILogger<CancelOrderHandler> logger)
+        CustomerServiceClient customerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _offerServiceClient = offerServiceClient;
         _customerServiceClient = customerServiceClient;
-        _logger = logger;
     }
 
     public async Task<CancelOrderResponse> HandleAsync(string bookingReference, CancellationToken ct)
@@ -63,7 +59,7 @@ public sealed class CancelOrderHandler
             try { await _deliveryServiceClient.VoidTicketAsync(eTicket, ct); }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CancelOrder] Ticket void failed for {ETicket}", eTicket);
+                Console.Error.WriteLine($"[CancelOrder] Ticket void failed for {eTicket}: {ex.Message}");
             }
         }
 
@@ -77,7 +73,7 @@ public sealed class CancelOrderHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CancelOrder] Inventory release failed for {InventoryId}", inventoryId);
+                Console.Error.WriteLine($"[CancelOrder] Inventory release failed for {inventoryId}: {ex.Message}");
             }
         }
 
@@ -93,7 +89,7 @@ public sealed class CancelOrderHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[CancelOrder] Points reinstatement failed");
+                Console.Error.WriteLine($"[CancelOrder] Points reinstatement failed: {ex.Message}");
             }
         }
 

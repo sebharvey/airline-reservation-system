@@ -49,14 +49,10 @@ public sealed class VoidPaymentHandler
                 $"Payment '{command.PaymentId}' cannot be voided — current status is '{payment.Status}'.");
         }
 
-        // KNOWN GAP (arch-review C-03): Payment gateway integration is not implemented.
-        // This is intentional for the current POC phase — void records state correctly
-        // but does not release the authorisation hold at the processor.
-        //
-        // Before production: only call the processor void endpoint for Authorised payments
-        // (Initialised payments have no hold to release). Use the gateway authorisation
-        // reference obtained during the authorise step. On failure, leave the payment in
-        // Authorised status and return an error.
+        // TODO: Call payment gateway to void / reverse the authorisation hold.
+        // Only required for Authorised payments — Initialised payments have no gateway hold to release.
+        // Use the gateway authorisation reference obtained during the authorise step.
+        // On failure, leave the payment in Authorised status and return an error.
 
         payment.Void();
         await _repository.UpdateAsync(payment, cancellationToken);

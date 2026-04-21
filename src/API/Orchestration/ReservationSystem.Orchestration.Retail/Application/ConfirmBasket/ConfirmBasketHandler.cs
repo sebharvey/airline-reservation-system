@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
@@ -16,22 +15,19 @@ public sealed class ConfirmBasketHandler
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly CustomerServiceClient _customerServiceClient;
-    private readonly ILogger<ConfirmBasketHandler> _logger;
 
     public ConfirmBasketHandler(
         OrderServiceClient orderServiceClient,
         OfferServiceClient offerServiceClient,
         PaymentServiceClient paymentServiceClient,
         DeliveryServiceClient deliveryServiceClient,
-        CustomerServiceClient customerServiceClient,
-        ILogger<ConfirmBasketHandler> logger)
+        CustomerServiceClient customerServiceClient)
     {
         _orderServiceClient = orderServiceClient;
         _offerServiceClient = offerServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _customerServiceClient = customerServiceClient;
-        _logger = logger;
     }
 
     public async Task<OrderResponse> HandleAsync(ConfirmBasketCommand command, CancellationToken cancellationToken)
@@ -862,7 +858,8 @@ public sealed class ConfirmBasketHandler
             // Inventory operation failure is logged but does not roll back the confirmed order —
             // the booking is already committed and the customer paid. Inventory can be
             // reconciled manually if needed.
-            _logger.LogError(ex, "[ConfirmBasket] Inventory operation failed for basket {BasketId}", basketId);
+            System.Console.Error.WriteLine(
+                $"[ConfirmBasket] Inventory operation failed for basket {basketId}: {ex.Message}");
         }
     }
 
@@ -922,7 +919,7 @@ public sealed class ConfirmBasketHandler
         catch (Exception ex)
         {
             // Ticket issuance failure after order confirmation — order is confirmed, tickets need manual issuance
-            _logger.LogError(ex, "[ConfirmBasket] Ticket issuance failed for {BookingReference}", confirmedOrder.BookingReference);
+            System.Console.Error.WriteLine($"[ConfirmBasket] Ticket issuance failed for {confirmedOrder.BookingReference}: {ex.Message}");
             return [];
         }
     }
@@ -942,7 +939,8 @@ public sealed class ConfirmBasketHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ConfirmBasket] Customer order link failed for {BookingReference}", confirmedOrder.BookingReference);
+            System.Console.Error.WriteLine(
+                $"[ConfirmBasket] Customer order link failed for {confirmedOrder.BookingReference}: {ex.Message}");
         }
     }
 
@@ -1350,7 +1348,7 @@ public sealed class ConfirmBasketHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ConfirmBasket] Seat EMD issuance failed for {PassengerId}", passengerId);
+                Console.Error.WriteLine($"[ConfirmBasket] Seat EMD issuance failed for {passengerId}: {ex.Message}");
             }
         }
     }
@@ -1365,7 +1363,7 @@ public sealed class ConfirmBasketHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ConfirmBasket] Bag EMD issuance failed for {PassengerId}", passengerId);
+                Console.Error.WriteLine($"[ConfirmBasket] Bag EMD issuance failed for {passengerId}: {ex.Message}");
             }
         }
     }
@@ -1380,7 +1378,7 @@ public sealed class ConfirmBasketHandler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ConfirmBasket] Product EMD issuance failed for {PassengerId}", passengerId);
+                Console.Error.WriteLine($"[ConfirmBasket] Product EMD issuance failed for {passengerId}: {ex.Message}");
             }
         }
     }
