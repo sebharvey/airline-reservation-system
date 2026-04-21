@@ -50,6 +50,8 @@ public sealed class RunSimulatorHandler
         ("LHR", "JFK", 3),   // AX001 · AX003 · AX005
         ("LHR", "MIA", 1),   // AX021
         ("LHR", "DEL", 1),   // AX411
+        ("JFK", "LHR", 3),   // AX002 · AX004 · AX006
+        ("MIA", "LHR", 1),   // AX022
     ];
 
     // ── Connecting route catalogue — two-segment journeys via LHR ─────────────
