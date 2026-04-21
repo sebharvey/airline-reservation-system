@@ -7,7 +7,7 @@ using ReservationSystem.Simulator.Application.RunSimulator;
 namespace ReservationSystem.Simulator.Functions;
 
 /// <summary>
-/// Timer trigger that fires every 10 minutes and creates 1–6 confirmed orders
+/// Timer trigger that fires every 40 minutes and creates 1–6 confirmed orders
 /// across random routes over the next 48 hours. Simulates realistic web booking
 /// activity with a mix of one-way and return journeys.
 ///
@@ -27,10 +27,10 @@ public sealed class SimulatorFunction
         _logger  = logger;
     }
 
-    // Runs every 10 minutes: "0 */10 * * * *"
+    // Runs every 40 minutes: "0 */40 * * * *"
     [Function("Simulator")]
     public async Task Run(
-        [TimerTrigger("0 */10 * * * *")] TimerInfo timerInfo,
+        [TimerTrigger("0 */40 * * * *")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         _logger.LogInformation("Simulator timer triggered at {UtcNow:O}", DateTime.UtcNow);
