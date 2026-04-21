@@ -10,6 +10,7 @@ public sealed class DeliveryDbContext : DbContext
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Document> Documents => Set<Document>();
+    public DbSet<Manifest> Manifests => Set<Manifest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +67,45 @@ public sealed class DeliveryDbContext : DbContext
             entity.HasIndex(d => d.DocumentNumber).IsUnique();
             entity.HasIndex(d => d.BookingReference);
             entity.HasIndex(d => d.ETicketNumber);
+        });
+
+        // ── Manifest ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Manifest>(entity =>
+        {
+            entity.ToTable("Manifest", "delivery", t =>
+            {
+                t.HasTrigger("TR_Manifest_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+            entity.HasKey(m => m.ManifestId);
+            entity.Property(m => m.ManifestId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
+            entity.Property(m => m.TicketId).HasColumnType("uniqueidentifier").IsRequired();
+            entity.Property(m => m.InventoryId).HasColumnType("uniqueidentifier").IsRequired();
+            entity.Property(m => m.FlightNumber).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
+            entity.Property(m => m.Origin).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
+            entity.Property(m => m.Destination).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
+            entity.Property(m => m.DepartureDate).HasColumnType("date").IsRequired();
+            entity.Property(m => m.AircraftType).HasColumnType("char(4)").HasMaxLength(4).IsRequired();
+            entity.Property(m => m.SeatNumber).HasColumnType("varchar(5)").HasMaxLength(5).IsRequired();
+            entity.Property(m => m.CabinCode).HasColumnType("char(1)").HasMaxLength(1).IsRequired();
+            entity.Property(m => m.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
+            entity.Property(m => m.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(m => m.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(m => m.GivenName).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(m => m.Surname).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(m => m.SsrCodes).HasColumnType("nvarchar(500)").HasMaxLength(500).IsRequired(false);
+            entity.Property(m => m.DepartureTime).HasColumnType("time").IsRequired();
+            entity.Property(m => m.ArrivalTime).HasColumnType("time").IsRequired();
+            entity.Property(m => m.CheckedIn).HasColumnType("bit").IsRequired();
+            entity.Property(m => m.CheckedInAt).HasColumnType("datetime2").IsRequired(false);
+            entity.Property(m => m.CreatedAt).HasColumnType("datetime2").IsRequired();
+            entity.Property(m => m.UpdatedAt).HasColumnType("datetime2").IsRequired();
+            entity.Property(m => m.Version).HasColumnType("int").IsRequired();
+
+            entity.HasIndex(m => new { m.FlightNumber, m.DepartureDate });
+            entity.HasIndex(m => m.BookingReference);
+            entity.HasIndex(m => new { m.InventoryId, m.SeatNumber }).IsUnique();
+            entity.HasIndex(m => new { m.InventoryId, m.ETicketNumber }).IsUnique();
         });
     }
 }

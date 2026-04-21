@@ -154,11 +154,16 @@ public sealed class DeliveryServiceClient
         string bookingReference,
         Guid inventoryId,
         string flightNumber,
+        string origin,
+        string destination,
         string departureDate,
+        string aircraftType,
+        string departureTime,
+        string arrivalTime,
         List<ManifestPassengerEntry> entries,
         CancellationToken ct)
     {
-        var payload = new { bookingReference, inventoryId, flightNumber, departureDate, entries };
+        var payload = new { bookingReference, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, entries };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -298,6 +303,15 @@ public sealed class TicketSegment
 
     [JsonPropertyName("fareBasisCode")]
     public string? FareBasisCode { get; init; }
+
+    [JsonPropertyName("departureTime")]
+    public string DepartureTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("arrivalTime")]
+    public string ArrivalTime { get; init; } = string.Empty;
+
+    [JsonPropertyName("aircraftType")]
+    public string AircraftType { get; init; } = string.Empty;
 
     [JsonPropertyName("seatAssignments")]
     public List<SeatAssignmentItem> SeatAssignments { get; init; } = [];
