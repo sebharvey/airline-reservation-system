@@ -259,7 +259,7 @@ isFirstAdult(index: number): boolean {
   }
 
   formatPrice(amount: number, currency: string): string {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${currency} ${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   trackByIndex(index: number): number {

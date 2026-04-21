@@ -313,7 +313,7 @@ export class ProductsComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   formatAmount(amount: number, currency: string): string {
-    return `${amount.toFixed(2)}\u00A0${currency}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency}`;
   }
 
   formatDate(iso: string): string {

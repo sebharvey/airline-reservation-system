@@ -155,7 +155,7 @@ export class BagsComponent implements OnInit {
     if (count === 0) return 'No additional bags';
     const offer = offers.find(o => o.bagSequence === count) ?? offers[0];
     if (!offer) return `${count} bag(s)`;
-    return `${count} bag(s) · ${offer.currency} ${(offer.price * count).toFixed(2)}`;
+    return `${count} bag(s) · ${offer.currency} ${(offer.price * count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   isSelected(passengerId: string, basketItemId: string, count: number): boolean {

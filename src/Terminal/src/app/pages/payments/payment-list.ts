@@ -109,7 +109,7 @@ export class PaymentListComponent implements OnInit {
 
   formatAmount(amount: number | null, currency: string): string {
     if (amount === null) return '—';
-    return `${amount.toFixed(2)}\u00A0${currency || 'GBP'}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency || 'GBP'}`;
   }
 
   formatDateTime(iso: string | null): string {
