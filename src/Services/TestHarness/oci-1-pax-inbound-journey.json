@@ -406,13 +406,13 @@
         "statusCode": 201,
         "assertions": [
           {
-            "field": "eTickets",
+            "field": "orderItems[*].eTickets[*]",
             "assertion": "count",
             "expected": 1,
             "description": "Exactly one e-ticket must be issued for the single passenger."
           },
           {
-            "field": "eTickets[*].eTicketNumber",
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
             "assertion": "present",
             "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }

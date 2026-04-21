@@ -703,13 +703,13 @@
             "description": "bookingReference must be present \u2014 the human-readable PNR used for check-in and manage-booking flows."
           },
           {
-            "field": "eTickets",
+            "field": "orderItems[*].eTickets[*]",
             "assertion": "count",
             "expected": "__RAND_PAX_COUNT__",
             "description": "One e-ticket must be issued per passenger (matches the paxCount for this run)."
           },
           {
-            "field": "eTickets[*].eTicketNumber",
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
             "assertion": "present",
             "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
