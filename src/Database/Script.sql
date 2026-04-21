@@ -749,6 +749,7 @@ IF OBJECT_ID('[delivery].[Manifest]', 'U') IS NULL
 CREATE TABLE [delivery].[Manifest] (
     ManifestId       UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Manifest_Id      DEFAULT NEWID(),
     TicketId         UNIQUEIDENTIFIER NOT NULL,
+    OrderId          UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Manifest_OrderId DEFAULT '00000000-0000-0000-0000-000000000000',
     InventoryId      UNIQUEIDENTIFIER NOT NULL,
     FlightNumber     VARCHAR(10)      NOT NULL,
     Origin           CHAR(3)          NOT NULL,
@@ -798,6 +799,14 @@ BEGIN
             INNER JOIN inserted i ON t.ManifestId = i.ManifestId;
     ');
 END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'OrderId')
+    ALTER TABLE [delivery].[Manifest] ADD OrderId UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Manifest_OrderId DEFAULT '00000000-0000-0000-0000-000000000000';
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_OrderId' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
+    CREATE INDEX IX_Manifest_OrderId ON [delivery].[Manifest] (OrderId);
 GO
 
 -- delivery.Document -----------------------------------------------------------

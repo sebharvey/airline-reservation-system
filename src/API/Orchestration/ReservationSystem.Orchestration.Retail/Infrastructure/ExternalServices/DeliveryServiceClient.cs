@@ -152,6 +152,7 @@ public sealed class DeliveryServiceClient
 
     public async Task WriteManifestAsync(
         string bookingReference,
+        Guid orderId,
         Guid inventoryId,
         string flightNumber,
         string origin,
@@ -163,7 +164,7 @@ public sealed class DeliveryServiceClient
         List<ManifestPassengerEntry> entries,
         CancellationToken ct)
     {
-        var payload = new { bookingReference, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, entries };
+        var payload = new { bookingReference, orderId, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, entries };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

@@ -13,6 +13,9 @@ public sealed class AffectedOrdersResponse
 
 public sealed class AffectedOrderDto
 {
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
+
     [JsonPropertyName("bookingReference")]
     public string BookingReference { get; init; } = string.Empty;
 

@@ -5,6 +5,7 @@ namespace ReservationSystem.Microservices.Delivery.Models.Requests;
 public sealed class WriteManifestRequest
 {
     [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("orderId")]          public Guid OrderId { get; init; }
     [JsonPropertyName("inventoryId")]      public Guid InventoryId { get; init; }
     [JsonPropertyName("flightNumber")]     public string FlightNumber { get; init; } = string.Empty;
     [JsonPropertyName("origin")]           public string Origin { get; init; } = string.Empty;

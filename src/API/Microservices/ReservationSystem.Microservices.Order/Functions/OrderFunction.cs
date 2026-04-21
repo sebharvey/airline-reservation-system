@@ -364,6 +364,7 @@ public sealed class OrderFunction
 
             return new
             {
+                orderId = order.OrderId,
                 bookingReference = order.BookingReference,
                 bookingType,
                 loyaltyNumber,

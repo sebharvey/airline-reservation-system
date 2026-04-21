@@ -136,7 +136,7 @@ public sealed class ConfirmBasketHandler
 
         var issuedTickets = await ticketsTask;
 
-        await RunManifestWriteAsync(basketDataJson, confirmedOrder.BookingReference, issuedTickets, cancellationToken);
+        await RunManifestWriteAsync(basketDataJson, confirmedOrder.BookingReference, confirmedOrder.OrderId, issuedTickets, cancellationToken);
 
         var bookedAt = DateTime.UtcNow.ToString("o");
         var confirmedTotalAmount = totalAmount;
@@ -949,6 +949,7 @@ public sealed class ConfirmBasketHandler
     private async Task RunManifestWriteAsync(
         string? basketDataJson,
         string bookingReference,
+        Guid orderId,
         List<IssuedTicket> issuedTickets,
         CancellationToken ct)
     {
@@ -983,7 +984,7 @@ public sealed class ConfirmBasketHandler
                 }).ToList();
 
                 await _deliveryServiceClient.WriteManifestAsync(
-                    bookingReference, inventoryId,
+                    bookingReference, orderId, inventoryId,
                     segment.FlightNumber,
                     segment.Origin,
                     segment.Destination,

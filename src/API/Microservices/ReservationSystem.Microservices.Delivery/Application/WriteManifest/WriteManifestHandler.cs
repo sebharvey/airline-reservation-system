@@ -73,6 +73,7 @@ public sealed class WriteManifestHandler
 
             var manifest = Manifest.Create(
                 ticketId:        ticket.TicketId,
+                orderId:         request.OrderId,
                 inventoryId:     request.InventoryId,
                 flightNumber:    request.FlightNumber,
                 origin:          request.Origin,
