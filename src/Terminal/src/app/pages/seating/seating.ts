@@ -195,6 +195,6 @@ export class SeatingComponent implements OnInit {
   }
 
   formatPrice(price: number, currency: string): string {
-    return `${price.toFixed(2)}\u00A0${currency}`;
+    return `${price.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency}`;
   }
 }

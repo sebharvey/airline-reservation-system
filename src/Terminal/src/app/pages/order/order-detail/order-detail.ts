@@ -473,7 +473,7 @@ export class OrderDetailComponent implements OnInit {
 
   formatAmount(amount: number | null | undefined, currency?: string | null): string {
     if (amount == null) return '—';
-    return `${amount.toFixed(2)}\u00A0${currency || this.order()?.currency || 'GBP'}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency || this.order()?.currency || 'GBP'}`;
   }
 
   formatDate(iso: string | null | undefined): string {

@@ -88,7 +88,7 @@ export class RewardLoginComponent implements OnInit {
   }
 
   formatPrice(amount: number, currency: string): string {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${currency} ${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   formatDateTime(dt: string): string {

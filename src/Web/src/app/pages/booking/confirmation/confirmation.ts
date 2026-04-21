@@ -197,7 +197,7 @@ export class ConfirmationComponent implements OnInit {
   }
 
   formatPrice(amount: number): string {
-    return `${this.order?.currency ?? ''} ${amount.toFixed(2)}`;
+    return `${this.order?.currency ?? ''} ${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   cabinLabel(code: string): string {

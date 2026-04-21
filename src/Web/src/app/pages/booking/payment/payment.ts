@@ -313,7 +313,7 @@ export class PaymentComponent implements OnInit {
 
   formatPrice(amount: number): string {
     const currency = this.paymentSummary()?.currency ?? this.basket()?.currency ?? 'GBP';
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${currency} ${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   formatDateTime(dt: string): string {

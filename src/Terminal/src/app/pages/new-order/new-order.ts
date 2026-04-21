@@ -736,7 +736,7 @@ export class NewOrderComponent {
   // ── Formatting helpers ───────────────────────────────────────────────────
 
   formatAmount(amount: number, currency = 'GBP'): string {
-    return `${amount.toFixed(2)}\u00A0${currency}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency}`;
   }
 
   formatDate(dateStr: string): string {
