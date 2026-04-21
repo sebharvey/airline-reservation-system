@@ -313,7 +313,11 @@
     ];
 
     const ROUTES = [
-        { origin: 'LHR', destination: 'JFK' }
+        { origin: 'LHR', destination: 'JFK' },
+        { origin: 'LHR', destination: 'JFK' },
+        { origin: 'LHR', destination: 'JFK' },
+        { origin: 'LHR', destination: 'MIA' },
+        { origin: 'LHR', destination: 'DEL' },
     ];
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
