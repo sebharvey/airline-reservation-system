@@ -1,4 +1,5 @@
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Orchestration.Retail.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
@@ -48,9 +49,10 @@ public sealed class OfferServiceClient
         int paxCount,
         string bookingType,
         bool includePrivateFares = false,
+        CustomerContext? customerContext = null,
         CancellationToken cancellationToken = default)
     {
-        var body = new { origin, destination, departureDate, paxCount, bookingType, includePrivateFares };
+        var body = new { origin, destination, departureDate, paxCount, bookingType, includePrivateFares, customerContext };
 
         var response = await _httpClient.PostAsJsonAsync("/api/v1/search", body, JsonOptions, cancellationToken);
         response.EnsureSuccessStatusCode();
