@@ -390,6 +390,7 @@ public sealed class AdminDisruptionCancelHandler
             await _deliveryServiceClient.WriteManifestAsync(new WriteManifestRequest
             {
                 BookingReference = order.BookingReference,
+                OrderId = order.OrderId,
                 InventoryId = leg.InventoryId,
                 FlightNumber = leg.FlightNumber,
                 DepartureDate = leg.DepartureDate,

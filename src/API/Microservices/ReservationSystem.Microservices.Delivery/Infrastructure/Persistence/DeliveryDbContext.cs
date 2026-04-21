@@ -80,6 +80,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.HasKey(m => m.ManifestId);
             entity.Property(m => m.ManifestId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
             entity.Property(m => m.TicketId).HasColumnType("uniqueidentifier").IsRequired();
+            entity.Property(m => m.OrderId).HasColumnType("uniqueidentifier").IsRequired();
             entity.Property(m => m.InventoryId).HasColumnType("uniqueidentifier").IsRequired();
             entity.Property(m => m.FlightNumber).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
             entity.Property(m => m.Origin).HasColumnType("char(3)").HasMaxLength(3).IsRequired();

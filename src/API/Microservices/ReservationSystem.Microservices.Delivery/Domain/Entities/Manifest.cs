@@ -8,6 +8,7 @@ public sealed class Manifest
 {
     public Guid ManifestId { get; private set; }
     public Guid TicketId { get; private set; }
+    public Guid OrderId { get; private set; }
     public Guid InventoryId { get; private set; }
     public string FlightNumber { get; private set; } = string.Empty;
     public string Origin { get; private set; } = string.Empty;
@@ -34,6 +35,7 @@ public sealed class Manifest
 
     public static Manifest Create(
         Guid ticketId,
+        Guid orderId,
         Guid inventoryId,
         string flightNumber,
         string origin,
@@ -56,6 +58,7 @@ public sealed class Manifest
         {
             ManifestId       = Guid.NewGuid(),
             TicketId         = ticketId,
+            OrderId          = orderId,
             InventoryId      = inventoryId,
             FlightNumber     = flightNumber,
             Origin           = origin,
