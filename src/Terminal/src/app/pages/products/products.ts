@@ -232,7 +232,8 @@ export class ProductsComponent implements OnInit {
 
   channelBadges(availableChannels: string): string[] {
     try {
-      return Array.isArray(JSON.parse(availableChannels)) ? JSON.parse(availableChannels) : [];
+      const parsed = JSON.parse(availableChannels);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
