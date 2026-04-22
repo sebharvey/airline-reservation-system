@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionCancel;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionChange;
+using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionGetOrders;
+using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionRebookOrder;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
 using ReservationSystem.Orchestration.Operations.Models.Requests;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
@@ -17,22 +19,28 @@ public sealed class AdminDisruptionFunction
     private readonly AdminDisruptionCancelHandler _cancelHandler;
     private readonly AdminDisruptionChangeHandler _changeHandler;
     private readonly AdminDisruptionTimeHandler _timeHandler;
+    private readonly AdminDisruptionGetOrdersHandler _getOrdersHandler;
+    private readonly AdminDisruptionRebookOrderHandler _rebookOrderHandler;
     private readonly ILogger<AdminDisruptionFunction> _logger;
 
     public AdminDisruptionFunction(
         AdminDisruptionCancelHandler cancelHandler,
         AdminDisruptionChangeHandler changeHandler,
         AdminDisruptionTimeHandler timeHandler,
+        AdminDisruptionGetOrdersHandler getOrdersHandler,
+        AdminDisruptionRebookOrderHandler rebookOrderHandler,
         ILogger<AdminDisruptionFunction> logger)
     {
         _cancelHandler = cancelHandler;
         _changeHandler = changeHandler;
         _timeHandler = timeHandler;
+        _getOrdersHandler = getOrdersHandler;
+        _rebookOrderHandler = rebookOrderHandler;
         _logger = logger;
     }
 
     [Function("AdminDisruptionCancel")]
-    [OpenApiOperation(operationId: "AdminDisruptionCancel", tags: new[] { "Admin Disruption" }, Summary = "Cancel a flight and synchronously rebook affected passengers (staff)")]
+    [OpenApiOperation(operationId: "AdminDisruptionCancel", tags: new[] { "Admin Disruption" }, Summary = "Cancel a flight and synchronously rebook all affected passengers (staff)")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminDisruptionCancelRequest), Required = true, Description = "Flight to cancel: flightNumber, departureDate, optional reason")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminDisruptionCancelResponse), Description = "IROPS processing complete with per-passenger outcomes")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
@@ -79,6 +87,98 @@ public sealed class AdminDisruptionFunction
         {
             _logger.LogError(ex, "IROPS cancellation failed for flight {FlightNumber} on {DepartureDate}",
                 request.FlightNumber, request.DepartureDate);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    [Function("AdminDisruptionGetOrders")]
+    [OpenApiOperation(operationId: "AdminDisruptionGetOrders", tags: new[] { "Admin Disruption" }, Summary = "Get affected orders for a cancelled flight in IROPS rebooking priority order (staff)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminDisruptionOrdersResponse), Description = "Orders sorted by cabin, loyalty tier, and booking date")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Flight not found")]
+    public async Task<HttpResponseData> GetDisruptionOrders(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/disruption/orders")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var flightNumber = qs["flightNumber"];
+        var departureDate = qs["departureDate"];
+
+        if (string.IsNullOrWhiteSpace(flightNumber))
+            return await req.BadRequestAsync("'flightNumber' query parameter is required.");
+
+        if (string.IsNullOrWhiteSpace(departureDate) ||
+            !DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out _))
+            return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
+
+        try
+        {
+            var query = new AdminDisruptionGetOrdersQuery(flightNumber, departureDate);
+            var result = await _getOrdersHandler.HandleAsync(query, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve disruption orders for flight {FlightNumber} on {DepartureDate}",
+                flightNumber, departureDate);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    [Function("AdminDisruptionRebookOrder")]
+    [OpenApiOperation(operationId: "AdminDisruptionRebookOrder", tags: new[] { "Admin Disruption" }, Summary = "Rebook a single order affected by a flight cancellation (staff)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminDisruptionRebookOrderRequest), Required = true, Description = "bookingReference, flightNumber, departureDate")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminDisruptionRebookOrderResponse), Description = "Rebook outcome for the specified booking")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Flight or booking not found")]
+    public async Task<HttpResponseData> RebookOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/disruption/rebook-order")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminDisruptionRebookOrderRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.BookingReference))
+            return await req.BadRequestAsync("'bookingReference' is required.");
+
+        if (string.IsNullOrWhiteSpace(request.FlightNumber))
+            return await req.BadRequestAsync("'flightNumber' is required.");
+
+        if (string.IsNullOrWhiteSpace(request.DepartureDate) ||
+            !DateOnly.TryParseExact(request.DepartureDate, "yyyy-MM-dd", out _))
+            return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
+
+        try
+        {
+            var command = new AdminDisruptionRebookOrderCommand(
+                request.BookingReference,
+                request.FlightNumber,
+                request.DepartureDate,
+                request.Reason);
+
+            var result = await _rebookOrderHandler.HandleAsync(command, cancellationToken);
+            return await req.OkJsonAsync(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "IROPS rebook failed for booking {BookingRef} on flight {FlightNumber}/{DepartureDate}",
+                request.BookingReference, request.FlightNumber, request.DepartureDate);
             return await req.InternalServerErrorAsync();
         }
     }

@@ -1,0 +1,505 @@
+.irops-page {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .irops-page { padding: 16px; }
+}
+
+/* ── Page header ─────────────────────────────────────────────────────────── */
+
+.irops-header {
+  margin-bottom: 28px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: 16px;
+  transition: color 0.15s;
+}
+
+.back-btn:hover { color: var(--text); }
+
+.irops-flight-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.irops-flight-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.irops-route {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.irops-date {
+  font-size: 0.875rem;
+}
+
+.irops-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.irops-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 680px;
+}
+
+/* ── Progress bar ────────────────────────────────────────────────────────── */
+
+.irops-progress-bar-wrap {
+  margin-bottom: 20px;
+}
+
+.irops-progress-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.825rem;
+  margin-bottom: 8px;
+}
+
+.irops-stat-sep { color: var(--text-muted); }
+.irops-stat-rebooked { font-weight: 600; color: var(--success); }
+.irops-stat-pending  { font-weight: 500; color: var(--text-muted); }
+.irops-stat-failed   { font-weight: 600; color: var(--danger); }
+
+.irops-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+  display: flex;
+}
+
+.irops-progress-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.irops-progress-rebooked { background: var(--success); }
+.irops-progress-failed   { background: var(--danger); }
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.irops-table-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.irops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.irops-table thead th {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.irops-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.irops-table tbody tr:last-child { border-bottom: none; }
+.irops-table tbody tr:hover { background: var(--surface-2); }
+
+.irops-table tbody td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.col-priority {
+  width: 36px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.col-action {
+  width: 120px;
+  text-align: right;
+}
+
+/* Rebooked / failed row tinting */
+.row-rebooked { background: rgba(63, 185, 80, 0.04) !important; }
+.row-failed   { background: rgba(248, 81, 73, 0.04) !important; }
+
+.booking-ref-cell {
+  font-weight: 600;
+}
+
+/* Passenger names */
+.pax-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pax-name {
+  font-size: 0.8125rem;
+}
+
+/* Cabin */
+.cabin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: monospace;
+  margin-right: 4px;
+}
+
+.cabin-label {
+  font-size: 0.775rem;
+}
+
+/* Loyalty tier badges */
+.tier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.tier-platinum { background: rgba(229, 228, 226, 0.3);  color: #6b7280; border: 1px solid rgba(156,163,175,0.5); }
+.tier-gold     { background: rgba(245, 158, 11, 0.1);   color: #b45309; }
+.tier-silver   { background: rgba(156, 163, 175, 0.15); color: #6b7280; }
+.tier-blue     { background: rgba(88, 166, 255, 0.12);  color: #1d6fa8; }
+.tier-none     { color: var(--text-muted); }
+
+/* Rebook status */
+.rebook-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.rebook-status-pending  { color: var(--text-muted); }
+.rebook-status-loading  { color: var(--text-muted); }
+.rebook-status-rebooked { color: var(--success); font-weight: 600; }
+.rebook-status-failed   { color: var(--danger); font-weight: 600; }
+
+.btn-spinner-sm {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Rebook action buttons */
+.btn-rebook {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  background: var(--primary, #1a73e8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-rebook:hover:not(:disabled) { opacity: 0.88; }
+.btn-rebook:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-rebook-loading { padding: 5px 10px; }
+
+.btn-view-result {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-view-result:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+/* ── Loading / empty states ──────────────────────────────────────────────── */
+
+.irops-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 64px 24px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.irops-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ── Rebook result modal ─────────────────────────────────────────────────── */
+
+.rebook-result-modal {
+  width: min(480px, calc(100vw - 32px));
+}
+
+.rebook-result-success,
+.rebook-result-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.rebook-result-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rebook-result-icon-success {
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--success);
+}
+
+.rebook-result-icon-failed {
+  background: rgba(248, 81, 73, 0.1);
+  color: var(--danger);
+}
+
+.icon-check { display: block; }
+
+.rebook-result-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.rebook-result-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  max-width: 340px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: 7px;
+  font-size: 0.875rem;
+}
+
+.rebook-detail-label {
+  color: var(--text-muted);
+  font-size: 0.825rem;
+}
+
+.rebook-detail-value {
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
+.rebook-result-reason {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 360px;
+  margin: 0;
+}
+
+.rebook-result-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+/* ── Modal shared styles (reused from inventory page) ────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  animation: fadeIn 0.15s ease;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  animation: slideUp 0.18s ease;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-title-group { flex: 1; min-width: 0; }
+.modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+.modal-subtitle { font-size: 0.8125rem; color: var(--text-muted); margin: 0; }
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0 0 12px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--primary, #1a73e8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.25);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: var(--danger);
+  margin-bottom: 20px;
+}
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+.badge-inactive { background: rgba(248, 81, 73, 0.1); color: #f85149; }
+
+.mono { font-family: monospace; }
+.muted { color: var(--text-muted); }
+
+.fade-in { animation: fadeIn 0.2s ease; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translate(-50%, -46%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+
+/* Spinner (shared) */
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}

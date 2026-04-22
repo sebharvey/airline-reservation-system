@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
 
@@ -11,6 +11,7 @@ import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, 
 })
 export class InventoryComponent implements OnInit {
   #inventoryService = inject(InventoryService);
+  #router = inject(Router);
 
   flights = signal<FlightInventoryGroup[]>([]);
   selectedDate = signal(this.#todayIso());
@@ -165,30 +166,29 @@ export class InventoryComponent implements OnInit {
 
   // Disruption modal
   disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
-  disruptionStep = signal<'action' | 'confirm' | 'result'>('action');
+  disruptionStep = signal<'action' | 'confirm'>('action');
   disruptionLoading = signal(false);
   disruptionError = signal('');
-  disruptionResult = signal<DisruptionCancelResponse | null>(null);
 
+  // Any active flight (non-cancelled) can show the disruption action menu.
+  // Cancelled flights navigate directly to the IROPS rebooking page.
   canDisrupt(flight: FlightInventoryGroup): boolean {
-    return flight.status !== 'Cancelled' && flight.status !== 'Ticketing Closed';
+    return flight.status !== 'Ticketing Closed';
   }
 
   openDisruptionModal(flight: FlightInventoryGroup): void {
+    if (flight.status === 'Cancelled') {
+      this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);
+      return;
+    }
     this.disruptionModalFlight.set(flight);
     this.disruptionStep.set('action');
     this.disruptionError.set('');
-    this.disruptionResult.set(null);
   }
 
   closeDisruptionModal(): void {
     if (this.disruptionLoading()) return;
     this.disruptionModalFlight.set(null);
-  }
-
-  async closeDisruptionResult(): Promise<void> {
-    this.disruptionModalFlight.set(null);
-    await this.loadInventory();
   }
 
   startCancellationConfirm(): void {
@@ -202,12 +202,12 @@ export class InventoryComponent implements OnInit {
     this.disruptionLoading.set(true);
     this.disruptionError.set('');
     try {
-      const result = await this.#inventoryService.cancelFlight(
+      await this.#inventoryService.cancelFlightInventoryOnly(
         flight.flightNumber,
         flight.departureDate
       );
-      this.disruptionResult.set(result);
-      this.disruptionStep.set('result');
+      this.disruptionModalFlight.set(null);
+      await this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);
     } catch {
       this.disruptionError.set('Failed to cancel flight. Please try again.');
     } finally {

@@ -114,6 +114,33 @@ export interface DisruptionCancelResponse {
   processedAt: string;
 }
 
+export interface IropsOrderItem {
+  bookingReference: string;
+  bookingType: string;
+  cabinCode: string;
+  loyaltyTier?: string;
+  loyaltyNumber?: string;
+  bookingDate: string;
+  passengerCount: number;
+  passengerNames: string[];
+}
+
+export interface IropsOrdersResponse {
+  flightNumber: string;
+  departureDate: string;
+  origin: string;
+  destination: string;
+  orders: IropsOrderItem[];
+}
+
+export interface IropsRebookOrderResponse {
+  bookingReference: string;
+  outcome: 'Rebooked' | 'Failed';
+  replacementFlightNumber?: string;
+  replacementDepartureDate?: string;
+  failureReason?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   #http = inject(HttpClient);
@@ -134,6 +161,33 @@ export class InventoryService {
       this.#http.post<DisruptionCancelResponse>(
         `${this.#operationsBaseUrl}/disruption/cancel`,
         { flightNumber, departureDate }
+      )
+    );
+  }
+
+  async cancelFlightInventoryOnly(flightNumber: string, departureDate: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.post<void>(
+        `${this.#operationsBaseUrl}/inventory/cancel`,
+        { flightNumber, departureDate }
+      )
+    );
+  }
+
+  async getIropsOrders(flightNumber: string, departureDate: string): Promise<IropsOrdersResponse> {
+    return firstValueFrom(
+      this.#http.get<IropsOrdersResponse>(
+        `${this.#operationsBaseUrl}/disruption/orders`,
+        { params: { flightNumber, departureDate } }
+      )
+    );
+  }
+
+  async rebookIropsOrder(bookingReference: string, flightNumber: string, departureDate: string): Promise<IropsRebookOrderResponse> {
+    return firstValueFrom(
+      this.#http.post<IropsRebookOrderResponse>(
+        `${this.#operationsBaseUrl}/disruption/rebook-order`,
+        { bookingReference, flightNumber, departureDate }
       )
     );
   }

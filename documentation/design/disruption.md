@@ -182,9 +182,17 @@ sequenceDiagram
 
 ## Admin disruption cancellation
 
-When operations staff cancel a flight from the Terminal app inventory screen, the system calls `POST /v1/admin/disruption/cancel`. This endpoint performs the full IROPS flow **synchronously within the same API call** — inventory is closed and all affected passengers are rebooked before the response is returned.
+When operations staff cancel a flight from the Terminal app inventory screen the workflow is split into two stages:
 
-> **Design note:** The synchronous approach is intentional for the current phase. Unlike the FOS-triggered `POST /v1/disruptions/cancellation` flow (which returns `202 Accepted` immediately and processes rebooking asynchronously via Service Bus), the admin endpoint blocks until all bookings are processed. This simplifies the Terminal app UX — staff see outcomes immediately. This may be moved to an async pattern in a future phase if flight sizes require it.
+1. **Take off sale** — Staff click *Cancel flight* from the inventory Disruption menu and confirm. The Terminal app calls `POST /v1/admin/inventory/cancel`, which closes the flight inventory immediately (`SeatsAvailable = 0`, `Status = Cancelled`) so no new bookings can be accepted. The staff member is then navigated automatically to the **IROPS Rebooking screen**.
+
+2. **Per-order rebooking** — The IROPS Rebooking screen (`/disruption/:flightNumber/:departureDate`) calls `GET /v1/admin/disruption/orders` to retrieve all affected bookings sorted by rebooking priority. Staff can then rebook each booking individually by clicking *Rebook* next to each row. Each click calls `POST /v1/admin/disruption/rebook-order`, which searches for the best available replacement flight and performs the full per-booking IROPS flow (hold inventory, rebook order, reissue e-tickets, update manifest). The result is shown in a modal per booking. If a rebook fails, the row remains in *Failed* state and can be retried.
+
+> **Re-entering the IROPS screen:** If staff navigate away from the IROPS Rebooking screen and return to the inventory list, clicking the *IROPS* button on a Cancelled flight navigates directly back to the IROPS Rebooking screen for that flight without re-cancelling.
+
+> **Bulk cancel endpoint retained:** `POST /v1/admin/disruption/cancel` remains available for programmatic use and bulk operations. It performs the full IROPS flow synchronously (inventory close + rebook all passengers) in a single API call, which is useful for automated tooling and future integrations.
+
+> **Design note:** Splitting the cancel and rebook steps gives operations staff control over the pacing of rebooking — useful when replacement inventory is limited or needs to be reserved for specific passenger groups. The per-booking endpoint uses the same replacement search logic as the bulk endpoint (direct flights first, connecting via LHR hub with 60-min MCT, 7-day lookahead, same or upgraded cabin).
 
 ```mermaid
 sequenceDiagram
@@ -195,6 +203,53 @@ sequenceDiagram
     participant CustomerMS as Customer [MS]
     participant DeliveryMS as Delivery [MS]
 
+    Note over Staff,OpsAPI: Stage 1 — Take off sale
+    Staff->>OpsAPI: POST /v1/admin/inventory/cancel (flightNumber, departureDate)
+    OpsAPI->>OfferMS: PATCH /v1/inventory/cancel
+    OfferMS-->>OpsAPI: 200 OK — inventory closed
+    OpsAPI-->>Staff: 204 No Content
+    Note over Staff: Navigate to IROPS Rebooking screen
+
+    Note over Staff,OpsAPI: Stage 2 — Load affected orders
+    Staff->>OpsAPI: GET /v1/admin/disruption/orders?flightNumber=&departureDate=
+    OpsAPI->>DeliveryMS: GET /v1/manifest?flightNumber=&departureDate=
+    DeliveryMS-->>OpsAPI: Manifest entries (orderIds)
+    OpsAPI->>OrderMS: POST /v1/orders/irops (orderIds, flightNumber, departureDate)
+    OrderMS-->>OpsAPI: Affected orders
+    OpsAPI-->>Staff: Orders sorted by IROPS priority (F→J→W→Y, Platinum→Blue, booking date)
+
+    Note over Staff,OpsAPI: Stage 3 — Rebook individual bookings (one per staff click)
+    Staff->>OpsAPI: POST /v1/admin/disruption/rebook-order (bookingReference, flightNumber, departureDate)
+    OpsAPI->>OfferMS: GET /v1/flights/{flightNumber}/inventory (get origin/destination)
+    OfferMS-->>OpsAPI: Flight details
+    OpsAPI->>DeliveryMS: GET /v1/manifest (get orderId for this booking)
+    DeliveryMS-->>OpsAPI: Manifest
+    OpsAPI->>OrderMS: POST /v1/orders/irops (single orderId)
+    OrderMS-->>OpsAPI: Order detail
+
+    OpsAPI->>OfferMS: GET /v1/flights/availability (7-day window, origin→destination)
+    OfferMS-->>OpsAPI: Available replacement flights
+
+    Note over OpsAPI: Select best replacement (same/upgraded cabin)
+    OpsAPI->>OfferMS: POST /v1/inventory/hold (per leg)
+    OfferMS-->>OpsAPI: 200 OK
+
+    OpsAPI->>OrderMS: PATCH /v1/orders/{bookingRef}/rebook (reason=FlightCancellation)
+    OrderMS-->>OpsAPI: 200 OK
+
+    OpsAPI->>OfferMS: POST /v1/inventory/rebook (sell replacement, release cancelled)
+    OfferMS-->>OpsAPI: 200 OK
+
+    OpsAPI->>DeliveryMS: POST /v1/tickets/reissue
+    DeliveryMS-->>OpsAPI: New e-ticket numbers
+
+    OpsAPI->>DeliveryMS: PATCH /v1/manifest/{bookingRef}/flight (update to replacement)
+    DeliveryMS-->>OpsAPI: 200 OK
+
+    OpsAPI-->>Staff: { outcome: "Rebooked", replacementFlightNumber, replacementDepartureDate }
+    Note over Staff: Show result modal; update row status in list
+
+    Note over Staff,OpsAPI: (original bulk endpoint — retained for programmatic use)
     Staff->>OpsAPI: POST /v1/admin/disruption/cancel (flightNumber, departureDate, reason?)
     OpsAPI->>OfferMS: PATCH /v1/inventory/cancel
     OfferMS-->>OpsAPI: 200 OK — inventory closed
