@@ -85,8 +85,32 @@ public sealed class ReissueTicketsRequest
     [JsonPropertyName("voidedETicketNumbers")]
     public IReadOnlyList<string> CancelledETicketNumbers { get; init; } = [];
 
-    [JsonPropertyName("replacementSegments")]
-    public IReadOnlyList<ReissueSegmentDto> ReplacementSegments { get; init; } = [];
+    [JsonPropertyName("passengers")]
+    public IReadOnlyList<ReissuePassengerDto> Passengers { get; init; } = [];
+
+    [JsonPropertyName("segments")]
+    public IReadOnlyList<ReissueSegmentDto> Segments { get; init; } = [];
+
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; } = string.Empty;
+
+    [JsonPropertyName("actor")]
+    public string Actor { get; init; } = string.Empty;
+}
+
+public sealed class ReissuePassengerDto
+{
+    [JsonPropertyName("passengerId")]
+    public string PassengerId { get; init; } = string.Empty;
+
+    [JsonPropertyName("givenName")]
+    public string GivenName { get; init; } = string.Empty;
+
+    [JsonPropertyName("surname")]
+    public string Surname { get; init; } = string.Empty;
+
+    [JsonPropertyName("passengerTypeCode")]
+    public string? PassengerTypeCode { get; init; }
 }
 
 public sealed class ReissueSegmentDto
@@ -100,6 +124,9 @@ public sealed class ReissueSegmentDto
     [JsonPropertyName("departureDate")]
     public string DepartureDate { get; init; } = string.Empty;
 
+    [JsonPropertyName("departureTime")]
+    public string? DepartureTime { get; init; }
+
     [JsonPropertyName("origin")]
     public string Origin { get; init; } = string.Empty;
 
@@ -108,6 +135,9 @@ public sealed class ReissueSegmentDto
 
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("fareBasisCode")]
+    public string FareBasisCode { get; init; } = string.Empty;
 }
 
 public sealed class ReissueTicketsResponse
