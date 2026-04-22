@@ -164,7 +164,13 @@ button {
   letter-spacing: 0.5px;
 }
 
-/* ── Copy-to-clipboard button ── */
+/* ── Copy-to-clipboard wrapper + button ── */
+.pnr-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .copy-btn {
   display: inline-flex;
   align-items: center;

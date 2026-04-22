@@ -234,6 +234,7 @@ export class NewOrderComponent {
 
   // ── Confirmation ─────────────────────────────────────────────────────────
   confirmed = signal<ConfirmResponse | null>(null);
+  copiedPnr = signal<string | null>(null);
 
   // ── Search ───────────────────────────────────────────────────────────────
 
@@ -675,6 +676,13 @@ export class NewOrderComponent {
   backToPassengers(): void {
     this.step.set('passengers');
     this.accordionSection.set('passengers');
+  }
+
+  copyBookingRef(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedPnr.set(text);
+      setTimeout(() => this.copiedPnr.set(null), 2000);
+    });
   }
 
   viewOrder(): void {

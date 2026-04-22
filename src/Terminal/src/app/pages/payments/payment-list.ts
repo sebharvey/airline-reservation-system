@@ -15,6 +15,8 @@ export class PaymentListComponent implements OnInit {
   error = signal('');
   loaded = signal(false);
 
+  copiedRef = signal<string | null>(null);
+
   // Modal state
   modalOpen = signal(false);
   modalPayment = signal<PaymentDetail | null>(null);
@@ -74,6 +76,14 @@ export class PaymentListComponent implements OnInit {
     } finally {
       this.modalLoading.set(false);
     }
+  }
+
+  copyBookingRef(text: string, event?: Event): void {
+    event?.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedRef.set(text);
+      setTimeout(() => this.copiedRef.set(null), 2000);
+    });
   }
 
   closeModal(): void {

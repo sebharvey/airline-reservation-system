@@ -246,6 +246,54 @@ Apply `class="text-right"` to the `<th>` and `class="text-right"` (or a semantic
 
 Applies to: fares, base prices, taxes, line totals, order amounts, payment amounts, bag pricing, seat pricing, loyalty points balances, points deltas, and any other monetary or points value rendered in a tabular list view.
 
+### Booking reference copy-to-clipboard icon
+
+Every place in the Terminal Angular app where a booking reference (PNR) is displayed to the user **must** include a copy-to-clipboard button immediately after the reference text. This covers: order list tables, order detail headers, new-order confirmation screens (main panel and basket sidebar), payment list tables and detail modals, disruption table and rebook result modals, and customer loyalty transaction tables.
+
+**Pattern — HTML template**
+
+Wrap the booking reference text and copy button together in a `pnr-copy-wrap` span. The `copy-btn` class and `pnr-copy-wrap` class are both defined in global `styles.css` and require no additional component CSS.
+
+```html
+<span class="pnr-copy-wrap">
+  {{ bookingRef }}
+  <button
+    class="copy-btn"
+    [class.copied]="copiedRef() === bookingRef"
+    (click)="copyBookingRef(bookingRef, $event)"
+    [title]="copiedRef() === bookingRef ? 'Copied!' : 'Copy booking reference'"
+  >
+    @if (copiedRef() === bookingRef) {
+      <!-- checkmark icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    } @else {
+      <!-- copy icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+    }
+  </button>
+</span>
+```
+
+If the booking reference is optional and may be absent (e.g. loyalty transactions), guard with `@if (bookingRef) { ... } @else { — }`.
+
+If the wrapping element has a click handler (e.g. a table row that opens a modal), pass `$event` to the method and call `event?.stopPropagation()` inside it so the click does not bubble.
+
+**Pattern — TypeScript component**
+
+```typescript
+copiedRef = signal<string | null>(null);
+
+copyBookingRef(text: string, event?: Event): void {
+  event?.stopPropagation();
+  navigator.clipboard.writeText(text).then(() => {
+    this.copiedRef.set(text);
+    setTimeout(() => this.copiedRef.set(null), 2000);
+  });
+}
+```
+
+Use a `string | null` signal (not `boolean`) so the icon state is tracked per-reference when multiple booking references are visible on the same page.
+
 ---
 
 ## TypeScript Models

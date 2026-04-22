@@ -1011,6 +1011,7 @@
   font-family: 'SF Mono', 'Fira Code', monospace;
   color: var(--grad-start);
   letter-spacing: 3px;
+  line-height: 1;
 }
 
 .ticket-list {

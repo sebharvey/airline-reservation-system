@@ -934,7 +934,16 @@
 
               <div class="pnr-box">
                 <span class="pnr-label">Booking Reference</span>
-                <span class="pnr-value">{{ conf.bookingReference }}</span>
+                <span class="pnr-copy-wrap">
+                  <span class="pnr-value">{{ conf.bookingReference }}</span>
+                  <button class="copy-btn" [class.copied]="copiedPnr() === conf.bookingReference" (click)="copyBookingRef(conf.bookingReference)" [title]="copiedPnr() === conf.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                    @if (copiedPnr() === conf.bookingReference) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    }
+                  </button>
+                </span>
               </div>
 
               @if (conf.eTickets.length > 0) {
@@ -1074,7 +1083,16 @@
             <div class="basket-confirmed-summary">
               <div class="basket-pnr-row">
                 <span class="bpnr-label">PNR</span>
-                <span class="bpnr-value">{{ confirmed()!.bookingReference }}</span>
+                <span class="pnr-copy-wrap">
+                  <span class="bpnr-value">{{ confirmed()!.bookingReference }}</span>
+                  <button class="copy-btn" [class.copied]="copiedPnr() === confirmed()!.bookingReference" (click)="copyBookingRef(confirmed()!.bookingReference)" [title]="copiedPnr() === confirmed()!.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                    @if (copiedPnr() === confirmed()!.bookingReference) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    }
+                  </button>
+                </span>
               </div>
               <p class="basket-confirmed-status">&#10003; Booking confirmed</p>
               <p class="basket-confirmed-amount">

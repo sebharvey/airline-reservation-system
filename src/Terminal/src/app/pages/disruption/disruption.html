@@ -83,7 +83,18 @@
           @for (row of rows(); track row.order.bookingReference) {
             <tr [class.row-rebooked]="row.rebookStatus === 'rebooked'" [class.row-failed]="row.rebookStatus === 'failed'">
               <td class="col-priority muted">{{ row.priority }}</td>
-              <td class="mono booking-ref-cell">{{ row.order.bookingReference }}</td>
+              <td class="mono booking-ref-cell">
+                <span class="pnr-copy-wrap">
+                  {{ row.order.bookingReference }}
+                  <button class="copy-btn" [class.copied]="copiedRef() === row.order.bookingReference" (click)="copyBookingRef(row.order.bookingReference, $event)" [title]="copiedRef() === row.order.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                    @if (copiedRef() === row.order.bookingReference) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    } @else {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    }
+                  </button>
+                </span>
+              </td>
               <td>
                 <div class="pax-names">
                   @for (name of row.order.passengerNames; track name) {
@@ -158,7 +169,18 @@
     <div class="modal-header">
       <div class="modal-title-group">
         <h2 class="modal-title" id="rebook-modal-title">Rebooking Result</h2>
-        <p class="modal-subtitle">{{ row.order.bookingReference }}</p>
+        <p class="modal-subtitle">
+          <span class="pnr-copy-wrap">
+            {{ row.order.bookingReference }}
+            <button class="copy-btn" [class.copied]="copiedRef() === row.order.bookingReference" (click)="copyBookingRef(row.order.bookingReference)" [title]="copiedRef() === row.order.bookingReference ? 'Copied!' : 'Copy booking reference'">
+              @if (copiedRef() === row.order.bookingReference) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              }
+            </button>
+          </span>
+        </p>
       </div>
       <button class="modal-close" (click)="closeRebookModal()" aria-label="Close">&times;</button>
     </div>

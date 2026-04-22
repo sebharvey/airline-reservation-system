@@ -84,7 +84,22 @@
           @for (payment of payments(); track payment.paymentId) {
             <tr class="payment-row" (click)="openModal(payment)">
               <td class="mono id-cell">{{ formatPaymentId(payment.paymentId) }}&hellip;</td>
-              <td class="hide-mobile mono">{{ payment.bookingReference ?? '—' }}</td>
+              <td class="hide-mobile mono">
+                @if (payment.bookingReference) {
+                  <span class="pnr-copy-wrap">
+                    {{ payment.bookingReference }}
+                    <button class="copy-btn" [class.copied]="copiedRef() === payment.bookingReference" (click)="copyBookingRef(payment.bookingReference, $event)" [title]="copiedRef() === payment.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                      @if (copiedRef() === payment.bookingReference) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      }
+                    </button>
+                  </span>
+                } @else {
+                  —
+                }
+              </td>
               <td class="card-cell">
                 <span class="card-info">{{ cardDisplay(payment) }}</span>
               </td>
@@ -170,7 +185,22 @@
               </div>
               <div class="detail-row">
                 <span class="detail-label">Booking ref</span>
-                <span class="detail-value mono">{{ payment.bookingReference ?? '—' }}</span>
+                <span class="detail-value mono">
+                  @if (payment.bookingReference) {
+                    <span class="pnr-copy-wrap">
+                      {{ payment.bookingReference }}
+                      <button class="copy-btn" [class.copied]="copiedRef() === payment.bookingReference" (click)="copyBookingRef(payment.bookingReference)" [title]="copiedRef() === payment.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                        @if (copiedRef() === payment.bookingReference) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        }
+                      </button>
+                    </span>
+                  } @else {
+                    —
+                  }
+                </span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Method / card</span>
