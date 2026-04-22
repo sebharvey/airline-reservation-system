@@ -151,6 +151,39 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(MapToInventory).ToList().AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<FlightInventory>> SearchAvailableInventoryByRangeAsync(
+        string origin, string destination, DateOnly fromDate, DateOnly toDate,
+        CancellationToken ct = default)
+    {
+        const string sql = """
+            SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
+                   fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
+                   fi.Origin, fi.Destination, fi.AircraftType,
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+            FROM   [offer].[FlightInventory] fi
+            WHERE  fi.Origin        = @Origin
+              AND  fi.Destination   = @Destination
+              AND  fi.DepartureDate >= @FromDate
+              AND  fi.DepartureDate <= @ToDate
+              AND  fi.Status        = 'Active'
+              AND  fi.SeatsAvailable > 0
+            ORDER BY fi.DepartureDate, fi.DepartureTime;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new
+            {
+                Origin      = origin,
+                Destination = destination,
+                FromDate    = fromDate.ToDateTime(TimeOnly.MinValue),
+                ToDate      = toDate.ToDateTime(TimeOnly.MinValue)
+            }, commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToInventory).ToList().AsReadOnly();
+    }
+
     public async Task<IReadOnlyList<FlightInventory>> GetInventoriesByFlightAsync(
         string flightNumber, DateOnly departureDate, CancellationToken ct = default)
     {

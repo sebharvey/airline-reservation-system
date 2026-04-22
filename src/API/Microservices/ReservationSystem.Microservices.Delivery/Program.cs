@@ -18,6 +18,7 @@ using ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
 using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
+using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Domain.Services;
@@ -82,6 +83,7 @@ var host = new HostBuilder()
         services.AddScoped<OciCheckInHandler>();
         services.AddScoped<OciBoardingDocsHandler>();
         services.AddScoped<WriteManifestHandler>();
+        services.AddScoped<RebookManifestHandler>();
     })
     .Build();
 

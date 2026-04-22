@@ -19,6 +19,7 @@ public interface IOfferRepository
     Task<Entities.FlightInventory?> GetInventoryAsync(string flightNumber, DateOnly departureDate, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventory>> SearchInventoryAsync(string origin, string destination, DateOnly departureDate, string cabinCode, int paxCount, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventory>> SearchAvailableInventoryAsync(string origin, string destination, DateOnly departureDate, int paxCount, CancellationToken ct = default);
+    Task<IReadOnlyList<Entities.FlightInventory>> SearchAvailableInventoryByRangeAsync(string origin, string destination, DateOnly fromDate, DateOnly toDate, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventory>> GetInventoriesByFlightAsync(string flightNumber, DateOnly departureDate, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventoryGroup>> GetInventoryGroupedByDateAsync(DateOnly departureDate, CancellationToken ct = default);
     Task CreateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);

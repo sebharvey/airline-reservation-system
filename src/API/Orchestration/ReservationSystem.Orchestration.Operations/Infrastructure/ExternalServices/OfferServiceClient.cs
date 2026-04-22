@@ -180,6 +180,23 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<FlightAvailabilityResponse> GetFlightAvailabilityAsync(
+        string origin,
+        string destination,
+        string fromDate,
+        int days,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/v1/flights/availability?origin={Uri.EscapeDataString(origin)}&destination={Uri.EscapeDataString(destination)}&fromDate={fromDate}&days={days}";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return new FlightAvailabilityResponse();
+
+        return await response.Content.ReadFromJsonAsync<FlightAvailabilityResponse>(JsonOptions, cancellationToken)
+            ?? new FlightAvailabilityResponse();
+    }
+
     public async Task<OfferSearchResponse> SearchFlightsAsync(
         string origin,
         string destination,
@@ -211,15 +228,15 @@ public sealed class OfferServiceClient
         Guid inventoryId,
         string cabinCode,
         int seats,
-        string bookingReference,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
         var body = new HoldInventoryRequest
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            Seats = seats,
-            BookingReference = bookingReference
+            PaxCount = seats,
+            OrderId = orderId
         };
 
         var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", body, JsonOptions, cancellationToken);
@@ -233,10 +250,14 @@ public sealed class OfferServiceClient
         Guid inventoryId,
         string cabinCode,
         int seats,
-        string bookingReference,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
-        var body = new { inventoryId, cabinCode, seats, bookingReference };
+        var body = new
+        {
+            items = new[] { new { inventoryId, cabinCode } },
+            orderId
+        };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/sell", body, JsonOptions, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -244,17 +265,40 @@ public sealed class OfferServiceClient
                 $"Failed to sell {seats} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
+    public async Task RebookInventoryAsync(
+        Guid fromInventoryId,
+        string fromCabinCode,
+        IReadOnlyList<(Guid InventoryId, string CabinCode)> toItems,
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new
+        {
+            fromInventoryId,
+            fromCabinCode,
+            toItems = toItems.Select(i => new { inventoryId = i.InventoryId, cabinCode = i.CabinCode }).ToArray(),
+            orderId
+        };
+
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/rebook", body, JsonOptions, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to rebook inventory {fromInventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
+    }
+
     public async Task ReleaseInventoryAsync(
         Guid inventoryId,
         string cabinCode,
         int seats,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
         var body = new ReleaseInventoryRequest
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            Seats = seats,
+            OrderId = orderId,
             ReleaseType = "Sold"
         };
 

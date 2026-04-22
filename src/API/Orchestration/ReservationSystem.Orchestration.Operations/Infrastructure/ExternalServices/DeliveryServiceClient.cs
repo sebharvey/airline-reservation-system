@@ -101,6 +101,27 @@ public sealed class DeliveryServiceClient
                 $"Failed to write manifest for {request.BookingReference}: {await response.ReadErrorMessageAsync(ct)}");
     }
 
+    public async Task RebookManifestAsync(
+        string bookingReference,
+        string fromFlightNumber,
+        string fromDepartureDate,
+        RebookManifestRequest request,
+        CancellationToken ct)
+    {
+        var url = $"/api/v1/manifest/{Uri.EscapeDataString(bookingReference)}/flight/{Uri.EscapeDataString(fromFlightNumber)}/{fromDepartureDate}";
+        using var response = await _httpClient.PatchAsJsonAsync(url, request, JsonOptions, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            // No manifest entries found — log but don't fail the overall rebook
+            return;
+        }
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to rebook manifest for {bookingReference}/{fromFlightNumber}/{fromDepartureDate}: {await response.ReadErrorMessageAsync(ct)}");
+    }
+
     public async Task VoidTicketAsync(string eTicketNumber, string reason, CancellationToken ct)
     {
         var payload = new { reason, actor = "OperationsAPI" };

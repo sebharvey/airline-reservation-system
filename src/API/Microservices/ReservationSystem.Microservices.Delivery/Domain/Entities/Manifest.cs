@@ -33,6 +33,33 @@ public sealed class Manifest
 
     private Manifest() { }
 
+    public void Rebook(
+        Guid newInventoryId,
+        Guid newTicketId,
+        string newFlightNumber,
+        string newOrigin,
+        string newDestination,
+        DateOnly newDepartureDate,
+        TimeOnly newDepartureTime,
+        TimeOnly newArrivalTime,
+        string newCabinCode,
+        string newETicketNumber)
+    {
+        InventoryId   = newInventoryId;
+        TicketId      = newTicketId;
+        FlightNumber  = newFlightNumber;
+        Origin        = newOrigin;
+        Destination   = newDestination;
+        DepartureDate = newDepartureDate;
+        DepartureTime = newDepartureTime;
+        ArrivalTime   = newArrivalTime;
+        CabinCode     = newCabinCode;
+        ETicketNumber = newETicketNumber;
+        SeatNumber    = string.Empty;
+        UpdatedAt     = DateTime.UtcNow;
+        Version++;
+    }
+
     public static Manifest Create(
         Guid ticketId,
         Guid orderId,

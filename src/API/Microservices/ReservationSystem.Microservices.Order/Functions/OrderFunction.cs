@@ -253,6 +253,54 @@ public sealed class OrderFunction
         });
     }
 
+    // POST /v1/orders/irops
+    [Function("GetIropsOrdersByIds")]
+    [OpenApiOperation(operationId: "GetIropsOrdersByIds", tags: new[] { "Orders" }, Summary = "Batch-fetch specific orders projected for IROPS processing, identified by OrderIds from the flight manifest")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ orderIds: [guid, ...], flightNumber: string, departureDate: string }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> GetIropsOrdersByIds(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/irops")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("orderIds", out var orderIdsEl) || orderIdsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'orderIds' array is required.");
+
+        if (!body.TryGetProperty("flightNumber", out var fnEl) || string.IsNullOrWhiteSpace(fnEl.GetString()))
+            return await req.BadRequestAsync("'flightNumber' is required.");
+
+        if (!body.TryGetProperty("departureDate", out var ddEl) || string.IsNullOrWhiteSpace(ddEl.GetString()))
+            return await req.BadRequestAsync("'departureDate' is required.");
+
+        var orderIds = new List<Guid>();
+        foreach (var el in orderIdsEl.EnumerateArray())
+        {
+            if (!el.TryGetGuid(out var id)) return await req.BadRequestAsync("Each orderId must be a valid GUID.");
+            orderIds.Add(id);
+        }
+
+        var flightNumber = fnEl.GetString()!;
+        var departureDate = ddEl.GetString()!;
+
+        var orders = await _orderRepository.GetByIdsAsync(orderIds, ct);
+
+        var projected = orders
+            .Where(o => o.OrderStatus == "Confirmed")
+            .Select(o => ProjectToIropsDto(o, flightNumber, departureDate))
+            .Where(dto => dto is not null)
+            .ToList();
+
+        return await req.OkJsonAsync(new
+        {
+            count = projected.Count,
+            orders = projected
+        });
+    }
+
     private static object? ProjectToIropsDto(
         Domain.Entities.Order order,
         string flightNumber,

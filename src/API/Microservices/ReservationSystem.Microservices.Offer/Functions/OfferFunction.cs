@@ -9,11 +9,13 @@ using ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.HoldInventory;
 using ReservationSystem.Microservices.Offer.Application.SellInventory;
 using ReservationSystem.Microservices.Offer.Application.ReleaseInventory;
+using ReservationSystem.Microservices.Offer.Application.RebookInventory;
 using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateSeatStatus;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventory;
+using ReservationSystem.Microservices.Offer.Application.GetFlightAvailability;
 using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate;
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
@@ -39,11 +41,13 @@ public sealed class OfferFunction
     private readonly HoldInventoryHandler _holdHandler;
     private readonly SellInventoryHandler _sellHandler;
     private readonly ReleaseInventoryHandler _releaseHandler;
+    private readonly RebookInventoryHandler _rebookInventoryHandler;
     private readonly CancelInventoryHandler _cancelHandler;
     private readonly GetSeatAvailabilityHandler _seatAvailabilityHandler;
     private readonly ReserveSeatHandler _reserveSeatHandler;
     private readonly UpdateSeatStatusHandler _updateSeatStatusHandler;
     private readonly GetFlightInventoryHandler _getFlightInventoryByFlightHandler;
+    private readonly GetFlightAvailabilityHandler _getFlightAvailabilityHandler;
     private readonly GetFlightInventoryByDateHandler _getFlightInventoryHandler;
     private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
     private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
@@ -59,11 +63,13 @@ public sealed class OfferFunction
         HoldInventoryHandler holdHandler,
         SellInventoryHandler sellHandler,
         ReleaseInventoryHandler releaseHandler,
+        RebookInventoryHandler rebookInventoryHandler,
         CancelInventoryHandler cancelHandler,
         GetSeatAvailabilityHandler seatAvailabilityHandler,
         ReserveSeatHandler reserveSeatHandler,
         UpdateSeatStatusHandler updateSeatStatusHandler,
         GetFlightInventoryHandler getFlightInventoryByFlightHandler,
+        GetFlightAvailabilityHandler getFlightAvailabilityHandler,
         GetFlightInventoryByDateHandler getFlightInventoryHandler,
         GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
         GetInventoryHoldsHandler getInventoryHoldsHandler,
@@ -78,11 +84,13 @@ public sealed class OfferFunction
         _holdHandler = holdHandler;
         _sellHandler = sellHandler;
         _releaseHandler = releaseHandler;
+        _rebookInventoryHandler = rebookInventoryHandler;
         _cancelHandler = cancelHandler;
         _seatAvailabilityHandler = seatAvailabilityHandler;
         _reserveSeatHandler = reserveSeatHandler;
         _updateSeatStatusHandler = updateSeatStatusHandler;
         _getFlightInventoryByFlightHandler = getFlightInventoryByFlightHandler;
+        _getFlightAvailabilityHandler = getFlightAvailabilityHandler;
         _getFlightInventoryHandler = getFlightInventoryHandler;
         _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
         _getInventoryHoldsHandler = getInventoryHoldsHandler;
@@ -613,6 +621,44 @@ public sealed class OfferFunction
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
+    // POST /v1/inventory/rebook
+    [Function("RebookInventory")]
+    [OpenApiOperation(operationId: "RebookInventory", tags: new[] { "Inventory" }, Summary = "Atomically sell replacement inventory and release original — used in IROPS rebook")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ fromInventoryId, fromCabinCode, toItems: [{inventoryId, cabinCode}], orderId }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — rebook complete")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
+    public async Task<HttpResponseData> RebookInventory(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/rebook")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        var toItems = body.GetProperty("toItems").EnumerateArray()
+            .Select(e => new SellInventoryItem(
+                e.GetProperty("inventoryId").GetGuid(),
+                e.GetProperty("cabinCode").GetString()!))
+            .ToList();
+
+        var command = new RebookInventoryCommand(
+            FromInventoryId: body.GetProperty("fromInventoryId").GetGuid(),
+            FromCabinCode:   body.GetProperty("fromCabinCode").GetString()!,
+            ToItems:         toItems,
+            OrderId:         body.GetProperty("orderId").GetGuid());
+
+        try
+        {
+            await _rebookInventoryHandler.HandleAsync(command, ct);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
     // PATCH /v1/inventory/cancel
     [Function("CancelInventory")]
     [OpenApiOperation(operationId: "CancelInventory", tags: new[] { "Inventory" }, Summary = "Cancel all inventory for a flight")]
@@ -844,6 +890,60 @@ public sealed class OfferFunction
             SeatsSold = agg.SeatsSold,
             SeatsHeld = agg.SeatsHeld
         };
+    }
+
+    // GET /v1/flights/availability?origin={}&destination={}&fromDate={}&days={}
+    [Function("GetFlightAvailability")]
+    [OpenApiOperation(operationId: "GetFlightAvailability", tags: new[] { "Flights" }, Summary = "Get available flights on a route over a date range — cabin-level seat counts, no fare pricing")]
+    [OpenApiParameter(name: "origin",      In = ParameterLocation.Query, Required = true,  Type = typeof(string), Description = "Origin airport IATA code (e.g. LHR)")]
+    [OpenApiParameter(name: "destination", In = ParameterLocation.Query, Required = true,  Type = typeof(string), Description = "Destination airport IATA code (e.g. JFK)")]
+    [OpenApiParameter(name: "fromDate",    In = ParameterLocation.Query, Required = true,  Type = typeof(string), Description = "Start date inclusive (yyyy-MM-dd)")]
+    [OpenApiParameter(name: "days",        In = ParameterLocation.Query, Required = false, Type = typeof(int),    Description = "Number of days to cover (default 7, max 28)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — list of available flights with per-cabin seat counts")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> GetFlightAvailability(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/availability")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        var qs          = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var origin      = qs["origin"];
+        var destination = qs["destination"];
+        var fromDateRaw = qs["fromDate"];
+        var daysRaw     = qs["days"];
+
+        if (string.IsNullOrWhiteSpace(origin) || string.IsNullOrWhiteSpace(destination))
+            return await req.BadRequestAsync("'origin' and 'destination' are required.");
+
+        if (!DateOnly.TryParseExact(fromDateRaw, "yyyy-MM-dd", out var fromDate))
+            return await req.BadRequestAsync("'fromDate' must be in yyyy-MM-dd format.");
+
+        var days   = int.TryParse(daysRaw, out var d) ? Math.Clamp(d, 1, 28) : 7;
+        var toDate = fromDate.AddDays(days - 1);
+
+        var flights = await _getFlightAvailabilityHandler.HandleAsync(
+            new GetFlightAvailabilityQuery(origin.ToUpperInvariant(), destination.ToUpperInvariant(), fromDate, toDate), ct);
+
+        return await req.OkJsonAsync(new
+        {
+            origin      = origin.ToUpperInvariant(),
+            destination = destination.ToUpperInvariant(),
+            fromDate    = fromDate.ToString("yyyy-MM-dd"),
+            toDate      = toDate.ToString("yyyy-MM-dd"),
+            flights     = flights.Select(f => new
+            {
+                inventoryId      = f.InventoryId,
+                flightNumber     = f.FlightNumber,
+                departureDate    = f.DepartureDate.ToString("yyyy-MM-dd"),
+                departureTime    = f.DepartureTime.ToString("HH:mm"),
+                arrivalTime      = f.ArrivalTime.ToString("HH:mm"),
+                arrivalDayOffset = f.ArrivalDayOffset,
+                origin           = f.Origin,
+                destination      = f.Destination,
+                cabins           = f.Cabins
+                    .Where(c => c.SeatsAvailable > 0)
+                    .Select(c => new { cabinCode = c.CabinCode, seatsAvailable = c.SeatsAvailable })
+            })
+        });
     }
 
     // GET /v1/admin/inventory?departureDate=yyyy-MM-dd
