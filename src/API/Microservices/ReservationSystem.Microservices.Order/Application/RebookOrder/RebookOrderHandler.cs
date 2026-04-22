@@ -83,8 +83,6 @@ public sealed class RebookOrderHandler
                 ["reason"] = rebookNode["reason"]?.GetValue<string>() ?? "FlightCancellation"
             };
 
-            var fromFlightNumber = rebookNode["fromFlightNumber"]?.GetValue<string>();
-            var fromDepartureDate = rebookNode["fromDepartureDate"]?.GetValue<string>();
             if (fromFlightNumber is not null)
             {
                 historyEntry["from"] = new JsonObject
