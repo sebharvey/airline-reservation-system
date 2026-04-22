@@ -30,7 +30,7 @@
             (click)="activePassengerIndex.set(pax.index)">
             <span class="pax-tab-name">{{ pax.label }}</span>
             @if (activeEntry(); as entry) {
-              @if (getSelectedSeat(passengers()[pax.index]?.passengerId, entry.segment.segmentRef); as sel) {
+              @if (getSelectedSeat(passengers()[pax.index]?.passengerId ?? '', entry.segment.segmentRef); as sel) {
                 <span class="pax-tab-seat">&#x2714; {{ sel.seatOffer.seatNumber }}</span>
               }
             }
