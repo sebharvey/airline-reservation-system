@@ -141,7 +141,7 @@
                   class="disruption-btn"
                   (click)="openDisruptionModal(flight)"
                   [disabled]="!canDisrupt(flight)"
-                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+                  [title]="flight.status === 'Cancelled' ? 'Retry IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
                   Disruption
                 </button>
               </td>
@@ -203,7 +203,7 @@
               class="disruption-btn fc-btn"
               (click)="openDisruptionModal(flight)"
               [disabled]="!canDisrupt(flight)"
-              [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+              [title]="flight.status === 'Cancelled' ? 'Retry IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
               Disruption
             </button>
           </div>
@@ -503,7 +503,7 @@
         <p class="disruption-intro">Select the disruption action to apply to this flight.</p>
 
         <div class="disruption-actions">
-          <!-- Cancel flight -->
+          <!-- Cancel flight / Retry IROPS rebooking -->
           <div class="disruption-action-card">
             <div class="disruption-action-header">
               <div class="disruption-action-icon disruption-icon-cancel">
@@ -514,11 +514,18 @@
                 </svg>
               </div>
               <div class="disruption-action-text">
-                <div class="disruption-action-title">Cancel flight</div>
-                <div class="disruption-action-desc">Take the flight off sale immediately. Affected passengers will be rebooked where possible.</div>
+                @if (isRetry()) {
+                  <div class="disruption-action-title">Retry IROPS rebooking</div>
+                  <div class="disruption-action-desc">Re-run the rebooking process for passengers not yet rebooked from the previous run.</div>
+                } @else {
+                  <div class="disruption-action-title">Cancel flight</div>
+                  <div class="disruption-action-desc">Take the flight off sale immediately. Affected passengers will be rebooked where possible.</div>
+                }
               </div>
             </div>
-            <button class="btn-danger" (click)="startCancellationConfirm()">Cancel this flight</button>
+            <button class="btn-danger" (click)="startCancellationConfirm()">
+              {{ isRetry() ? 'Retry rebooking' : 'Cancel this flight' }}
+            </button>
           </div>
 
           <!-- Time change — coming soon -->
@@ -569,20 +576,35 @@
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
           </div>
-          <h3 class="disruption-confirm-title">Confirm flight cancellation</h3>
-          <p class="disruption-confirm-desc">
-            You are about to cancel flight
-            <strong>{{ disruptionModalFlight()!.flightNumber }}</strong>
-            ({{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }})
-            on <strong>{{ disruptionModalFlight()!.departureDate }}</strong>.
-          </p>
-          <ul class="disruption-confirm-effects">
-            <li>The flight will be marked as cancelled immediately</li>
-            <li>No new bookings will be accepted on this flight</li>
-            <li>Affected passengers will be automatically rebooked where possible</li>
-            <li>Passengers with no available replacement will receive a full refund</li>
-            <li>This action cannot be undone</li>
-          </ul>
+          @if (isRetry()) {
+            <h3 class="disruption-confirm-title">Confirm IROPS retry</h3>
+            <p class="disruption-confirm-desc">
+              Retry rebooking for flight
+              <strong>{{ disruptionModalFlight()!.flightNumber }}</strong>
+              ({{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }})
+              on <strong>{{ disruptionModalFlight()!.departureDate }}</strong>.
+            </p>
+            <ul class="disruption-confirm-effects">
+              <li>Only bookings not yet rebooked will be processed</li>
+              <li>Already rebooked passengers will not be affected</li>
+              <li>A fresh replacement flight search will be run for outstanding bookings</li>
+            </ul>
+          } @else {
+            <h3 class="disruption-confirm-title">Confirm flight cancellation</h3>
+            <p class="disruption-confirm-desc">
+              You are about to cancel flight
+              <strong>{{ disruptionModalFlight()!.flightNumber }}</strong>
+              ({{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }})
+              on <strong>{{ disruptionModalFlight()!.departureDate }}</strong>.
+            </p>
+            <ul class="disruption-confirm-effects">
+              <li>The flight will be marked as cancelled immediately</li>
+              <li>No new bookings will be accepted on this flight</li>
+              <li>Affected passengers will be automatically rebooked where possible</li>
+              <li>Passengers with no available replacement will receive a full refund</li>
+              <li>This action cannot be undone</li>
+            </ul>
+          }
         </div>
       }
 
@@ -647,6 +669,8 @@
           @if (disruptionLoading()) {
             <span class="btn-spinner-white"></span>
             Processing&hellip;
+          } @else if (isRetry()) {
+            Retry IROPS rebooking
           } @else {
             Yes, cancel flight
           }

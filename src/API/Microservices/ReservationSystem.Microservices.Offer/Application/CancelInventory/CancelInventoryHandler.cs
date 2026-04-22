@@ -26,7 +26,7 @@ public sealed class CancelInventoryHandler
 
         var alreadyCancelled = inventories.All(i => i.Status == Domain.Entities.InventoryStatus.Cancelled);
         if (alreadyCancelled)
-            throw new InvalidOperationException($"All inventory for {command.FlightNumber} on {command.DepartureDate} is already cancelled.");
+            return 0;
 
         var cancelledCount = 0;
         foreach (var inventory in inventories)

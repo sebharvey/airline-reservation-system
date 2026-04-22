@@ -171,8 +171,10 @@ export class InventoryComponent implements OnInit {
   disruptionResult = signal<DisruptionCancelResponse | null>(null);
 
   canDisrupt(flight: FlightInventoryGroup): boolean {
-    return flight.status !== 'Cancelled' && flight.status !== 'Ticketing Closed';
+    return flight.status !== 'Ticketing Closed';
   }
+
+  isRetry = computed(() => this.disruptionModalFlight()?.status === 'Cancelled');
 
   openDisruptionModal(flight: FlightInventoryGroup): void {
     this.disruptionModalFlight.set(flight);
