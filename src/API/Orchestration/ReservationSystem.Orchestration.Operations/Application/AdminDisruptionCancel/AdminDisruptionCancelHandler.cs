@@ -262,7 +262,8 @@ public sealed class AdminDisruptionCancelHandler
             ToFlights = replacement.Legs.Select(l => new RebookToFlightDto
             {
                 FlightNumber = l.FlightNumber,
-                DepartureDate = l.DepartureDate
+                DepartureDate = l.DepartureDate,
+                InventoryId = l.InventoryId.ToString()
             }).ToList()
         };
 

@@ -43,6 +43,7 @@ public sealed class ReleaseInventoryHandler
         }
 
         await _repository.UpdateInventoryAsync(inventory, ct);
+        await _repository.DeleteHoldsAsync(command.InventoryId, command.OrderId, command.CabinCode, ct);
 
         _logger.LogInformation("Released {HoldCount} {ReleaseType} seats in cabin {CabinCode} on inventory {InventoryId} for order {OrderId}",
             holdCount, command.ReleaseType, command.CabinCode, command.InventoryId, command.OrderId);
