@@ -29,6 +29,7 @@ export class DisruptionComponent implements OnInit {
   error = signal('');
 
   rebookResultModal = signal<OrderRow | null>(null);
+  copiedRef = signal<string | null>(null);
 
   rebookedCount = computed(() => this.rows().filter(r => r.rebookStatus === 'rebooked').length);
   pendingCount = computed(() => this.rows().filter(r => r.rebookStatus === 'pending').length);
@@ -103,6 +104,14 @@ export class DisruptionComponent implements OnInit {
       const updatedRow = this.rows().find(r => r.order.bookingReference === row.order.bookingReference);
       if (updatedRow) this.rebookResultModal.set(updatedRow);
     }
+  }
+
+  copyBookingRef(text: string, event?: Event): void {
+    event?.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedRef.set(text);
+      setTimeout(() => this.copiedRef.set(null), 2000);
+    });
   }
 
   closeRebookModal(): void {
