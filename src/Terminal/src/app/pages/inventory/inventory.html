@@ -139,10 +139,11 @@
                 </button>
                 <button
                   class="disruption-btn"
+                  [class.disruption-btn-cancelled]="flight.status === 'Cancelled'"
                   (click)="openDisruptionModal(flight)"
                   [disabled]="!canDisrupt(flight)"
-                  [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
-                  Disruption
+                  [title]="flight.status === 'Cancelled' ? 'View IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+                  {{ flight.status === 'Cancelled' ? 'IROPS' : 'Disruption' }}
                 </button>
               </td>
             </tr>
@@ -201,10 +202,11 @@
             <button class="holds-btn fc-btn" (click)="openHoldsModal(flight)">Holds</button>
             <button
               class="disruption-btn fc-btn"
+              [class.disruption-btn-cancelled]="flight.status === 'Cancelled'"
               (click)="openDisruptionModal(flight)"
               [disabled]="!canDisrupt(flight)"
-              [title]="flight.status === 'Cancelled' ? 'Flight is already cancelled' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
-              Disruption
+              [title]="flight.status === 'Cancelled' ? 'View IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
+              {{ flight.status === 'Cancelled' ? 'IROPS' : 'Disruption' }}
             </button>
           </div>
         </div>
@@ -515,7 +517,7 @@
               </div>
               <div class="disruption-action-text">
                 <div class="disruption-action-title">Cancel flight</div>
-                <div class="disruption-action-desc">Take the flight off sale immediately. Affected passengers will be rebooked where possible.</div>
+                <div class="disruption-action-desc">Take the flight off sale immediately, then rebook affected passengers one by one from the IROPS rebooking screen.</div>
               </div>
             </div>
             <button class="btn-danger" (click)="startCancellationConfirm()">Cancel this flight</button>
@@ -577,60 +579,12 @@
             on <strong>{{ disruptionModalFlight()!.departureDate }}</strong>.
           </p>
           <ul class="disruption-confirm-effects">
-            <li>The flight will be marked as cancelled immediately</li>
+            <li>The flight will be taken off sale immediately</li>
             <li>No new bookings will be accepted on this flight</li>
-            <li>Affected passengers will be automatically rebooked where possible</li>
-            <li>Passengers with no available replacement will receive a full refund</li>
+            <li>You will be taken to the IROPS rebooking screen</li>
+            <li>Affected passengers can be rebooked one by one in priority order</li>
             <li>This action cannot be undone</li>
           </ul>
-        </div>
-      }
-
-      @if (disruptionStep() === 'result') {
-        @let result = disruptionResult()!;
-        <div class="disruption-result">
-          <div class="disruption-result-summary">
-            <div class="disruption-result-stat disruption-result-stat-total">
-              <span class="disruption-result-stat-value">{{ result.outcomes.length }}</span>
-              <span class="disruption-result-stat-label">Total orders</span>
-            </div>
-            <div class="disruption-result-stat">
-              <span class="disruption-result-stat-value">{{ result.affectedPassengerCount }}</span>
-              <span class="disruption-result-stat-label">Affected</span>
-            </div>
-            <div class="disruption-result-stat disruption-result-stat-rebooked">
-              <span class="disruption-result-stat-value">{{ result.rebookedCount }}</span>
-              <span class="disruption-result-stat-label">Rebooked</span>
-            </div>
-            <div class="disruption-result-stat disruption-result-stat-refunded">
-              <span class="disruption-result-stat-value">{{ result.cancelledWithRefundCount }}</span>
-              <span class="disruption-result-stat-label">Refunded</span>
-            </div>
-            @if (result.failedCount > 0) {
-              <div class="disruption-result-stat disruption-result-stat-failed">
-                <span class="disruption-result-stat-value">{{ result.failedCount }}</span>
-                <span class="disruption-result-stat-label">Failed</span>
-              </div>
-            }
-          </div>
-
-          <div class="disruption-result-outcomes">
-            @for (outcome of result.outcomes; track outcome.bookingReference) {
-              <div class="disruption-outcome-row" [class]="'disruption-outcome-' + outcome.outcome.toLowerCase()">
-                <span class="disruption-outcome-ref">{{ outcome.bookingReference }}</span>
-                @if (outcome.outcome === 'Rebooked') {
-                  <span class="disruption-outcome-badge badge-active">Rebooked</span>
-                  <span class="disruption-outcome-detail">{{ outcome.replacementFlightNumber }} &bull; {{ outcome.replacementDepartureDate }}</span>
-                } @else if (outcome.outcome === 'CancelledWithRefund') {
-                  <span class="disruption-outcome-badge badge-refunded">Refunded</span>
-                  <span class="disruption-outcome-detail">No replacement available — full refund issued</span>
-                } @else {
-                  <span class="disruption-outcome-badge badge-inactive">Failed</span>
-                  <span class="disruption-outcome-detail">{{ outcome.failureReason }}</span>
-                }
-              </div>
-            }
-          </div>
         </div>
       }
     </div>
@@ -648,12 +602,9 @@
             <span class="btn-spinner-white"></span>
             Processing&hellip;
           } @else {
-            Yes, cancel flight
+            Yes, take off sale
           }
         </button>
-      }
-      @if (disruptionStep() === 'result') {
-        <button class="btn-primary" (click)="closeDisruptionResult()">Done</button>
       }
     </div>
   </div>

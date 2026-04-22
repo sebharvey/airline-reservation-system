@@ -18,6 +18,8 @@ using ReservationSystem.Orchestration.Operations.Application.HandleDelay;
 using ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionCancel;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionChange;
+using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionGetOrders;
+using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionRebookOrder;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
@@ -114,6 +116,8 @@ var host = new HostBuilder()
         services.AddScoped<AdminDisruptionCancelHandler>();
         services.AddScoped<AdminDisruptionChangeHandler>();
         services.AddScoped<AdminDisruptionTimeHandler>();
+        services.AddScoped<AdminDisruptionGetOrdersHandler>();
+        services.AddScoped<AdminDisruptionRebookOrderHandler>();
     })
     .Build();
 

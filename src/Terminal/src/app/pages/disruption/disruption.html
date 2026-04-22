@@ -1,0 +1,208 @@
+<div class="irops-page fade-in">
+
+  <!-- Page header -->
+  <div class="irops-header">
+    <a [routerLink]="['/inventory']" class="back-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      Back to Stock Keeper
+    </a>
+
+    @if (flightInfo()) {
+      <div class="irops-flight-info">
+        <div class="irops-flight-title-row">
+          <span class="irops-flight-num mono">{{ flightInfo()!.flightNumber }}</span>
+          <span class="irops-route">{{ flightInfo()!.origin }} → {{ flightInfo()!.destination }}</span>
+          <span class="irops-date muted">{{ flightInfo()!.departureDate }}</span>
+          <span class="badge badge-inactive">Cancelled</span>
+        </div>
+        <h1 class="irops-title">IROPS Passenger Rebooking</h1>
+        <p class="irops-subtitle">Rebook affected passengers one by one in priority order. Cabin F → J → W → Y, then loyalty tier, then earliest booking date.</p>
+      </div>
+    } @else {
+      <div class="irops-flight-title-row">
+        <span class="irops-flight-num mono">{{ flightNumber() }}</span>
+        <span class="irops-date muted">{{ departureDate() }}</span>
+      </div>
+      <h1 class="irops-title">IROPS Passenger Rebooking</h1>
+    }
+  </div>
+
+  <!-- Progress bar -->
+  @if (rows().length > 0) {
+    <div class="irops-progress-bar-wrap">
+      <div class="irops-progress-stats">
+        <span class="irops-stat-rebooked">{{ rebookedCount() }} rebooked</span>
+        <span class="irops-stat-sep">·</span>
+        <span class="irops-stat-pending">{{ pendingCount() }} pending</span>
+        @if (failedCount() > 0) {
+          <span class="irops-stat-sep">·</span>
+          <span class="irops-stat-failed">{{ failedCount() }} failed</span>
+        }
+        <span class="irops-stat-sep">·</span>
+        <span class="muted">{{ rows().length }} total</span>
+      </div>
+      <div class="irops-progress-track">
+        <div class="irops-progress-fill irops-progress-rebooked" [style.width.%]="rows().length > 0 ? (rebookedCount() / rows().length * 100) : 0"></div>
+        <div class="irops-progress-fill irops-progress-failed" [style.width.%]="rows().length > 0 ? (failedCount() / rows().length * 100) : 0"></div>
+      </div>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="irops-loading">
+      <span class="btn-spinner"></span>
+      <p>Loading affected bookings…</p>
+    </div>
+  }
+
+  <!-- Orders table -->
+  @if (!loading() && rows().length > 0) {
+    <div class="irops-table-card">
+      <table class="irops-table">
+        <thead>
+          <tr>
+            <th class="col-priority">#</th>
+            <th>Booking Ref</th>
+            <th>Passengers</th>
+            <th>Cabin</th>
+            <th>Loyalty</th>
+            <th>Booked</th>
+            <th>Status</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.order.bookingReference) {
+            <tr [class.row-rebooked]="row.rebookStatus === 'rebooked'" [class.row-failed]="row.rebookStatus === 'failed'">
+              <td class="col-priority muted">{{ row.priority }}</td>
+              <td class="mono booking-ref-cell">{{ row.order.bookingReference }}</td>
+              <td>
+                <div class="pax-names">
+                  @for (name of row.order.passengerNames; track name) {
+                    <span class="pax-name">{{ name }}</span>
+                  }
+                  @if (row.order.passengerCount > row.order.passengerNames.length) {
+                    <span class="pax-name muted">+{{ row.order.passengerCount - row.order.passengerNames.length }} more</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="cabin-badge cabin-ok">{{ row.order.cabinCode }}</span>
+                <span class="cabin-label muted">{{ cabinLabel(row.order.cabinCode) }}</span>
+              </td>
+              <td>
+                @if (row.order.loyaltyTier) {
+                  <span class="tier-badge" [class]="tierClass(row.order.loyaltyTier)">{{ row.order.loyaltyTier }}</span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td class="muted mono">{{ formatDate(row.order.bookingDate) }}</td>
+              <td>
+                @if (row.rebookStatus === 'pending') {
+                  <span class="rebook-status rebook-status-pending">Pending</span>
+                } @else if (row.rebookStatus === 'loading') {
+                  <span class="rebook-status rebook-status-loading">
+                    <span class="btn-spinner-sm"></span>
+                    Processing…
+                  </span>
+                } @else if (row.rebookStatus === 'rebooked') {
+                  <span class="rebook-status rebook-status-rebooked">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Rebooked
+                  </span>
+                } @else if (row.rebookStatus === 'failed') {
+                  <span class="rebook-status rebook-status-failed">Failed</span>
+                }
+              </td>
+              <td class="col-action">
+                @if (row.rebookStatus === 'pending') {
+                  <button class="btn-rebook" (click)="rebookOrder(row)">Rebook</button>
+                } @else if (row.rebookStatus === 'loading') {
+                  <button class="btn-rebook btn-rebook-loading" disabled>
+                    <span class="btn-spinner-sm"></span>
+                  </button>
+                } @else if (row.rebookStatus === 'rebooked' || row.rebookStatus === 'failed') {
+                  <button class="btn-view-result" (click)="rebookResultModal.set(row)">View result</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (!loading() && rows().length === 0 && !error()) {
+    <div class="irops-empty">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+      <p>No confirmed bookings found on this flight.</p>
+    </div>
+  }
+
+</div>
+
+<!-- Rebook result modal -->
+@if (rebookResultModal()) {
+  @let row = rebookResultModal()!;
+  <div class="modal-backdrop" (click)="closeRebookModal()"></div>
+  <div class="modal rebook-result-modal" role="dialog" aria-modal="true" aria-labelledby="rebook-modal-title">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h2 class="modal-title" id="rebook-modal-title">Rebooking Result</h2>
+        <p class="modal-subtitle">{{ row.order.bookingReference }}</p>
+      </div>
+      <button class="modal-close" (click)="closeRebookModal()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      @if (row.rebookStatus === 'rebooked') {
+        <div class="rebook-result-success">
+          <div class="rebook-result-icon rebook-result-icon-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-check"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+          <h3 class="rebook-result-title">Passenger rebooked successfully</h3>
+          <div class="rebook-result-detail-row">
+            <span class="rebook-detail-label">Replacement flight</span>
+            <span class="rebook-detail-value mono">{{ row.rebookResult?.replacementFlightNumber }}</span>
+          </div>
+          <div class="rebook-result-detail-row">
+            <span class="rebook-detail-label">Departure date</span>
+            <span class="rebook-detail-value mono">{{ row.rebookResult?.replacementDepartureDate }}</span>
+          </div>
+          <div class="rebook-result-detail-row">
+            <span class="rebook-detail-label">Passengers</span>
+            <span class="rebook-detail-value">
+              @for (name of row.order.passengerNames; track name) {
+                <span class="pax-name">{{ name }}</span>
+              }
+            </span>
+          </div>
+          <p class="rebook-result-note">New e-tickets have been issued and the passenger manifest has been updated.</p>
+        </div>
+      } @else {
+        <div class="rebook-result-failed">
+          <div class="rebook-result-icon rebook-result-icon-failed">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
+          <h3 class="rebook-result-title">Rebooking failed</h3>
+          <p class="rebook-result-reason">{{ row.rebookResult?.failureReason ?? 'An unexpected error occurred.' }}</p>
+          <p class="rebook-result-note">The booking remains on the cancelled flight. You can retry by clicking Rebook on the list.</p>
+        </div>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="closeRebookModal()">Close</button>
+    </div>
+  </div>
+}

@@ -891,6 +891,17 @@
   cursor: not-allowed;
 }
 
+/* IROPS variant — shown on already-cancelled flights */
+.disruption-btn-cancelled {
+  border-color: rgba(248, 81, 73, 0.6);
+  color: #f85149;
+}
+
+.disruption-btn-cancelled:hover:not(:disabled) {
+  border-color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+}
+
 /* Danger button */
 .btn-danger {
   display: inline-flex;
