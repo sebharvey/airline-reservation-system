@@ -22,6 +22,7 @@ The test harness is a single-page web application that drives end-to-end API jou
 | `admin-journey.json` | Admin — user management |
 | `admin-auth-guard-journey.json` | Admin — auth guard 401 checks |
 | `flight-order-ax001-journey.json` | Bookflow — AX001 with seat selection |
+| `flight-order-ax001-plus5days-journey.json` | Bookflow — AX001 with seat selection (+5 days) |
 | `flight-order-ax001-no-seats-journey.json` | Bookflow — AX001 without seats |
 | `multi-segment-oneway-journey.json` | Bookflow — one-way connecting DEL → LHR → JFK |
 | `multi-segment-return-journey.json` | Bookflow — return connecting DEL → LHR → JFK |
@@ -160,6 +161,7 @@ Used in 2-pax journey files. Guaranteed to differ from PAX-1 values.
 | `__RAND_RETURN_DEST__` | Return destination (same as outbound origin) |
 | `__RAND_DEPART_DATE__` | Tomorrow (today + 1 day) |
 | `__RAND_RETURN_DATE__` | Depart date + 7 days |
+| `__IN_5_DAYS_DATE__` | Today + 5 days |
 
 ---
 
