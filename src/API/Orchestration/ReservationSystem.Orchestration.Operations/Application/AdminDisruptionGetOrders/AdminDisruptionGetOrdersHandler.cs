@@ -8,18 +8,15 @@ public sealed class AdminDisruptionGetOrdersHandler
 {
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
-    private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<AdminDisruptionGetOrdersHandler> _logger;
 
     public AdminDisruptionGetOrdersHandler(
         OfferServiceClient offerServiceClient,
         OrderServiceClient orderServiceClient,
-        DeliveryServiceClient deliveryServiceClient,
         ILogger<AdminDisruptionGetOrdersHandler> logger)
     {
         _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
-        _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
 
@@ -31,15 +28,15 @@ public sealed class AdminDisruptionGetOrdersHandler
         if (flightInventory is null)
             throw new KeyNotFoundException($"Flight {query.FlightNumber} on {query.DepartureDate} not found.");
 
-        var manifest = await _deliveryServiceClient.GetManifestAsync(query.FlightNumber, query.DepartureDate, ct);
+        // Use inventory holds as the source of truth — the same data source the holds modal uses.
+        var holds = await _offerServiceClient.GetInventoryHoldsAsync(flightInventory.InventoryId, ct);
 
-        var orderIds = manifest.Entries
-            .Select(e => e.OrderId)
-            .Where(id => id != Guid.Empty)
-            .Distinct()
+        // Only Revenue holds with a known order. Standby and unlinked holds are excluded.
+        var revenueHolds = holds
+            .Where(h => h.HoldType == "Revenue" && h.OrderId != Guid.Empty)
             .ToList();
 
-        if (orderIds.Count == 0)
+        if (revenueHolds.Count == 0)
         {
             return new AdminDisruptionOrdersResponse
             {
@@ -51,31 +48,62 @@ public sealed class AdminDisruptionGetOrdersHandler
             };
         }
 
+        // Deduplicate: one entry per orderId, keeping first hold's cabin code.
+        var holdsByOrderId = revenueHolds
+            .GroupBy(h => h.OrderId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var orderIds = holdsByOrderId.Keys.ToList();
+
         var affectedOrders = await _orderServiceClient.GetAffectedOrdersByIdsAsync(
             orderIds, query.FlightNumber, query.DepartureDate, ct);
 
-        var sorted = affectedOrders.Orders
-            .OrderBy(o => CabinPriority(o.Segment.CabinCode))
+        // Index order details by orderId for O(1) join.
+        var orderDetailsByOrderId = affectedOrders.Orders
+            .ToDictionary(o => o.OrderId);
+
+        var items = holdsByOrderId
+            .Select(kvp =>
+            {
+                var hold = kvp.Value;
+                var orderId = kvp.Key;
+
+                if (!orderDetailsByOrderId.TryGetValue(orderId, out var order))
+                {
+                    // Hold exists but order details unavailable — surface with minimal data.
+                    return new IropsOrderItem
+                    {
+                        BookingReference = hold.BookingReference ?? string.Empty,
+                        BookingType = "Revenue",
+                        CabinCode = hold.CabinCode,
+                        BookingDate = DateTime.MinValue,
+                        PassengerCount = 1,
+                        PassengerNames = hold.PassengerName is not null ? [hold.PassengerName] : []
+                    };
+                }
+
+                return new IropsOrderItem
+                {
+                    BookingReference = order.BookingReference,
+                    BookingType = order.BookingType,
+                    CabinCode = order.Segment.CabinCode,
+                    LoyaltyTier = order.LoyaltyTier,
+                    LoyaltyNumber = order.LoyaltyNumber,
+                    BookingDate = order.BookingDate,
+                    PassengerCount = order.Passengers.Count,
+                    PassengerNames = order.Passengers
+                        .Select(p => $"{p.GivenName} {p.Surname}".Trim())
+                        .ToList()
+                };
+            })
+            .OrderBy(o => CabinPriority(o.CabinCode))
             .ThenBy(o => LoyaltyTierPriority(o.LoyaltyTier))
             .ThenBy(o => o.BookingDate)
-            .Select(o => new IropsOrderItem
-            {
-                BookingReference = o.BookingReference,
-                BookingType = o.BookingType,
-                CabinCode = o.Segment.CabinCode,
-                LoyaltyTier = o.LoyaltyTier,
-                LoyaltyNumber = o.LoyaltyNumber,
-                BookingDate = o.BookingDate,
-                PassengerCount = o.Passengers.Count,
-                PassengerNames = o.Passengers
-                    .Select(p => $"{p.GivenName} {p.Surname}".Trim())
-                    .ToList()
-            })
             .ToList();
 
         _logger.LogInformation(
             "Returning {Count} affected order(s) for {FlightNumber} on {DepartureDate}",
-            sorted.Count, query.FlightNumber, query.DepartureDate);
+            items.Count, query.FlightNumber, query.DepartureDate);
 
         return new AdminDisruptionOrdersResponse
         {
@@ -83,7 +111,7 @@ public sealed class AdminDisruptionGetOrdersHandler
             DepartureDate = query.DepartureDate,
             Origin = flightInventory.Origin,
             Destination = flightInventory.Destination,
-            Orders = sorted
+            Orders = items
         };
     }
 

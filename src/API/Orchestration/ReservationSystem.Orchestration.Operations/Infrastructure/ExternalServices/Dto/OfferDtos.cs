@@ -31,6 +31,7 @@ public sealed class CreateFareDto
 /// </summary>
 public sealed class FlightInventoryDto
 {
+    public Guid InventoryId { get; init; }
     public string FlightNumber { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
     public string DepartureTime { get; init; } = string.Empty;

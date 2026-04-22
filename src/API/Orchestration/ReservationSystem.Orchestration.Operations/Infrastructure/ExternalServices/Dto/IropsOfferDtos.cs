@@ -148,3 +148,33 @@ public sealed class ReleaseInventoryRequest
     [JsonPropertyName("releaseType")]
     public string ReleaseType { get; init; } = "Sold";
 }
+
+public sealed class InventoryHoldDto
+{
+    [JsonPropertyName("holdId")]
+    public Guid HoldId { get; init; }
+
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
+
+    [JsonPropertyName("bookingReference")]
+    public string? BookingReference { get; init; }
+
+    [JsonPropertyName("passengerName")]
+    public string? PassengerName { get; init; }
+
+    [JsonPropertyName("cabinCode")]
+    public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;
+
+    [JsonPropertyName("holdType")]
+    public string HoldType { get; init; } = string.Empty;
+
+    [JsonPropertyName("standbyPriority")]
+    public int? StandbyPriority { get; init; }
+
+    [JsonPropertyName("createdAt")]
+    public string CreatedAt { get; init; } = string.Empty;
+}
