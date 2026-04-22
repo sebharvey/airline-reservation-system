@@ -14,6 +14,7 @@ using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.HoldInventory;
 using ReservationSystem.Microservices.Offer.Application.ReleaseInventory;
+using ReservationSystem.Microservices.Offer.Application.RebookInventory;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
 using ReservationSystem.Microservices.Offer.Application.SearchOffers;
 using ReservationSystem.Microservices.Offer.Application.SellInventory;
@@ -104,6 +105,7 @@ var host = new HostBuilder()
         services.AddScoped<HoldInventoryHandler>();
         services.AddScoped<SellInventoryHandler>();
         services.AddScoped<ReleaseInventoryHandler>();
+        services.AddScoped<RebookInventoryHandler>();
         services.AddScoped<CancelInventoryHandler>();
         services.AddScoped<GetSeatAvailabilityHandler>();
         services.AddScoped<ReserveSeatHandler>();

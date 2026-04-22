@@ -265,6 +265,28 @@ public sealed class OfferServiceClient
                 $"Failed to sell {seats} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
+    public async Task RebookInventoryAsync(
+        Guid fromInventoryId,
+        string fromCabinCode,
+        IReadOnlyList<(Guid InventoryId, string CabinCode)> toItems,
+        Guid orderId,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new
+        {
+            fromInventoryId,
+            fromCabinCode,
+            toItems = toItems.Select(i => new { inventoryId = i.InventoryId, cabinCode = i.CabinCode }).ToArray(),
+            orderId
+        };
+
+        var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/rebook", body, JsonOptions, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to rebook inventory {fromInventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
+    }
+
     public async Task ReleaseInventoryAsync(
         Guid inventoryId,
         string cabinCode,

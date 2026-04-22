@@ -48,6 +48,59 @@ public sealed class EfManifestRepository : IManifestRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<int> RebookByBookingAndFlightAsync(
+        string bookingReference,
+        string fromFlightNumber,
+        DateOnly fromDepartureDate,
+        Guid toInventoryId,
+        string toFlightNumber,
+        string toOrigin,
+        string toDestination,
+        DateOnly toDepartureDate,
+        TimeOnly toDepartureTime,
+        TimeOnly toArrivalTime,
+        string toCabinCode,
+        IReadOnlyDictionary<string, ManifestPassengerRebook> passengerRebooks,
+        CancellationToken cancellationToken = default)
+    {
+        var entries = await _context.Manifests
+            .Where(m => m.BookingReference == bookingReference
+                     && m.FlightNumber == fromFlightNumber
+                     && m.DepartureDate == fromDepartureDate)
+            .ToListAsync(cancellationToken);
+
+        if (entries.Count == 0)
+            return 0;
+
+        var updated = 0;
+        foreach (var entry in entries)
+        {
+            if (!passengerRebooks.TryGetValue(entry.PassengerId, out var rebook))
+            {
+                _logger.LogWarning(
+                    "No rebook info for passenger {PassengerId} in booking {BookingRef} — skipping manifest update",
+                    entry.PassengerId, bookingReference);
+                continue;
+            }
+
+            entry.Rebook(
+                toInventoryId, rebook.TicketId,
+                toFlightNumber, toOrigin, toDestination,
+                toDepartureDate, toDepartureTime, toArrivalTime,
+                toCabinCode, rebook.ETicketNumber);
+            updated++;
+        }
+
+        if (updated > 0)
+            await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Rebooked {Count} manifest entries for booking {BookingRef}: {FromFlight} → {ToFlight}",
+            updated, bookingReference, fromFlightNumber, toFlightNumber);
+
+        return updated;
+    }
+
     public async Task<int> DeleteByBookingAndFlightAsync(
         string bookingReference,
         string flightNumber,

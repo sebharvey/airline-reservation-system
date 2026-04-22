@@ -12,20 +12,17 @@ public sealed class AdminDisruptionCancelHandler
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
-    private readonly CustomerServiceClient _customerServiceClient;
     private readonly ILogger<AdminDisruptionCancelHandler> _logger;
 
     public AdminDisruptionCancelHandler(
         OfferServiceClient offerServiceClient,
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
-        CustomerServiceClient customerServiceClient,
         ILogger<AdminDisruptionCancelHandler> logger)
     {
         _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
-        _customerServiceClient = customerServiceClient;
         _logger = logger;
     }
 
@@ -51,9 +48,26 @@ public sealed class AdminDisruptionCancelHandler
 
         _logger.LogInformation("Route confirmed: {Origin}→{Destination}", origin, destination);
 
-        // 3. Fetch all confirmed orders on this flight
-        var affectedOrders = await _orderServiceClient.GetOrdersByFlightAsync(
-            command.FlightNumber, command.DepartureDate, "Confirmed", ct);
+        // 3. Fetch manifest — contains the OrderIds of all bookings on this flight for an efficient indexed lookup
+        var manifest = await _deliveryServiceClient.GetManifestAsync(command.FlightNumber, command.DepartureDate, ct);
+
+        // 4. Fetch confirmed orders using OrderIds from the manifest (indexed PK lookup, avoids a full table JSON scan)
+        var orderIds = manifest.Entries
+            .Select(e => e.OrderId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        AffectedOrdersResponse affectedOrders;
+        if (orderIds.Count == 0)
+        {
+            affectedOrders = new AffectedOrdersResponse();
+        }
+        else
+        {
+            affectedOrders = await _orderServiceClient.GetAffectedOrdersByIdsAsync(
+                orderIds, command.FlightNumber, command.DepartureDate, ct);
+        }
 
         _logger.LogInformation(
             "{OrderCount} confirmed booking(s) on flight {FlightNumber} {DepartureDate}",
@@ -69,9 +83,6 @@ public sealed class AdminDisruptionCancelHandler
                 ProcessedAt = DateTime.UtcNow
             };
         }
-
-        // 4. Fetch manifest for e-ticket and manifest management
-        var manifest = await _deliveryServiceClient.GetManifestAsync(command.FlightNumber, command.DepartureDate, ct);
 
         // 5. Sort by IROPS priority: cabin class (F→J→W→Y), loyalty tier, booking date
         var sortedOrders = SortByPriority(affectedOrders.Orders);
@@ -239,26 +250,6 @@ public sealed class AdminDisruptionCancelHandler
             }
         }
 
-        // Adjust loyalty points for reward bookings where replacement costs fewer points
-        if (order.BookingType == "Reward" && !string.IsNullOrEmpty(order.LoyaltyNumber))
-        {
-            var replacementPoints = replacement.Legs.Sum(l => l.PointsPrice ?? 0) * passengerCount;
-            if (replacementPoints < order.TotalPointsAmount && replacementPoints > 0)
-            {
-                var surplus = order.TotalPointsAmount - replacementPoints;
-                try
-                {
-                    await _customerServiceClient.ReinstatePointsAsync(
-                        order.LoyaltyNumber, surplus, order.BookingReference, "FlightCancellationRebook", ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Points reinstatement failed for loyalty {LoyaltyNumber} on booking {BookingRef} — continuing with rebook",
-                        order.LoyaltyNumber, order.BookingReference);
-                }
-            }
-        }
-
         // Rebook the affected segment only (FlightCancellation reason waives fare restrictions)
         var rebookRequest = new RebookOrderRequest
         {
@@ -294,35 +285,21 @@ public sealed class AdminDisruptionCancelHandler
             throw;
         }
 
-        // Rebook committed — convert held seats to sold on replacement flight(s)
-        foreach (var leg in replacement.Legs)
-        {
-            try
-            {
-                await _offerServiceClient.SellInventoryAsync(
-                    leg.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to sell inventory on {FlightNumber}/{Date} for booking {BookingRef} — seats remain held",
-                    leg.FlightNumber, leg.DepartureDate, order.BookingReference);
-            }
-        }
+        // Rebook committed — atomically sell replacement seats and release the original in one call
+        var toItems = replacement.Legs
+            .Select(l => (l.InventoryId, replacement.CabinCode))
+            .ToList();
 
-        // Release inventory on the cancelled flight
         try
         {
-            await _offerServiceClient.ReleaseInventoryAsync(
-                order.Segment.InventoryId, order.Segment.CabinCode, passengerCount, order.OrderId, ct);
+            await _offerServiceClient.RebookInventoryAsync(
+                order.Segment.InventoryId, order.Segment.CabinCode, toItems, order.OrderId, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to release original inventory for booking {BookingRef}", order.BookingReference);
+            _logger.LogWarning(ex, "Failed to rebook inventory for booking {BookingRef} — seats may remain in inconsistent state",
+                order.BookingReference);
         }
-
-        // Remove old manifest entries for the cancelled segment
-        await _deliveryServiceClient.DeleteManifestFlightAsync(
-            order.BookingReference, cancelledFlightNumber, cancelledDepartureDate, ct);
 
         // Reissue e-tickets for the replacement segment(s)
         var bookingManifestEntries = manifest.Entries
@@ -345,40 +322,42 @@ public sealed class AdminDisruptionCancelHandler
         };
         var reissueResponse = await _deliveryServiceClient.ReissueTicketsAsync(reissueRequest, ct);
 
-        // Write new manifest entries for each replacement leg
-        foreach (var leg in replacement.Legs)
+        // Update manifest entries in place for each replacement leg
+        foreach (var replacementLeg in replacement.Legs)
         {
-            var entries = order.Passengers.Select(pax =>
+            var passengers = order.Passengers.Select(pax =>
             {
                 var newTicket = reissueResponse.Tickets.FirstOrDefault(t => t.PassengerId == pax.PassengerId);
-                var originalEntry = bookingManifestEntries.FirstOrDefault(e => e.PassengerId == pax.PassengerId);
 
                 if (newTicket is null)
                     _logger.LogWarning(
                         "No reissued ticket found for passenger {PassengerId} on booking {BookingRef} leg {FlightNumber}",
-                        pax.PassengerId, order.BookingReference, leg.FlightNumber);
+                        pax.PassengerId, order.BookingReference, replacementLeg.FlightNumber);
 
-                return new WriteManifestEntryDto
+                return new RebookManifestPassengerDto
                 {
-                    PassengerId = pax.PassengerId,
-                    GivenName = pax.GivenName,
-                    Surname = pax.Surname,
-                    ETicketNumber = newTicket?.ETicketNumber ?? string.Empty,
-                    SeatNumber = null,
-                    CabinCode = replacement.CabinCode,
-                    SeatPosition = originalEntry?.SeatPosition
+                    PassengerId   = pax.PassengerId,
+                    ETicketNumber = newTicket?.ETicketNumber ?? string.Empty
                 };
             }).ToList();
 
-            await _deliveryServiceClient.WriteManifestAsync(new WriteManifestRequest
-            {
-                BookingReference = order.BookingReference,
-                OrderId = order.OrderId,
-                InventoryId = leg.InventoryId,
-                FlightNumber = leg.FlightNumber,
-                DepartureDate = leg.DepartureDate,
-                Entries = entries
-            }, ct);
+            await _deliveryServiceClient.RebookManifestAsync(
+                order.BookingReference,
+                cancelledFlightNumber,
+                cancelledDepartureDate,
+                new RebookManifestRequest
+                {
+                    ToInventoryId    = replacementLeg.InventoryId,
+                    ToFlightNumber   = replacementLeg.FlightNumber,
+                    ToOrigin         = replacementLeg.Origin,
+                    ToDestination    = replacementLeg.Destination,
+                    ToDepartureDate  = replacementLeg.DepartureDate,
+                    ToDepartureTime  = replacementLeg.DepartureTime,
+                    ToArrivalTime    = replacementLeg.ArrivalTime,
+                    ToCabinCode      = replacement.CabinCode,
+                    Passengers       = passengers
+                },
+                ct);
         }
 
         _logger.LogInformation(

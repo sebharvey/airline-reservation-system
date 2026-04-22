@@ -84,6 +84,23 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task<AffectedOrdersResponse> GetAffectedOrdersByIdsAsync(
+        IReadOnlyList<Guid> orderIds,
+        string flightNumber,
+        string departureDate,
+        CancellationToken ct)
+    {
+        var payload = new { orderIds, flightNumber, departureDate };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders/irops", payload, JsonOptions, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return new AffectedOrdersResponse();
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AffectedOrdersResponse>(JsonOptions, ct)
+            ?? new AffectedOrdersResponse();
+    }
+
     public async Task<AffectedOrdersResponse> GetOrdersByFlightAsync(
         string flightNumber,
         string departureDate,

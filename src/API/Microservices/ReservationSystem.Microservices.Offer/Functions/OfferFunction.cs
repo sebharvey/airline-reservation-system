@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.Offer.Application.GetStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.HoldInventory;
 using ReservationSystem.Microservices.Offer.Application.SellInventory;
 using ReservationSystem.Microservices.Offer.Application.ReleaseInventory;
+using ReservationSystem.Microservices.Offer.Application.RebookInventory;
 using ReservationSystem.Microservices.Offer.Application.CancelInventory;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
 using ReservationSystem.Microservices.Offer.Application.ReserveSeat;
@@ -40,6 +41,7 @@ public sealed class OfferFunction
     private readonly HoldInventoryHandler _holdHandler;
     private readonly SellInventoryHandler _sellHandler;
     private readonly ReleaseInventoryHandler _releaseHandler;
+    private readonly RebookInventoryHandler _rebookInventoryHandler;
     private readonly CancelInventoryHandler _cancelHandler;
     private readonly GetSeatAvailabilityHandler _seatAvailabilityHandler;
     private readonly ReserveSeatHandler _reserveSeatHandler;
@@ -61,6 +63,7 @@ public sealed class OfferFunction
         HoldInventoryHandler holdHandler,
         SellInventoryHandler sellHandler,
         ReleaseInventoryHandler releaseHandler,
+        RebookInventoryHandler rebookInventoryHandler,
         CancelInventoryHandler cancelHandler,
         GetSeatAvailabilityHandler seatAvailabilityHandler,
         ReserveSeatHandler reserveSeatHandler,
@@ -81,6 +84,7 @@ public sealed class OfferFunction
         _holdHandler = holdHandler;
         _sellHandler = sellHandler;
         _releaseHandler = releaseHandler;
+        _rebookInventoryHandler = rebookInventoryHandler;
         _cancelHandler = cancelHandler;
         _seatAvailabilityHandler = seatAvailabilityHandler;
         _reserveSeatHandler = reserveSeatHandler;
@@ -611,6 +615,44 @@ public sealed class OfferFunction
                 seatsAvailable = inventory.SeatsAvailable,
                 cabins = inventory.Cabins.Select(c => new { cabinCode = c.CabinCode, seatsAvailable = c.SeatsAvailable, seatsSold = c.SeatsSold, seatsHeld = c.SeatsHeld })
             });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // POST /v1/inventory/rebook
+    [Function("RebookInventory")]
+    [OpenApiOperation(operationId: "RebookInventory", tags: new[] { "Inventory" }, Summary = "Atomically sell replacement inventory and release original — used in IROPS rebook")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ fromInventoryId, fromCabinCode, toItems: [{inventoryId, cabinCode}], orderId }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — rebook complete")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
+    public async Task<HttpResponseData> RebookInventory(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/rebook")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        var toItems = body.GetProperty("toItems").EnumerateArray()
+            .Select(e => new SellInventoryItem(
+                e.GetProperty("inventoryId").GetGuid(),
+                e.GetProperty("cabinCode").GetString()!))
+            .ToList();
+
+        var command = new RebookInventoryCommand(
+            FromInventoryId: body.GetProperty("fromInventoryId").GetGuid(),
+            FromCabinCode:   body.GetProperty("fromCabinCode").GetString()!,
+            ToItems:         toItems,
+            OrderId:         body.GetProperty("orderId").GetGuid());
+
+        try
+        {
+            await _rebookInventoryHandler.HandleAsync(command, ct);
+            return req.CreateResponse(HttpStatusCode.NoContent);
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
         catch (ArgumentException ex) { return await req.BadRequestAsync(ex.Message); }

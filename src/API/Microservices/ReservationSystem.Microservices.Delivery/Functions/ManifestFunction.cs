@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
@@ -14,15 +15,18 @@ namespace ReservationSystem.Microservices.Delivery.Functions;
 public sealed class ManifestFunction
 {
     private readonly WriteManifestHandler _writeHandler;
+    private readonly RebookManifestHandler _rebookHandler;
     private readonly IManifestRepository _manifestRepository;
     private readonly ILogger<ManifestFunction> _logger;
 
     public ManifestFunction(
         WriteManifestHandler writeHandler,
+        RebookManifestHandler rebookHandler,
         IManifestRepository manifestRepository,
         ILogger<ManifestFunction> logger)
     {
         _writeHandler = writeHandler;
+        _rebookHandler = rebookHandler;
         _manifestRepository = manifestRepository;
         _logger = logger;
     }
@@ -55,6 +59,7 @@ public sealed class ManifestFunction
         {
             entries = entries.Select(e => new
             {
+                orderId          = e.OrderId,
                 bookingReference = e.BookingReference,
                 passengerId      = e.PassengerId,
                 givenName        = e.GivenName,
@@ -122,5 +127,64 @@ public sealed class ManifestFunction
             return req.CreateResponse(HttpStatusCode.NotFound);
 
         return req.CreateResponse(HttpStatusCode.OK);
+    }
+
+    // PATCH /v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}
+    [Function("RebookManifestFlight")]
+    [OpenApiOperation(operationId: "RebookManifestFlight", tags: new[] { "Manifest" }, Summary = "Update manifest entries in place for a rebooked flight segment")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — returns count of updated entries")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries matched")]
+    public async Task<HttpResponseData> RebookManifestFlight(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
+        string bookingReference,
+        string flightNumber,
+        string departureDate,
+        CancellationToken cancellationToken)
+    {
+        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var fromDepartureDate))
+            return await req.BadRequestAsync("departureDate must be in yyyy-MM-dd format.");
+
+        var (request, error) = await req.TryDeserializeBodyAsync<RebookManifestFlightRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request.ToInventoryId == Guid.Empty)
+            return await req.BadRequestAsync("toInventoryId is required.");
+
+        if (string.IsNullOrWhiteSpace(request.ToFlightNumber))
+            return await req.BadRequestAsync("toFlightNumber is required.");
+
+        if (!DateOnly.TryParseExact(request.ToDepartureDate, "yyyy-MM-dd", out var toDepartureDate))
+            return await req.BadRequestAsync("toDepartureDate must be in yyyy-MM-dd format.");
+
+        if (!TimeOnly.TryParseExact(request.ToDepartureTime, "HH:mm", out var toDepartureTime))
+            return await req.BadRequestAsync("toDepartureTime must be in HH:mm format.");
+
+        if (!TimeOnly.TryParseExact(request.ToArrivalTime, "HH:mm", out var toArrivalTime))
+            return await req.BadRequestAsync("toArrivalTime must be in HH:mm format.");
+
+        if (request.Passengers.Count == 0)
+            return await req.BadRequestAsync("passengers must contain at least one entry.");
+
+        var command = new RebookManifestCommand(
+            BookingReference:  bookingReference,
+            FromFlightNumber:  flightNumber,
+            FromDepartureDate: fromDepartureDate,
+            ToInventoryId:     request.ToInventoryId,
+            ToFlightNumber:    request.ToFlightNumber,
+            ToOrigin:          request.ToOrigin,
+            ToDestination:     request.ToDestination,
+            ToDepartureDate:   toDepartureDate,
+            ToDepartureTime:   toDepartureTime,
+            ToArrivalTime:     toArrivalTime,
+            ToCabinCode:       request.ToCabinCode,
+            Passengers:        request.Passengers.Select(p => (p.PassengerId, p.ETicketNumber)).ToList());
+
+        var updated = await _rebookHandler.HandleAsync(command, cancellationToken);
+
+        if (updated == 0)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(new { updated });
     }
 }
