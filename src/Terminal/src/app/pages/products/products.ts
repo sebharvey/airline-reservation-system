@@ -154,7 +154,7 @@ export class ProductsComponent implements OnInit {
       isSegmentSpecific: product.isSegmentSpecific,
       ssrCode: product.ssrCode,
       imageBase64: product.imageBase64,
-      availableChannels: product.availableChannels,
+      availableChannels: this.#channelsToString(channels),
       isActive: product.isActive,
     });
     this.showForm.set(true);
