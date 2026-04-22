@@ -61,6 +61,23 @@ public sealed class RealtimeCheckFunction
 
         var parsedDocument = ParseMrz(body.MrzData);
         var now = DateTime.UtcNow;
+        var auditRef = $"TMC-{now:yyyy-MM-dd}-GATE-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+
+        // Non-successful state: NO_GO — triggered when the MRZ surname parses to "BLOCKED".
+        // Simulates a gate-level denial, e.g. document revoked or boarding prohibited.
+        if (string.Equals(parsedDocument.Surname, "BLOCKED", StringComparison.OrdinalIgnoreCase))
+        {
+            var noGoBody = new RealtimeCheckResponse(
+                TransactionIdentifier:     body.TransactionIdentifier,
+                Decision:                  "NO_GO",
+                ConditionsMet:             false,
+                CarrierLiabilityConfirmed: false,
+                ParsedDocument:            parsedDocument,
+                AuditRef:                  auditRef,
+                ProcessedAt:               now.ToString("O")
+            );
+            return await OkJsonAsync(request, noGoBody);
+        }
 
         var responseBody = new RealtimeCheckResponse(
             TransactionIdentifier:    body.TransactionIdentifier,
@@ -68,7 +85,7 @@ public sealed class RealtimeCheckFunction
             ConditionsMet:            true,
             CarrierLiabilityConfirmed: true,
             ParsedDocument:           parsedDocument,
-            AuditRef:                 $"TMC-{now:yyyy-MM-dd}-GATE-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            AuditRef:                 auditRef,
             ProcessedAt:              now.ToString("O")
         );
 

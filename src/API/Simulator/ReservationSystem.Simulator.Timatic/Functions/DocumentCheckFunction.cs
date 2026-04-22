@@ -58,6 +58,31 @@ public sealed class DocumentCheckFunction
         if (body is null)
             return request.CreateResponse(HttpStatusCode.BadRequest);
 
+        // Non-successful state: FAILED — triggered when documentNumber starts with "FAIL" (case-insensitive).
+        // Simulates a document check failure where the travel document is not accepted.
+        if (body.PaxInfo.DocumentNumber.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase))
+        {
+            var failedBody = new DocumentCheckResponse(
+                TransactionIdentifier: body.TransactionIdentifier,
+                Status:                "FAILED",
+                PassportRequired:      true,
+                VisaRequired:          true,
+                HealthDocRequired:     false,
+                TransitVisaRequired:   false,
+                Requirements: new object[]
+                {
+                    new DocumentRequirement(
+                        Type:        "VISA",
+                        Description: "Visa required. Travel document number is not accepted.",
+                        Mandatory:   true
+                    )
+                },
+                Advisories: Array.Empty<Advisory>(),
+                DataAsOf:   DateTime.UtcNow.Date.AddHours(8).ToString("O")
+            );
+            return await OkJsonAsync(request, failedBody);
+        }
+
         var advisories = BuildAdvisories(body);
 
         var responseBody = new DocumentCheckResponse(
