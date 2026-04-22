@@ -4,22 +4,22 @@
     <p>Complete payment for your check-in additions</p>
   </div>
 
-  @if (loading()) {
+  @if (paying()) {
     <div class="loading-state">
       <span class="spinner-dark"></span>
       <span>Loading&hellip;</span>
     </div>
   }
 
-  @if (errorMessage() && !loading()) {
+  @if (paymentError() && !paying()) {
     <div class="error-banner">
       <span>&#9888;</span>
-      {{ errorMessage() }}
+      {{ paymentError() }}
     </div>
     <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
   }
 
-  @if (!loading() && !errorMessage()) {
+  @if (!paying() && !paymentError()) {
 
     <!-- Order summary -->
     <div class="section">
