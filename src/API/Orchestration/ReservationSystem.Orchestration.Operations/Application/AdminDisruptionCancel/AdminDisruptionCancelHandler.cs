@@ -211,7 +211,7 @@ public sealed class AdminDisruptionCancelHandler
             try
             {
                 await _offerServiceClient.HoldInventoryAsync(
-                    leg.InventoryId, replacement.CabinCode, passengerCount, order.BookingReference, ct);
+                    leg.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct);
                 heldLegs.Add(leg);
                 DecrementAvailability(allOptions, leg.InventoryId, replacement.CabinCode, passengerCount);
             }
@@ -222,7 +222,7 @@ public sealed class AdminDisruptionCancelHandler
 
                 foreach (var held in heldLegs)
                 {
-                    try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, ct); }
+                    try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
                     catch (Exception releaseEx)
                     {
                         _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after hold failure for booking {BookingRef}",
@@ -284,7 +284,7 @@ public sealed class AdminDisruptionCancelHandler
             // Rebook failed — release held seats and propagate so outer handler marks as Failed
             foreach (var held in heldLegs)
             {
-                try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, ct); }
+                try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
                 catch (Exception releaseEx)
                 {
                     _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after rebook failure for booking {BookingRef}",
@@ -300,7 +300,7 @@ public sealed class AdminDisruptionCancelHandler
             try
             {
                 await _offerServiceClient.SellInventoryAsync(
-                    leg.InventoryId, replacement.CabinCode, passengerCount, order.BookingReference, ct);
+                    leg.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct);
             }
             catch (Exception ex)
             {
@@ -313,7 +313,7 @@ public sealed class AdminDisruptionCancelHandler
         try
         {
             await _offerServiceClient.ReleaseInventoryAsync(
-                order.Segment.InventoryId, order.Segment.CabinCode, passengerCount, ct);
+                order.Segment.InventoryId, order.Segment.CabinCode, passengerCount, order.OrderId, ct);
         }
         catch (Exception ex)
         {

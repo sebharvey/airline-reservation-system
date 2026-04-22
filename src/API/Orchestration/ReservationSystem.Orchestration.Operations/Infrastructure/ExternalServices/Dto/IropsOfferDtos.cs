@@ -127,11 +127,11 @@ public sealed class HoldInventoryRequest
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("seats")]
-    public int Seats { get; init; }
+    [JsonPropertyName("paxCount")]
+    public int PaxCount { get; init; }
 
-    [JsonPropertyName("bookingReference")]
-    public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
 }
 
 public sealed class ReleaseInventoryRequest
@@ -142,8 +142,8 @@ public sealed class ReleaseInventoryRequest
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("seats")]
-    public int Seats { get; init; }
+    [JsonPropertyName("orderId")]
+    public Guid OrderId { get; init; }
 
     [JsonPropertyName("releaseType")]
     public string ReleaseType { get; init; } = "Sold";

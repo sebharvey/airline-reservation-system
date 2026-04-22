@@ -228,15 +228,15 @@ public sealed class OfferServiceClient
         Guid inventoryId,
         string cabinCode,
         int seats,
-        string bookingReference,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
         var body = new HoldInventoryRequest
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            Seats = seats,
-            BookingReference = bookingReference
+            PaxCount = seats,
+            OrderId = orderId
         };
 
         var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/hold", body, JsonOptions, cancellationToken);
@@ -250,10 +250,14 @@ public sealed class OfferServiceClient
         Guid inventoryId,
         string cabinCode,
         int seats,
-        string bookingReference,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
-        var body = new { inventoryId, cabinCode, seats, bookingReference };
+        var body = new
+        {
+            items = new[] { new { inventoryId, cabinCode } },
+            orderId
+        };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/inventory/sell", body, JsonOptions, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -265,13 +269,14 @@ public sealed class OfferServiceClient
         Guid inventoryId,
         string cabinCode,
         int seats,
+        Guid orderId,
         CancellationToken cancellationToken = default)
     {
         var body = new ReleaseInventoryRequest
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            Seats = seats,
+            OrderId = orderId,
             ReleaseType = "Sold"
         };
 
