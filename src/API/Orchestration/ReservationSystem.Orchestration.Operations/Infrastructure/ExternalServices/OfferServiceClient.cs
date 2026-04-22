@@ -180,6 +180,23 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<FlightAvailabilityResponse> GetFlightAvailabilityAsync(
+        string origin,
+        string destination,
+        string fromDate,
+        int days,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/v1/flights/availability?origin={Uri.EscapeDataString(origin)}&destination={Uri.EscapeDataString(destination)}&fromDate={fromDate}&days={days}";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return new FlightAvailabilityResponse();
+
+        return await response.Content.ReadFromJsonAsync<FlightAvailabilityResponse>(JsonOptions, cancellationToken)
+            ?? new FlightAvailabilityResponse();
+    }
+
     public async Task<OfferSearchResponse> SearchFlightsAsync(
         string origin,
         string destination,

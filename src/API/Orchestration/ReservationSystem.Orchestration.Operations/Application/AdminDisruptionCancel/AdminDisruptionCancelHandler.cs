@@ -7,7 +7,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruption
 
 public sealed class AdminDisruptionCancelHandler
 {
-    private const int MaxSearchDays = 365;
+    private const int AvailabilityLookaheadDays = 7;
 
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
@@ -81,12 +81,41 @@ public sealed class AdminDisruptionCancelHandler
             "Processing {OrderCount} booking(s) ({PassengerCount} passenger(s)) by IROPS priority",
             sortedOrders.Count, totalPassengers);
 
-        // 6. Process each booking, lazily expanding the replacement pool day-by-day as needed.
-        //    The pool grows forward from the cancelled date; once a day is searched its results
-        //    are retained so later bookings benefit without re-querying.
-        var baseDate = DateOnly.ParseExact(command.DepartureDate, "yyyy-MM-dd");
-        var replacementPool = new List<ReplacementOption>();
-        var nextDayToSearch = 0;
+        // 6. Fetch all available flights on the route for the next week in a single call.
+        //    Availability is a lightweight read — no fare pricing, no stored offers created.
+        var availability = await _offerServiceClient.GetFlightAvailabilityAsync(
+            origin, destination, command.DepartureDate, AvailabilityLookaheadDays, ct);
+
+        var replacementPool = availability.Flights
+            .SelectMany(flight => flight.Cabins
+                .Select(cabin => new ReplacementOption
+                {
+                    DepartureDate = flight.DepartureDate,
+                    DepartureTime = flight.DepartureTime,
+                    CabinCode     = cabin.CabinCode,
+                    Legs          =
+                    [
+                        new ReplacementLeg
+                        {
+                            OfferId          = string.Empty,
+                            InventoryId      = flight.InventoryId,
+                            FlightNumber     = flight.FlightNumber,
+                            DepartureDate    = flight.DepartureDate,
+                            DepartureTime    = flight.DepartureTime,
+                            ArrivalTime      = flight.ArrivalTime,
+                            ArrivalDayOffset = flight.ArrivalDayOffset,
+                            Origin           = flight.Origin,
+                            Destination      = flight.Destination,
+                            SeatsAvailable   = cabin.SeatsAvailable,
+                            PointsPrice      = null
+                        }
+                    ]
+                }))
+            .ToList();
+
+        _logger.LogInformation(
+            "Availability search returned {FlightCount} flight(s) across {Days} days for {Origin}→{Destination}",
+            availability.Flights.Count, AvailabilityLookaheadDays, origin, destination);
 
         var outcomes = new List<DisruptionPassengerOutcome>();
         for (int i = 0; i < sortedOrders.Count; i++)
@@ -97,53 +126,7 @@ public sealed class AdminDisruptionCancelHandler
                 order.BookingReference, i + 1, sortedOrders.Count, order.Segment.CabinCode, order.Passengers.Count);
             try
             {
-                // Find the next available flight, extending the search window until one is found
                 var replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
-
-                while (replacement is null && nextDayToSearch < MaxSearchDays)
-                {
-                    var searchDate = baseDate.AddDays(nextDayToSearch++).ToString("yyyy-MM-dd");
-                    _logger.LogDebug("Searching {Origin}→{Destination} on {Date}", origin, destination, searchDate);
-                    try
-                    {
-                        var results = await _offerServiceClient.SearchFlightsAsync(origin, destination, searchDate, 1, ct);
-                        foreach (var flight in results.Flights)
-                        {
-                            foreach (var offer in flight.Offers.Where(o => o.SeatsAvailable > 0))
-                            {
-                                replacementPool.Add(new ReplacementOption
-                                {
-                                    DepartureDate = flight.DepartureDate,
-                                    DepartureTime = flight.DepartureTime,
-                                    CabinCode = offer.CabinCode,
-                                    Legs =
-                                    [
-                                        new ReplacementLeg
-                                        {
-                                            OfferId = offer.OfferId,
-                                            InventoryId = flight.InventoryId,
-                                            FlightNumber = flight.FlightNumber,
-                                            DepartureDate = flight.DepartureDate,
-                                            DepartureTime = flight.DepartureTime,
-                                            ArrivalTime = flight.ArrivalTime,
-                                            ArrivalDayOffset = flight.ArrivalDayOffset,
-                                            Origin = flight.Origin,
-                                            Destination = flight.Destination,
-                                            SeatsAvailable = offer.SeatsAvailable,
-                                            PointsPrice = offer.PointsPrice
-                                        }
-                                    ]
-                                });
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Replacement search failed for {Origin}→{Destination} on {Date}", origin, destination, searchDate);
-                    }
-
-                    replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
-                }
 
                 DisruptionPassengerOutcome outcome;
                 if (replacement is not null)
@@ -161,14 +144,14 @@ public sealed class AdminDisruptionCancelHandler
                 else
                 {
                     _logger.LogError(
-                        "No replacement found for booking {BookingRef} — no available {CabinCode} flights from {Origin} to {Destination} within {MaxDays} days",
-                        order.BookingReference, order.Segment.CabinCode, origin, destination, MaxSearchDays);
+                        "No replacement found for booking {BookingRef} — no available {CabinCode} flights from {Origin} to {Destination} within {Days} days",
+                        order.BookingReference, order.Segment.CabinCode, origin, destination, AvailabilityLookaheadDays);
 
                     outcome = new DisruptionPassengerOutcome
                     {
                         BookingReference = order.BookingReference,
                         Outcome = "Failed",
-                        FailureReason = $"No available flights from {origin} to {destination} within {MaxSearchDays} days"
+                        FailureReason = $"No available flights from {origin} to {destination} within {AvailabilityLookaheadDays} days"
                     };
                 }
 
