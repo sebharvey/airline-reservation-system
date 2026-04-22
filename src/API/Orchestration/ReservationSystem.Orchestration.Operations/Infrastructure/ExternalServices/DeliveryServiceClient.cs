@@ -122,6 +122,19 @@ public sealed class DeliveryServiceClient
                 $"Failed to rebook manifest for {bookingReference}/{fromFlightNumber}/{fromDepartureDate}: {await response.ReadErrorMessageAsync(ct)}");
     }
 
+    public async Task<IReadOnlyList<BookingTicketDto>> GetTicketsByBookingAsync(string bookingReference, CancellationToken ct)
+    {
+        var url = $"/api/v1/tickets?bookingRef={Uri.EscapeDataString(bookingReference)}";
+        using var response = await _httpClient.GetAsync(url, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return [];
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<IReadOnlyList<BookingTicketDto>>(JsonOptions, ct)
+            ?? [];
+    }
+
     public async Task VoidTicketAsync(string eTicketNumber, string reason, CancellationToken ct)
     {
         var payload = new { reason, actor = "OperationsAPI" };

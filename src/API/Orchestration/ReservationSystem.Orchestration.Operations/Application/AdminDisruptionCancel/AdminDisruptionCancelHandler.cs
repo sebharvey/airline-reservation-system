@@ -303,14 +303,13 @@ public sealed class AdminDisruptionCancelHandler
         }
 
         // Reissue e-tickets for the replacement segment(s)
-        var bookingManifestEntries = manifest.Entries
-            .Where(e => e.BookingReference == order.BookingReference)
-            .ToList();
+        var existingTickets = await _deliveryServiceClient.GetTicketsByBookingAsync(order.BookingReference, ct);
+        var ticketsToVoid = existingTickets.Where(t => !t.IsVoided).Select(t => t.ETicketNumber).ToList();
 
         var reissueRequest = new ReissueTicketsRequest
         {
             BookingReference = order.BookingReference,
-            CancelledETicketNumbers = bookingManifestEntries.Select(e => e.ETicketNumber).ToList(),
+            CancelledETicketNumbers = ticketsToVoid,
             Passengers = order.Passengers.Select(pax => new ReissuePassengerDto
             {
                 PassengerId = pax.PassengerId,
