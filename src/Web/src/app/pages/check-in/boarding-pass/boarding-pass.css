@@ -594,3 +594,72 @@ h2 {
     align-items: flex-start;
   }
 }
+
+/* EMD ancillary receipts */
+.emd-section {
+  padding: 20px 0 4px;
+}
+
+.emd-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px 0;
+}
+
+.emd-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 14px 0;
+}
+
+.emd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emd-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.emd-type {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--grad-start);
+  min-width: 60px;
+}
+
+.emd-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emd-pax {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.emd-amount {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.emd-number {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

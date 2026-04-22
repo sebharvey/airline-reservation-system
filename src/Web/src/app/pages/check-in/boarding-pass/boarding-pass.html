@@ -200,6 +200,26 @@
         ></ng-container>
       }
 
+      <!-- EMD receipts -->
+      @if (emdDocuments().length > 0) {
+        <div class="emd-section">
+          <h3 class="emd-title">&#128999; Ancillary Receipts</h3>
+          <p class="emd-subtitle">Electronic Miscellaneous Documents issued for your purchases</p>
+          <div class="emd-list">
+            @for (doc of emdDocuments(); track doc.documentNumber) {
+              <div class="emd-card">
+                <div class="emd-type">{{ emdDocumentLabel(doc) }}</div>
+                <div class="emd-detail">
+                  <span class="emd-pax">{{ getPassengerName(doc.passengerId) }}</span>
+                  <span class="emd-amount">{{ doc.currency }} {{ doc.amount.toFixed(2) }}</span>
+                </div>
+                <div class="emd-number">EMD {{ doc.documentNumber }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <div class="done-actions no-print">
         <a routerLink="/" class="btn-primary">Done &mdash; Return to Home</a>
       </div>

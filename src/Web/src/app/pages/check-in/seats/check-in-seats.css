@@ -109,8 +109,9 @@ h3 {
   font-size: 0.9rem;
 }
 
-/* Passenger tabs */
-.passenger-tabs {
+/* Passenger / flight tabs */
+.passenger-tabs,
+.flight-tabs {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -356,6 +357,21 @@ h3 {
 .btn-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Back link */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--grad-start);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 /* Stub unavailable panel */

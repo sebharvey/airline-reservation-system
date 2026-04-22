@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
-import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary, EmdDocument } from '../models/order.model';
 import { MOCK_ORDERS } from '../data/mock/orders.mock';
 
 
@@ -621,12 +621,18 @@ export class RetailApiService {
       lastName: params.surname.trim(),
       departureAirport: params.departureAirport.toUpperCase().trim()
     };
-    return this.#http.post<{ bookingReference: string; checkInEligible: boolean; passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: unknown }[] }>(`${base}/api/v1/oci/retrieve`, body).pipe(
+    return this.#http.post<{
+      bookingReference: string;
+      checkInEligible: boolean;
+      currency?: string;
+      passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: unknown }[];
+      flightSegments?: { segmentRef: string; inventoryId: string; flightNumber: string; origin: string; destination: string; departureDateTime: string; arrivalDateTime: string; cabinCode: string; aircraftType: string; seatAssignments: { passengerId: string; seatNumber: string }[] }[];
+    }>(`${base}/api/v1/oci/retrieve`, body).pipe(
       map(res => ({
         bookingReference: res.bookingReference,
         checkInEligible: res.checkInEligible,
         orderStatus: 'Confirmed',
-        currency: 'GBP',
+        currency: res.currency ?? 'GBP',
         passengers: res.passengers.map(p => ({
           passengerId: p.passengerId,
           ticketNumber: p.ticketNumber,
@@ -634,7 +640,21 @@ export class RetailApiService {
           givenName: p.givenName,
           surname: p.surname
         })),
-        flightSegments: []
+        flightSegments: (res.flightSegments ?? []).map(seg => ({
+          segmentRef: seg.segmentRef,
+          inventoryId: seg.inventoryId,
+          flightNumber: seg.flightNumber,
+          origin: seg.origin,
+          destination: seg.destination,
+          departureDateTime: seg.departureDateTime,
+          arrivalDateTime: seg.arrivalDateTime,
+          cabinCode: seg.cabinCode,
+          aircraftType: seg.aircraftType,
+          seatAssignments: (seg.seatAssignments ?? []).map(sa => ({
+            passengerId: sa.passengerId,
+            seatNumber: sa.seatNumber
+          }))
+        }))
       })),
       catchError((err: HttpErrorResponse) => {
         const message = err.status === 404
@@ -643,6 +663,27 @@ export class RetailApiService {
         return throwError(() => ({ status: err.status, message }));
       })
     );
+  }
+
+  /**
+   * POST /v1/basket (check-in context)
+   * Create a basket for the online check-in journey to store ancillary selections.
+   * Uses the booking reference to associate the basket with the existing order.
+   */
+  createCheckInBasket(
+    bookingReference: string,
+    passengerCount: number,
+    currency: string
+  ): Observable<CreateBasketResponse> {
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      bookingReference: bookingReference.toUpperCase(),
+      segments: [],
+      currency,
+      bookingType: 'Revenue',
+      passengerCount
+    };
+    return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
   }
 
   /**
@@ -839,15 +880,44 @@ export class RetailApiService {
   /**
    * POST /v1/checkin/{bookingRef}/ancillaries
    * Purchase additional bags and/or seats during online check-in.
+   * On success the backend issues an EMD (delivery.Document) for each ancillary purchased
+   * and returns the document numbers for display to the passenger.
    */
   addCheckInAncillaries(
-    _bookingRef: string,
-    _bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
-    _seats: { passengerId: string; segmentId: string; seatNumber: string; seatPrice: number }[],
-    _cardLast4: string,
-    _cardType: string
-  ): Observable<{ success: boolean; paymentReference: string }> {
-    return of({ success: true, paymentReference: 'AXPAY-CI-' + Date.now() }).pipe(delay(API_DELAY_MS));
+    bookingRef: string,
+    bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
+    seats: { passengerId: string; segmentId: string; seatNumber: string; seatPrice: number }[],
+    cardLast4: string,
+    cardType: string
+  ): Observable<{ success: boolean; paymentReference: string; documents: EmdDocument[] }> {
+    const base = environment.retailApiBaseUrl;
+    const body = {
+      bagSelections: bags,
+      seatSelections: seats,
+      payment: { cardLast4, cardType }
+    };
+    return this.#http
+      .post<{ success: boolean; paymentReference: string; documents: { documentNumber: string; documentType: string; passengerId: string; segmentRef: string; amount: number; currency: string }[] }>(
+        `${base}/api/v1/checkin/${encodeURIComponent(bookingRef)}/ancillaries`, body
+      )
+      .pipe(
+        map(res => ({
+          success: res.success,
+          paymentReference: res.paymentReference,
+          documents: (res.documents ?? []).map(d => ({
+            documentNumber: d.documentNumber,
+            documentType: d.documentType as 'SeatAncillary' | 'BagAncillary',
+            passengerId: d.passengerId,
+            segmentRef: d.segmentRef,
+            amount: d.amount,
+            currency: d.currency
+          }))
+        })),
+        catchError((err: HttpErrorResponse) => throwError(() => ({
+          status: err.status,
+          message: err.error?.message ?? 'Ancillary payment failed. Please try again.'
+        })))
+      );
   }
 
   /**

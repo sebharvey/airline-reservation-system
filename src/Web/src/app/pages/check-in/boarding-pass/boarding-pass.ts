@@ -3,7 +3,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
-import { BoardingPass } from '../../../models/order.model';
+import { BoardingPass, EmdDocument } from '../../../models/order.model';
 import QRCode from 'qrcode';
 
 @Component({
@@ -29,6 +29,8 @@ export class BoardingPassComponent implements OnInit {
   }
 
   @ViewChild('carouselTrack') carouselTrack?: ElementRef<HTMLElement>;
+
+  readonly emdDocuments = computed((): EmdDocument[] => this.checkInState.emdDocuments());
 
   readonly groupedByPassenger = computed((): { name: string; passes: BoardingPass[] }[] => {
     const passes = this.boardingPasses();
@@ -133,6 +135,16 @@ export class BoardingPassComponent implements OnInit {
     return d.toLocaleDateString('en-GB', {
       weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
     });
+  }
+
+  getPassengerName(passengerId: string): string {
+    const passes = this.boardingPasses();
+    const bp = passes.find(p => p.passengerId === passengerId);
+    return bp ? `${bp.givenName} ${bp.surname}` : passengerId;
+  }
+
+  emdDocumentLabel(doc: EmdDocument): string {
+    return doc.documentType === 'SeatAncillary' ? 'Seat' : 'Baggage';
   }
 
   cabinLabel(code: string): string {

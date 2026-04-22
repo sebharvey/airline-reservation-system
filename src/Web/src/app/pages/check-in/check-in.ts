@@ -54,10 +54,25 @@ export class CheckInComponent {
       departureAirport: this.departureAirport().trim()
     }).subscribe({
       next: (order) => {
-        this.loading.set(false);
         this.checkInState.setCurrentOrder(order);
         this.checkInState.setDepartureAirport(this.departureAirport().trim());
-        this.router.navigate(['/check-in/details']);
+
+        this.retailApi.createCheckInBasket(
+          order.bookingReference,
+          order.passengers.length,
+          order.currency
+        ).subscribe({
+          next: (res) => {
+            this.checkInState.setBasketId(res.basketId);
+            this.loading.set(false);
+            this.router.navigate(['/check-in/details']);
+          },
+          error: () => {
+            // Basket creation is best-effort — continue the journey without one
+            this.loading.set(false);
+            this.router.navigate(['/check-in/details']);
+          }
+        });
       },
       error: (err: { message?: string }) => {
         this.loading.set(false);
