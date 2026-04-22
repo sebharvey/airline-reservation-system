@@ -590,6 +590,10 @@
         @let result = disruptionResult()!;
         <div class="disruption-result">
           <div class="disruption-result-summary">
+            <div class="disruption-result-stat disruption-result-stat-total">
+              <span class="disruption-result-stat-value">{{ result.outcomes.length }}</span>
+              <span class="disruption-result-stat-label">Total orders</span>
+            </div>
             <div class="disruption-result-stat">
               <span class="disruption-result-stat-value">{{ result.affectedPassengerCount }}</span>
               <span class="disruption-result-stat-label">Affected</span>
