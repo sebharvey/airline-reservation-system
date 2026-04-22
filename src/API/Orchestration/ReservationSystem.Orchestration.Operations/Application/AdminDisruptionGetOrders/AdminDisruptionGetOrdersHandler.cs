@@ -24,7 +24,9 @@ public sealed class AdminDisruptionGetOrdersHandler
         AdminDisruptionGetOrdersQuery query,
         CancellationToken ct)
     {
-        var flightInventory = await _offerServiceClient.GetFlightInventoryAsync(query.FlightNumber, query.DepartureDate, ct);
+        // Use the admin list endpoint — it's the only one that returns inventoryId.
+        var allFlights = await _offerServiceClient.GetFlightsByDateAsync(query.DepartureDate, ct);
+        var flightInventory = allFlights.FirstOrDefault(f => f.FlightNumber == query.FlightNumber);
         if (flightInventory is null)
             throw new KeyNotFoundException($"Flight {query.FlightNumber} on {query.DepartureDate} not found.");
 
