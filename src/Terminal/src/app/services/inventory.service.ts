@@ -147,6 +147,8 @@ export class InventoryService {
   #baseUrl = `${environment.retailApiUrl}/api/v1/admin`;
   #operationsBaseUrl = `${environment.operationsApiUrl}/api/v1/admin`;
 
+  lastSelectedDate: string = new Date().toISOString().slice(0, 10);
+
   async getFlightInventory(departureDate: string): Promise<FlightInventoryGroup[]> {
     return firstValueFrom(
       this.#http.get<FlightInventoryGroup[]>(
