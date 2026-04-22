@@ -37,6 +37,7 @@ public sealed class ProductDto
     public bool IsSegmentSpecific { get; init; }
     public string? SsrCode { get; init; }
     public string? ImageBase64 { get; init; }
+    public string AvailableChannels { get; init; } = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
     public bool IsActive { get; init; }
     public IReadOnlyList<ProductPriceDto> Prices { get; init; } = [];
     public string CreatedAt { get; init; } = string.Empty;
