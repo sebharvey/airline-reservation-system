@@ -82,7 +82,7 @@ public sealed class ReissueTicketsRequest
     [JsonPropertyName("bookingReference")]
     public string BookingReference { get; init; } = string.Empty;
 
-    [JsonPropertyName("cancelledETicketNumbers")]
+    [JsonPropertyName("voidedETicketNumbers")]
     public IReadOnlyList<string> CancelledETicketNumbers { get; init; } = [];
 
     [JsonPropertyName("replacementSegments")]
