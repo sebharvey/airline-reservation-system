@@ -13,6 +13,7 @@ public sealed class Product
     public bool IsSegmentSpecific { get; private set; }
     public string? SsrCode { get; private set; }
     public string? ImageBase64 { get; private set; }
+    public string AvailableChannels { get; private set; } = "WEB,APP,NDC,KIOSK,CC,AIRPORT";
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -28,7 +29,8 @@ public sealed class Product
         string description,
         bool isSegmentSpecific,
         string? ssrCode,
-        string? imageBase64) =>
+        string? imageBase64,
+        string availableChannels = "WEB,APP,NDC,KIOSK,CC,AIRPORT") =>
         new()
         {
             ProductId = Guid.NewGuid(),
@@ -38,6 +40,7 @@ public sealed class Product
             IsSegmentSpecific = isSegmentSpecific,
             SsrCode = string.IsNullOrWhiteSpace(ssrCode) ? null : ssrCode.ToUpperInvariant(),
             ImageBase64 = imageBase64,
+            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? "WEB,APP,NDC,KIOSK,CC,AIRPORT" : availableChannels,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -46,7 +49,7 @@ public sealed class Product
     public static Product Reconstitute(
         Guid productId, Guid productGroupId, string name, string description,
         bool isSegmentSpecific, string? ssrCode, string? imageBase64,
-        bool isActive, DateTime createdAt, DateTime updatedAt) =>
+        string availableChannels, bool isActive, DateTime createdAt, DateTime updatedAt) =>
         new()
         {
             ProductId = productId,
@@ -56,6 +59,7 @@ public sealed class Product
             IsSegmentSpecific = isSegmentSpecific,
             SsrCode = ssrCode,
             ImageBase64 = imageBase64,
+            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? "WEB,APP,NDC,KIOSK,CC,AIRPORT" : availableChannels,
             IsActive = isActive,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt

@@ -565,7 +565,7 @@ export class RetailApiService {
    */
   getProducts(): Observable<ProductsResponse> {
     const base = environment.retailApiBaseUrl;
-    return this.#http.get<ProductsResponse>(`${base}/api/v1/products`);
+    return this.#http.get<ProductsResponse>(`${base}/api/v1/products?channel=WEB`);
   }
 
   /**

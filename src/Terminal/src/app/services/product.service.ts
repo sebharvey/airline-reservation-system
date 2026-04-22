@@ -23,11 +23,15 @@ export interface Product {
   isSegmentSpecific: boolean;
   ssrCode: string | null;
   imageBase64: string | null;
+  availableChannels: string;
   isActive: boolean;
   prices: ProductPrice[];
   createdAt: string;
   updatedAt: string;
 }
+
+export const ALL_CHANNELS = ['WEB', 'APP', 'NDC', 'KIOSK', 'CC', 'AIRPORT'] as const;
+export type ChannelCode = typeof ALL_CHANNELS[number];
 
 export interface CreateProductRequest {
   productGroupId: string;
@@ -36,6 +40,7 @@ export interface CreateProductRequest {
   isSegmentSpecific: boolean;
   ssrCode?: string | null;
   imageBase64?: string | null;
+  availableChannels: string;
 }
 
 export interface UpdateProductRequest {
@@ -45,6 +50,7 @@ export interface UpdateProductRequest {
   isSegmentSpecific: boolean;
   ssrCode?: string | null;
   imageBase64?: string | null;
+  availableChannels: string;
   isActive: boolean;
 }
 

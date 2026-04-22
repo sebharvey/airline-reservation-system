@@ -510,6 +510,66 @@
 
 .empty-state p { font-size: 0.9rem; max-width: 400px; line-height: 1.6; }
 
+/* Channel availability */
+.channel-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.channel-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--white);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  user-select: none;
+}
+
+.channel-chip input[type="checkbox"] { display: none; }
+
+.channel-chip.selected {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.1);
+  color: var(--grad-start);
+}
+
+.channel-chip:hover:not(.selected) { border-color: var(--grad-start); color: var(--grad-start); }
+
+.select-all-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--grad-start);
+  background: none;
+  border: 1.5px dashed var(--grad-start);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.select-all-btn:hover { background: rgba(102, 126, 234, 0.1); }
+
+.channel-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.channel-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: rgba(102, 126, 234, 0.12);
+  color: var(--grad-start);
+  letter-spacing: 0.3px;
+}
+
 @media (max-width: 700px) {
   .products-page { padding: 12px; }
   .stats-row { grid-template-columns: 1fr 1fr 1fr; }

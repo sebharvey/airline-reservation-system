@@ -127,6 +127,34 @@
           </div>
         </div>
 
+        <!-- Channel availability -->
+        <div class="form-section">
+          <h3 class="section-heading">Available To</h3>
+
+          @if (!editing()) {
+            <div class="channel-grid">
+              @for (ch of channelOptions; track ch.code) {
+                <label class="channel-chip" [class.selected]="isChannelSelected('create', ch.code)">
+                  <input type="checkbox" [checked]="isChannelSelected('create', ch.code)" (change)="toggleChannel('create', ch.code)" />
+                  {{ ch.label }}
+                </label>
+              }
+            </div>
+          } @else {
+            <div class="channel-grid">
+              @for (ch of channelOptions; track ch.code) {
+                <label class="channel-chip" [class.selected]="isChannelSelected('update', ch.code)">
+                  <input type="checkbox" [checked]="isChannelSelected('update', ch.code)" (change)="toggleChannel('update', ch.code)" />
+                  {{ ch.label }}
+                </label>
+              }
+              @if (!allChannelsSelected('update')) {
+                <button class="select-all-btn" type="button" (click)="selectAllChannels('update')">Select all</button>
+              }
+            </div>
+          }
+        </div>
+
         <!-- Image -->
         <div class="form-section">
           <h3 class="section-heading">Product Image <span class="optional">(optional)</span></h3>
@@ -335,6 +363,7 @@
             <th>Image</th>
             <th>Name</th>
             <th>Group</th>
+            <th>Channels</th>
             <th>Prices</th>
             <th>Segment</th>
             <th>SSR</th>
@@ -359,6 +388,13 @@
                 }
               </td>
               <td class="muted">{{ groupName(product.productGroupId) }}</td>
+              <td>
+                <div class="channel-badges">
+                  @for (ch of channelBadges(product.availableChannels); track ch) {
+                    <span class="channel-badge">{{ ch }}</span>
+                  }
+                </div>
+              </td>
               <td>
                 @if (product.prices.length > 0) {
                   <div class="price-chips">
@@ -397,7 +433,7 @@
           }
           @if (products().length === 0 && loaded()) {
             <tr>
-              <td colspan="8" class="empty-row">No products found. Click "New Product" to create one.</td>
+              <td colspan="9" class="empty-row">No products found. Click "New Product" to create one.</td>
             </tr>
           }
         </tbody>

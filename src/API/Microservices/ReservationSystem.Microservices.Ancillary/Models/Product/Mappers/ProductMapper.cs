@@ -46,7 +46,8 @@ public static class ProductMapper
             Description: request.Description,
             IsSegmentSpecific: request.IsSegmentSpecific,
             SsrCode: request.SsrCode,
-            ImageBase64: request.ImageBase64);
+            ImageBase64: request.ImageBase64,
+            AvailableChannels: request.AvailableChannels);
 
     public static UpdateProductCommand ToCommand(Guid productId, UpdateProductRequest request) =>
         new(
@@ -57,6 +58,7 @@ public static class ProductMapper
             IsSegmentSpecific: request.IsSegmentSpecific,
             SsrCode: request.SsrCode,
             ImageBase64: request.ImageBase64,
+            AvailableChannels: request.AvailableChannels,
             IsActive: request.IsActive);
 
     // ── Product: Domain → Response ───────────────────────────────────────────
@@ -71,6 +73,7 @@ public static class ProductMapper
             IsSegmentSpecific = product.IsSegmentSpecific,
             SsrCode = product.SsrCode,
             ImageBase64 = product.ImageBase64,
+            AvailableChannels = product.AvailableChannels,
             IsActive = product.IsActive,
             Prices = product.Prices.Select(ToResponse).ToList().AsReadOnly(),
             CreatedAt = product.CreatedAt,
