@@ -40,7 +40,6 @@ export class AppShell {
         { path: '/payments',  label: 'Payments',  icon: '💳', description: 'Daily payment transactions' },
         { path: '/order-accounting', label: 'Order Accounting', icon: '🧾', description: 'Order accounting & financial records' },
         { path: '/customer',  label: 'Customer',  icon: '👤', description: 'Customer profiles & history' },
-        { path: '/terminal',  label: 'Terminal',  icon: '⌨',  description: 'Cryptic command terminal' },
       ],
     },
     {
