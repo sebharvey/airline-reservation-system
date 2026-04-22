@@ -6,6 +6,8 @@ namespace ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
 /// </summary>
 public sealed class Product
 {
+    private const string AllChannelsJson = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
+
     public Guid ProductId { get; private set; }
     public Guid ProductGroupId { get; private set; }
     public string Name { get; private set; } = string.Empty;
@@ -13,7 +15,7 @@ public sealed class Product
     public bool IsSegmentSpecific { get; private set; }
     public string? SsrCode { get; private set; }
     public string? ImageBase64 { get; private set; }
-    public string AvailableChannels { get; private set; } = "WEB,APP,NDC,KIOSK,CC,AIRPORT";
+    public string AvailableChannels { get; private set; } = AllChannelsJson;
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -30,7 +32,7 @@ public sealed class Product
         bool isSegmentSpecific,
         string? ssrCode,
         string? imageBase64,
-        string availableChannels = "WEB,APP,NDC,KIOSK,CC,AIRPORT") =>
+        string availableChannels = AllChannelsJson) =>
         new()
         {
             ProductId = Guid.NewGuid(),
@@ -40,7 +42,7 @@ public sealed class Product
             IsSegmentSpecific = isSegmentSpecific,
             SsrCode = string.IsNullOrWhiteSpace(ssrCode) ? null : ssrCode.ToUpperInvariant(),
             ImageBase64 = imageBase64,
-            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? "WEB,APP,NDC,KIOSK,CC,AIRPORT" : availableChannels,
+            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? AllChannelsJson : availableChannels,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -59,7 +61,7 @@ public sealed class Product
             IsSegmentSpecific = isSegmentSpecific,
             SsrCode = ssrCode,
             ImageBase64 = imageBase64,
-            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? "WEB,APP,NDC,KIOSK,CC,AIRPORT" : availableChannels,
+            AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? AllChannelsJson : availableChannels,
             IsActive = isActive,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt

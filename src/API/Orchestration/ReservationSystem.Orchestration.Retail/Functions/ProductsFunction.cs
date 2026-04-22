@@ -63,8 +63,8 @@ public sealed class ProductsFunction
         var grouped = productList.Products
             .Where(p => p.IsActive)
             .Where(p => channelFilter is null ||
-                        p.AvailableChannels.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                         .Any(c => c.Trim().Equals(channelFilter, StringComparison.OrdinalIgnoreCase)))
+                        (System.Text.Json.JsonSerializer.Deserialize<string[]>(p.AvailableChannels) ?? [])
+                         .Any(c => c.Equals(channelFilter, StringComparison.OrdinalIgnoreCase)))
             .GroupBy(p => p.ProductGroupId)
             .Select(g => new
             {

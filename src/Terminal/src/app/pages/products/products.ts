@@ -10,12 +10,13 @@ import {
   CreateProductPriceRequest,
   UpdateProductPriceRequest,
   ALL_CHANNELS,
+  ALL_CHANNELS_JSON,
   ChannelCode,
 } from '../../services/product.service';
 import { ProductGroupService, ProductGroup } from '../../services/product-group.service';
 import { SsrCatalogueService, SsrCatalogueEntry } from '../../services/ssr-catalogue.service';
 
-const ALL_CHANNELS_DEFAULT = ALL_CHANNELS.join(',');
+const ALL_CHANNELS_DEFAULT = ALL_CHANNELS_JSON;
 
 @Component({
   selector: 'app-products',
@@ -179,9 +180,13 @@ export class ProductsComponent implements OnInit {
 
   // ── Channel helpers ───────────────────────────────────────────────────────
 
-  #parseChannels(csv: string): Set<ChannelCode> {
-    const codes = csv.split(',').map(c => c.trim().toUpperCase()) as ChannelCode[];
-    return new Set(codes.filter(c => (ALL_CHANNELS as readonly string[]).includes(c)));
+  #parseChannels(json: string): Set<ChannelCode> {
+    try {
+      const codes = (JSON.parse(json) as string[]).map(c => c.toUpperCase()) as ChannelCode[];
+      return new Set(codes.filter(c => (ALL_CHANNELS as readonly string[]).includes(c)));
+    } catch {
+      return new Set(ALL_CHANNELS);
+    }
   }
 
   isChannelSelected(mode: 'create' | 'update', code: ChannelCode): boolean {
@@ -222,11 +227,15 @@ export class ProductsComponent implements OnInit {
   }
 
   #channelsToString(s: Set<ChannelCode>): string {
-    return ALL_CHANNELS.filter(c => s.has(c)).join(',');
+    return JSON.stringify(ALL_CHANNELS.filter(c => s.has(c)));
   }
 
   channelBadges(availableChannels: string): string[] {
-    return availableChannels ? availableChannels.split(',').map(c => c.trim()).filter(Boolean) : [];
+    try {
+      return Array.isArray(JSON.parse(availableChannels)) ? JSON.parse(availableChannels) : [];
+    } catch {
+      return [];
+    }
   }
 
   onImageChange(event: Event, mode: 'create' | 'update'): void {
