@@ -1097,7 +1097,7 @@ CREATE TABLE [product].[Product] (
     IsSegmentSpecific   BIT              NOT NULL CONSTRAINT DF_Product_SegmentSpecific  DEFAULT 0,
     SsrCode             CHAR(4)          NULL,
     ImageBase64         NVARCHAR(MAX)    NULL,
-    AvailableChannels   NVARCHAR(100)    NOT NULL CONSTRAINT DF_Product_Channels        DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]',
+    AvailableChannels   JSON             NOT NULL CONSTRAINT DF_Product_Channels        DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]',
     IsActive            BIT              NOT NULL CONSTRAINT DF_Product_Active           DEFAULT 1,
     CreatedAt           DATETIME2        NOT NULL CONSTRAINT DF_Product_Created          DEFAULT SYSUTCDATETIME(),
     UpdatedAt           DATETIME2        NOT NULL CONSTRAINT DF_Product_Updated          DEFAULT SYSUTCDATETIME(),
@@ -1121,7 +1121,7 @@ END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[product].[Product]') AND name = 'AvailableChannels')
-    ALTER TABLE [product].[Product] ADD AvailableChannels NVARCHAR(100) NOT NULL CONSTRAINT DF_Product_Channels DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]';
+    ALTER TABLE [product].[Product] ADD AvailableChannels JSON NOT NULL CONSTRAINT DF_Product_Channels DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]';
 GO
 
 -- product.ProductPrice ---------------------------------------------------------

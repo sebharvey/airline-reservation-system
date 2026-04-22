@@ -104,7 +104,7 @@ public sealed class AncillaryDbContext : DbContext
             entity.Property(p => p.IsSegmentSpecific).HasColumnType("bit").IsRequired();
             entity.Property(p => p.SsrCode).HasColumnType("char(4)").HasMaxLength(4).IsRequired(false);
             entity.Property(p => p.ImageBase64).HasColumnType("nvarchar(max)").IsRequired(false);
-            entity.Property(p => p.AvailableChannels).HasColumnType("nvarchar(100)").HasMaxLength(100).IsRequired()
+            entity.Property(p => p.AvailableChannels).HasColumnType("json").IsRequired()
                 .HasDefaultValue("""["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""");
             entity.Property(p => p.IsActive).HasColumnType("bit").IsRequired();
             entity.Property(p => p.CreatedAt).HasColumnType("datetime2").IsRequired();
