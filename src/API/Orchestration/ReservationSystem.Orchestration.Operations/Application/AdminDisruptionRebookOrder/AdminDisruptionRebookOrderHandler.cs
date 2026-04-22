@@ -30,81 +30,84 @@ public sealed class AdminDisruptionRebookOrderHandler
         AdminDisruptionRebookOrderCommand command,
         CancellationToken ct)
     {
-        _logger.LogInformation(
-            "IROPS single-order rebook started for booking {BookingRef} on flight {FlightNumber}/{DepartureDate}",
-            command.BookingReference, command.FlightNumber, command.DepartureDate);
-
-        var flightInventory = await _offerServiceClient.GetFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
-        if (flightInventory is null)
-            throw new KeyNotFoundException($"Flight {command.FlightNumber} on {command.DepartureDate} not found.");
-
-        var origin = flightInventory.Origin;
-        var destination = flightInventory.Destination;
-
-        // Resolve the order via the manifest (finds orderId for this booking on this flight)
-        var manifest = await _deliveryServiceClient.GetManifestAsync(command.FlightNumber, command.DepartureDate, ct);
-        var orderId = manifest.Entries
-            .Where(e => e.BookingReference == command.BookingReference)
-            .Select(e => e.OrderId)
-            .FirstOrDefault(id => id != Guid.Empty);
-
-        if (orderId == Guid.Empty)
-            throw new KeyNotFoundException(
-                $"Booking {command.BookingReference} not found on flight {command.FlightNumber}/{command.DepartureDate}.");
-
-        var affectedOrders = await _orderServiceClient.GetAffectedOrdersByIdsAsync(
-            [orderId], command.FlightNumber, command.DepartureDate, ct);
-
-        var order = affectedOrders.Orders.FirstOrDefault()
-            ?? throw new KeyNotFoundException($"Order data for booking {command.BookingReference} could not be retrieved.");
-
-        // Find the best available replacement flight
-        var availability = await _offerServiceClient.GetFlightAvailabilityAsync(
-            origin, destination, command.DepartureDate, AvailabilityLookaheadDays, ct);
-
-        var replacementPool = availability.Flights
-            .SelectMany(flight => flight.Cabins
-                .Select(cabin => new RebookReplacementOption
-                {
-                    DepartureDate = flight.DepartureDate,
-                    DepartureTime = flight.DepartureTime,
-                    CabinCode = cabin.CabinCode,
-                    Legs =
-                    [
-                        new RebookReplacementLeg
-                        {
-                            OfferId = string.Empty,
-                            InventoryId = flight.InventoryId,
-                            FlightNumber = flight.FlightNumber,
-                            DepartureDate = flight.DepartureDate,
-                            DepartureTime = flight.DepartureTime,
-                            ArrivalTime = flight.ArrivalTime,
-                            ArrivalDayOffset = flight.ArrivalDayOffset,
-                            Origin = flight.Origin,
-                            Destination = flight.Destination,
-                            SeatsAvailable = cabin.SeatsAvailable
-                        }
-                    ]
-                }))
-            .ToList();
-
-        var replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
-
-        if (replacement is null)
+        try
         {
-            _logger.LogWarning(
-                "No replacement found for booking {BookingRef} — no seats on {Origin}→{Destination} within {Days} days",
-                command.BookingReference, origin, destination, AvailabilityLookaheadDays);
+            _logger.LogInformation(
+                "IROPS single-order rebook started for booking {BookingRef} on flight {FlightNumber}/{DepartureDate}",
+                command.BookingReference, command.FlightNumber, command.DepartureDate);
 
-            return new AdminDisruptionRebookOrderResponse
+            var flightInventory = await _offerServiceClient.GetFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
+            if (flightInventory is null)
+                return Failed(command.BookingReference, $"Flight {command.FlightNumber} on {command.DepartureDate} not found.");
+
+            var origin = flightInventory.Origin;
+            var destination = flightInventory.Destination;
+
+            // Resolve the order directly from Order MS — does not rely on manifest.
+            var allOrders = await _orderServiceClient.GetOrdersByFlightAsync(
+                command.FlightNumber, command.DepartureDate, "Confirmed", ct);
+
+            var order = allOrders.Orders.FirstOrDefault(o =>
+                string.Equals(o.BookingReference, command.BookingReference, StringComparison.OrdinalIgnoreCase));
+
+            if (order is null)
+                return Failed(command.BookingReference,
+                    $"Booking {command.BookingReference} not found on flight {command.FlightNumber}/{command.DepartureDate}.");
+
+            // Find the best available replacement flight.
+            var availability = await _offerServiceClient.GetFlightAvailabilityAsync(
+                origin, destination, command.DepartureDate, AvailabilityLookaheadDays, ct);
+
+            var replacementPool = availability.Flights
+                .SelectMany(flight => flight.Cabins
+                    .Select(cabin => new RebookReplacementOption
+                    {
+                        DepartureDate = flight.DepartureDate,
+                        DepartureTime = flight.DepartureTime,
+                        CabinCode = cabin.CabinCode,
+                        Legs =
+                        [
+                            new RebookReplacementLeg
+                            {
+                                OfferId = string.Empty,
+                                InventoryId = flight.InventoryId,
+                                FlightNumber = flight.FlightNumber,
+                                DepartureDate = flight.DepartureDate,
+                                DepartureTime = flight.DepartureTime,
+                                ArrivalTime = flight.ArrivalTime,
+                                ArrivalDayOffset = flight.ArrivalDayOffset,
+                                Origin = flight.Origin,
+                                Destination = flight.Destination,
+                                SeatsAvailable = cabin.SeatsAvailable
+                            }
+                        ]
+                    }))
+                .ToList();
+
+            var replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
+
+            if (replacement is null)
             {
-                BookingReference = command.BookingReference,
-                Outcome = "Failed",
-                FailureReason = $"No available flights from {origin} to {destination} within {AvailabilityLookaheadDays} days"
-            };
-        }
+                _logger.LogWarning(
+                    "No replacement found for booking {BookingRef} — no seats on {Origin}→{Destination} within {Days} days",
+                    command.BookingReference, origin, destination, AvailabilityLookaheadDays);
 
-        return await RebookOrderAsync(order, command.FlightNumber, command.DepartureDate, manifest, replacement, ct);
+                return Failed(command.BookingReference,
+                    $"No available flights from {origin} to {destination} within {AvailabilityLookaheadDays} days.");
+            }
+
+            // Fetch manifest separately — used only to get existing e-ticket numbers for reissue.
+            var manifest = await _deliveryServiceClient.GetManifestAsync(command.FlightNumber, command.DepartureDate, ct);
+
+            return await RebookOrderAsync(order, command.FlightNumber, command.DepartureDate, manifest, replacement, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception while rebooking {BookingRef} on {FlightNumber}/{DepartureDate}",
+                command.BookingReference, command.FlightNumber, command.DepartureDate);
+
+            return Failed(command.BookingReference, ex.Message);
+        }
     }
 
     private async Task<AdminDisruptionRebookOrderResponse> RebookOrderAsync(
@@ -131,22 +134,10 @@ public sealed class AdminDisruptionRebookOrderHandler
                 _logger.LogWarning(ex, "Hold failed on {FlightNumber}/{Date} for booking {BookingRef} — releasing {Count} held leg(s)",
                     leg.FlightNumber, leg.DepartureDate, order.BookingReference, heldLegs.Count);
 
-                foreach (var held in heldLegs)
-                {
-                    try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
-                    catch (Exception releaseEx)
-                    {
-                        _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after hold failure for {BookingRef}",
-                            held.InventoryId, order.BookingReference);
-                    }
-                }
+                await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerCount, order);
 
-                return new AdminDisruptionRebookOrderResponse
-                {
-                    BookingReference = order.BookingReference,
-                    Outcome = "Failed",
-                    FailureReason = $"Inventory hold failed on {leg.FlightNumber}/{leg.DepartureDate}: {ex.Message}"
-                };
+                return Failed(order.BookingReference,
+                    $"Inventory hold failed on {leg.FlightNumber}/{leg.DepartureDate}: {ex.Message}");
             }
         }
 
@@ -170,18 +161,10 @@ public sealed class AdminDisruptionRebookOrderHandler
         {
             await _orderServiceClient.RebookOrderAsync(order.BookingReference, rebookRequest, ct);
         }
-        catch
+        catch (Exception ex)
         {
-            foreach (var held in heldLegs)
-            {
-                try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
-                catch (Exception releaseEx)
-                {
-                    _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after rebook failure for {BookingRef}",
-                        held.InventoryId, order.BookingReference);
-                }
-            }
-            throw;
+            await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerCount, order);
+            return Failed(order.BookingReference, $"Order rebook failed: {ex.Message}");
         }
 
         var toItems = replacement.Legs
@@ -227,7 +210,24 @@ public sealed class AdminDisruptionRebookOrderHandler
             Reason = "FlightCancellation",
             Actor = "OperationsAPI"
         };
-        var reissueResponse = await _deliveryServiceClient.ReissueTicketsAsync(reissueRequest, ct);
+
+        ReissueTicketsResponse reissueResponse;
+        try
+        {
+            reissueResponse = await _deliveryServiceClient.ReissueTicketsAsync(reissueRequest, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to reissue tickets for booking {BookingRef}", order.BookingReference);
+            // Order is already rebooked — return success but log the ticket reissue failure.
+            return new AdminDisruptionRebookOrderResponse
+            {
+                BookingReference = order.BookingReference,
+                Outcome = "Rebooked",
+                ReplacementFlightNumber = string.Join("+", replacement.Legs.Select(l => l.FlightNumber)),
+                ReplacementDepartureDate = replacement.DepartureDate
+            };
+        }
 
         foreach (var replacementLeg in replacement.Legs)
         {
@@ -244,23 +244,31 @@ public sealed class AdminDisruptionRebookOrderHandler
                 };
             }).ToList();
 
-            await _deliveryServiceClient.RebookManifestAsync(
-                order.BookingReference,
-                cancelledFlightNumber,
-                cancelledDepartureDate,
-                new RebookManifestRequest
-                {
-                    ToInventoryId = replacementLeg.InventoryId,
-                    ToFlightNumber = replacementLeg.FlightNumber,
-                    ToOrigin = replacementLeg.Origin,
-                    ToDestination = replacementLeg.Destination,
-                    ToDepartureDate = replacementLeg.DepartureDate,
-                    ToDepartureTime = replacementLeg.DepartureTime,
-                    ToArrivalTime = replacementLeg.ArrivalTime,
-                    ToCabinCode = replacement.CabinCode,
-                    Passengers = passengers
-                },
-                ct);
+            try
+            {
+                await _deliveryServiceClient.RebookManifestAsync(
+                    order.BookingReference,
+                    cancelledFlightNumber,
+                    cancelledDepartureDate,
+                    new RebookManifestRequest
+                    {
+                        ToInventoryId = replacementLeg.InventoryId,
+                        ToFlightNumber = replacementLeg.FlightNumber,
+                        ToOrigin = replacementLeg.Origin,
+                        ToDestination = replacementLeg.Destination,
+                        ToDepartureDate = replacementLeg.DepartureDate,
+                        ToDepartureTime = replacementLeg.DepartureTime,
+                        ToArrivalTime = replacementLeg.ArrivalTime,
+                        ToCabinCode = replacement.CabinCode,
+                        Passengers = passengers
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update manifest for booking {BookingRef} leg {FlightNumber}",
+                    order.BookingReference, replacementLeg.FlightNumber);
+            }
         }
 
         _logger.LogInformation(
@@ -277,6 +285,30 @@ public sealed class AdminDisruptionRebookOrderHandler
             ReplacementDepartureDate = replacement.DepartureDate
         };
     }
+
+    private async Task ReleaseHeldLegsAsync(
+        IReadOnlyList<RebookReplacementLeg> heldLegs,
+        string cabinCode,
+        int passengerCount,
+        AffectedOrderDto order)
+    {
+        foreach (var held in heldLegs)
+        {
+            try
+            {
+                await _offerServiceClient.ReleaseInventoryAsync(
+                    held.InventoryId, cabinCode, passengerCount, order.OrderId, CancellationToken.None);
+            }
+            catch (Exception releaseEx)
+            {
+                _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after failure for {BookingRef}",
+                    held.InventoryId, order.BookingReference);
+            }
+        }
+    }
+
+    private static AdminDisruptionRebookOrderResponse Failed(string bookingReference, string reason) =>
+        new() { BookingReference = bookingReference, Outcome = "Failed", FailureReason = reason };
 
     private static RebookReplacementOption? FindBestReplacement(
         List<RebookReplacementOption> options,

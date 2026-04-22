@@ -287,6 +287,21 @@ public sealed class OfferServiceClient
                 $"Failed to rebook inventory {fromInventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
+    public async Task<IReadOnlyList<InventoryHoldDto>> GetInventoryHoldsAsync(
+        Guid inventoryId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/v1/admin/inventory/{inventoryId}/holds";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return [];
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<IReadOnlyList<InventoryHoldDto>>(JsonOptions, cancellationToken) ?? [];
+    }
+
     public async Task ReleaseInventoryAsync(
         Guid inventoryId,
         string cabinCode,
