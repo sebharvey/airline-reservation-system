@@ -123,6 +123,9 @@ public sealed class RebookToFlightDto
 
     [JsonPropertyName("departureDate")]
     public string DepartureDate { get; init; } = string.Empty;
+
+    [JsonPropertyName("inventoryId")]
+    public string InventoryId { get; init; } = string.Empty;
 }
 
 public sealed class CancelOrderRequest

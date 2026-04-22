@@ -619,6 +619,24 @@ public sealed class SqlOfferRepository : IOfferRepository
         _logger.LogDebug("Confirmed InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}", inventoryId, orderId, cabinCode);
     }
 
+    public async Task DeleteHoldsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
+    {
+        const string sql = """
+            DELETE FROM [offer].[InventoryHold]
+            WHERE  InventoryId = @InventoryId
+              AND  OrderId = @OrderId
+              AND  CabinCode = @CabinCode;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, CabinCode = cabinCode },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug("Deleted InventoryHold(s) for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}", inventoryId, orderId, cabinCode);
+    }
+
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """

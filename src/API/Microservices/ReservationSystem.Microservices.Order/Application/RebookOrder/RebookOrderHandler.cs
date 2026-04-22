@@ -47,6 +47,31 @@ public sealed class RebookOrderHandler
 
         if (rebookNode is not null)
         {
+            // Update the flight order item's inventoryId to point at the replacement flight so
+            // that GetAdminOrderDetailHandler.EnrichFlightSegmentsAsync resolves the new segment.
+            var fromFlightNumber   = rebookNode["fromFlightNumber"]?.GetValue<string>();
+            var fromDepartureDate  = rebookNode["fromDepartureDate"]?.GetValue<string>();
+            var toFlightsNode      = rebookNode["toFlights"]?.AsArray();
+            var newInventoryId     = toFlightsNode is { Count: > 0 }
+                ? toFlightsNode[0]?["inventoryId"]?.GetValue<string>()
+                : null;
+
+            if (fromFlightNumber is not null && fromDepartureDate is not null && !string.IsNullOrEmpty(newInventoryId))
+            {
+                var orderItemsArr = orderJson["orderItems"]?.AsArray();
+                if (orderItemsArr is not null)
+                {
+                    foreach (var item in orderItemsArr)
+                    {
+                        if (item is not JsonObject itemObj) continue;
+                        var fn = itemObj["flightNumber"]?.GetValue<string>();
+                        var dd = itemObj["departureDate"]?.GetValue<string>();
+                        if (fn == fromFlightNumber && dd == fromDepartureDate)
+                            itemObj["inventoryId"] = newInventoryId;
+                    }
+                }
+            }
+
             orderJson["rebookDetails"] = rebookNode.DeepClone();
             orderJson["rebookedAt"] = DateTime.UtcNow.ToString("o");
 
