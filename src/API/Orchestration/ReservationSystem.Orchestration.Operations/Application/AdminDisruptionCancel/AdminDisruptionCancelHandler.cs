@@ -311,15 +311,25 @@ public sealed class AdminDisruptionCancelHandler
         {
             BookingReference = order.BookingReference,
             CancelledETicketNumbers = bookingManifestEntries.Select(e => e.ETicketNumber).ToList(),
-            ReplacementSegments = replacement.Legs.Select(l => new ReissueSegmentDto
+            Passengers = order.Passengers.Select(pax => new ReissuePassengerDto
+            {
+                PassengerId = pax.PassengerId,
+                GivenName = pax.GivenName,
+                Surname = pax.Surname,
+                PassengerTypeCode = pax.PassengerType
+            }).ToList(),
+            Segments = replacement.Legs.Select(l => new ReissueSegmentDto
             {
                 InventoryId = l.InventoryId,
                 FlightNumber = l.FlightNumber,
                 DepartureDate = l.DepartureDate,
+                DepartureTime = l.DepartureTime,
                 Origin = l.Origin,
                 Destination = l.Destination,
                 CabinCode = replacement.CabinCode
-            }).ToList()
+            }).ToList(),
+            Reason = "FlightCancellation",
+            Actor = "OperationsAPI"
         };
         var reissueResponse = await _deliveryServiceClient.ReissueTicketsAsync(reissueRequest, ct);
 
