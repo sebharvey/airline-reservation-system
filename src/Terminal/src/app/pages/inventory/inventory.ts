@@ -14,7 +14,7 @@ export class InventoryComponent implements OnInit {
   #router = inject(Router);
 
   flights = signal<FlightInventoryGroup[]>([]);
-  selectedDate = signal(this.#todayIso());
+  selectedDate = signal(this.#inventoryService.lastSelectedDate);
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
@@ -51,13 +51,16 @@ export class InventoryComponent implements OnInit {
 
   onDateChange(val: string): void {
     this.selectedDate.set(val);
+    this.#inventoryService.lastSelectedDate = val;
     this.loadInventory();
   }
 
   changeDay(offset: number): void {
     const d = new Date(this.selectedDate() + 'T00:00:00Z');
     d.setUTCDate(d.getUTCDate() + offset);
-    this.selectedDate.set(d.toISOString().slice(0, 10));
+    const next = d.toISOString().slice(0, 10);
+    this.selectedDate.set(next);
+    this.#inventoryService.lastSelectedDate = next;
     this.loadInventory();
   }
 
