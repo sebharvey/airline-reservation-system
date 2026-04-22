@@ -3,7 +3,8 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CheckInStateService } from '../../../services/check-in-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { OciFlightSegment, OciPassenger, BasketBagSelection, CheckInBagSelection } from '../../../models/order.model';
+import { OciFlightSegment, OciPassenger, BasketBagSelection } from '../../../models/order.model';
+import { CheckInBagSelection } from '../../../services/check-in-state.service';
 import { BagPolicyResponse, BagOffer, CabinCode } from '../../../models/flight.model';
 
 interface FlightBagData {

@@ -5,7 +5,8 @@ import { CheckInStateService } from '../../../services/check-in-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { OciFlightSegment, OciPassenger } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer, CabinCode } from '../../../models/flight.model';
-import { BasketSeatSelection, CheckInSeatSelection } from '../../../models/order.model';
+import { BasketSeatSelection } from '../../../models/order.model';
+import { CheckInSeatSelection } from '../../../services/check-in-state.service';
 
 interface SeatmapEntry {
   segment: OciFlightSegment;
