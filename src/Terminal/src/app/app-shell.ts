@@ -34,13 +34,12 @@ export class AppShell {
     {
       label: 'Operations',
       items: [
-        { path: '/inventory', label: 'Inventory', icon: '✈',  description: 'Flight inventory & seat availability' },
+        { path: '/inventory', label: 'Stock Keeper', icon: '✈',  description: 'Flight stock keeper & seat availability' },
         { path: '/new-order', label: 'New Order', icon: '➕', description: 'Create a new booking' },
         { path: '/order',     label: 'Order',     icon: '📋', description: 'Manage orders & payments' },
         { path: '/payments',  label: 'Payments',  icon: '💳', description: 'Daily payment transactions' },
         { path: '/order-accounting', label: 'Order Accounting', icon: '🧾', description: 'Order accounting & financial records' },
         { path: '/customer',  label: 'Customer',  icon: '👤', description: 'Customer profiles & history' },
-        { path: '/terminal',  label: 'Terminal',  icon: '⌨',  description: 'Cryptic command terminal' },
       ],
     },
     {

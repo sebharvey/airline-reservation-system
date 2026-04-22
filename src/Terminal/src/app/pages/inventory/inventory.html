@@ -3,7 +3,7 @@
   <!-- Page header -->
   <div class="page-header">
     <div class="page-title-group">
-      <h1 class="page-title">Flight Inventory</h1>
+      <h1 class="page-title">Flight Stock Keeper</h1>
       <p class="page-subtitle">Cabin seat availability by departure date</p>
     </div>
 
@@ -27,7 +27,7 @@
           </button>
         </div>
       </div>
-      <button class="refresh-btn" (click)="loadInventory()" [disabled]="loading()" title="Refresh inventory">
+      <button class="refresh-btn" (click)="loadInventory()" [disabled]="loading()" title="Refresh stock keeper">
         @if (loading()) {
           <span class="btn-spinner"></span>
         } @else {
@@ -221,7 +221,7 @@
   @if (loading()) {
     <div class="empty-state">
       <span class="btn-spinner"></span>
-      <p>Loading inventory…</p>
+      <p>Loading stock keeper…</p>
     </div>
   }
 
@@ -233,7 +233,7 @@
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modal-header">
       <div class="modal-title-group">
-        <h2 class="modal-title">Inventory Holds</h2>
+        <h2 class="modal-title">Stock Keeper Holds</h2>
         <p class="modal-subtitle">
           {{ holdsModalFlight()!.flightNumber }} &nbsp;·&nbsp;
           {{ holdsModalFlight()!.origin }} → {{ holdsModalFlight()!.destination }} &nbsp;·&nbsp;

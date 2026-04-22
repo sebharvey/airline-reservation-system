@@ -12,7 +12,7 @@
           Import SSIM File
         </button>
         <button class="btn-inventory" (click)="openImportModal()" [disabled]="loading() || schedules().length === 0">
-          Add to Inventory
+          Add to Stock Keeper
         </button>
         <button class="load-btn" (click)="loadSchedules()" [disabled]="loading()">
           @if (loading()) {
@@ -101,7 +101,7 @@
       </div>
       <div class="stat-card stat-inventory">
         <span class="stat-value">{{ stats().inventoryCoverage }}%</span>
-        <span class="stat-label">Inventory Coverage</span>
+        <span class="stat-label">Stock Keeper Coverage</span>
       </div>
     </div>
   }
@@ -364,22 +364,22 @@
     </div>
   }
 
-  <!-- Import to Inventory modal -->
+  <!-- Import to Stock Keeper modal -->
   @if (showImportModal()) {
     <div class="modal-backdrop" (click)="closeImportModal()"></div>
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Add to Inventory</h2>
+        <h2 class="modal-title">Add to Stock Keeper</h2>
         <button class="modal-close" (click)="closeImportModal()" [disabled]="importing()">&times;</button>
       </div>
 
       <div class="modal-body">
         <p class="modal-description">
-          Generate flight inventory records from all <strong>{{ schedules().length }}</strong> schedules in
+          Generate flight stock keeper records from all <strong>{{ schedules().length }}</strong> schedules in
           <strong>{{ selectedGroup()?.name }}</strong>, covering the next <strong>3 months</strong> only.
           Cabin seat counts are resolved automatically from each aircraft type's configuration in the Seat
           service. Fares are applied from stored fare rules. A daily timer extends the window automatically
-          so there is always 3 months of inventory in the system.
+          so there is always 3 months of stock keeper records in the system.
         </p>
 
         @if (importError()) {
@@ -395,7 +395,7 @@
           @if (importing()) {
             <span class="btn-spinner"></span> Importing…
           } @else {
-            Import to Inventory
+            Import to Stock Keeper
           }
         </button>
       </div>
