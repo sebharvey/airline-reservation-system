@@ -37,4 +37,39 @@ public sealed class EfManifestRepository : IManifestRepository
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<Manifest>> GetByFlightAsync(
+        string flightNumber,
+        DateOnly departureDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Manifests
+            .Where(m => m.FlightNumber == flightNumber && m.DepartureDate == departureDate)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> DeleteByBookingAndFlightAsync(
+        string bookingReference,
+        string flightNumber,
+        DateOnly departureDate,
+        CancellationToken cancellationToken = default)
+    {
+        var entries = await _context.Manifests
+            .Where(m => m.BookingReference == bookingReference
+                     && m.FlightNumber == flightNumber
+                     && m.DepartureDate == departureDate)
+            .ToListAsync(cancellationToken);
+
+        if (entries.Count == 0)
+            return 0;
+
+        _context.Manifests.RemoveRange(entries);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Deleted {Count} manifest entries for booking {BookingRef} on {FlightNumber}/{DepartureDate}",
+            entries.Count, bookingReference, flightNumber, departureDate);
+
+        return entries.Count;
+    }
 }

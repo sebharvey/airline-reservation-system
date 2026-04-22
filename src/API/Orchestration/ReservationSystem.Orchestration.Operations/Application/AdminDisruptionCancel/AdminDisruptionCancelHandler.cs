@@ -109,19 +109,19 @@ public sealed class AdminDisruptionCancelHandler
                         var results = await _offerServiceClient.SearchFlightsAsync(origin, destination, searchDate, 1, ct);
                         foreach (var flight in results.Flights)
                         {
-                            foreach (var cabin in flight.Cabins.Where(c => c.SeatsAvailable > 0 && c.Fares.Count > 0))
+                            foreach (var offer in flight.Offers.Where(o => o.SeatsAvailable > 0))
                             {
                                 replacementPool.Add(new ReplacementOption
                                 {
                                     DepartureDate = flight.DepartureDate,
                                     DepartureTime = flight.DepartureTime,
-                                    CabinCode = cabin.CabinCode,
+                                    CabinCode = offer.CabinCode,
                                     Legs =
                                     [
                                         new ReplacementLeg
                                         {
-                                            OfferId = cabin.Fares[0].OfferId,
-                                            InventoryId = cabin.Fares[0].InventoryId,
+                                            OfferId = offer.OfferId,
+                                            InventoryId = flight.InventoryId,
                                             FlightNumber = flight.FlightNumber,
                                             DepartureDate = flight.DepartureDate,
                                             DepartureTime = flight.DepartureTime,
@@ -129,8 +129,8 @@ public sealed class AdminDisruptionCancelHandler
                                             ArrivalDayOffset = flight.ArrivalDayOffset,
                                             Origin = flight.Origin,
                                             Destination = flight.Destination,
-                                            SeatsAvailable = cabin.SeatsAvailable,
-                                            PointsPrice = cabin.Fares[0].PointsPrice
+                                            SeatsAvailable = offer.SeatsAvailable,
+                                            PointsPrice = offer.PointsPrice
                                         }
                                     ]
                                 });

@@ -31,6 +31,9 @@ public sealed class OfferSearchResponse
 
 public sealed class OfferFlightDto
 {
+    [JsonPropertyName("inventoryId")]
+    public Guid InventoryId { get; init; }
+
     [JsonPropertyName("flightNumber")]
     public string FlightNumber { get; init; } = string.Empty;
 
@@ -52,38 +55,20 @@ public sealed class OfferFlightDto
     [JsonPropertyName("destination")]
     public string Destination { get; init; } = string.Empty;
 
-    [JsonPropertyName("cabins")]
-    public IReadOnlyList<OfferCabinDto> Cabins { get; init; } = [];
+    [JsonPropertyName("offers")]
+    public IReadOnlyList<OfferItemDto> Offers { get; init; } = [];
 }
 
-public sealed class OfferCabinDto
+public sealed class OfferItemDto
 {
+    [JsonPropertyName("offerId")]
+    public string OfferId { get; init; } = string.Empty;
+
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 
     [JsonPropertyName("seatsAvailable")]
     public int SeatsAvailable { get; init; }
-
-    [JsonPropertyName("fares")]
-    public IReadOnlyList<OfferFareDto> Fares { get; init; } = [];
-}
-
-public sealed class OfferFareDto
-{
-    [JsonPropertyName("offerId")]
-    public string OfferId { get; init; } = string.Empty;
-
-    [JsonPropertyName("inventoryId")]
-    public Guid InventoryId { get; init; }
-
-    [JsonPropertyName("fareBasisCode")]
-    public string FareBasisCode { get; init; } = string.Empty;
-
-    [JsonPropertyName("fareFamily")]
-    public string? FareFamily { get; init; }
-
-    [JsonPropertyName("totalAmount")]
-    public decimal TotalAmount { get; init; }
 
     [JsonPropertyName("pointsPrice")]
     public int? PointsPrice { get; init; }
