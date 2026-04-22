@@ -141,25 +141,33 @@ export class ProductsComponent implements OnInit {
     this.success.set('');
   }
 
-  openEditForm(product: Product): void {
-    this.editing.set(product);
-    this.showPriceForm.set(false);
-    this.editingPrice.set(null);
-    const channels = this.#parseChannels(product.availableChannels);
-    this.updateChannels.set(channels);
-    this.updateForm.set({
-      productGroupId: product.productGroupId,
-      name: product.name,
-      description: product.description,
-      isSegmentSpecific: product.isSegmentSpecific,
-      ssrCode: product.ssrCode,
-      imageBase64: product.imageBase64,
-      availableChannels: this.#channelsToString(channels),
-      isActive: product.isActive,
-    });
-    this.showForm.set(true);
+  async openEditForm(product: Product): Promise<void> {
     this.error.set('');
     this.success.set('');
+    this.loading.set(true);
+    try {
+      const fresh = await this.#service.getById(product.productId);
+      this.editing.set(fresh);
+      this.showPriceForm.set(false);
+      this.editingPrice.set(null);
+      const channels = this.#parseChannels(fresh.availableChannels);
+      this.updateChannels.set(channels);
+      this.updateForm.set({
+        productGroupId: fresh.productGroupId,
+        name: fresh.name,
+        description: fresh.description,
+        isSegmentSpecific: fresh.isSegmentSpecific,
+        ssrCode: fresh.ssrCode,
+        imageBase64: fresh.imageBase64,
+        availableChannels: this.#channelsToString(channels),
+        isActive: fresh.isActive,
+      });
+      this.showForm.set(true);
+    } catch {
+      this.error.set('Failed to load product. Please try again.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   cancelForm(): void {
