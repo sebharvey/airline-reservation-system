@@ -76,6 +76,29 @@ public sealed class RebookOrderHandler
             var history = orderJson["history"]?.AsArray() ?? new JsonArray();
             history.Add(historyEntry);
             orderJson["history"] = history;
+
+            // Append an IROPS-REBOOK note recording the cancelled and replacement segment details
+            var toFlightDescriptions = toFlights is { Count: > 0 }
+                ? string.Join(" / ", toFlights.Select(f =>
+                    $"{f["flightNumber"]?.GetValue<string>()} on {f["departureDate"]?.GetValue<string>()}"))
+                : "replacement flight";
+
+            var noteMessage = $"Segment rebooked: {fromFlightNumber ?? "unknown"} on {fromDepartureDate ?? "unknown"} → {toFlightDescriptions}";
+
+            var existingNotesJson = orderJson["notes"]?.ToJsonString();
+            orderJson.Remove("notes");
+            var notesArray = existingNotesJson != null
+                ? JsonNode.Parse(existingNotesJson)!.AsArray()
+                : new JsonArray();
+
+            notesArray.Add(new JsonObject
+            {
+                ["dateTime"] = DateTime.UtcNow.ToString("o"),
+                ["type"] = "IROPS-REBOOK",
+                ["message"] = noteMessage
+            });
+
+            orderJson["notes"] = notesArray;
         }
 
         var updated = Domain.Entities.Order.Reconstitute(
