@@ -154,7 +154,7 @@ export class ProductsComponent implements OnInit {
       isSegmentSpecific: product.isSegmentSpecific,
       ssrCode: product.ssrCode,
       imageBase64: product.imageBase64,
-      availableChannels: product.availableChannels,
+      availableChannels: this.#channelsToString(channels),
       isActive: product.isActive,
     });
     this.showForm.set(true);
@@ -232,7 +232,8 @@ export class ProductsComponent implements OnInit {
 
   channelBadges(availableChannels: string): string[] {
     try {
-      return Array.isArray(JSON.parse(availableChannels)) ? JSON.parse(availableChannels) : [];
+      const parsed = JSON.parse(availableChannels);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }

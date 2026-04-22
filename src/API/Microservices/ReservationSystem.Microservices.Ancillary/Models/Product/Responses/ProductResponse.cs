@@ -26,7 +26,7 @@ public sealed class ProductResponse
     public string? ImageBase64 { get; init; }
 
     [JsonPropertyName("availableChannels")]
-    public string AvailableChannels { get; init; } = "WEB,APP,NDC,KIOSK,CC,AIRPORT";
+    public string AvailableChannels { get; init; } = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
 
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }
