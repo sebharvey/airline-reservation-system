@@ -10,7 +10,7 @@ public sealed class OfferSearchRequest
     [JsonPropertyName("destination")]
     public string Destination { get; init; } = string.Empty;
 
-    [JsonPropertyName("date")]
+    [JsonPropertyName("departureDate")]
     public string Date { get; init; } = string.Empty;
 
     [JsonPropertyName("paxCount")]
