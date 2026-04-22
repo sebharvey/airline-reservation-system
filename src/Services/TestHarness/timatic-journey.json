@@ -318,6 +318,185 @@
         "statusCode": 400
       },
       "chainsTo": []
+    },
+    {
+      "step": 8,
+      "name": "Document check — FAIL document number (status: FAILED)",
+      "description": "POST a document check where documentNumber starts with 'FAIL'. The simulator returns status: FAILED with visaRequired: true and a VISA requirement object. Simulates a rejected travel document.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/documentcheck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-DOC-FAIL",
+          "airlineCode": "AX",
+          "journeyType": "OW",
+          "paxInfo": {
+            "documentType": "P",
+            "nationality": "GBR",
+            "documentIssuerCountry": "GBR",
+            "documentNumber": "FAIL123456",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
+            "residentCountry": "GBR"
+          },
+          "itinerary": [
+            {
+              "departureAirport": "LHR",
+              "arrivalAirport": "JFK",
+              "airline": "AX",
+              "flightNumber": "AX001",
+              "departureDate": "__RAND_DEPART_DATE__"
+            }
+          ]
+        }
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "status",
+            "assertion": "equals",
+            "expected": "FAILED"
+          },
+          {
+            "field": "visaRequired",
+            "assertion": "equals",
+            "expected": true
+          },
+          {
+            "field": "requirements",
+            "assertion": "count",
+            "expected": 1
+          }
+        ]
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 9,
+      "name": "APIS check — given name ALAN (apisStatus: REJECTED)",
+      "description": "POST an APIS check where paxInfo.givenNames contains 'ALAN'. The simulator returns apisStatus: REJECTED with fineRisk: HIGH and a WATCHLIST_MATCH warning, blocking the passenger from completing online check-in.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/apischeck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-APIS-REJECT",
+          "airlineCode": "AX",
+          "flightNumber": "AX001",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "departureAirport": "LHR",
+          "arrivalAirport": "JFK",
+          "paxInfo": {
+            "surname": "__RAND_SURNAME__",
+            "givenNames": "ALAN",
+            "dateOfBirth": "__RAND_DOB__",
+            "gender": "__RAND_GENDER_CODE__",
+            "nationality": "GBR",
+            "documentType": "P",
+            "documentNumber": "__RAND_DOC_NUMBER__",
+            "documentIssuerCountry": "GBR",
+            "documentExpiryDate": "__RAND_DOC_EXPIRY__"
+          }
+        }
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "apisStatus",
+            "assertion": "equals",
+            "expected": "REJECTED"
+          },
+          {
+            "field": "fineRisk",
+            "assertion": "equals",
+            "expected": "HIGH"
+          },
+          {
+            "field": "warnings",
+            "assertion": "count",
+            "expected": 1
+          }
+        ]
+      },
+      "chainsTo": []
+    },
+    {
+      "step": 10,
+      "name": "Realtime gate check — MRZ surname BLOCKED (decision: NO_GO)",
+      "description": "POST a realtime gate check where MRZ line 1 encodes surname 'BLOCKED'. The simulator parses the MRZ, detects the sentinel surname, and returns decision: NO_GO with conditionsMet: false and carrierLiabilityConfirmed: false. Simulates a gate-level denial.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/autocheck/v1/realtimecheck",
+        "baseUrlRef": "timatic"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer timatic-test-2026"
+        },
+        "body": {
+          "transactionIdentifier": "TXN-2026-GATE-NOGO",
+          "airlineCode": "AX",
+          "flightNumber": "AX001",
+          "departureAirport": "LHR",
+          "arrivalAirport": "JFK",
+          "mrzData": {
+            "line1": "P<GBRBLOCKED<<TEST<<<<<<<<<<<<<<<<<<<<<<<<<<",
+            "line2": "1234567897GBR8001011M3101015<<<<<<<<<<<<<<<9"
+          },
+          "agentId": "AGENT-LHR-001",
+          "checkTimestamp": "__RAND_DEPART_DATE__T06:30:00Z"
+        }
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "decision",
+            "assertion": "equals",
+            "expected": "NO_GO"
+          },
+          {
+            "field": "conditionsMet",
+            "assertion": "equals",
+            "expected": false
+          },
+          {
+            "field": "carrierLiabilityConfirmed",
+            "assertion": "equals",
+            "expected": false
+          }
+        ]
+      },
+      "chainsTo": []
     }
   ]
 }

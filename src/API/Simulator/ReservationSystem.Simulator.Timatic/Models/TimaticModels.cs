@@ -50,6 +50,12 @@ public sealed record Advisory(
     bool Mandatory
 );
 
+public sealed record DocumentRequirement(
+    string Type,
+    string Description,
+    bool Mandatory
+);
+
 // ── APIS Check ─────────────────────────────────────────────────────────────────
 
 public sealed record ApisCheckRequest(
@@ -82,6 +88,11 @@ public sealed record ApisCheckResponse(
     IReadOnlyList<object> Warnings,
     string AuditRef,
     string ProcessedAt
+);
+
+public sealed record ApisWarning(
+    string Code,
+    string Description
 );
 
 // ── Realtime Check ─────────────────────────────────────────────────────────────

@@ -59,6 +59,28 @@ public sealed class ApisCheckFunction
 
         var now = DateTime.UtcNow;
 
+        // Non-successful state: REJECTED — triggered when givenNames contains "ALAN" (case-insensitive).
+        // Simulates a watchlist match that blocks online check-in.
+        if (body.PaxInfo.GivenNames.Contains("ALAN", StringComparison.OrdinalIgnoreCase))
+        {
+            var rejectedBody = new ApisCheckResponse(
+                TransactionIdentifier:     body.TransactionIdentifier,
+                ApisStatus:                "REJECTED",
+                CarrierLiabilityConfirmed: false,
+                FineRisk:                  "HIGH",
+                Warnings: new object[]
+                {
+                    new ApisWarning(
+                        Code:        "WATCHLIST_MATCH",
+                        Description: "Passenger name matches a watchlist entry. Online check-in is not permitted."
+                    )
+                },
+                AuditRef:    GenerateAuditRef(now),
+                ProcessedAt: now.ToString("O")
+            );
+            return await OkJsonAsync(request, rejectedBody);
+        }
+
         var responseBody = new ApisCheckResponse(
             TransactionIdentifier:    body.TransactionIdentifier,
             ApisStatus:               "ACCEPTED",
