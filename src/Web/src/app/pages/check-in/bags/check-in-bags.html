@@ -1,17 +1,108 @@
 <div class="page fade-in">
+
   <div class="page-header">
+    <a routerLink="/check-in/seats" class="back-link">&#8249; Back</a>
     <h2>Baggage</h2>
-    <p>Additional bag selection during online check-in</p>
+    <p>Add extra bags to your booking</p>
   </div>
 
-  <div class="unavailable-panel">
-    <div class="unavailable-icon">&#9940;</div>
-    <p class="unavailable-message">Unavailable</p>
-    <p class="unavailable-sub">Online baggage purchase is not available at this time. You can add bags at the airport.</p>
-  </div>
+  @if (segments().length === 0 && flightBagData().length === 0) {
+    <div class="unavailable-panel">
+      <div class="unavailable-icon">&#9940;</div>
+      <p class="unavailable-message">Bag selection unavailable</p>
+      <p class="unavailable-sub">Flight details could not be loaded. You can add bags at the airport.</p>
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" (click)="onSkip()">Skip Bags</button>
+    </div>
+  }
 
-  <div class="action-buttons">
-    <button type="button" class="btn-primary" disabled>Continue</button>
-    <button type="button" class="btn-secondary" (click)="skip()">Skip Bags</button>
-  </div>
+  @for (entry of flightBagData(); track entry.segment.segmentRef) {
+
+    <div class="section">
+      <h3 class="section-title">
+        {{ entry.segment.flightNumber }} &nbsp;&middot;&nbsp;
+        {{ entry.segment.origin }} &#8594; {{ entry.segment.destination }}
+      </h3>
+
+      @if (entry.loading) {
+        <div class="loading-state">
+          <span class="spinner-dark"></span>
+          <span>Loading bag policy&hellip;</span>
+        </div>
+      }
+
+      @if (entry.error) {
+        <div class="error-banner"><span>&#9888;</span> {{ entry.error }}</div>
+      }
+
+      @if (!entry.loading && !entry.error && entry.policyResponse; as policy) {
+
+        @for (pax of passengers(); track pax.passengerId) {
+          <div class="card pax-bag-card">
+            <div class="pax-name">{{ pax.givenName }} {{ pax.surname }}</div>
+
+            <!-- Free allowance -->
+            <div class="allowance-row">
+              <div class="allowance-item">
+                <div class="allowance-icon">&#10003;</div>
+                <span>{{ policy.policy.freeBagsIncluded }} bag{{ policy.policy.freeBagsIncluded !== 1 ? 's' : '' }} included</span>
+                <span class="allowance-detail">max {{ policy.policy.maxWeightKgPerBag }}kg each</span>
+              </div>
+            </div>
+
+            <!-- Additional bag selection -->
+            @if (policy.additionalBagOffers.length > 0) {
+              <div class="add-bags-row">
+                <div class="add-bags-label">Additional bags</div>
+                <div class="bag-options">
+                  @for (count of bagOptions(); track count) {
+                    <button
+                      class="bag-option-btn"
+                      [class.bag-option-btn--selected]="isSelected(pax.passengerId, entry.segment.segmentRef, count)"
+                      (click)="selectBagCount(pax.passengerId, entry.segment, policy.additionalBagOffers, count)">
+                      {{ getBagOptionLabel(policy.additionalBagOffers, count) }}
+                    </button>
+                  }
+                </div>
+              </div>
+            } @else {
+              <p class="max-bags-note">No additional bags available for purchase on this flight.</p>
+            }
+          </div>
+        }
+
+      }
+
+    </div>
+
+  }
+
+  <!-- Total bag cost -->
+  @if (totalBagCost() > 0) {
+    <div class="cost-summary">
+      <span class="cost-label">Additional Baggage Total</span>
+      <strong class="cost-amount">{{ currency() }} {{ totalBagCost() | number:'1.2-2' }}</strong>
+    </div>
+  }
+
+  <!-- Save error -->
+  @if (saveError()) {
+    <div class="error-banner"><span>&#9888;</span> {{ saveError() }}</div>
+  }
+
+  <!-- Actions -->
+  @if (flightBagData().length > 0 || segments().length > 0) {
+    <div class="action-buttons">
+      <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
+        @if (saving()) {
+          <span class="spinner-dark"></span> Saving&hellip;
+        } @else {
+          Continue &#8250;
+        }
+      </button>
+      <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip Bags</button>
+    </div>
+  }
+
 </div>

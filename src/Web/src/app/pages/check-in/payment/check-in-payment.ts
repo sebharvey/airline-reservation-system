@@ -1,9 +1,9 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
-import { Order, CardDetails } from '../../../models/order.model';
+import { CardDetails } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
 
 @Component({
@@ -14,17 +14,10 @@ import { PaymentFormComponent } from '../../../components/payment-form/payment-f
   styleUrl: './check-in-payment.css'
 })
 export class CheckInPaymentComponent implements OnInit {
-  order = signal<Order | null>(null);
-  loading = signal(true);
   paying = signal(false);
-  errorMessage = signal('');
   paymentError = signal('');
 
-  bookingRef = signal('');
-  givenName = signal('');
-  surname = signal('');
-  passengerIds = signal<string[]>([]);
-
+  readonly order = computed(() => this.checkInState.currentOrder());
   readonly bagSelections = computed(() => this.checkInState.bagSelections());
   readonly seatSelections = computed(() => this.checkInState.seatSelections());
   readonly totalBagAmount = computed(() => this.checkInState.totalBagAmount());
@@ -33,48 +26,19 @@ export class CheckInPaymentComponent implements OnInit {
   readonly currency = computed(() => this.order()?.currency ?? 'GBP');
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private retailApi: RetailApiService,
     private checkInState: CheckInStateService
   ) {}
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      const gn = params['givenName'] ?? '';
-      const sn = params['surname'] ?? '';
-      const paxIds = (params['passengerIds'] ?? '').split(',').filter(Boolean);
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
-      this.passengerIds.set(paxIds);
-
-      if (!ref) {
-        this.router.navigate(['/check-in']);
-        return;
-      }
-
-      if (this.checkInState.totalPaymentAmount() === 0) {
-        this.navigateToBoardingPass();
-        return;
-      }
-
-      this.loadOrder(ref, gn, sn);
-    });
-  }
-
-  private loadOrder(ref: string, gn: string, sn: string): void {
-    this.retailApi.retrieveForCheckIn({ bookingReference: ref, givenName: gn, surname: sn }).subscribe({
-      next: (order) => {
-        this.order.set(order);
-        this.loading.set(false);
-      },
-      error: (err: { message?: string }) => {
-        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
-        this.loading.set(false);
-      }
-    });
+    if (!this.checkInState.currentOrder()) {
+      this.router.navigate(['/check-in']);
+      return;
+    }
+    if (this.checkInState.totalPaymentAmount() === 0) {
+      this.router.navigate(['/check-in/boarding-pass']);
+    }
   }
 
   getPassengerName(passengerId: string): string {
@@ -83,38 +47,34 @@ export class CheckInPaymentComponent implements OnInit {
   }
 
   getSegmentRoute(segmentId: string): string {
-    const seg = this.order()?.flightSegments.find(s => s.segmentId === segmentId);
+    const seg = this.order()?.flightSegments?.find(s => s.inventoryId === segmentId);
     return seg ? `${seg.origin}–${seg.destination}` : segmentId;
   }
 
   onPay(card: CardDetails): void {
+    const order = this.order();
+    if (!order) return;
+
     this.paying.set(true);
+    this.paymentError.set('');
+
     this.retailApi.addCheckInAncillaries(
-      this.bookingRef(),
+      order.bookingReference,
       this.bagSelections(),
       this.seatSelections(),
       card.cardLast4,
       card.cardType
     ).subscribe({
-      next: () => {
+      next: (result) => {
         this.paying.set(false);
-        this.navigateToBoardingPass();
+        if (result.documents?.length) {
+          this.checkInState.setEmdDocuments(result.documents);
+        }
+        this.router.navigate(['/check-in/boarding-pass']);
       },
-      error: (err: { error?: { message?: string }, message?: string }) => {
+      error: (err: { message?: string }) => {
         this.paying.set(false);
-        const msg = (err as any)?.error?.message ?? 'Please check your payment details and try again.';
-        this.paymentError.set(msg);
-      }
-    });
-  }
-
-  private navigateToBoardingPass(): void {
-    this.router.navigate(['/check-in/boarding-pass'], {
-      queryParams: {
-        bookingRef: this.bookingRef(),
-        givenName: this.givenName(),
-        surname: this.surname(),
-        passengerIds: this.passengerIds().join(',')
+        this.paymentError.set(err?.message ?? 'Please check your payment details and try again.');
       }
     });
   }

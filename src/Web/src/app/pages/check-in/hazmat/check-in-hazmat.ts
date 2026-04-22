@@ -50,9 +50,11 @@ export class CheckInHazmatComponent implements OnInit {
       next: (result) => {
         this.submitting.set(false);
         this.checkInState.setCheckedInTicketNumbers(result.checkedIn);
-        this.router.navigate(['/check-in/boarding-pass'], {
-          queryParams: { bookingRef: order.bookingReference }
-        });
+        if (this.checkInState.totalPaymentAmount() > 0) {
+          this.router.navigate(['/check-in/payment']);
+        } else {
+          this.router.navigate(['/check-in/boarding-pass']);
+        }
       },
       error: (err: { message?: string }) => {
         this.submitting.set(false);

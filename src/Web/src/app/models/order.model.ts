@@ -369,6 +369,15 @@ export interface OciOrder {
   flightSegments?: OciFlightSegment[];
 }
 
+export interface EmdDocument {
+  documentNumber: string;
+  documentType: 'SeatAncillary' | 'BagAncillary';
+  passengerId: string;
+  segmentRef: string;
+  amount: number;
+  currency: string;
+}
+
 export interface CardDetails {
   cardholderName: string;
   cardNumber: string;

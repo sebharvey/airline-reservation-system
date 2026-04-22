@@ -1,17 +1,202 @@
 <div class="page fade-in">
+
   <div class="page-header">
+    <a routerLink="/check-in/details" class="back-link">&#8249; Back</a>
     <h2>Select Your Seat</h2>
-    <p>Seat selection during online check-in</p>
+    <p>Optional &mdash; seats are assigned automatically if you skip</p>
   </div>
 
-  <div class="unavailable-panel">
-    <div class="unavailable-icon">&#9940;</div>
-    <p class="unavailable-message">Unavailable</p>
-    <p class="unavailable-sub">Online seat selection is not available at this time. You can select a seat at the airport.</p>
-  </div>
+  <!-- No segment data -->
+  @if (segments().length === 0 && seatmapEntries().length === 0) {
+    <div class="unavailable-panel">
+      <div class="unavailable-icon">&#9940;</div>
+      <p class="unavailable-message">Seat selection unavailable</p>
+      <p class="unavailable-sub">Flight details could not be loaded. You can select a seat at the airport.</p>
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" (click)="onSkip()">Skip Seats</button>
+    </div>
+  }
 
-  <div class="action-buttons">
-    <button type="button" class="btn-primary" disabled>Continue</button>
-    <button type="button" class="btn-secondary" (click)="skip()">Skip Seats</button>
-  </div>
+  @if (seatmapEntries().length > 0) {
+
+    <!-- Passenger tabs -->
+    @if (passengerLabels().length > 1) {
+      <div class="passenger-tabs">
+        @for (pax of passengerLabels(); track pax.index) {
+          <button
+            class="pax-tab"
+            [class.pax-tab--active]="activePassengerIndex() === pax.index"
+            (click)="activePassengerIndex.set(pax.index)">
+            <span class="pax-tab-name">{{ pax.label }}</span>
+            @if (activeEntry(); as entry) {
+              @if (getSelectedSeat(passengers()[pax.index]?.passengerId, entry.segment.segmentRef); as sel) {
+                <span class="pax-tab-seat">&#x2714; {{ sel.seatOffer.seatNumber }}</span>
+              }
+            }
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Flight tabs -->
+    @if (flightLabels().length > 1) {
+      <div class="flight-tabs">
+        @for (fl of flightLabels(); track fl.index) {
+          <button
+            class="pax-tab"
+            [class.pax-tab--active]="activeFlightIndex() === fl.index"
+            (click)="activeFlightIndex.set(fl.index)">
+            <span class="pax-tab-name">{{ fl.label }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    @if (activeEntry(); as entry) {
+
+      <!-- Loading -->
+      @if (entry.loading) {
+        <div class="loading-state">
+          <span class="spinner-dark"></span>
+          <span>Loading seatmap&hellip;</span>
+        </div>
+      }
+
+      <!-- Error -->
+      @if (entry.error) {
+        <div class="error-banner"><span>&#9888;</span> {{ entry.error }}</div>
+      }
+
+      @if (!entry.loading && !entry.error) {
+
+        <!-- Flight label -->
+        <div class="section">
+          <div class="section-title">
+            {{ entry.segment.flightNumber }} &nbsp;&middot;&nbsp;
+            {{ entry.segment.origin }} &#8594; {{ entry.segment.destination }}
+          </div>
+
+          @if (activePassenger(); as pax) {
+            <!-- Current assignment -->
+            @if (getCurrentSeat(pax.passengerId, entry.segment); as currentSeat) {
+              <div class="free-badge">
+                <span class="free-icon">&#128186;</span>
+                Current seat: <strong>{{ currentSeat }}</strong> &mdash; select below to change
+              </div>
+            }
+
+            <!-- Selection indicator -->
+            @if (getSelectedSeat(pax.passengerId, entry.segment.segmentRef); as sel) {
+              <div class="free-badge">
+                <span class="free-icon">&#x2714;</span>
+                Selecting <strong>{{ sel.seatOffer.seatNumber }}</strong> for {{ pax.givenName }} {{ pax.surname }}
+                @if (sel.seatOffer.price > 0) {
+                  &mdash; {{ sel.seatOffer.currency }} {{ sel.seatOffer.price.toFixed(2) }}
+                } @else {
+                  &mdash; Free
+                }
+              </div>
+            }
+          }
+        </div>
+
+        @if (!entry.seatmap) {
+          <div class="unavailable-panel">
+            <div class="unavailable-icon">&#9940;</div>
+            <p class="unavailable-message">Seatmap unavailable</p>
+            <p class="unavailable-sub">Unable to display seats for this flight. Please select at the airport.</p>
+          </div>
+        }
+
+        @if (entry.seatmap && activeCabin(); as cabin) {
+
+          <!-- Legend -->
+          <div class="seatmap-legend">
+            <div class="legend-item"><div class="seat-demo seat-available"></div><span>Available</span></div>
+            <div class="legend-item"><div class="seat-demo seat-selected"></div><span>Your selection</span></div>
+            <div class="legend-item"><div class="seat-demo seat-held"></div><span>Other passenger</span></div>
+            <div class="legend-item"><div class="seat-demo seat-sold"></div><span>Unavailable</span></div>
+          </div>
+
+          <!-- Seatmap grid -->
+          <div class="card">
+            <div class="seatmap-wrap">
+              <div class="seatmap-grid">
+
+                <!-- Column headers -->
+                <div class="col-header-row">
+                  <div class="row-num-spacer"></div>
+                  @for (item of getHeaderItems(cabin); track $index) {
+                    @if (item.type === 'spacer') {
+                      <div class="aisle-spacer"></div>
+                    } @else {
+                      <div class="col-header">{{ item.col }}</div>
+                    }
+                  }
+                </div>
+
+                <!-- Seat rows -->
+                @for (row of getSeatRows(cabin); track row) {
+                  <div class="seat-row">
+                    <div class="row-num">{{ row }}</div>
+                    @for (item of getRowItems(cabin, row); track $index) {
+                      @if (item.type === 'spacer') {
+                        <div class="aisle-spacer"></div>
+                      } @else if (item.seat) {
+                        <button
+                          [class]="getSeatClass(item.seat, entry.segment.segmentRef)"
+                          [disabled]="item.seat.availability !== 'available' || isSeatTakenByOther(item.seat, entry.segment.segmentRef)"
+                          (click)="selectSeat(item.seat, entry)"
+                          [title]="item.seat.seatNumber + ' · ' + item.seat.position + (item.seat.price > 0 ? ' · ' + item.seat.currency + ' ' + item.seat.price : ' · Free')">
+                          {{ item.seat.seatNumber }}
+                        </button>
+                      } @else {
+                        <div class="seat seat-empty"></div>
+                      }
+                    }
+                  </div>
+                }
+
+              </div>
+            </div>
+
+            @if (cabin.seats.some(s => s.price > 0)) {
+              <p class="seat-price-info">Some seats carry an additional charge, shown on hover.</p>
+            }
+          </div>
+
+        }
+
+      }
+
+    }
+
+    <!-- Total seat cost -->
+    @if (totalSeatCost() > 0) {
+      <div class="cost-summary">
+        <span class="cost-label">Seat Selection Total</span>
+        <strong class="cost-amount">{{ currency() }} {{ totalSeatCost() | number:'1.2-2' }}</strong>
+      </div>
+    }
+
+    <!-- Save error -->
+    @if (saveError()) {
+      <div class="error-banner"><span>&#9888;</span> {{ saveError() }}</div>
+    }
+
+    <!-- Actions -->
+    <div class="action-buttons">
+      <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
+        @if (saving()) {
+          <span class="spinner"></span> Saving&hellip;
+        } @else {
+          Continue to Baggage &#8250;
+        }
+      </button>
+      <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip Seat Selection</button>
+    </div>
+
+  }
+
 </div>
