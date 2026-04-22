@@ -31,11 +31,15 @@ public sealed class ProductsFunction
 
     [Function("GetRetailProducts")]
     [OpenApiOperation(operationId: "GetRetailProducts", tags: new[] { "Products" }, Summary = "List all active retail products grouped by product group, with per-currency prices")]
+    [OpenApiParameter(name: "channel", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter to products available on this channel (WEB, APP, NDC, KIOSK, CC, AIRPORT)")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Products with prices; channel filters by basket currency and groups for display")]
     public async Task<HttpResponseData> GetProducts(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/products")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
+        // Optional channel filter — when supplied, only products available on that channel are returned
+        var channelFilter = req.Query["channel"]?.Trim().ToUpperInvariant();
+
         // Fetch products and product groups in parallel
         var productsTask = _productServiceClient.GetAllProductsAsync(cancellationToken);
         var groupsTask   = _productServiceClient.GetAllProductGroupsAsync(cancellationToken);
@@ -54,9 +58,13 @@ public sealed class ProductsFunction
             .ToDictionary(g => g.ProductGroupId, g => g.Name)
             ?? new Dictionary<Guid, string>();
 
-        // Group active products by their product group, preserving API order
+        // Group active products by their product group, preserving API order;
+        // apply channel filter when provided
         var grouped = productList.Products
             .Where(p => p.IsActive)
+            .Where(p => channelFilter is null ||
+                        (System.Text.Json.JsonSerializer.Deserialize<string[]>(p.AvailableChannels) ?? [])
+                         .Any(c => c.Equals(channelFilter, StringComparison.OrdinalIgnoreCase)))
             .GroupBy(p => p.ProductGroupId)
             .Select(g => new
             {

@@ -8,4 +8,5 @@ public sealed record UpdateProductCommand(
     bool IsSegmentSpecific,
     string? SsrCode,
     string? ImageBase64,
+    string AvailableChannels,
     bool IsActive);

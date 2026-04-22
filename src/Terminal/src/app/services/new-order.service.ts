@@ -310,7 +310,7 @@ export class NewOrderService {
 
   async getProducts(): Promise<ProductCatalogue> {
     return firstValueFrom(
-      this.#http.get<ProductCatalogue>(`${this.#retailUrl}/products`)
+      this.#http.get<ProductCatalogue>(`${this.#retailUrl}/products?channel=CC`)
     );
   }
 

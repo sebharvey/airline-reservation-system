@@ -21,4 +21,7 @@ public sealed class CreateProductRequest
 
     [JsonPropertyName("imageBase64")]
     public string? ImageBase64 { get; init; }
+
+    [JsonPropertyName("availableChannels")]
+    public string AvailableChannels { get; init; } = "WEB,APP,NDC,KIOSK,CC,AIRPORT";
 }

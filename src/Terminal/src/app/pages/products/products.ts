@@ -9,9 +9,14 @@ import {
   UpdateProductRequest,
   CreateProductPriceRequest,
   UpdateProductPriceRequest,
+  ALL_CHANNELS,
+  ALL_CHANNELS_JSON,
+  ChannelCode,
 } from '../../services/product.service';
 import { ProductGroupService, ProductGroup } from '../../services/product-group.service';
 import { SsrCatalogueService, SsrCatalogueEntry } from '../../services/ssr-catalogue.service';
+
+const ALL_CHANNELS_DEFAULT = ALL_CHANNELS_JSON;
 
 @Component({
   selector: 'app-products',
@@ -45,6 +50,19 @@ export class ProductsComponent implements OnInit {
   deletingPrice = signal<string | null>(null);
   pendingPrices = signal<CreateProductPriceRequest[]>([]);
 
+  // Channel availability
+  readonly channelOptions: { code: ChannelCode; label: string }[] = [
+    { code: 'WEB',     label: 'Web' },
+    { code: 'APP',     label: 'App' },
+    { code: 'NDC',     label: 'NDC' },
+    { code: 'KIOSK',   label: 'Kiosk' },
+    { code: 'CC',      label: 'Contact Centre' },
+    { code: 'AIRPORT', label: 'Airport' },
+  ];
+
+  createChannels = signal<Set<ChannelCode>>(new Set(ALL_CHANNELS));
+  updateChannels = signal<Set<ChannelCode>>(new Set(ALL_CHANNELS));
+
   createForm = signal<CreateProductRequest>({
     productGroupId: '',
     name: '',
@@ -52,6 +70,7 @@ export class ProductsComponent implements OnInit {
     isSegmentSpecific: false,
     ssrCode: null,
     imageBase64: null,
+    availableChannels: ALL_CHANNELS_DEFAULT,
   });
 
   updateForm = signal<UpdateProductRequest>({
@@ -61,6 +80,7 @@ export class ProductsComponent implements OnInit {
     isSegmentSpecific: false,
     ssrCode: null,
     imageBase64: null,
+    availableChannels: ALL_CHANNELS_DEFAULT,
     isActive: true,
   });
 
@@ -106,6 +126,7 @@ export class ProductsComponent implements OnInit {
     this.editing.set(null);
     this.showPriceForm.set(false);
     this.pendingPrices.set([]);
+    this.createChannels.set(new Set(ALL_CHANNELS));
     this.createForm.set({
       productGroupId: this.groups()[0]?.productGroupId ?? '',
       name: '',
@@ -113,6 +134,7 @@ export class ProductsComponent implements OnInit {
       isSegmentSpecific: false,
       ssrCode: null,
       imageBase64: null,
+      availableChannels: ALL_CHANNELS_DEFAULT,
     });
     this.showForm.set(true);
     this.error.set('');
@@ -123,6 +145,8 @@ export class ProductsComponent implements OnInit {
     this.editing.set(product);
     this.showPriceForm.set(false);
     this.editingPrice.set(null);
+    const channels = this.#parseChannels(product.availableChannels);
+    this.updateChannels.set(channels);
     this.updateForm.set({
       productGroupId: product.productGroupId,
       name: product.name,
@@ -130,6 +154,7 @@ export class ProductsComponent implements OnInit {
       isSegmentSpecific: product.isSegmentSpecific,
       ssrCode: product.ssrCode,
       imageBase64: product.imageBase64,
+      availableChannels: product.availableChannels,
       isActive: product.isActive,
     });
     this.showForm.set(true);
@@ -151,6 +176,66 @@ export class ProductsComponent implements OnInit {
 
   updateUpdateField(field: keyof UpdateProductRequest, value: unknown): void {
     this.updateForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  // ── Channel helpers ───────────────────────────────────────────────────────
+
+  #parseChannels(json: string): Set<ChannelCode> {
+    try {
+      const codes = (JSON.parse(json) as string[]).map(c => c.toUpperCase()) as ChannelCode[];
+      return new Set(codes.filter(c => (ALL_CHANNELS as readonly string[]).includes(c)));
+    } catch {
+      return new Set(ALL_CHANNELS);
+    }
+  }
+
+  isChannelSelected(mode: 'create' | 'update', code: ChannelCode): boolean {
+    return mode === 'create' ? this.createChannels().has(code) : this.updateChannels().has(code);
+  }
+
+  toggleChannel(mode: 'create' | 'update', code: ChannelCode): void {
+    if (mode === 'create') {
+      this.createChannels.update(s => {
+        const next = new Set(s);
+        next.has(code) ? next.delete(code) : next.add(code);
+        return next;
+      });
+      this.createForm.update(f => ({ ...f, availableChannels: this.#channelsToString(this.createChannels()) }));
+    } else {
+      this.updateChannels.update(s => {
+        const next = new Set(s);
+        next.has(code) ? next.delete(code) : next.add(code);
+        return next;
+      });
+      this.updateForm.update(f => ({ ...f, availableChannels: this.#channelsToString(this.updateChannels()) }));
+    }
+  }
+
+  selectAllChannels(mode: 'create' | 'update'): void {
+    if (mode === 'create') {
+      this.createChannels.set(new Set(ALL_CHANNELS));
+      this.createForm.update(f => ({ ...f, availableChannels: ALL_CHANNELS_DEFAULT }));
+    } else {
+      this.updateChannels.set(new Set(ALL_CHANNELS));
+      this.updateForm.update(f => ({ ...f, availableChannels: ALL_CHANNELS_DEFAULT }));
+    }
+  }
+
+  allChannelsSelected(mode: 'create' | 'update'): boolean {
+    const s = mode === 'create' ? this.createChannels() : this.updateChannels();
+    return s.size === ALL_CHANNELS.length;
+  }
+
+  #channelsToString(s: Set<ChannelCode>): string {
+    return JSON.stringify(ALL_CHANNELS.filter(c => s.has(c)));
+  }
+
+  channelBadges(availableChannels: string): string[] {
+    try {
+      return Array.isArray(JSON.parse(availableChannels)) ? JSON.parse(availableChannels) : [];
+    } catch {
+      return [];
+    }
   }
 
   onImageChange(event: Event, mode: 'create' | 'update'): void {
@@ -282,7 +367,6 @@ export class ProductsComponent implements OnInit {
       }
       this.showPriceForm.set(false);
       this.editingPrice.set(null);
-      // Reload to get latest prices on the editing product
       const updated = await this.#service.getById(product.productId);
       this.editing.set(updated);
       this.products.update(list => list.map(p => p.productId === updated.productId ? updated : p));
@@ -313,7 +397,7 @@ export class ProductsComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   formatAmount(amount: number, currency: string): string {
-    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   }
 
   formatDate(iso: string): string {

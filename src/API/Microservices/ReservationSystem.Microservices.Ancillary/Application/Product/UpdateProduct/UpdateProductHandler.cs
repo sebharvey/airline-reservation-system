@@ -24,7 +24,7 @@ public sealed class UpdateProductHandler
             existing.ProductId, command.ProductGroupId, command.Name, command.Description,
             command.IsSegmentSpecific,
             string.IsNullOrWhiteSpace(command.SsrCode) ? null : command.SsrCode.ToUpperInvariant(),
-            command.ImageBase64, command.IsActive,
+            command.ImageBase64, command.AvailableChannels, command.IsActive,
             existing.CreatedAt, DateTime.UtcNow);
 
         return await _repository.UpdateAsync(updated, cancellationToken);
