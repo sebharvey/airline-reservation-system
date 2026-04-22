@@ -6,8 +6,20 @@
     <p>Optional &mdash; seats are assigned automatically if you skip</p>
   </div>
 
+  <!-- Standby booking — seat will be assigned at gate -->
+  @if (isStandby()) {
+    <div class="unavailable-panel">
+      <div class="unavailable-icon">&#127915;</div>
+      <p class="unavailable-message">Seat assigned at gate</p>
+      <p class="unavailable-sub">Your booking is on standby. Your seat will be assigned at the gate when you arrive at the airport.</p>
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-primary" (click)="onSkip()">Continue to Baggage &#8250;</button>
+    </div>
+  }
+
   <!-- No segment data -->
-  @if (segments().length === 0 && seatmapEntries().length === 0) {
+  @if (!isStandby() && segments().length === 0 && seatmapEntries().length === 0) {
     <div class="unavailable-panel">
       <div class="unavailable-icon">&#9940;</div>
       <p class="unavailable-message">Seat selection unavailable</p>
@@ -18,7 +30,7 @@
     </div>
   }
 
-  @if (seatmapEntries().length > 0) {
+  @if (!isStandby() && seatmapEntries().length > 0) {
 
     <!-- Passenger tabs -->
     @if (passengerLabels().length > 1) {

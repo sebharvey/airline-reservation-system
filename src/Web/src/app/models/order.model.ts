@@ -363,6 +363,7 @@ export interface OciPassenger {
 export interface OciOrder {
   bookingReference: string;
   checkInEligible?: boolean;
+  isStandby?: boolean;
   orderStatus: string;
   currency: string;
   passengers: OciPassenger[];

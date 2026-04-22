@@ -624,6 +624,7 @@ export class RetailApiService {
     return this.#http.post<{
       bookingReference: string;
       checkInEligible: boolean;
+      isStandby?: boolean;
       currency?: string;
       passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: unknown }[];
       flightSegments?: { segmentRef: string; inventoryId: string; flightNumber: string; origin: string; destination: string; departureDateTime: string; arrivalDateTime: string; cabinCode: string; aircraftType: string; seatAssignments: { passengerId: string; seatNumber: string }[] }[];
@@ -631,6 +632,7 @@ export class RetailApiService {
       map(res => ({
         bookingReference: res.bookingReference,
         checkInEligible: res.checkInEligible,
+        isStandby: res.isStandby ?? false,
         orderStatus: 'Confirmed',
         currency: res.currency ?? 'GBP',
         passengers: res.passengers.map(p => ({
