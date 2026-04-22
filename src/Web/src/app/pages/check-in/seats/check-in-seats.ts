@@ -82,6 +82,10 @@ export class CheckInSeatsComponent implements OnInit {
     }))
   );
 
+  readonly isStandby = computed(() =>
+    this.checkInState.currentOrder()?.isStandby ?? false
+  );
+
   readonly totalSeatCost = computed(() => {
     let total = 0;
     for (const sel of this.selections().values()) {
@@ -103,7 +107,9 @@ export class CheckInSeatsComponent implements OnInit {
       this.router.navigate(['/check-in']);
       return;
     }
-    this.loadSeatmaps();
+    if (!this.isStandby()) {
+      this.loadSeatmaps();
+    }
   }
 
   private loadSeatmaps(): void {

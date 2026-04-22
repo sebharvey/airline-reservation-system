@@ -30,6 +30,7 @@ public sealed record OciTravelDocument(
 public sealed record OciRetrieveResult(
     string BookingReference,
     bool CheckInEligible,
+    bool IsStandby,
     IReadOnlyList<OciPassengerResult> Passengers);
 
 public sealed class OciRetrieveHandler
@@ -62,7 +63,10 @@ public sealed class OciRetrieveHandler
         var passengers = new List<OciPassengerResult>();
 
         if (order.OrderData is not JsonElement orderDataEl || orderDataEl.ValueKind != JsonValueKind.Object)
-            return new OciRetrieveResult(query.BookingReference, true, passengers);
+            return new OciRetrieveResult(query.BookingReference, true, false, passengers);
+
+        var bookingType = orderDataEl.TryGetProperty("bookingType", out var btEl) ? btEl.GetString() : null;
+        var isStandby = string.Equals(bookingType, "Standby", StringComparison.OrdinalIgnoreCase);
 
         // Build a map from passengerId → eTicketNumber
         var ticketMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -146,6 +150,6 @@ public sealed class OciRetrieveHandler
             }
         }
 
-        return new OciRetrieveResult(query.BookingReference, true, passengers);
+        return new OciRetrieveResult(query.BookingReference, true, isStandby, passengers);
     }
 }
