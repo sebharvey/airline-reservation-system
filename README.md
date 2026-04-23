@@ -13,7 +13,7 @@
 
 Apex Air is a full-stack airline retailing system built on [IATA ONE Order](https://www.iata.org/en/programs/ops-infra/one-order/) and [NDC](https://www.iata.org/en/programs/airline-distribution/ndc/) standards. It covers the complete passenger journey — from flight search and offer management through to booking, ancillaries, check-in, and boarding card generation.
 
-The platform is structured around domain-driven bounded contexts, with a clean orchestration layer sitting between the Angular web front-end and a suite of independent microservices. Each domain — Offer, Order, Payment, Delivery, Customer, Seat, Loyalty, and more — owns its data and is accessed exclusively through well-defined APIs.
+The platform is structured around domain-driven bounded contexts, with a clean orchestration layer sitting between the Angular web front-end and a suite of independent microservices. Each domain — Offer, Order, Payment, Delivery, Customer, Ancilary, Loyalty, and more — owns its data and is accessed exclusively through well-defined APIs.
 
 ## What we're aiming to achieve
 
