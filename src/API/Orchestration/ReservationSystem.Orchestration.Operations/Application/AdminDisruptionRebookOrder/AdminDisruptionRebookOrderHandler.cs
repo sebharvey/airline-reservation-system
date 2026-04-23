@@ -213,15 +213,9 @@ public sealed class AdminDisruptionRebookOrderHandler
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to reissue tickets for booking {BookingRef}", order.BookingReference);
-            // Order is already rebooked — return success but log the ticket reissue failure.
-            return new AdminDisruptionRebookOrderResponse
-            {
-                BookingReference = order.BookingReference,
-                Outcome = "Rebooked",
-                ReplacementFlightNumber = string.Join("+", replacement.Legs.Select(l => l.FlightNumber)),
-                ReplacementDepartureDate = replacement.DepartureDate
-            };
+            _logger.LogError(ex, "Failed to reissue tickets for booking {BookingRef} — order is rebooked but tickets require manual reissuance",
+                order.BookingReference);
+            return Failed(order.BookingReference, $"Order rebooked but ticket reissue failed: {ex.Message}");
         }
 
         foreach (var replacementLeg in replacement.Legs)
