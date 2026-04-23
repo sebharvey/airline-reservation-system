@@ -352,7 +352,6 @@
               <table class="availability-table">
                 <thead>
                   <tr>
-                    <th class="col-rule-name">Rule name</th>
                     <th class="col-conditions">Conditions <span class="conditions-logic">(all must be true)</span></th>
                     <th class="col-actions"></th>
                   </tr>
@@ -360,18 +359,9 @@
                 <tbody>
                   @for (rule of currentRules(); track rule.id) {
                     <tr class="rule-row">
-                      <td class="col-rule-name">
-                        <input
-                          type="text"
-                          class="rule-name-input"
-                          [value]="rule.name"
-                          (input)="updateRuleName(currentMode(), rule.id, $any($event.target).value)"
-                          placeholder="Rule name…"
-                        />
-                      </td>
                       <td class="col-conditions">
                         <div class="conditions-list">
-                          @for (cond of rule.conditions; track cond; let ci = $index) {
+                          @for (cond of rule.conditions; track ci; let ci = $index) {
                             <div class="condition-row">
                               <select
                                 class="cond-field-select"
@@ -393,7 +383,7 @@
                               <input
                                 type="text"
                                 class="cond-value-input"
-                                [value]="cond.value"
+                                [attr.value]="cond.value"
                                 (input)="updateCondition(currentMode(), rule.id, ci, 'value', $any($event.target).value)"
                                 [placeholder]="conditionHint(cond.field)"
                               />
