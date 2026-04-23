@@ -693,24 +693,8 @@
   vertical-align: top;
 }
 
-.col-rule-name { width: 200px; min-width: 160px; }
 .col-conditions { width: auto; }
 .col-actions { width: 60px; text-align: right; }
-
-.rule-name-input {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1.5px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  background: var(--input-bg);
-  color: var(--text);
-  outline: none;
-  transition: border-color var(--transition);
-  font-family: inherit;
-}
-
-.rule-name-input:focus { border-color: var(--grad-start); }
 
 /* Conditions */
 .conditions-list {
@@ -813,7 +797,6 @@
 
 @media (max-width: 700px) {
   .rules-section-header { flex-direction: column; gap: 10px; }
-  .col-rule-name { width: 120px; min-width: 100px; }
   .cond-field-select { min-width: 120px; }
   .cond-value-input { min-width: 80px; }
 }

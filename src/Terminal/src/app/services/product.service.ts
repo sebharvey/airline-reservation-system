@@ -56,7 +56,6 @@ export interface ProductRuleCondition {
 
 export interface ProductAvailabilityRule {
   id: string;
-  name: string;
   conditions: ProductRuleCondition[];
 }
 

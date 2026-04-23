@@ -328,7 +328,6 @@ export class ProductsComponent implements OnInit {
   addRule(mode: 'create' | 'update'): void {
     const rule: ProductAvailabilityRule = {
       id: crypto.randomUUID(),
-      name: '',
       conditions: [{ field: 'departureAirport', operator: 'is', value: '' }],
     };
     if (mode === 'create') {
@@ -344,16 +343,6 @@ export class ProductsComponent implements OnInit {
       this.createRules.update(filter);
     } else {
       this.updateRules.update(filter);
-    }
-  }
-
-  updateRuleName(mode: 'create' | 'update', ruleId: string, name: string): void {
-    const upd = (rules: ProductAvailabilityRule[]) =>
-      rules.map(r => r.id === ruleId ? { ...r, name } : r);
-    if (mode === 'create') {
-      this.createRules.update(upd);
-    } else {
-      this.updateRules.update(upd);
     }
   }
 
