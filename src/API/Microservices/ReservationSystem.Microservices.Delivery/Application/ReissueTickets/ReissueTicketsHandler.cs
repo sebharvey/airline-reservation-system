@@ -92,9 +92,11 @@ public sealed class ReissueTicketsHandler
         // Build the replacement coupon nodes for the new segment(s).
         var replacementCoupons = BuildReplacementCouponNodes(passenger, segments);
 
-        // Extract retained coupons (non-replaced) and originalIssue data from the old ticket.
+        // Extract retained coupons (non-replaced), fallback fare construction, and originalIssue
+        // data from the old ticket.
         var retainedCoupons = new List<JsonNode>();
         object? originalIssue = null;
+        JsonNode? oldFareConstructionNode = null;
 
         if (oldTicket is not null && oldETicketNumber is not null)
         {
@@ -112,6 +114,12 @@ public sealed class ReissueTicketsHandler
                             retainedCoupons.Add(JsonNode.Parse(couponNode.ToJsonString())!);
                     }
                 }
+
+                // Preserve the original fare construction so it carries forward when the caller
+                // does not supply new fare data (common in IROPS flows where the fare is unchanged).
+                var oldFcNode = oldRoot["fareConstruction"];
+                if (oldFcNode is not null)
+                    oldFareConstructionNode = JsonNode.Parse(oldFcNode.ToJsonString());
 
                 // Populate originalIssue from the voided ticket.
                 var oldFc = oldRoot["fareConstruction"]?.AsObject();
@@ -135,21 +143,31 @@ public sealed class ReissueTicketsHandler
         allCoupons.AddRange(retainedCoupons);
         SortAndRenumberCoupons(allCoupons);
 
-        object? fareConstruction = fc is null ? null : new
+        // Fare construction: use request data when supplied; otherwise carry forward from the old
+        // ticket so that baseFare, taxes, and fareCalculationLine are preserved on the reissued ticket.
+        object? fareConstruction;
+        if (fc is not null)
         {
-            fareCalculationLine = fc.FareCalculationLine,
-            baseFare = fc.BaseFare,
-            currency = fc.CollectingCurrency,
-            totalTaxes = fc.TotalTaxes,
-            totalAmount = fc.BaseFare + fc.TotalTaxes,
-            taxes = fc.Taxes.Select(t => new
+            fareConstruction = new
             {
-                code = t.Code,
-                amount = t.Amount,
-                currency = t.Currency.Length == 3 ? t.Currency : fc.CollectingCurrency,
-                couponNumbers = Array.Empty<int>() // attribution not re-computed on reissue; use IssueTickets for new bookings
-            }).ToList()
-        };
+                fareCalculationLine = fc.FareCalculationLine,
+                baseFare = fc.BaseFare,
+                currency = fc.CollectingCurrency,
+                totalTaxes = fc.TotalTaxes,
+                totalAmount = fc.BaseFare + fc.TotalTaxes,
+                taxes = fc.Taxes.Select(t => new
+                {
+                    code = t.Code,
+                    amount = t.Amount,
+                    currency = t.Currency.Length == 3 ? t.Currency : fc.CollectingCurrency,
+                    couponNumbers = Array.Empty<int>() // attribution not re-computed on reissue; use IssueTickets for new bookings
+                }).ToList()
+            };
+        }
+        else
+        {
+            fareConstruction = oldFareConstructionNode; // JsonNode serialises correctly in anonymous object
+        }
 
         var detail = oldETicketNumber is not null
             ? $"Reissued — reason: {reason}; prior ticket {oldETicketNumber} voided"
