@@ -1340,6 +1340,37 @@
           </div>
         }
 
+        <!-- Original issue (reissued tickets only) -->
+        @if (t.ticketData?.originalIssue) {
+          <div class="modal-section">
+            <div class="modal-section-title">Original issue</div>
+            <div class="field-grid">
+              <div class="field-row">
+                <span class="field-label">Prior ticket</span>
+                <span class="field-value mono">{{ t.ticketData!.originalIssue!.ticketNumber }}</span>
+              </div>
+              @if (t.ticketData!.originalIssue!.issueDate) {
+                <div class="field-row">
+                  <span class="field-label">Issue date</span>
+                  <span class="field-value">{{ t.ticketData!.originalIssue!.issueDate }}</span>
+                </div>
+              }
+              @if (t.ticketData!.originalIssue!.issuingLocation) {
+                <div class="field-row">
+                  <span class="field-label">Issuing location</span>
+                  <span class="field-value mono">{{ t.ticketData!.originalIssue!.issuingLocation }}</span>
+                </div>
+              }
+              @if (t.ticketData!.originalIssue!.fareAmount !== null) {
+                <div class="field-row">
+                  <span class="field-label">Original fare</span>
+                  <span class="field-value">{{ formatAmount(t.ticketData!.originalIssue!.fareAmount!, t.ticketData?.fareConstruction?.pricingCurrency || 'GBP') }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- Coupons -->
         @if (t.ticketData?.coupons?.length) {
           <div class="modal-section">

@@ -571,11 +571,11 @@ export class OrderDetailComponent implements OnInit {
   }
 
   couponStatusLabel(status: string): string {
-    return {
-      O: 'Open', A: 'Airport control', C: 'Checked in',
-      B: 'Boarded', F: 'Flown', R: 'Refunded', E: 'Exchanged',
-      V: 'Void', S: 'Suspended',
-    }[status] ?? status;
+    return ({
+      OPEN: 'Open', CHECKED_IN: 'Checked in', LIFTED: 'Lifted',
+      FLOWN: 'Flown', REFUNDED: 'Refunded', VOID: 'Void',
+      EXCHANGED: 'Exchanged', PRINT_EXCHANGE: 'Print exchange',
+    } as Record<string, string>)[status] ?? status;
   }
 
   async loadSsrOptions(): Promise<void> {
