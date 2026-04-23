@@ -73,12 +73,19 @@
   margin-bottom: 20px;
 }
 
+.irops-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .irops-progress-stats {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.825rem;
-  margin-bottom: 8px;
 }
 
 .irops-stat-sep { color: var(--text-muted); }
@@ -233,6 +240,31 @@
 }
 
 /* Rebook action buttons */
+.btn-run-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: var(--primary, #1a73e8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-run-all:hover:not(:disabled) { opacity: 0.88; }
+.btn-run-all:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.btn-spinner-sm-light {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+}
+
 .btn-rebook {
   display: inline-flex;
   align-items: center;

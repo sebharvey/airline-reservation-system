@@ -31,6 +31,8 @@ export class DisruptionComponent implements OnInit {
   rebookResultModal = signal<OrderRow | null>(null);
   copiedRef = signal<string | null>(null);
 
+  runningAll = signal(false);
+
   rebookedCount = computed(() => this.rows().filter(r => r.rebookStatus === 'rebooked').length);
   pendingCount = computed(() => this.rows().filter(r => r.rebookStatus === 'pending').length);
   failedCount = computed(() => this.rows().filter(r => r.rebookStatus === 'failed').length);
@@ -67,33 +69,53 @@ export class DisruptionComponent implements OnInit {
   }
 
   async rebookOrder(row: OrderRow): Promise<void> {
+    await this.#rebookSingle(row.order.bookingReference);
+    const updatedRow = this.rows().find(r => r.order.bookingReference === row.order.bookingReference);
+    if (updatedRow) this.rebookResultModal.set(updatedRow);
+  }
+
+  async runAll(): Promise<void> {
+    this.runningAll.set(true);
+    try {
+      const pendingRefs = this.rows()
+        .filter(r => r.rebookStatus === 'pending')
+        .map(r => r.order.bookingReference);
+      for (const ref of pendingRefs) {
+        await this.#rebookSingle(ref);
+      }
+    } finally {
+      this.runningAll.set(false);
+    }
+  }
+
+  async #rebookSingle(bookingReference: string): Promise<void> {
     this.rows.update(rows =>
-      rows.map(r => r === row ? { ...r, rebookStatus: 'loading' as RebookStatus } : r)
+      rows.map(r => r.order.bookingReference === bookingReference
+        ? { ...r, rebookStatus: 'loading' as RebookStatus }
+        : r
+      )
     );
     try {
       const result = await this.#inventoryService.rebookIropsOrder(
-        row.order.bookingReference,
+        bookingReference,
         this.flightNumber(),
         this.departureDate()
       );
       const status: RebookStatus = result.outcome === 'Rebooked' ? 'rebooked' : 'failed';
       this.rows.update(rows =>
-        rows.map(r => r.order.bookingReference === row.order.bookingReference
+        rows.map(r => r.order.bookingReference === bookingReference
           ? { ...r, rebookStatus: status, rebookResult: result }
           : r
         )
       );
-      // Find the updated row and open the result modal
-      const updatedRow = this.rows().find(r => r.order.bookingReference === row.order.bookingReference);
-      if (updatedRow) this.rebookResultModal.set(updatedRow);
     } catch {
       this.rows.update(rows =>
-        rows.map(r => r.order.bookingReference === row.order.bookingReference
+        rows.map(r => r.order.bookingReference === bookingReference
           ? {
               ...r,
               rebookStatus: 'failed' as RebookStatus,
               rebookResult: {
-                bookingReference: row.order.bookingReference,
+                bookingReference,
                 outcome: 'Failed',
                 failureReason: 'An unexpected error occurred. Please try again.'
               }
@@ -101,8 +123,6 @@ export class DisruptionComponent implements OnInit {
           : r
         )
       );
-      const updatedRow = this.rows().find(r => r.order.bookingReference === row.order.bookingReference);
-      if (updatedRow) this.rebookResultModal.set(updatedRow);
     }
   }
 
