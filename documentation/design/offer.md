@@ -8,6 +8,7 @@ Search uses the **slice** concept — one directional search per journey directi
 
 - Customers search each direction independently; each search returns priced offers per available cabin class.
 - Offers are persisted to `StoredOffer` for 60 minutes at creation — pricing locked at search time.
+- **1-hour booking cutoff:** flights whose UTC departure is within 60 minutes of the search time are excluded from results. A customer can never be offered — or proceed to book — a flight that is already past the ticketing cutoff.
 - The customer selects one offer per slice; the resulting `OfferIds` are passed to the basket.
 - The Order API retrieves the stored offer by `OfferId` rather than re-pricing.
 

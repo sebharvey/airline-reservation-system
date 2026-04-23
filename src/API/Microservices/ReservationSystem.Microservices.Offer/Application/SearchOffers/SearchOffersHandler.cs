@@ -32,6 +32,12 @@ public sealed class SearchOffersHandler
         var inventories = await _repository.SearchAvailableInventoryAsync(
             command.Origin, command.Destination, departureDate, command.PaxCount, ct);
 
+        // Enforce 1-hour booking cutoff: remove flights whose UTC departure is within the next hour.
+        var cutoff = DateTime.UtcNow.AddHours(1);
+        inventories = inventories
+            .Where(inv => inv.DepartureDate.ToDateTime(inv.DepartureTimeUtc ?? inv.DepartureTime) > cutoff)
+            .ToList();
+
         if (inventories.Count == 0)
         {
             _logger.LogInformation(
