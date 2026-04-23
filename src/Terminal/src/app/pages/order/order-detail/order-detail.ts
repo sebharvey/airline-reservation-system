@@ -536,6 +536,11 @@ export class OrderDetailComponent implements OnInit {
     this.selectedTicket.set(null);
   }
 
+  openPriorTicket(eTicketNumber: string): void {
+    const prior = this.tickets().find(t => t.eTicketNumber === eTicketNumber);
+    if (prior) this.openTicketModal(prior);
+  }
+
   async loadDocuments(): Promise<void> {
     if (this.documents().length > 0) return;
     this.documentsLoading.set(true);

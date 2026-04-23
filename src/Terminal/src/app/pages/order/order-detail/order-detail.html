@@ -1259,6 +1259,10 @@
           <div class="modal-section-title">Passenger</div>
           <div class="field-grid">
             <div class="field-row">
+              <span class="field-label">Booking ref</span>
+              <span class="field-value mono">{{ t.bookingReference }}</span>
+            </div>
+            <div class="field-row">
               <span class="field-label">Name</span>
               <span class="field-value">{{ t.ticketData?.passenger?.givenName }} {{ t.ticketData?.passenger?.surname }}</span>
             </div>
@@ -1347,7 +1351,7 @@
             <div class="field-grid">
               <div class="field-row">
                 <span class="field-label">Prior ticket</span>
-                <span class="field-value mono">{{ t.ticketData!.originalIssue!.ticketNumber }}</span>
+                <button class="link-btn" (click)="openPriorTicket(t.ticketData!.originalIssue!.ticketNumber)" [title]="'Open voided ticket ' + t.ticketData!.originalIssue!.ticketNumber">{{ t.ticketData!.originalIssue!.ticketNumber }}</button>
               </div>
               @if (t.ticketData!.originalIssue!.issueDate) {
                 <div class="field-row">
