@@ -156,6 +156,12 @@ export interface TicketCoupon {
 }
 
 export interface TicketData {
+  originalIssue: {
+    ticketNumber: string;
+    issueDate: string | null;
+    issuingLocation: string | null;
+    fareAmount: number | null;
+  } | null;
   passenger: {
     surname: string;
     givenName: string;
