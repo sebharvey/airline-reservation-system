@@ -16,6 +16,7 @@ public sealed class Product
     public string? SsrCode { get; private set; }
     public string? ImageBase64 { get; private set; }
     public string AvailableChannels { get; private set; } = AllChannelsJson;
+    public string? AvailabilityRules { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -32,7 +33,8 @@ public sealed class Product
         bool isSegmentSpecific,
         string? ssrCode,
         string? imageBase64,
-        string availableChannels = AllChannelsJson) =>
+        string availableChannels = AllChannelsJson,
+        string? availabilityRules = null) =>
         new()
         {
             ProductId = Guid.NewGuid(),
@@ -43,6 +45,7 @@ public sealed class Product
             SsrCode = string.IsNullOrWhiteSpace(ssrCode) ? null : ssrCode.ToUpperInvariant(),
             ImageBase64 = imageBase64,
             AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? AllChannelsJson : availableChannels,
+            AvailabilityRules = string.IsNullOrWhiteSpace(availabilityRules) ? null : availabilityRules,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -51,7 +54,8 @@ public sealed class Product
     public static Product Reconstitute(
         Guid productId, Guid productGroupId, string name, string description,
         bool isSegmentSpecific, string? ssrCode, string? imageBase64,
-        string availableChannels, bool isActive, DateTime createdAt, DateTime updatedAt) =>
+        string availableChannels, string? availabilityRules, bool isActive,
+        DateTime createdAt, DateTime updatedAt) =>
         new()
         {
             ProductId = productId,
@@ -62,6 +66,7 @@ public sealed class Product
             SsrCode = ssrCode,
             ImageBase64 = imageBase64,
             AvailableChannels = string.IsNullOrWhiteSpace(availableChannels) ? AllChannelsJson : availableChannels,
+            AvailabilityRules = string.IsNullOrWhiteSpace(availabilityRules) ? null : availabilityRules,
             IsActive = isActive,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt

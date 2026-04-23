@@ -24,6 +24,7 @@ export interface Product {
   ssrCode: string | null;
   imageBase64: string | null;
   availableChannels: string;
+  availabilityRules: string | null;
   isActive: boolean;
   prices: ProductPrice[];
   createdAt: string;
@@ -34,6 +35,33 @@ export const ALL_CHANNELS = ['WEB', 'APP', 'NDC', 'KIOSK', 'CC', 'AIRPORT'] as c
 export type ChannelCode = typeof ALL_CHANNELS[number];
 export const ALL_CHANNELS_JSON = JSON.stringify(ALL_CHANNELS);
 
+// ── Availability rules ────────────────────────────────────────────────────────
+
+export type RuleConditionField =
+  | 'departureAirport'
+  | 'arrivalAirport'
+  | 'cabinClass'
+  | 'passengerType'
+  | 'route'
+  | 'flightNumber'
+  | 'dayOfWeek';
+
+export type RuleConditionOperator = 'is' | 'isNot';
+
+export interface ProductRuleCondition {
+  field: RuleConditionField;
+  operator: RuleConditionOperator;
+  value: string;
+}
+
+export interface ProductAvailabilityRule {
+  id: string;
+  name: string;
+  conditions: ProductRuleCondition[];
+}
+
+// ── Request / Response types ──────────────────────────────────────────────────
+
 export interface CreateProductRequest {
   productGroupId: string;
   name: string;
@@ -42,6 +70,7 @@ export interface CreateProductRequest {
   ssrCode?: string | null;
   imageBase64?: string | null;
   availableChannels: string;
+  availabilityRules?: string | null;
 }
 
 export interface UpdateProductRequest {
@@ -52,6 +81,7 @@ export interface UpdateProductRequest {
   ssrCode?: string | null;
   imageBase64?: string | null;
   availableChannels: string;
+  availabilityRules?: string | null;
   isActive: boolean;
 }
 

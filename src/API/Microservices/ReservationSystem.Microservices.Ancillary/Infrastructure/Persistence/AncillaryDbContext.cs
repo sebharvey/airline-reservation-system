@@ -105,6 +105,7 @@ public sealed class AncillaryDbContext : DbContext
             entity.Property(p => p.SsrCode).HasColumnType("char(4)").HasMaxLength(4).IsRequired(false);
             entity.Property(p => p.ImageBase64).HasColumnType("nvarchar(max)").IsRequired(false);
             entity.Property(p => p.AvailableChannels).HasColumnType("json").IsRequired();
+            entity.Property(p => p.AvailabilityRules).HasColumnType("json").IsRequired(false);
             entity.Property(p => p.IsActive).HasColumnType("bit").IsRequired();
             entity.Property(p => p.CreatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(p => p.UpdatedAt).HasColumnType("datetime2").IsRequired();
