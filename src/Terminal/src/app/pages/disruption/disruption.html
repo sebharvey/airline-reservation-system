@@ -30,16 +30,29 @@
   <!-- Progress bar -->
   @if (rows().length > 0) {
     <div class="irops-progress-bar-wrap">
-      <div class="irops-progress-stats">
-        <span class="irops-stat-rebooked">{{ rebookedCount() }} rebooked</span>
-        <span class="irops-stat-sep">·</span>
-        <span class="irops-stat-pending">{{ pendingCount() }} pending</span>
-        @if (failedCount() > 0) {
+      <div class="irops-progress-header">
+        <div class="irops-progress-stats">
+          <span class="irops-stat-rebooked">{{ rebookedCount() }} rebooked</span>
           <span class="irops-stat-sep">·</span>
-          <span class="irops-stat-failed">{{ failedCount() }} failed</span>
+          <span class="irops-stat-pending">{{ pendingCount() }} pending</span>
+          @if (failedCount() > 0) {
+            <span class="irops-stat-sep">·</span>
+            <span class="irops-stat-failed">{{ failedCount() }} failed</span>
+          }
+          <span class="irops-stat-sep">·</span>
+          <span class="muted">{{ rows().length }} total</span>
+        </div>
+        @if (pendingCount() > 0) {
+          <button class="btn-run-all" [disabled]="runningAll()" (click)="runAll()">
+            @if (runningAll()) {
+              <span class="btn-spinner-sm btn-spinner-sm-light"></span>
+              Running…
+            } @else {
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Run all
+            }
+          </button>
         }
-        <span class="irops-stat-sep">·</span>
-        <span class="muted">{{ rows().length }} total</span>
       </div>
       <div class="irops-progress-track">
         <div class="irops-progress-fill irops-progress-rebooked" [style.width.%]="rows().length > 0 ? (rebookedCount() / rows().length * 100) : 0"></div>
@@ -136,7 +149,7 @@
               </td>
               <td class="col-action">
                 @if (row.rebookStatus === 'pending') {
-                  <button class="btn-rebook" (click)="rebookOrder(row)">Rebook</button>
+                  <button class="btn-rebook" [disabled]="runningAll()" (click)="rebookOrder(row)">Rebook</button>
                 } @else if (row.rebookStatus === 'loading') {
                   <button class="btn-rebook btn-rebook-loading" disabled>
                     <span class="btn-spinner-sm"></span>
