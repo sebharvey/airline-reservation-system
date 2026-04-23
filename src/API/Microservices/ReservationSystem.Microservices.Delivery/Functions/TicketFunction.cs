@@ -173,9 +173,6 @@ public sealed class TicketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<ReissueTicketsRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (request.VoidedETicketNumbers.Count == 0)
-            return await req.BadRequestAsync("At least one e-ticket number to void is required.");
-
         try
         {
             var result = await _reissueHandler.HandleAsync(request, cancellationToken);

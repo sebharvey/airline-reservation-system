@@ -96,10 +96,7 @@ public sealed class AdminDisruptionRebookOrderHandler
                     $"No available flights from {origin} to {destination} within {AvailabilityLookaheadDays} days.");
             }
 
-            // Fetch manifest separately — used only to get existing e-ticket numbers for reissue.
-            var manifest = await _deliveryServiceClient.GetManifestAsync(command.FlightNumber, command.DepartureDate, ct);
-
-            return await RebookOrderAsync(order, command.FlightNumber, command.DepartureDate, manifest, replacement, ct);
+            return await RebookOrderAsync(order, command.FlightNumber, command.DepartureDate, replacement, ct);
         }
         catch (Exception ex)
         {
@@ -114,7 +111,6 @@ public sealed class AdminDisruptionRebookOrderHandler
         AffectedOrderDto order,
         string cancelledFlightNumber,
         string cancelledDepartureDate,
-        ManifestResponse manifest,
         RebookReplacementOption replacement,
         CancellationToken ct)
     {
@@ -182,14 +178,13 @@ public sealed class AdminDisruptionRebookOrderHandler
                 order.BookingReference);
         }
 
-        var bookingManifestEntries = manifest.Entries
-            .Where(e => e.BookingReference == order.BookingReference)
-            .ToList();
+        var existingTickets = await _deliveryServiceClient.GetTicketsByBookingAsync(order.BookingReference, ct);
+        var ticketsToVoid = existingTickets.Where(t => !t.IsVoided).Select(t => t.ETicketNumber).ToList();
 
         var reissueRequest = new ReissueTicketsRequest
         {
             BookingReference = order.BookingReference,
-            CancelledETicketNumbers = bookingManifestEntries.Select(e => e.ETicketNumber).ToList(),
+            CancelledETicketNumbers = ticketsToVoid,
             Passengers = order.Passengers.Select(pax => new ReissuePassengerDto
             {
                 PassengerId = pax.PassengerId,

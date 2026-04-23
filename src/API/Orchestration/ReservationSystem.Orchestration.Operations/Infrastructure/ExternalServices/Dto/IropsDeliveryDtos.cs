@@ -77,6 +77,15 @@ public sealed class RebookManifestPassengerDto
     public string ETicketNumber { get; init; } = string.Empty;
 }
 
+public sealed class BookingTicketDto
+{
+    [JsonPropertyName("eTicketNumber")]
+    public string ETicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("isVoided")]
+    public bool IsVoided { get; init; }
+}
+
 public sealed class ReissueTicketsRequest
 {
     [JsonPropertyName("bookingReference")]
