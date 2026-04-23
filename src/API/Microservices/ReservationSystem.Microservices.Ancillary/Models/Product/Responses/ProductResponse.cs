@@ -28,6 +28,9 @@ public sealed class ProductResponse
     [JsonPropertyName("availableChannels")]
     public string AvailableChannels { get; init; } = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
 
+    [JsonPropertyName("availabilityRules")]
+    public string? AvailabilityRules { get; init; }
+
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }
 

@@ -12,6 +12,10 @@ import {
   ALL_CHANNELS,
   ALL_CHANNELS_JSON,
   ChannelCode,
+  ProductAvailabilityRule,
+  ProductRuleCondition,
+  RuleConditionField,
+  RuleConditionOperator,
 } from '../../services/product.service';
 import { ProductGroupService, ProductGroup } from '../../services/product-group.service';
 import { SsrCatalogueService, SsrCatalogueEntry } from '../../services/ssr-catalogue.service';
@@ -43,6 +47,9 @@ export class ProductsComponent implements OnInit {
   saving = signal(false);
   deleting = signal<string | null>(null);
 
+  // Tab navigation within the form
+  activeTab = signal<'details' | 'rules'>('details');
+
   // Price management
   showPriceForm = signal(false);
   editingPrice = signal<ProductPrice | null>(null);
@@ -63,6 +70,20 @@ export class ProductsComponent implements OnInit {
   createChannels = signal<Set<ChannelCode>>(new Set(ALL_CHANNELS));
   updateChannels = signal<Set<ChannelCode>>(new Set(ALL_CHANNELS));
 
+  // Availability rules
+  createRules = signal<ProductAvailabilityRule[]>([]);
+  updateRules = signal<ProductAvailabilityRule[]>([]);
+
+  readonly conditionFieldOptions: { value: RuleConditionField; label: string; hint: string }[] = [
+    { value: 'departureAirport', label: 'Departure airport', hint: 'IATA code, e.g. JFK' },
+    { value: 'arrivalAirport',   label: 'Arrival airport',   hint: 'IATA code, e.g. LHR' },
+    { value: 'cabinClass',       label: 'Cabin class',       hint: 'F, J, W or Y' },
+    { value: 'passengerType',    label: 'Passenger type',    hint: 'ADT, CHD, INF or YTH' },
+    { value: 'route',            label: 'Route',             hint: 'e.g. JFK-LHR' },
+    { value: 'flightNumber',     label: 'Flight number',     hint: 'e.g. AX101' },
+    { value: 'dayOfWeek',        label: 'Day of week',       hint: 'MON, TUE, WED, THU, FRI, SAT or SUN' },
+  ];
+
   createForm = signal<CreateProductRequest>({
     productGroupId: '',
     name: '',
@@ -71,6 +92,7 @@ export class ProductsComponent implements OnInit {
     ssrCode: null,
     imageBase64: null,
     availableChannels: ALL_CHANNELS_DEFAULT,
+    availabilityRules: null,
   });
 
   updateForm = signal<UpdateProductRequest>({
@@ -81,6 +103,7 @@ export class ProductsComponent implements OnInit {
     ssrCode: null,
     imageBase64: null,
     availableChannels: ALL_CHANNELS_DEFAULT,
+    availabilityRules: null,
     isActive: true,
   });
 
@@ -124,9 +147,11 @@ export class ProductsComponent implements OnInit {
 
   openCreateForm(): void {
     this.editing.set(null);
+    this.activeTab.set('details');
     this.showPriceForm.set(false);
     this.pendingPrices.set([]);
     this.createChannels.set(new Set(ALL_CHANNELS));
+    this.createRules.set([]);
     this.createForm.set({
       productGroupId: this.groups()[0]?.productGroupId ?? '',
       name: '',
@@ -135,6 +160,7 @@ export class ProductsComponent implements OnInit {
       ssrCode: null,
       imageBase64: null,
       availableChannels: ALL_CHANNELS_DEFAULT,
+      availabilityRules: null,
     });
     this.showForm.set(true);
     this.error.set('');
@@ -148,10 +174,12 @@ export class ProductsComponent implements OnInit {
     try {
       const fresh = await this.#service.getById(product.productId);
       this.editing.set(fresh);
+      this.activeTab.set('details');
       this.showPriceForm.set(false);
       this.editingPrice.set(null);
       const channels = this.#parseChannels(fresh.availableChannels);
       this.updateChannels.set(channels);
+      this.updateRules.set(this.#parseRules(fresh.availabilityRules));
       this.updateForm.set({
         productGroupId: fresh.productGroupId,
         name: fresh.name,
@@ -160,6 +188,7 @@ export class ProductsComponent implements OnInit {
         ssrCode: fresh.ssrCode,
         imageBase64: fresh.imageBase64,
         availableChannels: this.#channelsToString(channels),
+        availabilityRules: fresh.availabilityRules,
         isActive: fresh.isActive,
       });
       this.showForm.set(true);
@@ -173,6 +202,7 @@ export class ProductsComponent implements OnInit {
   cancelForm(): void {
     this.showForm.set(false);
     this.editing.set(null);
+    this.activeTab.set('details');
     this.showPriceForm.set(false);
     this.editingPrice.set(null);
     this.pendingPrices.set([]);
@@ -272,6 +302,124 @@ export class ProductsComponent implements OnInit {
     }
   }
 
+  // ── Availability rules ────────────────────────────────────────────────────
+
+  currentMode(): 'create' | 'update' {
+    return this.editing() ? 'update' : 'create';
+  }
+
+  currentRules(): ProductAvailabilityRule[] {
+    return this.editing() ? this.updateRules() : this.createRules();
+  }
+
+  #parseRules(json: string | null): ProductAvailabilityRule[] {
+    if (!json) return [];
+    try {
+      return JSON.parse(json) as ProductAvailabilityRule[];
+    } catch {
+      return [];
+    }
+  }
+
+  #rulesToJson(rules: ProductAvailabilityRule[]): string | null {
+    return rules.length > 0 ? JSON.stringify(rules) : null;
+  }
+
+  addRule(mode: 'create' | 'update'): void {
+    const rule: ProductAvailabilityRule = {
+      id: crypto.randomUUID(),
+      name: '',
+      conditions: [{ field: 'departureAirport', operator: 'is', value: '' }],
+    };
+    if (mode === 'create') {
+      this.createRules.update(r => [...r, rule]);
+    } else {
+      this.updateRules.update(r => [...r, rule]);
+    }
+  }
+
+  removeRule(mode: 'create' | 'update', ruleId: string): void {
+    const filter = (rules: ProductAvailabilityRule[]) => rules.filter(r => r.id !== ruleId);
+    if (mode === 'create') {
+      this.createRules.update(filter);
+    } else {
+      this.updateRules.update(filter);
+    }
+  }
+
+  updateRuleName(mode: 'create' | 'update', ruleId: string, name: string): void {
+    const upd = (rules: ProductAvailabilityRule[]) =>
+      rules.map(r => r.id === ruleId ? { ...r, name } : r);
+    if (mode === 'create') {
+      this.createRules.update(upd);
+    } else {
+      this.updateRules.update(upd);
+    }
+  }
+
+  addCondition(mode: 'create' | 'update', ruleId: string): void {
+    const newCond: ProductRuleCondition = { field: 'departureAirport', operator: 'is', value: '' };
+    const upd = (rules: ProductAvailabilityRule[]) =>
+      rules.map(r => r.id === ruleId ? { ...r, conditions: [...r.conditions, newCond] } : r);
+    if (mode === 'create') {
+      this.createRules.update(upd);
+    } else {
+      this.updateRules.update(upd);
+    }
+  }
+
+  removeCondition(mode: 'create' | 'update', ruleId: string, condIdx: number): void {
+    const upd = (rules: ProductAvailabilityRule[]) =>
+      rules.map(r => r.id === ruleId
+        ? { ...r, conditions: r.conditions.filter((_, i) => i !== condIdx) }
+        : r);
+    if (mode === 'create') {
+      this.createRules.update(upd);
+    } else {
+      this.updateRules.update(upd);
+    }
+  }
+
+  updateCondition(
+    mode: 'create' | 'update',
+    ruleId: string,
+    condIdx: number,
+    field: 'field' | 'operator' | 'value',
+    value: string,
+  ): void {
+    const upd = (rules: ProductAvailabilityRule[]) =>
+      rules.map(r => r.id === ruleId
+        ? {
+            ...r,
+            conditions: r.conditions.map((c, i) =>
+              i === condIdx ? { ...c, [field]: value as RuleConditionField & RuleConditionOperator } : c
+            ),
+          }
+        : r);
+    if (mode === 'create') {
+      this.createRules.update(upd);
+    } else {
+      this.updateRules.update(upd);
+    }
+  }
+
+  conditionFieldLabel(field: RuleConditionField): string {
+    return this.conditionFieldOptions.find(o => o.value === field)?.label ?? field;
+  }
+
+  conditionHint(field: RuleConditionField): string {
+    return this.conditionFieldOptions.find(o => o.value === field)?.hint ?? '';
+  }
+
+  ruleConditionSummary(rule: ProductAvailabilityRule): string {
+    if (rule.conditions.length === 0) return 'No conditions';
+    return rule.conditions
+      .map(c => `${this.conditionFieldLabel(c.field)} ${c.operator === 'is' ? 'is' : 'is not'} ${c.value || '…'}`)
+      .join(' AND ');
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
   async save(): Promise<void> {
     this.saving.set(true);
     this.error.set('');
@@ -279,10 +427,18 @@ export class ProductsComponent implements OnInit {
     try {
       const editingProduct = this.editing();
       if (editingProduct) {
-        await this.#service.update(editingProduct.productId, this.updateForm());
+        const request: UpdateProductRequest = {
+          ...this.updateForm(),
+          availabilityRules: this.#rulesToJson(this.updateRules()),
+        };
+        await this.#service.update(editingProduct.productId, request);
         this.success.set('Product updated successfully.');
       } else {
-        const created = await this.#service.create(this.createForm());
+        const request: CreateProductRequest = {
+          ...this.createForm(),
+          availabilityRules: this.#rulesToJson(this.createRules()),
+        };
+        const created = await this.#service.create(request);
         for (const price of this.pendingPrices()) {
           await this.#service.createPrice(created.productId, price);
         }
@@ -406,7 +562,7 @@ export class ProductsComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   formatAmount(amount: number, currency: string): string {
-    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+    return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   }
 
   formatDate(iso: string): string {

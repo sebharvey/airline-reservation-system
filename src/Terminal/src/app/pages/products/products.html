@@ -33,297 +33,395 @@
         <button class="close-btn" (click)="cancelForm()">&times;</button>
       </div>
 
-      <div class="form-sections">
+      <!-- Tab navigation -->
+      <div class="tab-nav">
+        <button class="tab-btn" [class.active]="activeTab() === 'details'" type="button" (click)="activeTab.set('details')">Details</button>
+        <button class="tab-btn" [class.active]="activeTab() === 'rules'" type="button" (click)="activeTab.set('rules')">Rules</button>
+      </div>
 
-        <!-- Product details -->
-        <div class="form-section">
-          <h3 class="section-heading">Product Details</h3>
-          <div class="form-grid grid-2">
+      <!-- ── Details tab ──────────────────────────────────────────────── -->
+      @if (activeTab() === 'details') {
+        <div class="form-sections">
 
-            @if (!editing()) {
-              <div class="form-group">
-                <label>Name *</label>
-                <input type="text" [ngModel]="createForm().name" (ngModelChange)="updateCreateField('name', $event)" placeholder="e.g. Chanel No. 5" required />
-              </div>
-              <div class="form-group">
-                <label>Product Group *</label>
-                <select [ngModel]="createForm().productGroupId" (ngModelChange)="updateCreateField('productGroupId', $event)">
-                  @for (g of groups(); track g.productGroupId) {
-                    <option [value]="g.productGroupId">{{ g.name }}</option>
-                  }
-                </select>
-              </div>
-              <div class="form-group span-2">
-                <label>Description</label>
-                <textarea rows="3" [ngModel]="createForm().description" (ngModelChange)="updateCreateField('description', $event)" placeholder="Short description of the product"></textarea>
-              </div>
-            } @else {
-              <div class="form-group">
-                <label>Name *</label>
-                <input type="text" [ngModel]="updateForm().name" (ngModelChange)="updateUpdateField('name', $event)" required />
-              </div>
-              <div class="form-group">
-                <label>Product Group *</label>
-                <select [ngModel]="updateForm().productGroupId" (ngModelChange)="updateUpdateField('productGroupId', $event)">
-                  @for (g of groups(); track g.productGroupId) {
-                    <option [value]="g.productGroupId">{{ g.name }}</option>
-                  }
-                </select>
-              </div>
-              <div class="form-group span-2">
-                <label>Description</label>
-                <textarea rows="3" [ngModel]="updateForm().description" (ngModelChange)="updateUpdateField('description', $event)"></textarea>
-              </div>
-            }
-          </div>
-        </div>
+          <!-- Product details -->
+          <div class="form-section">
+            <h3 class="section-heading">Product Details</h3>
+            <div class="form-grid grid-2">
 
-        <!-- Configuration -->
-        <div class="form-section">
-          <h3 class="section-heading">Configuration</h3>
-          <div class="form-grid grid-2">
-
-            @if (!editing()) {
-              <div class="form-group checkbox-group">
-                <label>
-                  <input type="checkbox" [ngModel]="createForm().isSegmentSpecific" (ngModelChange)="updateCreateField('isSegmentSpecific', $event)" />
-                  Segment Specific
-                  <span class="hint">(e.g. a meal selection per flight leg)</span>
-                </label>
-              </div>
-              <div class="form-group">
-                <label>SSR Code <span class="optional">(optional)</span></label>
-                <select [ngModel]="createForm().ssrCode" (ngModelChange)="updateCreateField('ssrCode', $event || null)">
-                  <option value="">— None —</option>
-                  @for (ssr of ssrCodes(); track ssr.ssrCode) {
-                    <option [value]="ssr.ssrCode">{{ ssr.ssrCode }} — {{ ssr.label }}</option>
-                  }
-                </select>
-              </div>
-            } @else {
-              <div class="form-group checkbox-group">
-                <label>
-                  <input type="checkbox" [ngModel]="updateForm().isSegmentSpecific" (ngModelChange)="updateUpdateField('isSegmentSpecific', $event)" />
-                  Segment Specific
-                  <span class="hint">(e.g. a meal selection per flight leg)</span>
-                </label>
-              </div>
-              <div class="form-group">
-                <label>SSR Code <span class="optional">(optional)</span></label>
-                <select [ngModel]="updateForm().ssrCode" (ngModelChange)="updateUpdateField('ssrCode', $event || null)">
-                  <option value="">— None —</option>
-                  @for (ssr of ssrCodes(); track ssr.ssrCode) {
-                    <option [value]="ssr.ssrCode">{{ ssr.ssrCode }} — {{ ssr.label }}</option>
-                  }
-                </select>
-              </div>
-              <div class="form-group checkbox-group">
-                <label>
-                  <input type="checkbox" [ngModel]="updateForm().isActive" (ngModelChange)="updateUpdateField('isActive', $event)" />
-                  Active
-                </label>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Channel availability -->
-        <div class="form-section">
-          <h3 class="section-heading">Available To</h3>
-
-          @if (!editing()) {
-            <div class="channel-grid">
-              @for (ch of channelOptions; track ch.code) {
-                <label class="channel-chip" [class.selected]="isChannelSelected('create', ch.code)">
-                  <input type="checkbox" [checked]="isChannelSelected('create', ch.code)" (change)="toggleChannel('create', ch.code)" />
-                  {{ ch.label }}
-                </label>
-              }
-            </div>
-          } @else {
-            <div class="channel-grid">
-              @for (ch of channelOptions; track ch.code) {
-                <label class="channel-chip" [class.selected]="isChannelSelected('update', ch.code)">
-                  <input type="checkbox" [checked]="isChannelSelected('update', ch.code)" (change)="toggleChannel('update', ch.code)" />
-                  {{ ch.label }}
-                </label>
-              }
-              @if (!allChannelsSelected('update')) {
-                <button class="select-all-btn" type="button" (click)="selectAllChannels('update')">Select all</button>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Image -->
-        <div class="form-section">
-          <h3 class="section-heading">Product Image <span class="optional">(optional)</span></h3>
-          <div class="form-grid grid-1-wide">
-
-            @if (!editing()) {
-              @if (createForm().imageBase64) {
-                <div class="image-preview-wrap">
-                  <img class="image-preview" [src]="createForm().imageBase64" alt="Product image preview" />
-                  <button class="clear-image-btn" type="button" (click)="clearImage('create')">Remove</button>
+              @if (!editing()) {
+                <div class="form-group">
+                  <label>Name *</label>
+                  <input type="text" [ngModel]="createForm().name" (ngModelChange)="updateCreateField('name', $event)" placeholder="e.g. Chanel No. 5" required />
+                </div>
+                <div class="form-group">
+                  <label>Product Group *</label>
+                  <select [ngModel]="createForm().productGroupId" (ngModelChange)="updateCreateField('productGroupId', $event)">
+                    @for (g of groups(); track g.productGroupId) {
+                      <option [value]="g.productGroupId">{{ g.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group span-2">
+                  <label>Description</label>
+                  <textarea rows="3" [ngModel]="createForm().description" (ngModelChange)="updateCreateField('description', $event)" placeholder="Short description of the product"></textarea>
                 </div>
               } @else {
-                <label class="file-upload-label">
-                  <input type="file" accept="image/*" (change)="onImageChange($event, 'create')" class="file-input" />
-                  <span class="file-upload-text">Click to upload image (PNG, JPG, GIF)</span>
-                </label>
+                <div class="form-group">
+                  <label>Name *</label>
+                  <input type="text" [ngModel]="updateForm().name" (ngModelChange)="updateUpdateField('name', $event)" required />
+                </div>
+                <div class="form-group">
+                  <label>Product Group *</label>
+                  <select [ngModel]="updateForm().productGroupId" (ngModelChange)="updateUpdateField('productGroupId', $event)">
+                    @for (g of groups(); track g.productGroupId) {
+                      <option [value]="g.productGroupId">{{ g.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group span-2">
+                  <label>Description</label>
+                  <textarea rows="3" [ngModel]="updateForm().description" (ngModelChange)="updateUpdateField('description', $event)"></textarea>
+                </div>
               }
-            } @else {
-              @if (updateForm().imageBase64) {
-                <div class="image-preview-wrap">
-                  <img class="image-preview" [src]="updateForm().imageBase64" alt="Product image preview" />
-                  <button class="clear-image-btn" type="button" (click)="clearImage('update')">Remove</button>
+            </div>
+          </div>
+
+          <!-- Configuration -->
+          <div class="form-section">
+            <h3 class="section-heading">Configuration</h3>
+            <div class="form-grid grid-2">
+
+              @if (!editing()) {
+                <div class="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" [ngModel]="createForm().isSegmentSpecific" (ngModelChange)="updateCreateField('isSegmentSpecific', $event)" />
+                    Segment Specific
+                    <span class="hint">(e.g. a meal selection per flight leg)</span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>SSR Code <span class="optional">(optional)</span></label>
+                  <select [ngModel]="createForm().ssrCode" (ngModelChange)="updateCreateField('ssrCode', $event || null)">
+                    <option value="">— None —</option>
+                    @for (ssr of ssrCodes(); track ssr.ssrCode) {
+                      <option [value]="ssr.ssrCode">{{ ssr.ssrCode }} — {{ ssr.label }}</option>
+                    }
+                  </select>
                 </div>
               } @else {
-                <label class="file-upload-label">
-                  <input type="file" accept="image/*" (change)="onImageChange($event, 'update')" class="file-input" />
-                  <span class="file-upload-text">Click to upload image (PNG, JPG, GIF)</span>
-                </label>
+                <div class="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" [ngModel]="updateForm().isSegmentSpecific" (ngModelChange)="updateUpdateField('isSegmentSpecific', $event)" />
+                    Segment Specific
+                    <span class="hint">(e.g. a meal selection per flight leg)</span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>SSR Code <span class="optional">(optional)</span></label>
+                  <select [ngModel]="updateForm().ssrCode" (ngModelChange)="updateUpdateField('ssrCode', $event || null)">
+                    <option value="">— None —</option>
+                    @for (ssr of ssrCodes(); track ssr.ssrCode) {
+                      <option [value]="ssr.ssrCode">{{ ssr.ssrCode }} — {{ ssr.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" [ngModel]="updateForm().isActive" (ngModelChange)="updateUpdateField('isActive', $event)" />
+                    Active
+                  </label>
+                </div>
               }
-            }
-          </div>
-        </div>
-
-        <!-- Prices -->
-        <div class="form-section">
-          <div class="prices-header">
-            <h3 class="section-heading prices-heading">Prices by Currency</h3>
-            @if (!showPriceForm()) {
-              <button class="add-price-btn" type="button" (click)="openAddPriceForm()">+ Add Price</button>
-            }
+            </div>
           </div>
 
-          @if (showPriceForm()) {
-            <div class="price-inline-form">
-              <div class="price-form-title">{{ editingPrice() ? 'Edit Price' : 'Add Price' }}</div>
-              <div class="form-grid grid-3">
-                @if (!editingPrice()) {
-                  <div class="form-group">
-                    <label>Currency *</label>
-                    <input type="text" [ngModel]="priceCreateForm().currencyCode" (ngModelChange)="updatePriceCreateField('currencyCode', $event.toUpperCase())" maxlength="3" class="uppercase-input" placeholder="GBP" />
-                  </div>
-                  <div class="form-group">
-                    <label>Price *</label>
-                    <input type="number" [ngModel]="priceCreateForm().price" (ngModelChange)="updatePriceCreateField('price', +$event)" min="0" step="0.01" />
-                  </div>
-                  <div class="form-group">
-                    <label>Tax (20% — auto-calculated)</label>
-                    <input type="text" [value]="(+(priceCreateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
+          <!-- Image -->
+          <div class="form-section">
+            <h3 class="section-heading">Product Image <span class="optional">(optional)</span></h3>
+            <div class="form-grid grid-1-wide">
+
+              @if (!editing()) {
+                @if (createForm().imageBase64) {
+                  <div class="image-preview-wrap">
+                    <img class="image-preview" [src]="createForm().imageBase64" alt="Product image preview" />
+                    <button class="clear-image-btn" type="button" (click)="clearImage('create')">Remove</button>
                   </div>
                 } @else {
-                  <div class="form-group">
-                    <label>Currency</label>
-                    <input type="text" [value]="editingPrice()!.currencyCode" disabled />
+                  <label class="file-upload-label">
+                    <input type="file" accept="image/*" (change)="onImageChange($event, 'create')" class="file-input" />
+                    <span class="file-upload-text">Click to upload image (PNG, JPG, GIF)</span>
+                  </label>
+                }
+              } @else {
+                @if (updateForm().imageBase64) {
+                  <div class="image-preview-wrap">
+                    <img class="image-preview" [src]="updateForm().imageBase64" alt="Product image preview" />
+                    <button class="clear-image-btn" type="button" (click)="clearImage('update')">Remove</button>
                   </div>
-                  <div class="form-group">
-                    <label>Price *</label>
-                    <input type="number" [ngModel]="priceUpdateForm().price" (ngModelChange)="updatePriceUpdateField('price', +$event)" min="0" step="0.01" />
-                  </div>
-                  <div class="form-group">
-                    <label>Tax (20% — auto-calculated)</label>
-                    <input type="text" [value]="(+(priceUpdateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
-                  </div>
-                  <div class="form-group checkbox-group">
-                    <label>
-                      <input type="checkbox" [ngModel]="priceUpdateForm().isActive" (ngModelChange)="updatePriceUpdateField('isActive', $event)" />
-                      Active
-                    </label>
-                  </div>
+                } @else {
+                  <label class="file-upload-label">
+                    <input type="file" accept="image/*" (change)="onImageChange($event, 'update')" class="file-input" />
+                    <span class="file-upload-text">Click to upload image (PNG, JPG, GIF)</span>
+                  </label>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Prices -->
+          <div class="form-section">
+            <div class="prices-header">
+              <h3 class="section-heading prices-heading">Prices by Currency</h3>
+              @if (!showPriceForm()) {
+                <button class="add-price-btn" type="button" (click)="openAddPriceForm()">+ Add Price</button>
+              }
+            </div>
+
+            @if (showPriceForm()) {
+              <div class="price-inline-form">
+                <div class="price-form-title">{{ editingPrice() ? 'Edit Price' : 'Add Price' }}</div>
+                <div class="form-grid grid-3">
+                  @if (!editingPrice()) {
+                    <div class="form-group">
+                      <label>Currency *</label>
+                      <input type="text" [ngModel]="priceCreateForm().currencyCode" (ngModelChange)="updatePriceCreateField('currencyCode', $event.toUpperCase())" maxlength="3" class="uppercase-input" placeholder="GBP" />
+                    </div>
+                    <div class="form-group">
+                      <label>Price *</label>
+                      <input type="number" [ngModel]="priceCreateForm().price" (ngModelChange)="updatePriceCreateField('price', +$event)" min="0" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                      <label>Tax (20% — auto-calculated)</label>
+                      <input type="text" [value]="(+(priceCreateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
+                    </div>
+                  } @else {
+                    <div class="form-group">
+                      <label>Currency</label>
+                      <input type="text" [value]="editingPrice()!.currencyCode" disabled />
+                    </div>
+                    <div class="form-group">
+                      <label>Price *</label>
+                      <input type="number" [ngModel]="priceUpdateForm().price" (ngModelChange)="updatePriceUpdateField('price', +$event)" min="0" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                      <label>Tax (20% — auto-calculated)</label>
+                      <input type="text" [value]="(+(priceUpdateForm().price || 0) * 0.20).toFixed(2)" disabled class="readonly-field" />
+                    </div>
+                    <div class="form-group checkbox-group">
+                      <label>
+                        <input type="checkbox" [ngModel]="priceUpdateForm().isActive" (ngModelChange)="updatePriceUpdateField('isActive', $event)" />
+                        Active
+                      </label>
+                    </div>
+                  }
+                </div>
+                <div class="price-form-actions">
+                  <button class="cancel-btn" type="button" (click)="cancelPriceForm()" [disabled]="savingPrice()">Cancel</button>
+                  <button class="save-btn" type="button" (click)="savePrice()" [disabled]="savingPrice()">
+                    @if (savingPrice()) { <span class="btn-spinner"></span> Saving… } @else {
+                      {{ editingPrice() ? 'Update Price' : 'Add Price' }}
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (!editing()) {
+              @if (pendingPrices().length > 0) {
+                <table class="price-table">
+                  <thead>
+                    <tr>
+                      <th>Currency</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-right">Tax</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of pendingPrices(); track p.currencyCode; let i = $index) {
+                      <tr>
+                        <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
+                        <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
+                        <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
+                        <td>
+                          <div class="action-btns">
+                            <button class="action-btn delete-btn" type="button" (click)="removePendingPrice(i)">Del</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else if (!showPriceForm()) {
+                <p class="no-prices-msg">No prices configured yet. Click "Add Price" to add a currency price.</p>
+              }
+            } @else {
+              @if (currentPrices().length > 0) {
+                <table class="price-table">
+                  <thead>
+                    <tr>
+                      <th>Currency</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-right">Tax</th>
+                      <th>Offer ID</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of currentPrices(); track p.priceId) {
+                      <tr>
+                        <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
+                        <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
+                        <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
+                        <td class="mono muted offer-id">{{ p.offerId }}</td>
+                        <td>
+                          <span class="badge" [class.badge-yes]="p.isActive" [class.badge-no]="!p.isActive">
+                            {{ p.isActive ? 'Active' : 'Inactive' }}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="action-btns">
+                            <button class="action-btn edit-btn" type="button" (click)="openEditPriceForm(p)">Edit</button>
+                            <button
+                              class="action-btn delete-btn"
+                              type="button"
+                              (click)="deletePrice(editing()!.productId, p.priceId)"
+                              [disabled]="deletingPrice() === p.priceId"
+                            >
+                              @if (deletingPrice() === p.priceId) { … } @else { Del }
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else if (!showPriceForm()) {
+                <p class="no-prices-msg">No prices configured. Click "Add Price" to add a currency price.</p>
+              }
+            }
+          </div>
+
+        </div>
+      }
+
+      <!-- ── Rules tab ────────────────────────────────────────────────── -->
+      @if (activeTab() === 'rules') {
+        <div class="form-sections">
+
+          <!-- Available To -->
+          <div class="form-section">
+            <h3 class="section-heading">Available To</h3>
+
+            @if (!editing()) {
+              <div class="channel-grid">
+                @for (ch of channelOptions; track ch.code) {
+                  <label class="channel-chip" [class.selected]="isChannelSelected('create', ch.code)">
+                    <input type="checkbox" [checked]="isChannelSelected('create', ch.code)" (change)="toggleChannel('create', ch.code)" />
+                    {{ ch.label }}
+                  </label>
                 }
               </div>
-              <div class="price-form-actions">
-                <button class="cancel-btn" type="button" (click)="cancelPriceForm()" [disabled]="savingPrice()">Cancel</button>
-                <button class="save-btn" type="button" (click)="savePrice()" [disabled]="savingPrice()">
-                  @if (savingPrice()) { <span class="btn-spinner"></span> Saving… } @else {
-                    {{ editingPrice() ? 'Update Price' : 'Add Price' }}
-                  }
-                </button>
+            } @else {
+              <div class="channel-grid">
+                @for (ch of channelOptions; track ch.code) {
+                  <label class="channel-chip" [class.selected]="isChannelSelected('update', ch.code)">
+                    <input type="checkbox" [checked]="isChannelSelected('update', ch.code)" (change)="toggleChannel('update', ch.code)" />
+                    {{ ch.label }}
+                  </label>
+                }
+                @if (!allChannelsSelected('update')) {
+                  <button class="select-all-btn" type="button" (click)="selectAllChannels('update')">Select all</button>
+                }
               </div>
+            }
+          </div>
+
+          <!-- Available When -->
+          <div class="form-section">
+            <div class="rules-section-header">
+              <div>
+                <h3 class="section-heading rules-heading">Available When</h3>
+                <p class="rules-hint">All conditions in a rule must be true (AND). Any single matching rule makes the product available (OR between rules). If no rules are configured the product is always available.</p>
+              </div>
+              <button class="add-rule-btn" type="button" (click)="addRule(currentMode())">+ Add Rule</button>
             </div>
-          }
 
-          @if (!editing()) {
-            @if (pendingPrices().length > 0) {
-              <table class="price-table">
+            @if (currentRules().length > 0) {
+              <table class="availability-table">
                 <thead>
                   <tr>
-                    <th>Currency</th>
-                    <th class="text-right">Price</th>
-                    <th class="text-right">Tax</th>
-                    <th>Actions</th>
+                    <th class="col-rule-name">Rule name</th>
+                    <th class="col-conditions">Conditions <span class="conditions-logic">(all must be true)</span></th>
+                    <th class="col-actions"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (p of pendingPrices(); track p.currencyCode; let i = $index) {
-                    <tr>
-                      <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
-                      <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
-                      <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
-                      <td>
-                        <div class="action-btns">
-                          <button class="action-btn delete-btn" type="button" (click)="removePendingPrice(i)">Del</button>
+                  @for (rule of currentRules(); track rule.id) {
+                    <tr class="rule-row">
+                      <td class="col-rule-name">
+                        <input
+                          type="text"
+                          class="rule-name-input"
+                          [value]="rule.name"
+                          (input)="updateRuleName(currentMode(), rule.id, $any($event.target).value)"
+                          placeholder="Rule name…"
+                        />
+                      </td>
+                      <td class="col-conditions">
+                        <div class="conditions-list">
+                          @for (cond of rule.conditions; track cond; let ci = $index) {
+                            <div class="condition-row">
+                              <select
+                                class="cond-field-select"
+                                [value]="cond.field"
+                                (change)="updateCondition(currentMode(), rule.id, ci, 'field', $any($event.target).value)"
+                              >
+                                @for (opt of conditionFieldOptions; track opt.value) {
+                                  <option [value]="opt.value" [selected]="cond.field === opt.value">{{ opt.label }}</option>
+                                }
+                              </select>
+                              <select
+                                class="cond-op-select"
+                                [value]="cond.operator"
+                                (change)="updateCondition(currentMode(), rule.id, ci, 'operator', $any($event.target).value)"
+                              >
+                                <option value="is">is</option>
+                                <option value="isNot">is not</option>
+                              </select>
+                              <input
+                                type="text"
+                                class="cond-value-input"
+                                [value]="cond.value"
+                                (input)="updateCondition(currentMode(), rule.id, ci, 'value', $any($event.target).value)"
+                                [placeholder]="conditionHint(cond.field)"
+                              />
+                              <button
+                                class="remove-cond-btn"
+                                type="button"
+                                (click)="removeCondition(currentMode(), rule.id, ci)"
+                                title="Remove condition"
+                              >&times;</button>
+                            </div>
+                          }
+                          <button class="add-cond-btn" type="button" (click)="addCondition(currentMode(), rule.id)">+ Add Condition</button>
                         </div>
+                      </td>
+                      <td class="col-actions">
+                        <button class="action-btn delete-btn" type="button" (click)="removeRule(currentMode(), rule.id)" title="Remove rule">Del</button>
                       </td>
                     </tr>
                   }
                 </tbody>
               </table>
-            } @else if (!showPriceForm()) {
-              <p class="no-prices-msg">No prices configured yet. Click "Add Price" to add a currency price.</p>
+            } @else {
+              <p class="no-rules-msg">No rules configured — this product will always be available. Click "+ Add Rule" to restrict availability.</p>
             }
-          } @else {
-            @if (currentPrices().length > 0) {
-              <table class="price-table">
-                <thead>
-                  <tr>
-                    <th>Currency</th>
-                    <th class="text-right">Price</th>
-                    <th class="text-right">Tax</th>
-                    <th>Offer ID</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (p of currentPrices(); track p.priceId) {
-                    <tr>
-                      <td><span class="badge badge-currency">{{ p.currencyCode }}</span></td>
-                      <td class="mono price-cell">{{ formatAmount(p.price, p.currencyCode) }}</td>
-                      <td class="mono muted text-right">{{ formatAmount(p.tax, p.currencyCode) }}</td>
-                      <td class="mono muted offer-id">{{ p.offerId }}</td>
-                      <td>
-                        <span class="badge" [class.badge-yes]="p.isActive" [class.badge-no]="!p.isActive">
-                          {{ p.isActive ? 'Active' : 'Inactive' }}
-                        </span>
-                      </td>
-                      <td>
-                        <div class="action-btns">
-                          <button class="action-btn edit-btn" type="button" (click)="openEditPriceForm(p)">Edit</button>
-                          <button
-                            class="action-btn delete-btn"
-                            type="button"
-                            (click)="deletePrice(editing()!.productId, p.priceId)"
-                            [disabled]="deletingPrice() === p.priceId"
-                          >
-                            @if (deletingPrice() === p.priceId) { … } @else { Del }
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else if (!showPriceForm()) {
-              <p class="no-prices-msg">No prices configured. Click "Add Price" to add a currency price.</p>
-            }
-          }
+          </div>
+
         </div>
-
-      </div>
+      }
 
       <div class="form-actions">
         <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>

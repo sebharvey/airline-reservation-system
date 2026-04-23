@@ -142,6 +142,34 @@
 }
 .close-btn:hover { color: var(--text); }
 
+/* Tab navigation */
+.tab-nav {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.tab-btn:hover { color: var(--text); }
+
+.tab-btn.active {
+  color: var(--grad-start);
+  border-bottom-color: var(--grad-start);
+}
+
 .form-sections { margin-bottom: 20px; }
 
 .form-section {
@@ -587,4 +615,205 @@
 
 @media (min-width: 901px) {
   .products-page { padding: 0; max-width: none; }
+}
+
+/* ── Availability rules ──────────────────────────────────────────────────── */
+
+.rules-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rules-heading { margin-bottom: 4px; }
+
+.rules-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 560px;
+}
+
+.add-rule-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--grad-start);
+  background: none;
+  border: 1.5px solid var(--grad-start);
+  border-radius: 4px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.add-rule-btn:hover { background: rgba(102, 126, 234, 0.1); }
+
+.no-rules-msg {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Availability rules table */
+.availability-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.availability-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.conditions-logic {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+}
+
+.availability-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.col-rule-name { width: 200px; min-width: 160px; }
+.col-conditions { width: auto; }
+.col-actions { width: 60px; text-align: right; }
+
+.rule-name-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  font-family: inherit;
+}
+
+.rule-name-input:focus { border-color: var(--grad-start); }
+
+/* Conditions */
+.conditions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cond-field-select {
+  flex: 0 0 auto;
+  min-width: 150px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  font-family: inherit;
+}
+
+.cond-op-select {
+  flex: 0 0 auto;
+  width: 80px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  font-family: inherit;
+}
+
+.cond-value-input {
+  flex: 1 1 120px;
+  min-width: 100px;
+  max-width: 200px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  font-family: inherit;
+}
+
+.cond-field-select:focus,
+.cond-op-select:focus,
+.cond-value-input:focus { border-color: var(--grad-start); }
+
+.remove-cond-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.remove-cond-btn:hover { border-color: #f85149; color: #f85149; background: rgba(248, 81, 73, 0.08); }
+
+.add-cond-btn {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--grad-start);
+  background: none;
+  border: 1px dashed var(--grad-start);
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: all var(--transition);
+}
+
+.add-cond-btn:hover { background: rgba(102, 126, 234, 0.1); }
+
+@media (max-width: 700px) {
+  .rules-section-header { flex-direction: column; gap: 10px; }
+  .col-rule-name { width: 120px; min-width: 100px; }
+  .cond-field-select { min-width: 120px; }
+  .cond-value-input { min-width: 80px; }
 }

@@ -7,4 +7,5 @@ public sealed record CreateProductCommand(
     bool IsSegmentSpecific,
     string? SsrCode,
     string? ImageBase64,
-    string AvailableChannels = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""");
+    string AvailableChannels = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""",
+    string? AvailabilityRules = null);

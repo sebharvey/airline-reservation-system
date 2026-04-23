@@ -9,4 +9,5 @@ public sealed record UpdateProductCommand(
     string? SsrCode,
     string? ImageBase64,
     string AvailableChannels,
+    string? AvailabilityRules,
     bool IsActive);

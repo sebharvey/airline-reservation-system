@@ -20,7 +20,7 @@ public sealed class CreateProductHandler
         var product = ProductEntity.Create(
             command.ProductGroupId, command.Name, command.Description,
             command.IsSegmentSpecific, command.SsrCode, command.ImageBase64,
-            command.AvailableChannels);
+            command.AvailableChannels, command.AvailabilityRules);
 
         var created = await _repository.CreateAsync(product, cancellationToken);
         _logger.LogInformation("Created Product {ProductId} '{Name}'", created.ProductId, created.Name);
