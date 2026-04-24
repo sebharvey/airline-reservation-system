@@ -97,6 +97,7 @@ public sealed class OciFunction
             {
                 bookingReference = result.BookingReference,
                 checkInEligible = result.CheckInEligible,
+                alreadyCheckedIn = result.AlreadyCheckedIn,
                 isStandby = result.IsStandby,
                 passengers = result.Passengers.Select(p => new
                 {

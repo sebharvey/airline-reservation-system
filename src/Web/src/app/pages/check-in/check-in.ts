@@ -60,6 +60,14 @@ export class CheckInComponent {
         next: (ociOrder) => {
           this.checkInState.setDepartureAirport(airport);
 
+          // Retrieve endpoint sets this when the order already has a completed check-in for this airport.
+          if (ociOrder.alreadyCheckedIn) {
+            this.checkInState.setCheckedInTicketNumbers(ociOrder.passengers.map(p => p.ticketNumber));
+            this.loading.set(false);
+            this.router.navigate(['/check-in/boarding-pass']);
+            return;
+          }
+
           // Fetch full order and create basket in parallel; both are best-effort
           forkJoin([
             this.retailApi.retrieveOrder({ bookingReference: ref, givenName: gn, surname: sn })

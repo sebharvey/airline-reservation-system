@@ -31,6 +31,7 @@ public sealed record OciRetrieveResult(
     string BookingReference,
     bool CheckInEligible,
     bool IsStandby,
+    bool AlreadyCheckedIn,
     IReadOnlyList<OciPassengerResult> Passengers);
 
 public sealed class OciRetrieveHandler
@@ -63,7 +64,7 @@ public sealed class OciRetrieveHandler
         var passengers = new List<OciPassengerResult>();
 
         if (order.OrderData is not JsonElement orderDataEl || orderDataEl.ValueKind != JsonValueKind.Object)
-            return new OciRetrieveResult(query.BookingReference, true, false, passengers);
+            return new OciRetrieveResult(query.BookingReference, true, false, false, passengers);
 
         var bookingType = orderDataEl.TryGetProperty("bookingType", out var btEl) ? btEl.GetString() : null;
         var isStandby = string.Equals(bookingType, "Standby", StringComparison.OrdinalIgnoreCase);
@@ -176,6 +177,27 @@ public sealed class OciRetrieveHandler
             }
         }
 
-        return new OciRetrieveResult(query.BookingReference, true, isStandby, passengers);
+        var alreadyCheckedIn = false;
+        if (!string.IsNullOrWhiteSpace(query.DepartureAirport) &&
+            orderDataEl.TryGetProperty("orderItems", out var checkinItemsEl) &&
+            checkinItemsEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in checkinItemsEl.EnumerateArray())
+            {
+                var origin = item.TryGetProperty("origin", out var origEl) ? origEl.GetString() : null;
+                if (!string.Equals(origin, query.DepartureAirport, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (item.TryGetProperty("checkin", out var checkinEl) &&
+                    checkinEl.TryGetProperty("status", out var statusEl) &&
+                    string.Equals(statusEl.GetString(), "CheckedIn", StringComparison.OrdinalIgnoreCase))
+                {
+                    alreadyCheckedIn = true;
+                    break;
+                }
+            }
+        }
+
+        return new OciRetrieveResult(query.BookingReference, true, isStandby, alreadyCheckedIn, passengers);
     }
 }
