@@ -481,11 +481,18 @@
             <div class="tickets-section-label">Active tickets</div>
             <div class="table-card">
               <table class="data-table">
+                <colgroup>
+                  <col class="col-ticket-num">
+                  <col class="col-issued">
+                  <col>
+                  <col class="col-amount">
+                  <col class="col-action">
+                </colgroup>
                 <thead>
                   <tr>
                     <th>E-ticket number</th>
-                    <th>Passenger</th>
                     <th class="hide-mobile">Issued</th>
+                    <th>Passenger</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -505,8 +512,8 @@
                           </button>
                         </span>
                       </td>
-                      <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
+                      <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -519,11 +526,14 @@
               @for (ticket of activeTickets(); track ticket.ticketId) {
                 <div class="mobile-ticket-card" (click)="openTicketModal(ticket)">
                   <div class="mobile-ticket-main">
-                    <div class="mobile-ticket-num mono">{{ ticket.eTicketNumber }}</div>
+                    <div class="mobile-ticket-top">
+                      <span class="mobile-ticket-num mono">{{ ticket.eTicketNumber }}</span>
+                      @if (ticket.ticketData?.fareConstruction?.totalAmount != null) {
+                        <span class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
+                      }
+                    </div>
                     <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
-                    @if (ticket.ticketData?.fareConstruction?.totalAmount != null) {
-                      <div class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</div>
-                    }
+                    <div class="mobile-ticket-issued">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
                 </div>
@@ -536,12 +546,18 @@
             <div class="tickets-section-label tickets-section-voided">Voided tickets</div>
             <div class="table-card">
               <table class="data-table">
+                <colgroup>
+                  <col class="col-ticket-num">
+                  <col class="col-issued">
+                  <col>
+                  <col class="col-amount">
+                  <col class="col-action">
+                </colgroup>
                 <thead>
                   <tr>
                     <th>E-ticket number</th>
+                    <th class="hide-mobile">Issued</th>
                     <th>Passenger</th>
-                    <th class="hide-mobile">Issue date</th>
-                    <th class="hide-mobile">Voided</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -561,9 +577,8 @@
                           </button>
                         </span>
                       </td>
-                      <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
+                      <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -576,8 +591,14 @@
               @for (ticket of voidedTickets(); track ticket.ticketId) {
                 <div class="mobile-ticket-card" (click)="openTicketModal(ticket)">
                   <div class="mobile-ticket-main">
-                    <div class="mobile-ticket-num mono muted">{{ ticket.eTicketNumber }}</div>
+                    <div class="mobile-ticket-top">
+                      <span class="mobile-ticket-num mono muted">{{ ticket.eTicketNumber }}</span>
+                      @if (ticket.ticketData?.fareConstruction?.totalAmount != null) {
+                        <span class="mobile-ticket-amount muted">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
+                      }
+                    </div>
                     <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
+                    <div class="mobile-ticket-issued muted">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
                 </div>
@@ -606,13 +627,22 @@
             <div class="tickets-section-label" style="margin-top:24px">EMD documents</div>
             <div class="table-card">
               <table class="data-table">
+                <colgroup>
+                  <col class="col-ticket-num">
+                  <col class="col-issued">
+                  <col>
+                  <col class="col-seg">
+                  <col class="col-type">
+                  <col class="col-amount">
+                  <col class="col-action">
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Document number</th>
-                    <th>Type</th>
-                    <th>Passenger</th>
                     <th class="hide-mobile">Issue date</th>
+                    <th>Passenger</th>
                     <th class="hide-mobile">Segment</th>
+                    <th class="hide-mobile">Type</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -632,10 +662,10 @@
                           </button>
                         </span>
                       </td>
-                      <td><span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span></td>
-                      <td>{{ getPassengerName(doc.passengerId) }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
+                      <td>{{ getPassengerName(doc.passengerId) }}</td>
                       <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
+                      <td class="hide-mobile"><span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span></td>
                       <td class="amount-cell hide-mobile">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -648,9 +678,17 @@
               @for (doc of activeDocuments(); track doc.documentId) {
                 <div class="mobile-ticket-card" (click)="openDocumentModal(doc)">
                   <div class="mobile-ticket-main">
-                    <div class="mobile-ticket-num mono">{{ doc.documentNumber }}</div>
-                    <div class="mobile-ticket-pax">{{ documentTypeLabel(doc.documentType) }} — {{ getPassengerName(doc.passengerId) }}</div>
-                    <div class="mobile-ticket-amount">{{ formatAmount(doc.amount, doc.currencyCode) }}</div>
+                    <div class="mobile-ticket-top">
+                      <span class="mobile-ticket-num mono">{{ doc.documentNumber }}</span>
+                      <span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span>
+                    </div>
+                    <div class="mobile-ticket-pax">
+                      {{ getPassengerName(doc.passengerId) }}
+                      @if (doc.segmentRef) {
+                        <span class="mobile-ticket-seg"> · {{ doc.segmentRef }}</span>
+                      }
+                    </div>
+                    <div class="mobile-ticket-issued">Issued {{ formatDateTime(doc.createdAt) }} · {{ formatAmount(doc.amount, doc.currencyCode) }}</div>
                   </div>
                   <button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button>
                 </div>
@@ -663,13 +701,22 @@
             <div class="tickets-section-label tickets-section-voided" style="margin-top:16px">Voided EMD documents</div>
             <div class="table-card">
               <table class="data-table">
+                <colgroup>
+                  <col class="col-ticket-num">
+                  <col class="col-issued">
+                  <col>
+                  <col class="col-seg">
+                  <col class="col-type">
+                  <col class="col-amount">
+                  <col class="col-action">
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Document number</th>
-                    <th>Type</th>
-                    <th>Passenger</th>
                     <th class="hide-mobile">Issue date</th>
+                    <th>Passenger</th>
                     <th class="hide-mobile">Segment</th>
+                    <th class="hide-mobile">Type</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -689,10 +736,10 @@
                           </button>
                         </span>
                       </td>
-                      <td class="muted"><span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span></td>
-                      <td class="muted">{{ getPassengerName(doc.passengerId) }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
+                      <td class="muted">{{ getPassengerName(doc.passengerId) }}</td>
                       <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
+                      <td class="hide-mobile muted"><span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span></td>
                       <td class="amount-cell hide-mobile muted">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -705,8 +752,17 @@
               @for (doc of voidedDocuments(); track doc.documentId) {
                 <div class="mobile-ticket-card" (click)="openDocumentModal(doc)">
                   <div class="mobile-ticket-main">
-                    <div class="mobile-ticket-num mono muted">{{ doc.documentNumber }}</div>
-                    <div class="mobile-ticket-pax muted">{{ documentTypeLabel(doc.documentType) }} — {{ getPassengerName(doc.passengerId) }}</div>
+                    <div class="mobile-ticket-top">
+                      <span class="mobile-ticket-num mono muted">{{ doc.documentNumber }}</span>
+                      <span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span>
+                    </div>
+                    <div class="mobile-ticket-pax muted">
+                      {{ getPassengerName(doc.passengerId) }}
+                      @if (doc.segmentRef) {
+                        <span class="mobile-ticket-seg"> · {{ doc.segmentRef }}</span>
+                      }
+                    </div>
+                    <div class="mobile-ticket-issued muted">Issued {{ formatDateTime(doc.createdAt) }} · {{ formatAmount(doc.amount, doc.currencyCode) }}</div>
                   </div>
                   <button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button>
                 </div>

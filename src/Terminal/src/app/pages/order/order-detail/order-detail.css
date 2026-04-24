@@ -1321,6 +1321,32 @@
   .order-detail-page { padding: 0; max-width: none; }
 }
 
+/* Ticket / EMD list — shared column widths via <colgroup> */
+col.col-ticket-num { width: 170px; }
+col.col-issued     { width: 155px; }
+col.col-seg        { width: 100px; }
+col.col-type       { width: 82px;  }
+col.col-amount     { width: 105px; }
+col.col-action     { width: 60px;  }
+
+/* Mobile ticket card layout additions */
+.mobile-ticket-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-ticket-issued {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.mobile-ticket-seg {
+  color: var(--text-muted);
+}
+
 /* Tickets tab */
 .tickets-section-label {
   font-size: 0.75rem;
