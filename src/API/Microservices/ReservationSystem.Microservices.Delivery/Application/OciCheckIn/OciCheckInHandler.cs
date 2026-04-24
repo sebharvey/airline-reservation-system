@@ -58,9 +58,15 @@ public sealed class OciCheckInHandler
                     pendingAssignment.Add((ticket, unseatedCoupon.FlightNumber, unseatedCoupon.ClassOfService));
                 else
                     await _ticketRepository.UpdateAsync(ticket, cancellationToken);
-            }
 
-            results.Add(new OciCheckInTicketResult(ticketRequest.TicketNumber, updated > 0 ? "C" : "O"));
+                results.Add(new OciCheckInTicketResult(ticketRequest.TicketNumber, "C"));
+            }
+            else
+            {
+                // Distinguish "already checked in" from "no matching coupon for this airport"
+                var wasAlreadyCheckedIn = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport).Count > 0;
+                results.Add(new OciCheckInTicketResult(ticketRequest.TicketNumber, wasAlreadyCheckedIn ? "ALREADY_CHECKED_IN" : "O"));
+            }
 
             _logger.LogInformation(
                 "Checked in ticket {TicketNumber} for departure from {DepartureAirport} ({Count} coupon(s) updated)",

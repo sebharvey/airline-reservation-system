@@ -36,18 +36,30 @@
     </div>
   }
 
-  <div class="action-buttons">
-    <button
-      type="button"
-      class="btn-primary"
-      [disabled]="submitting()"
-      (click)="confirm()"
-    >
-      @if (submitting()) {
-        <span class="spinner"></span> Completing check-in&hellip;
-      } @else {
-        I confirm &mdash; Complete Check-In
-      }
-    </button>
-  </div>
+  @if (alreadyCheckedIn()) {
+    <div class="info-banner">
+      <span>&#9432;</span>
+      You are already checked in for this flight. You can view your boarding passes below.
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-primary" (click)="viewBoardingPasses()">
+        View Boarding Passes
+      </button>
+    </div>
+  } @else {
+    <div class="action-buttons">
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="submitting()"
+        (click)="confirm()"
+      >
+        @if (submitting()) {
+          <span class="spinner"></span> Completing check-in&hellip;
+        } @else {
+          I confirm &mdash; Complete Check-In
+        }
+      </button>
+    </div>
+  }
 </div>

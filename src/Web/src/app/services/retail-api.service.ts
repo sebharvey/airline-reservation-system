@@ -769,11 +769,11 @@ export class RetailApiService {
   submitOciCheckIn(
     bookingRef: string,
     departureAirport: string
-  ): Observable<{ bookingReference: string; checkedIn: string[] }> {
+  ): Observable<{ bookingReference: string; checkedIn: string[]; alreadyCheckedIn: boolean }> {
     const base = environment.operationsApiBaseUrl;
     const body = { bookingReference: bookingRef, departureAirport: departureAirport.toUpperCase() };
     return this.#http
-      .post<{ bookingReference: string; checkedIn: string[] }>(`${base}/api/v1/oci/checkin`, body)
+      .post<{ bookingReference: string; checkedIn: string[]; alreadyCheckedIn: boolean }>(`${base}/api/v1/oci/checkin`, body)
       .pipe(
         catchError((err: HttpErrorResponse) => throwError(() => ({
           status: err.status,

@@ -10,7 +10,8 @@ public sealed record OciCheckInCommand(
 
 public sealed record OciCheckInResult(
     string BookingReference,
-    IReadOnlyList<string> CheckedIn);
+    IReadOnlyList<string> CheckedIn,
+    bool AlreadyCheckedIn);
 
 public sealed class OciCheckInHandler
 {
@@ -43,35 +44,57 @@ public sealed class OciCheckInHandler
         if (tickets.Count == 0)
         {
             _logger.LogWarning("OCI check-in: no tickets found for {BookingReference}", command.BookingReference);
-            return new OciCheckInResult(command.BookingReference, []);
+            return new OciCheckInResult(command.BookingReference, [], false);
         }
 
         var result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
         var checkedInSet = result.Tickets.ToDictionary(t => t.TicketNumber, t => t.Status, StringComparer.OrdinalIgnoreCase);
-        var checkedIn = checkedInSet.Keys.ToList();
 
-        // Build per-passenger check-in entries and persist to the order
-        var paxCheckIn = BuildPassengerCheckInEntries(tickets, checkedInSet);
-        var checkedInAt = DateTime.UtcNow.ToString("o");
+        var newlyCheckedIn = result.Tickets
+            .Where(t => string.Equals(t.Status, "C", StringComparison.OrdinalIgnoreCase))
+            .Select(t => t.TicketNumber)
+            .ToList();
 
-        try
+        var alreadyCheckedInTickets = result.Tickets
+            .Where(t => string.Equals(t.Status, "ALREADY_CHECKED_IN", StringComparison.OrdinalIgnoreCase))
+            .Select(t => t.TicketNumber)
+            .ToList();
+
+        // All passengers on this segment were already checked in — skip re-persisting to order
+        var allAlreadyCheckedIn = newlyCheckedIn.Count == 0 && alreadyCheckedInTickets.Count > 0;
+
+        if (!allAlreadyCheckedIn)
         {
-            await _orderServiceClient.UpdateOrderCheckInAsync(
-                command.BookingReference,
-                command.DepartureAirport,
-                checkedInAt,
-                paxCheckIn,
-                ct);
+            var paxCheckIn = BuildPassengerCheckInEntries(tickets, checkedInSet);
+            var checkedInAt = DateTime.UtcNow.ToString("o");
+
+            try
+            {
+                await _orderServiceClient.UpdateOrderCheckInAsync(
+                    command.BookingReference,
+                    command.DepartureAirport,
+                    checkedInAt,
+                    paxCheckIn,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "OCI check-in: failed to persist check-in status on order {BookingReference}",
+                    command.BookingReference);
+                // Non-fatal: Delivery MS has already checked in the tickets; log and continue.
+            }
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex,
-                "OCI check-in: failed to persist check-in status on order {BookingReference}",
-                command.BookingReference);
-            // Non-fatal: Delivery MS has already checked in the tickets; log and continue.
+            _logger.LogInformation(
+                "OCI check-in: all passengers on {BookingReference} from {DepartureAirport} are already checked in",
+                command.BookingReference, command.DepartureAirport);
         }
 
-        return new OciCheckInResult(command.BookingReference, checkedIn);
+        // Return already-checked-in ticket numbers so the caller can retrieve boarding passes
+        var checkedIn = allAlreadyCheckedIn ? alreadyCheckedInTickets : newlyCheckedIn;
+        return new OciCheckInResult(command.BookingReference, checkedIn, allAlreadyCheckedIn);
     }
 
     private static List<OrderCheckInPassenger> BuildPassengerCheckInEntries(
@@ -80,7 +103,8 @@ public sealed class OciCheckInHandler
     {
         return tickets.Select(t =>
         {
-            var isCheckedIn = checkedInSet.ContainsKey(t.TicketNumber);
+            checkedInSet.TryGetValue(t.TicketNumber, out var ticketStatus);
+            var isCheckedIn = string.Equals(ticketStatus, "C", StringComparison.OrdinalIgnoreCase);
             var status = isCheckedIn ? "CheckedIn" : "Failed";
             var name = string.IsNullOrWhiteSpace(t.GivenName) ? t.Surname : $"{t.GivenName} {t.Surname}".Trim();
             var message = isCheckedIn
