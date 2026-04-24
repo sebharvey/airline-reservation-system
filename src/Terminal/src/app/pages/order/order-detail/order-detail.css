@@ -1322,11 +1322,14 @@
 }
 
 /* Ticket / EMD list — shared column widths via <colgroup> */
-col.col-ticket-num { width: 220px; }
-col.col-issued     { width: 170px; }
-col.col-flex       { width: 1%;    }
-col.col-amount     { width: 115px; }
-col.col-action     { width: 70px;  }
+/* Fixed table layout so widths are honoured exactly, no browser-distributed gaps */
+.data-table:has(col.col-ticket-num) { table-layout: fixed; }
+
+col.col-ticket-num { width: 185px; }
+col.col-issued     { width: 145px; }
+col.col-flex       { width: auto;  } /* fills remaining space */
+col.col-amount     { width: 108px; }
+col.col-action     { width: 80px;  }
 
 /* EMD passenger cell: name · segment [badge] inline */
 .doc-pax-seg { font-size: 0.82rem; }
