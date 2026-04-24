@@ -323,6 +323,7 @@ public sealed class OciFunction
             return await req.OkJsonAsync(new
             {
                 bookingReference = result.BookingReference,
+                alreadyCheckedIn = result.AlreadyCheckedIn,
                 checkedIn = result.CheckedIn
             });
         }
