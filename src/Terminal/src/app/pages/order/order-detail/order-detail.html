@@ -540,6 +540,7 @@
                   <tr>
                     <th>E-ticket number</th>
                     <th>Passenger</th>
+                    <th class="hide-mobile">Issue date</th>
                     <th class="hide-mobile">Voided</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
@@ -561,6 +562,7 @@
                         </span>
                       </td>
                       <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
+                      <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
                       <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
@@ -609,6 +611,7 @@
                     <th>Document number</th>
                     <th>Type</th>
                     <th>Passenger</th>
+                    <th class="hide-mobile">Issue date</th>
                     <th class="hide-mobile">Segment</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
@@ -631,6 +634,7 @@
                       </td>
                       <td><span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span></td>
                       <td>{{ getPassengerName(doc.passengerId) }}</td>
+                      <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
                       <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
                       <td class="amount-cell hide-mobile">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
@@ -664,6 +668,7 @@
                     <th>Document number</th>
                     <th>Type</th>
                     <th>Passenger</th>
+                    <th class="hide-mobile">Issue date</th>
                     <th class="hide-mobile">Segment</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
@@ -686,6 +691,7 @@
                       </td>
                       <td class="muted"><span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span></td>
                       <td class="muted">{{ getPassengerName(doc.passengerId) }}</td>
+                      <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
                       <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
                       <td class="amount-cell hide-mobile muted">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
