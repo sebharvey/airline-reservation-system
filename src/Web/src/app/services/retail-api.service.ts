@@ -70,6 +70,7 @@ export interface ConfirmedTravelDoc {
   type: string;
   number: string;
   issuingCountry: string;
+  issueDate?: string;
   expiryDate: string;
   nationality: string;
 }
