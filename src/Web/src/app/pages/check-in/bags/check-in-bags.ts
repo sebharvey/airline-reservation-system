@@ -157,13 +157,17 @@ export class CheckInBagsComponent implements OnInit {
     return `+${count} bag${count > 1 ? 's' : ''} · ${offer.currency} ${price.toFixed(2)}`;
   }
 
+  private nextRoute(): string {
+    return this.checkInState.totalPaymentAmount() > 0 ? '/check-in/payment' : '/check-in/hazmat';
+  }
+
   onSkip(): void {
     this.checkInState.setBagSelections([]);
     const basketId = this.checkInState.basketId();
     if (basketId) {
       this.retailApi.updateBasketBags(basketId, []).subscribe();
     }
-    this.router.navigate(['/check-in/hazmat']);
+    this.router.navigate([this.nextRoute()]);
   }
 
   onContinue(): void {
@@ -200,7 +204,7 @@ export class CheckInBagsComponent implements OnInit {
 
     const proceed = () => {
       this.saving.set(false);
-      this.router.navigate(['/check-in/hazmat']);
+      this.router.navigate([this.nextRoute()]);
     };
 
     if (basketId && basketSels.length > 0) {
