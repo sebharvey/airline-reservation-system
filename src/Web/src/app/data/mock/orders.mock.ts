@@ -27,6 +27,7 @@ export const MOCK_ORDER_AB1234: Order = {
         type: 'PASSPORT',
         number: 'PA1234567',
         issuingCountry: 'GBR',
+        issueDate: '2020-01-01',
         expiryDate: '2030-01-01',
         nationality: 'GBR'
       }]
@@ -44,6 +45,7 @@ export const MOCK_ORDER_AB1234: Order = {
         type: 'PASSPORT',
         number: 'PA7654321',
         issuingCountry: 'GBR',
+        issueDate: '2018-06-30',
         expiryDate: '2028-06-30',
         nationality: 'GBR'
       }]
@@ -183,6 +185,7 @@ export const MOCK_ORDER_CD5678: Order = {
         type: 'PASSPORT',
         number: 'PB9876543',
         issuingCountry: 'GBR',
+        issueDate: '2021-05-15',
         expiryDate: '2031-05-15',
         nationality: 'GBR'
       }]
