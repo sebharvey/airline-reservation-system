@@ -317,11 +317,26 @@ h3 {
 }
 
 .doc-fields-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.doc-prefilled-badge {
+  padding: 2px 8px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #15803d;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .field-row {
