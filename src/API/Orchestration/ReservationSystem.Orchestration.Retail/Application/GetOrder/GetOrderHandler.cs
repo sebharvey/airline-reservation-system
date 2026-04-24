@@ -217,6 +217,14 @@ public sealed class GetOrderHandler
                             continue;
                         }
 
+                        // Only build flight segments from FLIGHT items — bags, products, and
+                        // services are handled in the second pass below.
+                        if (!string.Equals(productType, "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            itemIndex++;
+                            continue;
+                        }
+
                         var inventoryId = item.TryGetProperty("inventoryId", out var invId) ? invId.GetString() ?? "" : "";
                         var basketItemId = item.TryGetProperty("basketItemId", out var bid) ? bid.GetString() : null;
                         var segmentId = basketItemId ?? (string.IsNullOrEmpty(inventoryId) ? $"SEG-{itemIndex}" : inventoryId);
@@ -309,6 +317,29 @@ public sealed class GetOrderHandler
                                 IsChangeable     = false,
                                 AdditionalBags   = addBags,
                                 PaymentReference = "",
+                                ETickets         = []
+                            });
+                        }
+                        else if (string.Equals(oiProductType, "PRODUCT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var paxId     = oi.TryGetProperty("passengerId", out var ppid) ? ppid.GetString() ?? "" : "";
+                            var productId = oi.TryGetProperty("productId",   out var pid)  ? pid.GetString()  ?? "" : "";
+                            var segRef    = oi.TryGetProperty("segmentRef",  out var psr)  ? psr.GetString()  ?? "" : "";
+                            var price     = oi.TryGetProperty("price",       out var pp)   ? pp.GetDecimal()       : 0m;
+                            var tax       = oi.TryGetProperty("tax",         out var pt)   ? pt.GetDecimal()       : 0m;
+
+                            orderItems.Add(new ManagedOrderItem
+                            {
+                                OrderItemId      = $"product-{paxId}-{productId}-{segRef}",
+                                Type             = "Product",
+                                SegmentRef       = segRef,
+                                PassengerRefs    = string.IsNullOrEmpty(paxId) ? [] : [paxId],
+                                UnitPrice        = price,
+                                Taxes            = tax,
+                                TotalPrice       = price + tax,
+                                IsRefundable     = false,
+                                IsChangeable     = false,
+                                PaymentReference = payments.FirstOrDefault()?.PaymentReference ?? "",
                                 ETickets         = []
                             });
                         }
