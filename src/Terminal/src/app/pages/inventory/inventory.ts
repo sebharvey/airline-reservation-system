@@ -103,6 +103,23 @@ export class InventoryComponent implements OnInit {
   holdsTab = signal<'confirmed' | 'standby' | 'seatmap'>('confirmed');
   copiedHoldRef = signal<string | null>(null);
 
+  // Holds filters
+  holdsFilterRef = signal('');
+  holdsFilterName = signal('');
+  holdsFilterCabin = signal('');
+  holdsFilterSeat = signal('');
+
+  holdsFiltersActive = computed(() =>
+    !!this.holdsFilterRef() || !!this.holdsFilterName() || !!this.holdsFilterCabin() || !!this.holdsFilterSeat()
+  );
+
+  clearHoldsFilters(): void {
+    this.holdsFilterRef.set('');
+    this.holdsFilterName.set('');
+    this.holdsFilterCabin.set('');
+    this.holdsFilterSeat.set('');
+  }
+
   copyBookingReference(ref: string, event: Event): void {
     event.stopPropagation();
     navigator.clipboard.writeText(ref).then(() => {
@@ -111,15 +128,32 @@ export class InventoryComponent implements OnInit {
     });
   }
 
-  confirmedHolds = computed(() =>
-    this.holds().filter(h => h.holdType === 'Revenue')
-  );
+  confirmedHolds = computed(() => {
+    const ref = this.holdsFilterRef().toLowerCase();
+    const name = this.holdsFilterName().toLowerCase();
+    const cabin = this.holdsFilterCabin();
+    const seat = this.holdsFilterSeat().toLowerCase();
+    return this.holds()
+      .filter(h => h.holdType === 'Revenue')
+      .filter(h => !ref || (h.bookingReference?.toLowerCase().includes(ref) ?? false))
+      .filter(h => !name || (h.passengerName?.toLowerCase().includes(name) ?? false))
+      .filter(h => !cabin || h.cabinCode === cabin)
+      .filter(h => !seat || (h.seatNumber?.toLowerCase().includes(seat) ?? false));
+  });
 
-  standbyHolds = computed(() =>
-    this.holds()
+  standbyHolds = computed(() => {
+    const ref = this.holdsFilterRef().toLowerCase();
+    const name = this.holdsFilterName().toLowerCase();
+    const cabin = this.holdsFilterCabin();
+    const seat = this.holdsFilterSeat().toLowerCase();
+    return this.holds()
       .filter(h => h.holdType === 'Standby')
-      .sort((a, b) => (b.standbyPriority ?? 0) - (a.standbyPriority ?? 0))
-  );
+      .filter(h => !ref || (h.bookingReference?.toLowerCase().includes(ref) ?? false))
+      .filter(h => !name || (h.passengerName?.toLowerCase().includes(name) ?? false))
+      .filter(h => !cabin || h.cabinCode === cabin)
+      .filter(h => !seat || (h.seatNumber?.toLowerCase().includes(seat) ?? false))
+      .sort((a, b) => (b.standbyPriority ?? 0) - (a.standbyPriority ?? 0));
+  });
 
   // Seat map tab
   seatmap = signal<FlightSeatmap | null>(null);
@@ -134,6 +168,7 @@ export class InventoryComponent implements OnInit {
     this.holdsTab.set('confirmed');
     this.seatmap.set(null);
     this.seatmapError.set('');
+    this.clearHoldsFilters();
     try {
       const result = await this.#inventoryService.getInventoryHolds(flight.inventoryId);
       this.holds.set(result);
