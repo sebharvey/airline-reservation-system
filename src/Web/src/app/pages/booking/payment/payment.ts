@@ -52,6 +52,7 @@ function mapConfirmResponseToOrder(result: ConfirmBasketResponse): Order {
         type:           d.type as 'PASSPORT' | 'ID_CARD',
         number:         d.number,
         issuingCountry: d.issuingCountry,
+        issueDate:      d.issueDate ?? '',
         expiryDate:     d.expiryDate,
         nationality:    d.nationality
       }))
