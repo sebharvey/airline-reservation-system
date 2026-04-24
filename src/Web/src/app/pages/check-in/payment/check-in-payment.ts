@@ -37,7 +37,7 @@ export class CheckInPaymentComponent implements OnInit {
       return;
     }
     if (this.checkInState.totalPaymentAmount() === 0) {
-      this.router.navigate(['/check-in/boarding-pass']);
+      this.router.navigate(['/check-in/hazmat']);
     }
   }
 
@@ -70,7 +70,7 @@ export class CheckInPaymentComponent implements OnInit {
         if (result.documents?.length) {
           this.checkInState.setEmdDocuments(result.documents);
         }
-        this.router.navigate(['/check-in/boarding-pass']);
+        this.router.navigate(['/check-in/hazmat']);
       },
       error: (err: { message?: string }) => {
         this.paying.set(false);
