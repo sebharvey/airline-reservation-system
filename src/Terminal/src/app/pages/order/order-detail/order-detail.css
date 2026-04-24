@@ -1322,12 +1322,12 @@
 }
 
 /* Ticket / EMD list — shared column widths via <colgroup> */
-col.col-ticket-num { width: 170px; }
-col.col-issued     { width: 155px; }
-col.col-seg        { width: 100px; }
-col.col-type       { width: 82px;  }
-col.col-amount     { width: 105px; }
-col.col-action     { width: 60px;  }
+col.col-ticket-num { width: 220px; }
+col.col-issued     { width: 170px; }
+col.col-flex       { width: 1%;    }
+col.col-type       { width: 92px;  }
+col.col-amount     { width: 115px; }
+col.col-action     { width: 70px;  }
 
 /* Mobile ticket card layout additions */
 .mobile-ticket-top {
