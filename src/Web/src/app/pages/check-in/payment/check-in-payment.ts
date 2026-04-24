@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
-import { CardDetails } from '../../../models/order.model';
+import { CardDetails, PaymentSummary } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
 
 @Component({
@@ -16,14 +16,14 @@ import { PaymentFormComponent } from '../../../components/payment-form/payment-f
 export class CheckInPaymentComponent implements OnInit {
   paying = signal(false);
   paymentError = signal('');
+  summaryLoading = signal(true);
+  summary = signal<PaymentSummary | null>(null);
 
   readonly order = computed(() => this.checkInState.currentOrder());
-  readonly bagSelections = computed(() => this.checkInState.bagSelections());
-  readonly seatSelections = computed(() => this.checkInState.seatSelections());
-  readonly totalBagAmount = computed(() => this.checkInState.totalBagAmount());
-  readonly totalSeatAmount = computed(() => this.checkInState.totalSeatAmount());
-  readonly totalAmount = computed(() => this.checkInState.totalPaymentAmount());
-  readonly currency = computed(() => this.order()?.currency ?? 'GBP');
+  readonly currency = computed(() => this.summary()?.currency ?? this.order()?.currency ?? 'GBP');
+  readonly totalAmount = computed(() =>
+    this.summary()?.totals.grandTotal ?? this.checkInState.totalPaymentAmount()
+  );
 
   constructor(
     private router: Router,
@@ -36,9 +36,31 @@ export class CheckInPaymentComponent implements OnInit {
       this.router.navigate(['/check-in']);
       return;
     }
-    if (this.checkInState.totalPaymentAmount() === 0) {
-      this.router.navigate(['/check-in/hazmat']);
+
+    const basketId = this.checkInState.basketId();
+    if (!basketId) {
+      this.summaryLoading.set(false);
+      if (this.checkInState.totalPaymentAmount() === 0) {
+        this.router.navigate(['/check-in/hazmat']);
+      }
+      return;
     }
+
+    this.retailApi.getBasketPaymentSummary(basketId).subscribe({
+      next: (s) => {
+        this.summary.set(s);
+        this.summaryLoading.set(false);
+        if (s.totals.grandTotal === 0) {
+          this.router.navigate(['/check-in/hazmat']);
+        }
+      },
+      error: () => {
+        this.summaryLoading.set(false);
+        if (this.checkInState.totalPaymentAmount() === 0) {
+          this.router.navigate(['/check-in/hazmat']);
+        }
+      }
+    });
   }
 
   getPassengerName(passengerId: string): string {
@@ -46,9 +68,9 @@ export class CheckInPaymentComponent implements OnInit {
     return pax ? `${pax.givenName} ${pax.surname}` : passengerId;
   }
 
-  getSegmentRoute(segmentId: string): string {
-    const seg = this.order()?.flightSegments?.find(s => s.inventoryId === segmentId);
-    return seg ? `${seg.origin}–${seg.destination}` : segmentId;
+  getSegmentRoute(): string {
+    const seg = this.order()?.flightSegments?.[0];
+    return seg ? `${seg.origin}–${seg.destination}` : '';
   }
 
   onPay(card: CardDetails): void {
@@ -60,8 +82,8 @@ export class CheckInPaymentComponent implements OnInit {
 
     this.retailApi.addCheckInAncillaries(
       order.bookingReference,
-      this.bagSelections(),
-      this.seatSelections(),
+      this.checkInState.bagSelections(),
+      this.checkInState.seatSelections(),
       card.cardLast4,
       card.cardType
     ).subscribe({

@@ -66,7 +66,9 @@ public sealed class BasketFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        if (request!.Segments is null || request.Segments.Count == 0)
+        var isCheckIn = string.Equals(request!.BasketType, "CheckIn", StringComparison.OrdinalIgnoreCase);
+
+        if (!isCheckIn && (request.Segments is null || request.Segments.Count == 0))
             return await req.BadRequestAsync("At least one 'segments' entry is required.");
 
         if (request.PassengerCount < 1)
@@ -78,7 +80,8 @@ public sealed class BasketFunction
             request.BookingType,
             request.LoyaltyNumber,
             request.CustomerId,
-            request.PassengerCount);
+            request.PassengerCount,
+            request.BasketType);
 
         try
         {
