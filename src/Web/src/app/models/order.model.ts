@@ -8,6 +8,7 @@ export interface TravelDocument {
   type: 'PASSPORT' | 'ID_CARD';
   number: string;
   issuingCountry: string;
+  issueDate: string;
   expiryDate: string;
   nationality: string;
 }
@@ -358,6 +359,7 @@ export interface OciPassenger {
   type: string;
   givenName: string;
   surname: string;
+  travelDocument?: TravelDocument;
 }
 
 export interface OciOrder {

@@ -627,7 +627,7 @@ export class RetailApiService {
       alreadyCheckedIn?: boolean;
       isStandby?: boolean;
       currency?: string;
-      passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: unknown }[];
+      passengers: { passengerId: string; ticketNumber: string; givenName: string; surname: string; passengerTypeCode: string; travelDocument: { type: string; number: string; issuingCountry: string; issueDate: string; expiryDate: string; nationality: string } | null }[];
       flightSegments?: { segmentRef: string; inventoryId: string; flightNumber: string; origin: string; destination: string; departureDateTime: string; arrivalDateTime: string; cabinCode: string; aircraftType: string; seatAssignments: { passengerId: string; seatNumber: string }[] }[];
     }>(`${base}/api/v1/oci/retrieve`, body).pipe(
       map(res => ({
@@ -642,7 +642,15 @@ export class RetailApiService {
           ticketNumber: p.ticketNumber,
           type: p.passengerTypeCode,
           givenName: p.givenName,
-          surname: p.surname
+          surname: p.surname,
+          travelDocument: p.travelDocument ? {
+            type: p.travelDocument.type as 'PASSPORT' | 'ID_CARD',
+            number: p.travelDocument.number,
+            issuingCountry: p.travelDocument.issuingCountry,
+            issueDate: p.travelDocument.issueDate ?? '',
+            expiryDate: p.travelDocument.expiryDate,
+            nationality: p.travelDocument.nationality
+          } : undefined
         })),
         flightSegments: (res.flightSegments ?? []).map(seg => ({
           segmentRef: seg.segmentRef,

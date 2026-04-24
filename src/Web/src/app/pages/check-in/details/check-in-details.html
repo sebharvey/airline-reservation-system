@@ -85,7 +85,12 @@
           <!-- Travel document fields (shown when passenger is selected) -->
           @if (state.selected) {
             <div class="doc-fields">
-              <div class="doc-fields-title">Travel Document</div>
+              <div class="doc-fields-title">
+                Travel Document
+                @if (state.travelDocument.number) {
+                  <span class="doc-prefilled-badge">Pre-filled from previous check-in</span>
+                }
+              </div>
 
               <div class="field-row">
                 <div class="field">

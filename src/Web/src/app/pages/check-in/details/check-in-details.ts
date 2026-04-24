@@ -88,7 +88,16 @@ export class CheckInDetailsComponent implements OnInit {
       surname: pax.surname,
       passengerType: pax.type,
       selected: true,
-      travelDocument: { type: 'PASSPORT', number: '', issuingCountry: '', issueDate: '', expiryDate: '', nationality: '' }
+      travelDocument: pax.travelDocument
+        ? {
+            type: pax.travelDocument.type,
+            number: pax.travelDocument.number,
+            issuingCountry: pax.travelDocument.issuingCountry,
+            issueDate: pax.travelDocument.issueDate ?? '',
+            expiryDate: pax.travelDocument.expiryDate,
+            nationality: pax.travelDocument.nationality
+          }
+        : { type: 'PASSPORT', number: '', issuingCountry: '', issueDate: '', expiryDate: '', nationality: '' }
     })));
   }
 
