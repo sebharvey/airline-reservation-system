@@ -115,7 +115,7 @@ public sealed class DeliveryServiceClient
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    public async Task IssueDocumentAsync(
+    public async Task<string?> IssueDocumentAsync(
         string bookingReference, string documentType, string passengerId,
         string segmentRef, decimal amount, string currency,
         string? paymentReference,
@@ -126,9 +126,21 @@ public sealed class DeliveryServiceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.ReadErrorMessageAsync(ct);
-            // Document issuance failure is non-fatal — log but do not roll back
             System.Console.Error.WriteLine($"[DeliveryServiceClient] Document issuance failed: {error}");
+            return null;
         }
+        try
+        {
+            var result = await response.Content.ReadFromJsonAsync<DocumentIssuanceResult>(JsonOptions, ct);
+            return result?.DocumentNumber;
+        }
+        catch { return null; }
+    }
+
+    private sealed class DocumentIssuanceResult
+    {
+        public string DocumentNumber { get; init; } = string.Empty;
+        public string DocumentType { get; init; } = string.Empty;
     }
 
     public async Task<List<AdminDocumentRecord>> GetDocumentsByBookingAsync(string bookingReference, CancellationToken ct)
