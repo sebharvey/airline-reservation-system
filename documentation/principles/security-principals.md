@@ -64,6 +64,7 @@ PCI DSS compliance must be maintained and card data scoped entirely to the Payme
 All inputs must be validated and APIs hardened against common attack vectors.
 
 - Inputs validated at the orchestration layer (type, length, format, no unexpected fields) and independently by microservices; strict schema validation prevents mass assignment.
+- Business-rule validations (e.g. confirming that a departure airport is on the booking's itinerary) must be enforced in both the API and the front end: the API is the authoritative enforcement point and protects against direct API access; the front end validates for immediate user feedback. A check that exists only in the UI provides no security guarantee.
 - All database queries use parameterised or ORM-generated queries; dynamic SQL from user input is prohibited, including JSON path expressions.
 - Rate limiting on all public-facing endpoints (HTTP 429 with `Retry-After`); NDC endpoints rate-limited per partner key.
 - CORS policies restricted to known channel origins; wildcard `*` prohibited on any authenticated or sensitive endpoint.
