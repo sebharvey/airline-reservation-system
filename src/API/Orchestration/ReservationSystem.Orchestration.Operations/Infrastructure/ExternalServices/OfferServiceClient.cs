@@ -227,7 +227,7 @@ public sealed class OfferServiceClient
     public async Task HoldInventoryAsync(
         Guid inventoryId,
         string cabinCode,
-        int seats,
+        IReadOnlyList<string> passengerIds,
         Guid orderId,
         CancellationToken cancellationToken = default)
     {
@@ -235,7 +235,7 @@ public sealed class OfferServiceClient
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            PaxCount = seats,
+            Passengers = passengerIds.Select(id => new HoldInventoryPassengerDto { PassengerId = id }).ToList(),
             OrderId = orderId
         };
 
@@ -243,7 +243,7 @@ public sealed class OfferServiceClient
 
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(
-                $"Failed to hold {seats} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
+                $"Failed to hold {passengerIds.Count} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
     public async Task SellInventoryAsync(
