@@ -659,9 +659,14 @@ export class RetailApiService {
         }))
       })),
       catchError((err: HttpErrorResponse) => {
-        const message = err.status === 404
-          ? 'Booking not found. Please check your details and departure airport.'
-          : 'Unable to retrieve booking. Please try again.';
+        let message: string;
+        if (err.status === 404) {
+          message = 'Booking not found. Please check your details and departure airport.';
+        } else if (err.error?.error) {
+          message = err.error.error;
+        } else {
+          message = 'Unable to retrieve booking. Please try again.';
+        }
         return throwError(() => ({ status: err.status, message }));
       })
     );

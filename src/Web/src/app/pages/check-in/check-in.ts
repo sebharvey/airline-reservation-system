@@ -99,6 +99,12 @@ export class CheckInComponent {
                 })
               }));
 
+            if (fullOrder && segments.length === 0) {
+              this.loading.set(false);
+              this.errorMessage.set('The departure airport is not on your itinerary. Please check your details and try again.');
+              return;
+            }
+
             this.checkInState.setCurrentOrder({ ...ociOrder, flightSegments: segments });
             this.loading.set(false);
             this.router.navigate(['/check-in/details']);

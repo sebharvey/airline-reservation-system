@@ -68,6 +68,32 @@ public sealed class OciRetrieveHandler
         var bookingType = orderDataEl.TryGetProperty("bookingType", out var btEl) ? btEl.GetString() : null;
         var isStandby = string.Equals(bookingType, "Standby", StringComparison.OrdinalIgnoreCase);
 
+        // Validate that the supplied departure airport exists on the booking's itinerary.
+        // This check must live in the API so that direct API callers cannot bypass it.
+        if (!string.IsNullOrWhiteSpace(query.DepartureAirport))
+        {
+            var airportFound = false;
+            if (orderDataEl.TryGetProperty("orderItems", out var orderItemsEl) &&
+                orderItemsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in orderItemsEl.EnumerateArray())
+                {
+                    var productType = item.TryGetProperty("productType", out var ptEl) ? ptEl.GetString() : null;
+                    if (!string.Equals(productType, "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    var origin = item.TryGetProperty("origin", out var origEl) ? origEl.GetString() : null;
+                    if (string.Equals(origin, query.DepartureAirport, StringComparison.OrdinalIgnoreCase))
+                    {
+                        airportFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!airportFound)
+                throw new InvalidOperationException(
+                    $"Departure airport '{query.DepartureAirport.ToUpperInvariant()}' is not on this booking's itinerary.");
+        }
+
         // Build a map from passengerId → eTicketNumber
         var ticketMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (orderDataEl.TryGetProperty("eTickets", out var eTicketsEl) && eTicketsEl.ValueKind == JsonValueKind.Array)
