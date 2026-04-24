@@ -114,7 +114,7 @@ public sealed class AdminDisruptionRebookOrderHandler
         RebookReplacementOption replacement,
         CancellationToken ct)
     {
-        var passengerCount = order.Passengers.Count;
+        var passengerIds = order.Passengers.Select(p => p.PassengerId).ToList();
         var heldLegs = new List<RebookReplacementLeg>();
 
         foreach (var leg in replacement.Legs)
@@ -122,7 +122,7 @@ public sealed class AdminDisruptionRebookOrderHandler
             try
             {
                 await _offerServiceClient.HoldInventoryAsync(
-                    leg.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct);
+                    leg.InventoryId, replacement.CabinCode, passengerIds, order.OrderId, ct);
                 heldLegs.Add(leg);
             }
             catch (Exception ex)
@@ -130,7 +130,7 @@ public sealed class AdminDisruptionRebookOrderHandler
                 _logger.LogWarning(ex, "Hold failed on {FlightNumber}/{Date} for booking {BookingRef} — releasing {Count} held leg(s)",
                     leg.FlightNumber, leg.DepartureDate, order.BookingReference, heldLegs.Count);
 
-                await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerCount, order);
+                await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerIds.Count, order);
 
                 return Failed(order.BookingReference,
                     $"Inventory hold failed on {leg.FlightNumber}/{leg.DepartureDate}: {ex.Message}");
@@ -159,7 +159,7 @@ public sealed class AdminDisruptionRebookOrderHandler
         }
         catch (Exception ex)
         {
-            await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerCount, order);
+            await ReleaseHeldLegsAsync(heldLegs, replacement.CabinCode, passengerIds.Count, order);
             return Failed(order.BookingReference, $"Order rebook failed: {ex.Message}");
         }
 

@@ -213,7 +213,7 @@ public sealed class AdminDisruptionCancelHandler
         List<ReplacementOption> allOptions,
         CancellationToken ct)
     {
-        var passengerCount = order.Passengers.Count;
+        var passengerIds = order.Passengers.Select(p => p.PassengerId).ToList();
         var heldLegs = new List<ReplacementLeg>();
 
         // Hold seats on each leg; release all held legs and return Failed if any hold fails
@@ -222,9 +222,9 @@ public sealed class AdminDisruptionCancelHandler
             try
             {
                 await _offerServiceClient.HoldInventoryAsync(
-                    leg.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct);
+                    leg.InventoryId, replacement.CabinCode, passengerIds, order.OrderId, ct);
                 heldLegs.Add(leg);
-                DecrementAvailability(allOptions, leg.InventoryId, replacement.CabinCode, passengerCount);
+                DecrementAvailability(allOptions, leg.InventoryId, replacement.CabinCode, passengerIds.Count);
             }
             catch (Exception ex)
             {
@@ -233,7 +233,7 @@ public sealed class AdminDisruptionCancelHandler
 
                 foreach (var held in heldLegs)
                 {
-                    try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
+                    try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerIds.Count, order.OrderId, ct); }
                     catch (Exception releaseEx)
                     {
                         _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after hold failure for booking {BookingRef}",
@@ -276,7 +276,7 @@ public sealed class AdminDisruptionCancelHandler
             // Rebook failed — release held seats and propagate so outer handler marks as Failed
             foreach (var held in heldLegs)
             {
-                try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerCount, order.OrderId, ct); }
+                try { await _offerServiceClient.ReleaseInventoryAsync(held.InventoryId, replacement.CabinCode, passengerIds.Count, order.OrderId, ct); }
                 catch (Exception releaseEx)
                 {
                     _logger.LogError(releaseEx, "Failed to release inventory {InventoryId} after rebook failure for booking {BookingRef}",
