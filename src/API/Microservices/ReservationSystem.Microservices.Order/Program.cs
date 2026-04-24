@@ -26,6 +26,7 @@ using ReservationSystem.Microservices.Order.Application.UpdateBasketSeats;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketSsrs;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketProducts;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
+using ReservationSystem.Microservices.Order.Application.UpdateOrderPayments;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
@@ -102,6 +103,7 @@ var host = new HostBuilder()
         services.AddScoped<UpdateOrderPassengersHandler>();
         services.AddScoped<UpdateOrderSeatsHandler>();
         services.AddScoped<UpdateOrderBagsHandler>();
+        services.AddScoped<UpdateOrderPaymentsHandler>();
         services.AddScoped<UpdateOrderSsrsHandler>();
         services.AddScoped<UpdateOrderETicketsHandler>();
         services.AddScoped<UpdateOrderCheckInHandler>();
