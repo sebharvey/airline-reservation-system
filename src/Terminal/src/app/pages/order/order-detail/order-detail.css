@@ -1326,7 +1326,7 @@
 .data-table:has(col.col-ticket-num) { table-layout: fixed; }
 
 col.col-ticket-num { width: 185px; }
-col.col-issued     { width: 145px; }
+col.col-issued     { width: 170px; }
 col.col-flex       { width: auto;  } /* fills remaining space */
 col.col-amount     { width: 108px; }
 col.col-action     { width: 80px;  }
