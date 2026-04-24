@@ -1325,9 +1325,12 @@
 col.col-ticket-num { width: 220px; }
 col.col-issued     { width: 170px; }
 col.col-flex       { width: 1%;    }
-col.col-type       { width: 92px;  }
 col.col-amount     { width: 115px; }
 col.col-action     { width: 70px;  }
+
+/* EMD passenger cell: name · segment [badge] inline */
+.doc-pax-seg { font-size: 0.82rem; }
+.item-type-badge { margin-left: 6px; vertical-align: middle; }
 
 /* Mobile ticket card layout additions */
 .mobile-ticket-top {
