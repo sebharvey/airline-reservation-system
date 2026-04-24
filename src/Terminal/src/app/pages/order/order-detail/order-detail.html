@@ -631,8 +631,6 @@
                   <col class="col-ticket-num">
                   <col class="col-issued">
                   <col class="col-flex">
-                  <col class="col-flex">
-                  <col class="col-type">
                   <col class="col-amount">
                   <col class="col-action">
                 </colgroup>
@@ -641,8 +639,6 @@
                     <th>Document number</th>
                     <th class="hide-mobile">Issue date</th>
                     <th>Passenger</th>
-                    <th class="hide-mobile">Segment</th>
-                    <th class="hide-mobile">Type</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -663,9 +659,13 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
-                      <td>{{ getPassengerName(doc.passengerId) }}</td>
-                      <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
-                      <td class="hide-mobile"><span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span></td>
+                      <td>
+                        <span class="doc-pax-line">{{ getPassengerName(doc.passengerId) }}</span>
+                        @if (doc.segmentRef) {
+                          <span class="doc-pax-seg muted"> · {{ doc.segmentRef }}</span>
+                        }
+                        <span class="item-type-badge {{ documentTypeLabel(doc.documentType) === 'Seat' ? 'item-seat' : documentTypeLabel(doc.documentType) === 'Bag' ? 'item-bag' : 'item-other' }}">{{ documentTypeLabel(doc.documentType) }}</span>
+                      </td>
                       <td class="amount-cell hide-mobile">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -705,8 +705,6 @@
                   <col class="col-ticket-num">
                   <col class="col-issued">
                   <col class="col-flex">
-                  <col class="col-flex">
-                  <col class="col-type">
                   <col class="col-amount">
                   <col class="col-action">
                 </colgroup>
@@ -715,8 +713,6 @@
                     <th>Document number</th>
                     <th class="hide-mobile">Issue date</th>
                     <th>Passenger</th>
-                    <th class="hide-mobile">Segment</th>
-                    <th class="hide-mobile">Type</th>
                     <th class="th-numeric hide-mobile">Amount</th>
                     <th></th>
                   </tr>
@@ -737,9 +733,13 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(doc.createdAt) }}</td>
-                      <td class="muted">{{ getPassengerName(doc.passengerId) }}</td>
-                      <td class="hide-mobile muted">{{ doc.segmentRef || '—' }}</td>
-                      <td class="hide-mobile muted"><span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span></td>
+                      <td class="muted">
+                        <span class="doc-pax-line">{{ getPassengerName(doc.passengerId) }}</span>
+                        @if (doc.segmentRef) {
+                          <span class="doc-pax-seg"> · {{ doc.segmentRef }}</span>
+                        }
+                        <span class="item-type-badge item-other">{{ documentTypeLabel(doc.documentType) }}</span>
+                      </td>
                       <td class="amount-cell hide-mobile muted">{{ formatAmount(doc.amount, doc.currencyCode) }}</td>
                       <td><button class="view-btn" (click)="openDocumentModal(doc); $event.stopPropagation()">View</button></td>
                     </tr>
