@@ -82,6 +82,46 @@ public sealed class CheckInAncillariesHandler
             throw;
         }
 
+        // ── Link booking reference to the payment record ─────────────────────────
+        var settledAt = DateTime.UtcNow;
+        try
+        {
+            await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, command.BookingReference, ct);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[CheckInAncillaries] Booking reference update failed: {ex.Message}");
+        }
+
+        // ── Record payment in the order ───────────────────────────────────────────
+        try
+        {
+            await _orderServiceClient.UpdateOrderPaymentsAsync(
+                command.BookingReference,
+                new[]
+                {
+                    new
+                    {
+                        paymentReference = paymentId,
+                        description      = $"Check-in ancillaries — {command.BookingReference}",
+                        method           = "CreditCard",
+                        cardLast4        = command.CardLast4 ?? "",
+                        cardType         = command.CardType  ?? "",
+                        authorisedAmount = total,
+                        settledAmount    = total,
+                        currency,
+                        status           = "Settled",
+                        authorisedAt     = settledAt.ToString("O"),
+                        settledAt        = settledAt.ToString("O")
+                    }
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[CheckInAncillaries] Payment order update failed: {ex.Message}");
+        }
+
         // ── Persist selections to the order ──────────────────────────────────────
         if (command.SeatSelections.Count > 0)
         {

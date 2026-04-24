@@ -295,6 +295,18 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task UpdateOrderPaymentsAsync(string bookingReference, object paymentsData, CancellationToken ct)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(paymentsData, JsonOptions);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/payments", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order payments: {error}");
+        }
+    }
+
     public async Task UpdateOrderETicketsAsync(string bookingReference, string eTicketsJson, CancellationToken ct)
     {
         using var content = new StringContent(eTicketsJson, Encoding.UTF8, "application/json");
