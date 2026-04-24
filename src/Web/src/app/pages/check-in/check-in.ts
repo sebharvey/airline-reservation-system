@@ -2,8 +2,11 @@ import { Component, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { RetailApiService } from '../../services/retail-api.service';
 import { CheckInStateService } from '../../services/check-in-state.service';
+import { OciFlightSegment } from '../../models/order.model';
 import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
 
 @Component({
@@ -47,37 +50,61 @@ export class CheckInComponent {
     this.errorMessage.set('');
     this.checkInState.clear();
 
-    this.retailApi.retrieveOciOrder({
-      bookingReference: this.bookingReference().trim(),
-      givenName: this.givenName().trim(),
-      surname: this.surname().trim(),
-      departureAirport: this.departureAirport().trim()
-    }).subscribe({
-      next: (order) => {
-        this.checkInState.setCurrentOrder(order);
-        this.checkInState.setDepartureAirport(this.departureAirport().trim());
+    const ref = this.bookingReference().trim();
+    const gn = this.givenName().trim();
+    const sn = this.surname().trim();
+    const airport = this.departureAirport().trim();
 
-        this.retailApi.createCheckInBasket(
-          order.bookingReference,
-          order.passengers.length,
-          order.currency
-        ).subscribe({
-          next: (res) => {
-            this.checkInState.setBasketId(res.basketId);
+    this.retailApi.retrieveOciOrder({ bookingReference: ref, givenName: gn, surname: sn, departureAirport: airport })
+      .subscribe({
+        next: (ociOrder) => {
+          this.checkInState.setDepartureAirport(airport);
+
+          // Fetch full order and create basket in parallel; both are best-effort
+          forkJoin([
+            this.retailApi.retrieveOrder({ bookingReference: ref, givenName: gn, surname: sn })
+              .pipe(catchError(() => of(null))),
+            this.retailApi.createCheckInBasket(ociOrder.bookingReference, ociOrder.passengers.length, ociOrder.currency)
+              .pipe(catchError(() => of(null)))
+          ]).subscribe(([fullOrder, basketRes]) => {
+            if (basketRes?.basketId) {
+              this.checkInState.setBasketId(basketRes.basketId);
+            }
+
+            // Merge flight segments from the full order into the OCI order.
+            // FlightSegment.segmentId serves as the inventoryId for seatmap/bag API calls
+            // (consistent with how manage-booking seat selection works).
+            const segments: OciFlightSegment[] = (fullOrder?.flightSegments ?? []).map(seg => ({
+              segmentRef: seg.segmentId,
+              inventoryId: seg.segmentId,
+              flightNumber: seg.flightNumber,
+              origin: seg.origin,
+              destination: seg.destination,
+              departureDateTime: seg.departureDateTime,
+              arrivalDateTime: seg.arrivalDateTime,
+              cabinCode: seg.cabinCode,
+              aircraftType: seg.aircraftType,
+              seatAssignments: ociOrder.passengers.flatMap(pax => {
+                const seatItem = fullOrder?.orderItems.find(
+                  oi => oi.type === 'Seat'
+                    && oi.segmentRef === seg.segmentId
+                    && oi.passengerRefs.includes(pax.passengerId)
+                );
+                return seatItem?.seatNumber
+                  ? [{ passengerId: pax.passengerId, seatNumber: seatItem.seatNumber }]
+                  : [];
+              })
+            }));
+
+            this.checkInState.setCurrentOrder({ ...ociOrder, flightSegments: segments });
             this.loading.set(false);
             this.router.navigate(['/check-in/details']);
-          },
-          error: () => {
-            // Basket creation is best-effort — continue the journey without one
-            this.loading.set(false);
-            this.router.navigate(['/check-in/details']);
-          }
-        });
-      },
-      error: (err: { message?: string }) => {
-        this.loading.set(false);
-        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking. Please check your details.');
-      }
-    });
+          });
+        },
+        error: (err: { message?: string }) => {
+          this.loading.set(false);
+          this.errorMessage.set(err?.message ?? 'Unable to retrieve booking. Please check your details.');
+        }
+      });
   }
 }
