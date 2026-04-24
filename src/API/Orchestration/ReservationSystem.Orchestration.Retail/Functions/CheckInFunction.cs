@@ -8,7 +8,6 @@ using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -19,12 +18,6 @@ public sealed class CheckInFunction
 {
     private readonly CheckInAncillariesHandler _ancillariesHandler;
     private readonly ILogger<CheckInFunction> _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
 
     public CheckInFunction(CheckInAncillariesHandler ancillariesHandler, ILogger<CheckInFunction> logger)
     {
@@ -51,7 +44,7 @@ public sealed class CheckInFunction
         CancellationToken ct)
     {
         JsonElement body;
-        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, JsonOptions, ct); }
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, cancellationToken: ct); }
         catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
         if (string.IsNullOrWhiteSpace(bookingRef))
@@ -132,7 +125,7 @@ public sealed class CheckInFunction
                     amount         = d.Amount,
                     currency       = d.Currency
                 })
-            }, JsonOptions);
+            });
         }
         catch (PaymentValidationException ex)
         {
