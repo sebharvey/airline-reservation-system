@@ -71,30 +71,33 @@ export class CheckInComponent {
               this.checkInState.setBasketId(basketRes.basketId);
             }
 
-            // Merge flight segments from the full order into the OCI order.
+            // Merge flight segments from the full order into the OCI order, keeping only
+            // the segment(s) departing from the airport the passenger is checking in at.
             // FlightSegment.segmentId serves as the inventoryId for seatmap/bag API calls
             // (consistent with how manage-booking seat selection works).
-            const segments: OciFlightSegment[] = (fullOrder?.flightSegments ?? []).map(seg => ({
-              segmentRef: seg.segmentId,
-              inventoryId: seg.segmentId,
-              flightNumber: seg.flightNumber,
-              origin: seg.origin,
-              destination: seg.destination,
-              departureDateTime: seg.departureDateTime,
-              arrivalDateTime: seg.arrivalDateTime,
-              cabinCode: seg.cabinCode,
-              aircraftType: seg.aircraftType,
-              seatAssignments: ociOrder.passengers.flatMap(pax => {
-                const seatItem = fullOrder?.orderItems.find(
-                  oi => oi.type === 'Seat'
-                    && oi.segmentRef === seg.segmentId
-                    && oi.passengerRefs.includes(pax.passengerId)
-                );
-                return seatItem?.seatNumber
-                  ? [{ passengerId: pax.passengerId, seatNumber: seatItem.seatNumber }]
-                  : [];
-              })
-            }));
+            const segments: OciFlightSegment[] = (fullOrder?.flightSegments ?? [])
+              .filter(seg => seg.origin.toUpperCase() === airport.toUpperCase())
+              .map(seg => ({
+                segmentRef: seg.segmentId,
+                inventoryId: seg.segmentId,
+                flightNumber: seg.flightNumber,
+                origin: seg.origin,
+                destination: seg.destination,
+                departureDateTime: seg.departureDateTime,
+                arrivalDateTime: seg.arrivalDateTime,
+                cabinCode: seg.cabinCode,
+                aircraftType: seg.aircraftType,
+                seatAssignments: ociOrder.passengers.flatMap(pax => {
+                  const seatItem = fullOrder?.orderItems.find(
+                    oi => oi.type === 'Seat'
+                      && oi.segmentRef === seg.segmentId
+                      && oi.passengerRefs.includes(pax.passengerId)
+                  );
+                  return seatItem?.seatNumber
+                    ? [{ passengerId: pax.passengerId, seatNumber: seatItem.seatNumber }]
+                    : [];
+                })
+              }));
 
             this.checkInState.setCurrentOrder({ ...ociOrder, flightSegments: segments });
             this.loading.set(false);
