@@ -8,4 +8,5 @@ public sealed record CreateBasketCommand(
     string? BookingType,
     string? LoyaltyNumber,
     string? CustomerId = null,
-    int PassengerCount = 1);
+    int PassengerCount = 1,
+    string? BasketType = null);

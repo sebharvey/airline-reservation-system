@@ -4,10 +4,17 @@
     <p>Complete payment for your check-in additions</p>
   </div>
 
-  @if (paying()) {
+  @if (summaryLoading()) {
     <div class="loading-state">
       <span class="spinner-dark"></span>
       <span>Loading&hellip;</span>
+    </div>
+  }
+
+  @if (paying()) {
+    <div class="loading-state">
+      <span class="spinner-dark"></span>
+      <span>Processing payment&hellip;</span>
     </div>
   }
 
@@ -19,32 +26,32 @@
     <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
   }
 
-  @if (!paying() && !paymentError()) {
+  @if (!summaryLoading() && !paying() && !paymentError()) {
 
     <!-- Order summary -->
     <div class="section">
       <h3 class="section-title">Order Summary</h3>
       <div class="card summary-card">
 
-        @if (bagSelections().length > 0) {
+        @if (summary()?.bagSelections?.length) {
           <div class="summary-group">
             <div class="summary-group-title">&#128513; Additional Bags</div>
-            @for (bag of bagSelections(); track bag.passengerId + bag.segmentId) {
+            @for (bag of summary()!.bagSelections; track $index) {
               <div class="summary-row">
-                <span>{{ getPassengerName(bag.passengerId) }} &mdash; +{{ bag.additionalBags }} bag{{ bag.additionalBags !== 1 ? 's' : '' }} ({{ getSegmentRoute(bag.segmentId) }})</span>
+                <span>{{ getPassengerName(bag.passengerId) }} &mdash; +{{ bag.additionalBags }} bag{{ bag.additionalBags !== 1 ? 's' : '' }}@if (getSegmentRoute()) { ({{ getSegmentRoute() }}) }</span>
                 <span class="summary-price">{{ bag.currency }} {{ bag.price.toFixed(2) }}</span>
               </div>
             }
           </div>
         }
 
-        @if (seatSelections().length > 0) {
+        @if (summary()?.seatSelections?.length) {
           <div class="summary-group">
             <div class="summary-group-title">&#128186; Seat Selection</div>
-            @for (seat of seatSelections(); track seat.passengerId + seat.segmentId) {
+            @for (seat of summary()!.seatSelections; track $index) {
               <div class="summary-row">
-                <span>{{ getPassengerName(seat.passengerId) }} &mdash; Seat {{ seat.seatNumber }} ({{ getSegmentRoute(seat.segmentId) }})</span>
-                <span class="summary-price">{{ seat.currency }} {{ seat.seatPrice.toFixed(2) }}</span>
+                <span>{{ getPassengerName(seat.passengerId) }} &mdash; Seat {{ seat.seatNumber }}@if (getSegmentRoute()) { ({{ getSegmentRoute() }}) }</span>
+                <span class="summary-price">{{ seat.currency }} {{ seat.price.toFixed(2) }}</span>
               </div>
             }
           </div>

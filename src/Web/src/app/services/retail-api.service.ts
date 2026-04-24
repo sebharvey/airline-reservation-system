@@ -683,6 +683,7 @@ export class RetailApiService {
       segments: [],
       currency,
       bookingType: 'Revenue',
+      basketType: 'CheckIn',
       passengerCount
     };
     return this.#http.post<CreateBasketResponse>(`${base}/api/v1/basket`, body);
