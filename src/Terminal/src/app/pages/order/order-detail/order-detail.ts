@@ -247,6 +247,8 @@ export class OrderDetailComponent implements OnInit {
   switchTab(tab: 'orderItems' | 'payments' | 'history' | 'tickets' | 'notes'): void {
     this.activeTab.set(tab);
     if (tab === 'tickets') {
+      this.tickets.set([]);
+      this.documents.set([]);
       this.loadTickets();
       this.loadDocuments();
     }

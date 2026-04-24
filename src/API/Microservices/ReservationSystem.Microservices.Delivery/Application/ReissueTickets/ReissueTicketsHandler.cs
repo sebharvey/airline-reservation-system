@@ -164,9 +164,21 @@ public sealed class ReissueTicketsHandler
                 }).ToList()
             };
         }
+        else if (oldFareConstructionNode is JsonObject oldFcObj)
+        {
+            // Ensure totalAmount is always present. Legacy tickets issued before totalAmount was
+            // added to the schema will be missing it; derive it from baseFare + totalTaxes.
+            if (oldFcObj["totalAmount"] is null)
+            {
+                var baseFare = oldFcObj["baseFare"]?.GetValue<decimal>() ?? 0m;
+                var totalTaxes = oldFcObj["totalTaxes"]?.GetValue<decimal>() ?? 0m;
+                oldFcObj["totalAmount"] = baseFare + totalTaxes;
+            }
+            fareConstruction = oldFcObj;
+        }
         else
         {
-            fareConstruction = oldFareConstructionNode; // JsonNode serialises correctly in anonymous object
+            fareConstruction = null;
         }
 
         var detail = oldETicketNumber is not null

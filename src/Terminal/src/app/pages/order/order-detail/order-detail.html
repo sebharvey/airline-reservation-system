@@ -507,7 +507,7 @@
                       </td>
                       <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) : '—' }}</td>
+                      <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
                   }
@@ -522,7 +522,7 @@
                     <div class="mobile-ticket-num mono">{{ ticket.eTicketNumber }}</div>
                     <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
                     @if (ticket.ticketData?.fareConstruction?.totalAmount != null) {
-                      <div class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) }}</div>
+                      <div class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</div>
                     }
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
@@ -562,7 +562,7 @@
                       </td>
                       <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.voidedAt) }}</td>
-                      <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.pricingCurrency) : '—' }}</td>
+                      <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
                   }
@@ -1290,15 +1290,15 @@
             <div class="field-grid">
               <div class="field-row">
                 <span class="field-label">Base fare</span>
-                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.baseFare, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.baseFare, t.ticketData!.fareConstruction!.currency) }}</span>
               </div>
               <div class="field-row">
                 <span class="field-label">Total taxes</span>
-                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalTaxes, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalTaxes, t.ticketData!.fareConstruction!.currency) }}</span>
               </div>
               <div class="field-row">
                 <span class="field-label">Total</span>
-                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalAmount, t.ticketData!.fareConstruction!.pricingCurrency) }}</span>
+                <span class="field-value">{{ formatAmount(t.ticketData!.fareConstruction!.totalAmount, t.ticketData!.fareConstruction!.currency) }}</span>
               </div>
               @if (t.ticketData!.fareConstruction!.fareCalculationLine) {
                 <div class="field-row field-row-full">
@@ -1368,7 +1368,7 @@
               @if (t.ticketData!.originalIssue!.fareAmount !== null) {
                 <div class="field-row">
                   <span class="field-label">Original fare</span>
-                  <span class="field-value">{{ formatAmount(t.ticketData!.originalIssue!.fareAmount!, t.ticketData?.fareConstruction?.pricingCurrency || 'GBP') }}</span>
+                  <span class="field-value">{{ formatAmount(t.ticketData!.originalIssue!.fareAmount!, t.ticketData?.fareConstruction?.currency || 'GBP') }}</span>
                 </div>
               }
             </div>

@@ -169,12 +169,8 @@ export interface TicketData {
     frequentFlyer: { carrier: string; number: string; tier: string } | null;
   } | null;
   fareConstruction: {
-    pricingCurrency: string;
-    collectingCurrency: string;
+    currency: string;
     baseFare: number;
-    equivalentFarePaid: number;
-    nucAmount: number;
-    roeApplied: number;
     fareCalculationLine: string | null;
     taxes: Array<{ code: string; amount: number; currency: string; description: string }>;
     totalTaxes: number;
