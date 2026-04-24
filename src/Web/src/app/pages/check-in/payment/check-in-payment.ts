@@ -84,8 +84,8 @@ export class CheckInPaymentComponent implements OnInit {
       order.bookingReference,
       this.checkInState.bagSelections(),
       this.checkInState.seatSelections(),
-      card.cardLast4,
-      card.cardType
+      this.checkInState.basketId(),
+      card
     ).subscribe({
       next: (result) => {
         this.paying.set(false);

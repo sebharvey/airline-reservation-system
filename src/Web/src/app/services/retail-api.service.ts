@@ -888,16 +888,24 @@ export class RetailApiService {
    */
   addCheckInAncillaries(
     bookingRef: string,
-    bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number }[],
-    seats: { passengerId: string; segmentId: string; seatNumber: string; seatPrice: number }[],
-    cardLast4: string,
-    cardType: string
+    bags: { passengerId: string; segmentId: string; additionalBags: number; bagOfferId: string; price: number; currency: string }[],
+    seats: { passengerId: string; segmentId: string; seatNumber: string; seatPrice: number; currency: string }[],
+    basketId: string | null,
+    card: { cardNumber: string; expiryDate: string; cvv: string; cardholderName: string; cardLast4: string; cardType: string }
   ): Observable<{ success: boolean; paymentReference: string; documents: EmdDocument[] }> {
     const base = environment.retailApiBaseUrl;
     const body = {
+      basketId: basketId ?? undefined,
       bagSelections: bags,
       seatSelections: seats,
-      payment: { cardLast4, cardType }
+      payment: {
+        cardNumber: card.cardNumber,
+        expiryDate: card.expiryDate,
+        cvv: card.cvv,
+        cardholderName: card.cardholderName,
+        cardLast4: card.cardLast4,
+        cardType: card.cardType
+      }
     };
     return this.#http
       .post<{ success: boolean; paymentReference: string; documents: { documentNumber: string; documentType: string; passengerId: string; segmentRef: string; amount: number; currency: string }[] }>(
