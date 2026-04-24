@@ -288,6 +288,47 @@
           </button>
         </div>
 
+        <!-- Filter bar -->
+        @if (holdsTab() !== 'seatmap') {
+          <div class="holds-filters">
+            <input
+              class="holds-filter-input"
+              type="text"
+              placeholder="Booking ref…"
+              [value]="holdsFilterRef()"
+              (input)="holdsFilterRef.set($any($event.target).value)"
+            />
+            <input
+              class="holds-filter-input"
+              type="text"
+              placeholder="Name…"
+              [value]="holdsFilterName()"
+              (input)="holdsFilterName.set($any($event.target).value)"
+            />
+            <select
+              class="holds-filter-select"
+              [value]="holdsFilterCabin()"
+              (change)="holdsFilterCabin.set($any($event.target).value)"
+            >
+              <option value="">All cabins</option>
+              <option value="F">F — First</option>
+              <option value="J">J — Business</option>
+              <option value="W">W — Premium Economy</option>
+              <option value="Y">Y — Economy</option>
+            </select>
+            <input
+              class="holds-filter-input"
+              type="text"
+              placeholder="Seat…"
+              [value]="holdsFilterSeat()"
+              (input)="holdsFilterSeat.set($any($event.target).value)"
+            />
+            @if (holdsFiltersActive()) {
+              <button class="holds-filter-clear" (click)="clearHoldsFilters()">Clear</button>
+            }
+          </div>
+        }
+
         <!-- Confirmed tab -->
         @if (holdsTab() === 'confirmed') {
           @if (confirmedHolds().length === 0) {

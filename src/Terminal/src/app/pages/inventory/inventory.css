@@ -555,6 +555,66 @@
   flex-shrink: 0;
 }
 
+/* Holds filter bar */
+.holds-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.holds-filter-input {
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  font-size: 0.8rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  min-width: 110px;
+  flex: 1;
+  max-width: 180px;
+}
+
+.holds-filter-input:focus { border-color: var(--grad-start); }
+.holds-filter-input::placeholder { color: var(--text-muted); }
+
+.holds-filter-select {
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  font-size: 0.8rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  min-width: 140px;
+}
+
+.holds-filter-select:focus { border-color: var(--grad-start); }
+
+.holds-filter-clear {
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.holds-filter-clear:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
 /* Holds table inside modal */
 .holds-table-wrap {
   border: 1px solid var(--border);
