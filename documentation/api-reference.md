@@ -17,6 +17,7 @@
   - [Check-in](#check-in)
   - [Admin Order Management](#admin-order-management)
   - [Admin Inventory Management](#admin-inventory-management)
+  - [NDC](#ndc)
 - [Loyalty API](#loyalty-api--full-api-spec)
   - [Authentication](#authentication)
   - [Account & Profile](#account--profile)
@@ -128,6 +129,25 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, grouped by flight (one row per flight with cabin F/J/W/Y aggregated as columns). Query param `departureDate=yyyy-MM-dd`; defaults to today. Each row includes total seats, seats available per cabin, overall load factor (percent of seats filled), and flight status. |
+
+### NDC
+
+IATA NDC 21.3 channel endpoints. Accept and return `application/xml` using the IATA NDC schema namespace `http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ` (request) / `http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS` (response). The parser accepts any NDC namespace version; the response always uses 21.3.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/ndc/AirShopping` | Accept an `IATA_AirShoppingRQ` XML document; parse origin, destination, departure date, and anonymous traveler types; search for available flights via the Offer microservice; return an `IATA_AirShoppingRS` XML document containing `OffersGroup` (one NDC Offer per cabin/fare-family per flight) and `DataLists` (FlightSegmentList, OriginDestinationList, AnonymousTravelerList); `OfferID` in the response equals the internal `offerId` GUID for basket creation; returns `application/xml` with NDC `Errors` element on `400` or `500` |
+
+**NDC cabin code mapping**
+
+| Internal cabin | NDC CabinTypeCode |
+|---------------|-------------------|
+| `Y` (Economy) | `M` |
+| `W` (Premium Economy) | `W` |
+| `J` (Business) | `C` |
+| `F` (First) | `F` |
+
+**NDC aircraft code mapping** — internal 4-char codes are mapped to IATA 3-char codes in the `Equipment/AircraftCode` element (e.g. `A351` → `351`, `B789` → `789`, `A339` → `339`).
 
 ---
 
