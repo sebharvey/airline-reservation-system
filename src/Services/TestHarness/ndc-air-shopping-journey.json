@@ -1,0 +1,178 @@
+{
+  "journey": {
+    "name": "NDC — AirShopping (IATA NDC 21.3)",
+    "description": "Validates the NDC 21.3 AirShopping endpoint (POST /v1/ndc/AirShopping) on the Retail API. Covers well-formed requests with single and multiple passenger types, a past-date search that returns an empty OffersGroup, and negative cases for a missing CoreQuery, invalid XML, and an empty body.",
+    "domain": "Retail",
+    "baseUrls": [
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "AirShopping — 1 ADT, LHR→JFK",
+      "description": "Posts a valid IATA_AirShoppingRQ for one adult passenger from LHR to JFK on tomorrow’s date. Expects a 200 response containing a well-formed IATA_AirShoppingRS with ShoppingResponseID, OffersGroup, and DataLists.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <CoreQuery>\n    <OriginDestinations>\n      <OriginDestination>\n        <Departure>\n          <AirportCode>LHR</AirportCode>\n          <Date>__RAND_DEPART_DATE__</Date>\n        </Departure>\n        <Arrival>\n          <AirportCode>JFK</AirportCode>\n        </Arrival>\n      </OriginDestination>\n    </OriginDestinations>\n  </CoreQuery>\n</IATA_AirShoppingRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <ShoppingResponseID><ResponseID>...</ResponseID></ShoppingResponseID>\n  <OffersGroup><AirlineOffers><Offer>...</Offer></AirlineOffers></OffersGroup>\n  <DataLists><FlightSegmentList>...</FlightSegmentList></DataLists>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with a well-formed IATA_AirShoppingRS containing ShoppingResponseID, OffersGroup, and DataLists.",
+        "keyFields": [],
+        "validationNotes": "Response Content-Type must be application/xml. The root element must be IATA_AirShoppingRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS. Each Offer’s OfferID is the internal offerId GUID usable for basket creation."
+      }
+    },
+    {
+      "step": 2,
+      "name": "AirShopping — 2 ADT + 1 CHD",
+      "description": "Posts a valid IATA_AirShoppingRQ for two adults and one child from LHR to JFK on tomorrow’s date. Expects the DataLists/AnonymousTravelerList to contain two entries — one per passenger type group.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>2</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>CHD</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <CoreQuery>\n    <OriginDestinations>\n      <OriginDestination>\n        <Departure>\n          <AirportCode>LHR</AirportCode>\n          <Date>__RAND_DEPART_DATE__</Date>\n        </Departure>\n        <Arrival>\n          <AirportCode>JFK</AirportCode>\n        </Arrival>\n      </OriginDestination>\n    </OriginDestinations>\n  </CoreQuery>\n</IATA_AirShoppingRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <ShoppingResponseID><ResponseID>...</ResponseID></ShoppingResponseID>\n  <OffersGroup><AirlineOffers><Offer>...</Offer></AirlineOffers></OffersGroup>\n  <DataLists>\n    <AnonymousTravelerList>\n      <AnonymousTraveler><PTC>ADT</PTC><Quantity>2</Quantity></AnonymousTraveler>\n      <AnonymousTraveler><PTC>CHD</PTC><Quantity>1</Quantity></AnonymousTraveler>\n    </AnonymousTravelerList>\n  </DataLists>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200. DataLists/AnonymousTravelerList contains one entry per passenger type group (ADT with Quantity 2, CHD with Quantity 1).",
+        "keyFields": [],
+        "validationNotes": "Each AnonymousTraveler in the DataLists reflects the PTC and Quantity from the request, not individual passenger instances."
+      }
+    },
+    {
+      "step": 3,
+      "name": "AirShopping — past date (no inventory)",
+      "description": "Posts a valid IATA_AirShoppingRQ for a past date (2020-01-01) on the LHR→JFK route. The endpoint always returns 200; no inventory exists for a past date so OffersGroup must contain no Offer elements.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <CoreQuery>\n    <OriginDestinations>\n      <OriginDestination>\n        <Departure>\n          <AirportCode>LHR</AirportCode>\n          <Date>2020-01-01</Date>\n        </Departure>\n        <Arrival>\n          <AirportCode>JFK</AirportCode>\n        </Arrival>\n      </OriginDestination>\n    </OriginDestinations>\n  </CoreQuery>\n</IATA_AirShoppingRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <ShoppingResponseID><ResponseID>...</ResponseID></ShoppingResponseID>\n  <OffersGroup><AirlineOffers></AirlineOffers></OffersGroup>\n  <DataLists></DataLists>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with an empty OffersGroup — no inventory exists for a past departure date.",
+        "keyFields": [],
+        "validationNotes": "The endpoint never returns 404 for a no-results search. An empty OffersGroup is the correct NDC representation of no available offers."
+      }
+    },
+    {
+      "step": 4,
+      "name": "Missing CoreQuery — 400",
+      "description": "Posts an IATA_AirShoppingRQ that omits the CoreQuery element. The parser cannot determine origin, destination, or departure date and must return 400 with an NDC Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n</IATA_AirShoppingRQ>"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_AirShoppingRS containing an Errors/Error element with Code ERR_PARSE.",
+        "keyFields": [],
+        "validationNotes": "The response Content-Type must still be application/xml even on error. The Errors element follows the NDC schema structure."
+      }
+    },
+    {
+      "step": 5,
+      "name": "Invalid XML — 400",
+      "description": "Posts a body that is not valid XML. The endpoint must return 400; it cannot parse the document at all.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "this is not xml << >"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body cannot be parsed as XML.",
+        "keyFields": [],
+        "validationNotes": "The endpoint must reject any body that is not well-formed XML, regardless of content."
+      }
+    },
+    {
+      "step": 6,
+      "name": "Empty body — 400",
+      "description": "Posts an empty body. The endpoint must return 400 with an NDC Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "The Errors/Error element must have Code ERR_EMPTY_BODY."
+      }
+    }
+  ]
+}

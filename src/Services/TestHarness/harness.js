@@ -24,6 +24,7 @@
         { value: 'seat-pricing',                label: 'admin - seat pricing' },
         { value: 'bag-policy',                  label: 'admin - bag policy' },
         { value: 'bag-pricing',                 label: 'admin - bag pricing' },
+        { value: 'ndc-air-shopping',             label: 'NDC - AirShopping (IATA NDC 21.3)' },
         { value: 'timatic',                     label: 'timatic - autocheck simulator' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
@@ -240,7 +241,10 @@
         }
         if (requestBody !== null && requestBody !== undefined) {
             requestBody = resolveChainStrings(requestBody, chain);
-            fetchOpts.body = JSON.stringify(requestBody);
+            const ct = fetchOpts.headers['Content-Type'] || fetchOpts.headers['content-type'] || '';
+            fetchOpts.body = (ct.includes('application/xml') && typeof requestBody === 'string')
+                ? requestBody
+                : JSON.stringify(requestBody);
         }
 
         const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
@@ -1296,7 +1300,10 @@
         }
 
         if (requestBody !== null && requestBody !== undefined) {
-            fetchOpts.body = JSON.stringify(requestBody);
+            const ct = fetchOpts.headers['Content-Type'] || fetchOpts.headers['content-type'] || '';
+            fetchOpts.body = (ct.includes('application/xml') && typeof requestBody === 'string')
+                ? requestBody
+                : JSON.stringify(requestBody);
         }
 
         const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
