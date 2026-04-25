@@ -67,6 +67,8 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Operations API | `CustomerMs:BaseUrl` | Customer MS |
 | Operations API | `CustomerMs:HostKey` | Customer MS — Azure Function host key |
 | Operations API | `PaymentMs:BaseUrl` | Payment MS |
+| Delivery MS | `Timatic:BaseUrl` | Timatic Simulator |
+| Delivery MS | `Timatic:ApiToken` | Bearer token sent in `Authorization` header to the Timatic Simulator |
 | Operations API | `AncillaryMs:BaseUrl` | Ancillary MS |
 | Operations API | `AncillaryMs:HostKey` | Ancillary MS — Azure Function host key |
 | Admin API | `UserMs:BaseUrl` | User MS |

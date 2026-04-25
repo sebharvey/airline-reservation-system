@@ -149,6 +149,37 @@ public sealed class Ticket
     }
 
     /// <summary>
+    /// Returns the first coupon departing from <paramref name="departureAirport"/> regardless of status.
+    /// Returns <c>null</c> if no matching coupon exists.
+    /// </summary>
+    public CouponInfo? GetCouponForOrigin(string departureAirport)
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        if (root is null) return null;
+
+        var coupons = root["coupons"]?.AsArray();
+        if (coupons is null) return null;
+
+        foreach (var node in coupons)
+        {
+            if (node is not JsonObject coupon) continue;
+            var origin = coupon["origin"]?.GetValue<string>() ?? "";
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase)) continue;
+
+            return new CouponInfo(
+                FlightNumber: coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "",
+                Origin: origin,
+                Destination: coupon["destination"]?.GetValue<string>() ?? "",
+                DepartureDate: coupon["departureDate"]?.GetValue<string>() ?? "",
+                ClassOfService: coupon["classOfService"]?.GetValue<string>() ?? "Y",
+                SeatNumber: coupon["seat"]?.GetValue<string>(),
+                Status: coupon["status"]?.GetValue<string>() ?? "");
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Returns all coupons checked in (status CHECKED_IN) departing from <paramref name="departureAirport"/>.
     /// </summary>
     public IReadOnlyList<CouponInfo> GetCheckedInCouponsForOrigin(string departureAirport)

@@ -89,7 +89,7 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
-        // ── Health check ───────────────────────────────────────────────────────
+// ── Health check ───────────────────────────────────────────────────────
         services.AddHealthCheck("HealthCheck", sp => ct => Task.FromResult(true));
 
         // ── Infrastructure clients ─────────────────────────────────────────────

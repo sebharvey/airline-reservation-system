@@ -126,8 +126,8 @@ public sealed class OciCheckInHandler
         var tickets = new List<OciCheckInTicket>();
         if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object) return tickets;
 
-        // Build passengerId → name map from dataLists.passengers
-        var nameMap = new Dictionary<string, (string GivenName, string Surname)>(StringComparer.OrdinalIgnoreCase);
+        // Build passengerId → name + travel doc map from dataLists.passengers
+        var paxMap = new Dictionary<string, PaxInfo>(StringComparer.OrdinalIgnoreCase);
         if (el.TryGetProperty("dataLists", out var dl) &&
             dl.TryGetProperty("passengers", out var paxArr) &&
             paxArr.ValueKind == JsonValueKind.Array)
@@ -135,9 +135,25 @@ public sealed class OciCheckInHandler
             foreach (var pax in paxArr.EnumerateArray())
             {
                 var pid = pax.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
+                if (pid is null) continue;
+
                 var gn = pax.TryGetProperty("givenName", out var gnEl) ? gnEl.GetString() ?? "" : "";
                 var sn = pax.TryGetProperty("surname", out var snEl) ? snEl.GetString() ?? "" : "";
-                if (pid is not null) nameMap[pid] = (gn, sn);
+
+                string? docNationality = null, docNumber = null, docIssuingCountry = null, docExpiryDate = null;
+
+                if (pax.TryGetProperty("docs", out var docs) &&
+                    docs.ValueKind == JsonValueKind.Array &&
+                    docs.GetArrayLength() > 0)
+                {
+                    var doc = docs[0];
+                    docNationality = doc.TryGetProperty("nationality", out var nat) ? nat.GetString() : null;
+                    docNumber = doc.TryGetProperty("number", out var num) ? num.GetString() : null;
+                    docIssuingCountry = doc.TryGetProperty("issuingCountry", out var ic) ? ic.GetString() : null;
+                    docExpiryDate = doc.TryGetProperty("expiryDate", out var ed) ? ed.GetString() : null;
+                }
+
+                paxMap[pid] = new PaxInfo(gn, sn, docNationality, docNumber, docIssuingCountry, docExpiryDate);
             }
         }
 
@@ -151,16 +167,28 @@ public sealed class OciCheckInHandler
             var paxId = et.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
             if (ticketNum is null || paxId is null) continue;
 
-            nameMap.TryGetValue(paxId, out var names);
+            paxMap.TryGetValue(paxId, out var info);
             tickets.Add(new OciCheckInTicket
             {
                 TicketNumber = ticketNum,
                 PassengerId = paxId,
-                GivenName = names.GivenName ?? "",
-                Surname = names.Surname ?? ""
+                GivenName = info?.GivenName ?? "",
+                Surname = info?.Surname ?? "",
+                DocNationality = info?.DocNationality,
+                DocNumber = info?.DocNumber,
+                DocIssuingCountry = info?.DocIssuingCountry,
+                DocExpiryDate = info?.DocExpiryDate
             });
         }
 
         return tickets;
     }
+
+    private sealed record PaxInfo(
+        string GivenName,
+        string Surname,
+        string? DocNationality,
+        string? DocNumber,
+        string? DocIssuingCountry,
+        string? DocExpiryDate);
 }

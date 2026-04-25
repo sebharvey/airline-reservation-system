@@ -328,6 +328,11 @@ public sealed class OciFunction
                 checkedIn = result.CheckedIn
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("OCI check-in: APIS check blocked {BookingReference} — {Message}", bookingReference, ex.Message);
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "OCI check-in failed for {BookingReference}", bookingReference);
