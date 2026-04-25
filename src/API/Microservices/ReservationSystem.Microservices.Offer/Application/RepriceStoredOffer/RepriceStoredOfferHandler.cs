@@ -90,7 +90,7 @@ public sealed class RepriceStoredOfferHandler
                 var cabin = inventory?.Cabins.FirstOrDefault(c => c.CabinCode == item.CabinCode);
                 var occupancyRatio = cabin is not null
                     ? FarePricer.ComputeOccupancyRatio(cabin)
-                    : 0.0;
+                    : 0m;
 
                 baseFareAmount        = FarePricer.ComputeDynamicPrice(fareRule.MinAmount, fareRule.MaxAmount, occupancyRatio);
                 taxAmount             = fareRule.GetTotalTaxAmount();
