@@ -35,6 +35,7 @@ The test harness is a single-page web application that drives end-to-end API jou
 | `terminal-customer-journey.json` | Terminal — customer search & management |
 | `user-journey.json` | User — account creation & authentication |
 | `fare-rules-journey.json` | Fare rules — create, edit & remove |
+| `ndc-air-shopping-journey.json` | NDC — AirShopping (IATA NDC 21.3) |
 | `timatic-journey.json` | Timatic Simulator — document check, APIS check, realtime gate check |
 | `operations-journey.json` | Operations — SSIM import & inventory *(disabled)* |
 
