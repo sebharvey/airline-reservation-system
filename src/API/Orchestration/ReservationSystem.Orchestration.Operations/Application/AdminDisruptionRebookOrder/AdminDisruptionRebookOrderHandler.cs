@@ -8,6 +8,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruption
 public sealed class AdminDisruptionRebookOrderHandler
 {
     private const int AvailabilityLookaheadDays = 7;
+    private const int CheckInCutoffMinutes = 45;
 
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
@@ -62,26 +63,28 @@ public sealed class AdminDisruptionRebookOrderHandler
                 .SelectMany(flight => flight.Cabins
                     .Select(cabin => new RebookReplacementOption
                     {
-                        DepartureDate = flight.DepartureDate,
-                        DepartureTime = flight.DepartureTime,
-                        CabinCode = cabin.CabinCode,
-                        Legs =
+                        DepartureDate    = flight.DepartureDate,
+                        DepartureTime    = flight.DepartureTime,
+                        DepartureTimeUtc = flight.DepartureTimeUtc,
+                        CabinCode        = cabin.CabinCode,
+                        Legs             =
                         [
                             new RebookReplacementLeg
                             {
-                                OfferId = string.Empty,
-                                InventoryId = flight.InventoryId,
-                                FlightNumber = flight.FlightNumber,
-                                DepartureDate = flight.DepartureDate,
-                                DepartureTime = flight.DepartureTime,
-                                ArrivalTime = flight.ArrivalTime,
+                                OfferId          = string.Empty,
+                                InventoryId      = flight.InventoryId,
+                                FlightNumber     = flight.FlightNumber,
+                                DepartureDate    = flight.DepartureDate,
+                                DepartureTime    = flight.DepartureTime,
+                                ArrivalTime      = flight.ArrivalTime,
                                 ArrivalDayOffset = flight.ArrivalDayOffset,
-                                Origin = flight.Origin,
-                                Destination = flight.Destination,
-                                SeatsAvailable = cabin.SeatsAvailable
+                                Origin           = flight.Origin,
+                                Destination      = flight.Destination,
+                                SeatsAvailable   = cabin.SeatsAvailable
                             }
                         ]
                     }))
+                .Where(o => IsRebookable(o.DepartureDate, o.DepartureTimeUtc))
                 .ToList();
 
             var replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
@@ -305,6 +308,14 @@ public sealed class AdminDisruptionRebookOrderHandler
     private static AdminDisruptionRebookOrderResponse Failed(string bookingReference, string reason) =>
         new() { BookingReference = bookingReference, Outcome = "Failed", FailureReason = reason };
 
+    private static bool IsRebookable(string departureDate, string? departureTimeUtc)
+    {
+        if (departureTimeUtc is null) return false;
+        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var date)) return false;
+        if (!TimeOnly.TryParseExact(departureTimeUtc, "HH:mm", out var time)) return false;
+        return date.ToDateTime(time, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(CheckInCutoffMinutes);
+    }
+
     private static RebookReplacementOption? FindBestReplacement(
         List<RebookReplacementOption> options,
         string originalCabinCode,
@@ -336,6 +347,7 @@ internal sealed class RebookReplacementOption
 {
     public string DepartureDate { get; init; } = string.Empty;
     public string DepartureTime { get; init; } = string.Empty;
+    public string? DepartureTimeUtc { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public List<RebookReplacementLeg> Legs { get; init; } = [];
 }

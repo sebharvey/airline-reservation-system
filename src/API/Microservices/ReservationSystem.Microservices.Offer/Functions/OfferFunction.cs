@@ -935,6 +935,7 @@ public sealed class OfferFunction
                 flightNumber     = f.FlightNumber,
                 departureDate    = f.DepartureDate.ToString("yyyy-MM-dd"),
                 departureTime    = f.DepartureTime.ToString("HH:mm"),
+                departureTimeUtc = f.DepartureTimeUtc?.ToString("HH:mm"),
                 arrivalTime      = f.ArrivalTime.ToString("HH:mm"),
                 arrivalDayOffset = f.ArrivalDayOffset,
                 origin           = f.Origin,

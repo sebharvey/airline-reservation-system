@@ -94,6 +94,9 @@ public sealed class AvailableFlightDto
     [JsonPropertyName("departureTime")]
     public string DepartureTime { get; init; } = string.Empty;
 
+    [JsonPropertyName("departureTimeUtc")]
+    public string? DepartureTimeUtc { get; init; }
+
     [JsonPropertyName("arrivalTime")]
     public string ArrivalTime { get; init; } = string.Empty;
 

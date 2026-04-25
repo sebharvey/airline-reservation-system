@@ -8,6 +8,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruption
 public sealed class AdminDisruptionCancelHandler
 {
     private const int AvailabilityLookaheadDays = 7;
+    private const int CheckInCutoffMinutes = 45;
 
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
@@ -101,10 +102,11 @@ public sealed class AdminDisruptionCancelHandler
             .SelectMany(flight => flight.Cabins
                 .Select(cabin => new ReplacementOption
                 {
-                    DepartureDate = flight.DepartureDate,
-                    DepartureTime = flight.DepartureTime,
-                    CabinCode     = cabin.CabinCode,
-                    Legs          =
+                    DepartureDate    = flight.DepartureDate,
+                    DepartureTime    = flight.DepartureTime,
+                    DepartureTimeUtc = flight.DepartureTimeUtc,
+                    CabinCode        = cabin.CabinCode,
+                    Legs             =
                     [
                         new ReplacementLeg
                         {
@@ -122,11 +124,12 @@ public sealed class AdminDisruptionCancelHandler
                         }
                     ]
                 }))
+            .Where(o => IsRebookable(o.DepartureDate, o.DepartureTimeUtc))
             .ToList();
 
         _logger.LogInformation(
-            "Availability search returned {FlightCount} flight(s) across {Days} days for {Origin}→{Destination}",
-            availability.Flights.Count, AvailabilityLookaheadDays, origin, destination);
+            "Availability search returned {FlightCount} flight(s) across {Days} days for {Origin}→{Destination}; {PoolCount} option(s) remain after check-in cutoff filter",
+            availability.Flights.Count, AvailabilityLookaheadDays, origin, destination, replacementPool.Count);
 
         var outcomes = new List<DisruptionPassengerOutcome>();
         for (int i = 0; i < sortedOrders.Count; i++)
@@ -441,6 +444,14 @@ public sealed class AdminDisruptionCancelHandler
         _ => [originalCabin]
     };
 
+    private static bool IsRebookable(string departureDate, string? departureTimeUtc)
+    {
+        if (departureTimeUtc is null) return false;
+        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var date)) return false;
+        if (!TimeOnly.TryParseExact(departureTimeUtc, "HH:mm", out var time)) return false;
+        return date.ToDateTime(time, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(CheckInCutoffMinutes);
+    }
+
     private static void DecrementAvailability(
         List<ReplacementOption> options,
         Guid inventoryId,
@@ -465,6 +476,7 @@ internal sealed class ReplacementOption
 {
     public string DepartureDate { get; init; } = string.Empty;
     public string DepartureTime { get; init; } = string.Empty;
+    public string? DepartureTimeUtc { get; init; }
     public string CabinCode { get; init; } = string.Empty;
     public List<ReplacementLeg> Legs { get; init; } = [];
 }
