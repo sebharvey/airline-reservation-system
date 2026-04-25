@@ -162,6 +162,18 @@ public sealed class OciCheckInTicket
 
     [JsonPropertyName("surname")]
     public string Surname { get; init; } = string.Empty;
+
+    [JsonPropertyName("docNationality")]
+    public string? DocNationality { get; init; }
+
+    [JsonPropertyName("docNumber")]
+    public string? DocNumber { get; init; }
+
+    [JsonPropertyName("docIssuingCountry")]
+    public string? DocIssuingCountry { get; init; }
+
+    [JsonPropertyName("docExpiryDate")]
+    public string? DocExpiryDate { get; init; }
 }
 
 public sealed class OciCheckInResult

@@ -22,6 +22,7 @@ using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Domain.Services;
+using ReservationSystem.Microservices.Delivery.Infrastructure.ExternalServices;
 using ReservationSystem.Microservices.Delivery.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Caching;
 using ReservationSystem.Shared.Common.Health;
@@ -62,6 +63,15 @@ var host = new HostBuilder()
             });
         });
         services.AddHttpClient();
+        services.AddHttpClient("Timatic", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["Timatic:BaseUrl"] ?? "https://reservation-system-simulator-timatic-h0guaxfvgaengdeh.uksouth-01.azurewebsites.net/");
+            var apiToken = context.Configuration["Timatic:ApiToken"];
+            if (!string.IsNullOrEmpty(apiToken))
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiToken);
+        });
+        services.AddScoped<TimaticServiceClient>();
         services.AddScoped<ITicketRepository, EfTicketRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
         services.AddScoped<IManifestRepository, EfManifestRepository>();

@@ -45,6 +45,7 @@ public sealed class OciFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "Check-in request with departureAirport and tickets array")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Timatic document or APIS check failed")]
     public async Task<HttpResponseData> OciCheckIn(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/checkin")] HttpRequestData req,
         CancellationToken cancellationToken)
@@ -69,7 +70,16 @@ public sealed class OciFunction
             var passengerId = t.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
             var givenName = t.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "";
             var surname = t.TryGetProperty("surname", out var sn) ? sn.GetString() ?? "" : "";
-            tickets.Add(new OciCheckInTicket(ticketNumber, passengerId, givenName, surname));
+
+            // Optional travel document fields forwarded from the Operations API
+            var docNationality = t.TryGetProperty("docNationality", out var nat) ? nat.GetString() : null;
+            var docNumber = t.TryGetProperty("docNumber", out var num) ? num.GetString() : null;
+            var docIssuingCountry = t.TryGetProperty("docIssuingCountry", out var ic) ? ic.GetString() : null;
+            var docExpiryDate = t.TryGetProperty("docExpiryDate", out var ed) ? ed.GetString() : null;
+
+            tickets.Add(new OciCheckInTicket(
+                ticketNumber, passengerId, givenName, surname,
+                docNationality, docNumber, docIssuingCountry, docExpiryDate));
         }
 
         if (tickets.Count == 0)
@@ -85,6 +95,11 @@ public sealed class OciFunction
                 checkedIn = result.CheckedIn,
                 tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status })
             });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("OCI check-in blocked by Timatic for {DepartureAirport}: {Message}", departureAirport, ex.Message);
+            return await req.UnprocessableEntityAsync(ex.Message);
         }
         catch (Exception ex)
         {
