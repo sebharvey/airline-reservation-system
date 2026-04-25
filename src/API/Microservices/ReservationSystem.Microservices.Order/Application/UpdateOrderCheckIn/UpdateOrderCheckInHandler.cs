@@ -124,6 +124,19 @@ public sealed class UpdateOrderCheckInHandler
             ["message"] = noteMessage
         });
 
+        if (command.TimaticNotes is { Count: > 0 })
+        {
+            foreach (var timaticNote in command.TimaticNotes)
+            {
+                notesArray.Add(new JsonObject
+                {
+                    ["dateTime"] = command.CheckedInAt,
+                    ["type"] = "TIMATIC",
+                    ["message"] = timaticNote.Message
+                });
+            }
+        }
+
         orderJson["notes"] = notesArray;
 
         var updated = Domain.Entities.Order.Reconstitute(

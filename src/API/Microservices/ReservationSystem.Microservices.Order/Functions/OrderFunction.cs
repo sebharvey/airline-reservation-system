@@ -841,11 +841,25 @@ public sealed class OrderFunction
             passengers.Add(new UpdateOrderCheckInPassenger(passengerId, ticketNumber, status, message));
         }
 
+        IReadOnlyList<UpdateOrderCheckInTimaticNote>? timaticNotes = null;
+        if (body.TryGetProperty("timaticNotes", out var notesEl) && notesEl.ValueKind == JsonValueKind.Array)
+        {
+            var notesList = new List<UpdateOrderCheckInTimaticNote>();
+            foreach (var n in notesEl.EnumerateArray())
+            {
+                var msg = n.TryGetProperty("message", out var mEl) ? mEl.GetString() ?? "" : "";
+                if (!string.IsNullOrWhiteSpace(msg))
+                    notesList.Add(new UpdateOrderCheckInTimaticNote(msg));
+            }
+            timaticNotes = notesList;
+        }
+
         var command = new UpdateOrderCheckInCommand(
             bookingRef.ToUpperInvariant().Trim(),
             departureAirport,
             checkedInAt,
-            passengers);
+            passengers,
+            timaticNotes);
 
         try
         {

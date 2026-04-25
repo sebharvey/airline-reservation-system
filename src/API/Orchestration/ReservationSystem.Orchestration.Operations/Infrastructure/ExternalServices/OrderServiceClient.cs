@@ -55,9 +55,10 @@ public sealed class OrderServiceClient
         string departureAirport,
         string checkedInAt,
         IReadOnlyList<OrderCheckInPassenger> passengers,
+        IReadOnlyList<OrderTimaticNote>? timaticNotes,
         CancellationToken ct)
     {
-        var payload = new { departureAirport, checkedInAt, passengers };
+        var payload = new { departureAirport, checkedInAt, passengers, timaticNotes };
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
         using var response = await _httpClient.PatchAsync(
@@ -145,6 +146,12 @@ public sealed class OrderServiceClient
             throw new InvalidOperationException($"Failed to cancel order {bookingReference}: {error}");
         }
     }
+}
+
+public sealed class OrderTimaticNote
+{
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
 }
 
 public sealed class OrderCheckInPassenger

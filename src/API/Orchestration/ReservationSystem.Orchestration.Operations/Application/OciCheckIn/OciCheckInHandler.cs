@@ -68,6 +68,10 @@ public sealed class OciCheckInHandler
             var paxCheckIn = BuildPassengerCheckInEntries(tickets, checkedInSet);
             var checkedInAt = DateTime.UtcNow.ToString("o");
 
+            var timaticNotes = result.TimaticNotes.Count > 0
+                ? result.TimaticNotes.Select(n => new OrderTimaticNote { Message = n.Message }).ToList()
+                : null;
+
             try
             {
                 await _orderServiceClient.UpdateOrderCheckInAsync(
@@ -75,6 +79,7 @@ public sealed class OciCheckInHandler
                     command.DepartureAirport,
                     checkedInAt,
                     paxCheckIn,
+                    timaticNotes,
                     ct);
             }
             catch (Exception ex)

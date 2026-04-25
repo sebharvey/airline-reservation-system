@@ -183,6 +183,15 @@ public sealed class OciCheckInResult
 
     [JsonPropertyName("tickets")]
     public List<OciCheckedInTicket> Tickets { get; init; } = [];
+
+    [JsonPropertyName("timaticNotes")]
+    public List<DeliveryTimaticNote> TimaticNotes { get; init; } = [];
+}
+
+public sealed class DeliveryTimaticNote
+{
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
 }
 
 public sealed class OciCheckedInTicket

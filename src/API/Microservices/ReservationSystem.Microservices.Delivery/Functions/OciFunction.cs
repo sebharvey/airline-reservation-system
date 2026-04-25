@@ -93,7 +93,8 @@ public sealed class OciFunction
             return await req.OkJsonAsync(new
             {
                 checkedIn = result.CheckedIn,
-                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status })
+                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status }),
+                timaticNotes = result.TimaticNotes.Select(n => new { message = n.Message })
             });
         }
         catch (InvalidOperationException ex)

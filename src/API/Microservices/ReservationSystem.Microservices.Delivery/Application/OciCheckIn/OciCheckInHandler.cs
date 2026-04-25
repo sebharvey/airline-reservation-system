@@ -18,7 +18,9 @@ public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<Oc
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status);
 
-public sealed record OciCheckInResult(int CheckedIn, IReadOnlyList<OciCheckInTicketResult> Tickets);
+public sealed record TimaticNote(string Message);
+
+public sealed record OciCheckInResult(int CheckedIn, IReadOnlyList<OciCheckInTicketResult> Tickets, IReadOnlyList<TimaticNote> TimaticNotes);
 
 public sealed class OciCheckInHandler
 {
@@ -40,6 +42,7 @@ public sealed class OciCheckInHandler
     {
         var checkedInCount = 0;
         var results = new List<OciCheckInTicketResult>();
+        var timaticNotes = new List<TimaticNote>();
 
         // Tickets that were checked in but have no seat yet — collected for group allocation.
         var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode)>();
@@ -66,6 +69,7 @@ public sealed class OciCheckInHandler
 
             var bookingRef = ticket.BookingReference;
             var ticketNumSafe = ticketRequest.TicketNumber.Replace("-", "");
+            var passengerName = $"{ticketRequest.GivenName} {ticketRequest.Surname}".Trim();
 
             // Document check — validates passport/visa requirements
             if (!string.IsNullOrWhiteSpace(ticketRequest.DocNumber))
@@ -121,6 +125,9 @@ public sealed class OciCheckInHandler
 
                 _logger.LogInformation(
                     "Timatic document check passed for ticket {TicketNumber}", ticketRequest.TicketNumber);
+
+                timaticNotes.Add(new TimaticNote(
+                    $"Timatic document check passed for {passengerName} (ticket {ticketRequest.TicketNumber})"));
             }
 
             // APIS check — validates Advance Passenger Information
@@ -163,6 +170,9 @@ public sealed class OciCheckInHandler
             _logger.LogInformation(
                 "Timatic APIS check accepted for ticket {TicketNumber} — audit ref {AuditRef}",
                 ticketRequest.TicketNumber, apisResult.AuditRef);
+
+            timaticNotes.Add(new TimaticNote(
+                $"Timatic APIS check accepted for {passengerName} (ticket {ticketRequest.TicketNumber}) — audit ref {apisResult.AuditRef}"));
         }
 
         // ── Phase 2: check in coupons ────────────────────────────────────────────
@@ -242,7 +252,7 @@ public sealed class OciCheckInHandler
             }
         }
 
-        return new OciCheckInResult(checkedInCount, results);
+        return new OciCheckInResult(checkedInCount, results, timaticNotes);
     }
 
     private static string NormaliseDate(string raw)
