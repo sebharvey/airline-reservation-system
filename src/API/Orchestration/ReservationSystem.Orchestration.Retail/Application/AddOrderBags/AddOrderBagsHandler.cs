@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Orchestration.Retail.Application.AddOrderBags;
@@ -18,17 +19,20 @@ public sealed class AddOrderBagsHandler
     private readonly BagServiceClient _bagServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly ILogger<AddOrderBagsHandler> _logger;
 
     public AddOrderBagsHandler(
         OrderServiceClient orderServiceClient,
         BagServiceClient bagServiceClient,
         PaymentServiceClient paymentServiceClient,
-        DeliveryServiceClient deliveryServiceClient)
+        DeliveryServiceClient deliveryServiceClient,
+        ILogger<AddOrderBagsHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _bagServiceClient = bagServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _logger = logger;
     }
 
     public async Task<AddOrderBagsResponse> HandleAsync(
@@ -123,7 +127,7 @@ public sealed class AddOrderBagsHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[AddOrderBags] Document issuance failed for {bag.PassengerRef}: {ex.Message}");
+                _logger.LogError(ex, "[AddOrderBags] Document issuance failed for {PassengerRef}", bag.PassengerRef);
             }
         }
 

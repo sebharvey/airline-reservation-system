@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
@@ -12,15 +13,18 @@ public sealed class CheckInAncillariesHandler
     private readonly OrderServiceClient _orderServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly ILogger<CheckInAncillariesHandler> _logger;
 
     public CheckInAncillariesHandler(
         OrderServiceClient orderServiceClient,
         PaymentServiceClient paymentServiceClient,
-        DeliveryServiceClient deliveryServiceClient)
+        DeliveryServiceClient deliveryServiceClient,
+        ILogger<CheckInAncillariesHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _paymentServiceClient = paymentServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _logger = logger;
     }
 
     public async Task<CheckInAncillariesResult> HandleAsync(CheckInAncillariesCommand command, CancellationToken ct)
@@ -90,7 +94,7 @@ public sealed class CheckInAncillariesHandler
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[CheckInAncillaries] Booking reference update failed: {ex.Message}");
+            _logger.LogError(ex, "[CheckInAncillaries] Booking reference update failed for {BookingReference}", command.BookingReference);
         }
 
         // ── Record payment in the order ───────────────────────────────────────────
@@ -119,7 +123,7 @@ public sealed class CheckInAncillariesHandler
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[CheckInAncillaries] Payment order update failed: {ex.Message}");
+            _logger.LogError(ex, "[CheckInAncillaries] Payment order update failed for {BookingReference}", command.BookingReference);
         }
 
         // ── Persist selections to the order ──────────────────────────────────────
@@ -141,7 +145,7 @@ public sealed class CheckInAncillariesHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[CheckInAncillaries] Seat order update failed: {ex.Message}");
+                _logger.LogError(ex, "[CheckInAncillaries] Seat order update failed for {BookingReference}", command.BookingReference);
             }
         }
 
@@ -164,7 +168,7 @@ public sealed class CheckInAncillariesHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[CheckInAncillaries] Bag order update failed: {ex.Message}");
+                _logger.LogError(ex, "[CheckInAncillaries] Bag order update failed for {BookingReference}", command.BookingReference);
             }
         }
 
@@ -185,7 +189,7 @@ public sealed class CheckInAncillariesHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[CheckInAncillaries] Seat EMD failed for {seat.PassengerId}: {ex.Message}");
+                _logger.LogError(ex, "[CheckInAncillaries] Seat EMD failed for {PassengerId}", seat.PassengerId);
             }
         }
 
@@ -203,7 +207,7 @@ public sealed class CheckInAncillariesHandler
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[CheckInAncillaries] Bag EMD failed for {bag.PassengerId}: {ex.Message}");
+                _logger.LogError(ex, "[CheckInAncillaries] Bag EMD failed for {PassengerId}", bag.PassengerId);
             }
         }
 
