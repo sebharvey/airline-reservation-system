@@ -256,10 +256,14 @@
   <div class="modal-backdrop" (click)="closeModal()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card" (click)="$event.stopPropagation()">
 
-      <div class="modal-header">
-        <div class="modal-success-icon">✓</div>
+      <div class="modal-header" [class.modal-header-error]="!checkInResult()!.success">
+        <div class="modal-status-icon" [class.modal-status-error]="!checkInResult()!.success">
+          {{ checkInResult()!.success ? '✓' : '✗' }}
+        </div>
         <div class="modal-header-text">
-          <h2 class="modal-title" id="modal-title">Check-In Successful</h2>
+          <h2 class="modal-title" id="modal-title">
+            {{ checkInResult()!.success ? 'Check-In Successful' : 'Check-In Failed' }}
+          </h2>
           <p class="modal-subtitle">
             {{ checkInResult()!.givenName }} {{ checkInResult()!.surname }}
             &nbsp;·&nbsp;
@@ -270,6 +274,9 @@
       </div>
 
       <div class="modal-body">
+        @if (!checkInResult()!.success && checkInResult()!.errorMessage) {
+          <p class="modal-error-msg">{{ checkInResult()!.errorMessage }}</p>
+        }
         <div class="confirm-grid">
           <span class="confirm-label">Booking</span>
           <span class="confirm-value mono">{{ booking()!.bookingReference }}</span>
@@ -278,7 +285,7 @@
           <span class="confirm-value mono">{{ departureAirport() }}</span>
 
           <span class="confirm-label">Ticket</span>
-          <span class="confirm-value mono">{{ checkInResult()!.boardingCard?.ticketNumber }}</span>
+          <span class="confirm-value mono">{{ checkInResult()!.ticketNumber }}</span>
 
           @if (checkInResult()!.boardingCard; as bc) {
             <span class="confirm-label">Flight</span>

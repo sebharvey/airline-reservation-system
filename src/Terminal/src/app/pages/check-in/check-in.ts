@@ -24,9 +24,12 @@ interface PaxFormData {
 type PaxStatus = 'pending' | 'checked-in' | 'failed';
 
 interface CheckInResult {
+  success: boolean;
+  errorMessage: string;
   givenName: string;
   surname: string;
   passengerTypeCode: string;
+  ticketNumber: string;
   boardingCard: BoardingCard | null;
   timaticNotes: TimaticNote[];
 }
@@ -201,7 +204,7 @@ export class CheckInComponent {
 
       const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
       const timaticNotes = (response.timaticNotes ?? []).filter(n => n.ticketNumber === pax.ticketNumber);
-      this.checkInResult.set({ givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, boardingCard, timaticNotes });
+      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes });
 
       const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
       this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
@@ -211,10 +214,24 @@ export class CheckInComponent {
       this.paxStatuses.set(statuses);
 
       const message = this.#extractErrorMessage(err);
-      this.checkInError.set(message || 'Check-in failed. Please verify the document details and try again.');
+      const timaticNotes = this.#extractTimaticNotes(err).filter(n => n.ticketNumber === pax.ticketNumber);
+      const errorMessage = message || 'Check-in failed. Please verify the document details and try again.';
+      this.checkInError.set(errorMessage);
+      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes });
     } finally {
       this.checkingInIndex.set(null);
     }
+  }
+
+  #extractTimaticNotes(err: unknown): TimaticNote[] {
+    if (err && typeof err === 'object') {
+      const body = (err as Record<string, unknown>)['error'];
+      if (body && typeof body === 'object') {
+        const notes = (body as Record<string, unknown>)['timaticNotes'];
+        if (Array.isArray(notes)) return notes as TimaticNote[];
+      }
+    }
+    return [];
   }
 
   #extractErrorMessage(err: unknown): string {

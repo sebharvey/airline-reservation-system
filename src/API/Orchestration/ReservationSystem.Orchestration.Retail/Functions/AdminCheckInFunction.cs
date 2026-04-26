@@ -128,7 +128,20 @@ public sealed class AdminCheckInFunction
         catch (AdminOciTimaticBlockedException ex)
         {
             _logger.LogWarning("Admin check-in blocked by Timatic for {BookingRef}: {Message}", bookingRef, ex.Message);
-            return await req.BadRequestAsync(ex.Message);
+            var blocked = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+            blocked.Headers.Add("Content-Type", "application/json");
+            await blocked.WriteStringAsync(JsonSerializer.Serialize(new
+            {
+                error = ex.Message,
+                timaticNotes = ex.TimaticNotes.Select(n => new
+                {
+                    checkType = n.CheckType,
+                    ticketNumber = n.TicketNumber,
+                    status = n.Status,
+                    detail = n.Detail,
+                }),
+            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            return blocked;
         }
         catch (InvalidOperationException ex)
         {
