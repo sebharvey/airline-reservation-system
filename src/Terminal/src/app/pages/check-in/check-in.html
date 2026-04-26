@@ -313,6 +313,54 @@
         }
       </div>
 
+      @if (!checkInResult()!.success && hasTimaticFailure()) {
+        <div class="modal-override">
+          <p class="confirm-label" style="margin-bottom: 8px;">Override</p>
+          @if (!overrideMode()) {
+            <p class="override-hint">Timatic check failed. A supervisor-authorised override allows check-in to proceed with the reason recorded against this booking.</p>
+            <button class="override-btn" (click)="showOverride()">Override</button>
+          } @else {
+            <div class="override-form">
+              <label class="field-label" for="override-reason">Override reason</label>
+              <select
+                id="override-reason"
+                class="field-input"
+                [value]="overrideReason()"
+                (change)="overrideReason.set($any($event.target).value)"
+                [disabled]="overridingIndex() !== null"
+              >
+                <option value="">— Select reason —</option>
+                <option value="Documents verified by agent">Documents verified by agent</option>
+                <option value="Supervisor authorisation obtained">Supervisor authorisation obtained</option>
+                <option value="Visa exemption confirmed">Visa exemption confirmed</option>
+                <option value="Document valid — system error">Document valid — system error</option>
+                <option value="APIS waiver applied">APIS waiver applied</option>
+              </select>
+              <div class="override-actions">
+                <button
+                  class="secondary-btn"
+                  (click)="cancelOverride()"
+                  [disabled]="overridingIndex() !== null"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="primary-btn override-checkin-btn"
+                  (click)="overrideCheckIn(failedPaxIndex()!)"
+                  [disabled]="!overrideReason() || overridingIndex() !== null"
+                >
+                  @if (overridingIndex() !== null) {
+                    <span class="btn-spinner"></span> Checking in…
+                  } @else {
+                    ✓ Check In
+                  }
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
       <div class="modal-actions">
         <button class="primary-btn" (click)="closeModal()">Done</button>
       </div>

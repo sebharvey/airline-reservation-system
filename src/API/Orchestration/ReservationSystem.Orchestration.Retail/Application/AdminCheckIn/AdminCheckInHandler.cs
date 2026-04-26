@@ -20,7 +20,9 @@ public sealed record AdminCheckInPassenger(
 public sealed record AdminCheckInCommand(
     string BookingReference,
     string DepartureAirport,
-    IReadOnlyList<AdminCheckInPassenger> Passengers);
+    IReadOnlyList<AdminCheckInPassenger> Passengers,
+    bool OverrideTimatic = false,
+    string? OverrideReason = null);
 
 public sealed record AdminCheckInResult(
     string BookingReference,
@@ -131,7 +133,7 @@ public sealed class AdminCheckInHandler
         }
         catch (AdminOciTimaticBlockedException ex)
         {
-            // Timatic rejected — write audit notes to the order then re-throw so the function returns 400
+            // Timatic rejected — write audit notes to the order
             if (ex.TimaticNotes.Count > 0)
             {
                 try
@@ -148,7 +150,31 @@ public sealed class AdminCheckInHandler
                         command.BookingReference);
                 }
             }
-            throw;
+
+            if (!command.OverrideTimatic)
+                throw;
+
+            // Agent-authorised override — write override notes then bypass Timatic
+            _logger.LogWarning(
+                "Admin check-in: Timatic override authorised for {BookingReference} — reason: {Reason}",
+                command.BookingReference, command.OverrideReason);
+
+            try
+            {
+                await _orderServiceClient.AddOrderNotesAsync(
+                    command.BookingReference,
+                    BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason),
+                    ct);
+            }
+            catch (Exception notesEx)
+            {
+                _logger.LogError(notesEx,
+                    "Admin check-in: failed to write override notes to order {BookingReference}",
+                    command.BookingReference);
+            }
+
+            checkInResult = await _deliveryServiceClient.OciCheckInAsync(
+                command.DepartureAirport, checkInTickets, ct, bypassTimatic: true);
         }
 
         // Write Timatic pass notes to the order
@@ -228,6 +254,29 @@ public sealed class AdminCheckInHandler
     }
 
     private sealed record PaxName(string GivenName, string Surname);
+
+    private static List<AdminCheckInOrderNote> BuildOverrideNotes(
+        IReadOnlyList<AdminCheckInPassenger> passengers,
+        IReadOnlyDictionary<string, string>? ticketToName,
+        string? overrideReason)
+    {
+        var reason = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
+        var timestamp = DateTime.UtcNow.ToString("o");
+        return passengers.Select(p =>
+        {
+            var paxName = ticketToName is not null && ticketToName.TryGetValue(p.TicketNumber, out var name) && !string.IsNullOrWhiteSpace(name)
+                ? name : null;
+            var subject = paxName is not null
+                ? $"{paxName} (ticket {p.TicketNumber})"
+                : $"ticket {p.TicketNumber}";
+            return new AdminCheckInOrderNote
+            {
+                DateTime = timestamp,
+                Type     = "TIMATIC_OVERRIDE",
+                Message  = $"Timatic override by agent for {subject}: {reason}"
+            };
+        }).ToList();
+    }
 
     private static List<AdminCheckInOrderNote> BuildOrderNotes(
         IReadOnlyList<AdminOciTimaticNote> notes,

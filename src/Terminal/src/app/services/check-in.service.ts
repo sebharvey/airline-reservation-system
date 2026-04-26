@@ -206,11 +206,13 @@ export class CheckInService {
     bookingReference: string,
     departureAirport: string,
     passengers: PaxSubmission[],
+    overrideTimatic = false,
+    overrideReason?: string,
   ): Promise<AdminCheckInResponse> {
     return firstValueFrom(
       this.#http.post<AdminCheckInResponse>(
         `${environment.retailApiUrl}/api/v1/admin/checkin/${bookingReference.toUpperCase()}`,
-        { departureAirport, passengers },
+        { departureAirport, passengers, overrideTimatic, overrideReason },
       ),
     );
   }

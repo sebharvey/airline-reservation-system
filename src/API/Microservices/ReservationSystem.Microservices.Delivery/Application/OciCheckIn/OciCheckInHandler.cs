@@ -14,7 +14,7 @@ public sealed record OciCheckInTicket(
     string? DocIssuingCountry = null,
     string? DocExpiryDate = null);
 
-public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<OciCheckInTicket> Tickets);
+public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<OciCheckInTicket> Tickets, bool BypassTimatic = false);
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status);
 
@@ -66,7 +66,8 @@ public sealed class OciCheckInHandler
         // ── Phase 1: Timatic validation ─────────────────────────────────────────
         // Run document check and APIS check for every ticket before touching any
         // coupon status. A rejection from either check blocks the entire check-in.
-        foreach (var ticketRequest in command.Tickets)
+        // Skipped when BypassTimatic is true (agent-authorised override).
+        if (!command.BypassTimatic) foreach (var ticketRequest in command.Tickets)
         {
             var ticket = await _ticketRepository.GetByETicketNumberAsync(ticketRequest.TicketNumber, cancellationToken);
             if (ticket is null)
