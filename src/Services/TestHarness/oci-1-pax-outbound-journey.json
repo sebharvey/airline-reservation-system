@@ -408,8 +408,8 @@
           {
             "field": "orderItems[*].eTickets[*]",
             "assertion": "count",
-            "expected": 1,
-            "description": "Exactly one e-ticket must be issued for the single passenger."
+            "expected": 2,
+            "description": "Exactly two e-ticket objects must be present — one per flight segment for the single passenger."
           },
           {
             "field": "orderItems[*].eTickets[*].eTicketNumber",
