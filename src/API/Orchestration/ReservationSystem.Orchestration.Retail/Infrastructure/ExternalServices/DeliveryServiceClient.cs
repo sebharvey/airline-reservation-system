@@ -187,6 +187,47 @@ public sealed class DeliveryServiceClient
             throw new InvalidOperationException($"Manifest write failed for booking {bookingReference}: {error}");
         }
     }
+
+    public async Task<AdminOciCheckInResult> OciCheckInAsync(
+        string departureAirport,
+        IReadOnlyList<AdminOciCheckInTicket> tickets,
+        CancellationToken ct)
+    {
+        var payload = new { departureAirport, tickets };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/oci/checkin", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            try
+            {
+                var blocked = await response.Content.ReadFromJsonAsync<AdminOciTimaticBlockedResponse>(JsonOptions, ct);
+                if (blocked?.TimaticNotes is { Count: > 0 })
+                    throw new AdminOciTimaticBlockedException(blocked.Error ?? "OCI check-in blocked by Timatic.", blocked.TimaticNotes);
+            }
+            catch (AdminOciTimaticBlockedException) { throw; }
+            catch { }
+
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"OCI check-in failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<AdminOciCheckInResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from OCI check-in.");
+    }
+
+    public async Task<AdminOciBoardingDocsResult> GetOciBoardingDocsAsync(
+        string departureAirport,
+        IReadOnlyList<string> ticketNumbers,
+        CancellationToken ct)
+    {
+        var payload = new { departureAirport, ticketNumbers };
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/oci/boarding-docs", payload, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"OCI boarding-docs failed: {error}");
+        }
+        return await response.Content.ReadFromJsonAsync<AdminOciBoardingDocsResult>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from OCI boarding-docs.");
+    }
 }
 
 public sealed class IssuedTicket
@@ -424,6 +465,74 @@ public sealed class AdminDocumentRecord
     [JsonPropertyName("documentData")] public JsonElement? DocumentData { get; init; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; init; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; init; }
+}
+
+public sealed class AdminOciCheckInTicket
+{
+    [JsonPropertyName("ticketNumber")] public string TicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
+    [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
+    [JsonPropertyName("docNationality")] public string? DocNationality { get; init; }
+    [JsonPropertyName("docNumber")] public string? DocNumber { get; init; }
+    [JsonPropertyName("docIssuingCountry")] public string? DocIssuingCountry { get; init; }
+    [JsonPropertyName("docExpiryDate")] public string? DocExpiryDate { get; init; }
+}
+
+public sealed class AdminOciCheckInResult
+{
+    [JsonPropertyName("checkedIn")] public int CheckedIn { get; init; }
+    [JsonPropertyName("tickets")] public List<AdminOciCheckedInTicket> Tickets { get; init; } = [];
+    [JsonPropertyName("timaticNotes")] public List<AdminOciTimaticNote> TimaticNotes { get; init; } = [];
+}
+
+public sealed class AdminOciCheckedInTicket
+{
+    [JsonPropertyName("ticketNumber")] public string TicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("status")] public string Status { get; init; } = string.Empty;
+}
+
+public sealed class AdminOciBoardingDocsResult
+{
+    [JsonPropertyName("boardingCards")] public List<AdminOciBoardingCard> BoardingCards { get; init; } = [];
+}
+
+public sealed class AdminOciBoardingCard
+{
+    [JsonPropertyName("ticketNumber")] public string TicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
+    [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
+    [JsonPropertyName("flightNumber")] public string FlightNumber { get; init; } = string.Empty;
+    [JsonPropertyName("departureDate")] public string DepartureDate { get; init; } = string.Empty;
+    [JsonPropertyName("seatNumber")] public string SeatNumber { get; init; } = string.Empty;
+    [JsonPropertyName("cabinCode")] public string CabinCode { get; init; } = string.Empty;
+    [JsonPropertyName("sequenceNumber")] public string SequenceNumber { get; init; } = string.Empty;
+    [JsonPropertyName("origin")] public string Origin { get; init; } = string.Empty;
+    [JsonPropertyName("destination")] public string Destination { get; init; } = string.Empty;
+    [JsonPropertyName("bcbpString")] public string BcbpString { get; init; } = string.Empty;
+}
+
+public sealed class AdminOciTimaticNote
+{
+    [JsonPropertyName("checkType")] public string CheckType { get; init; } = string.Empty;
+    [JsonPropertyName("ticketNumber")] public string TicketNumber { get; init; } = string.Empty;
+    [JsonPropertyName("status")] public string Status { get; init; } = string.Empty;
+    [JsonPropertyName("detail")] public string Detail { get; init; } = string.Empty;
+    [JsonPropertyName("timestamp")] public string Timestamp { get; init; } = string.Empty;
+}
+
+public sealed class AdminOciTimaticBlockedException : Exception
+{
+    public IReadOnlyList<AdminOciTimaticNote> TimaticNotes { get; }
+    public AdminOciTimaticBlockedException(string message, IReadOnlyList<AdminOciTimaticNote> notes)
+        : base(message) => TimaticNotes = notes;
+}
+
+file sealed class AdminOciTimaticBlockedResponse
+{
+    [JsonPropertyName("error")] public string? Error { get; init; }
+    [JsonPropertyName("timaticNotes")] public List<AdminOciTimaticNote> TimaticNotes { get; init; } = [];
 }
 
 file sealed class IssueTicketsResult
