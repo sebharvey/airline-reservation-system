@@ -209,10 +209,6 @@
               </div>
             </div>
 
-            @if (checkInError()) {
-              <div class="error-banner" role="alert">⚠ {{ checkInError() }}</div>
-            }
-
             <div class="form-actions" style="margin-top: 20px;">
               @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
                 <button
@@ -227,7 +223,7 @@
               <button
                 class="primary-btn complete-btn"
                 (click)="checkInPax(selectedPaxIndex()!)"
-                [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in'"
+                [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
               >
                 @if (checkingInIndex() === selectedPaxIndex()) {
                   <span class="btn-spinner"></span> Checking in…

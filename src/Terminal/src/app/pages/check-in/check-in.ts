@@ -57,7 +57,6 @@ export class CheckInComponent {
 
   selectedPaxIndex = signal<number | null>(null);
   checkingInIndex = signal<number | null>(null);
-  checkInError = signal('');
   checkInResult = signal<CheckInResult | null>(null);
 
   selectedPax = computed(() => {
@@ -68,6 +67,11 @@ export class CheckInComponent {
   allAttempted = computed(() => {
     const s = this.paxStatuses();
     return s.length > 0 && s.every(st => st !== 'pending');
+  });
+
+  docComplete = computed(() => {
+    const p = this.selectedPax();
+    return !!p && !!p.docNumber && !!p.issuingCountry && !!p.nationality && !!p.issueDate && !!p.expiryDate;
   });
 
   async findBooking(): Promise<void> {
@@ -92,7 +96,6 @@ export class CheckInComponent {
     this.paxForms.set([]);
     this.paxStatuses.set([]);
     this.selectedPaxIndex.set(null);
-    this.checkInError.set('');
 
     try {
       const result = mode === 'eTicket'
@@ -115,7 +118,6 @@ export class CheckInComponent {
     if (!airport) return;
     this.departureAirport.set(airport);
     this.error.set('');
-    this.checkInError.set('');
     this.paxForms.set([]);
     this.paxStatuses.set([]);
     this.selectedPaxIndex.set(null);
@@ -158,7 +160,6 @@ export class CheckInComponent {
 
   selectPax(index: number): void {
     this.selectedPaxIndex.set(index);
-    this.checkInError.set('');
   }
 
   updateDoc(index: number, field: keyof PaxFormData, value: string): void {
@@ -171,13 +172,9 @@ export class CheckInComponent {
     const pax = this.paxForms()[index];
     if (!pax) return;
 
-    if (!pax.docNumber || !pax.issuingCountry || !pax.nationality || !pax.issueDate || !pax.expiryDate) {
-      this.checkInError.set('Please complete all travel document fields before checking in.');
-      return;
-    }
+    if (!pax.docNumber || !pax.issuingCountry || !pax.nationality || !pax.issueDate || !pax.expiryDate) return;
 
     this.checkingInIndex.set(index);
-    this.checkInError.set('');
 
     const submission: PaxSubmission = {
       ticketNumber: pax.ticketNumber,
@@ -216,7 +213,6 @@ export class CheckInComponent {
       const message = this.#extractErrorMessage(err);
       const timaticNotes = this.#extractTimaticNotes(err).filter(n => n.ticketNumber === pax.ticketNumber);
       const errorMessage = message || 'Check-in failed. Please verify the document details and try again.';
-      this.checkInError.set(errorMessage);
       this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes });
     } finally {
       this.checkingInIndex.set(null);
@@ -293,7 +289,6 @@ export class CheckInComponent {
     this.eTicketNumber.set('');
     this.searchMode.set('bookingRef');
     this.error.set('');
-    this.checkInError.set('');
     this.checkInResult.set(null);
   }
 
