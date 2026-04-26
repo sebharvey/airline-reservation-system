@@ -19,9 +19,9 @@
   <div class="form-card">
     <p class="form-section-label">Booking details</p>
 
-    <div class="form-grid form-grid-single">
-      <div class="form-group">
-        <label class="field-label">Booking Reference (PNR)</label>
+    <div class="search-row">
+      <div class="form-group search-ref-group">
+        <label class="field-label">Booking Reference</label>
         <input
           class="field-input mono-input"
           type="text"
@@ -33,11 +33,20 @@
           [disabled]="loading()"
         />
       </div>
-    </div>
 
-    @if (departureAirports().length > 0) {
-      <div class="form-grid form-grid-single departure-row">
-        <div class="form-group">
+      <div class="search-btn-group">
+        <label class="field-label search-btn-spacer">&nbsp;</label>
+        <button class="primary-btn" (click)="findBooking()" [disabled]="loading()">
+          @if (loading() && !paxForms().length) {
+            <span class="btn-spinner"></span> Searching…
+          } @else {
+            Find Booking
+          }
+        </button>
+      </div>
+
+      @if (departureAirports().length > 0) {
+        <div class="form-group search-airport-group">
           <label class="field-label">Departure Airport</label>
           <select
             class="field-input"
@@ -45,28 +54,18 @@
             (change)="selectDeparture($any($event.target).value)"
             [disabled]="loading()"
           >
-            <option value="">— Select departure airport —</option>
+            <option value="">— Select —</option>
             @for (airport of departureAirports(); track airport) {
               <option [value]="airport">{{ airport }}</option>
             }
           </select>
         </div>
-      </div>
-    }
+      }
+    </div>
 
     @if (error() && !paxForms().length) {
       <div class="error-banner" role="alert">⚠ {{ error() }}</div>
     }
-
-    <div class="form-actions">
-      <button class="primary-btn" (click)="findBooking()" [disabled]="loading()">
-        @if (loading() && !paxForms().length) {
-          <span class="btn-spinner"></span> Searching…
-        } @else {
-          Find Booking
-        }
-      </button>
-    </div>
   </div>
 
   <!-- ── PASSENGERS & TRAVEL DOCUMENTS ── -->
