@@ -1681,7 +1681,7 @@
     }
 
     function applyDataChainToBody(dataChain, body, chain) {
-        if (!dataChain || !body) return;
+        if (!dataChain || !body || typeof body !== 'object') return;
         dataChain.forEach(entry => {
             const fieldPath = entry.field.replace(/ \(path\)$/, '');
             const chainKey  = entry.from || fieldPath;
