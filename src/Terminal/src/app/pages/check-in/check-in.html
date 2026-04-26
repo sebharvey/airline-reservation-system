@@ -98,6 +98,15 @@
             }
           </button>
         }
+
+        @if (allAttempted()) {
+          <div class="pax-list-done">
+            <div class="success-pill">✓ Check-In Complete</div>
+            <button class="secondary-btn" style="width: 100%; justify-content: center; margin-top: 8px" (click)="reset()">
+              New Booking
+            </button>
+          </div>
+        }
       </div>
 
       <!-- Right: document form for selected pax -->
@@ -107,7 +116,7 @@
             Travel documents — {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
           </p>
           <div class="form-card">
-            <div class="doc-grid">
+            <div class="doc-stack">
               <div class="form-group">
                 <label class="field-label">Document type</label>
                 <select
@@ -192,7 +201,7 @@
               </button>
             </div>
           </div>
-        } @else {
+        } @else if (!allAttempted()) {
           <div class="pax-detail-empty">
             <p>Select a passenger from the list to view and edit their travel documents</p>
           </div>
@@ -200,81 +209,6 @@
       </div>
 
     </div>
-  }
-
-  <!-- ── BOARDING PASSES ── -->
-  @if (boardingCards().length > 0) {
-    <div class="page-header success-header">
-      @if (allAttempted()) {
-        <div class="success-pill">✓ Check-In Complete</div>
-      }
-      <p class="page-subtitle">
-        {{ boardingCards().length }} {{ boardingCards().length === 1 ? 'boarding pass' : 'boarding passes' }} generated
-        for booking <strong class="mono">{{ booking()?.bookingReference }}</strong>
-      </p>
-    </div>
-
-    <div class="boarding-cards">
-      @for (card of boardingCards(); track card.ticketNumber) {
-        <div class="boarding-card">
-          <div class="bc-top">
-            <div class="bc-route">
-              <span class="bc-airport">{{ card.origin }}</span>
-              <span class="bc-arrow">→</span>
-              <span class="bc-airport">{{ card.destination }}</span>
-            </div>
-            <div class="bc-flight-meta">
-              <span class="bc-flight-num">{{ card.flightNumber }}</span>
-              <span class="bc-date">{{ formatDate(card.departureDate) }}</span>
-            </div>
-          </div>
-
-          <div class="bc-details">
-            <div class="bc-detail">
-              <span class="bc-detail-label">Passenger</span>
-              <span class="bc-detail-value small-text">{{ card.givenName }} {{ card.surname }}</span>
-            </div>
-            <div class="bc-detail">
-              <span class="bc-detail-label">Seat</span>
-              <span class="bc-detail-value mono">{{ card.seatNumber }}</span>
-            </div>
-            <div class="bc-detail">
-              <span class="bc-detail-label">Cabin</span>
-              <span class="bc-detail-value">{{ card.cabinCode }}</span>
-            </div>
-            <div class="bc-detail">
-              <span class="bc-detail-label">Sequence</span>
-              <span class="bc-detail-value mono">{{ card.sequenceNumber }}</span>
-            </div>
-          </div>
-
-          <div class="bc-bcbp">
-            <span class="bcbp-label">BCBP</span>
-            <div class="bcbp-row">
-              <code class="bcbp-string">{{ card.bcbpString }}</code>
-              <button
-                class="copy-btn"
-                [class.copied]="copiedBcbp() === card.bcbpString"
-                (click)="copyBcbp(card.bcbpString)"
-                [title]="copiedBcbp() === card.bcbpString ? 'Copied!' : 'Copy BCBP string'"
-              >
-                @if (copiedBcbp() === card.bcbpString) {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-
-    @if (allAttempted()) {
-      <div class="form-actions" style="margin-top: 16px;">
-        <button class="primary-btn" (click)="reset()">Check In Another Booking</button>
-      </div>
-    }
   }
 
 </div>
