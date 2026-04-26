@@ -107,6 +107,21 @@ export class CheckInService {
     return { bookingReference: order.bookingReference, departureAirports, orderDetail: order, tickets };
   }
 
+  async lookupByETicket(eTicketNumber: string): Promise<LookupResponse> {
+    const order = await firstValueFrom(
+      this.#http.get<AdminOrderDetail>(
+        `${environment.retailApiUrl}/api/v1/admin/orders/e-ticket/${encodeURIComponent(eTicketNumber.trim())}`,
+      ),
+    );
+    const ref = order.bookingReference.toUpperCase();
+    const tickets = await firstValueFrom(
+      this.#http.get<TicketRecord[]>(`${environment.retailApiUrl}/api/v1/admin/orders/${ref}/tickets`),
+    ).catch(() => [] as TicketRecord[]);
+    const segments = order.orderData?.dataLists?.flightSegments ?? [];
+    const departureAirports = [...new Set(segments.map(s => s.origin))];
+    return { bookingReference: order.bookingReference, departureAirports, orderDetail: order, tickets };
+  }
+
   extractPassengers(
     orderDetail: AdminOrderDetail,
     tickets: TicketRecord[],
