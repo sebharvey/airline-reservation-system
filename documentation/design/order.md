@@ -543,7 +543,7 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 | OrderData | NVARCHAR(MAX) | No | | | JSON document containing the full ONE Order detail (see example below) |
 
-> **Indexes:** `IX_Order_BookingReference` (unique, filtered) on `(BookingReference)` WHERE `BookingReference IS NOT NULL` — enforces uniqueness of booking references whilst permitting multiple rows with a `NULL` booking reference (unconfirmed orders in `OrderInit` or `Draft` status).
+> **Indexes:** `IX_Order_BookingReference` (unique, filtered) on `(BookingReference)` WHERE `BookingReference IS NOT NULL` — enforces uniqueness of booking references whilst permitting multiple rows with a `NULL` booking reference (unconfirmed orders in `OrderInit` or `Draft` status). `IX_Order_ETicketNumber` (JSON multi-value) on `OrderData` WITH `JSON_PATH = '$.eTickets[*].eTicketNumber'` — indexes every e-ticket number in the `eTickets` array, enabling efficient lookup of an order by any passenger's e-ticket number.
 > **Constraints:** `CHK_OrderData` — `ISJSON(OrderData) = 1`; `OrderData` must be a valid JSON document.
 > **Column duplication:** Fields present as typed columns (`OrderId`, `BookingReference`, `OrderStatus`, `ChannelCode`, `CurrencyCode`, `TotalAmount`, `CreatedAt`) are NOT duplicated inside `OrderData`. The table columns are the single source of truth for those values; `OrderData` carries the relational detail only.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [Optimistic Concurrency Control](#optimistic-concurrency-control).
