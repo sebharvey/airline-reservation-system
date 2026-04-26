@@ -82,9 +82,30 @@ export interface PaxSubmission {
   };
 }
 
+export interface TimaticNote {
+  checkType: string;
+  ticketNumber: string;
+  status: string;
+  detail: string;
+}
+
+export interface BoardingCard {
+  ticketNumber: string;
+  passengerId: string;
+  flightNumber: string;
+  departureDate: string;
+  seatNumber: string;
+  cabinCode: string;
+  sequenceNumber: string;
+  origin: string;
+  destination: string;
+  bcbpString: string;
+}
+
 export interface AdminCheckInResponse {
   bookingReference: string;
-  boardingCards: unknown[];
+  timaticNotes: TimaticNote[];
+  boardingCards: BoardingCard[];
 }
 
 @Injectable({ providedIn: 'root' })

@@ -101,6 +101,13 @@ public sealed class AdminCheckInFunction
             return await req.OkJsonAsync(new
             {
                 bookingReference = result.BookingReference,
+                timaticNotes = result.TimaticNotes.Select(n => new
+                {
+                    checkType = n.CheckType,
+                    ticketNumber = n.TicketNumber,
+                    status = n.Status,
+                    detail = n.Detail,
+                }),
                 boardingCards = result.BoardingCards.Select(c => new
                 {
                     ticketNumber = c.TicketNumber,
