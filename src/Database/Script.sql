@@ -554,7 +554,6 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_ETicketNumber' AND object_id = OBJECT_ID('[order].[Order]'))
     CREATE JSON INDEX IX_Order_ETicketNumber
         ON [order].[Order] (OrderData)
-        FOR (N'$.eTickets[*].eTicketNumber')
         WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON);
 GO
 
