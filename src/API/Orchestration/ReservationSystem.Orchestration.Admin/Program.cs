@@ -32,7 +32,7 @@ var host = new HostBuilder()
         services.AddHttpClient("UserMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["UserMs:BaseUrl"]!);
-            var hostKey = context.Configuration["HostKey"];
+            var hostKey = context.Configuration["MicroserviceHostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
@@ -40,7 +40,7 @@ var host = new HostBuilder()
         services.AddHttpClient("OrderMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["OrderMs:BaseUrl"]!);
-            var hostKey = context.Configuration["HostKey"];
+            var hostKey = context.Configuration["MicroserviceHostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
@@ -48,7 +48,7 @@ var host = new HostBuilder()
         services.AddHttpClient("PaymentMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["PaymentMs:BaseUrl"]!);
-            var hostKey = context.Configuration["HostKey"];
+            var hostKey = context.Configuration["MicroserviceHostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
