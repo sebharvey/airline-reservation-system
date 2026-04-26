@@ -67,7 +67,11 @@ public sealed class ManifestFunction
                 eTicketNumber    = e.ETicketNumber,
                 seatNumber       = string.IsNullOrEmpty(e.SeatNumber) ? (string?)null : e.SeatNumber,
                 cabinCode        = e.CabinCode,
-                seatPosition     = (string?)null
+                checkedIn        = e.CheckedIn,
+                checkedInAt      = e.CheckedInAt,
+                ssrCodes         = string.IsNullOrEmpty(e.SsrCodes)
+                    ? []
+                    : System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.SsrCodes) ?? []
             })
         });
     }

@@ -165,6 +165,18 @@ public sealed class DeliveryServiceClient
         return await response.Content.ReadAsStringAsync(ct);
     }
 
+    public async Task<AdminFlightManifestResult?> GetManifestByFlightAsync(
+        string flightNumber, string departureDate, CancellationToken ct)
+    {
+        var url = $"/api/v1/manifest?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={Uri.EscapeDataString(departureDate)}";
+        using var response = await _httpClient.GetAsync(url, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return new AdminFlightManifestResult { Entries = [] };
+        if (!response.IsSuccessStatusCode)
+            return null;
+        return await response.Content.ReadFromJsonAsync<AdminFlightManifestResult>(JsonOptions, ct);
+    }
+
     public async Task WriteManifestAsync(
         string bookingReference,
         Guid orderId,
@@ -540,6 +552,25 @@ file sealed class IssueTicketsResult
 {
     [JsonPropertyName("tickets")]
     public List<IssuedTicket> Tickets { get; init; } = [];
+}
+
+public sealed class AdminFlightManifestResult
+{
+    [JsonPropertyName("entries")]
+    public List<AdminManifestEntry> Entries { get; init; } = [];
+}
+
+public sealed class AdminManifestEntry
+{
+    [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")]      public string PassengerId      { get; init; } = string.Empty;
+    [JsonPropertyName("givenName")]        public string GivenName        { get; init; } = string.Empty;
+    [JsonPropertyName("surname")]          public string Surname          { get; init; } = string.Empty;
+    [JsonPropertyName("eTicketNumber")]    public string ETicketNumber    { get; init; } = string.Empty;
+    [JsonPropertyName("seatNumber")]       public string? SeatNumber      { get; init; }
+    [JsonPropertyName("cabinCode")]        public string CabinCode        { get; init; } = string.Empty;
+    [JsonPropertyName("checkedIn")]        public bool CheckedIn          { get; init; }
+    [JsonPropertyName("ssrCodes")]         public List<string> SsrCodes   { get; init; } = [];
 }
 
 public sealed class ManifestPassengerEntry

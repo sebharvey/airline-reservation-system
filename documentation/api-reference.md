@@ -129,6 +129,7 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, grouped by flight (one row per flight with cabin F/J/W/Y aggregated as columns). Query param `departureDate=yyyy-MM-dd`; defaults to today. Each row includes total seats, seats available per cabin, overall load factor (percent of seats filled), and flight status. |
+| `GET` | `/v1/admin/manifest` | Return the passenger manifest for a flight from `delivery.Manifest`. Query params `flightNumber` (required) and `departureDate=yyyy-MM-dd` (required). Each entry includes booking reference, passenger name, e-ticket number, seat number, cabin code, check-in status, check-in timestamp, and SSR codes. Proxies to the Delivery microservice `GET /v1/manifest`. Used by the Terminal Flight Departure screen to display the PAX list alongside the seatmap. |
 
 ### NDC
 
