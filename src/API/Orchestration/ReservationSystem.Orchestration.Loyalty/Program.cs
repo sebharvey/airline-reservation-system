@@ -50,7 +50,7 @@ var host = new HostBuilder()
         services.AddHttpClient("IdentityMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"]!);
-            var hostKey = context.Configuration["IdentityMs:HostKey"];
+            var hostKey = context.Configuration["HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
@@ -58,7 +58,7 @@ var host = new HostBuilder()
         services.AddHttpClient("CustomerMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"]!);
-            var hostKey = context.Configuration["CustomerMs:HostKey"];
+            var hostKey = context.Configuration["HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
