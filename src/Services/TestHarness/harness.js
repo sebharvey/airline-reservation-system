@@ -1306,6 +1306,7 @@
                 : JSON.stringify(requestBody);
         }
 
+        showStepRunning(ref);
         const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
 
         // Log this interaction
@@ -1321,6 +1322,8 @@
             error: liveError || null,
             durationMs: durationMs
         });
+        btnCopyLogs.disabled = false;
+        btnViewLogs.disabled = false;
 
         // Store chained values from response
         extractChainsFromResponse(step.chainsTo, liveBody, liveChain, runtimeVars.paxCount);
@@ -1332,7 +1335,7 @@
         const statusMatch = liveStatus === step.expected.statusCode;
         const assertionResults = evaluateAssertions(step.expected.assertions, liveBody);
         const passed = statusMatch && assertionResults.every(r => r.pass);
-        row.classList.remove('step-positive', 'step-negative', 'result-pass', 'result-fail');
+        row.classList.remove('step-running', 'step-positive', 'step-negative', 'result-pass', 'result-fail');
         row.classList.add(passed ? 'result-pass' : 'result-fail');
 
         // Update timing cell
