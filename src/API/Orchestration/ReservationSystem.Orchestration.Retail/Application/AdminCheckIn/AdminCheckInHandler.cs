@@ -24,7 +24,8 @@ public sealed record AdminCheckInCommand(
 
 public sealed record AdminCheckInResult(
     string BookingReference,
-    IReadOnlyList<AdminOciBoardingCard> BoardingCards);
+    IReadOnlyList<AdminOciBoardingCard> BoardingCards,
+    IReadOnlyList<AdminOciTimaticNote> TimaticNotes);
 
 public sealed class AdminCheckInHandler
 {
@@ -128,13 +129,13 @@ public sealed class AdminCheckInHandler
             _logger.LogWarning(
                 "Admin check-in: no tickets checked in for {BookingReference} from {DepartureAirport}",
                 command.BookingReference, command.DepartureAirport);
-            return new AdminCheckInResult(command.BookingReference, []);
+            return new AdminCheckInResult(command.BookingReference, [], checkInResult.TimaticNotes);
         }
 
         var boardingDocsResult = await _deliveryServiceClient.GetOciBoardingDocsAsync(
             command.DepartureAirport, checkedInTickets, ct);
 
-        return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards);
+        return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes);
     }
 
     private static (Dictionary<string, string> TicketToPaxId, Dictionary<string, PaxName> PaxIdToName)

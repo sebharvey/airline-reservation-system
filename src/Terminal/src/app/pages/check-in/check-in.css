@@ -469,6 +469,48 @@ select.field-input { cursor: pointer; }
   color: var(--text);
 }
 
+/* Timatic notes */
+.modal-timatic {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timatic-note {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.83rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.timatic-pass {
+  background: rgba(63, 185, 80, 0.08);
+  color: #2a7d3b;
+}
+
+.timatic-fail {
+  background: rgba(248, 81, 73, 0.08);
+  color: #c0392b;
+}
+
+.timatic-badge {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.timatic-detail {
+  line-height: 1.4;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

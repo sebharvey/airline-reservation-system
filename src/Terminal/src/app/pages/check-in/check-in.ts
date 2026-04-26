@@ -4,6 +4,7 @@ import {
   CheckInService,
   LookupResponse,
   PaxSubmission,
+  TimaticNote,
 } from '../../services/check-in.service';
 
 interface PaxFormData {
@@ -27,6 +28,7 @@ interface CheckInResult {
   surname: string;
   passengerTypeCode: string;
   boardingCard: BoardingCard | null;
+  timaticNotes: TimaticNote[];
 }
 
 @Component({
@@ -198,7 +200,8 @@ export class CheckInComponent {
       this.paxStatuses.set(statuses);
 
       const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
-      this.checkInResult.set({ givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, boardingCard });
+      const timaticNotes = (response.timaticNotes ?? []).filter(n => n.ticketNumber === pax.ticketNumber);
+      this.checkInResult.set({ givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, boardingCard, timaticNotes });
 
       const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
       this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);

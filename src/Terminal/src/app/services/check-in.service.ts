@@ -82,6 +82,13 @@ export interface PaxSubmission {
   };
 }
 
+export interface TimaticNote {
+  checkType: string;
+  ticketNumber: string;
+  status: string;
+  detail: string;
+}
+
 export interface BoardingCard {
   ticketNumber: string;
   passengerId: string;
@@ -97,6 +104,7 @@ export interface BoardingCard {
 
 export interface AdminCheckInResponse {
   bookingReference: string;
+  timaticNotes: TimaticNote[];
   boardingCards: BoardingCard[];
 }
 
