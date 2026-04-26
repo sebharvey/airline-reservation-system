@@ -6,7 +6,7 @@ namespace ReservationSystem.Microservices.Ancillary.Domain.Entities.Product;
 /// </summary>
 public sealed class Product
 {
-    private const string AllChannelsJson = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
+    private const string AllChannelsJson = """["WEB","APP","NDC","GDS","KIOSK","CC","AIRPORT"]""";
 
     public Guid ProductId { get; private set; }
     public Guid ProductGroupId { get; private set; }

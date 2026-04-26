@@ -31,7 +31,7 @@ public sealed class ProductsFunction
 
     [Function("GetRetailProducts")]
     [OpenApiOperation(operationId: "GetRetailProducts", tags: new[] { "Products" }, Summary = "List all active retail products grouped by product group, with per-currency prices")]
-    [OpenApiParameter(name: "channel", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter to products available on this channel (WEB, APP, NDC, KIOSK, CC, AIRPORT)")]
+    [OpenApiParameter(name: "channel", In = Microsoft.OpenApi.Models.ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter to products available on this channel (WEB, APP, NDC, GDS, KIOSK, CC, AIRPORT)")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Products with prices; channel filters by basket currency and groups for display")]
     public async Task<HttpResponseData> GetProducts(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/products")] HttpRequestData req,

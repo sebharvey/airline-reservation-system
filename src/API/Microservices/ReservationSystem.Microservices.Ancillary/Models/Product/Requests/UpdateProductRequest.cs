@@ -23,7 +23,7 @@ public sealed class UpdateProductRequest
     public string? ImageBase64 { get; init; }
 
     [JsonPropertyName("availableChannels")]
-    public string AvailableChannels { get; init; } = """["WEB","APP","NDC","KIOSK","CC","AIRPORT"]""";
+    public string AvailableChannels { get; init; } = """["WEB","APP","NDC","GDS","KIOSK","CC","AIRPORT"]""";
 
     [JsonPropertyName("availabilityRules")]
     public string? AvailabilityRules { get; init; }
