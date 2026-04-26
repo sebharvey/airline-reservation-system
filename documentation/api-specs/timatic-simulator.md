@@ -562,6 +562,163 @@ curl -s -X POST \
 
 ---
 
+## OCI check-in test scenarios
+
+The Timatic simulator is called by the Delivery microservice during `POST /v1/oci/checkin`. Both `documentcheck` and `apischeck` run in Phase 1 of the check-in handler before any coupon status is updated. A failure from either endpoint causes the entire check-in to be rejected with `422 Unprocessable Entity`; no passenger is checked in.
+
+The scenarios below cover the full check-in journey via the Operations API (`POST /api/v1/oci/*`). All assume a valid booking reference and that the 24-hour check-in window is open.
+
+---
+
+### Scenario 1 — Standard check-in, non-US route (happy path)
+
+**Trigger values:** Any passport number that does not start with `FAIL`; given name that does not contain `ALAN`.
+
+**Journey steps:**
+
+| Step | Endpoint | Key request values |
+|------|----------|--------------------|
+| 1 | `POST /api/v1/oci/retrieve` | Valid booking reference, lead PAX name, departure airport |
+| 2 | `POST /api/v1/oci/pax` | `"number": "PA1234567"`, `"nationality": "GBR"` |
+| 3 | `POST /api/v1/oci/seats` | — (not implemented, returns success) |
+| 4 | `POST /api/v1/oci/bags` | — (not implemented, returns success) |
+| 5 | `POST /api/v1/oci/checkin` | Valid booking reference and departure airport |
+| 6 | `POST /api/v1/oci/boarding-docs` | Ticket numbers from step 5 |
+
+**Expected outcomes:**
+- `documentcheck` → `status: OK`, `requirements: []`
+- `apischeck` → `apisStatus: ACCEPTED`, `fineRisk: LOW`
+- Step 5 returns `200 OK` with `checkedIn` ticket numbers
+- Step 6 returns boarding cards with BCBP strings
+
+---
+
+### Scenario 2 — US destination, ESTA advisory (happy path)
+
+**Trigger values:** Valid passport number; given name without `ALAN`; route arriving at a US gateway (JFK, LAX, ORD, ATL, DFW, MIA, SFO, SEA, BOS, EWR, IAD, IAH, MCO, MSP, DTW, PHL, LGA, CLT, DEN, PHX, LAS).
+
+**Journey steps:** Identical to Scenario 1.
+
+**Expected outcomes:**
+- `documentcheck` → `status: OK`, `advisories` contains one ESTA entry (`type: "ESTA"`, `mandatory: true`)
+- `apischeck` → `apisStatus: ACCEPTED`
+- Advisory is logged internally and is non-blocking
+- Check-in and boarding pass generation succeed as normal
+
+---
+
+### Scenario 3 — Passenger already checked in (happy path)
+
+**Trigger values:** `POST /api/v1/oci/checkin` called a second time for the same booking reference and departure airport.
+
+**Expected outcomes:**
+- Timatic checks run again (both phases execute regardless of prior check-in state)
+- Response returns `alreadyCheckedIn: true` with the original ticket numbers
+- No coupon status change; boarding pass retrieval still succeeds via `POST /api/v1/oci/boarding-docs`
+
+---
+
+### Scenario 4 — Document check failure (`FAIL` passport prefix)
+
+**Trigger value:** `paxInfo.documentNumber` starts with `FAIL` (e.g. `FAIL123456`). Submit this passport number at step 2.
+
+**Journey steps:**
+
+| Step | Endpoint | Key request values | Expected result |
+|------|----------|--------------------|-----------------|
+| 1 | `POST /api/v1/oci/retrieve` | — | 200 OK |
+| 2 | `POST /api/v1/oci/pax` | `"number": "FAIL123456"` | **200 OK** — documents are stored; Timatic is not called here |
+| 3 | `POST /api/v1/oci/seats` | — | 200 OK |
+| 4 | `POST /api/v1/oci/bags` | — | 200 OK |
+| 5 | `POST /api/v1/oci/checkin` | — | **422 Unprocessable Entity** |
+
+**Timatic response at step 5:**
+- `documentcheck` → `status: FAILED`, `visaRequired: true`, `requirements[0].type: "VISA"`
+- `apischeck` → **not called** (execution stops on document check failure)
+
+**Error message returned to caller:**
+```
+Travel document check failed for passenger [GivenName] [Surname]: Visa required. Travel document number is not accepted.
+```
+
+---
+
+### Scenario 5 — APIS check failure (`ALAN` in given name)
+
+**Trigger value:** `paxInfo.givenNames` contains `ALAN` (case-insensitive, e.g. `ALAN`, `Alan`, `ALAN JAMES`). Use a valid passport number (no `FAIL` prefix).
+
+**Journey steps:**
+
+| Step | Endpoint | Key request values | Expected result |
+|------|----------|--------------------|-----------------|
+| 1 | `POST /api/v1/oci/retrieve` | — | 200 OK |
+| 2 | `POST /api/v1/oci/pax` | `"number": "PA1234567"` | 200 OK |
+| 3 | `POST /api/v1/oci/seats` | — | 200 OK |
+| 4 | `POST /api/v1/oci/bags` | — | 200 OK |
+| 5 | `POST /api/v1/oci/checkin` | Booking has passenger with given name `ALAN JAMES` | **422 Unprocessable Entity** |
+
+**Timatic response at step 5:**
+- `documentcheck` → `status: OK` (passes)
+- `apischeck` → `apisStatus: REJECTED`, `fineRisk: HIGH`, `warnings[0].code: "WATCHLIST_MATCH"`
+
+**Error message returned to caller:**
+```
+APIS check failed for passenger ALAN JAMES [Surname]: Passenger name matches a watchlist entry. Online check-in is not permitted.
+```
+
+---
+
+### Scenario 6 — Both triggers active (document check fires first)
+
+**Trigger values:** Passport number starting with `FAIL` **and** given name containing `ALAN`.
+
+**Expected outcomes:**
+- `documentcheck` runs first and returns `status: FAILED`
+- Execution halts; `apischeck` is **never called**
+- `422` is returned with the document failure message, not a watchlist message
+
+---
+
+### Scenario 7 — Multi-passenger booking, one passenger blocked
+
+**Trigger values:** Two passengers on the same booking. Passenger 1 has a valid passport and name. Passenger 2 has a given name containing `ALAN` and a valid passport number.
+
+**Expected outcomes:**
+- Phase 1 iterates passengers in order
+- Passenger 1 passes both Timatic checks
+- Passenger 2 fails the APIS check (`WATCHLIST_MATCH`)
+- `InvalidOperationException` is thrown; Phase 2 (coupon status updates) is **never reached**
+- **Neither** passenger is checked in
+- `422` is returned referencing Passenger 2's name
+
+---
+
+### Scenario 8 — Missing travel documents (pre-Timatic guard)
+
+**Trigger:** Call `POST /api/v1/oci/checkin` without having first submitted travel documents via `POST /api/v1/oci/pax`.
+
+**Expected outcomes:**
+- The Operations API travel document guard fires before the Delivery MS is called
+- Timatic is never reached
+- `400 Bad Request`: `"Passenger travel documents have not been submitted."`
+
+---
+
+### Test scenario summary
+
+| Scenario | Passport number | Given name | Doc check result | APIS check result | Final outcome |
+|----------|----------------|------------|------------------|--------------------|---------------|
+| 1 — Standard (non-US) | `PA1234567` | `JOHN` | OK | ACCEPTED | ✅ 200 — checked in |
+| 2 — US route (ESTA) | `PA1234567` | `JOHN` | OK + ESTA advisory | ACCEPTED | ✅ 200 — checked in |
+| 3 — Already checked in | any valid | any valid | OK | ACCEPTED | ✅ 200 — `alreadyCheckedIn: true` |
+| 4 — Doc failure | `FAIL123456` | `JOHN` | **FAILED** | Not called | ❌ 422 — visa required |
+| 5 — APIS failure | `PA1234567` | `ALAN JAMES` | OK | **REJECTED** | ❌ 422 — watchlist match |
+| 6 — Both triggers | `FAIL123456` | `ALAN` | **FAILED** | Not called | ❌ 422 — doc failure (first) |
+| 7 — Multi-pax, one blocked | mixed | one has `ALAN` | OK / OK | ACCEPTED / **REJECTED** | ❌ 422 — no one checked in |
+| 8 — No travel docs | n/a | n/a | Not called | Not called | ❌ 400 — docs missing |
+
+---
+
 ## Related documentation
 
 - [Service URLs](../service-urls.md) — live base URL and configuration key
