@@ -19,6 +19,18 @@ export const routes: Routes = [
       {
         path: 'flight-departure',
         loadComponent: () => import('./pages/flight-departure/flight-departure').then(m => m.FlightDepartureComponent),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/flight-departure/flight-departure-list/flight-departure-list').then(m => m.FlightDepartureListComponent),
+          },
+          {
+            path: ':inventoryId',
+            loadComponent: () =>
+              import('./pages/flight-departure/flight-departure-detail/flight-departure-detail').then(m => m.FlightDepartureDetailComponent),
+          },
+        ],
       },
       {
         path: 'inventory',
