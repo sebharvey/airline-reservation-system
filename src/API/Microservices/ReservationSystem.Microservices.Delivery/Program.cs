@@ -65,7 +65,7 @@ var host = new HostBuilder()
         services.AddHttpClient();
         services.AddHttpClient("Timatic", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["Timatic:BaseUrl"] ?? "https://reservation-system-simulator-timatic-h0guaxfvgaengdeh.uksouth-01.azurewebsites.net/");
+            client.BaseAddress = new Uri(context.Configuration["Timatic:BaseUrl"]!);
             var apiToken = context.Configuration["Timatic:ApiToken"];
             if (!string.IsNullOrEmpty(apiToken))
                 client.DefaultRequestHeaders.Authorization =
