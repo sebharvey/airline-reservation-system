@@ -13,7 +13,6 @@ import { RetailApiService } from '../../../services/retail-api.service';
 })
 export class CheckInHazmatComponent implements OnInit {
   submitting = signal(false);
-  errorMessage = signal('');
   alreadyCheckedIn = signal(false);
 
   constructor(
@@ -45,7 +44,6 @@ export class CheckInHazmatComponent implements OnInit {
     }
 
     this.submitting.set(true);
-    this.errorMessage.set('');
     this.alreadyCheckedIn.set(false);
 
     this.retailApi.submitOciCheckIn(order.bookingReference, departureAirport).subscribe({
@@ -58,9 +56,9 @@ export class CheckInHazmatComponent implements OnInit {
           this.router.navigate(['/check-in/boarding-pass']);
         }
       },
-      error: (err: { message?: string }) => {
+      error: () => {
         this.submitting.set(false);
-        this.errorMessage.set(err?.message ?? 'Check-in failed. Please try again or visit the airport desk.');
+        this.router.navigate(['/check-in/failed']);
       }
     });
   }

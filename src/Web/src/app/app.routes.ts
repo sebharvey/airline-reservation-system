@@ -51,6 +51,7 @@ export const routes: Routes = [
       { path: 'seats', loadComponent: () => import('./pages/check-in/seats/check-in-seats').then(m => m.CheckInSeatsComponent) },
       { path: 'payment', loadComponent: () => import('./pages/check-in/payment/check-in-payment').then(m => m.CheckInPaymentComponent) },
       { path: 'hazmat', loadComponent: () => import('./pages/check-in/hazmat/check-in-hazmat').then(m => m.CheckInHazmatComponent) },
+      { path: 'failed', loadComponent: () => import('./pages/check-in/failed/check-in-failed').then(m => m.CheckInFailedComponent) },
       { path: 'boarding-pass', loadComponent: () => import('./pages/check-in/boarding-pass/boarding-pass').then(m => m.BoardingPassComponent) },
     ]
   },
