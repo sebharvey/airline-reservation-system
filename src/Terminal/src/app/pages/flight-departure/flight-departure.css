@@ -1,5 +1,5 @@
 .fd-page {
-  max-width: 1600px;
+  max-width: 1300px;
   padding: 16px;
 }
 
@@ -95,35 +95,6 @@
 }
 .stat-cancelled .stat-value { color: #f85149; }
 
-/* ── Body layout: list + optional detail panel ─────────────────────────── */
-.fd-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.fd-body--split {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.fd-list-col {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.fd-detail-col {
-  flex: 0 0 680px;
-  width: 680px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
 /* ── Flight table ──────────────────────────────────────────────────────── */
 .table-card {
   background: var(--white);
@@ -161,22 +132,9 @@
 .fd-table tr:last-child td { border-bottom: none; }
 .row-cancelled td { opacity: 0.55; }
 
-.row-clickable {
-  cursor: pointer;
-  transition: background 0.1s;
-}
-.row-clickable:hover td { background: var(--bg-light); }
-.row-selected td { background: rgba(99, 102, 241, 0.07) !important; }
-.row-selected .flight-num { color: var(--grad-start, #6366f1); }
-
 .flight-num { font-weight: 700; color: var(--text); }
 
-.route {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 600;
-}
+.route { display: flex; align-items: center; gap: 5px; font-weight: 600; }
 .route-arrow { color: var(--text-muted); font-weight: 400; }
 
 .time-cell { white-space: nowrap; }
@@ -249,370 +207,27 @@
   text-align: right;
 }
 
+/* ── Dispatch button ───────────────────────────────────────────────────── */
 .action-col { width: 110px; text-align: right; white-space: nowrap; }
 
 .dispatch-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background: transparent;
-  border: 1.5px solid var(--border);
+  padding: 5px 12px;
+  background: var(--grad-start, #6366f1);
+  border: none;
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-muted);
-  cursor: not-allowed;
-  opacity: 0.6;
-  white-space: nowrap;
-}
-
-.coming-soon-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #58a6ff;
-  flex-shrink: 0;
-}
-
-/* ── Detail panel ──────────────────────────────────────────────────────── */
-.detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-light);
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.detail-title-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.detail-flight {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--grad-start, #6366f1);
-}
-
-.detail-route {
-  font-weight: 600;
-  font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.detail-time { font-size: 0.8rem; }
-
-.close-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.75rem;
+  color: #fff;
   cursor: pointer;
-  color: var(--text-muted);
-  transition: background 0.1s, color 0.1s;
-  flex-shrink: 0;
-}
-.close-btn:hover { background: var(--border); color: var(--text); }
-
-.detail-loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 32px 16px;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.detail-body {
-  display: flex;
-  flex-direction: row;
-  gap: 0;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-}
-
-/* ── PAX list panel ────────────────────────────────────────────────────── */
-.pax-panel {
-  flex: 0 0 260px;
-  width: 260px;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.panel-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.pax-meta {
-  font-size: 0.68rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.pax-list {
-  overflow-y: auto;
-  flex: 1;
-}
-
-.pax-empty {
-  padding: 24px 14px;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  text-align: center;
-}
-
-.pax-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-}
-.pax-row:last-child { border-bottom: none; }
-.pax-row:hover { background: var(--bg-light); }
-.pax-checked-in { background: rgba(63, 185, 80, 0.04); }
-
-.pax-seat-badge {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-/* Cabin-based seat badge colours */
-.cabin-f { background: rgba(210, 153, 34, 0.15); color: #d29922; }
-.cabin-j { background: rgba(99, 102, 241, 0.12); color: var(--grad-start, #6366f1); }
-.cabin-w { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
-.cabin-y { background: rgba(63, 185, 80, 0.12);  color: #3fb950; }
-
-.pax-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pax-name {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  transition: opacity 0.15s;
 }
+.dispatch-btn:hover { opacity: 0.85; }
 
-.pax-ref {
-  font-size: 0.72rem;
-}
-
-.pax-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  flex-shrink: 0;
-}
-
-.ci-badge {
-  display: inline-block;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-}
-
-.ssr-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  justify-content: flex-end;
-}
-
-.ssr-tag {
-  display: inline-block;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(88, 166, 255, 0.12);
-  color: #58a6ff;
-  font-size: 0.58rem;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  letter-spacing: 0.3px;
-}
-
-/* ── Seatmap panel ──────────────────────────────────────────────────────── */
-.seatmap-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.seatmap-legend {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.65rem;
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.seatmap-scroll {
-  overflow-y: auto;
-  overflow-x: auto;
-  flex: 1;
-  padding: 12px 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.cabin-section { display: flex; flex-direction: column; gap: 3px; }
-
-.cabin-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.cabin-code-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-.cabin-f { background: rgba(210, 153, 34, 0.15); color: #d29922; }
-.cabin-j { background: rgba(99, 102, 241, 0.12); color: var(--grad-start, #6366f1); }
-.cabin-w { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
-.cabin-y { background: rgba(63, 185, 80, 0.12);  color: #3fb950; }
-
-/* Seat row */
-.seat-row {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.seat-row-header { margin-bottom: 2px; }
-
-.row-num-col {
-  width: 22px;
-  text-align: right;
-  font-size: 0.65rem;
-  flex-shrink: 0;
-}
-
-.col-header {
-  width: 20px;
-  text-align: center;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.aisle-gap { width: 10px; flex-shrink: 0; }
-
-.seat-cell {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  cursor: default;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.1s;
-}
-.seat-cell:hover { opacity: 0.8; }
-
-.seat-inner {
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
-  display: block;
-}
-
-/* Seat state colours */
-.seat-open         { background: rgba(63, 185, 80, 0.15); }
-.seat-open .seat-inner { background: #3fb950; opacity: 0.6; }
-
-.seat-booked       { background: rgba(248, 81, 73, 0.15); }
-.seat-booked .seat-inner { background: #f85149; }
-
-.seat-checked-in   { background: rgba(63, 185, 80, 0.3); }
-.seat-checked-in .seat-inner { background: #3fb950; }
-
-.seat-held         { background: rgba(240, 136, 62, 0.15); }
-.seat-held .seat-inner { background: #f0883e; opacity: 0.7; }
-
-.seat-gap          { background: transparent; pointer-events: none; }
-
-/* Legend dot colours match seat cells */
-.legend-dot.seat-open       { background: #3fb950; opacity: 0.6; }
-.legend-dot.seat-booked     { background: #f85149; }
-.legend-dot.seat-checked-in { background: #3fb950; }
-.legend-dot.seat-held       { background: #f0883e; opacity: 0.7; }
-
-/* ── Empty / loading ────────────────────────────────────────────────────── */
+/* ── Empty / loading ───────────────────────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -642,6 +257,332 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Full-screen overlay ───────────────────────────────────────────────── */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: stretch;
+  animation: fade-in-bg 0.15s ease;
+}
+
+@keyframes fade-in-bg { from { opacity: 0; } to { opacity: 1; } }
+
+.overlay-panel {
+  position: relative;
+  background: var(--bg, #0d1117);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slide-up 0.18s ease;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Detail header ─────────────────────────────────────────────────────── */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-light);
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.detail-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-flight {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--grad-start, #6366f1);
+}
+
+.detail-route {
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-aircraft { font-size: 0.8rem; }
+.detail-time { font-size: 0.8rem; }
+
+.close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+.close-btn:hover { background: var(--border); color: var(--text); }
+
+.detail-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ── Detail body: PAX left, seatmap right ──────────────────────────────── */
+.detail-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── PAX list panel ────────────────────────────────────────────────────── */
+.pax-panel {
+  flex: 0 0 320px;
+  width: 320px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.pax-meta {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pax-list { overflow-y: auto; flex: 1; }
+
+.pax-empty {
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.pax-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.pax-row:last-child { border-bottom: none; }
+.pax-row:hover { background: var(--bg-light); }
+.pax-checked-in { background: rgba(63, 185, 80, 0.04); }
+
+.pax-seat-badge {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cabin-f { background: rgba(210, 153, 34, 0.15); color: #d29922; }
+.cabin-j { background: rgba(99, 102, 241, 0.12); color: var(--grad-start, #6366f1); }
+.cabin-w { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+.cabin-y { background: rgba(63, 185, 80, 0.12);  color: #3fb950; }
+
+.pax-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pax-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pax-ref { font-size: 0.72rem; }
+
+.pax-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.ci-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.ssr-badges { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; }
+
+.ssr-tag {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(88, 166, 255, 0.12);
+  color: #58a6ff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.3px;
+}
+
+/* ── Seatmap panel ──────────────────────────────────────────────────────── */
+.seatmap-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.seatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.65rem;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.legend-item { display: flex; align-items: center; gap: 4px; }
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.seatmap-scroll {
+  overflow-y: auto;
+  overflow-x: auto;
+  flex: 1;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cabin-section { display: flex; flex-direction: column; gap: 3px; }
+
+.cabin-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cabin-code-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.seat-row { display: flex; align-items: center; gap: 3px; }
+.seat-row-header { margin-bottom: 2px; }
+
+.row-num-col { width: 24px; text-align: right; font-size: 0.65rem; flex-shrink: 0; }
+.col-header  { width: 22px; text-align: center; font-size: 0.65rem; font-weight: 700; color: var(--text-muted); }
+
+.aisle-gap { width: 12px; flex-shrink: 0; }
+
+.seat-cell {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  cursor: default;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.1s;
+}
+.seat-cell:hover { opacity: 0.8; }
+
+.seat-inner { width: 14px; height: 14px; border-radius: 2px; display: block; }
+
+.seat-open         { background: rgba(63, 185, 80, 0.15); }
+.seat-open .seat-inner { background: #3fb950; opacity: 0.5; }
+
+.seat-booked       { background: rgba(248, 81, 73, 0.18); }
+.seat-booked .seat-inner { background: #f85149; }
+
+.seat-checked-in   { background: rgba(63, 185, 80, 0.35); }
+.seat-checked-in .seat-inner { background: #3fb950; }
+
+.seat-held         { background: rgba(240, 136, 62, 0.18); }
+.seat-held .seat-inner { background: #f0883e; opacity: 0.7; }
+
+.seat-gap { background: transparent; pointer-events: none; }
+
+.legend-dot.seat-open       { background: #3fb950; opacity: 0.5; }
+.legend-dot.seat-booked     { background: #f85149; }
+.legend-dot.seat-checked-in { background: #3fb950; }
+.legend-dot.seat-held       { background: #f0883e; opacity: 0.7; }
+
 /* ── Mobile cards ─────────────────────────────────────────────────────── */
 .flight-cards { display: none; }
 
@@ -666,11 +607,9 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    cursor: pointer;
   }
 
   .flight-card-cancelled { opacity: 0.55; }
-  .flight-card-selected { border-color: var(--grad-start, #6366f1); }
 
   .fc-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .fc-flight { font-weight: 700; font-size: 0.9rem; color: var(--text); flex-shrink: 0; }
@@ -681,19 +620,13 @@
   .fc-cabin-item { display: flex; align-items: center; gap: 4px; }
   .fc-cabin-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
   .fc-load { display: flex; flex-direction: column; gap: 4px; }
+  .fc-actions { display: flex; gap: 8px; }
+  .fc-btn { flex: 1; justify-content: center; padding: 7px 12px; font-size: 0.8rem; }
 
-  /* Detail panel stacks below on mobile */
-  .fd-body--split {
-    flex-direction: column;
-  }
-
-  .fd-detail-col {
-    flex: none;
-    width: 100%;
-  }
-
+  /* On mobile the overlay also goes full screen */
+  .overlay-panel { width: 100%; }
   .detail-body { flex-direction: column; }
-  .pax-panel { flex: none; width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .pax-panel { flex: none; width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
 }
 
 @media (min-width: 901px) {
