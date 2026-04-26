@@ -1,8 +1,11 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-flight-departure',
+  standalone: true,
+  imports: [DecimalPipe],
   templateUrl: './flight-departure.html',
   styleUrl: './flight-departure.css',
 })
