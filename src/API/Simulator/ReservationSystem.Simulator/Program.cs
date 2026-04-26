@@ -18,8 +18,7 @@ var host = new HostBuilder()
         // ── HTTP clients ───────────────────────────────────────────────────────
         services.AddHttpClient("RetailApi", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["RetailApi:BaseUrl"]
-                ?? "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net/");
+            client.BaseAddress = new Uri(context.Configuration["RetailApi:BaseUrl"]!);
             var hostKey = context.Configuration["RetailApi:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);

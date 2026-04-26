@@ -49,16 +49,16 @@ var host = new HostBuilder()
         // ── Named HttpClients for downstream microservices ─────────────────────
         services.AddHttpClient("IdentityMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"] ?? "https://reservation-system-db-microservice-identity-dwdegsahhngkbvgv.uksouth-01.azurewebsites.net/");
-            var hostKey = context.Configuration["IdentityMs:HostKey"];
+            client.BaseAddress = new Uri(context.Configuration["IdentityMs:BaseUrl"]!);
+            var hostKey = context.Configuration["MicroserviceHostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
         services.AddHttpClient("CustomerMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"] ?? "https://reservation-system-db-microservice-customer-axdydza6brbkc0ck.uksouth-01.azurewebsites.net/");
-            var hostKey = context.Configuration["CustomerMs:HostKey"];
+            client.BaseAddress = new Uri(context.Configuration["CustomerMs:BaseUrl"]!);
+            var hostKey = context.Configuration["MicroserviceHostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });

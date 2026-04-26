@@ -72,7 +72,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("ScheduleMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"] ?? "https://reservation-system-db-microservice-schedule-cvbebgdqgcbpeeb7.uksouth-01.azurewebsites.net/");
+            client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"]!);
             var hostKey = context.Configuration["ScheduleMs:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
@@ -80,7 +80,7 @@ var host = new HostBuilder()
 
         services.AddHttpClient("SeatMs", client =>
         {
-            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"] ?? "https://reservation-system-db-microservice-seat-d3crfphwhqazcwgz.uksouth-01.azurewebsites.net/");
+            client.BaseAddress = new Uri(context.Configuration["SeatMs:BaseUrl"]!);
             var hostKey = context.Configuration["SeatMs:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
