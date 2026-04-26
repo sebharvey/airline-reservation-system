@@ -94,6 +94,102 @@
   margin-top: 24px;
 }
 
+/* Passenger split layout */
+.pax-split {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.pax-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pax-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.pax-list-item:hover { border-color: var(--grad-start); }
+
+.pax-list-item.selected {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.06);
+}
+
+.pax-list-item.status-checked-in {
+  background: rgba(63, 185, 80, 0.08);
+  border-color: rgba(63, 185, 80, 0.45);
+}
+
+.pax-list-item.status-failed {
+  background: rgba(248, 81, 73, 0.08);
+  border-color: rgba(248, 81, 73, 0.45);
+}
+
+.pax-list-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pax-list-name {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pax-list-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pax-status-icon {
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pax-status-ok  { color: #3fb950; }
+.pax-status-err { color: #f85149; }
+
+.pax-detail-panel {
+  min-width: 0;
+}
+
+.pax-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 24px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -499,6 +595,10 @@ select.field-input { cursor: pointer; }
 .small-text { font-size: 0.78rem; }
 
 /* Mobile */
+@media (max-width: 720px) {
+  .pax-split { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 600px) {
   .check-in-page { padding: 12px; }
   .page-title { font-size: 1.25rem; }

@@ -37,7 +37,7 @@
       <div class="search-btn-group">
         <label class="field-label search-btn-spacer">&nbsp;</label>
         <button class="primary-btn" (click)="findBooking()" [disabled]="loading()">
-          @if (loading() && !paxForms().length) {
+          @if (loading()) {
             <span class="btn-spinner"></span> Searching…
           } @else {
             Find Booking
@@ -68,107 +68,146 @@
     }
   </div>
 
-  <!-- ── PASSENGERS & TRAVEL DOCUMENTS ── -->
-  @if (paxForms().length > 0 && !checkInComplete()) {
-    <p class="section-label">Passengers &amp; travel documents</p>
+  <!-- ── PASSENGERS (split layout) ── -->
+  @if (paxForms().length > 0) {
+    <div class="pax-split">
 
-    @for (pax of paxForms(); track pax.passengerId; let i = $index) {
-      <div class="pax-card">
-        <div class="pax-card-header">
-          <div class="avatar">{{ pax.givenName[0] }}</div>
-          <div class="pax-name-group">
-            <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
-            <span class="pax-type-badge">{{ paxTypeLabel(pax.passengerTypeCode) }}</span>
-          </div>
-          <span class="ticket-num mono">{{ pax.ticketNumber }}</span>
-        </div>
-
-        <div class="doc-grid">
-          <div class="form-group">
-            <label class="field-label">Document type</label>
-            <select
-              class="field-input"
-              [value]="pax.docType"
-              (change)="updateDoc(i, 'docType', $any($event.target).value)"
-            >
-              <option value="PASSPORT">Passport</option>
-              <option value="NATIONAL_ID">National ID</option>
-              <option value="VISA">Visa</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="field-label">Document number</label>
-            <input
-              class="field-input mono-input"
-              type="text"
-              placeholder="e.g. PA1234567"
-              [value]="pax.docNumber"
-              (input)="updateDoc(i, 'docNumber', $any($event.target).value)"
-            />
-          </div>
-          <div class="form-group">
-            <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
-            <input
-              class="field-input mono-input"
-              type="text"
-              placeholder="e.g. GBR"
-              maxlength="3"
-              [value]="pax.issuingCountry"
-              (input)="updateDoc(i, 'issuingCountry', $any($event.target).value.toUpperCase())"
-            />
-          </div>
-          <div class="form-group">
-            <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
-            <input
-              class="field-input mono-input"
-              type="text"
-              placeholder="e.g. GBR"
-              maxlength="3"
-              [value]="pax.nationality"
-              (input)="updateDoc(i, 'nationality', $any($event.target).value.toUpperCase())"
-            />
-          </div>
-          <div class="form-group">
-            <label class="field-label">Issue date</label>
-            <input
-              class="field-input"
-              type="date"
-              [value]="pax.issueDate"
-              (change)="updateDoc(i, 'issueDate', $any($event.target).value)"
-            />
-          </div>
-          <div class="form-group">
-            <label class="field-label">Expiry date</label>
-            <input
-              class="field-input"
-              type="date"
-              [value]="pax.expiryDate"
-              (change)="updateDoc(i, 'expiryDate', $any($event.target).value)"
-            />
-          </div>
-        </div>
-      </div>
-    }
-
-    @if (error()) {
-      <div class="error-banner" role="alert">⚠ {{ error() }}</div>
-    }
-
-    <div class="form-actions">
-      <button class="primary-btn complete-btn" (click)="completeCheckIn()" [disabled]="loading()">
-        @if (loading()) {
-          <span class="btn-spinner"></span> Completing check-in…
-        } @else {
-          ✓ Complete Check-In for {{ paxForms().length }} {{ paxForms().length === 1 ? 'Passenger' : 'Passengers' }}
+      <!-- Left: passenger list -->
+      <div class="pax-list-panel">
+        <p class="section-label" style="margin-top: 0">Passengers</p>
+        @for (pax of paxForms(); track pax.passengerId; let i = $index) {
+          <button
+            class="pax-list-item"
+            [class.selected]="selectedPaxIndex() === i"
+            [class.status-checked-in]="paxStatuses()[i] === 'checked-in'"
+            [class.status-failed]="paxStatuses()[i] === 'failed'"
+            (click)="selectPax(i)"
+          >
+            <div class="avatar small-avatar">{{ pax.givenName[0] }}</div>
+            <div class="pax-list-info">
+              <span class="pax-list-name">{{ pax.givenName }} {{ pax.surname }}</span>
+              <span class="pax-list-meta">
+                <span class="pax-type-badge">{{ paxTypeLabel(pax.passengerTypeCode) }}</span>
+                <span class="mono small-text">{{ pax.ticketNumber }}</span>
+              </span>
+            </div>
+            @if (paxStatuses()[i] === 'checked-in') {
+              <span class="pax-status-icon pax-status-ok">✓</span>
+            } @else if (paxStatuses()[i] === 'failed') {
+              <span class="pax-status-icon pax-status-err">✗</span>
+            }
+          </button>
         }
-      </button>
+      </div>
+
+      <!-- Right: document form for selected pax -->
+      <div class="pax-detail-panel">
+        @if (selectedPax()) {
+          <p class="section-label" style="margin-top: 0">
+            Travel documents — {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
+          </p>
+          <div class="form-card">
+            <div class="doc-grid">
+              <div class="form-group">
+                <label class="field-label">Document type</label>
+                <select
+                  class="field-input"
+                  [value]="selectedPax()!.docType"
+                  (change)="updateDoc(selectedPaxIndex()!, 'docType', $any($event.target).value)"
+                >
+                  <option value="PASSPORT">Passport</option>
+                  <option value="NATIONAL_ID">National ID</option>
+                  <option value="VISA">Visa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="field-label">Document number</label>
+                <input
+                  class="field-input mono-input"
+                  type="text"
+                  placeholder="e.g. PA1234567"
+                  [value]="selectedPax()!.docNumber"
+                  (input)="updateDoc(selectedPaxIndex()!, 'docNumber', $any($event.target).value)"
+                />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
+                <input
+                  class="field-input mono-input"
+                  type="text"
+                  placeholder="e.g. GBR"
+                  maxlength="3"
+                  [value]="selectedPax()!.issuingCountry"
+                  (input)="updateDoc(selectedPaxIndex()!, 'issuingCountry', $any($event.target).value.toUpperCase())"
+                />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
+                <input
+                  class="field-input mono-input"
+                  type="text"
+                  placeholder="e.g. GBR"
+                  maxlength="3"
+                  [value]="selectedPax()!.nationality"
+                  (input)="updateDoc(selectedPaxIndex()!, 'nationality', $any($event.target).value.toUpperCase())"
+                />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Issue date</label>
+                <input
+                  class="field-input"
+                  type="date"
+                  [value]="selectedPax()!.issueDate"
+                  (change)="updateDoc(selectedPaxIndex()!, 'issueDate', $any($event.target).value)"
+                />
+              </div>
+              <div class="form-group">
+                <label class="field-label">Expiry date</label>
+                <input
+                  class="field-input"
+                  type="date"
+                  [value]="selectedPax()!.expiryDate"
+                  (change)="updateDoc(selectedPaxIndex()!, 'expiryDate', $any($event.target).value)"
+                />
+              </div>
+            </div>
+
+            @if (checkInError()) {
+              <div class="error-banner" role="alert">⚠ {{ checkInError() }}</div>
+            }
+
+            <div class="form-actions" style="margin-top: 20px;">
+              <button
+                class="primary-btn complete-btn"
+                (click)="checkInPax(selectedPaxIndex()!)"
+                [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in'"
+              >
+                @if (checkingInIndex() === selectedPaxIndex()) {
+                  <span class="btn-spinner"></span> Checking in…
+                } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
+                  ✓ Checked In
+                } @else {
+                  ✓ Check In {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
+                }
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="pax-detail-empty">
+            <p>Select a passenger from the list to view and edit their travel documents</p>
+          </div>
+        }
+      </div>
+
     </div>
   }
 
   <!-- ── BOARDING PASSES ── -->
-  @if (checkInComplete()) {
+  @if (boardingCards().length > 0) {
     <div class="page-header success-header">
-      <div class="success-pill">✓ Check-In Complete</div>
+      @if (allAttempted()) {
+        <div class="success-pill">✓ Check-In Complete</div>
+      }
       <p class="page-subtitle">
         {{ boardingCards().length }} {{ boardingCards().length === 1 ? 'boarding pass' : 'boarding passes' }} generated
         for booking <strong class="mono">{{ booking()?.bookingReference }}</strong>
@@ -192,6 +231,10 @@
 
           <div class="bc-details">
             <div class="bc-detail">
+              <span class="bc-detail-label">Passenger</span>
+              <span class="bc-detail-value small-text">{{ card.givenName }} {{ card.surname }}</span>
+            </div>
+            <div class="bc-detail">
               <span class="bc-detail-label">Seat</span>
               <span class="bc-detail-value mono">{{ card.seatNumber }}</span>
             </div>
@@ -202,10 +245,6 @@
             <div class="bc-detail">
               <span class="bc-detail-label">Sequence</span>
               <span class="bc-detail-value mono">{{ card.sequenceNumber }}</span>
-            </div>
-            <div class="bc-detail">
-              <span class="bc-detail-label">Ticket</span>
-              <span class="bc-detail-value mono small-text">{{ card.ticketNumber }}</span>
             </div>
           </div>
 
@@ -231,9 +270,11 @@
       }
     </div>
 
-    <div class="form-actions">
-      <button class="primary-btn" (click)="reset()">Check In Another Passenger</button>
-    </div>
+    @if (allAttempted()) {
+      <div class="form-actions" style="margin-top: 16px;">
+        <button class="primary-btn" (click)="reset()">Check In Another Booking</button>
+      </div>
+    }
   }
 
 </div>

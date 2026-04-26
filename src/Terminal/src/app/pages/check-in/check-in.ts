@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   CheckInService,
   LookupResponse,
@@ -20,6 +20,8 @@ interface PaxFormData {
   expiryDate: string;
 }
 
+type PaxStatus = 'pending' | 'checked-in' | 'failed';
+
 @Component({
   selector: 'app-check-in',
   templateUrl: './check-in.html',
@@ -37,10 +39,24 @@ export class CheckInComponent {
 
   booking = signal<LookupResponse | null>(null);
   paxForms = signal<PaxFormData[]>([]);
+  paxStatuses = signal<PaxStatus[]>([]);
+
+  selectedPaxIndex = signal<number | null>(null);
+  checkingInIndex = signal<number | null>(null);
+  checkInError = signal('');
 
   boardingCards = signal<BoardingCard[]>([]);
   copiedBcbp = signal<string | null>(null);
-  checkInComplete = signal(false);
+
+  selectedPax = computed(() => {
+    const i = this.selectedPaxIndex();
+    return i !== null ? (this.paxForms()[i] ?? null) : null;
+  });
+
+  allAttempted = computed(() => {
+    const s = this.paxStatuses();
+    return s.length > 0 && s.every(st => st !== 'pending');
+  });
 
   async findBooking(): Promise<void> {
     const ref = this.bookingRef().trim().toUpperCase();
@@ -55,8 +71,10 @@ export class CheckInComponent {
     this.departureAirport.set('');
     this.booking.set(null);
     this.paxForms.set([]);
+    this.paxStatuses.set([]);
+    this.selectedPaxIndex.set(null);
     this.boardingCards.set([]);
-    this.checkInComplete.set(false);
+    this.checkInError.set('');
 
     try {
       const result = await this.#svc.lookup(ref);
@@ -77,9 +95,11 @@ export class CheckInComponent {
     if (!airport) return;
     this.departureAirport.set(airport);
     this.error.set('');
+    this.checkInError.set('');
     this.paxForms.set([]);
+    this.paxStatuses.set([]);
+    this.selectedPaxIndex.set(null);
     this.boardingCards.set([]);
-    this.checkInComplete.set(false);
 
     const orderDetail = this.booking()?.orderDetail;
     if (!orderDetail) return;
@@ -105,6 +125,13 @@ export class CheckInComponent {
         expiryDate: p.existingDoc?.expiryDate ?? '',
       })),
     );
+    this.paxStatuses.set(passengers.map(() => 'pending'));
+    this.selectedPaxIndex.set(0);
+  }
+
+  selectPax(index: number): void {
+    this.selectedPaxIndex.set(index);
+    this.checkInError.set('');
   }
 
   updateDoc(index: number, field: keyof PaxFormData, value: string): void {
@@ -113,56 +140,69 @@ export class CheckInComponent {
     this.paxForms.set(forms);
   }
 
-  async completeCheckIn(): Promise<void> {
-    const forms = this.paxForms();
-    const incomplete = forms.find(
-      f => !f.docNumber || !f.issuingCountry || !f.nationality || !f.issueDate || !f.expiryDate,
-    );
-    if (incomplete) {
-      this.error.set(
-        `Please complete all travel document fields for ${incomplete.givenName} ${incomplete.surname}.`,
-      );
+  async checkInPax(index: number): Promise<void> {
+    const pax = this.paxForms()[index];
+    if (!pax) return;
+
+    if (!pax.docNumber || !pax.issuingCountry || !pax.nationality || !pax.issueDate || !pax.expiryDate) {
+      this.checkInError.set('Please complete all travel document fields before checking in.');
       return;
     }
 
-    const bookingRef = this.booking()!.bookingReference;
-    const airport = this.departureAirport();
+    this.checkingInIndex.set(index);
+    this.checkInError.set('');
 
-    this.loading.set(true);
-    this.error.set('');
+    const submission: PaxSubmission = {
+      ticketNumber: pax.ticketNumber,
+      travelDocument: {
+        type: pax.docType,
+        number: pax.docNumber.toUpperCase(),
+        issuingCountry: pax.issuingCountry.toUpperCase(),
+        nationality: pax.nationality.toUpperCase(),
+        issueDate: pax.issueDate,
+        expiryDate: pax.expiryDate,
+      },
+    };
 
     try {
-      const submissions: PaxSubmission[] = forms.map(f => ({
-        ticketNumber: f.ticketNumber,
-        travelDocument: {
-          type: f.docType,
-          number: f.docNumber.toUpperCase(),
-          issuingCountry: f.issuingCountry.toUpperCase(),
-          nationality: f.nationality.toUpperCase(),
-          issueDate: f.issueDate,
-          expiryDate: f.expiryDate,
-        },
-      }));
+      const result = await this.#svc.adminCheckIn(
+        this.booking()!.bookingReference,
+        this.departureAirport(),
+        [submission],
+      );
 
-      const result = await this.#svc.adminCheckIn(bookingRef, airport, submissions);
-      this.boardingCards.set(result.boardingCards);
-      this.checkInComplete.set(true);
+      const statuses = this.paxStatuses().slice();
+      statuses[index] = 'checked-in';
+      this.paxStatuses.set(statuses);
+
+      if (result.boardingCards.length > 0) {
+        this.boardingCards.update(cards => [...cards, ...result.boardingCards]);
+      }
+
+      // Auto-advance to next pending passenger
+      const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
+      this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
     } catch {
-      this.error.set('Failed to complete check-in. Please try again or contact a supervisor.');
+      const statuses = this.paxStatuses().slice();
+      statuses[index] = 'failed';
+      this.paxStatuses.set(statuses);
+      this.checkInError.set('Check-in failed. Please verify the document details and try again.');
     } finally {
-      this.loading.set(false);
+      this.checkingInIndex.set(null);
     }
   }
 
   reset(): void {
     this.booking.set(null);
     this.paxForms.set([]);
+    this.paxStatuses.set([]);
+    this.selectedPaxIndex.set(null);
     this.boardingCards.set([]);
     this.departureAirports.set([]);
     this.departureAirport.set('');
     this.bookingRef.set('');
     this.error.set('');
-    this.checkInComplete.set(false);
+    this.checkInError.set('');
   }
 
   copyBcbp(bcbp: string): void {
