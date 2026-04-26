@@ -2,7 +2,10 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
+using ReservationSystem.Orchestration.Retail.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 
@@ -26,7 +29,9 @@ namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 public static class NdcXmlBuilder
 {
     private const string AirShoppingRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS";
-    private const string OfferPriceRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
+    private const string OfferPriceRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
+    private const string OrderCreateRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS";
+    private const string ServiceListRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS";
     private const string CarrierCode = "AX";
     private const string CarrierName = "Apex Air";
 
@@ -509,6 +514,398 @@ public static class NdcXmlBuilder
                 new XElement(ns + "DepartureCode", flight.Origin),
                 new XElement(ns + "ArrivalCode", flight.Destination),
                 new XElement(ns + "FlightReferences", segKey)));
+
+    // ── ServiceListRS ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 ServiceListRS XML document from active SSR catalogue entries.
+    ///
+    /// Structure:
+    ///   Document                                    — schema version 21.3
+    ///   Response/ServiceList/ALaCarteOffer          — one offer block owned by AX
+    ///   ALaCarteOffer/ALaCarteOfferItem             — one item per active SSR code
+    ///     OfferItemID                               — SLI-{SsrCode}
+    ///     Eligibility                               — FlightAssociationType=All, PaxAssociationType=All
+    ///     Service/ServiceID                         — SVC-{SsrCode}
+    ///     Service/Name                              — human-readable label
+    ///     Service/ServiceCode/Code                  — four-char IATA SSR code
+    ///     Service/ServiceCode/ServiceType           — SSR
+    ///     Service/ServiceGroup/Code                 — NDC group derived from SSR category
+    ///     UnitPriceDetail/TotalAmount               — 0.00 GBP (SSRs are complimentary)
+    ///   Response/DataLists/ServiceDefinitionList    — one ServiceDefinition per SSR
+    /// </summary>
+    public static string BuildServiceListRS(NdcServiceListResult result)
+    {
+        XNamespace ns = ServiceListRsNsUri;
+
+        var root = new XElement(ns + "IATA_ServiceListRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildSlDocument(ns),
+            BuildSlResponse(ns, result));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildSlDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildSlResponse(XNamespace ns, NdcServiceListResult result)
+    {
+        var aLaCarteOffer = new XElement(ns + "ALaCarteOffer",
+            new XElement(ns + "Owner", CarrierCode));
+
+        foreach (var svc in result.Services)
+            aLaCarteOffer.Add(BuildSlALaCarteOfferItem(ns, svc));
+
+        var serviceList = new XElement(ns + "ServiceList", aLaCarteOffer);
+
+        var response = new XElement(ns + "Response", serviceList);
+
+        // DataLists/ServiceDefinitionList provides richer descriptions for consumers.
+        if (result.Services.Count > 0)
+            response.Add(BuildSlDataLists(ns, result.Services));
+
+        return response;
+    }
+
+    private static XElement BuildSlALaCarteOfferItem(XNamespace ns, NdcSsrServiceItem svc)
+    {
+        var offerItemId = $"SLI-{svc.SsrCode}";
+        var serviceId   = $"SVC-{svc.SsrCode}";
+
+        return new XElement(ns + "ALaCarteOfferItem",
+            new XElement(ns + "OfferItemID", offerItemId),
+            new XElement(ns + "Eligibility",
+                new XElement(ns + "FlightAssociationType", "All"),
+                new XElement(ns + "PaxAssociationType",    "All")),
+            new XElement(ns + "Service",
+                new XElement(ns + "ServiceID", serviceId),
+                new XElement(ns + "Name",      svc.Label),
+                new XElement(ns + "ServiceCode",
+                    new XElement(ns + "Code",        svc.SsrCode),
+                    new XElement(ns + "ServiceType", "SSR")),
+                new XElement(ns + "ServiceGroup",
+                    new XElement(ns + "Code", MapSsrCategoryToNdcGroup(svc.Category)))),
+            new XElement(ns + "UnitPriceDetail",
+                new XElement(ns + "TotalAmount",
+                    new XElement(ns + "SimpleCurrencyPrice",
+                        new XAttribute("CurCode", "GBP"),
+                        "0.00"))));
+    }
+
+    private static XElement BuildSlDataLists(XNamespace ns, IReadOnlyList<NdcSsrServiceItem> services)
+    {
+        var sdList = new XElement(ns + "ServiceDefinitionList");
+
+        foreach (var svc in services)
+        {
+            sdList.Add(new XElement(ns + "ServiceDefinition",
+                new XElement(ns + "ServiceDefinitionID", $"SD-{svc.SsrCode}"),
+                new XElement(ns + "Name",                svc.Label),
+                new XElement(ns + "Desc",                svc.Label),
+                new XElement(ns + "ServiceCode",
+                    new XElement(ns + "Code",        svc.SsrCode),
+                    new XElement(ns + "ServiceType", "SSR")),
+                new XElement(ns + "Category",        MapSsrCategoryToNdcGroup(svc.Category))));
+        }
+
+        return new XElement(ns + "DataLists", sdList);
+    }
+
+    /// <summary>
+    /// Maps the internal SSR catalogue category label to an NDC ServiceGroup code.
+    /// NDC uses short uppercase group codes; the mapping is best-effort against the
+    /// free-text category values stored in the SSR catalogue.
+    /// </summary>
+    private static string MapSsrCategoryToNdcGroup(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category)) return "OTHER";
+
+        return category.ToUpperInvariant() switch
+        {
+            var c when c.Contains("MEAL")         => "MEAL",
+            var c when c.Contains("DIET")         => "MEAL",
+            var c when c.Contains("FOOD")         => "MEAL",
+            var c when c.Contains("WHEEL")        => "ACCESSIBILITY",
+            var c when c.Contains("MOBIL")        => "ACCESSIBILITY",
+            var c when c.Contains("DISAB")        => "ACCESSIBILITY",
+            var c when c.Contains("MEDICAL")      => "MEDICAL",
+            var c when c.Contains("MED")          => "MEDICAL",
+            var c when c.Contains("INFANT")       => "INFANT",
+            var c when c.Contains("BASSINET")     => "INFANT",
+            var c when c.Contains("BAGGAGE")      => "BAGGAGE",
+            var c when c.Contains("BAG")          => "BAGGAGE",
+            var c when c.Contains("PET")          => "PET",
+            var c when c.Contains("SPORT")        => "SPORT",
+            _                                     => "OTHER"
+        };
+    }
+
+    // ── OrderCreateRS ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 OrderCreateRS XML document from a confirmed OrderResponse.
+    ///
+    /// Structure:
+    ///   Document                    — schema version 21.3
+    ///   Response/Order              — OrderID, BookingRef, StatusCode, TotalAmount
+    ///   Response/Order/OrderItem    — one per confirmed flight item (Price, FareDetail)
+    ///   Response/Order/TicketDocInfo — one per issued e-ticket per passenger
+    ///   Response/DataLists          — FlightSegmentList, OriginDestinationList, PaxList
+    /// </summary>
+    public static string BuildOrderCreateRS(
+        OrderResponse order,
+        IReadOnlyList<NdcOrderCreatePassenger> passengers)
+    {
+        XNamespace ns = OrderCreateRsNsUri;
+
+        // Assign stable NDC segment keys indexed by position.
+        var segKeyMap = order.FlightSegments
+            .Select((s, i) => new { s.SegmentId, SegKey = $"SEG{i + 1}", OdKey = $"OD{i + 1}" })
+            .ToDictionary(x => x.SegmentId, x => (x.SegKey, x.OdKey));
+
+        var root = new XElement(ns + "IATA_OrderCreateRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildOcDocument(ns),
+            BuildOcResponse(ns, order, segKeyMap, passengers));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildOcDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildOcResponse(
+        XNamespace ns,
+        OrderResponse order,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap,
+        IReadOnlyList<NdcOrderCreatePassenger> passengers)
+    {
+        var orderEl = new XElement(ns + "Order",
+            new XElement(ns + "OrderID", order.OrderId.ToString()),
+            BuildOcBookingRef(ns, order.BookingReference),
+            new XElement(ns + "StatusCode", "ISSUED"),
+            new XElement(ns + "TotalAmount",
+                new XAttribute("CurCode", order.Currency),
+                order.TotalAmount.ToString("F2")));
+
+        // Flight OrderItems
+        foreach (var item in order.OrderItems.Where(i => i.Type == "Flight"))
+        {
+            segKeyMap.TryGetValue(item.SegmentRef, out var keys);
+            var segKey = keys.SegKey ?? item.SegmentRef;
+            var cabinCode = order.FlightSegments
+                .FirstOrDefault(s => s.SegmentId == item.SegmentRef)?.CabinCode ?? "Y";
+
+            orderEl.Add(BuildOcOrderItem(ns, item, segKey, cabinCode, order.Currency));
+        }
+
+        // TicketDocInfo — collect all e-tickets across flight order items
+        var allETickets = order.OrderItems
+            .Where(i => i.Type == "Flight" && i.ETickets is { Count: > 0 })
+            .SelectMany(i => i.ETickets!)
+            .GroupBy(t => t.PassengerId, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in allETickets)
+        {
+            var ticketDocInfo = new XElement(ns + "TicketDocInfo",
+                new XElement(ns + "PaxRefID", group.Key));
+
+            foreach (var eTicket in group)
+            {
+                ticketDocInfo.Add(new XElement(ns + "TicketDocument",
+                    new XElement(ns + "TicketDocNbr", eTicket.ETicketNumber),
+                    new XElement(ns + "Type", "T"),
+                    new XElement(ns + "ReportingType", "BSP")));
+            }
+
+            orderEl.Add(ticketDocInfo);
+        }
+
+        return new XElement(ns + "Response",
+            orderEl,
+            BuildOcDataLists(ns, order, segKeyMap, passengers));
+    }
+
+    private static XElement BuildOcBookingRef(XNamespace ns, string bookingReference) =>
+        new(ns + "BookingRef",
+            new XElement(ns + "BookingEntity",
+                new XElement(ns + "Carrier",
+                    new XElement(ns + "AirlineDesigCode", CarrierCode))),
+            new XElement(ns + "ID", bookingReference));
+
+    private static XElement BuildOcOrderItem(
+        XNamespace ns,
+        ConfirmedOrderItem item,
+        string segKey,
+        string cabinCode,
+        string currency)
+    {
+        var orderItem = new XElement(ns + "OrderItem",
+            new XElement(ns + "OrderItemID", item.OrderItemId),
+            new XElement(ns + "StatusCode", "PAYMENT_DONE"),
+            new XElement(ns + "FlightRefs", segKey));
+
+        foreach (var paxRef in item.PassengerRefs)
+            orderItem.Add(new XElement(ns + "PaxRefID", paxRef));
+
+        orderItem.Add(new XElement(ns + "Price",
+            new XElement(ns + "TotalAmount",
+                new XAttribute("CurCode", currency),
+                item.TotalPrice.ToString("F2")),
+            new XElement(ns + "BaseAmount",
+                new XAttribute("CurCode", currency),
+                (item.TotalPrice - item.Taxes).ToString("F2")),
+            new XElement(ns + "Taxes",
+                new XElement(ns + "Total",
+                    new XAttribute("CurCode", currency),
+                    item.Taxes.ToString("F2")))));
+
+        if (!string.IsNullOrWhiteSpace(item.FareBasisCode))
+        {
+            orderItem.Add(new XElement(ns + "FareDetail",
+                new XElement(ns + "FareComponent",
+                    new XElement(ns + "FareBasisCode",
+                        new XElement(ns + "Code", item.FareBasisCode)),
+                    new XElement(ns + "CabinType",
+                        new XElement(ns + "CabinTypeCode",
+                            new XElement(ns + "Code", MapCabinToNdc(cabinCode)))),
+                    new XElement(ns + "SegmentRefs", segKey))));
+        }
+
+        return orderItem;
+    }
+
+    private static XElement BuildOcDataLists(
+        XNamespace ns,
+        OrderResponse order,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap,
+        IReadOnlyList<NdcOrderCreatePassenger> passengers)
+    {
+        return new XElement(ns + "DataLists",
+            BuildOcFlightSegmentList(ns, order.FlightSegments, segKeyMap),
+            BuildOcOriginDestinationList(ns, order.FlightSegments, segKeyMap),
+            BuildOcPaxList(ns, order.Passengers, passengers));
+    }
+
+    private static XElement BuildOcFlightSegmentList(
+        XNamespace ns,
+        IReadOnlyList<ConfirmedFlightSegment> segments,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        var list = new XElement(ns + "FlightSegmentList");
+
+        foreach (var seg in segments)
+        {
+            if (!segKeyMap.TryGetValue(seg.SegmentId, out var keys)) continue;
+
+            var (depDate, depTime) = SplitDateTime(seg.DepartureDateTime);
+            var (arrDate, arrTime) = SplitDateTime(seg.ArrivalDateTime);
+            var (airlineId, flightNum) = SplitFlightNumber(seg.FlightNumber);
+            var aircraftCode = MapAircraftType(seg.AircraftType);
+
+            list.Add(new XElement(ns + "FlightSegment",
+                new XElement(ns + "SegmentKey", keys.SegKey),
+                new XElement(ns + "Departure",
+                    new XElement(ns + "AirportCode", seg.Origin),
+                    new XElement(ns + "Date", depDate),
+                    new XElement(ns + "Time", depTime)),
+                new XElement(ns + "Arrival",
+                    new XElement(ns + "AirportCode", seg.Destination),
+                    new XElement(ns + "Date", arrDate),
+                    new XElement(ns + "Time", arrTime)),
+                new XElement(ns + "MarketingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum),
+                    new XElement(ns + "Name", CarrierName)),
+                new XElement(ns + "OperatingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum)),
+                new XElement(ns + "Equipment",
+                    new XElement(ns + "AircraftCode", aircraftCode))));
+        }
+
+        return list;
+    }
+
+    private static XElement BuildOcOriginDestinationList(
+        XNamespace ns,
+        IReadOnlyList<ConfirmedFlightSegment> segments,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        var list = new XElement(ns + "OriginDestinationList");
+
+        foreach (var seg in segments)
+        {
+            if (!segKeyMap.TryGetValue(seg.SegmentId, out var keys)) continue;
+
+            list.Add(new XElement(ns + "OriginDestination",
+                new XElement(ns + "OriginDestinationKey", keys.OdKey),
+                new XElement(ns + "DepartureCode", seg.Origin),
+                new XElement(ns + "ArrivalCode", seg.Destination),
+                new XElement(ns + "FlightReferences", keys.SegKey)));
+        }
+
+        return list;
+    }
+
+    private static XElement BuildOcPaxList(
+        XNamespace ns,
+        IReadOnlyList<ConfirmedPassenger> confirmedPassengers,
+        IReadOnlyList<NdcOrderCreatePassenger> requestPassengers)
+    {
+        var list = new XElement(ns + "PaxList");
+
+        // Use confirmed passengers as the authoritative source; supplement with request
+        // PTC when confirmed passenger type is unavailable.
+        var ptcByPaxId = requestPassengers.ToDictionary(
+            p => p.PaxId, p => p.Ptc, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pax in confirmedPassengers)
+        {
+            ptcByPaxId.TryGetValue(pax.PassengerId, out var ptc);
+
+            list.Add(new XElement(ns + "Pax",
+                new XElement(ns + "PaxID", pax.PassengerId),
+                new XElement(ns + "PTC", ptc ?? pax.Type),
+                new XElement(ns + "Individual",
+                    new XElement(ns + "GivenName", pax.GivenName.ToUpperInvariant()),
+                    new XElement(ns + "Surname", pax.Surname.ToUpperInvariant()))));
+        }
+
+        return list;
+    }
+
+    // ── Helpers: DateTime splitting ───────────────────────────────────────────
+
+    /// <summary>
+    /// Splits an ISO 8601 UTC datetime string (e.g. "2026-07-15T10:00:00Z") into
+    /// a date string ("2026-07-15") and time string ("10:00").
+    /// </summary>
+    private static (string Date, string Time) SplitDateTime(string isoDateTime)
+    {
+        if (string.IsNullOrWhiteSpace(isoDateTime))
+            return (string.Empty, string.Empty);
+
+        if (DateTimeOffset.TryParse(isoDateTime, out var dto))
+        {
+            return (dto.UtcDateTime.ToString("yyyy-MM-dd"), dto.UtcDateTime.ToString("HH:mm"));
+        }
+
+        // Fallback: split on T
+        var tIdx = isoDateTime.IndexOf('T');
+        if (tIdx > 0)
+        {
+            var datePart = isoDateTime[..tIdx];
+            var timePart = isoDateTime[(tIdx + 1)..].TrimEnd('Z');
+            if (timePart.Length > 5) timePart = timePart[..5];
+            return (datePart, timePart);
+        }
+
+        return (isoDateTime, string.Empty);
+    }
 
     // ── Shared XML serialisation ──────────────────────────────────────────────
 

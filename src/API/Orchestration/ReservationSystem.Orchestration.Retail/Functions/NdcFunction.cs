@@ -5,6 +5,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Ndc;
 
@@ -15,6 +17,8 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 ///
 /// POST /v1/ndc/AirShopping  — search available flights and offers.
 /// POST /v1/ndc/OfferPrice   — validate and re-price a stored offer.
+/// POST /v1/ndc/ServiceList  — retrieve available SSR services (ancillaries).
+/// POST /v1/ndc/OrderCreate  — create a confirmed order from a stored offer.
 ///
 /// All routes accept and return application/xml using the IATA NDC 21.3 schema.
 /// Errors are returned as application/xml with an NDC Errors element.
@@ -23,15 +27,21 @@ public sealed class NdcFunction
 {
     private readonly NdcAirShoppingHandler _airShoppingHandler;
     private readonly NdcOfferPriceHandler _offerPriceHandler;
+    private readonly NdcServiceListHandler _serviceListHandler;
+    private readonly NdcOrderCreateHandler _orderCreateHandler;
     private readonly ILogger<NdcFunction> _logger;
 
     public NdcFunction(
         NdcAirShoppingHandler airShoppingHandler,
         NdcOfferPriceHandler offerPriceHandler,
+        NdcServiceListHandler serviceListHandler,
+        NdcOrderCreateHandler orderCreateHandler,
         ILogger<NdcFunction> logger)
     {
         _airShoppingHandler = airShoppingHandler;
         _offerPriceHandler = offerPriceHandler;
+        _serviceListHandler = serviceListHandler;
+        _orderCreateHandler = orderCreateHandler;
         _logger = logger;
     }
 
@@ -225,6 +235,199 @@ public sealed class NdcFunction
                 </Error>
               </Errors>
             </IATA_OfferPriceRS>
+            """;
+
+        var response = req.CreateResponse(status);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(xml, Encoding.UTF8);
+        return response;
+    }
+
+    // ── ServiceList ───────────────────────────────────────────────────────────
+
+    [Function("NdcServiceList")]
+    public async Task<HttpResponseData> ServiceList(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/ndc/ServiceList")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        // ── Read body ─────────────────────────────────────────────────────────
+        string requestBody;
+        try
+        {
+            using var reader = new StreamReader(req.Body, Encoding.UTF8);
+            requestBody = await reader.ReadToEndAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] Failed to read ServiceListRQ body");
+            return await XmlServiceListErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_READ", "Unable to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(requestBody))
+            return await XmlServiceListErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_EMPTY_BODY", "Request body must not be empty.");
+
+        // ── Parse ServiceListRQ ───────────────────────────────────────────────
+        var command = NdcXmlParser.TryParseServiceListRq(requestBody, out var parseError);
+        if (parseError is not null)
+        {
+            _logger.LogWarning("[NDC] ServiceListRQ parse failed: {Error}", parseError);
+            return await XmlServiceListErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_PARSE", parseError);
+        }
+
+        _logger.LogInformation(
+            "[NDC] ServiceList: OfferRefId={OfferRefId} CabinCode={CabinCode}",
+            command!.OfferRefId, command.NdcCabinCode);
+
+        // ── Fetch services ────────────────────────────────────────────────────
+        NdcServiceListResult result;
+        try
+        {
+            result = await _serviceListHandler.HandleAsync(command!, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] ServiceList failed");
+            return await XmlServiceListErrorAsync(req, HttpStatusCode.InternalServerError,
+                "ERR_SERVICE_LIST", "An error occurred while retrieving services.");
+        }
+
+        var responseXml = NdcXmlBuilder.BuildServiceListRS(result);
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(responseXml, Encoding.UTF8);
+        return response;
+    }
+
+    private static async Task<HttpResponseData> XmlServiceListErrorAsync(
+        HttpRequestData req,
+        HttpStatusCode status,
+        string code,
+        string message)
+    {
+        var xml = $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <IATA_ServiceListRS xmlns="http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS">
+              <Document>
+                <ReferenceVersion>21.3</ReferenceVersion>
+              </Document>
+              <Errors>
+                <Error>
+                  <Code>{System.Security.SecurityElement.Escape(code)}</Code>
+                  <DescText>{System.Security.SecurityElement.Escape(message)}</DescText>
+                  <LangCode>EN</LangCode>
+                </Error>
+              </Errors>
+            </IATA_ServiceListRS>
+            """;
+
+        var response = req.CreateResponse(status);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(xml, Encoding.UTF8);
+        return response;
+    }
+
+    // ── OrderCreate ───────────────────────────────────────────────────────────
+
+    [Function("NdcOrderCreate")]
+    public async Task<HttpResponseData> OrderCreate(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/ndc/OrderCreate")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        // ── Read body ─────────────────────────────────────────────────────────
+        string requestBody;
+        try
+        {
+            using var reader = new StreamReader(req.Body, Encoding.UTF8);
+            requestBody = await reader.ReadToEndAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] Failed to read OrderCreateRQ body");
+            return await XmlOrderCreateErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_READ", "Unable to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(requestBody))
+            return await XmlOrderCreateErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_EMPTY_BODY", "Request body must not be empty.");
+
+        // ── Parse OrderCreateRQ ───────────────────────────────────────────────
+        var command = NdcXmlParser.TryParseOrderCreateRq(requestBody, out var parseError);
+        if (command is null)
+        {
+            _logger.LogWarning("[NDC] OrderCreateRQ parse failed: {Error}", parseError);
+            return await XmlOrderCreateErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_PARSE", parseError ?? "Failed to parse OrderCreateRQ.");
+        }
+
+        _logger.LogInformation(
+            "[NDC] OrderCreate: OfferRefId={OfferRefId} Pax={PaxCount}",
+            command.OfferRefId, command.Passengers.Count);
+
+        // ── Create order ──────────────────────────────────────────────────────
+        NdcOrderCreateResult result;
+        try
+        {
+            result = await _orderCreateHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] OrderCreate failed for offer {OfferRefId}", command.OfferRefId);
+            return await XmlOrderCreateErrorAsync(req, HttpStatusCode.InternalServerError,
+                "ERR_ORDER_CREATE", "An error occurred while creating the order.");
+        }
+
+        return result.Outcome switch
+        {
+            NdcOrderCreateOutcome.OfferNotFound =>
+                await XmlOrderCreateErrorAsync(req, HttpStatusCode.NotFound,
+                    "ERR_OFFER_NOT_FOUND", $"Offer {command.OfferRefId} was not found."),
+
+            NdcOrderCreateOutcome.OfferExpired =>
+                await XmlOrderCreateErrorAsync(req, HttpStatusCode.Gone,
+                    "ERR_OFFER_EXPIRED",
+                    "The selected offer has expired or is no longer available. Please search again."),
+
+            _ => await BuildOrderCreateResponseAsync(req, result, command)
+        };
+    }
+
+    private static async Task<HttpResponseData> BuildOrderCreateResponseAsync(
+        HttpRequestData req,
+        NdcOrderCreateResult result,
+        NdcOrderCreateCommand command)
+    {
+        var responseXml = NdcXmlBuilder.BuildOrderCreateRS(result.Order!, command.Passengers);
+
+        var response = req.CreateResponse(HttpStatusCode.Created);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(responseXml, Encoding.UTF8);
+        return response;
+    }
+
+    private static async Task<HttpResponseData> XmlOrderCreateErrorAsync(
+        HttpRequestData req,
+        HttpStatusCode status,
+        string code,
+        string message)
+    {
+        var xml = $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <IATA_OrderCreateRS xmlns="http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS">
+              <Document>
+                <ReferenceVersion>21.3</ReferenceVersion>
+              </Document>
+              <Errors>
+                <Error>
+                  <Code>{System.Security.SecurityElement.Escape(code)}</Code>
+                  <DescText>{System.Security.SecurityElement.Escape(message)}</DescText>
+                  <LangCode>EN</LangCode>
+                </Error>
+              </Errors>
+            </IATA_OrderCreateRS>
             """;
 
         var response = req.CreateResponse(status);
