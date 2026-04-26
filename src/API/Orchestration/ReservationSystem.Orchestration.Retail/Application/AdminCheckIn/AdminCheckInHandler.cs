@@ -97,6 +97,14 @@ public sealed class AdminCheckInHandler
             await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, paxJson, ct);
         }
 
+        // Build ticket → passenger name lookup for note formatting
+        var ticketToName = ticketToPaxId.ToDictionary(
+            kvp => kvp.Key,
+            kvp => paxIdToName.TryGetValue(kvp.Value, out var n)
+                ? $"{n.GivenName} {n.Surname}".Trim()
+                : string.Empty,
+            StringComparer.OrdinalIgnoreCase);
+
         // Build OCI check-in ticket list using pax names from the order
         var checkInTickets = command.Passengers.Select(pax =>
         {
@@ -115,8 +123,51 @@ public sealed class AdminCheckInHandler
             };
         }).ToList();
 
-        var checkInResult = await _deliveryServiceClient.OciCheckInAsync(
-            command.DepartureAirport, checkInTickets, ct);
+        AdminOciCheckInResult checkInResult;
+        try
+        {
+            checkInResult = await _deliveryServiceClient.OciCheckInAsync(
+                command.DepartureAirport, checkInTickets, ct);
+        }
+        catch (AdminOciTimaticBlockedException ex)
+        {
+            // Timatic rejected — write audit notes to the order then re-throw so the function returns 400
+            if (ex.TimaticNotes.Count > 0)
+            {
+                try
+                {
+                    await _orderServiceClient.AddOrderNotesAsync(
+                        command.BookingReference,
+                        BuildOrderNotes(ex.TimaticNotes, ticketToName),
+                        ct);
+                }
+                catch (Exception notesEx)
+                {
+                    _logger.LogError(notesEx,
+                        "Admin check-in: failed to write Timatic notes to order {BookingReference}",
+                        command.BookingReference);
+                }
+            }
+            throw;
+        }
+
+        // Write Timatic pass notes to the order
+        if (checkInResult.TimaticNotes.Count > 0)
+        {
+            try
+            {
+                await _orderServiceClient.AddOrderNotesAsync(
+                    command.BookingReference,
+                    BuildOrderNotes(checkInResult.TimaticNotes, ticketToName),
+                    ct);
+            }
+            catch (Exception notesEx)
+            {
+                _logger.LogError(notesEx,
+                    "Admin check-in: failed to write Timatic notes to order {BookingReference}",
+                    command.BookingReference);
+            }
+        }
 
         var checkedInTickets = checkInResult.Tickets
             .Where(t => string.Equals(t.Status, "C", StringComparison.OrdinalIgnoreCase) ||
@@ -177,4 +228,33 @@ public sealed class AdminCheckInHandler
     }
 
     private sealed record PaxName(string GivenName, string Surname);
+
+    private static List<AdminCheckInOrderNote> BuildOrderNotes(
+        IReadOnlyList<AdminOciTimaticNote> notes,
+        IReadOnlyDictionary<string, string>? ticketToName = null)
+        => notes.Select(n =>
+        {
+            var checkLabel = n.CheckType switch
+            {
+                "DOC"  => "Document check",
+                "APIS" => "APIS check",
+                _      => $"{n.CheckType} check"
+            };
+            var isFail = !string.Equals(n.Status, "PASS", StringComparison.OrdinalIgnoreCase);
+            var statusText = isFail ? "failed" : "passed";
+            var paxName = isFail && ticketToName is not null && ticketToName.TryGetValue(n.TicketNumber, out var name) && !string.IsNullOrWhiteSpace(name)
+                ? name : null;
+            var subject = paxName is not null
+                ? $"{paxName} (ticket {n.TicketNumber})"
+                : $"ticket {n.TicketNumber}";
+            var message = string.IsNullOrWhiteSpace(n.Detail)
+                ? $"{checkLabel} {statusText} for {subject}"
+                : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
+            return new AdminCheckInOrderNote
+            {
+                DateTime = n.Timestamp,
+                Type     = "TIMATIC",
+                Message  = message
+            };
+        }).ToList();
 }
