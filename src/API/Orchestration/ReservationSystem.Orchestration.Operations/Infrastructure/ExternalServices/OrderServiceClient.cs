@@ -49,15 +49,21 @@ public sealed class OrderServiceClient
 
     /// <summary>
     /// Write check-in status onto orderItems for a departure airport via Order MS PATCH /v1/orders/{bookingRef}/checkin.
+    /// Optionally includes pre-formatted timatic notes to append alongside the check-in note.
     /// </summary>
     public async Task UpdateOrderCheckInAsync(
         string bookingReference,
         string departureAirport,
         string checkedInAt,
         IReadOnlyList<OrderCheckInPassenger> passengers,
+        IReadOnlyList<OrderTimaticNote>? timaticNotes,
         CancellationToken ct)
     {
-        var payload = new { departureAirport, checkedInAt, passengers };
+        object? notesPayload = timaticNotes is { Count: > 0 }
+            ? timaticNotes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message }).ToList()
+            : null;
+
+        var payload = new { departureAirport, checkedInAt, passengers, notes = notesPayload };
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
         using var response = await _httpClient.PatchAsync(
@@ -66,6 +72,28 @@ public sealed class OrderServiceClient
         {
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"Failed to update order check-in status: {error}");
+        }
+    }
+
+    /// <summary>
+    /// Append notes to an order via Order MS PATCH /v1/orders/{bookingRef}/notes.
+    /// Used to record timatic check results when check-in is blocked.
+    /// </summary>
+    public async Task AddOrderNotesAsync(
+        string bookingReference,
+        IReadOnlyList<OrderTimaticNote> notes,
+        CancellationToken ct)
+    {
+        var notesPayload = notes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message }).ToList();
+        var payload = new { notes = notesPayload };
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/notes", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to add order notes: {error}");
         }
     }
 
@@ -193,4 +221,16 @@ public sealed class OrderMsOrderResult
 
     [JsonPropertyName("orderData")]
     public JsonElement? OrderData { get; init; }
+}
+
+/// <summary>
+/// A pre-formatted note entry to append to an order's notes array.
+/// <c>DateTime</c> is ISO 8601 UTC; <c>Type</c> is the note category (e.g. "TIMATIC");
+/// <c>Message</c> is the human-readable text.
+/// </summary>
+public sealed class OrderTimaticNote
+{
+    public string DateTime { get; init; } = string.Empty;
+    public string Type     { get; init; } = string.Empty;
+    public string Message  { get; init; } = string.Empty;
 }

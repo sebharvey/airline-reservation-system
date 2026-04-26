@@ -11,6 +11,7 @@ using ReservationSystem.Microservices.Order.Application.DeleteDraftOrder;
 using ReservationSystem.Microservices.Order.Application.GetOrder;
 using ReservationSystem.Microservices.Order.Application.RebookOrder;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderBags;
+using ReservationSystem.Microservices.Order.Application.AddOrderNotes;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderCheckIn;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPayments;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
@@ -40,6 +41,7 @@ public sealed class OrderFunction
     private readonly UpdateOrderSsrsHandler _updateSsrsHandler;
     private readonly UpdateOrderETicketsHandler _updateETicketsHandler;
     private readonly UpdateOrderCheckInHandler _updateCheckInHandler;
+    private readonly AddOrderNotesHandler _addOrderNotesHandler;
     private readonly CancelOrderHandler _cancelOrderHandler;
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly RebookOrderHandler _rebookOrderHandler;
@@ -58,6 +60,7 @@ public sealed class OrderFunction
         UpdateOrderSsrsHandler updateSsrsHandler,
         UpdateOrderETicketsHandler updateETicketsHandler,
         UpdateOrderCheckInHandler updateCheckInHandler,
+        AddOrderNotesHandler addOrderNotesHandler,
         CancelOrderHandler cancelOrderHandler,
         ChangeOrderHandler changeOrderHandler,
         RebookOrderHandler rebookOrderHandler,
@@ -75,6 +78,7 @@ public sealed class OrderFunction
         _updateSsrsHandler = updateSsrsHandler;
         _updateETicketsHandler = updateETicketsHandler;
         _updateCheckInHandler = updateCheckInHandler;
+        _addOrderNotesHandler = addOrderNotesHandler;
         _cancelOrderHandler = cancelOrderHandler;
         _changeOrderHandler = changeOrderHandler;
         _rebookOrderHandler = rebookOrderHandler;
@@ -841,11 +845,25 @@ public sealed class OrderFunction
             passengers.Add(new UpdateOrderCheckInPassenger(passengerId, ticketNumber, status, message));
         }
 
+        List<UpdateOrderCheckInNote>? additionalNotes = null;
+        if (body.TryGetProperty("notes", out var notesEl) && notesEl.ValueKind == JsonValueKind.Array)
+        {
+            additionalNotes = [];
+            foreach (var n in notesEl.EnumerateArray())
+            {
+                var dt   = n.TryGetProperty("dateTime", out var dtEl)  ? dtEl.GetString()  ?? "" : "";
+                var type = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
+                var msg  = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
+                additionalNotes.Add(new UpdateOrderCheckInNote(dt, type, msg));
+            }
+        }
+
         var command = new UpdateOrderCheckInCommand(
             bookingRef.ToUpperInvariant().Trim(),
             departureAirport,
             checkedInAt,
-            passengers);
+            passengers,
+            additionalNotes);
 
         try
         {
@@ -855,6 +873,54 @@ public sealed class OrderFunction
             {
                 bookingReference = order.BookingReference,
                 checkedInPassengers = passengers.Count
+            });
+        }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // PATCH /v1/orders/{bookingRef}/notes
+    [Function("AddOrderNotes")]
+    [OpenApiOperation(operationId: "AddOrderNotes", tags: new[] { "Orders" }, Summary = "Append one or more notes to an order — used to record timatic check results and other system events")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
+        Description = "{ notes: [{ dateTime, type, message }] }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> AddNotes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/notes")] HttpRequestData req,
+        string bookingRef, CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("notes", out var notesEl) || notesEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'notes' array is required.");
+
+        var notes = new List<AddOrderNoteEntry>();
+        foreach (var n in notesEl.EnumerateArray())
+        {
+            var dt   = n.TryGetProperty("dateTime", out var dtEl)  ? dtEl.GetString()  ?? "" : "";
+            var type = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
+            var msg  = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
+            if (!string.IsNullOrWhiteSpace(msg))
+                notes.Add(new AddOrderNoteEntry(dt, type, msg));
+        }
+
+        if (notes.Count == 0)
+            return await req.BadRequestAsync("At least one valid note entry is required.");
+
+        var command = new AddOrderNotesCommand(bookingRef.ToUpperInvariant().Trim(), notes);
+
+        try
+        {
+            var order = await _addOrderNotesHandler.HandleAsync(command, ct);
+            if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
+            return await req.OkJsonAsync(new
+            {
+                bookingReference = order.BookingReference,
+                notesAdded = notes.Count
             });
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }

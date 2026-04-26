@@ -93,13 +93,37 @@ public sealed class OciFunction
             return await req.OkJsonAsync(new
             {
                 checkedIn = result.CheckedIn,
-                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status })
+                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status }),
+                timaticNotes = result.TimaticNotes.Select(n => new
+                {
+                    checkType    = n.CheckType,
+                    ticketNumber = n.TicketNumber,
+                    status       = n.Status,
+                    detail       = n.Detail,
+                    timestamp    = n.Timestamp
+                })
             });
         }
-        catch (InvalidOperationException ex)
+        catch (TimaticValidationException ex)
         {
             _logger.LogWarning("OCI check-in blocked by Timatic for {DepartureAirport}: {Message}", departureAirport, ex.Message);
-            return await req.UnprocessableEntityAsync(ex.Message);
+
+            // Return structured 422 so the Operations API can record the timatic notes on the order
+            var response = req.CreateResponse(System.Net.HttpStatusCode.UnprocessableEntity);
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(new
+            {
+                error = ex.Message,
+                timaticNotes = ex.TimaticNotes.Select(n => new
+                {
+                    checkType    = n.CheckType,
+                    ticketNumber = n.TicketNumber,
+                    status       = n.Status,
+                    detail       = n.Detail,
+                    timestamp    = n.Timestamp
+                })
+            }, JsonOptions));
+            return response;
         }
         catch (Exception ex)
         {

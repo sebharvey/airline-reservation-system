@@ -18,7 +18,25 @@ public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<Oc
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status);
 
-public sealed record OciCheckInResult(int CheckedIn, IReadOnlyList<OciCheckInTicketResult> Tickets);
+public sealed record TimaticNote(
+    string CheckType,    // "DOC" or "APIS"
+    string TicketNumber,
+    string Status,       // "PASS" or "FAIL"
+    string Detail,
+    string Timestamp);
+
+public sealed class TimaticValidationException : Exception
+{
+    public IReadOnlyList<TimaticNote> TimaticNotes { get; }
+
+    public TimaticValidationException(string message, IReadOnlyList<TimaticNote> notes)
+        : base(message) => TimaticNotes = notes;
+}
+
+public sealed record OciCheckInResult(
+    int CheckedIn,
+    IReadOnlyList<OciCheckInTicketResult> Tickets,
+    IReadOnlyList<TimaticNote> TimaticNotes);
 
 public sealed class OciCheckInHandler
 {
@@ -40,6 +58,7 @@ public sealed class OciCheckInHandler
     {
         var checkedInCount = 0;
         var results = new List<OciCheckInTicketResult>();
+        var timaticNotes = new List<TimaticNote>();
 
         // Tickets that were checked in but have no seat yet — collected for group allocation.
         var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode)>();
@@ -100,6 +119,7 @@ public sealed class OciCheckInHandler
 
                 var docResult = await _timaticServiceClient.DocumentCheckAsync(docRequest, cancellationToken);
 
+                var docTimestamp = DateTime.UtcNow.ToString("o");
                 if (!string.Equals(docResult.Status, "OK", StringComparison.OrdinalIgnoreCase))
                 {
                     var requirements = docResult.Requirements
@@ -115,10 +135,13 @@ public sealed class OciCheckInHandler
                         "Timatic document check failed for ticket {TicketNumber}: {Detail}",
                         ticketRequest.TicketNumber, detail);
 
-                    throw new InvalidOperationException(
-                        $"Travel document check failed for passenger {ticketRequest.GivenName} {ticketRequest.Surname}: {detail}");
+                    timaticNotes.Add(new TimaticNote("DOC", ticketRequest.TicketNumber, "FAIL", detail, docTimestamp));
+                    throw new TimaticValidationException(
+                        $"Travel document check failed for passenger {ticketRequest.GivenName} {ticketRequest.Surname}: {detail}",
+                        timaticNotes);
                 }
 
+                timaticNotes.Add(new TimaticNote("DOC", ticketRequest.TicketNumber, "PASS", "Document check passed.", docTimestamp));
                 _logger.LogInformation(
                     "Timatic document check passed for ticket {TicketNumber}", ticketRequest.TicketNumber);
             }
@@ -147,6 +170,7 @@ public sealed class OciCheckInHandler
 
             var apisResult = await _timaticServiceClient.ApisCheckAsync(apisRequest, cancellationToken);
 
+            var apisTimestamp = DateTime.UtcNow.ToString("o");
             if (!string.Equals(apisResult.ApisStatus, "ACCEPTED", StringComparison.OrdinalIgnoreCase))
             {
                 var warnings = apisResult.Warnings.Select(w => w.Description).ToList();
@@ -156,10 +180,16 @@ public sealed class OciCheckInHandler
                     "Timatic APIS check rejected for ticket {TicketNumber}: {Detail}",
                     ticketRequest.TicketNumber, detail);
 
-                throw new InvalidOperationException(
-                    $"APIS check failed for passenger {ticketRequest.GivenName} {ticketRequest.Surname}: {detail}");
+                timaticNotes.Add(new TimaticNote("APIS", ticketRequest.TicketNumber, "FAIL", detail, apisTimestamp));
+                throw new TimaticValidationException(
+                    $"APIS check failed for passenger {ticketRequest.GivenName} {ticketRequest.Surname}: {detail}",
+                    timaticNotes);
             }
 
+            var apisDetail = string.IsNullOrWhiteSpace(apisResult.AuditRef)
+                ? "APIS check accepted."
+                : $"APIS check accepted. Audit ref: {apisResult.AuditRef}";
+            timaticNotes.Add(new TimaticNote("APIS", ticketRequest.TicketNumber, "PASS", apisDetail, apisTimestamp));
             _logger.LogInformation(
                 "Timatic APIS check accepted for ticket {TicketNumber} — audit ref {AuditRef}",
                 ticketRequest.TicketNumber, apisResult.AuditRef);
@@ -242,7 +272,7 @@ public sealed class OciCheckInHandler
             }
         }
 
-        return new OciCheckInResult(checkedInCount, results);
+        return new OciCheckInResult(checkedInCount, results, timaticNotes);
     }
 
     private static string NormaliseDate(string raw)
