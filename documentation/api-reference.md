@@ -132,11 +132,12 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 
 ### NDC
 
-IATA NDC 21.3 channel endpoints. Accept and return `application/xml` using the IATA NDC schema namespace `http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ` (request) / `http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS` (response). The parser accepts any NDC namespace version; the response always uses 21.3.
+IATA NDC 21.3 channel endpoints. All routes accept and return `application/xml`. Request namespaces are resolved dynamically; responses always use the 21.3 schema namespace. Errors are returned as `application/xml` with an NDC `Errors` element.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/ndc/AirShopping` | Accept an `IATA_AirShoppingRQ` XML document; parse origin, destination, departure date, and anonymous traveler types; search for available flights via the Offer microservice; return an `IATA_AirShoppingRS` XML document containing `OffersGroup` (one NDC Offer per cabin/fare-family per flight) and `DataLists` (FlightSegmentList, OriginDestinationList, AnonymousTravelerList); `OfferID` in the response equals the internal `offerId` GUID for basket creation; returns `application/xml` with NDC `Errors` element on `400` or `500` |
+| `POST` | `/v1/ndc/AirShopping` | Accept an `IATA_AirShoppingRQ` XML document; parse origin, destination, departure date, and anonymous traveler types; search for available flights via the Offer microservice; return an `IATA_AirShoppingRS` XML document containing `OffersGroup` (one NDC `Offer` per cabin/fare-family per flight) and `DataLists` (`FlightSegmentList`, `OriginDestinationList`, `AnonymousTravelerList`); `OfferID` in the response equals the internal `offerId` GUID; returns NDC `Errors` element on `400` or `500` |
+| `POST` | `/v1/ndc/OfferPrice` | Accept an `IATA_OfferPriceRQ` XML document; parse `SelectedOffer/OfferRefID` (must be a valid GUID matching an `OfferID` from a prior `AirShoppingRS`); re-validate and re-price the stored offer via the Offer microservice reprice endpoint; return an `IATA_OfferPriceRS` XML document containing `PricedOffer` (with `OfferItem` elements including `TotalPriceDetail` with tax breakdown, `Service`, `FareDetail`, and `OfferExpiration`) and `DataLists` (`FlightSegmentList`, `OriginDestinationList`, optional `AnonymousTravelerList` when `Travelers` are supplied in the request); returns `404` when the offer is not found, `410 Gone` when the offer has expired or inventory is no longer available |
 
 **NDC cabin code mapping**
 

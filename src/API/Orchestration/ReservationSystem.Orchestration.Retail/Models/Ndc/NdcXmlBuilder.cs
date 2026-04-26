@@ -7,22 +7,31 @@ using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 
 /// <summary>
-/// Builds an IATA NDC 21.3 AirShoppingRS XML document from the internal offer search result.
+/// Builds IATA NDC 21.3 response XML documents (AirShoppingRS, OfferPriceRS) from
+/// internal offer and flight DTOs.
 ///
-/// Mapping strategy:
-///   FlightItemDto        → one FlightSegment in DataLists/FlightSegmentList
-///   FlightItemDto        → one OriginDestination in DataLists/OriginDestinationList
-///   OfferItemDto         → one Offer/OfferItem in OffersGroup/AirlineOffers
-///   NdcPassengerType[]   → AnonymousTraveler entries in DataLists/AnonymousTravelerList
+/// AirShoppingRS mapping:
+///   FlightItemDto        → FlightSegment in DataLists/FlightSegmentList
+///   FlightItemDto        → OriginDestination in DataLists/OriginDestinationList
+///   OfferItemDto         → Offer/OfferItem in OffersGroup/AirlineOffers
+///   NdcPassengerType[]   → AnonymousTraveler in DataLists/AnonymousTravelerList
 ///
-/// OfferID in the NDC response equals the internal OfferId GUID so that NDC consumers
-/// can reference it when initiating an order.
+/// OfferPriceRS mapping:
+///   OfferDetailDto       → DataLists flight and origin-destination elements
+///   RepricedOfferItemDto → OfferItem elements inside PricedOffer
+///
+/// OfferID in the NDC response equals the internal OfferId GUID so NDC consumers
+/// can reference it in subsequent OfferPrice and OrderCreate requests.
 /// </summary>
 public static class NdcXmlBuilder
 {
-    private const string NsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS";
+    private const string AirShoppingRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS";
+    private const string OfferPriceRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
     private const string CarrierCode = "AX";
     private const string CarrierName = "Apex Air";
+
+    // Keep the old constant for existing code that references it via the private field alias below.
+    private const string NsUri = AirShoppingRsNsUri;
 
     private readonly record struct PaxEntry(string Key, NdcPassengerType Pax);
 
@@ -53,20 +62,7 @@ public static class NdcXmlBuilder
             BuildOffersGroup(ns, searchResult, segKeys, allPaxRefs),
             BuildDataLists(ns, searchResult, segKeys, paxEntries));
 
-        var doc = new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
-
-        // Write to MemoryStream with UTF-8 (no BOM) to ensure the XML declaration
-        // correctly declares encoding="UTF-8" and the output bytes are valid UTF-8.
-        using var ms = new MemoryStream();
-        using var writer = XmlWriter.Create(ms, new XmlWriterSettings
-        {
-            Indent = true,
-            Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-            OmitXmlDeclaration = false
-        });
-        doc.WriteTo(writer);
-        writer.Flush();
-        return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetString(ms.ToArray());
+        return SerialiseXml(root);
     }
 
     // ── Top-level sections ────────────────────────────────────────────────────
@@ -275,6 +271,260 @@ public static class NdcXmlBuilder
         }
 
         return list;
+    }
+
+    // ── OfferPriceRS ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 OfferPriceRS XML document.
+    /// PricedOffer contains one OfferItem per repriced fare returned by the Offer MS.
+    /// OfferExpiration is taken from the stored offer ExpiresAt timestamp.
+    /// DataLists carries the FlightSegment and OriginDestination for the priced flight.
+    /// Travelers are included in AnonymousTravelerList when the request supplied them.
+    /// </summary>
+    public static string BuildOfferPriceRS(
+        OfferDetailDto offerDetail,
+        RepriceOfferDto repriceResult,
+        IReadOnlyList<NdcPassengerType>? passengers)
+    {
+        XNamespace ns = OfferPriceRsNsUri;
+
+        const string segKey = "SEG1";
+        const string odKey = "OD1";
+
+        var paxEntries = passengers?
+            .Select((p, i) => new PaxEntry($"PAX{i + 1}", p))
+            .ToList() ?? [];
+
+        var allPaxRefs = paxEntries.Count > 0
+            ? string.Join(" ", paxEntries.Select(p => p.Key))
+            : null;
+
+        var root = new XElement(ns + "IATA_OfferPriceRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildOpDocument(ns),
+            BuildOpPricedOffer(ns, offerDetail, repriceResult, segKey, allPaxRefs),
+            BuildOpDataLists(ns, offerDetail, segKey, odKey, paxEntries));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildOpDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildOpPricedOffer(
+        XNamespace ns,
+        OfferDetailDto offerDetail,
+        RepriceOfferDto repriceResult,
+        string segKey,
+        string? allPaxRefs)
+    {
+        // Use the first repriced item's currency (all items share the same currency).
+        var firstItem = repriceResult.Offers.FirstOrDefault();
+        var currencyCode = firstItem?.CurrencyCode ?? "GBP";
+        var totalAmount = repriceResult.Offers.Sum(o => o.TotalAmount);
+
+        var pricedOffer = new XElement(ns + "PricedOffer",
+            new XElement(ns + "OfferID", repriceResult.StoredOfferId.ToString()),
+            new XElement(ns + "OwnerCode", CarrierCode),
+            new XElement(ns + "ValidatingCarrierCode", CarrierCode),
+            new XElement(ns + "TotalPrice",
+                new XElement(ns + "TotalAmount",
+                    new XAttribute("CurCode", currencyCode),
+                    totalAmount.ToString("F2"))));
+
+        foreach (var offer in repriceResult.Offers)
+            pricedOffer.Add(BuildOpOfferItem(ns, offer, segKey, allPaxRefs));
+
+        // OfferExpiration — ISO 8601 UTC timestamp parsed from the stored offer.
+        if (!string.IsNullOrWhiteSpace(offerDetail.ExpiresAt) &&
+            DateTimeOffset.TryParse(offerDetail.ExpiresAt, out var expiry))
+        {
+            pricedOffer.Add(new XElement(ns + "OfferExpiration",
+                new XElement(ns + "DateTime",
+                    expiry.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))));
+        }
+
+        return pricedOffer;
+    }
+
+    private static XElement BuildOpOfferItem(
+        XNamespace ns,
+        RepricedOfferItemDto offer,
+        string segKey,
+        string? allPaxRefs)
+    {
+        var offerItemId = $"ITEM-{offer.OfferId:N}";
+        var serviceId = $"SVC-{offer.OfferId:N}";
+
+        var item = new XElement(ns + "OfferItem",
+            new XElement(ns + "OfferItemID", offerItemId),
+            BuildOpTotalPriceDetail(ns, offer),
+            new XElement(ns + "Service",
+                new XElement(ns + "ServiceID", serviceId),
+                new XElement(ns + "FlightRefs", segKey)),
+            BuildOpFareDetail(ns, offer, segKey));
+
+        if (!string.IsNullOrWhiteSpace(allPaxRefs))
+            item.Add(new XElement(ns + "PassengerRefs", allPaxRefs));
+
+        return item;
+    }
+
+    private static XElement BuildOpTotalPriceDetail(XNamespace ns, RepricedOfferItemDto offer)
+    {
+        var taxes = new XElement(ns + "Taxes",
+            new XElement(ns + "Total",
+                new XAttribute("CurCode", offer.CurrencyCode),
+                offer.TaxAmount.ToString("F2")));
+
+        // Include per-tax breakdown when available (enhances IATA NDC compliance).
+        if (offer.TaxLines is { Count: > 0 })
+        {
+            var breakdown = new XElement(ns + "Breakdown");
+            foreach (var tax in offer.TaxLines)
+            {
+                breakdown.Add(new XElement(ns + "Tax",
+                    new XElement(ns + "Amount",
+                        new XAttribute("CurCode", offer.CurrencyCode),
+                        tax.Amount.ToString("F2")),
+                    new XElement(ns + "TaxCode", tax.Code)));
+            }
+            taxes.Add(breakdown);
+        }
+
+        return new XElement(ns + "TotalPriceDetail",
+            new XElement(ns + "TotalAmount",
+                new XElement(ns + "SimpleCurrencyPrice",
+                    new XAttribute("CurCode", offer.CurrencyCode),
+                    offer.TotalAmount.ToString("F2"))),
+            new XElement(ns + "BaseAmount",
+                new XAttribute("CurCode", offer.CurrencyCode),
+                offer.BaseFareAmount.ToString("F2")),
+            taxes);
+    }
+
+    private static XElement BuildOpFareDetail(XNamespace ns, RepricedOfferItemDto offer, string segKey)
+    {
+        var penalties = new List<XElement>();
+
+        if (!offer.IsRefundable)
+        {
+            penalties.Add(new XElement(ns + "Penalty",
+                new XElement(ns + "Details",
+                    new XElement(ns + "Detail",
+                        new XElement(ns + "Type", "CANCELLATION"),
+                        new XElement(ns + "Application", "ANYTIME"),
+                        new XElement(ns + "CancelFeeInd", "true")))));
+        }
+
+        if (!offer.IsChangeable)
+        {
+            penalties.Add(new XElement(ns + "Penalty",
+                new XElement(ns + "Details",
+                    new XElement(ns + "Detail",
+                        new XElement(ns + "Type", "CHANGE"),
+                        new XElement(ns + "Application", "ANYTIME"),
+                        new XElement(ns + "ChangeFeeInd", "true")))));
+        }
+
+        var fareRules = penalties.Count > 0
+            ? new XElement(ns + "FareRules", penalties)
+            : new XElement(ns + "FareRules");
+
+        return new XElement(ns + "FareDetail",
+            new XElement(ns + "FareComponent",
+                new XElement(ns + "FareBasisCode",
+                    new XElement(ns + "Code", offer.FareBasisCode)),
+                new XElement(ns + "CabinType",
+                    new XElement(ns + "CabinTypeCode",
+                        new XElement(ns + "Code", MapCabinToNdc(offer.CabinCode)))),
+                new XElement(ns + "SegmentRefs", segKey),
+                fareRules));
+    }
+
+    private static XElement BuildOpDataLists(
+        XNamespace ns,
+        OfferDetailDto offerDetail,
+        string segKey,
+        string odKey,
+        IReadOnlyList<PaxEntry> paxEntries)
+    {
+        var dataLists = new XElement(ns + "DataLists",
+            BuildOpFlightSegmentList(ns, offerDetail, segKey),
+            BuildOpOriginDestinationList(ns, offerDetail, segKey, odKey));
+
+        if (paxEntries.Count > 0)
+        {
+            var travelerList = new XElement(ns + "AnonymousTravelerList");
+            foreach (var entry in paxEntries)
+            {
+                travelerList.Add(new XElement(ns + "AnonymousTraveler",
+                    new XElement(ns + "ObjectKey", entry.Key),
+                    new XElement(ns + "PTC", entry.Pax.Ptc),
+                    new XElement(ns + "Quantity", entry.Pax.Quantity.ToString())));
+            }
+            dataLists.Add(travelerList);
+        }
+
+        return dataLists;
+    }
+
+    private static XElement BuildOpFlightSegmentList(XNamespace ns, OfferDetailDto flight, string segKey)
+    {
+        DateOnly.TryParse(flight.DepartureDate, out var depDate);
+        var arrDate = depDate.AddDays(flight.ArrivalDayOffset);
+
+        var (airlineId, flightNum) = SplitFlightNumber(flight.FlightNumber);
+        var aircraftCode = MapAircraftType(flight.AircraftType);
+
+        return new XElement(ns + "FlightSegmentList",
+            new XElement(ns + "FlightSegment",
+                new XElement(ns + "SegmentKey", segKey),
+                new XElement(ns + "Departure",
+                    new XElement(ns + "AirportCode", flight.Origin),
+                    new XElement(ns + "Date", flight.DepartureDate),
+                    new XElement(ns + "Time", flight.DepartureTime)),
+                new XElement(ns + "Arrival",
+                    new XElement(ns + "AirportCode", flight.Destination),
+                    new XElement(ns + "Date", arrDate.ToString("yyyy-MM-dd")),
+                    new XElement(ns + "Time", flight.ArrivalTime)),
+                new XElement(ns + "MarketingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum),
+                    new XElement(ns + "Name", CarrierName)),
+                new XElement(ns + "OperatingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum)),
+                new XElement(ns + "Equipment",
+                    new XElement(ns + "AircraftCode", aircraftCode))));
+    }
+
+    private static XElement BuildOpOriginDestinationList(
+        XNamespace ns, OfferDetailDto flight, string segKey, string odKey) =>
+        new(ns + "OriginDestinationList",
+            new XElement(ns + "OriginDestination",
+                new XElement(ns + "OriginDestinationKey", odKey),
+                new XElement(ns + "DepartureCode", flight.Origin),
+                new XElement(ns + "ArrivalCode", flight.Destination),
+                new XElement(ns + "FlightReferences", segKey)));
+
+    // ── Shared XML serialisation ──────────────────────────────────────────────
+
+    private static string SerialiseXml(XElement root)
+    {
+        var doc = new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
+        using var ms = new MemoryStream();
+        using var writer = XmlWriter.Create(ms, new XmlWriterSettings
+        {
+            Indent = true,
+            Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            OmitXmlDeclaration = false
+        });
+        doc.WriteTo(writer);
+        writer.Flush();
+        return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetString(ms.ToArray());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

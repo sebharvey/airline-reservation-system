@@ -24,7 +24,7 @@
         { value: 'seat-pricing',                label: 'admin - seat pricing' },
         { value: 'bag-policy',                  label: 'admin - bag policy' },
         { value: 'bag-pricing',                 label: 'admin - bag pricing' },
-        { value: 'ndc-air-shopping',             label: 'NDC - AirShopping (IATA NDC 21.3)' },
+        { value: 'ndc-air-shopping',             label: 'NDC - AirShopping + OfferPrice (IATA NDC 21.3)' },
         { value: 'timatic',                     label: 'timatic - autocheck simulator' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
@@ -1689,7 +1689,19 @@
     }
 
     function extractChainsFromResponse(chainsTo, body, chain, paxCount) {
-        if (!chainsTo || !body || typeof body !== 'object') return;
+        if (!chainsTo || body === null || body === undefined) return;
+
+        // XML (and other text) string responses — extract via regex when xmlRegex is declared.
+        if (typeof body === 'string') {
+            chainsTo.forEach(cd => {
+                if (!cd.xmlRegex) return;
+                const match = body.match(new RegExp(cd.xmlRegex));
+                if (match && match[1] !== undefined) chain[cd.as || cd.field] = match[1];
+            });
+            return;
+        }
+
+        if (typeof body !== 'object') return;
         chainsTo.forEach(cd => {
             if (cd.randomArrayPath) {
                 const all = collectAllValues(body, cd.randomArrayPath.split('.'));
