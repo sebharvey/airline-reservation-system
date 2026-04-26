@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
 
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 
@@ -197,5 +198,205 @@ public static class NdcXmlParser
             offerItemRefId,
             shoppingResponseId,
             paxList.Count > 0 ? paxList : null);
+    }
+
+    // ── OrderCreate parser ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses an IATA_OrderCreateRQ XML document (NDC 21.3).
+    ///
+    /// Extracts:
+    ///   Query/OrderItems/OfferItem/OfferRefID            — stored offer GUID (required)
+    ///   Query/OrderItems/OfferItem/OfferItemRefID        — offer item ref (optional)
+    ///   Query/OrderItems/ShoppingResponse/ResponseID    — shopping correlation ID (optional)
+    ///   Query/DataLists/PaxList/Pax                     — named passengers (at least 1 required)
+    ///   Query/DataLists/ContactInfoList/ContactInfo     — contact info indexed by ContactInfoID
+    ///   Query/Payments/Payment/Method/PaymentCard       — card payment details (optional)
+    /// </summary>
+    public static NdcOrderCreateCommand? TryParseOrderCreateRq(string xml, out string? errorMessage)
+    {
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xml);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Invalid XML: {ex.Message}";
+            return null;
+        }
+
+        var root = doc.Root;
+        if (root is null)
+        {
+            errorMessage = "Empty XML document.";
+            return null;
+        }
+
+        var ns = root.Name.Namespace;
+
+        // ── Query ─────────────────────────────────────────────────────────────
+        var query = root.Element(ns + "Query");
+        if (query is null)
+        {
+            errorMessage = "Query element is missing.";
+            return null;
+        }
+
+        // ── OfferItem / OfferRefID ─────────────────────────────────────────────
+        var orderItems = query.Element(ns + "OrderItems");
+        if (orderItems is null)
+        {
+            errorMessage = "Query/OrderItems element is missing.";
+            return null;
+        }
+
+        var offerItemEl = orderItems.Element(ns + "OfferItem");
+        if (offerItemEl is null)
+        {
+            errorMessage = "Query/OrderItems/OfferItem element is missing.";
+            return null;
+        }
+
+        var offerRefIdStr = offerItemEl.Element(ns + "OfferRefID")?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(offerRefIdStr) || !Guid.TryParse(offerRefIdStr, out var offerRefId))
+        {
+            errorMessage = "Query/OrderItems/OfferItem/OfferRefID is missing or not a valid GUID.";
+            return null;
+        }
+
+        var offerItemRefId = offerItemEl.Element(ns + "OfferItemRefID")?.Value?.Trim();
+
+        // ── ShoppingResponseID ────────────────────────────────────────────────
+        var shoppingResponseId = orderItems
+            .Element(ns + "ShoppingResponse")
+            ?.Element(ns + "ResponseID")?.Value?.Trim();
+
+        // ── DataLists ─────────────────────────────────────────────────────────
+        var dataLists = query.Element(ns + "DataLists");
+
+        // Build contact info lookup keyed by ContactInfoID.
+        var contactMap = BuildContactMap(ns, dataLists);
+
+        // ── Passengers ────────────────────────────────────────────────────────
+        var passengers = new List<NdcOrderCreatePassenger>();
+        var paxListEl = dataLists?.Element(ns + "PaxList");
+
+        if (paxListEl is null)
+        {
+            errorMessage = "Query/DataLists/PaxList element is missing.";
+            return null;
+        }
+
+        foreach (var paxEl in paxListEl.Elements(ns + "Pax"))
+        {
+            var paxId = paxEl.Element(ns + "PaxID")?.Value?.Trim();
+            if (string.IsNullOrWhiteSpace(paxId)) continue;
+
+            var ptcRaw = paxEl.Element(ns + "PTC")?.Value?.Trim().ToUpperInvariant();
+            var ptc = ptcRaw switch
+            {
+                "ADT" or "CHD" or "INF" or "YTH" => ptcRaw,
+                _ when !string.IsNullOrWhiteSpace(ptcRaw) => ptcRaw,
+                _ => "ADT"
+            };
+
+            var individual = paxEl.Element(ns + "Individual");
+            var givenName  = individual?.Element(ns + "GivenName")?.Value?.Trim() ?? string.Empty;
+            var surname    = individual?.Element(ns + "Surname")?.Value?.Trim() ?? string.Empty;
+            var dob        = individual?.Element(ns + "Birthdate")?.Value?.Trim();
+            var genderCode = individual?.Element(ns + "GenderCode")?.Value?.Trim();
+
+            if (string.IsNullOrWhiteSpace(givenName) || string.IsNullOrWhiteSpace(surname))
+            {
+                errorMessage = $"Pax {paxId}: Individual/GivenName and Individual/Surname are required.";
+                return null;
+            }
+
+            // Resolve contact info via ContactInfoRefID on the Pax element.
+            string? email = null;
+            string? phone = null;
+            var contactRefId = paxEl.Element(ns + "ContactInfoRefID")?.Value?.Trim();
+            if (!string.IsNullOrWhiteSpace(contactRefId) &&
+                contactMap.TryGetValue(contactRefId, out var contact))
+            {
+                email = contact.Email;
+                phone = contact.Phone;
+            }
+
+            passengers.Add(new NdcOrderCreatePassenger(
+                paxId, ptc, givenName, surname, dob, genderCode, email, phone));
+        }
+
+        if (passengers.Count == 0)
+        {
+            errorMessage = "At least one Pax must be specified in Query/DataLists/PaxList.";
+            return null;
+        }
+
+        // ── Payment ───────────────────────────────────────────────────────────
+        NdcOrderCreatePaymentCard? paymentCard = null;
+        var paymentsEl = query.Element(ns + "Payments");
+        var paymentEl  = paymentsEl?.Element(ns + "Payment");
+
+        if (paymentEl is not null)
+        {
+            var cardEl = paymentEl
+                .Element(ns + "Method")
+                ?.Element(ns + "PaymentCard");
+
+            if (cardEl is not null)
+            {
+                var cardholderName   = cardEl.Element(ns + "CardHolderName")?.Value?.Trim() ?? string.Empty;
+                var plainCardNumber  = cardEl.Element(ns + "CardNumber")
+                    ?.Element(ns + "PlainCardNumber")?.Value?.Trim() ?? string.Empty;
+                var cardTypeCode     = cardEl.Element(ns + "CardTypeCode")?.Value?.Trim() ?? string.Empty;
+                var expiryEl         = cardEl.Element(ns + "Expiry");
+                var expiryMonth      = expiryEl?.Element(ns + "Month")?.Value?.Trim() ?? string.Empty;
+                var expiryYear       = expiryEl?.Element(ns + "Year")?.Value?.Trim() ?? string.Empty;
+                var cvv              = cardEl.Element(ns + "SeriesCode")
+                    ?.Element(ns + "Value")?.Value?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(plainCardNumber))
+                {
+                    paymentCard = new NdcOrderCreatePaymentCard(
+                        cardholderName, plainCardNumber, cardTypeCode,
+                        expiryMonth, expiryYear, cvv);
+                }
+            }
+        }
+
+        errorMessage = null;
+        return new NdcOrderCreateCommand(
+            offerRefId,
+            string.IsNullOrWhiteSpace(offerItemRefId) ? null : offerItemRefId,
+            string.IsNullOrWhiteSpace(shoppingResponseId) ? null : shoppingResponseId,
+            passengers,
+            paymentCard);
+    }
+
+    private static Dictionary<string, (string? Email, string? Phone)> BuildContactMap(
+        XNamespace ns, XElement? dataLists)
+    {
+        var map = new Dictionary<string, (string?, string?)>(StringComparer.OrdinalIgnoreCase);
+        if (dataLists is null) return map;
+
+        var contactInfoList = dataLists.Element(ns + "ContactInfoList");
+        if (contactInfoList is null) return map;
+
+        foreach (var ciEl in contactInfoList.Elements(ns + "ContactInfo"))
+        {
+            var ciId = ciEl.Element(ns + "ContactInfoID")?.Value?.Trim();
+            if (string.IsNullOrWhiteSpace(ciId)) continue;
+
+            var email = ciEl.Element(ns + "EmailAddress")
+                ?.Element(ns + "EmailAddressText")?.Value?.Trim();
+            var phone = ciEl.Element(ns + "Phone")
+                ?.Element(ns + "PhoneNumber")?.Value?.Trim();
+
+            map[ciId] = (email, phone);
+        }
+
+        return map;
     }
 }
