@@ -343,7 +343,7 @@ Basket expiry is fixed at **60 minutes** from creation, matching the `StoredOffe
 | Column | Type | Nullable | Default | Key | Notes |
 |---|---|---|---|---|---|
 | BasketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
-| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `KIOSK` · `CC` · `AIRPORT` |
+| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `GDS` · `KIOSK` · `CC` · `AIRPORT` |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | BasketStatus | VARCHAR(20) | No | `'Active'` | | `Active` · `Expired` · `Abandoned` · `Confirmed` |
 | TotalFareAmount | DECIMAL(10,2) | Yes | | | Sum of flight offer prices; updated as basket is built |
@@ -534,7 +534,7 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 | OrderId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
 | BookingReference | CHAR(6) | Yes | | UK | Populated on confirmation, e.g. `AB1234`; null before confirmation — multiple unconfirmed orders may have `NULL` simultaneously |
 | OrderStatus | VARCHAR(20) | No | `'Draft'` | | `OrderInit` · `Draft` · `Confirmed` · `Changed` · `Cancelled` |
-| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `KIOSK` · `CC` · `AIRPORT` |
+| ChannelCode | VARCHAR(20) | No | | | `WEB` · `APP` · `NDC` · `GDS` · `KIOSK` · `CC` · `AIRPORT` |
 | CurrencyCode | CHAR(3) | No | `'GBP'` | | ISO 4217 currency code |
 | TicketingTimeLimit | DATETIME2 | Yes | | | Latest time at which payment must complete; set at order creation; null until the order is confirmed |
 | TotalAmount | DECIMAL(10,2) | Yes | | | Total order value including all order items; null until confirmed |

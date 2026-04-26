@@ -541,7 +541,7 @@ CREATE TABLE [order].[Order] (
     OrderData          JSON             NOT NULL,
     CONSTRAINT PK_Order          PRIMARY KEY (OrderId),
     CONSTRAINT CHK_Order_Status  CHECK (OrderStatus IN ('OrderInit','Draft','Confirmed','Changed','Cancelled')),
-    CONSTRAINT CHK_Order_Channel CHECK (ChannelCode IN ('WEB','APP','NDC','KIOSK','CC','AIRPORT'))
+    CONSTRAINT CHK_Order_Channel CHECK (ChannelCode IN ('WEB','APP','NDC','GDS','KIOSK','CC','AIRPORT'))
 );
 GO
 
@@ -1097,7 +1097,7 @@ CREATE TABLE [product].[Product] (
     IsSegmentSpecific   BIT              NOT NULL CONSTRAINT DF_Product_SegmentSpecific  DEFAULT 0,
     SsrCode             CHAR(4)          NULL,
     ImageBase64         NVARCHAR(MAX)    NULL,
-    AvailableChannels   JSON             NOT NULL CONSTRAINT DF_Product_Channels        DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]',
+    AvailableChannels   JSON             NOT NULL CONSTRAINT DF_Product_Channels        DEFAULT '["WEB","APP","NDC","GDS","KIOSK","CC","AIRPORT"]',
     AvailabilityRules   JSON             NULL,
     IsActive            BIT              NOT NULL CONSTRAINT DF_Product_Active           DEFAULT 1,
     CreatedAt           DATETIME2        NOT NULL CONSTRAINT DF_Product_Created          DEFAULT SYSUTCDATETIME(),
@@ -1122,7 +1122,7 @@ END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[product].[Product]') AND name = 'AvailableChannels')
-    ALTER TABLE [product].[Product] ADD AvailableChannels JSON NOT NULL CONSTRAINT DF_Product_Channels DEFAULT '["WEB","APP","NDC","KIOSK","CC","AIRPORT"]';
+    ALTER TABLE [product].[Product] ADD AvailableChannels JSON NOT NULL CONSTRAINT DF_Product_Channels DEFAULT '["WEB","APP","NDC","GDS","KIOSK","CC","AIRPORT"]';
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[product].[Product]') AND name = 'AvailabilityRules')

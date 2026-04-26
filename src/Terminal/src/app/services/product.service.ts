@@ -31,7 +31,7 @@ export interface Product {
   updatedAt: string;
 }
 
-export const ALL_CHANNELS = ['WEB', 'APP', 'NDC', 'KIOSK', 'CC', 'AIRPORT'] as const;
+export const ALL_CHANNELS = ['WEB', 'APP', 'NDC', 'GDS', 'KIOSK', 'CC', 'AIRPORT'] as const;
 export type ChannelCode = typeof ALL_CHANNELS[number];
 export const ALL_CHANNELS_JSON = JSON.stringify(ALL_CHANNELS);
 

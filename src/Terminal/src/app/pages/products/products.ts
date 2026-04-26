@@ -62,6 +62,7 @@ export class ProductsComponent implements OnInit {
     { code: 'WEB',     label: 'Web' },
     { code: 'APP',     label: 'App' },
     { code: 'NDC',     label: 'NDC' },
+    { code: 'GDS',     label: 'GDS' },
     { code: 'KIOSK',   label: 'Kiosk' },
     { code: 'CC',      label: 'Contact Centre' },
     { code: 'AIRPORT', label: 'Airport' },

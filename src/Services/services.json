@@ -8,7 +8,7 @@
       "healthEndpoint": "/api/v1/health",
       "swaggerEndpoint": "/api/swagger.json",
       "authType": "bearer",
-      "callers": ["Web", "App", "NDC", "Kiosk", "Contact Centre", "Airport"],
+      "callers": ["Web", "App", "NDC", "GDS", "Kiosk", "Contact Centre", "Airport"],
       "operations": [
         { "name": "Search Flights (Slice)", "method": "POST", "path": "/api/v1/search/slice", "defaultPayload": "{\n  \"origin\": \"LHR\",\n  \"destination\": \"JFK\",\n  \"departureDate\": \"2026-08-15\",\n  \"paxCount\": 1,\n  \"bookingType\": \"Revenue\"\n}" },
         { "name": "Search Connecting Flights", "method": "POST", "path": "/api/v1/search/connecting", "defaultPayload": "{\n  \"origin\": \"DEL\",\n  \"destination\": \"JFK\",\n  \"departureDate\": \"2026-08-15\",\n  \"paxCount\": 1,\n  \"bookingType\": \"Revenue\"\n}" },

@@ -107,6 +107,7 @@ export class OrderListComponent implements OnInit {
       APP: 'channel-app',
       CC: 'channel-cc',
       NDC: 'channel-ndc',
+      GDS: 'channel-gds',
       KIOSK: 'channel-kiosk',
       AIRPORT: 'channel-airport',
     }[channel] ?? '';
