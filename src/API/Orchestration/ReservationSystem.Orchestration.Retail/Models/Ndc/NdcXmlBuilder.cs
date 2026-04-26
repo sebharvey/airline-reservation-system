@@ -3,6 +3,7 @@ using System.Xml;
 using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 
@@ -30,6 +31,7 @@ public static class NdcXmlBuilder
     private const string AirShoppingRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS";
     private const string OfferPriceRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
     private const string OrderCreateRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS";
+    private const string ServiceListRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS";
     private const string CarrierCode = "AX";
     private const string CarrierName = "Apex Air";
 
@@ -512,6 +514,133 @@ public static class NdcXmlBuilder
                 new XElement(ns + "DepartureCode", flight.Origin),
                 new XElement(ns + "ArrivalCode", flight.Destination),
                 new XElement(ns + "FlightReferences", segKey)));
+
+    // ── ServiceListRS ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 ServiceListRS XML document from active SSR catalogue entries.
+    ///
+    /// Structure:
+    ///   Document                                    — schema version 21.3
+    ///   Response/ServiceList/ALaCarteOffer          — one offer block owned by AX
+    ///   ALaCarteOffer/ALaCarteOfferItem             — one item per active SSR code
+    ///     OfferItemID                               — SLI-{SsrCode}
+    ///     Eligibility                               — FlightAssociationType=All, PaxAssociationType=All
+    ///     Service/ServiceID                         — SVC-{SsrCode}
+    ///     Service/Name                              — human-readable label
+    ///     Service/ServiceCode/Code                  — four-char IATA SSR code
+    ///     Service/ServiceCode/ServiceType           — SSR
+    ///     Service/ServiceGroup/Code                 — NDC group derived from SSR category
+    ///     UnitPriceDetail/TotalAmount               — 0.00 GBP (SSRs are complimentary)
+    ///   Response/DataLists/ServiceDefinitionList    — one ServiceDefinition per SSR
+    /// </summary>
+    public static string BuildServiceListRS(NdcServiceListResult result)
+    {
+        XNamespace ns = ServiceListRsNsUri;
+
+        var root = new XElement(ns + "IATA_ServiceListRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildSlDocument(ns),
+            BuildSlResponse(ns, result));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildSlDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildSlResponse(XNamespace ns, NdcServiceListResult result)
+    {
+        var aLaCarteOffer = new XElement(ns + "ALaCarteOffer",
+            new XElement(ns + "Owner", CarrierCode));
+
+        foreach (var svc in result.Services)
+            aLaCarteOffer.Add(BuildSlALaCarteOfferItem(ns, svc));
+
+        var serviceList = new XElement(ns + "ServiceList", aLaCarteOffer);
+
+        var response = new XElement(ns + "Response", serviceList);
+
+        // DataLists/ServiceDefinitionList provides richer descriptions for consumers.
+        if (result.Services.Count > 0)
+            response.Add(BuildSlDataLists(ns, result.Services));
+
+        return response;
+    }
+
+    private static XElement BuildSlALaCarteOfferItem(XNamespace ns, NdcSsrServiceItem svc)
+    {
+        var offerItemId = $"SLI-{svc.SsrCode}";
+        var serviceId   = $"SVC-{svc.SsrCode}";
+
+        return new XElement(ns + "ALaCarteOfferItem",
+            new XElement(ns + "OfferItemID", offerItemId),
+            new XElement(ns + "Eligibility",
+                new XElement(ns + "FlightAssociationType", "All"),
+                new XElement(ns + "PaxAssociationType",    "All")),
+            new XElement(ns + "Service",
+                new XElement(ns + "ServiceID", serviceId),
+                new XElement(ns + "Name",      svc.Label),
+                new XElement(ns + "ServiceCode",
+                    new XElement(ns + "Code",        svc.SsrCode),
+                    new XElement(ns + "ServiceType", "SSR")),
+                new XElement(ns + "ServiceGroup",
+                    new XElement(ns + "Code", MapSsrCategoryToNdcGroup(svc.Category)))),
+            new XElement(ns + "UnitPriceDetail",
+                new XElement(ns + "TotalAmount",
+                    new XElement(ns + "SimpleCurrencyPrice",
+                        new XAttribute("CurCode", "GBP"),
+                        "0.00"))));
+    }
+
+    private static XElement BuildSlDataLists(XNamespace ns, IReadOnlyList<NdcSsrServiceItem> services)
+    {
+        var sdList = new XElement(ns + "ServiceDefinitionList");
+
+        foreach (var svc in services)
+        {
+            sdList.Add(new XElement(ns + "ServiceDefinition",
+                new XElement(ns + "ServiceDefinitionID", $"SD-{svc.SsrCode}"),
+                new XElement(ns + "Name",                svc.Label),
+                new XElement(ns + "Desc",                svc.Label),
+                new XElement(ns + "ServiceCode",
+                    new XElement(ns + "Code",        svc.SsrCode),
+                    new XElement(ns + "ServiceType", "SSR")),
+                new XElement(ns + "Category",        MapSsrCategoryToNdcGroup(svc.Category))));
+        }
+
+        return new XElement(ns + "DataLists", sdList);
+    }
+
+    /// <summary>
+    /// Maps the internal SSR catalogue category label to an NDC ServiceGroup code.
+    /// NDC uses short uppercase group codes; the mapping is best-effort against the
+    /// free-text category values stored in the SSR catalogue.
+    /// </summary>
+    private static string MapSsrCategoryToNdcGroup(string category)
+    {
+        if (string.IsNullOrWhiteSpace(category)) return "OTHER";
+
+        return category.ToUpperInvariant() switch
+        {
+            var c when c.Contains("MEAL")         => "MEAL",
+            var c when c.Contains("DIET")         => "MEAL",
+            var c when c.Contains("FOOD")         => "MEAL",
+            var c when c.Contains("WHEEL")        => "ACCESSIBILITY",
+            var c when c.Contains("MOBIL")        => "ACCESSIBILITY",
+            var c when c.Contains("DISAB")        => "ACCESSIBILITY",
+            var c when c.Contains("MEDICAL")      => "MEDICAL",
+            var c when c.Contains("MED")          => "MEDICAL",
+            var c when c.Contains("INFANT")       => "INFANT",
+            var c when c.Contains("BASSINET")     => "INFANT",
+            var c when c.Contains("BAGGAGE")      => "BAGGAGE",
+            var c when c.Contains("BAG")          => "BAGGAGE",
+            var c when c.Contains("PET")          => "PET",
+            var c when c.Contains("SPORT")        => "SPORT",
+            _                                     => "OTHER"
+        };
+    }
 
     // ── OrderCreateRS ─────────────────────────────────────────────────────────
 

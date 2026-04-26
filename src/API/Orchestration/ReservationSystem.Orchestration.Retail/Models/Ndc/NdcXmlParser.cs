@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 
@@ -373,6 +374,84 @@ public static class NdcXmlParser
             string.IsNullOrWhiteSpace(shoppingResponseId) ? null : shoppingResponseId,
             passengers,
             paymentCard);
+    }
+
+    // ── ServiceList parser ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses an IATA_ServiceListRQ XML document (NDC 21.3).
+    ///
+    /// Extracts:
+    ///   Query/SelectionCriteria/OfferRef/OfferRefID  — stored offer GUID (optional)
+    ///   Query/CabinPreferences/CabinType/CabinTypeCode/Code — NDC cabin code (optional)
+    ///   Travelers/Traveler/AnonymousTraveler          — passenger types (optional)
+    /// </summary>
+    public static NdcServiceListCommand TryParseServiceListRq(string xml, out string? errorMessage)
+    {
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xml);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Invalid XML: {ex.Message}";
+            return new NdcServiceListCommand(null, null, null);
+        }
+
+        var root = doc.Root;
+        if (root is null)
+        {
+            errorMessage = "Empty XML document.";
+            return new NdcServiceListCommand(null, null, null);
+        }
+
+        var ns = root.Name.Namespace;
+
+        // ── OfferRefID (optional) ─────────────────────────────────────────────
+        Guid? offerRefId = null;
+        var offerRefIdStr = root
+            .Element(ns + "Query")
+            ?.Element(ns + "SelectionCriteria")
+            ?.Element(ns + "OfferRef")
+            ?.Element(ns + "OfferRefID")?.Value?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(offerRefIdStr) && Guid.TryParse(offerRefIdStr, out var parsedId))
+            offerRefId = parsedId;
+
+        // ── CabinType (optional) ──────────────────────────────────────────────
+        var ndcCabinCode = root
+            .Element(ns + "Query")
+            ?.Element(ns + "CabinPreferences")
+            ?.Element(ns + "CabinType")
+            ?.Element(ns + "CabinTypeCode")
+            ?.Element(ns + "Code")?.Value?.Trim().ToUpperInvariant();
+
+        // ── Travelers (optional) ──────────────────────────────────────────────
+        var paxList = new List<NdcPassengerType>();
+        var travelers = root.Element(ns + "Travelers");
+        if (travelers is not null)
+        {
+            foreach (var traveler in travelers.Elements(ns + "Traveler"))
+            {
+                var anon = traveler.Element(ns + "AnonymousTraveler");
+                if (anon is null) continue;
+
+                var ptcRaw = anon.Element(ns + "PTC")?.Value?.Trim().ToUpperInvariant();
+                var ptc = !string.IsNullOrWhiteSpace(ptcRaw) ? ptcRaw : "ADT";
+
+                var quantityStr = anon.Element(ns + "Quantity")?.Value?.Trim() ?? "1";
+                var quantity = int.TryParse(quantityStr, out var q) && q > 0 ? q : 1;
+
+                paxList.Add(new NdcPassengerType(ptc, quantity));
+            }
+        }
+
+        errorMessage = null;
+        return new NdcServiceListCommand(
+            offerRefId,
+            string.IsNullOrWhiteSpace(ndcCabinCode) ? null : ndcCabinCode,
+            paxList.Count > 0 ? paxList : null);
     }
 
     private static Dictionary<string, (string? Email, string? Phone)> BuildContactMap(
