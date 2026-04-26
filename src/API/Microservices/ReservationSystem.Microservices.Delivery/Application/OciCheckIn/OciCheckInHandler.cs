@@ -117,7 +117,19 @@ public sealed class OciCheckInHandler
                     ]
                 };
 
-                var docResult = await _timaticServiceClient.DocumentCheckAsync(docRequest, cancellationToken);
+                TimaticDocumentCheckResult docResult;
+                try
+                {
+                    docResult = await _timaticServiceClient.DocumentCheckAsync(docRequest, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Timatic document check service error for ticket {TicketNumber}", ticketRequest.TicketNumber);
+                    timaticNotes.Add(new TimaticNote("DOC", ticketRequest.TicketNumber, "FAIL", "Timatic service unavailable.", DateTime.UtcNow.ToString("o")));
+                    throw new TimaticValidationException(
+                        $"Timatic document check unavailable for {ticketRequest.GivenName} {ticketRequest.Surname}.",
+                        timaticNotes);
+                }
 
                 var docTimestamp = DateTime.UtcNow.ToString("o");
                 if (!string.Equals(docResult.Status, "OK", StringComparison.OrdinalIgnoreCase))
@@ -168,7 +180,19 @@ public sealed class OciCheckInHandler
                 }
             };
 
-            var apisResult = await _timaticServiceClient.ApisCheckAsync(apisRequest, cancellationToken);
+            TimaticApisCheckResult apisResult;
+            try
+            {
+                apisResult = await _timaticServiceClient.ApisCheckAsync(apisRequest, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Timatic APIS check service error for ticket {TicketNumber}", ticketRequest.TicketNumber);
+                timaticNotes.Add(new TimaticNote("APIS", ticketRequest.TicketNumber, "FAIL", "Timatic service unavailable.", DateTime.UtcNow.ToString("o")));
+                throw new TimaticValidationException(
+                    $"Timatic APIS check unavailable for {ticketRequest.GivenName} {ticketRequest.Surname}.",
+                    timaticNotes);
+            }
 
             var apisTimestamp = DateTime.UtcNow.ToString("o");
             if (!string.Equals(apisResult.ApisStatus, "ACCEPTED", StringComparison.OrdinalIgnoreCase))
