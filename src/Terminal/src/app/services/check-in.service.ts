@@ -21,6 +21,11 @@ export interface CheckInPassenger {
   travelDocument: TravelDocument | null;
 }
 
+export interface LookupResponse {
+  bookingReference: string;
+  departureAirports: string[];
+}
+
 export interface RetrieveResponse {
   bookingReference: string;
   checkInEligible: boolean;
@@ -59,17 +64,16 @@ export class CheckInService {
   #http = inject(HttpClient);
   #baseUrl = `${environment.operationsApiUrl}/api/v1/oci`;
 
-  async retrieve(
-    bookingReference: string,
-    firstName: string,
-    lastName: string,
-    departureAirport: string,
-  ): Promise<RetrieveResponse> {
+  async lookup(bookingReference: string): Promise<LookupResponse> {
+    return firstValueFrom(
+      this.#http.post<LookupResponse>(`${this.#baseUrl}/lookup`, { bookingReference }),
+    );
+  }
+
+  async retrieve(bookingReference: string, departureAirport: string): Promise<RetrieveResponse> {
     return firstValueFrom(
       this.#http.post<RetrieveResponse>(`${this.#baseUrl}/retrieve`, {
         bookingReference,
-        firstName,
-        lastName,
         departureAirport,
       }),
     );
