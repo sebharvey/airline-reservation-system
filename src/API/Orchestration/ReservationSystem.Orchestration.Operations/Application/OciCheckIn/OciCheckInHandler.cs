@@ -41,6 +41,11 @@ public sealed class OciCheckInHandler
 
         var tickets = BuildCheckInTickets(order.OrderData);
 
+        var paxNameByTicket = tickets.ToDictionary(
+            t => t.TicketNumber,
+            t => string.IsNullOrWhiteSpace(t.GivenName) ? t.Surname : $"{t.GivenName} {t.Surname}".Trim(),
+            StringComparer.OrdinalIgnoreCase);
+
         if (tickets.Count == 0)
         {
             _logger.LogWarning("OCI check-in: no tickets found for {BookingReference}", command.BookingReference);
@@ -61,7 +66,7 @@ public sealed class OciCheckInHandler
                 {
                     await _orderServiceClient.AddOrderNotesAsync(
                         command.BookingReference,
-                        BuildOrderNotes(ex.TimaticNotes),
+                        BuildOrderNotes(ex.TimaticNotes, paxNameByTicket),
                         ct);
                 }
                 catch (Exception notesEx)
@@ -101,7 +106,7 @@ public sealed class OciCheckInHandler
                     command.DepartureAirport,
                     checkedInAt,
                     paxCheckIn,
-                    BuildOrderNotes(result.TimaticNotes),
+                    BuildOrderNotes(result.TimaticNotes, paxNameByTicket),
                     ct);
             }
             catch (Exception ex)
@@ -219,7 +224,9 @@ public sealed class OciCheckInHandler
         string? DocIssuingCountry,
         string? DocExpiryDate);
 
-    private static List<OrderTimaticNote> BuildOrderNotes(IReadOnlyList<OciTimaticNote> timaticNotes)
+    private static List<OrderTimaticNote> BuildOrderNotes(
+        IReadOnlyList<OciTimaticNote> timaticNotes,
+        IReadOnlyDictionary<string, string>? paxNameByTicket = null)
         => timaticNotes.Select(n =>
         {
             var checkLabel = n.CheckType switch
@@ -228,11 +235,17 @@ public sealed class OciCheckInHandler
                 "APIS" => "APIS check",
                 _      => $"{n.CheckType} check"
             };
-            var statusText = string.Equals(n.Status, "PASS", StringComparison.OrdinalIgnoreCase)
-                ? "passed" : "failed";
+            var isFail = !string.Equals(n.Status, "PASS", StringComparison.OrdinalIgnoreCase);
+            var statusText = isFail ? "failed" : "passed";
+            var paxName = isFail && paxNameByTicket is not null && paxNameByTicket.TryGetValue(n.TicketNumber, out var name) && !string.IsNullOrWhiteSpace(name)
+                ? name
+                : null;
+            var subject = paxName is not null
+                ? $"{paxName} (ticket {n.TicketNumber})"
+                : $"ticket {n.TicketNumber}";
             var message = string.IsNullOrWhiteSpace(n.Detail)
-                ? $"{checkLabel} {statusText} for ticket {n.TicketNumber}"
-                : $"{checkLabel} {statusText} for ticket {n.TicketNumber}: {n.Detail}";
+                ? $"{checkLabel} {statusText} for {subject}"
+                : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
             return new OrderTimaticNote
             {
                 DateTime = n.Timestamp,
