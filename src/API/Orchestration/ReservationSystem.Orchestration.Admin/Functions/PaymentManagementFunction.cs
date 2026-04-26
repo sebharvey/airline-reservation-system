@@ -50,6 +50,8 @@ public sealed class PaymentManagementFunction
         if (string.IsNullOrWhiteSpace(dateStr) || !DateOnly.TryParse(Uri.UnescapeDataString(dateStr), out var date))
             return await req.BadRequestAsync("The 'date' query parameter is required and must be in YYYY-MM-DD format.");
 
+        var correlationId = CorrelationId.GetOrGenerate(req);
+
         try
         {
             var payments = await _paymentServiceClient.GetPaymentsByDateAsync(date, cancellationToken);
@@ -74,12 +76,14 @@ public sealed class PaymentManagementFunction
                 EventCount       = p.EventCount
             }).ToList();
 
-            return await req.OkJsonAsync(response);
+            var ok = await req.OkJsonAsync(response);
+            CorrelationId.Propagate(ok, correlationId);
+            return ok;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payments for date {Date}", date);
-            return await req.InternalServerErrorAsync();
+            _logger.LogError(ex, "Error retrieving payments for date {Date} [{CorrelationId}]", date, correlationId);
+            return await req.InternalServerErrorAsync(correlationId);
         }
     }
 
@@ -97,12 +101,14 @@ public sealed class PaymentManagementFunction
         Guid paymentId,
         CancellationToken cancellationToken)
     {
+        var correlationId = CorrelationId.GetOrGenerate(req);
+
         try
         {
             var payment = await _paymentServiceClient.GetPaymentAsync(paymentId, cancellationToken);
 
             if (payment is null)
-                return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
+                return await req.NotFoundAsync($"Payment '{paymentId}' not found.", correlationId);
 
             var response = new AdminPaymentResponse
             {
@@ -123,12 +129,14 @@ public sealed class PaymentManagementFunction
                 UpdatedAt        = payment.UpdatedAt
             };
 
-            return await req.OkJsonAsync(response);
+            var ok = await req.OkJsonAsync(response);
+            CorrelationId.Propagate(ok, correlationId);
+            return ok;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment {PaymentId}", paymentId);
-            return await req.InternalServerErrorAsync();
+            _logger.LogError(ex, "Error retrieving payment {PaymentId} [{CorrelationId}]", paymentId, correlationId);
+            return await req.InternalServerErrorAsync(correlationId);
         }
     }
 
@@ -146,12 +154,14 @@ public sealed class PaymentManagementFunction
         Guid paymentId,
         CancellationToken cancellationToken)
     {
+        var correlationId = CorrelationId.GetOrGenerate(req);
+
         try
         {
             var payment = await _paymentServiceClient.GetPaymentAsync(paymentId, cancellationToken);
 
             if (payment is null)
-                return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
+                return await req.NotFoundAsync($"Payment '{paymentId}' not found.", correlationId);
 
             var events = await _paymentServiceClient.GetPaymentEventsAsync(paymentId, cancellationToken);
 
@@ -167,12 +177,14 @@ public sealed class PaymentManagementFunction
                 CreatedAt      = e.CreatedAt
             }).ToList();
 
-            return await req.OkJsonAsync(response);
+            var ok = await req.OkJsonAsync(response);
+            CorrelationId.Propagate(ok, correlationId);
+            return ok;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving events for payment {PaymentId}", paymentId);
-            return await req.InternalServerErrorAsync();
+            _logger.LogError(ex, "Error retrieving events for payment {PaymentId} [{CorrelationId}]", paymentId, correlationId);
+            return await req.InternalServerErrorAsync(correlationId);
         }
     }
 }

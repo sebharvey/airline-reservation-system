@@ -72,7 +72,12 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Operations API | `AncillaryMs:BaseUrl` | Ancillary MS |
 | Operations API | `AncillaryMs:HostKey` | Ancillary MS — Azure Function host key |
 | Admin API | `UserMs:BaseUrl` | User MS |
-| Admin API | `UserMs:HostKey` | User MS — Azure Function host key |
+| Admin API | `OrderMs:BaseUrl` | Order MS |
+| Admin API | `PaymentMs:BaseUrl` | Payment MS |
+| Admin API | `MicroserviceHostKey` | Shared Azure Function host key sent to all downstream microservices |
+| Admin API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
+| Admin API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
+| Admin API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
 | Loyalty API | `IdentityMs:BaseUrl` | Identity MS |
 | Loyalty API | `CustomerMs:BaseUrl` | Customer MS |
 | Loyalty API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
