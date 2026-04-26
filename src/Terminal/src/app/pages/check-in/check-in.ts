@@ -6,8 +6,6 @@ import {
   PaxSubmission,
 } from '../../services/check-in.service';
 
-type Step = 'search' | 'pax' | 'confirm' | 'boarding';
-
 interface PaxFormData {
   passengerId: string;
   ticketNumber: string;
@@ -30,13 +28,11 @@ interface PaxFormData {
 export class CheckInComponent {
   #svc = inject(CheckInService);
 
-  step = signal<Step>('search');
   loading = signal(false);
   error = signal('');
 
   bookingRef = signal('');
-  firstName = signal('');
-  lastName = signal('');
+  departureAirports = signal<string[]>([]);
   departureAirport = signal('');
 
   booking = signal<RetrieveResponse | null>(null);
@@ -44,31 +40,56 @@ export class CheckInComponent {
 
   boardingCards = signal<BoardingCard[]>([]);
   copiedBcbp = signal<string | null>(null);
+  checkInComplete = signal(false);
 
   async findBooking(): Promise<void> {
     const ref = this.bookingRef().trim().toUpperCase();
-    const first = this.firstName().trim();
-    const last = this.lastName().trim();
-    const airport = this.departureAirport().trim().toUpperCase();
-
-    if (!ref || !first || !last || !airport) {
-      this.error.set('All fields are required.');
+    if (!ref) {
+      this.error.set('Booking reference is required.');
       return;
     }
 
     this.loading.set(true);
     this.error.set('');
+    this.departureAirports.set([]);
+    this.departureAirport.set('');
+    this.booking.set(null);
+    this.paxForms.set([]);
+    this.boardingCards.set([]);
+    this.checkInComplete.set(false);
 
     try {
-      const result = await this.#svc.retrieve(ref, first, last, airport);
+      const result = await this.#svc.lookup(ref);
+      if (!result.departureAirports.length) {
+        this.error.set('No eligible departures found for this booking reference.');
+        return;
+      }
+      this.departureAirports.set(result.departureAirports);
+    } catch {
+      this.error.set('Booking not found. Please check the reference.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
 
+  async selectDeparture(airport: string): Promise<void> {
+    if (!airport) return;
+    this.departureAirport.set(airport);
+    this.loading.set(true);
+    this.error.set('');
+    this.booking.set(null);
+    this.paxForms.set([]);
+    this.boardingCards.set([]);
+    this.checkInComplete.set(false);
+
+    try {
+      const result = await this.#svc.retrieve(this.bookingRef().trim().toUpperCase(), airport);
       if (!result.checkInEligible) {
         this.error.set(
-          'This booking is not eligible for check-in. Please verify the details or confirm the departure window is open.',
+          'This booking is not eligible for check-in. Please verify the departure window is open.',
         );
         return;
       }
-
       this.booking.set(result);
       this.paxForms.set(
         result.passengers.map(p => ({
@@ -85,9 +106,8 @@ export class CheckInComponent {
           expiryDate: p.travelDocument?.expiryDate ?? '',
         })),
       );
-      this.step.set('pax');
     } catch {
-      this.error.set('Booking not found. Please check the reference and passenger details.');
+      this.error.set('Failed to retrieve booking details. Please try again.');
     } finally {
       this.loading.set(false);
     }
@@ -99,7 +119,7 @@ export class CheckInComponent {
     this.paxForms.set(forms);
   }
 
-  async savePaxDocs(): Promise<void> {
+  async completeCheckIn(): Promise<void> {
     const forms = this.paxForms();
     const incomplete = forms.find(
       f => !f.docNumber || !f.issuingCountry || !f.nationality || !f.issueDate || !f.expiryDate,
@@ -110,6 +130,9 @@ export class CheckInComponent {
       );
       return;
     }
+
+    const bookingRef = this.booking()!.bookingReference;
+    const airport = this.departureAirport();
 
     this.loading.set(true);
     this.error.set('');
@@ -127,27 +150,11 @@ export class CheckInComponent {
         },
       }));
 
-      await this.#svc.submitPax(this.booking()!.bookingReference, submissions);
-      this.step.set('confirm');
-    } catch {
-      this.error.set('Failed to save travel documents. Please try again.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  async completeCheckIn(): Promise<void> {
-    const bookingRef = this.booking()!.bookingReference;
-    const airport = this.departureAirport();
-
-    this.loading.set(true);
-    this.error.set('');
-
-    try {
+      await this.#svc.submitPax(bookingRef, submissions);
       const checkInResult = await this.#svc.completeCheckIn(bookingRef, airport);
       const docsResult = await this.#svc.getBoardingDocs(airport, checkInResult.checkedIn);
       this.boardingCards.set(docsResult.boardingCards);
-      this.step.set('boarding');
+      this.checkInComplete.set(true);
     } catch {
       this.error.set('Failed to complete check-in. Please try again or contact a supervisor.');
     } finally {
@@ -156,22 +163,14 @@ export class CheckInComponent {
   }
 
   reset(): void {
-    this.step.set('search');
     this.booking.set(null);
     this.paxForms.set([]);
     this.boardingCards.set([]);
-    this.error.set('');
-    this.bookingRef.set('');
-    this.firstName.set('');
-    this.lastName.set('');
+    this.departureAirports.set([]);
     this.departureAirport.set('');
-  }
-
-  goBack(): void {
-    const s = this.step();
-    if (s === 'pax') this.step.set('search');
-    else if (s === 'confirm') this.step.set('pax');
+    this.bookingRef.set('');
     this.error.set('');
+    this.checkInComplete.set(false);
   }
 
   copyBcbp(bcbp: string): void {

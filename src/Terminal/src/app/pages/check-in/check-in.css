@@ -24,73 +24,7 @@
   line-height: 1.5;
 }
 
-/* Step progress */
-.step-progress {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 28px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-
-.step-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.step-num {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--border);
-  color: var(--text-muted);
-  transition: background var(--transition), color var(--transition);
-  flex-shrink: 0;
-}
-
-.step-label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  white-space: nowrap;
-  transition: color var(--transition);
-}
-
-.step-item.active .step-num {
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  color: #fff;
-}
-
-.step-item.active .step-label { color: var(--text); font-weight: 600; }
-
-.step-item.done .step-num {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
-}
-
-.step-item.done .step-label { color: #3fb950; }
-
-.step-connector {
-  flex: 1;
-  height: 2px;
-  background: var(--border);
-  min-width: 24px;
-  max-width: 60px;
-  margin: 0 8px;
-  transition: background var(--transition);
-}
-
-.step-connector.done { background: #3fb950; }
-
-/* Form card (search step) */
+/* Form card */
 .form-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -112,6 +46,27 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 20px;
+}
+
+.form-grid-single {
+  grid-template-columns: 1fr;
+}
+
+.departure-row {
+  margin-top: 4px;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 24px 0 12px;
+}
+
+.success-header {
+  margin-top: 24px;
 }
 
 .form-group {
