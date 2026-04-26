@@ -552,9 +552,10 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_BookingReference
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_ETicketNumber' AND object_id = OBJECT_ID('[order].[Order]'))
-    CREATE INDEX IX_Order_ETicketNumber
+    CREATE JSON INDEX IX_Order_ETicketNumber
         ON [order].[Order] (OrderData)
-        WITH (JSON_PATH = N'$.eTickets[*].eTicketNumber');
+        FOR (N'$.eTickets[*].eTicketNumber')
+        WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON);
 GO
 
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]', 'TR') IS NULL
