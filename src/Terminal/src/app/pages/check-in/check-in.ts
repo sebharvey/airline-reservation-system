@@ -216,6 +216,40 @@ export class CheckInComponent {
     return '';
   }
 
+  fillTestData(index: number): void {
+    const pax = this.paxForms()[index];
+    if (!pax) return;
+
+    const countries = ['GBR', 'USA', 'FRA', 'DEU', 'ESP', 'ITA', 'AUS', 'CAN', 'NLD', 'SWE'];
+    const rand = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    const country = rand(countries);
+
+    const alpha = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+    const digits = '0123456789';
+    const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+    const docNumber =
+      pick(alpha) + pick(alpha) +
+      pick(digits) + pick(digits) + pick(digits) + pick(digits) +
+      pick(digits) + pick(digits) + pick(digits);
+
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const issueYear = 2021 + Math.floor(Math.random() * 4);
+    const expiryYear = 2031 + Math.floor(Math.random() * 5);
+    const issueDate = `${issueYear}-${pad2(Math.floor(Math.random() * 12) + 1)}-${pad2(Math.floor(Math.random() * 28) + 1)}`;
+    const expiryDate = `${expiryYear}-${pad2(Math.floor(Math.random() * 12) + 1)}-${pad2(Math.floor(Math.random() * 28) + 1)}`;
+
+    const forms = this.paxForms().slice();
+    forms[index] = {
+      ...pax,
+      docNumber: pax.docNumber || docNumber,
+      issuingCountry: pax.issuingCountry || country,
+      nationality: pax.nationality || country,
+      issueDate: pax.issueDate || issueDate,
+      expiryDate: pax.expiryDate || expiryDate,
+    };
+    this.paxForms.set(forms);
+  }
+
   reset(): void {
     this.booking.set(null);
     this.paxForms.set([]);

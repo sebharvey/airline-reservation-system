@@ -214,6 +214,16 @@
             }
 
             <div class="form-actions" style="margin-top: 20px;">
+              @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
+                <button
+                  class="secondary-btn"
+                  (click)="fillTestData(selectedPaxIndex()!)"
+                  [disabled]="checkingInIndex() !== null"
+                  title="Populate blank fields with random test data"
+                >
+                  Fill Test Data
+                </button>
+              }
               <button
                 class="primary-btn complete-btn"
                 (click)="checkInPax(selectedPaxIndex()!)"

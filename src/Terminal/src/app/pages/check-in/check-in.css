@@ -252,6 +252,8 @@ select.field-input { cursor: pointer; }
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
 }
 
 .primary-btn {
