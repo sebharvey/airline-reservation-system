@@ -95,6 +95,23 @@ export interface FlightSeatmap {
   cabins: CabinSeatmap[];
 }
 
+export interface ManifestEntry {
+  bookingReference: string;
+  passengerId: string;
+  givenName: string;
+  surname: string;
+  eTicketNumber: string;
+  seatNumber: string | null;
+  cabinCode: string;
+  checkedIn: boolean;
+  checkedInAt: string | null;
+  ssrCodes: string[];
+}
+
+export interface FlightManifest {
+  entries: ManifestEntry[];
+}
+
 export interface DisruptionCancelOutcome {
   bookingReference: string;
   outcome: 'Rebooked' | 'CancelledWithRefund' | 'Failed';
@@ -198,6 +215,15 @@ export class InventoryService {
     return firstValueFrom(
       this.#http.get<InventoryHold[]>(
         `${this.#baseUrl}/inventory/${inventoryId}/holds`
+      )
+    );
+  }
+
+  async getFlightManifest(flightNumber: string, departureDate: string): Promise<FlightManifest> {
+    return firstValueFrom(
+      this.#http.get<FlightManifest>(
+        `${this.#baseUrl}/manifest`,
+        { params: { flightNumber, departureDate } }
       )
     );
   }
