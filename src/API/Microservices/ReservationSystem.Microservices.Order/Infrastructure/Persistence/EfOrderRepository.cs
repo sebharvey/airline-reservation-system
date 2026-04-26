@@ -41,6 +41,23 @@ public sealed class EfOrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.BookingReference == bookingReference, cancellationToken);
     }
 
+    public async Task<Domain.Entities.Order?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders
+            .FromSqlInterpolated($"""
+                SELECT o.*
+                FROM [order].[Order] o
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM OPENJSON(o.OrderData, '$.eTickets')
+                    WITH (eTicketNumber NVARCHAR(50) '$.eTicketNumber')
+                    WHERE eTicketNumber = {eTicketNumber}
+                )
+                """)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Domain.Entities.Order>> GetByIdsAsync(
         IReadOnlyList<Guid> orderIds, CancellationToken cancellationToken = default)
     {

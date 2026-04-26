@@ -96,6 +96,31 @@ public sealed class AdminOrderManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // GET /v1/admin/orders/e-ticket/{eTicketNumber}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetOrderByETicket")]
+    [OpenApiOperation(operationId: "AdminGetOrderByETicket", tags: new[] { "Admin Orders" }, Summary = "Get full order detail by e-ticket number (staff)")]
+    [OpenApiParameter(name: "eTicketNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The e-ticket number (e.g. 932-1000003578)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AdminOrderDetailResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetOrderByETicket(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders/e-ticket/{eTicketNumber}")] HttpRequestData req,
+        string eTicketNumber,
+        CancellationToken cancellationToken)
+    {
+        var order = await _orderServiceClient.GetOrderByETicketAsync(eTicketNumber.Trim(), cancellationToken);
+        if (order is null || string.IsNullOrEmpty(order.BookingReference))
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        var result = await _getAdminOrderDetailHandler.HandleAsync(order.BookingReference, cancellationToken);
+        if (result is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(result);
+    }
+
+    // -------------------------------------------------------------------------
     // GET /v1/admin/orders/{bookingRef}/tickets
     // -------------------------------------------------------------------------
 

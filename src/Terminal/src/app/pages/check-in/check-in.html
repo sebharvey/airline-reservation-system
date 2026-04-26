@@ -20,19 +20,47 @@
     <p class="form-section-label">Booking details</p>
 
     <div class="search-row">
-      <div class="form-group search-ref-group">
-        <label class="field-label">Booking Reference</label>
-        <input
-          class="field-input mono-input"
-          type="text"
-          placeholder="e.g. AB1234"
-          [value]="bookingRef()"
-          (input)="bookingRef.set($any($event.target).value.toUpperCase())"
-          maxlength="6"
-          (keydown.enter)="findBooking()"
+      <div class="form-group search-mode-group">
+        <label class="field-label">Search by</label>
+        <select
+          class="field-input"
+          [value]="searchMode()"
+          (change)="searchMode.set($any($event.target).value); bookingRef.set(''); eTicketNumber.set(''); error.set('')"
           [disabled]="loading()"
-        />
+        >
+          <option value="bookingRef">Booking Reference</option>
+          <option value="eTicket">E-ticket Number</option>
+        </select>
       </div>
+
+      @if (searchMode() === 'bookingRef') {
+        <div class="form-group search-ref-group">
+          <label class="field-label">Booking Reference</label>
+          <input
+            class="field-input mono-input"
+            type="text"
+            placeholder="e.g. AB1234"
+            [value]="bookingRef()"
+            (input)="bookingRef.set($any($event.target).value.toUpperCase())"
+            maxlength="6"
+            (keydown.enter)="findBooking()"
+            [disabled]="loading()"
+          />
+        </div>
+      } @else {
+        <div class="form-group search-ref-group">
+          <label class="field-label">E-ticket Number</label>
+          <input
+            class="field-input mono-input"
+            type="text"
+            placeholder="e.g. 932-1000003578"
+            [value]="eTicketNumber()"
+            (input)="eTicketNumber.set($any($event.target).value)"
+            (keydown.enter)="findBooking()"
+            [disabled]="loading()"
+          />
+        </div>
+      }
 
       <div class="search-btn-group">
         <label class="field-label search-btn-spacer">&nbsp;</label>

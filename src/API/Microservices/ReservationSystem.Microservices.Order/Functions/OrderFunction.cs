@@ -450,11 +450,30 @@ public sealed class OrderFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/{bookingRef}")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
-        // Avoid routing conflicts with static POST sub-routes
-        if (bookingRef is "retrieve" or "confirm" or "irops")
+        // Avoid routing conflicts with static sub-routes
+        if (bookingRef is "retrieve" or "confirm" or "irops" or "e-ticket")
             return req.CreateResponse(HttpStatusCode.MethodNotAllowed);
 
         var order = await _getOrderHandler.HandleAsync(new GetOrderQuery(bookingRef), ct);
+        if (order is null)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+        return await req.OkJsonAsync(OrderMapper.ToResponse(order));
+    }
+
+    // GET /v1/orders/e-ticket/{eTicketNumber}
+    [Function("GetOrderByETicket")]
+    [OpenApiOperation(operationId: "GetOrderByETicket", tags: new[] { "Orders" }, Summary = "Get an order by e-ticket number")]
+    [OpenApiParameter(name: "eTicketNumber", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The e-ticket number (e.g. 932-1000003578)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> GetOrderByETicket(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/e-ticket/{eTicketNumber}")] HttpRequestData req,
+        string eTicketNumber, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(eTicketNumber))
+            return await req.BadRequestAsync("'eTicketNumber' is required.");
+
+        var order = await _orderRepository.GetByETicketNumberAsync(eTicketNumber.Trim(), ct);
         if (order is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
         return await req.OkJsonAsync(OrderMapper.ToResponse(order));

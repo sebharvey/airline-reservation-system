@@ -50,8 +50,12 @@
   margin-bottom: 20px;
 }
 
+.search-mode-group {
+  flex: 0 0 180px;
+}
+
 .search-ref-group {
-  flex: 0 0 160px;
+  flex: 0 0 180px;
 }
 
 .search-btn-group {
@@ -367,7 +371,7 @@ select.field-input { cursor: pointer; }
   .check-in-page { padding: 12px; }
   .page-title { font-size: 1.25rem; }
   .search-row { flex-direction: column; align-items: stretch; }
-  .search-ref-group, .search-airport-group { flex: none; width: 100%; }
+  .search-mode-group, .search-ref-group, .search-airport-group { flex: none; width: 100%; }
   .search-btn-spacer { display: none; }
 }
 

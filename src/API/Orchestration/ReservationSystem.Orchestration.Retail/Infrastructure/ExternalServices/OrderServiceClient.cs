@@ -172,6 +172,14 @@ public sealed class OrderServiceClient
         return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
     }
 
+    public async Task<OrderMsOrderResult?> GetOrderByETicketAsync(string eTicketNumber, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/orders/e-ticket/{Uri.EscapeDataString(eTicketNumber)}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<OrderMsOrderResult>(JsonOptions, ct);
+    }
+
     public async Task<OrderMsOrderResult?> RetrieveOrderAsync(string bookingReference, string surname, CancellationToken ct)
     {
         var payload = new { bookingReference, surname };

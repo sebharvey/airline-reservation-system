@@ -32,7 +32,9 @@ export class CheckInComponent {
   loading = signal(false);
   error = signal('');
 
+  searchMode = signal<'bookingRef' | 'eTicket'>('bookingRef');
   bookingRef = signal('');
+  eTicketNumber = signal('');
   departureAirports = signal<string[]>([]);
   departureAirport = signal('');
 
@@ -55,9 +57,16 @@ export class CheckInComponent {
   });
 
   async findBooking(): Promise<void> {
+    const mode = this.searchMode();
     const ref = this.bookingRef().trim().toUpperCase();
-    if (!ref) {
+    const ticket = this.eTicketNumber().trim();
+
+    if (mode === 'bookingRef' && !ref) {
       this.error.set('Booking reference is required.');
+      return;
+    }
+    if (mode === 'eTicket' && !ticket) {
+      this.error.set('E-ticket number is required.');
       return;
     }
 
@@ -72,15 +81,17 @@ export class CheckInComponent {
     this.checkInError.set('');
 
     try {
-      const result = await this.#svc.lookup(ref);
+      const result = mode === 'eTicket'
+        ? await this.#svc.lookupByETicket(ticket)
+        : await this.#svc.lookup(ref);
       if (!result.departureAirports.length) {
-        this.error.set('No eligible departures found for this booking reference.');
+        this.error.set('No eligible departures found for this booking.');
         return;
       }
       this.booking.set(result);
       this.departureAirports.set(result.departureAirports);
     } catch {
-      this.error.set('Booking not found. Please check the reference.');
+      this.error.set('Booking not found. Please check the details and try again.');
     } finally {
       this.loading.set(false);
     }
@@ -213,6 +224,8 @@ export class CheckInComponent {
     this.departureAirports.set([]);
     this.departureAirport.set('');
     this.bookingRef.set('');
+    this.eTicketNumber.set('');
+    this.searchMode.set('bookingRef');
     this.error.set('');
     this.checkInError.set('');
   }

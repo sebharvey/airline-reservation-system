@@ -10,6 +10,8 @@ public interface IOrderRepository
 
     Task<Entities.Order?> GetByBookingReferenceAsync(string bookingReference, CancellationToken cancellationToken = default);
 
+    Task<Entities.Order?> GetByETicketNumberAsync(string eTicketNumber, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Entities.Order>> GetByIdsAsync(IReadOnlyList<Guid> orderIds, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Entities.Order>> GetByFlightAsync(string flightNumber, string departureDate, string? status = null, CancellationToken cancellationToken = default);
