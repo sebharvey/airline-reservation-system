@@ -6,8 +6,11 @@ public sealed record UpdateOrderCheckInPassenger(
     string Status,
     string Message);
 
+public sealed record UpdateOrderCheckInNote(string DateTime, string Type, string Message);
+
 public sealed record UpdateOrderCheckInCommand(
     string BookingReference,
     string DepartureAirport,
     string CheckedInAt,
-    IReadOnlyList<UpdateOrderCheckInPassenger> Passengers);
+    IReadOnlyList<UpdateOrderCheckInPassenger> Passengers,
+    IReadOnlyList<UpdateOrderCheckInNote>? AdditionalNotes = null);

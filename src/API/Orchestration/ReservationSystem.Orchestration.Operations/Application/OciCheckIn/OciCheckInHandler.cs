@@ -47,7 +47,33 @@ public sealed class OciCheckInHandler
             return new OciCheckInResult(command.BookingReference, [], false);
         }
 
-        var result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
+        OciCheckInResult result;
+        try
+        {
+            result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
+        }
+        catch (OciTimaticBlockedException ex)
+        {
+            // Timatic rejected check-in — write the check audit notes to the order then surface the error
+            if (ex.TimaticNotes.Count > 0)
+            {
+                try
+                {
+                    await _orderServiceClient.AddOrderNotesAsync(
+                        command.BookingReference,
+                        BuildOrderNotes(ex.TimaticNotes),
+                        ct);
+                }
+                catch (Exception notesEx)
+                {
+                    _logger.LogError(notesEx,
+                        "OCI check-in: failed to write timatic notes to order {BookingReference}",
+                        command.BookingReference);
+                }
+            }
+            throw new InvalidOperationException(ex.Message);
+        }
+
         var checkedInSet = result.Tickets.ToDictionary(t => t.TicketNumber, t => t.Status, StringComparer.OrdinalIgnoreCase);
 
         var newlyCheckedIn = result.Tickets
@@ -75,6 +101,7 @@ public sealed class OciCheckInHandler
                     command.DepartureAirport,
                     checkedInAt,
                     paxCheckIn,
+                    BuildOrderNotes(result.TimaticNotes),
                     ct);
             }
             catch (Exception ex)
@@ -191,4 +218,26 @@ public sealed class OciCheckInHandler
         string? DocNumber,
         string? DocIssuingCountry,
         string? DocExpiryDate);
+
+    private static List<OrderTimaticNote> BuildOrderNotes(IReadOnlyList<OciTimaticNote> timaticNotes)
+        => timaticNotes.Select(n =>
+        {
+            var checkLabel = n.CheckType switch
+            {
+                "DOC"  => "Document check",
+                "APIS" => "APIS check",
+                _      => $"{n.CheckType} check"
+            };
+            var statusText = string.Equals(n.Status, "PASS", StringComparison.OrdinalIgnoreCase)
+                ? "passed" : "failed";
+            var message = string.IsNullOrWhiteSpace(n.Detail)
+                ? $"{checkLabel} {statusText} for ticket {n.TicketNumber}"
+                : $"{checkLabel} {statusText} for ticket {n.TicketNumber}: {n.Detail}";
+            return new OrderTimaticNote
+            {
+                DateTime = n.Timestamp,
+                Type     = "TIMATIC",
+                Message  = message
+            };
+        }).ToList();
 }

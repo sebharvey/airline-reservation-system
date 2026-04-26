@@ -24,6 +24,8 @@ public sealed class DeliveryServiceClient
 
     /// <summary>
     /// Check in a set of tickets for a departure airport via Delivery MS POST /v1/oci/checkin.
+    /// Throws <see cref="OciTimaticBlockedException"/> when timatic rejects the check-in,
+    /// carrying the accumulated per-check note messages for audit recording on the order.
     /// </summary>
     public async Task<OciCheckInResult> CheckInAsync(string departureAirport, IReadOnlyList<OciCheckInTicket> tickets, CancellationToken ct)
     {
@@ -31,6 +33,16 @@ public sealed class DeliveryServiceClient
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/oci/checkin", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
+            // Try to extract timatic notes from the structured error body
+            try
+            {
+                var blocked = await response.Content.ReadFromJsonAsync<OciCheckInBlockedResponse>(JsonOptions, ct);
+                if (blocked?.TimaticNotes is { Count: > 0 })
+                    throw new OciTimaticBlockedException(blocked.Error ?? "OCI check-in blocked by Timatic.", blocked.TimaticNotes);
+            }
+            catch (OciTimaticBlockedException) { throw; }
+            catch { /* fall through to generic error */ }
+
             var error = await response.ReadErrorMessageAsync(ct);
             throw new InvalidOperationException($"OCI check-in failed: {error}");
         }
@@ -183,6 +195,9 @@ public sealed class OciCheckInResult
 
     [JsonPropertyName("tickets")]
     public List<OciCheckedInTicket> Tickets { get; init; } = [];
+
+    [JsonPropertyName("timaticNotes")]
+    public List<OciTimaticNote> TimaticNotes { get; init; } = [];
 }
 
 public sealed class OciCheckedInTicket
@@ -237,4 +252,42 @@ public sealed class OciBoardingCard
 
     [JsonPropertyName("bcbpString")]
     public string BcbpString { get; init; } = string.Empty;
+}
+
+/// <summary>Timatic check result note surfaced from the Delivery MS.</summary>
+public sealed class OciTimaticNote
+{
+    [JsonPropertyName("checkType")]
+    public string CheckType { get; init; } = string.Empty;   // "DOC" or "APIS"
+
+    [JsonPropertyName("ticketNumber")]
+    public string TicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;      // "PASS" or "FAIL"
+
+    [JsonPropertyName("detail")]
+    public string Detail { get; init; } = string.Empty;
+
+    [JsonPropertyName("timestamp")]
+    public string Timestamp { get; init; } = string.Empty;
+}
+
+/// <summary>Thrown when the Delivery MS rejects check-in due to a timatic failure.</summary>
+public sealed class OciTimaticBlockedException : Exception
+{
+    public IReadOnlyList<OciTimaticNote> TimaticNotes { get; }
+
+    public OciTimaticBlockedException(string message, IReadOnlyList<OciTimaticNote> notes)
+        : base(message) => TimaticNotes = notes;
+}
+
+/// <summary>Deserialised body of a 422 timatic-blocked response from the Delivery MS.</summary>
+file sealed class OciCheckInBlockedResponse
+{
+    [JsonPropertyName("error")]
+    public string? Error { get; init; }
+
+    [JsonPropertyName("timaticNotes")]
+    public List<OciTimaticNote> TimaticNotes { get; init; } = [];
 }

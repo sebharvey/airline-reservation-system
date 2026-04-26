@@ -117,6 +117,20 @@ public sealed class UpdateOrderCheckInHandler
             ? JsonNode.Parse(existingNotesJson)!.AsArray()
             : new JsonArray();
 
+        // Write any pre-supplied notes (e.g. timatic check results) before the check-in note
+        if (command.AdditionalNotes is { Count: > 0 })
+        {
+            foreach (var note in command.AdditionalNotes)
+            {
+                notesArray.Add(new JsonObject
+                {
+                    ["dateTime"] = note.DateTime,
+                    ["type"]     = note.Type,
+                    ["message"]  = note.Message
+                });
+            }
+        }
+
         notesArray.Add(new JsonObject
         {
             ["dateTime"] = command.CheckedInAt,
