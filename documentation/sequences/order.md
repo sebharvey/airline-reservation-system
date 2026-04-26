@@ -49,17 +49,32 @@ sequenceDiagram
 
 ## Update basket — seats
 
+The Retail API enriches each seat selection with authoritative price and tax from the Seat MS before storing. All enrichment calls run in parallel.
+
 ```mermaid
 sequenceDiagram
     participant Web
     participant RetailAPI as Retail API
+    participant SeatMS as Seat MS
     participant OrderMS as Order MS
 
     Web->>RetailAPI: PUT /v1/basket/{basketId}/seats
-    Note over Web,RetailAPI: seatSelections: [{passengerId,<br/>segmentId, seatNumber, seatOfferId?}]
+    Note over Web,RetailAPI: seatSelections: [{seatOfferId, passengerId,<br/>segmentId, seatNumber, price, tax, currency}]
+
+    loop Per seat (parallel — WhenAll)
+        RetailAPI->>SeatMS: GET /api/v1/seat-offers/{seatOfferId}
+        SeatMS-->>RetailAPI: SeatOffer (position, price, tax)
+        Note over RetailAPI: Overwrite client price and tax<br/>with Seat MS authoritative values
+    end
+
     RetailAPI->>OrderMS: PUT /api/v1/basket/{basketId}/seats
+    Note over RetailAPI,OrderMS: Enriched selections with locked pricing
     OrderMS-->>RetailAPI: 204 No Content
-    RetailAPI-->>Web: 204 No Content
+
+    RetailAPI->>OrderMS: GET /api/v1/basket/{basketId}
+    OrderMS-->>RetailAPI: Basket
+
+    RetailAPI-->>Web: BasketResponse (updated totalSeatAmount)
 ```
 
 ---
@@ -73,10 +88,15 @@ sequenceDiagram
     participant OrderMS as Order MS
 
     Web->>RetailAPI: PUT /v1/basket/{basketId}/bags
-    Note over Web,RetailAPI: bagSelections: [{passengerId,<br/>segmentId, bagOfferId, quantity}]
+    Note over Web,RetailAPI: bagSelections: [{bagOfferId, passengerId,<br/>segmentId, bagSequence, freeBagsIncluded,<br/>additionalBags, price, tax, currency}]
+
     RetailAPI->>OrderMS: PUT /api/v1/basket/{basketId}/bags
     OrderMS-->>RetailAPI: 204 No Content
-    RetailAPI-->>Web: 204 No Content
+
+    RetailAPI->>OrderMS: GET /api/v1/basket/{basketId}
+    OrderMS-->>RetailAPI: Basket
+
+    RetailAPI-->>Web: BasketResponse (updated totalBagAmount)
 ```
 
 ---
