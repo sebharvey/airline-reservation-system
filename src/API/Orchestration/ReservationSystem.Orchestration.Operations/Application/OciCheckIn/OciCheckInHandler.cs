@@ -47,7 +47,7 @@ public sealed class OciCheckInHandler
             return new OciCheckInResult(command.BookingReference, [], false);
         }
 
-        OciCheckInResult result;
+        ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.OciCheckInResult result;
         try
         {
             result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
