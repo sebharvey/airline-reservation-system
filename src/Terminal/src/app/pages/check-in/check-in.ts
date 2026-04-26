@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import {
   CheckInService,
-  RetrieveResponse,
+  LookupResponse,
   BoardingCard,
   PaxSubmission,
 } from '../../services/check-in.service';
@@ -35,7 +35,7 @@ export class CheckInComponent {
   departureAirports = signal<string[]>([]);
   departureAirport = signal('');
 
-  booking = signal<RetrieveResponse | null>(null);
+  booking = signal<LookupResponse | null>(null);
   paxForms = signal<PaxFormData[]>([]);
 
   boardingCards = signal<BoardingCard[]>([]);
@@ -64,6 +64,7 @@ export class CheckInComponent {
         this.error.set('No eligible departures found for this booking reference.');
         return;
       }
+      this.booking.set(result);
       this.departureAirports.set(result.departureAirports);
     } catch {
       this.error.set('Booking not found. Please check the reference.');
@@ -72,45 +73,38 @@ export class CheckInComponent {
     }
   }
 
-  async selectDeparture(airport: string): Promise<void> {
+  selectDeparture(airport: string): void {
     if (!airport) return;
     this.departureAirport.set(airport);
-    this.loading.set(true);
     this.error.set('');
-    this.booking.set(null);
     this.paxForms.set([]);
     this.boardingCards.set([]);
     this.checkInComplete.set(false);
 
-    try {
-      const result = await this.#svc.retrieve(this.bookingRef().trim().toUpperCase(), airport);
-      if (!result.checkInEligible) {
-        this.error.set(
-          'This booking is not eligible for check-in. Please verify the departure window is open.',
-        );
-        return;
-      }
-      this.booking.set(result);
-      this.paxForms.set(
-        result.passengers.map(p => ({
-          passengerId: p.passengerId,
-          ticketNumber: p.ticketNumber,
-          givenName: p.givenName,
-          surname: p.surname,
-          passengerTypeCode: p.passengerTypeCode,
-          docType: p.travelDocument?.type ?? 'PASSPORT',
-          docNumber: p.travelDocument?.number ?? '',
-          issuingCountry: p.travelDocument?.issuingCountry ?? '',
-          nationality: p.travelDocument?.nationality ?? '',
-          issueDate: p.travelDocument?.issueDate ?? '',
-          expiryDate: p.travelDocument?.expiryDate ?? '',
-        })),
-      );
-    } catch {
-      this.error.set('Failed to retrieve booking details. Please try again.');
-    } finally {
-      this.loading.set(false);
+    const orderDetail = this.booking()?.orderDetail;
+    if (!orderDetail) return;
+
+    const passengers = this.#svc.extractPassengers(orderDetail, airport);
+    if (!passengers.length) {
+      this.error.set('No passengers found for the selected departure airport.');
+      return;
     }
+
+    this.paxForms.set(
+      passengers.map(p => ({
+        passengerId: p.passengerId,
+        ticketNumber: p.ticketNumber,
+        givenName: p.givenName,
+        surname: p.surname,
+        passengerTypeCode: p.passengerTypeCode,
+        docType: p.existingDoc?.type ?? 'PASSPORT',
+        docNumber: p.existingDoc?.number ?? '',
+        issuingCountry: p.existingDoc?.issuingCountry ?? '',
+        nationality: p.existingDoc?.nationality ?? '',
+        issueDate: p.existingDoc?.issueDate ?? '',
+        expiryDate: p.existingDoc?.expiryDate ?? '',
+      })),
+    );
   }
 
   updateDoc(index: number, field: keyof PaxFormData, value: string): void {
@@ -150,10 +144,8 @@ export class CheckInComponent {
         },
       }));
 
-      await this.#svc.submitPax(bookingRef, submissions);
-      const checkInResult = await this.#svc.completeCheckIn(bookingRef, airport);
-      const docsResult = await this.#svc.getBoardingDocs(airport, checkInResult.checkedIn);
-      this.boardingCards.set(docsResult.boardingCards);
+      const result = await this.#svc.adminCheckIn(bookingRef, airport, submissions);
+      this.boardingCards.set(result.boardingCards);
       this.checkInComplete.set(true);
     } catch {
       this.error.set('Failed to complete check-in. Please try again or contact a supervisor.');

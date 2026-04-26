@@ -3,57 +3,79 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environment';
 
-interface AdminOrderLookup {
-  bookingReference: string;
-  orderData: {
-    dataLists: {
-      flightSegments: { origin: string }[];
-    };
-  } | null;
-}
-
-export interface TravelDocument {
-  type: string;
-  number: string;
-  issuingCountry: string;
-  nationality: string;
-  issueDate: string;
-  expiryDate: string;
-}
-
-export interface CheckInPassenger {
+interface AdminOrderPassenger {
   passengerId: string;
-  ticketNumber: string;
   givenName: string;
   surname: string;
   passengerTypeCode: string;
-  travelDocument: TravelDocument | null;
+  docs: {
+    type: string;
+    number: string;
+    issuingCountry: string;
+    nationality: string;
+    issueDate: string;
+    expiryDate: string;
+  }[];
+}
+
+interface AdminOrderItem {
+  itemType: string;
+  passengerId?: string;
+  segmentId?: string;
+  eTicketNumber?: string;
+}
+
+interface AdminOrderDetail {
+  bookingReference: string;
+  orderData: {
+    dataLists: {
+      flightSegments: { segmentId: string; origin: string }[];
+      passengers: AdminOrderPassenger[];
+    };
+    orderItems: AdminOrderItem[];
+    eTickets?: { eTicketNumber: string; passengerId: string }[];
+  } | null;
 }
 
 export interface LookupResponse {
   bookingReference: string;
   departureAirports: string[];
+  orderDetail: AdminOrderDetail;
 }
 
-export interface RetrieveResponse {
-  bookingReference: string;
-  checkInEligible: boolean;
-  passengers: CheckInPassenger[];
+export interface CheckInPaxEntry {
+  passengerId: string;
+  ticketNumber: string;
+  givenName: string;
+  surname: string;
+  passengerTypeCode: string;
+  existingDoc: {
+    type: string;
+    number: string;
+    issuingCountry: string;
+    nationality: string;
+    issueDate: string;
+    expiryDate: string;
+  } | null;
 }
 
 export interface PaxSubmission {
   ticketNumber: string;
-  travelDocument: TravelDocument;
-}
-
-export interface CheckInResponse {
-  bookingReference: string;
-  checkedIn: string[];
+  travelDocument: {
+    type: string;
+    number: string;
+    issuingCountry: string;
+    nationality: string;
+    issueDate: string;
+    expiryDate: string;
+  };
 }
 
 export interface BoardingCard {
   ticketNumber: string;
   passengerId: string;
+  givenName: string;
+  surname: string;
   flightNumber: string;
   departureDate: string;
   seatNumber: string;
@@ -64,50 +86,80 @@ export interface BoardingCard {
   bcbpString: string;
 }
 
-export interface BoardingDocsResponse {
+export interface AdminCheckInResponse {
+  bookingReference: string;
   boardingCards: BoardingCard[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class CheckInService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.operationsApiUrl}/api/v1/oci`;
 
   async lookup(bookingReference: string): Promise<LookupResponse> {
     const order = await firstValueFrom(
-      this.#http.get<AdminOrderLookup>(
+      this.#http.get<AdminOrderDetail>(
         `${environment.retailApiUrl}/api/v1/admin/orders/${bookingReference.toUpperCase()}`,
       ),
     );
     const segments = order.orderData?.dataLists?.flightSegments ?? [];
     const departureAirports = [...new Set(segments.map(s => s.origin))];
-    return { bookingReference: order.bookingReference, departureAirports };
+    return { bookingReference: order.bookingReference, departureAirports, orderDetail: order };
   }
 
-  async retrieve(bookingReference: string, departureAirport: string): Promise<RetrieveResponse> {
-    return firstValueFrom(
-      this.#http.post<RetrieveResponse>(`${this.#baseUrl}/retrieve`, {
-        bookingReference,
-        departureAirport,
-      }),
+  extractPassengers(orderDetail: AdminOrderDetail, departureAirport: string): CheckInPaxEntry[] {
+    const orderData = orderDetail.orderData;
+    if (!orderData) return [];
+
+    const segments = orderData.dataLists?.flightSegments ?? [];
+    const matchingSegmentIds = new Set(
+      segments.filter(s => s.origin === departureAirport).map(s => s.segmentId),
     );
+
+    // Build ticketNumber per passengerId from enriched orderItems (Flight items on matching segments)
+    const ticketByPaxId = new Map<string, string>();
+    for (const item of orderData.orderItems ?? []) {
+      if (
+        item.itemType === 'Flight' &&
+        item.passengerId &&
+        item.eTicketNumber &&
+        item.segmentId &&
+        matchingSegmentIds.has(item.segmentId)
+      ) {
+        ticketByPaxId.set(item.passengerId, item.eTicketNumber);
+      }
+    }
+
+    // Fallback: derive from eTickets array when orderItems don't carry eTicketNumber
+    if (ticketByPaxId.size === 0 && orderData.eTickets) {
+      for (const et of orderData.eTickets) {
+        if (et.passengerId && et.eTicketNumber) {
+          ticketByPaxId.set(et.passengerId, et.eTicketNumber);
+        }
+      }
+    }
+
+    return (orderData.dataLists?.passengers ?? [])
+      .filter(p => ticketByPaxId.has(p.passengerId))
+      .map(p => ({
+        passengerId: p.passengerId,
+        ticketNumber: ticketByPaxId.get(p.passengerId)!,
+        givenName: p.givenName,
+        surname: p.surname,
+        passengerTypeCode: p.passengerTypeCode,
+        existingDoc: p.docs?.[0] ?? null,
+      }));
   }
 
-  async submitPax(bookingReference: string, passengers: PaxSubmission[]): Promise<void> {
-    await firstValueFrom(
-      this.#http.post(`${this.#baseUrl}/pax`, { bookingReference, passengers }),
-    );
-  }
-
-  async completeCheckIn(bookingReference: string, departureAirport: string): Promise<CheckInResponse> {
+  async adminCheckIn(
+    bookingReference: string,
+    departureAirport: string,
+    passengers: PaxSubmission[],
+  ): Promise<AdminCheckInResponse> {
     return firstValueFrom(
-      this.#http.post<CheckInResponse>(`${this.#baseUrl}/checkin`, { bookingReference, departureAirport }),
-    );
-  }
-
-  async getBoardingDocs(departureAirport: string, ticketNumbers: string[]): Promise<BoardingDocsResponse> {
-    return firstValueFrom(
-      this.#http.post<BoardingDocsResponse>(`${this.#baseUrl}/boarding-docs`, { departureAirport, ticketNumbers }),
+      this.#http.post<AdminCheckInResponse>(
+        `${environment.retailApiUrl}/api/v1/admin/checkin/${bookingReference.toUpperCase()}`,
+        { departureAirport, passengers },
+      ),
     );
   }
 }
