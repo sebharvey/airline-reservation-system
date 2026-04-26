@@ -1,0 +1,332 @@
+<div class="check-in-page fade-in">
+
+  <!-- Step progress (hidden on search step) -->
+  @if (step() !== 'search') {
+    <div class="step-progress">
+      <div class="step-item" [class.active]="step() === 'pax'" [class.done]="step() === 'confirm' || step() === 'boarding'">
+        <span class="step-num">{{ step() === 'confirm' || step() === 'boarding' ? '✓' : '1' }}</span>
+        <span class="step-label">Travel documents</span>
+      </div>
+      <div class="step-connector" [class.done]="step() === 'confirm' || step() === 'boarding'"></div>
+      <div class="step-item" [class.active]="step() === 'confirm'" [class.done]="step() === 'boarding'">
+        <span class="step-num">{{ step() === 'boarding' ? '✓' : '2' }}</span>
+        <span class="step-label">Confirm</span>
+      </div>
+      <div class="step-connector" [class.done]="step() === 'boarding'"></div>
+      <div class="step-item" [class.active]="step() === 'boarding'">
+        <span class="step-num">3</span>
+        <span class="step-label">Boarding passes</span>
+      </div>
+    </div>
+  }
+
+  @switch (step()) {
+
+    <!-- ── SEARCH ── -->
+    @case ('search') {
+      <div class="page-header">
+        <div class="page-title-group">
+          <h1 class="page-title">Check In</h1>
+          <p class="page-subtitle">Retrieve a booking to begin the check-in process</p>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <p class="form-section-label">Booking details</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label">Booking Reference (PNR)</label>
+            <input
+              class="field-input mono-input"
+              type="text"
+              placeholder="e.g. AB1234"
+              [value]="bookingRef()"
+              (input)="bookingRef.set($any($event.target).value.toUpperCase())"
+              maxlength="6"
+              (keydown.enter)="findBooking()"
+            />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Departure Airport</label>
+            <input
+              class="field-input mono-input"
+              type="text"
+              placeholder="e.g. LHR"
+              [value]="departureAirport()"
+              (input)="departureAirport.set($any($event.target).value.toUpperCase())"
+              maxlength="3"
+              (keydown.enter)="findBooking()"
+            />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Lead Passenger First Name</label>
+            <input
+              class="field-input"
+              type="text"
+              placeholder="e.g. Alex"
+              [value]="firstName()"
+              (input)="firstName.set($any($event.target).value)"
+              (keydown.enter)="findBooking()"
+            />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Lead Passenger Last Name</label>
+            <input
+              class="field-input"
+              type="text"
+              placeholder="e.g. Taylor"
+              [value]="lastName()"
+              (input)="lastName.set($any($event.target).value)"
+              (keydown.enter)="findBooking()"
+            />
+          </div>
+        </div>
+
+        @if (error()) {
+          <div class="error-banner" role="alert">⚠ {{ error() }}</div>
+        }
+
+        <div class="form-actions">
+          <button class="primary-btn" (click)="findBooking()" [disabled]="loading()">
+            @if (loading()) {
+              <span class="btn-spinner"></span> Searching…
+            } @else {
+              Find Booking
+            }
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── TRAVEL DOCUMENTS ── -->
+    @case ('pax') {
+      <div class="page-header">
+        <div class="page-title-group">
+          <h1 class="page-title">Travel Documents</h1>
+          <p class="page-subtitle">
+            Booking <strong class="mono">{{ booking()?.bookingReference }}</strong>
+            · Departing <strong>{{ departureAirport() }}</strong>
+            · {{ paxForms().length }} {{ paxForms().length === 1 ? 'passenger' : 'passengers' }}
+          </p>
+        </div>
+      </div>
+
+      @for (pax of paxForms(); track pax.passengerId; let i = $index) {
+        <div class="pax-card">
+          <div class="pax-card-header">
+            <div class="avatar">{{ pax.givenName[0] }}</div>
+            <div class="pax-name-group">
+              <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+              <span class="pax-type-badge">{{ paxTypeLabel(pax.passengerTypeCode) }}</span>
+            </div>
+            <span class="ticket-num mono">{{ pax.ticketNumber }}</span>
+          </div>
+
+          <div class="doc-grid">
+            <div class="form-group">
+              <label class="field-label">Document type</label>
+              <select
+                class="field-input"
+                [value]="pax.docType"
+                (change)="updateDoc(i, 'docType', $any($event.target).value)"
+              >
+                <option value="PASSPORT">Passport</option>
+                <option value="NATIONAL_ID">National ID</option>
+                <option value="VISA">Visa</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="field-label">Document number</label>
+              <input
+                class="field-input mono-input"
+                type="text"
+                placeholder="e.g. PA1234567"
+                [value]="pax.docNumber"
+                (input)="updateDoc(i, 'docNumber', $any($event.target).value)"
+              />
+            </div>
+            <div class="form-group">
+              <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
+              <input
+                class="field-input mono-input"
+                type="text"
+                placeholder="e.g. GBR"
+                maxlength="3"
+                [value]="pax.issuingCountry"
+                (input)="updateDoc(i, 'issuingCountry', $any($event.target).value.toUpperCase())"
+              />
+            </div>
+            <div class="form-group">
+              <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
+              <input
+                class="field-input mono-input"
+                type="text"
+                placeholder="e.g. GBR"
+                maxlength="3"
+                [value]="pax.nationality"
+                (input)="updateDoc(i, 'nationality', $any($event.target).value.toUpperCase())"
+              />
+            </div>
+            <div class="form-group">
+              <label class="field-label">Issue date</label>
+              <input
+                class="field-input"
+                type="date"
+                [value]="pax.issueDate"
+                (change)="updateDoc(i, 'issueDate', $any($event.target).value)"
+              />
+            </div>
+            <div class="form-group">
+              <label class="field-label">Expiry date</label>
+              <input
+                class="field-input"
+                type="date"
+                [value]="pax.expiryDate"
+                (change)="updateDoc(i, 'expiryDate', $any($event.target).value)"
+              />
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (error()) {
+        <div class="error-banner" role="alert">⚠ {{ error() }}</div>
+      }
+
+      <div class="step-actions">
+        <button class="secondary-btn" (click)="goBack()" [disabled]="loading()">← Back</button>
+        <button class="primary-btn" (click)="savePaxDocs()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            Save & Continue →
+          }
+        </button>
+      </div>
+    }
+
+    <!-- ── CONFIRM ── -->
+    @case ('confirm') {
+      <div class="page-header">
+        <div class="page-title-group">
+          <h1 class="page-title">Confirm Check-In</h1>
+          <p class="page-subtitle">
+            Review and complete check-in for booking
+            <strong class="mono">{{ booking()?.bookingReference }}</strong>
+            departing <strong>{{ departureAirport() }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <p class="summary-header">{{ paxForms().length }} {{ paxForms().length === 1 ? 'passenger' : 'passengers' }} ready for check-in</p>
+        <div class="summary-list">
+          @for (pax of paxForms(); track pax.passengerId) {
+            <div class="summary-row">
+              <div class="avatar small-avatar">{{ pax.givenName[0] }}</div>
+              <div class="summary-pax-info">
+                <span class="pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+                <span class="summary-doc-meta">
+                  {{ pax.docType }} · <span class="mono">{{ pax.docNumber }}</span> · Exp {{ formatDate(pax.expiryDate) }}
+                </span>
+              </div>
+              <span class="pax-type-badge">{{ paxTypeLabel(pax.passengerTypeCode) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="error-banner" role="alert">⚠ {{ error() }}</div>
+      }
+
+      <div class="step-actions">
+        <button class="secondary-btn" (click)="goBack()" [disabled]="loading()">← Back</button>
+        <button class="primary-btn complete-btn" (click)="completeCheckIn()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Completing check-in…
+          } @else {
+            ✓ Complete Check-In for {{ paxForms().length }} {{ paxForms().length === 1 ? 'Passenger' : 'Passengers' }}
+          }
+        </button>
+      </div>
+    }
+
+    <!-- ── BOARDING PASSES ── -->
+    @case ('boarding') {
+      <div class="page-header">
+        <div class="success-pill">✓ Check-In Complete</div>
+        <div class="page-title-group">
+          <h1 class="page-title">Boarding Passes</h1>
+          <p class="page-subtitle">
+            {{ boardingCards().length }} {{ boardingCards().length === 1 ? 'boarding pass' : 'boarding passes' }} generated
+            for booking <strong class="mono">{{ booking()?.bookingReference }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="boarding-cards">
+        @for (card of boardingCards(); track card.ticketNumber) {
+          <div class="boarding-card">
+            <div class="bc-top">
+              <div class="bc-route">
+                <span class="bc-airport">{{ card.origin }}</span>
+                <span class="bc-arrow">→</span>
+                <span class="bc-airport">{{ card.destination }}</span>
+              </div>
+              <div class="bc-flight-meta">
+                <span class="bc-flight-num">{{ card.flightNumber }}</span>
+                <span class="bc-date">{{ formatDate(card.departureDate) }}</span>
+              </div>
+            </div>
+
+            <div class="bc-details">
+              <div class="bc-detail">
+                <span class="bc-detail-label">Seat</span>
+                <span class="bc-detail-value mono">{{ card.seatNumber }}</span>
+              </div>
+              <div class="bc-detail">
+                <span class="bc-detail-label">Cabin</span>
+                <span class="bc-detail-value">{{ card.cabinCode }}</span>
+              </div>
+              <div class="bc-detail">
+                <span class="bc-detail-label">Sequence</span>
+                <span class="bc-detail-value mono">{{ card.sequenceNumber }}</span>
+              </div>
+              <div class="bc-detail">
+                <span class="bc-detail-label">Ticket</span>
+                <span class="bc-detail-value mono small-text">{{ card.ticketNumber }}</span>
+              </div>
+            </div>
+
+            <div class="bc-bcbp">
+              <span class="bcbp-label">BCBP</span>
+              <div class="bcbp-row">
+                <code class="bcbp-string">{{ card.bcbpString }}</code>
+                <button
+                  class="copy-btn"
+                  [class.copied]="copiedBcbp() === card.bcbpString"
+                  (click)="copyBcbp(card.bcbpString)"
+                  [title]="copiedBcbp() === card.bcbpString ? 'Copied!' : 'Copy BCBP string'"
+                >
+                  @if (copiedBcbp() === card.bcbpString) {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  } @else {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="step-actions">
+        <button class="primary-btn" (click)="reset()">Check In Another Passenger</button>
+      </div>
+    }
+
+  }
+
+</div>

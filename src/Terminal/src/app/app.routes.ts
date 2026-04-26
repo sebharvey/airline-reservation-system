@@ -13,6 +13,10 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'inventory', pathMatch: 'full' },
       {
+        path: 'check-in',
+        loadComponent: () => import('./pages/check-in/check-in').then(m => m.CheckInComponent),
+      },
+      {
         path: 'inventory',
         loadComponent: () => import('./pages/inventory/inventory').then(m => m.InventoryComponent),
       },
