@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "NDC — AirShopping (IATA NDC 21.3)",
-    "description": "Validates the NDC 21.3 AirShopping endpoint (POST /v1/ndc/AirShopping) on the Retail API. Covers well-formed requests with single and multiple passenger types, a past-date search that returns an empty OffersGroup, and negative cases for a missing CoreQuery, invalid XML, and an empty body.",
+    "name": "NDC — AirShopping + OfferPrice (IATA NDC 21.3)",
+    "description": "Validates the IATA NDC 21.3 AirShopping and OfferPrice endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -15,7 +15,7 @@
     {
       "step": 1,
       "name": "AirShopping — 1 ADT, LHR→JFK",
-      "description": "Posts a valid IATA_AirShoppingRQ for one adult passenger from LHR to JFK on tomorrow’s date. Expects a 200 response containing a well-formed IATA_AirShoppingRS with ShoppingResponseID, OffersGroup, and DataLists.",
+      "description": "Posts a valid IATA_AirShoppingRQ for one adult passenger from LHR to JFK on tomorrow's date. Expects a 200 response containing a well-formed IATA_AirShoppingRS with ShoppingResponseID, OffersGroup, and DataLists. The first OfferID from the response is captured and forwarded to the OfferPrice steps.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -34,15 +34,23 @@
       },
       "expected": {
         "statusCode": 200,
-        "description": "Returns 200 with a well-formed IATA_AirShoppingRS containing ShoppingResponseID, OffersGroup, and DataLists.",
+        "description": "Returns 200 with a well-formed IATA_AirShoppingRS containing ShoppingResponseID, OffersGroup, and DataLists. The first OfferID is extracted for use in OfferPrice steps.",
         "keyFields": [],
-        "validationNotes": "Response Content-Type must be application/xml. The root element must be IATA_AirShoppingRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS. Each Offer’s OfferID is the internal offerId GUID usable for basket creation."
-      }
+        "validationNotes": "Response Content-Type must be application/xml. The root element must be IATA_AirShoppingRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS. Each Offer's OfferID is the internal offerId GUID usable for OfferPrice."
+      },
+      "chainsTo": [
+        {
+          "field": "OfferID",
+          "as": "ndcOfferId",
+          "xmlRegex": "<OfferID>([^<]+)</OfferID>",
+          "usedInSteps": [7, 8]
+        }
+      ]
     },
     {
       "step": 2,
       "name": "AirShopping — 2 ADT + 1 CHD",
-      "description": "Posts a valid IATA_AirShoppingRQ for two adults and one child from LHR to JFK on tomorrow’s date. Expects the DataLists/AnonymousTravelerList to contain two entries — one per passenger type group.",
+      "description": "Posts a valid IATA_AirShoppingRQ for two adults and one child from LHR to JFK on tomorrow's date. Expects the DataLists/AnonymousTravelerList to contain two entries — one per passenger type group.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -95,7 +103,7 @@
     },
     {
       "step": 4,
-      "name": "Missing CoreQuery — 400",
+      "name": "AirShopping — missing CoreQuery → 400",
       "description": "Posts an IATA_AirShoppingRQ that omits the CoreQuery element. The parser cannot determine origin, destination, or departure date and must return 400 with an NDC Errors element containing Code ERR_PARSE.",
       "type": "negative",
       "apiCall": {
@@ -122,7 +130,7 @@
     },
     {
       "step": 5,
-      "name": "Invalid XML — 400",
+      "name": "AirShopping — invalid XML → 400",
       "description": "Posts a body that is not valid XML. The endpoint must return 400; it cannot parse the document at all.",
       "type": "negative",
       "apiCall": {
@@ -149,7 +157,7 @@
     },
     {
       "step": 6,
-      "name": "Empty body — 400",
+      "name": "AirShopping — empty body → 400",
       "description": "Posts an empty body. The endpoint must return 400 with an NDC Errors element containing Code ERR_EMPTY_BODY.",
       "type": "negative",
       "apiCall": {
@@ -172,6 +180,157 @@
         "description": "Returns 400 when the request body is empty.",
         "keyFields": [],
         "validationNotes": "The Errors/Error element must have Code ERR_EMPTY_BODY."
+      }
+    },
+    {
+      "step": 7,
+      "name": "OfferPrice — price offer from step 1",
+      "description": "Posts a valid IATA_OfferPriceRQ using the OfferID captured from the step 1 AirShoppingRS. The Offer microservice re-validates and re-prices the stored offer. Expects a 200 IATA_OfferPriceRS with PricedOffer (containing OfferID, TotalPrice, OfferItem, and OfferExpiration) and DataLists (FlightSegmentList and OriginDestinationList). Depends on step 1 returning at least one offer.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OfferPrice",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <SelectedOffer>\n    <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n    <OwnerCode>AX</OwnerCode>\n  </SelectedOffer>\n</IATA_OfferPriceRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <PricedOffer>\n    <OfferID>...</OfferID>\n    <OwnerCode>AX</OwnerCode>\n    <ValidatingCarrierCode>AX</ValidatingCarrierCode>\n    <TotalPrice><TotalAmount CurCode=\"GBP\">...</TotalAmount></TotalPrice>\n    <OfferItem>\n      <OfferItemID>ITEM-...</OfferItemID>\n      <TotalPriceDetail>\n        <TotalAmount><SimpleCurrencyPrice CurCode=\"GBP\">...</SimpleCurrencyPrice></TotalAmount>\n        <BaseAmount CurCode=\"GBP\">...</BaseAmount>\n        <Taxes><Total CurCode=\"GBP\">...</Total></Taxes>\n      </TotalPriceDetail>\n      <Service><ServiceID>SVC-...</ServiceID><FlightRefs>SEG1</FlightRefs></Service>\n      <FareDetail><FareComponent>...</FareComponent></FareDetail>\n    </OfferItem>\n    <OfferExpiration><DateTime>...</DateTime></OfferExpiration>\n  </PricedOffer>\n  <DataLists>\n    <FlightSegmentList>...</FlightSegmentList>\n    <OriginDestinationList>...</OriginDestinationList>\n  </DataLists>\n</IATA_OfferPriceRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with a well-formed IATA_OfferPriceRS. PricedOffer contains the repriced fare with OfferExpiration. DataLists contains the flight segment and origin-destination for the priced flight.",
+        "keyFields": [],
+        "validationNotes": "Root element must be IATA_OfferPriceRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS. PricedOffer/OfferID must equal the OfferRefID sent in the request. OfferExpiration/DateTime must be a valid ISO 8601 UTC timestamp. OfferItem/TotalPriceDetail must include BaseAmount and Taxes/Total."
+      }
+    },
+    {
+      "step": 8,
+      "name": "OfferPrice — with ADT + CHD travelers",
+      "description": "Posts the same OfferPriceRQ as step 7 but includes a Travelers block with 2 ADT and 1 CHD. Expects a 200 IATA_OfferPriceRS where DataLists/AnonymousTravelerList reflects both passenger type groups, and OfferItem/PassengerRefs references both traveler keys.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OfferPrice",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>2</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>CHD</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <SelectedOffer>\n    <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n    <OwnerCode>AX</OwnerCode>\n  </SelectedOffer>\n</IATA_OfferPriceRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <PricedOffer>\n    <OfferID>...</OfferID>\n    <OwnerCode>AX</OwnerCode>\n    <TotalPrice><TotalAmount CurCode=\"GBP\">...</TotalAmount></TotalPrice>\n    <OfferItem>...</OfferItem>\n    <OfferExpiration><DateTime>...</DateTime></OfferExpiration>\n  </PricedOffer>\n  <DataLists>\n    <FlightSegmentList>...</FlightSegmentList>\n    <OriginDestinationList>...</OriginDestinationList>\n    <AnonymousTravelerList>\n      <AnonymousTraveler><PTC>ADT</PTC><Quantity>2</Quantity></AnonymousTraveler>\n      <AnonymousTraveler><PTC>CHD</PTC><Quantity>1</Quantity></AnonymousTraveler>\n    </AnonymousTravelerList>\n  </DataLists>\n</IATA_OfferPriceRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200. DataLists/AnonymousTravelerList contains one entry per passenger type group (ADT Quantity 2, CHD Quantity 1). OfferItem/PassengerRefs references both traveler keys.",
+        "keyFields": [],
+        "validationNotes": "AnonymousTravelerList is only emitted when Travelers are present in the request. Each entry reflects the PTC and Quantity from the request."
+      }
+    },
+    {
+      "step": 9,
+      "name": "OfferPrice — unknown OfferRefID → 404",
+      "description": "Posts an IATA_OfferPriceRQ with a randomly generated GUID that does not correspond to any stored offer. Expects 404 with an IATA_OfferPriceRS Errors element containing Code ERR_OFFER_NOT_FOUND.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OfferPrice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <SelectedOffer>\n    <OfferRefID>00000000-0000-0000-0000-000000000000</OfferRefID>\n    <OwnerCode>AX</OwnerCode>\n  </SelectedOffer>\n</IATA_OfferPriceRQ>"
+      },
+      "response": {
+        "statusCode": 404,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_OFFER_NOT_FOUND</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OfferPriceRS>"
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "Returns 404 with an IATA_OfferPriceRS containing Errors/Error with Code ERR_OFFER_NOT_FOUND.",
+        "keyFields": [],
+        "validationNotes": "The nil GUID (all zeros) is a valid GUID that will never match a real stored offer. The response namespace must be IATA_OfferPriceRS, not IATA_AirShoppingRS."
+      }
+    },
+    {
+      "step": 10,
+      "name": "OfferPrice — missing SelectedOffer → 400",
+      "description": "Posts an IATA_OfferPriceRQ that omits the SelectedOffer element entirely. The parser cannot determine which offer to price and must return 400 with an NDC Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OfferPrice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n</IATA_OfferPriceRQ>"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>SelectedOffer element is missing.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OfferPriceRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_OfferPriceRS containing Errors/Error with Code ERR_PARSE.",
+        "keyFields": [],
+        "validationNotes": "The SelectedOffer element is mandatory. Its absence must produce a parse error, not a 500."
+      }
+    },
+    {
+      "step": 11,
+      "name": "OfferPrice — empty body → 400",
+      "description": "Posts an empty body to the OfferPrice endpoint. Must return 400 with an IATA_OfferPriceRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OfferPrice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OfferPriceRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OfferPriceRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "The response must use the IATA_OfferPriceRS namespace, not IATA_AirShoppingRS. Code must be ERR_EMPTY_BODY."
       }
     }
   ]
