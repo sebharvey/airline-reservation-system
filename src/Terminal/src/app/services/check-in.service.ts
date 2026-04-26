@@ -3,6 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environment';
 
+interface AdminOrderLookup {
+  bookingReference: string;
+  orderData: {
+    dataLists: {
+      flightSegments: { origin: string }[];
+    };
+  } | null;
+}
+
 export interface TravelDocument {
   type: string;
   number: string;
@@ -65,9 +74,14 @@ export class CheckInService {
   #baseUrl = `${environment.operationsApiUrl}/api/v1/oci`;
 
   async lookup(bookingReference: string): Promise<LookupResponse> {
-    return firstValueFrom(
-      this.#http.post<LookupResponse>(`${this.#baseUrl}/lookup`, { bookingReference }),
+    const order = await firstValueFrom(
+      this.#http.get<AdminOrderLookup>(
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingReference.toUpperCase()}`,
+      ),
     );
+    const segments = order.orderData?.dataLists?.flightSegments ?? [];
+    const departureAirports = [...new Set(segments.map(s => s.origin))];
+    return { bookingReference: order.bookingReference, departureAirports };
   }
 
   async retrieve(bookingReference: string, departureAirport: string): Promise<RetrieveResponse> {
