@@ -29,13 +29,6 @@
     </p>
   </div>
 
-  @if (errorMessage()) {
-    <div class="error-banner">
-      <span>&#9888;</span>
-      {{ errorMessage() }}
-    </div>
-  }
-
   @if (alreadyCheckedIn()) {
     <div class="info-banner">
       <span>&#9432;</span>
