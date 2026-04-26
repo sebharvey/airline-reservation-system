@@ -57,34 +57,40 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | API | Config key | Target service |
 |-----|-----------|----------------|
 | Operations API | `ScheduleMs:BaseUrl` | Schedule MS |
-| Operations API | `ScheduleMs:HostKey` | Schedule MS — Azure Function host key |
 | Operations API | `OfferMs:BaseUrl` | Offer MS |
-| Operations API | `OfferMs:HostKey` | Offer MS — Azure Function host key |
 | Operations API | `OrderMs:BaseUrl` | Order MS |
-| Operations API | `OrderMs:HostKey` | Order MS — Azure Function host key |
 | Operations API | `DeliveryMs:BaseUrl` | Delivery MS |
-| Operations API | `DeliveryMs:HostKey` | Delivery MS — Azure Function host key |
 | Operations API | `CustomerMs:BaseUrl` | Customer MS |
-| Operations API | `CustomerMs:HostKey` | Customer MS — Azure Function host key |
 | Operations API | `PaymentMs:BaseUrl` | Payment MS |
-| Delivery MS | `Timatic:BaseUrl` | Timatic Simulator |
-| Delivery MS | `Timatic:ApiToken` | Bearer token sent in `Authorization` header to the Timatic Simulator |
 | Operations API | `AncillaryMs:BaseUrl` | Ancillary MS |
-| Operations API | `AncillaryMs:HostKey` | Ancillary MS — Azure Function host key |
+| Operations API | `MicroserviceHostKey` | Azure Function host key sent as `x-functions-key` to all downstream microservices |
+| Operations API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens |
+| Operations API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
+| Operations API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
 | Admin API | `UserMs:BaseUrl` | User MS |
-| Admin API | `UserMs:HostKey` | User MS — Azure Function host key |
+| Admin API | `OrderMs:BaseUrl` | Order MS |
+| Admin API | `PaymentMs:BaseUrl` | Payment MS |
+| Admin API | `MicroserviceHostKey` | Azure Function host key sent as `x-functions-key` to all downstream microservices |
+| Admin API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens |
+| Admin API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
+| Admin API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
 | Loyalty API | `IdentityMs:BaseUrl` | Identity MS |
 | Loyalty API | `CustomerMs:BaseUrl` | Customer MS |
+| Loyalty API | `MicroserviceHostKey` | Azure Function host key sent as `x-functions-key` to all downstream microservices |
 | Loyalty API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
 | Loyalty API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
 | Loyalty API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
+| Retail API | `IdentityMs:BaseUrl` | Identity MS |
 | Retail API | `OfferMs:BaseUrl` | Offer MS |
-| Retail API | `OfferMs:HostKey` | Offer MS — Azure Function host key |
 | Retail API | `OrderMs:BaseUrl` | Order MS |
+| Retail API | `AncillaryMs:BaseUrl` | Ancillary MS |
+| Retail API | `PaymentMs:BaseUrl` | Payment MS |
+| Retail API | `DeliveryMs:BaseUrl` | Delivery MS |
+| Retail API | `CustomerMs:BaseUrl` | Customer MS |
+| Retail API | `MicroserviceHostKey` | Azure Function host key sent as `x-functions-key` to all downstream microservices |
 | Retail API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
 | Retail API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
 | Retail API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
-| Retail API | `PaymentMs:BaseUrl` | Payment MS |
-| Retail API | `DeliveryMs:BaseUrl` | Delivery MS |
-| Retail API | `AncillaryMs:BaseUrl` | Ancillary MS |
+| Delivery MS | `Timatic:BaseUrl` | Timatic Simulator |
+| Delivery MS | `Timatic:ApiToken` | Bearer token sent in `Authorization` header to the Timatic Simulator |
 | Timatic Simulator | `Timatic:ApiToken` | Expected Bearer token — SHA-256 hash compared against each incoming `Authorization: Bearer` value |
