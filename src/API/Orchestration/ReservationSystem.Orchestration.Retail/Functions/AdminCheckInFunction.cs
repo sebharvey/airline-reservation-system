@@ -87,12 +87,17 @@ public sealed class AdminCheckInFunction
         if (passengers.Count == 0)
             return await req.BadRequestAsync("At least one passenger is required.");
 
+        var overrideTimatic = body.TryGetProperty("overrideTimatic", out var otEl) && otEl.ValueKind == JsonValueKind.True;
+        var overrideReason = body.TryGetProperty("overrideReason", out var orEl) ? orEl.GetString() : null;
+
         try
         {
             var command = new AdminCheckInCommand(
                 bookingRef.ToUpperInvariant().Trim(),
                 departureAirport.ToUpperInvariant().Trim(),
-                passengers);
+                passengers,
+                overrideTimatic,
+                overrideReason);
 
             var result = await _handler.HandleAsync(command, cancellationToken);
             if (result is null)

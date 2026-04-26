@@ -530,6 +530,56 @@ select.field-input { cursor: pointer; }
   line-height: 1.4;
 }
 
+/* Override section */
+.modal-override {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(230, 160, 0, 0.04);
+}
+
+.override-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.override-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid #d4a017;
+  background: rgba(212, 160, 23, 0.1);
+  color: #8a6800;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.override-btn:hover {
+  background: rgba(212, 160, 23, 0.2);
+}
+
+.override-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.override-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.override-checkin-btn {
+  min-width: 110px;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

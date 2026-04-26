@@ -61,6 +61,7 @@ public sealed class OciFunction
             return await req.BadRequestAsync("'tickets' array is required.");
 
         var departureAirport = airportEl.GetString()!.ToUpperInvariant().Trim();
+        var bypassTimatic = body.TryGetProperty("bypassTimatic", out var btEl) && btEl.ValueKind == JsonValueKind.True;
 
         var tickets = new List<OciCheckInTicket>();
         foreach (var t in ticketsEl.EnumerateArray())
@@ -87,7 +88,7 @@ public sealed class OciFunction
 
         try
         {
-            var command = new OciCheckInCommand(departureAirport, tickets);
+            var command = new OciCheckInCommand(departureAirport, tickets, bypassTimatic);
             var result = await _checkInHandler.HandleAsync(command, cancellationToken);
 
             return await req.OkJsonAsync(new

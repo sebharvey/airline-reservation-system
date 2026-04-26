@@ -191,9 +191,10 @@ public sealed class DeliveryServiceClient
     public async Task<AdminOciCheckInResult> OciCheckInAsync(
         string departureAirport,
         IReadOnlyList<AdminOciCheckInTicket> tickets,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool bypassTimatic = false)
     {
-        var payload = new { departureAirport, tickets };
+        var payload = new { departureAirport, tickets, bypassTimatic };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/oci/checkin", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

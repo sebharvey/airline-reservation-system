@@ -59,9 +59,25 @@ export class CheckInComponent {
   checkingInIndex = signal<number | null>(null);
   checkInResult = signal<CheckInResult | null>(null);
 
+  overrideMode = signal(false);
+  overrideReason = signal('');
+  overridingIndex = signal<number | null>(null);
+
   selectedPax = computed(() => {
     const i = this.selectedPaxIndex();
     return i !== null ? (this.paxForms()[i] ?? null) : null;
+  });
+
+  failedPaxIndex = computed(() => {
+    const result = this.checkInResult();
+    if (!result || result.success) return null;
+    return this.paxForms().findIndex(p => p.ticketNumber === result.ticketNumber);
+  });
+
+  hasTimaticFailure = computed(() => {
+    const result = this.checkInResult();
+    if (!result || result.success) return false;
+    return result.timaticNotes.some(n => n.status !== 'PASS');
   });
 
   allAttempted = computed(() => {
@@ -292,8 +308,70 @@ export class CheckInComponent {
     this.checkInResult.set(null);
   }
 
+  showOverride(): void {
+    this.overrideMode.set(true);
+    this.overrideReason.set('');
+  }
+
+  cancelOverride(): void {
+    this.overrideMode.set(false);
+    this.overrideReason.set('');
+  }
+
+  async overrideCheckIn(index: number): Promise<void> {
+    const pax = this.paxForms()[index];
+    if (!pax || !this.overrideReason()) return;
+
+    this.overridingIndex.set(index);
+
+    const submission: PaxSubmission = {
+      ticketNumber: pax.ticketNumber,
+      travelDocument: {
+        type: pax.docType,
+        number: pax.docNumber.toUpperCase(),
+        issuingCountry: pax.issuingCountry.toUpperCase(),
+        nationality: pax.nationality.toUpperCase(),
+        issueDate: pax.issueDate,
+        expiryDate: pax.expiryDate,
+      },
+    };
+
+    try {
+      const response = await this.#svc.adminCheckIn(
+        this.booking()!.bookingReference,
+        this.departureAirport(),
+        [submission],
+        true,
+        this.overrideReason(),
+      );
+
+      const statuses = this.paxStatuses().slice();
+      statuses[index] = 'checked-in';
+      this.paxStatuses.set(statuses);
+
+      const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
+      const timaticNotes = (response.timaticNotes ?? []).filter(n => n.ticketNumber === pax.ticketNumber);
+      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes });
+      this.overrideMode.set(false);
+      this.overrideReason.set('');
+
+      const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
+      this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
+    } catch (err: unknown) {
+      const message = this.#extractErrorMessage(err);
+      const timaticNotes = this.#extractTimaticNotes(err).filter(n => n.ticketNumber === pax.ticketNumber);
+      const errorMessage = message || 'Override check-in failed. Please contact a supervisor.';
+      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes });
+      this.overrideMode.set(false);
+    } finally {
+      this.overridingIndex.set(null);
+    }
+  }
+
   closeModal(): void {
     this.checkInResult.set(null);
+    this.overrideMode.set(false);
+    this.overrideReason.set('');
   }
 
   paxTypeLabel(code: string): string {
