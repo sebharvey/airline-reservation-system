@@ -1,6 +1,6 @@
 # Check-in — sequence diagrams
 
-Covers the online check-in (OCI) journey: retrieve booking, submit travel documents, select seats, complete check-in, and retrieve boarding passes.
+Covers the online check-in (OLCI) journey: retrieve booking, submit travel documents, select seats, complete check-in with Timatic validation, and retrieve boarding passes.
 
 ---
 
@@ -8,28 +8,34 @@ Covers the online check-in (OCI) journey: retrieve booking, submit travel docume
 
 ```mermaid
 sequenceDiagram
+    actor Traveller
     participant Web
     participant OpsAPI as Operations API
     participant OrderMS as Order MS
     participant CustomerMS as Customer MS
 
-    Web->>OpsAPI: POST /v1/oci/retrieve
-    Note over Web,OpsAPI: {bookingReference, firstName,<br/>lastName, departureAirport, loyaltyNumber?}
+    Traveller->>Web: Opens check-in journey
+    Note over Traveller,Web: Enters booking reference, first name,<br/>last name and departure airport code
 
-    OpsAPI->>OrderMS: POST /api/v1/orders/retrieve
+    Web->>OpsAPI: POST /v1/oci/retrieve
+    Note over Web,OpsAPI: bookingReference, firstName, lastName,<br/>departureAirport, loyaltyNumber (optional)
+
+    OpsAPI->>OrderMS: POST /v1/orders/retrieve
     Note over OpsAPI,OrderMS: bookingReference, lastName
     OrderMS-->>OpsAPI: Order (passengers, eTickets, segments, bookingType)
 
-    opt Loyalty number supplied
-        OpsAPI->>CustomerMS: GET /api/v1/customers/{loyaltyNumber}
+    opt Logged in with loyalty number
+        OpsAPI->>CustomerMS: GET /v1/customers/{loyaltyNumber}
         Note over OpsAPI,CustomerMS: Pre-fill passport data from loyalty profile
         CustomerMS-->>OpsAPI: CustomerProfile (passportNumber, nationality, etc.)
     end
 
-    Note over OpsAPI: Build OciRetrieveResult — map<br/>passengerId → eTicketNumber;<br/>pre-fill travel docs if available
+    Note over OpsAPI: Build OciRetrieveResult<br/>Map passengerId to eTicketNumber<br/>Pre-fill travel docs if available
 
     OpsAPI-->>Web: OciRetrieveResult
-    Note over OpsAPI,Web: {bookingReference, checkInEligible,<br/>isStandby, passengers[{passengerId,<br/>ticketNumber, travelDocument?}]}
+    Note over OpsAPI,Web: bookingReference, checkInEligible,<br/>passengers with ticketNumber and travelDocument
+
+    Web->>Web: Display PAX details<br/>Pre-fill passport details if supplied
 ```
 
 ---
@@ -38,24 +44,29 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    actor Traveller
     participant Web
     participant OpsAPI as Operations API
     participant OrderMS as Order MS
 
+    Traveller->>Web: Enters passport details per passenger
+
     Web->>OpsAPI: POST /v1/oci/pax
-    Note over Web,OpsAPI: {bookingReference, departureAirport,<br/>passengers: [{ticketNumber,<br/>travelDocument{type, number,<br/>issuingCountry, nationality,<br/>issueDate, expiryDate}}]}
+    Note over Web,OpsAPI: bookingReference, departureAirport<br/>passengers [{ticketNumber,<br/>travelDocument{type, number,<br/>issuingCountry, nationality,<br/>issueDate, expiryDate}}]
 
     Note over OpsAPI: Validate ticket number format (NNN-NNNNNNNNNN)<br/>Validate passport not expired
 
-    OpsAPI->>OrderMS: GET /api/v1/orders/{bookingRef}
-    Note over OpsAPI,OrderMS: Guard: verify all passengers<br/>on order have docs submitted
-    OrderMS-->>OpsAPI: Order
+    OpsAPI->>OrderMS: POST /v1/orders/retrieve
+    Note over OpsAPI,OrderMS: bookingReference, lastName
+    OrderMS-->>OpsAPI: Order details
 
-    OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/travel-docs
-    Note over OpsAPI,OrderMS: Save APIS documents per passenger
-    OrderMS-->>OpsAPI: 204 No Content
+    OpsAPI->>OpsAPI: Update travel docs on order
 
-    OpsAPI-->>Web: {bookingReference, success: true}
+    OpsAPI->>OrderMS: POST /v1/orders
+    Note over OpsAPI,OrderMS: Save updated order with APIS documents per passenger
+    OrderMS-->>OpsAPI: Updated order
+
+    OpsAPI-->>Web: bookingReference, success true
 ```
 
 ---
@@ -71,7 +82,7 @@ sequenceDiagram
     participant SeatMS as Seat MS
 
     Web->>RetailAPI: GET /v1/flights/{flightId}/seatmap
-    RetailAPI->>SeatMS: GET /api/v1/seatmap/{aircraftType}
+    RetailAPI->>SeatMS: GET /v1/seatmap/{aircraftType}
     SeatMS-->>RetailAPI: SeatmapResponse
     RetailAPI-->>Web: SeatmapResponse
 ```
@@ -86,17 +97,13 @@ OCI seat selection is not yet implemented — the endpoint accepts the request a
 sequenceDiagram
     participant Web
     participant OpsAPI as Operations API
-    participant OrderMS as Order MS
 
     Web->>OpsAPI: POST /v1/oci/seats
-    Note over Web,OpsAPI: {bookingReference, departureAirport}
+    Note over Web,OpsAPI: bookingReference, departureAirport
 
-    OpsAPI->>OrderMS: GET /api/v1/orders/{bookingRef}
-    Note over OpsAPI,OrderMS: Guard: verify travel documents present
-    OrderMS-->>OpsAPI: Order
+    Note over OpsAPI: Seat selection not implemented<br/>Returns success immediately
 
-    Note over OpsAPI: Seat selection not implemented —<br/>returns success immediately
-    OpsAPI-->>Web: {bookingReference, success: true}
+    OpsAPI-->>Web: bookingReference, success true
 ```
 
 ---
@@ -109,22 +116,36 @@ OCI bag selection is not yet implemented — the endpoint accepts the request an
 sequenceDiagram
     participant Web
     participant OpsAPI as Operations API
-    participant OrderMS as Order MS
 
     Web->>OpsAPI: POST /v1/oci/bags
-    Note over Web,OpsAPI: {bookingReference, departureAirport}
+    Note over Web,OpsAPI: bookingReference, departureAirport
 
-    OpsAPI->>OrderMS: GET /api/v1/orders/{bookingRef}
-    Note over OpsAPI,OrderMS: Guard: verify travel documents present
-    OrderMS-->>OpsAPI: Order
+    Note over OpsAPI: Bag selection not implemented<br/>Returns success immediately
 
-    Note over OpsAPI: Bag selection not implemented —<br/>returns success immediately
-    OpsAPI-->>Web: {bookingReference, success: true}
+    OpsAPI-->>Web: bookingReference, success true
+```
+
+---
+
+## Hazardous materials confirmation
+
+Passengers confirm they are not carrying prohibited hazardous materials. This is a UI-only step with no API call.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+
+    Traveller->>Web: Reviews hazardous materials restrictions
+    Web->>Web: Display hazardous materials page
+    Traveller->>Web: Confirms and continues to submit check-in
 ```
 
 ---
 
 ## Complete check-in
+
+Timatic validation runs inside the Delivery microservice before any coupon status is updated. Both `documentcheck` and `apischeck` run per passenger in Phase 1. A failure from either check rejects the entire check-in — no passenger is checked in.
 
 ```mermaid
 sequenceDiagram
@@ -132,23 +153,38 @@ sequenceDiagram
     participant OpsAPI as Operations API
     participant OrderMS as Order MS
     participant DeliveryMS as Delivery MS
+    participant Timatic as Timatic Simulator
 
     Web->>OpsAPI: POST /v1/oci/checkin
-    Note over Web,OpsAPI: {bookingReference, departureAirport}
+    Note over Web,OpsAPI: bookingReference, departureAirport
 
-    OpsAPI->>OrderMS: GET /api/v1/orders/{bookingRef}
-    Note over OpsAPI,OrderMS: Guard: verify all passengers<br/>have travel documents
-    OrderMS-->>OpsAPI: Order (passengers with docs verified)
+    OpsAPI->>OrderMS: POST /v1/orders/retrieve
+    Note over OpsAPI,OrderMS: Retrieve order to resolve ticket numbers<br/>Verify all passengers have travel documents
+    OrderMS-->>OpsAPI: Order (passengers with travel docs)
 
-    OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/checkin
-    Note over OpsAPI,OrderMS: departureAirport
-    OrderMS-->>OpsAPI: Check-in confirmed
+    OpsAPI->>DeliveryMS: POST /v1/oci/checkin
+    Note over OpsAPI,DeliveryMS: departureAirport and array of tickets<br/>with passengerId, givenName, surname
 
-    OpsAPI->>DeliveryMS: PATCH /api/v1/tickets/coupon-status
-    Note over OpsAPI,DeliveryMS: Update coupon status to 'C'<br/>(checked in) at departure airport
-    DeliveryMS-->>OpsAPI: Updated
+    loop Phase 1 — Timatic validation per passenger
+        DeliveryMS->>Timatic: POST /autocheck/v1/documentcheck
+        Note over DeliveryMS,Timatic: documentType, nationality, documentNumber,<br/>documentExpiryDate, itinerary (origin and destination)
+        Timatic-->>DeliveryMS: status OK or FAILED
 
-    OpsAPI-->>Web: {bookingReference, checkedIn: true}
+        DeliveryMS->>Timatic: POST /autocheck/v1/apischeck
+        Note over DeliveryMS,Timatic: flightNumber, departureDate,<br/>departureAirport, arrivalAirport, paxInfo
+        Timatic-->>DeliveryMS: apisStatus ACCEPTED or REJECTED
+    end
+
+    alt Any Timatic check failed
+        DeliveryMS-->>OpsAPI: 422 — document or APIS failure details
+        OpsAPI-->>Web: 422 Unprocessable Entity
+    else All passengers passed Phase 1
+        Note over DeliveryMS: Phase 2 — update coupon status
+        DeliveryMS->>DeliveryMS: Update coupon status to C (checked in)<br/>on each ticket in delivery.Ticket
+        DeliveryMS->>DeliveryMS: Auto-assign seat from correct cabin<br/>for any coupon with no seat recorded<br/>Passengers on same booking grouped<br/>in adjacent columns where possible
+        DeliveryMS-->>OpsAPI: Array of checked-in ticket numbers
+        OpsAPI-->>Web: Array of checked-in ticket numbers
+    end
 ```
 
 ---
@@ -162,12 +198,15 @@ sequenceDiagram
     participant DeliveryMS as Delivery MS
 
     Web->>OpsAPI: POST /v1/oci/boarding-docs
-    Note over Web,OpsAPI: {departureAirport,<br/>ticketNumbers: ["932-..."]}
+    Note over Web,OpsAPI: departureAirport<br/>ticketNumbers[]
 
-    OpsAPI->>DeliveryMS: GET /api/v1/boarding-docs
+    OpsAPI->>DeliveryMS: POST /v1/oci/boarding-docs
     Note over OpsAPI,DeliveryMS: departureAirport, ticketNumbers[]
-    DeliveryMS-->>OpsAPI: BoardingDocsResponse
+    DeliveryMS->>DeliveryMS: Retrieve ticket from delivery.Ticket<br/>Filter to segments checked in for airport code<br/>Generate BCBP string per segment
+    DeliveryMS-->>OpsAPI: Array of boarding cards
 
     OpsAPI-->>Web: BoardingCardsResponse
     Note over OpsAPI,Web: boardingCards[]: ticketNumber,<br/>flightNumber, seatNumber, cabinCode,<br/>sequenceNumber, origin, destination,<br/>bcbpString (IATA BCBP barcode)
+
+    Web->>Web: Render boarding cards
 ```
