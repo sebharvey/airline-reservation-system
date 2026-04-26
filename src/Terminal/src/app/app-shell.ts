@@ -32,6 +32,12 @@ export class AppShell {
 
   navGroups: NavGroup[] = [
     {
+      label: 'Departure Control',
+      items: [
+        { path: '/check-in', label: 'Check In', icon: '🛫', description: 'Agent desk check-in for passengers' },
+      ],
+    },
+    {
       label: 'Operations',
       items: [
         { path: '/inventory', label: 'Stock Keeper', icon: '✈',  description: 'Flight stock keeper & seat availability' },
