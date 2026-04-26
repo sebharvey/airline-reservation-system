@@ -1,0 +1,337 @@
+{
+  "journey": {
+    "name": "NDC — ServiceList + OrderCreate (IATA NDC 21.3)",
+    "description": "Validates the IATA NDC 21.3 ServiceList and OrderCreate endpoints on the Retail API. Steps 1–6 cover ServiceList: step 1 runs AirShopping to capture a live OfferID, steps 2–4 exercise the ServiceList happy path (all SSRs, offer-scoped SSRs, cabin-filtered SSRs), and steps 5–6 cover error paths. Steps 7–11 cover OrderCreate: step 7 creates a confirmed order using the OfferID from step 1, and steps 8–11 cover missing fields, unknown offer, invalid XML, and empty body.",
+    "domain": "Retail",
+    "baseUrls": [
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "AirShopping — obtain live OfferID",
+      "description": "Posts a valid IATA_AirShoppingRQ for one adult from LHR to JFK on a future date. The first OfferID from the response is captured and forwarded to the ServiceList (step 3) and OrderCreate (step 7) steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/AirShopping",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <CoreQuery>\n    <OriginDestinations>\n      <OriginDestination>\n        <Departure>\n          <AirportCode>LHR</AirportCode>\n          <Date>__RAND_DEPART_DATE__</Date>\n        </Departure>\n        <Arrival>\n          <AirportCode>JFK</AirportCode>\n        </Arrival>\n      </OriginDestination>\n    </OriginDestinations>\n  </CoreQuery>\n</IATA_AirShoppingRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_AirShoppingRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <ShoppingResponseID><ResponseID>...</ResponseID></ShoppingResponseID>\n  <OffersGroup><AirlineOffers><Offer><OfferID>...</OfferID></Offer></AirlineOffers></OffersGroup>\n  <DataLists><FlightSegmentList>...</FlightSegmentList></DataLists>\n</IATA_AirShoppingRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with a well-formed IATA_AirShoppingRS. The first OfferID is extracted for use in ServiceList and OrderCreate steps.",
+        "keyFields": [],
+        "validationNotes": "Root element must be IATA_AirShoppingRS. Each Offer's OfferID is the internal GUID usable for ServiceList and OrderCreate."
+      },
+      "chainsTo": [
+        {
+          "field": "OfferID",
+          "as": "ndcOfferId",
+          "xmlRegex": "<OfferID>([^<]+)</OfferID>",
+          "usedInSteps": [3, 7]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "ServiceList — all SSRs (no offer context)",
+      "description": "Posts a minimal IATA_ServiceListRQ with no OfferRefID or cabin filter. The SSR Catalogue returns all active services. Expects a 200 IATA_ServiceListRS with Response/ServiceList/ALaCarteOffer (Owner=AX, at least one ALaCarteOfferItem) and Response/DataLists/ServiceDefinitionList.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query />\n</IATA_ServiceListRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList>\n      <ALaCarteOffer>\n        <Owner>AX</Owner>\n        <ALaCarteOfferItem>\n          <OfferItemID>SLI-...</OfferItemID>\n          <Eligibility>...</Eligibility>\n          <Service><ServiceID>SVC-...</ServiceID><ServiceCode><Code>...</Code></ServiceCode></Service>\n          <UnitPriceDetail><TotalAmount><SimpleCurrencyPrice CurCode=\"GBP\">0.00</SimpleCurrencyPrice></TotalAmount></UnitPriceDetail>\n        </ALaCarteOfferItem>\n      </ALaCarteOffer>\n    </ServiceList>\n    <DataLists>\n      <ServiceDefinitionList>\n        <ServiceDefinition>\n          <ServiceDefinitionID>SD-...</ServiceDefinitionID>\n          <Name>...</Name>\n          <ServiceCode><Code>...</Code></ServiceCode>\n        </ServiceDefinition>\n      </ServiceDefinitionList>\n    </DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. ALaCarteOffer/Owner must be AX. Each ALaCarteOfferItem has OfferItemID prefixed SLI-, a ServiceCode, and UnitPriceDetail with an indicative price of 0.00 GBP. DataLists/ServiceDefinitionList contains a corresponding ServiceDefinition per SSR.",
+        "keyFields": [],
+        "validationNotes": "Response Content-Type must be application/xml. Document/ReferenceVersion must be 21.3. ServiceDefinitionID must be prefixed SD-."
+      }
+    },
+    {
+      "step": 3,
+      "name": "ServiceList — filtered by OfferID from step 1",
+      "description": "Posts an IATA_ServiceListRQ with the OfferRefID captured from step 1. The handler resolves the stored offer to derive the operating cabin class and flight number and passes them as filters to the SSR Catalogue. Expects a 200 IATA_ServiceListRS with contextually relevant services.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query>\n    <SelectionCriteria>\n      <OfferRef>\n        <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n      </OfferRef>\n    </SelectionCriteria>\n  </Query>\n</IATA_ServiceListRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList>\n      <ALaCarteOffer><Owner>AX</Owner><ALaCarteOfferItem>...</ALaCarteOfferItem></ALaCarteOffer>\n    </ServiceList>\n    <DataLists><ServiceDefinitionList>...</ServiceDefinitionList></DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. Services are filtered by the cabin class and flight number derived from the stored offer referenced by OfferRefID.",
+        "keyFields": [],
+        "validationNotes": "Depends on step 1 returning a valid OfferID. If the offer has already expired this step will still return 200 with an unfiltered catalogue."
+      }
+    },
+    {
+      "step": 4,
+      "name": "ServiceList — cabin code filter (Economy)",
+      "description": "Posts an IATA_ServiceListRQ with CabinPreferences/CabinType/CabinTypeCode/Code set to M (NDC Economy, maps to internal cabin Y). The SSR Catalogue is queried with the derived cabin filter. Expects a 200 IATA_ServiceListRS.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query>\n    <CabinPreferences>\n      <CabinType>\n        <CabinTypeCode>\n          <Code>M</Code>\n        </CabinTypeCode>\n      </CabinType>\n    </CabinPreferences>\n  </Query>\n</IATA_ServiceListRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList><ALaCarteOffer><Owner>AX</Owner></ALaCarteOffer></ServiceList>\n    <DataLists><ServiceDefinitionList>...</ServiceDefinitionList></DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. NDC cabin code M is mapped to internal cabin Y (Economy) before the SSR Catalogue query.",
+        "keyFields": [],
+        "validationNotes": "NDC cabin code mapping: M=Economy(Y), W=PremiumEconomy(W), C=Business(J), F=First(F)."
+      }
+    },
+    {
+      "step": 5,
+      "name": "ServiceList — invalid XML → 400",
+      "description": "Posts a body that is not valid XML. The endpoint must return 400 with an IATA_ServiceListRS Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "this is not xml << >"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_ServiceListRS Errors/Error element with Code ERR_PARSE.",
+        "keyFields": [],
+        "validationNotes": "Error envelope must use the IATA_ServiceListRS namespace, not IATA_AirShoppingRS."
+      }
+    },
+    {
+      "step": 6,
+      "name": "ServiceList — empty body → 400",
+      "description": "Posts an empty body to the ServiceList endpoint. Must return 400 with an IATA_ServiceListRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_ServiceListRS."
+      }
+    },
+    {
+      "step": 7,
+      "name": "OrderCreate — create confirmed order from step 1 offer",
+      "description": "Posts a valid IATA_OrderCreateRQ using the OfferID captured from step 1. Includes one ADT passenger with full name, date of birth, gender, contact details, and a test Visa card. Expects 201 Created with an IATA_OrderCreateRS containing Response/Order (StatusCode=ISSUED, BookingRef with AirlineDesigCode=AX, TotalAmount, at least one OrderItem with StatusCode=PAYMENT_DONE) and DataLists (FlightSegmentList, OriginDestinationList, PaxList).",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderCreate",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Query>\n    <OrderItems>\n      <OfferItem>\n        <OfferItemRefID>ITEM-1</OfferItemRefID>\n        <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n      </OfferItem>\n    </OrderItems>\n    <DataLists>\n      <PaxList>\n        <Pax>\n          <PaxID>PAX1</PaxID>\n          <PTC>ADT</PTC>\n          <Individual>\n            <Birthdate>__RAND_DOB__</Birthdate>\n            <GenderCode>__RAND_GENDER_CODE__</GenderCode>\n            <GivenName>__RAND_GIVEN_NAME__</GivenName>\n            <Surname>__RAND_SURNAME__</Surname>\n          </Individual>\n          <ContactInfoRefID>CI-PAX1</ContactInfoRefID>\n        </Pax>\n      </PaxList>\n      <ContactInfoList>\n        <ContactInfo>\n          <ContactInfoID>CI-PAX1</ContactInfoID>\n          <EmailAddress>\n            <EmailAddressText>__RAND_EMAIL__</EmailAddressText>\n          </EmailAddress>\n          <Phone>\n            <PhoneNumber>__RAND_PHONE__</PhoneNumber>\n          </Phone>\n        </ContactInfo>\n      </ContactInfoList>\n    </DataLists>\n    <Payments>\n      <Payment>\n        <Method>\n          <PaymentCard>\n            <CardHolderName>__RAND_GIVEN_NAME__ __RAND_SURNAME__</CardHolderName>\n            <CardNumber>\n              <Applicability>FullCard</Applicability>\n              <PlainCardNumber>4111111111111111</PlainCardNumber>\n            </CardNumber>\n            <CardTypeCode>VI</CardTypeCode>\n            <Expiry>\n              <Month>12</Month>\n              <Year>2030</Year>\n            </Expiry>\n            <SeriesCode>\n              <Applicability>CVV</Applicability>\n              <Value>123</Value>\n            </SeriesCode>\n          </PaymentCard>\n        </Method>\n      </Payment>\n    </Payments>\n  </Query>\n</IATA_OrderCreateRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <Order>\n      <OrderID>...</OrderID>\n      <StatusCode>ISSUED</StatusCode>\n      <TotalAmount CurCode=\"GBP\">...</TotalAmount>\n      <BookingRef>\n        <BookingEntity><Carrier><AirlineDesigCode>AX</AirlineDesigCode></Carrier></BookingEntity>\n        <ID>...</ID>\n      </BookingRef>\n      <OrderItem>\n        <OrderItemID>...</OrderItemID>\n        <StatusCode>PAYMENT_DONE</StatusCode>\n        <Price><TotalAmount>...</TotalAmount></Price>\n      </OrderItem>\n      <TicketDocInfo>...</TicketDocInfo>\n    </Order>\n    <DataLists>\n      <FlightSegmentList>...</FlightSegmentList>\n      <OriginDestinationList>...</OriginDestinationList>\n      <PaxList><Pax><PaxID>PAX1</PaxID><PTC>ADT</PTC></Pax></PaxList>\n    </DataLists>\n  </Response>\n</IATA_OrderCreateRS>"
+      },
+      "expected": {
+        "statusCode": 201,
+        "description": "Returns 201 Created with a well-formed IATA_OrderCreateRS. Order/StatusCode must be ISSUED. BookingRef/BookingEntity/Carrier/AirlineDesigCode must be AX. At least one OrderItem with StatusCode=PAYMENT_DONE. DataLists contains FlightSegmentList, OriginDestinationList, and PaxList reflecting the submitted passenger.",
+        "keyFields": [],
+        "validationNotes": "Root element must be IATA_OrderCreateRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS. Depends on step 1 returning a valid OfferID. The offer is consumed by this step — subsequent OrderCreate calls with the same OfferID will return 404."
+      }
+    },
+    {
+      "step": 8,
+      "name": "OrderCreate — missing OrderItems → 400",
+      "description": "Posts an IATA_OrderCreateRQ that omits the Query/OrderItems element. The parser cannot determine which offer to book and must return 400 with an IATA_OrderCreateRS Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderCreate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRQ\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Query>\n    <DataLists>\n      <PaxList>\n        <Pax>\n          <PaxID>PAX1</PaxID>\n          <PTC>ADT</PTC>\n          <Individual><GivenName>Test</GivenName><Surname>User</Surname></Individual>\n        </Pax>\n      </PaxList>\n    </DataLists>\n  </Query>\n</IATA_OrderCreateRQ>"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderCreateRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_OrderCreateRS Errors/Error element with Code ERR_PARSE when OrderItems is absent.",
+        "keyFields": [],
+        "validationNotes": "OrderItems/OfferItem/OfferRefID is a mandatory field. Its absence must produce ERR_PARSE, not a 500."
+      }
+    },
+    {
+      "step": 9,
+      "name": "OrderCreate — unknown OfferRefID → 404",
+      "description": "Posts a well-formed IATA_OrderCreateRQ with a randomly generated GUID that does not correspond to any stored offer. Expects 404 with an IATA_OrderCreateRS Errors element containing Code ERR_OFFER_NOT_FOUND.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderCreate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRQ\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Query>\n    <OrderItems>\n      <OfferItem>\n        <OfferItemRefID>ITEM-1</OfferItemRefID>\n        <OfferRefID>00000000-0000-0000-0000-000000000000</OfferRefID>\n      </OfferItem>\n    </OrderItems>\n    <DataLists>\n      <PaxList>\n        <Pax>\n          <PaxID>PAX1</PaxID>\n          <PTC>ADT</PTC>\n          <Individual><GivenName>Test</GivenName><Surname>User</Surname></Individual>\n        </Pax>\n      </PaxList>\n    </DataLists>\n  </Query>\n</IATA_OrderCreateRQ>"
+      },
+      "response": {
+        "statusCode": 404,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_OFFER_NOT_FOUND</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderCreateRS>"
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "Returns 404 with an IATA_OrderCreateRS Errors/Error element with Code ERR_OFFER_NOT_FOUND.",
+        "keyFields": [],
+        "validationNotes": "The nil GUID (all zeros) is a valid GUID that will never match a real stored offer. Response namespace must be IATA_OrderCreateRS."
+      }
+    },
+    {
+      "step": 10,
+      "name": "OrderCreate — invalid XML → 400",
+      "description": "Posts a body that is not valid XML. The endpoint must return 400 with an IATA_OrderCreateRS Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderCreate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "this is not xml << >"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": null
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body cannot be parsed as XML.",
+        "keyFields": [],
+        "validationNotes": "Any non-well-formed XML body must be rejected with 400."
+      }
+    },
+    {
+      "step": 11,
+      "name": "OrderCreate — empty body → 400",
+      "description": "Posts an empty body to the OrderCreate endpoint. Must return 400 with an IATA_OrderCreateRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderCreate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderCreateRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderCreateRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_OrderCreateRS."
+      }
+    }
+  ]
+}
