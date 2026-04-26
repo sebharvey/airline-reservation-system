@@ -17,6 +17,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/check-in/check-in').then(m => m.CheckInComponent),
       },
       {
+        path: 'flight-departure',
+        loadComponent: () => import('./pages/flight-departure/flight-departure').then(m => m.FlightDepartureComponent),
+      },
+      {
         path: 'inventory',
         loadComponent: () => import('./pages/inventory/inventory').then(m => m.InventoryComponent),
       },

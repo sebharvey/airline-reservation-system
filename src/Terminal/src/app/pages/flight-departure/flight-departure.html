@@ -1,0 +1,192 @@
+<div class="fd-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Flight Departure</h1>
+      <p class="page-subtitle">{{ todayDisplay }}</p>
+    </div>
+    <button class="refresh-btn" (click)="load()" [disabled]="loading()" title="Refresh">
+      @if (loading()) {
+        <span class="btn-spinner"></span>
+      } @else {
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      }
+      Refresh
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <span>&#9888;</span> {{ error() }}
+    </div>
+  }
+
+  <!-- Stats -->
+  @if (loaded()) {
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Flights today</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value stat-value-active">{{ stats().active }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ stats().pax }}</span>
+        <span class="stat-label">Pax checked in</span>
+      </div>
+      @if (stats().cancelled > 0) {
+        <div class="stat-card stat-cancelled">
+          <span class="stat-value">{{ stats().cancelled }}</span>
+          <span class="stat-label">Cancelled</span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Desktop table -->
+  @if (loaded()) {
+    <div class="table-card">
+      <table class="fd-table">
+        <thead>
+          <tr>
+            <th>Flight</th>
+            <th>Route</th>
+            <th>Dep / Arr</th>
+            <th class="cabin-col">F</th>
+            <th class="cabin-col">J</th>
+            <th class="cabin-col">W</th>
+            <th class="cabin-col">Y</th>
+            <th>Aircraft</th>
+            <th class="load-col">Load</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (flight of flights(); track flight.inventoryId) {
+            <tr [class.row-cancelled]="flight.status === 'Cancelled'">
+              <td class="mono flight-num">{{ flight.flightNumber }}</td>
+              <td>
+                <span class="route">
+                  {{ flight.origin }}
+                  <span class="route-arrow">→</span>
+                  {{ flight.destination }}
+                </span>
+              </td>
+              <td class="mono time-cell">
+                {{ flight.departureTime }}
+                <span class="time-sep">–</span>
+                {{ flight.arrivalTime }}
+                @if (flight.arrivalDayOffset > 0) {
+                  <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+                }
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
+              </td>
+              <td class="cabin-col">
+                <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
+              </td>
+              <td class="mono muted">{{ flight.aircraftType }}</td>
+              <td class="load-col">
+                <div class="load-bar-wrap">
+                  <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+                </div>
+                <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} · {{ flight.loadFactor | number:'1.0-0' }}%</span>
+              </td>
+              <td>
+                <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+              </td>
+              <td class="action-col">
+                <button class="dispatch-btn" disabled title="Dispatch — coming soon">
+                  Dispatch
+                  <span class="coming-soon-dot"></span>
+                </button>
+              </td>
+            </tr>
+          }
+
+          @if (flights().length === 0) {
+            <tr>
+              <td colspan="11" class="empty-row">No flights scheduled for today.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="flight-cards">
+      @for (flight of flights(); track flight.inventoryId) {
+        <div class="flight-card" [class.flight-card-cancelled]="flight.status === 'Cancelled'">
+          <div class="fc-header">
+            <span class="fc-flight mono">{{ flight.flightNumber }}</span>
+            <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
+            <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+          </div>
+          <div class="fc-times mono muted">
+            {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
+            @if (flight.arrivalDayOffset > 0) {
+              <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+            }
+            <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
+          </div>
+          <div class="fc-cabins">
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">F</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">J</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">W</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
+            </span>
+            <span class="fc-cabin-item">
+              <span class="fc-cabin-label">Y</span>
+              <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
+            </span>
+          </div>
+          <div class="fc-load">
+            <div class="load-bar-wrap">
+              <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+            </div>
+            <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} pax · {{ flight.loadFactor | number:'1.0-0' }}% load</span>
+          </div>
+          <div class="fc-actions">
+            <button class="dispatch-btn fc-btn" disabled title="Dispatch — coming soon">
+              Dispatch
+              <span class="coming-soon-dot"></span>
+            </button>
+          </div>
+        </div>
+      }
+      @if (flights().length === 0) {
+        <p class="empty-row">No flights scheduled for today.</p>
+      }
+    </div>
+
+    <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · {{ today }}</p>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading today's flights…</p>
+    </div>
+  }
+
+</div>
