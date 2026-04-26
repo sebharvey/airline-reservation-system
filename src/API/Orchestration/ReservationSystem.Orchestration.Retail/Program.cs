@@ -25,6 +25,7 @@ using ReservationSystem.Orchestration.Retail.Application.UpdateOrderSeats;
 using ReservationSystem.Orchestration.Retail.Application.ChangeOrder;
 using ReservationSystem.Orchestration.Retail.Application.CheckInAncillaries;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
+using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -135,6 +136,7 @@ var host = new HostBuilder()
         services.AddScoped<ChangeOrderHandler>();
         services.AddScoped<CheckInAncillariesHandler>();
         services.AddScoped<NdcAirShoppingHandler>();
+        services.AddScoped<NdcOfferPriceHandler>();
     })
     .Build();
 

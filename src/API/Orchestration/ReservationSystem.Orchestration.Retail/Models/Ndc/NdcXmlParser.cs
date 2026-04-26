@@ -1,10 +1,11 @@
 using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
+using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
 
 /// <summary>
-/// Parses an IATA NDC 21.3 AirShoppingRQ XML document into an NdcAirShoppingCommand.
+/// Parses IATA NDC 21.3 request XML documents into internal command records.
 /// The parser accepts any NDC namespace version; it resolves the namespace from the
 /// root element and applies it consistently throughout.
 /// </summary>
@@ -114,5 +115,87 @@ public static class NdcXmlParser
             parsedDate.ToString("yyyy-MM-dd"),
             totalPax,
             paxList);
+    }
+
+    // ── OfferPrice parser ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses an IATA_OfferPriceRQ XML document.
+    /// Extracts SelectedOffer/OfferRefID (must be a valid GUID), optional
+    /// SelectedOffer/OfferItemRef/OfferItemRefID, optional ShoppingResponseID/ResponseID,
+    /// and optional Travelers (same structure as AirShoppingRQ).
+    /// </summary>
+    public static NdcOfferPriceCommand? TryParseOfferPriceRq(string xml, out string? errorMessage)
+    {
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xml);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Invalid XML: {ex.Message}";
+            return null;
+        }
+
+        var root = doc.Root;
+        if (root is null)
+        {
+            errorMessage = "Empty XML document.";
+            return null;
+        }
+
+        var ns = root.Name.Namespace;
+
+        // ── SelectedOffer / OfferRefID ─────────────────────────────────────────
+        var selectedOffer = root.Element(ns + "SelectedOffer");
+        if (selectedOffer is null)
+        {
+            errorMessage = "SelectedOffer element is missing.";
+            return null;
+        }
+
+        var offerRefIdStr = selectedOffer.Element(ns + "OfferRefID")?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(offerRefIdStr) || !Guid.TryParse(offerRefIdStr, out var offerRefId))
+        {
+            errorMessage = "SelectedOffer/OfferRefID is missing or not a valid GUID.";
+            return null;
+        }
+
+        var offerItemRefId = selectedOffer
+            .Element(ns + "OfferItemRef")
+            ?.Element(ns + "OfferItemRefID")?.Value?.Trim();
+
+        // ── ShoppingResponseID ────────────────────────────────────────────────
+        var shoppingResponseId = root
+            .Element(ns + "ShoppingResponseID")
+            ?.Element(ns + "ResponseID")?.Value?.Trim();
+
+        // ── Travelers (optional) ──────────────────────────────────────────────
+        var paxList = new List<NdcPassengerType>();
+        var travelers = root.Element(ns + "Travelers");
+        if (travelers is not null)
+        {
+            foreach (var traveler in travelers.Elements(ns + "Traveler"))
+            {
+                var anon = traveler.Element(ns + "AnonymousTraveler");
+                if (anon is null) continue;
+
+                var ptcRaw = anon.Element(ns + "PTC")?.Value?.Trim().ToUpperInvariant();
+                var ptc = !string.IsNullOrWhiteSpace(ptcRaw) ? ptcRaw : "ADT";
+
+                var quantityStr = anon.Element(ns + "Quantity")?.Value?.Trim() ?? "1";
+                var quantity = int.TryParse(quantityStr, out var q) && q > 0 ? q : 1;
+
+                paxList.Add(new NdcPassengerType(ptc, quantity));
+            }
+        }
+
+        errorMessage = null;
+        return new NdcOfferPriceCommand(
+            offerRefId,
+            offerItemRefId,
+            shoppingResponseId,
+            paxList.Count > 0 ? paxList : null);
     }
 }
