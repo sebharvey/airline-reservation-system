@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import {
+  BoardingCard,
   CheckInService,
   LookupResponse,
   PaxSubmission,
@@ -20,6 +21,13 @@ interface PaxFormData {
 }
 
 type PaxStatus = 'pending' | 'checked-in' | 'failed';
+
+interface CheckInResult {
+  givenName: string;
+  surname: string;
+  passengerTypeCode: string;
+  boardingCard: BoardingCard | null;
+}
 
 @Component({
   selector: 'app-check-in',
@@ -45,6 +53,7 @@ export class CheckInComponent {
   selectedPaxIndex = signal<number | null>(null);
   checkingInIndex = signal<number | null>(null);
   checkInError = signal('');
+  checkInResult = signal<CheckInResult | null>(null);
 
   selectedPax = computed(() => {
     const i = this.selectedPaxIndex();
@@ -178,7 +187,7 @@ export class CheckInComponent {
     };
 
     try {
-      await this.#svc.adminCheckIn(
+      const response = await this.#svc.adminCheckIn(
         this.booking()!.bookingReference,
         this.departureAirport(),
         [submission],
@@ -187,6 +196,9 @@ export class CheckInComponent {
       const statuses = this.paxStatuses().slice();
       statuses[index] = 'checked-in';
       this.paxStatuses.set(statuses);
+
+      const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
+      this.checkInResult.set({ givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, boardingCard });
 
       const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
       this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
@@ -262,10 +274,20 @@ export class CheckInComponent {
     this.searchMode.set('bookingRef');
     this.error.set('');
     this.checkInError.set('');
+    this.checkInResult.set(null);
+  }
+
+  closeModal(): void {
+    this.checkInResult.set(null);
   }
 
   paxTypeLabel(code: string): string {
     const labels: Record<string, string> = { ADT: 'Adult', CHD: 'Child', INF: 'Infant', YTH: 'Youth' };
+    return labels[code] ?? code;
+  }
+
+  cabinLabel(code: string): string {
+    const labels: Record<string, string> = { F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy' };
     return labels[code] ?? code;
   }
 }

@@ -250,3 +250,53 @@
   }
 
 </div>
+
+<!-- ── CHECK-IN RESULT MODAL ── -->
+@if (checkInResult()) {
+  <div class="modal-backdrop" (click)="closeModal()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-success-icon">✓</div>
+        <div class="modal-header-text">
+          <h2 class="modal-title" id="modal-title">Check-In Successful</h2>
+          <p class="modal-subtitle">
+            {{ checkInResult()!.givenName }} {{ checkInResult()!.surname }}
+            &nbsp;·&nbsp;
+            <span class="pax-type-badge">{{ paxTypeLabel(checkInResult()!.passengerTypeCode) }}</span>
+          </p>
+        </div>
+        <button class="modal-close" (click)="closeModal()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="confirm-grid">
+          <span class="confirm-label">Booking</span>
+          <span class="confirm-value mono">{{ booking()!.bookingReference }}</span>
+
+          <span class="confirm-label">Departure</span>
+          <span class="confirm-value mono">{{ departureAirport() }}</span>
+
+          <span class="confirm-label">Ticket</span>
+          <span class="confirm-value mono">{{ checkInResult()!.boardingCard?.ticketNumber }}</span>
+
+          @if (checkInResult()!.boardingCard; as bc) {
+            <span class="confirm-label">Flight</span>
+            <span class="confirm-value mono">{{ bc.flightNumber }}</span>
+
+            <span class="confirm-label">Date</span>
+            <span class="confirm-value">{{ bc.departureDate }}</span>
+
+            <span class="confirm-label">Seat</span>
+            <span class="confirm-value mono">{{ bc.seatNumber }} — {{ cabinLabel(bc.cabinCode) }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="primary-btn" (click)="closeModal()">Done</button>
+      </div>
+
+    </div>
+  </div>
+}

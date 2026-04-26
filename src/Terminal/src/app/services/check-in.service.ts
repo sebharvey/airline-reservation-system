@@ -82,9 +82,22 @@ export interface PaxSubmission {
   };
 }
 
+export interface BoardingCard {
+  ticketNumber: string;
+  passengerId: string;
+  flightNumber: string;
+  departureDate: string;
+  seatNumber: string;
+  cabinCode: string;
+  sequenceNumber: string;
+  origin: string;
+  destination: string;
+  bcbpString: string;
+}
+
 export interface AdminCheckInResponse {
   bookingReference: string;
-  boardingCards: unknown[];
+  boardingCards: BoardingCard[];
 }
 
 @Injectable({ providedIn: 'root' })
