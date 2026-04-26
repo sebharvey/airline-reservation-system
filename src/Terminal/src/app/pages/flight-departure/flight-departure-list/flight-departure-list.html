@@ -47,10 +47,8 @@
     </div>
   }
 
-  <!-- Flight list -->
+  <!-- Desktop table -->
   @if (loaded()) {
-
-    <!-- Desktop table -->
     <div class="table-card">
       <table class="fd-table">
         <thead>
@@ -110,7 +108,7 @@
                 <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
               </td>
               <td class="action-col">
-                <button class="dispatch-btn" (click)="selectFlight(flight)" title="View passengers and seatmap">
+                <button class="dispatch-btn" (click)="openFlight(flight)">
                   Dispatch
                 </button>
               </td>
@@ -167,7 +165,7 @@
             <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} pax · {{ flight.loadFactor | number:'1.0-0' }}% load</span>
           </div>
           <div class="fc-actions">
-            <button class="dispatch-btn fc-btn" (click)="selectFlight(flight)">Dispatch</button>
+            <button class="dispatch-btn fc-btn" (click)="openFlight(flight)">Dispatch</button>
           </div>
         </div>
       }
@@ -188,154 +186,3 @@
   }
 
 </div>
-
-<!-- ── Full-screen PAX + seatmap overlay ────────────────────────────────── -->
-@if (selectedFlight()) {
-  <div class="overlay-backdrop" (click)="closeDetail()">
-    <div class="overlay-panel" (click)="$event.stopPropagation()">
-
-      <!-- Overlay header -->
-      <div class="detail-header">
-        <div class="detail-title-group">
-          <span class="detail-flight mono">{{ selectedFlight()!.flightNumber }}</span>
-          <span class="detail-route">
-            {{ selectedFlight()!.origin }}
-            <span class="route-arrow">→</span>
-            {{ selectedFlight()!.destination }}
-          </span>
-          <span class="detail-aircraft mono muted">{{ selectedFlight()!.aircraftType }}</span>
-          <span class="detail-time mono muted">
-            {{ selectedFlight()!.departureTime }} – {{ selectedFlight()!.arrivalTime }}
-          </span>
-          <span class="badge" [class]="statusClass(selectedFlight()!.status)">{{ selectedFlight()!.status }}</span>
-        </div>
-        <button class="close-btn" (click)="closeDetail()" title="Close">✕ Close</button>
-      </div>
-
-      <!-- Detail error -->
-      @if (detailError()) {
-        <div class="error-banner" role="alert">
-          <span>&#9888;</span> {{ detailError() }}
-        </div>
-      }
-
-      <!-- Loading spinner -->
-      @if (detailLoading()) {
-        <div class="detail-loading">
-          <span class="btn-spinner loading-spinner"></span>
-          <span>Loading passengers and seatmap…</span>
-        </div>
-      }
-
-      @if (!detailLoading() && !detailError()) {
-        <div class="detail-body">
-
-          <!-- ── PAX list (left) ──────────────────────────────────────── -->
-          <div class="pax-panel">
-            <div class="panel-title">
-              Passengers
-              @if (manifestStats()) {
-                <span class="pax-meta">
-                  {{ manifestStats()!.total }} total · {{ manifestStats()!.checkedIn }} checked in
-                </span>
-              }
-            </div>
-
-            @if (manifest() && manifest()!.entries.length === 0) {
-              <p class="pax-empty">No manifest entries for this flight.</p>
-            }
-
-            @if (manifest() && manifest()!.entries.length > 0) {
-              <div class="pax-list">
-                @for (entry of manifest()!.entries; track entry.eTicketNumber) {
-                  <div class="pax-row" [class.pax-checked-in]="entry.checkedIn">
-                    <div class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
-                      {{ entry.seatNumber ?? '—' }}
-                    </div>
-                    <div class="pax-info">
-                      <span class="pax-name">{{ entry.surname }}, {{ entry.givenName }}</span>
-                      <span class="pax-ref mono muted">{{ entry.bookingReference }}</span>
-                    </div>
-                    <div class="pax-status">
-                      @if (entry.checkedIn) {
-                        <span class="ci-badge">CI</span>
-                      }
-                      @if (entry.ssrCodes.length > 0) {
-                        <span class="ssr-badges">
-                          @for (ssr of entry.ssrCodes; track ssr) {
-                            <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
-                          }
-                        </span>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-
-          <!-- ── Seatmap (right) ──────────────────────────────────────── -->
-          <div class="seatmap-panel">
-            <div class="panel-title">
-              Seatmap
-              <span class="seatmap-legend">
-                <span class="legend-item"><span class="legend-dot seat-open"></span>Open</span>
-                <span class="legend-item"><span class="legend-dot seat-booked"></span>Booked</span>
-                <span class="legend-item"><span class="legend-dot seat-checked-in"></span>Checked in</span>
-                <span class="legend-item"><span class="legend-dot seat-held"></span>Held</span>
-              </span>
-            </div>
-
-            @if (seatmap()) {
-              <div class="seatmap-scroll">
-                @for (cabin of cabinGrids(); track cabin.cabinCode) {
-                  <div class="cabin-section">
-                    <div class="cabin-title">
-                      {{ cabin.cabinName || cabinLabel(cabin.cabinCode) }}
-                      <span class="cabin-code-badge cabin-{{ cabin.cabinCode.toLowerCase() }}">{{ cabin.cabinCode }}</span>
-                    </div>
-
-                    <!-- Column header row -->
-                    <div class="seat-row seat-row-header">
-                      <span class="row-num-col"></span>
-                      @for (col of cabin.columns; track col) {
-                        @if (isAisle(col, cabin.columns)) {
-                          <span class="aisle-gap"></span>
-                        }
-                        <span class="col-header">{{ col }}</span>
-                      }
-                    </div>
-
-                    <!-- Seat rows -->
-                    @for (row of cabin.rows; track row.rowNumber) {
-                      <div class="seat-row">
-                        <span class="row-num-col mono muted">{{ row.rowNumber }}</span>
-                        @for (seat of row.seats; track $index; let i = $index) {
-                          @if (seat && isAisle(seat.column, cabin.columns)) {
-                            <span class="aisle-gap"></span>
-                          }
-                          @if (!seat && i > 0 && cabin.columns[i] && isAisle(cabin.columns[i], cabin.columns)) {
-                            <span class="aisle-gap"></span>
-                          }
-                          <span
-                            class="seat-cell"
-                            [class]="seatClass(seat, manifest())"
-                            [title]="seatTooltip(seat, manifest())">
-                            @if (seat) {
-                              <span class="seat-inner"></span>
-                            }
-                          </span>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          </div>
-
-        </div>
-      }
-    </div>
-  </div>
-}
