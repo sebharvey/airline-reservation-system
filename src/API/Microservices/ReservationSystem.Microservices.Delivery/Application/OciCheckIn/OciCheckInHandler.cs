@@ -125,7 +125,7 @@ public sealed class OciCheckInHandler
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Timatic document check service error for ticket {TicketNumber}", ticketRequest.TicketNumber);
-                    timaticNotes.Add(new TimaticNote("DOC", ticketRequest.TicketNumber, "FAIL", "Timatic service unavailable.", DateTime.UtcNow.ToString("o")));
+                    timaticNotes.Add(new TimaticNote("DOC", ticketRequest.TicketNumber, "FAIL", ex.Message, DateTime.UtcNow.ToString("o")));
                     throw new TimaticValidationException(
                         $"Timatic document check unavailable for {ticketRequest.GivenName} {ticketRequest.Surname}.",
                         timaticNotes);
@@ -188,7 +188,7 @@ public sealed class OciCheckInHandler
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Timatic APIS check service error for ticket {TicketNumber}", ticketRequest.TicketNumber);
-                timaticNotes.Add(new TimaticNote("APIS", ticketRequest.TicketNumber, "FAIL", "Timatic service unavailable.", DateTime.UtcNow.ToString("o")));
+                timaticNotes.Add(new TimaticNote("APIS", ticketRequest.TicketNumber, "FAIL", ex.Message, DateTime.UtcNow.ToString("o")));
                 throw new TimaticValidationException(
                     $"Timatic APIS check unavailable for {ticketRequest.GivenName} {ticketRequest.Surname}.",
                     timaticNotes);

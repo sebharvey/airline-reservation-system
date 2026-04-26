@@ -22,6 +22,8 @@ public sealed class TimaticServiceClient
     public async Task<TimaticDocumentCheckResult> DocumentCheckAsync(TimaticDocumentCheckRequest request, CancellationToken ct)
     {
         using var response = await _httpClient.PostAsJsonAsync("/autocheck/v1/documentcheck", request, JsonOptions, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new InvalidOperationException("Timatic authentication failed: Timatic:ApiToken is missing or incorrect.");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"Timatic document check failed: HTTP {(int)response.StatusCode}");
         return await response.Content.ReadFromJsonAsync<TimaticDocumentCheckResult>(JsonOptions, ct)
@@ -31,6 +33,8 @@ public sealed class TimaticServiceClient
     public async Task<TimaticApisCheckResult> ApisCheckAsync(TimaticApisCheckRequest request, CancellationToken ct)
     {
         using var response = await _httpClient.PostAsJsonAsync("/autocheck/v1/apischeck", request, JsonOptions, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new InvalidOperationException("Timatic authentication failed: Timatic:ApiToken is missing or incorrect.");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException($"Timatic APIS check failed: HTTP {(int)response.StatusCode}");
         return await response.Content.ReadFromJsonAsync<TimaticApisCheckResult>(JsonOptions, ct)
