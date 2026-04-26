@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import {
   CheckInService,
   LookupResponse,
-  BoardingCard,
   PaxSubmission,
 } from '../../services/check-in.service';
 
@@ -45,9 +44,6 @@ export class CheckInComponent {
   checkingInIndex = signal<number | null>(null);
   checkInError = signal('');
 
-  boardingCards = signal<BoardingCard[]>([]);
-  copiedBcbp = signal<string | null>(null);
-
   selectedPax = computed(() => {
     const i = this.selectedPaxIndex();
     return i !== null ? (this.paxForms()[i] ?? null) : null;
@@ -73,7 +69,6 @@ export class CheckInComponent {
     this.paxForms.set([]);
     this.paxStatuses.set([]);
     this.selectedPaxIndex.set(null);
-    this.boardingCards.set([]);
     this.checkInError.set('');
 
     try {
@@ -99,12 +94,15 @@ export class CheckInComponent {
     this.paxForms.set([]);
     this.paxStatuses.set([]);
     this.selectedPaxIndex.set(null);
-    this.boardingCards.set([]);
 
-    const orderDetail = this.booking()?.orderDetail;
-    if (!orderDetail) return;
+    const lookupResult = this.booking();
+    if (!lookupResult) return;
 
-    const passengers = this.#svc.extractPassengers(orderDetail, airport);
+    const passengers = this.#svc.extractPassengers(
+      lookupResult.orderDetail,
+      lookupResult.tickets,
+      airport,
+    );
     if (!passengers.length) {
       this.error.set('No passengers found for the selected departure airport.');
       return;
@@ -125,8 +123,12 @@ export class CheckInComponent {
         expiryDate: p.existingDoc?.expiryDate ?? '',
       })),
     );
-    this.paxStatuses.set(passengers.map(() => 'pending'));
-    this.selectedPaxIndex.set(0);
+
+    const statuses: PaxStatus[] = passengers.map(p => p.alreadyCheckedIn ? 'checked-in' : 'pending');
+    this.paxStatuses.set(statuses);
+
+    const firstPending = statuses.findIndex(s => s === 'pending');
+    this.selectedPaxIndex.set(firstPending >= 0 ? firstPending : 0);
   }
 
   selectPax(index: number): void {
@@ -165,7 +167,7 @@ export class CheckInComponent {
     };
 
     try {
-      const result = await this.#svc.adminCheckIn(
+      await this.#svc.adminCheckIn(
         this.booking()!.bookingReference,
         this.departureAirport(),
         [submission],
@@ -175,21 +177,32 @@ export class CheckInComponent {
       statuses[index] = 'checked-in';
       this.paxStatuses.set(statuses);
 
-      if (result.boardingCards.length > 0) {
-        this.boardingCards.update(cards => [...cards, ...result.boardingCards]);
-      }
-
-      // Auto-advance to next pending passenger
       const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
       this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
-    } catch {
+    } catch (err: unknown) {
       const statuses = this.paxStatuses().slice();
       statuses[index] = 'failed';
       this.paxStatuses.set(statuses);
-      this.checkInError.set('Check-in failed. Please verify the document details and try again.');
+
+      const message = this.#extractErrorMessage(err);
+      this.checkInError.set(message || 'Check-in failed. Please verify the document details and try again.');
     } finally {
       this.checkingInIndex.set(null);
     }
+  }
+
+  #extractErrorMessage(err: unknown): string {
+    if (err && typeof err === 'object') {
+      const e = err as Record<string, unknown>;
+      // Angular HttpErrorResponse
+      if (e['error'] && typeof e['error'] === 'object') {
+        const body = e['error'] as Record<string, unknown>;
+        if (typeof body['error'] === 'string') return body['error'];
+        if (typeof body['message'] === 'string') return body['message'];
+      }
+      if (typeof e['message'] === 'string') return e['message'];
+    }
+    return '';
   }
 
   reset(): void {
@@ -197,7 +210,6 @@ export class CheckInComponent {
     this.paxForms.set([]);
     this.paxStatuses.set([]);
     this.selectedPaxIndex.set(null);
-    this.boardingCards.set([]);
     this.departureAirports.set([]);
     this.departureAirport.set('');
     this.bookingRef.set('');
@@ -205,20 +217,8 @@ export class CheckInComponent {
     this.checkInError.set('');
   }
 
-  copyBcbp(bcbp: string): void {
-    navigator.clipboard.writeText(bcbp).then(() => {
-      this.copiedBcbp.set(bcbp);
-      setTimeout(() => this.copiedBcbp.set(null), 2000);
-    });
-  }
-
   paxTypeLabel(code: string): string {
     const labels: Record<string, string> = { ADT: 'Adult', CHD: 'Child', INF: 'Infant', YTH: 'Youth' };
     return labels[code] ?? code;
-  }
-
-  formatDate(iso: string): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }
