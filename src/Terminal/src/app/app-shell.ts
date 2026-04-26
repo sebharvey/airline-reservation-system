@@ -32,12 +32,6 @@ export class AppShell {
 
   navGroups: NavGroup[] = [
     {
-      label: 'Departure Control',
-      items: [
-        { path: '/check-in', label: 'Check In', icon: '🛫', description: 'Agent desk check-in for passengers' },
-      ],
-    },
-    {
       label: 'Operations',
       items: [
         { path: '/inventory', label: 'Stock Keeper', icon: '✈',  description: 'Flight stock keeper & seat availability' },
@@ -46,6 +40,12 @@ export class AppShell {
         { path: '/payments',  label: 'Payments',  icon: '💳', description: 'Daily payment transactions' },
         { path: '/order-accounting', label: 'Order Accounting', icon: '🧾', description: 'Order accounting & financial records' },
         { path: '/customer',  label: 'Customer',  icon: '👤', description: 'Customer profiles & history' },
+      ],
+    },
+    {
+      label: 'Departure Control',
+      items: [
+        { path: '/check-in', label: 'Check In', icon: '🛫', description: 'Agent desk check-in for passengers' },
       ],
     },
     {
