@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
-import { CardDetails, PaymentSummary } from '../../../models/order.model';
+import { CardDetails, EmdDocument, PaymentSummary } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
 
 @Component({
@@ -18,6 +18,9 @@ export class CheckInPaymentComponent implements OnInit {
   paymentError = signal('');
   summaryLoading = signal(true);
   summary = signal<PaymentSummary | null>(null);
+  paymentConfirmed = signal(false);
+  paymentReference = signal('');
+  confirmedDocuments = signal<EmdDocument[]>([]);
 
   readonly order = computed(() => this.checkInState.currentOrder());
   readonly currency = computed(() => this.summary()?.currency ?? this.order()?.currency ?? 'GBP');
@@ -91,13 +94,23 @@ export class CheckInPaymentComponent implements OnInit {
         this.paying.set(false);
         if (result.documents?.length) {
           this.checkInState.setEmdDocuments(result.documents);
+          this.confirmedDocuments.set(result.documents);
         }
-        this.router.navigate(['/check-in/hazmat']);
+        this.paymentReference.set(result.paymentReference ?? '');
+        this.paymentConfirmed.set(true);
       },
       error: (err: { message?: string }) => {
         this.paying.set(false);
         this.paymentError.set(err?.message ?? 'Please check your payment details and try again.');
       }
     });
+  }
+
+  continueToCheckIn(): void {
+    this.router.navigate(['/check-in/hazmat']);
+  }
+
+  documentLabel(doc: EmdDocument): string {
+    return doc.documentType === 'SeatAncillary' ? 'Seat' : 'Baggage';
   }
 }
