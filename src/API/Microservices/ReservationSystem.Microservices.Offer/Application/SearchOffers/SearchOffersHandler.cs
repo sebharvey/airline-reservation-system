@@ -28,9 +28,12 @@ public sealed class SearchOffersHandler
         var departureDate = DateOnly.Parse(command.DepartureDate);
         var bookingType = string.IsNullOrEmpty(command.BookingType) ? "Revenue" : command.BookingType;
 
-        // 1. Find all active flights on the route where total seats available >= pax count.
-        var inventories = await _repository.SearchAvailableInventoryAsync(
-            command.Origin, command.Destination, departureDate, command.PaxCount, ct);
+        // 1. Find active flights on the route. Standby searches include sold-out flights
+        //    because standby passengers join a waitlist rather than consuming inventory.
+        var inventories = bookingType == "Standby"
+            ? await _repository.SearchAllInventoryAsync(command.Origin, command.Destination, departureDate, ct)
+            : await _repository.SearchAvailableInventoryAsync(
+                command.Origin, command.Destination, departureDate, command.PaxCount, ct);
 
         // Enforce 1-hour booking cutoff: remove flights whose UTC departure is within the next hour.
         var cutoff = DateTime.UtcNow.AddHours(1);
@@ -48,10 +51,12 @@ public sealed class SearchOffersHandler
 
         // 2. Collect the unique flight numbers and cabin codes across all results so we can
         //    fetch every applicable fare rule in a single query rather than one per cabin.
+        //    Standby searches include all cabins regardless of remaining seats.
+        var isStandby     = bookingType == "Standby";
         var flightNumbers = inventories.Select(i => i.FlightNumber).Distinct().ToList();
         var cabinCodes    = inventories
             .SelectMany(i => i.Cabins)
-            .Where(c => c.SeatsAvailable >= command.PaxCount)
+            .Where(c => isStandby || c.SeatsAvailable >= command.PaxCount)
             .Select(c => c.CabinCode)
             .Distinct()
             .ToList();
@@ -79,7 +84,7 @@ public sealed class SearchOffersHandler
 
             foreach (var cabin in inventory.Cabins)
             {
-                if (cabin.SeatsAvailable < command.PaxCount)
+                if (!isStandby && cabin.SeatsAvailable < command.PaxCount)
                     continue;
 
                 // 5. Filter the pre-fetched rule set to this cabin and flight (including global
