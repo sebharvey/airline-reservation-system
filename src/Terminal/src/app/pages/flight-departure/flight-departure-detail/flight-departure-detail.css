@@ -98,8 +98,8 @@
 
 /* ── PAX list panel (left) ──────────────────────────────────────────────── */
 .pax-panel {
-  flex: 0 0 320px;
-  width: 320px;
+  flex: 0 0 50%;
+  width: 50%;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -129,7 +129,10 @@
   letter-spacing: 0;
 }
 
-.pax-list { overflow-y: auto; flex: 1; }
+.pax-table-wrap {
+  overflow: auto;
+  flex: 1;
+}
 
 .pax-empty {
   padding: 24px 16px;
@@ -138,26 +141,49 @@
   text-align: center;
 }
 
-.pax-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
+.pax-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.pax-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-light, #f6f8fa);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.pax-table tbody tr {
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
 }
-.pax-row:last-child { border-bottom: none; }
-.pax-row:hover { background: var(--bg-light); }
-.pax-checked-in { background: rgba(63, 185, 80, 0.04); }
+.pax-table tbody tr:last-child { border-bottom: none; }
+.pax-table tbody tr:hover { background: var(--bg-light); }
+.pax-table tbody tr.pax-checked-in { background: rgba(63, 185, 80, 0.04); }
+
+.pax-table td {
+  padding: 7px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
 
 .pax-seat-badge {
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  min-width: 34px;
+  padding: 2px 6px;
+  border-radius: 5px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 0.72rem;
   font-weight: 700;
@@ -168,31 +194,9 @@
 .cabin-w { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
 .cabin-y { background: rgba(63, 185, 80, 0.12);  color: #3fb950; }
 
-.pax-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .pax-name {
-  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pax-ref { font-size: 0.72rem; }
-
-.pax-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  flex-shrink: 0;
 }
 
 .ci-badge {
@@ -382,7 +386,7 @@
   }
 
   .pax-panel {
-    flex: 0 0 40vh;
+    flex: 0 0 50vh;
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
