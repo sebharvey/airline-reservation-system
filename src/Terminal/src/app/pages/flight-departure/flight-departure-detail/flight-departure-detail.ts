@@ -1,11 +1,12 @@
 import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   InventoryService,
   FlightInventoryGroup,
   FlightManifest,
   FlightSeatmap,
+  ManifestEntry,
   SeatmapSeat,
 } from '../../../services/inventory.service';
 
@@ -16,10 +17,15 @@ interface CabinGrid {
   rows: { rowNumber: number; seats: (SeatmapSeat | null)[] }[];
 }
 
+interface EntryGroup {
+  bookingReference: string;
+  entries: ManifestEntry[];
+}
+
 @Component({
   selector: 'app-flight-departure-detail',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, RouterLink],
   templateUrl: './flight-departure-detail.html',
   styleUrl: './flight-departure-detail.css',
 })
@@ -33,6 +39,7 @@ export class FlightDepartureDetailComponent implements OnInit {
   seatmap = signal<FlightSeatmap | null>(null);
   loading = signal(true);
   error = signal('');
+  selectedEntry = signal<ManifestEntry | null>(null);
 
   manifestStats = computed(() => {
     const m = this.manifest();
@@ -41,6 +48,27 @@ export class FlightDepartureDetailComponent implements OnInit {
       total: m.entries.length,
       checkedIn: m.entries.filter(e => e.checkedIn).length,
     };
+  });
+
+  groupedEntries = computed<EntryGroup[]>(() => {
+    const entries = this.manifest()?.entries ?? [];
+    const sorted = [...entries].sort((a, b) => {
+      const refCmp = a.bookingReference.localeCompare(b.bookingReference);
+      if (refCmp !== 0) return refCmp;
+      const surnameCmp = a.surname.localeCompare(b.surname);
+      if (surnameCmp !== 0) return surnameCmp;
+      return a.givenName.localeCompare(b.givenName);
+    });
+    const groups: EntryGroup[] = [];
+    for (const entry of sorted) {
+      const last = groups[groups.length - 1];
+      if (last && last.bookingReference === entry.bookingReference) {
+        last.entries.push(entry);
+      } else {
+        groups.push({ bookingReference: entry.bookingReference, entries: [entry] });
+      }
+    }
+    return groups;
   });
 
   cabinGrids = computed<CabinGrid[]>(() => {
@@ -91,6 +119,12 @@ export class FlightDepartureDetailComponent implements OnInit {
     this.#router.navigate(['/flight-departure']);
   }
 
+  selectEntry(entry: ManifestEntry): void {
+    this.selectedEntry.set(
+      this.selectedEntry()?.eTicketNumber === entry.eTicketNumber ? null : entry
+    );
+  }
+
   statusClass(status: string): string {
     if (status === 'Active') return 'badge-active';
     if (status === 'Ticketing Closed') return 'badge-warning';
@@ -109,6 +143,8 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   seatClass(seat: SeatmapSeat | null, manifest: FlightManifest | null): string {
     if (!seat) return 'seat-gap';
+    const selected = this.selectedEntry();
+    if (selected?.seatNumber && selected.seatNumber === seat.seatNumber) return 'seat-selected';
     if (seat.availability === 'available') return 'seat-open';
     const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
     if (entry?.checkedIn) return 'seat-checked-in';
