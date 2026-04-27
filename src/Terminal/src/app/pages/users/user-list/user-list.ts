@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +8,7 @@ type StatusFilter = 'all' | 'active' | 'inactive' | 'locked';
 
 @Component({
   selector: 'app-user-list',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './user-list.html',
   styleUrl: './user-list.css',
 })

@@ -19,10 +19,10 @@
   </div>
 
   @if (success()) {
-    <div class="success-banner" role="status"><span>&#10003;</span> {{ success() }}</div>
+    <div class="success-banner" role="status"><lucide-icon name="check" [size]="14" /> {{ success() }}</div>
   }
   @if (error()) {
-    <div class="error-banner" role="alert"><span>&#9888;</span> {{ error() }}</div>
+    <div class="error-banner" role="alert"><lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}</div>
   }
 
   <!-- Create / Edit Form -->

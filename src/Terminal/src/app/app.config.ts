@@ -1,6 +1,15 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { NavigationError, provideRouter, withInMemoryScrolling, withNavigationErrorHandler } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
+import {
+  Accessibility, Armchair, ArrowLeft, ArrowLeftRight, Ban, Banknote, Briefcase,
+  Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
+  CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
+  CreditCard, FileText, Inbox, Lock, LogOut, Luggage, Moon, Package,
+  Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
+  ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
+} from 'lucide-angular';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -20,5 +29,17 @@ export const appConfig: ApplicationConfig = {
       }),
     ),
     provideHttpClient(withInterceptors([authInterceptor])),
+    {
+      provide: LUCIDE_ICONS,
+      multi: true,
+      useValue: new LucideIconProvider({
+        Accessibility, Armchair, ArrowLeft, ArrowLeftRight, Ban, Banknote, Briefcase,
+        Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
+        CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
+        CreditCard, FileText, Inbox, Lock, LogOut, Luggage, Moon, Package,
+        Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
+        ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
+      }),
+    },
   ],
 };

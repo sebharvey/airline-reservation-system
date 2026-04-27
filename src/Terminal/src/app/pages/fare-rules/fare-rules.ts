@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FareRulesService, FareRule, CreateFareRuleRequest, RuleType, TaxLine } from '../../services/fare-rules.service';
@@ -5,7 +6,7 @@ import { FareFamiliesService, FareFamily } from '../../services/fare-families.se
 
 @Component({
   selector: 'app-fare-rules',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './fare-rules.html',
   styleUrl: './fare-rules.css',
 })

@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -79,7 +80,7 @@ export const LANGUAGES = [
 
 @Component({
   selector: 'app-customer-detail',
-  imports: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './customer-detail.html',
   styleUrl: './customer-detail.css',
 })

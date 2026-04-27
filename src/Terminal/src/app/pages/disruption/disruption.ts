@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { InventoryService, IropsOrderItem, IropsOrdersResponse, IropsRebookOrderResponse } from '../../services/inventory.service';
@@ -15,7 +16,7 @@ interface OrderRow {
   selector: 'app-disruption',
   templateUrl: './disruption.html',
   styleUrl: './disruption.css',
-  imports: [RouterLink],
+  imports: [RouterLink, LucideAngularModule],
 })
 export class DisruptionComponent implements OnInit {
   #inventoryService = inject(InventoryService);

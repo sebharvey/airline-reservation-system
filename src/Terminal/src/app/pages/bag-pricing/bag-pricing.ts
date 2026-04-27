@@ -1,10 +1,11 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BagPricingService, BagPricing, CreateBagPricingRequest, UpdateBagPricingRequest } from '../../services/bag-pricing.service';
 
 @Component({
   selector: 'app-bag-pricing',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './bag-pricing.html',
   styleUrl: './bag-pricing.css',
 })

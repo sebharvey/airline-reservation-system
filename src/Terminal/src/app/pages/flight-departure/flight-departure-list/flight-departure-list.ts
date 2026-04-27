@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
@@ -6,7 +7,7 @@ import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../..
 @Component({
   selector: 'app-flight-departure-list',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, LucideAngularModule],
   templateUrl: './flight-departure-list.html',
   styleUrl: './flight-departure-list.css',
 })

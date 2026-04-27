@@ -1,8 +1,10 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { LucideAngularModule } from 'lucide-angular';
 import { PaymentService, PaymentListItem, PaymentDetail, PaymentEvent } from '../../services/payment.service';
 
 @Component({
   selector: 'app-payment-list',
+  imports: [LucideAngularModule],
   templateUrl: './payment-list.html',
   styleUrl: './payment-list.css',
 })

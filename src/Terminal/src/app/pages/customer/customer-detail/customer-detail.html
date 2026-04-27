@@ -3,7 +3,7 @@
   <!-- Back button & header -->
   <div class="detail-header">
     <button class="back-btn" (click)="goBack()">
-      <span class="back-arrow">&larr;</span>
+      <lucide-icon name="arrow-left" [size]="16" class="back-arrow" />
       <span class="back-label">Customers</span>
     </button>
 
@@ -22,9 +22,9 @@
                 [title]="copied() ? 'Copied!' : 'Copy loyalty number'"
               >
                 @if (copied()) {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <lucide-icon name="check" [size]="14" />
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <lucide-icon name="copy" [size]="14" />
                 }
               </button>
             </span>
@@ -46,12 +46,12 @@
   <!-- Alerts -->
   @if (error()) {
     <div class="alert alert-error" role="alert">
-      <span>&#9888;</span> {{ error() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
     </div>
   }
   @if (success()) {
     <div class="alert alert-success" role="status">
-      <span>&#10003;</span> {{ success() }}
+      <lucide-icon name="check" [size]="14" /> {{ success() }}
     </div>
   }
 
@@ -634,9 +634,9 @@
                         {{ txn.bookingReference }}
                         <button class="copy-btn" [class.copied]="copiedTxnRef() === txn.bookingReference" (click)="copyTxnRef(txn.bookingReference, $event)" [title]="copiedTxnRef() === txn.bookingReference ? 'Copied!' : 'Copy booking reference'">
                           @if (copiedTxnRef() === txn.bookingReference) {
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <lucide-icon name="check" [size]="13" />
                           } @else {
-                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            <lucide-icon name="copy" [size]="13" />
                           }
                         </button>
                       </span>
@@ -703,9 +703,9 @@
                       {{ order.bookingReference }}
                       <button class="copy-btn" [class.copied]="copiedOrderRef() === order.bookingReference" (click)="copyOrderRef(order.bookingReference, $event)" [title]="copiedOrderRef() === order.bookingReference ? 'Copied!' : 'Copy booking reference'">
                         @if (copiedOrderRef() === order.bookingReference) {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          <lucide-icon name="check" [size]="13" />
                         } @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                          <lucide-icon name="copy" [size]="13" />
                         }
                       </button>
                     </span>
@@ -725,7 +725,7 @@
 
       @if (!ordersLoading() && orders().length === 0) {
         <div class="empty-orders">
-          <div class="empty-orders-icon">&#128230;</div>
+          <div class="empty-orders-icon"><lucide-icon name="inbox" [size]="32" /></div>
           <h3 class="empty-orders-title">No orders yet</h3>
           <p class="empty-orders-text">Orders created against this customer account will appear here.</p>
         </div>
@@ -839,7 +839,7 @@
 
       @if (!notesLoading() && notes().length === 0 && !showAddNoteForm()) {
         <div class="empty-orders">
-          <div class="empty-orders-icon">&#128221;</div>
+          <div class="empty-orders-icon"><lucide-icon name="file-text" [size]="32" /></div>
           <h3 class="empty-orders-title">No notes yet</h3>
           <p class="empty-orders-text">Contact centre notes added to this account will appear here.</p>
         </div>

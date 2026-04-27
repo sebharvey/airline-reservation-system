@@ -11,8 +11,8 @@
   <!-- ── Error banner ── -->
   @if (error()) {
     <div class="error-banner" role="alert">
-      <span>&#9888;</span> {{ error() }}
-      <button class="error-close" (click)="error.set('')" aria-label="Dismiss">&#10005;</button>
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
+      <button class="error-close" (click)="error.set('')" aria-label="Dismiss"><lucide-icon name="x" [size]="14" /></button>
     </div>
   }
 
@@ -25,7 +25,7 @@
     <aside class="col col-search">
       <div class="panel">
         <div class="panel-header">
-          <span>✈</span> Flight Search
+          <lucide-icon name="plane" [size]="16" /> Flight Search
         </div>
         <div class="panel-body">
 
@@ -143,7 +143,7 @@
             @if (loading() && step() === 'search') {
               <span class="btn-spinner"></span> Searching&#8230;
             } @else {
-              ✈ Search Flights
+              <lucide-icon name="plane" [size]="15" /> Search Flights
             }
           </button>
 
@@ -160,7 +160,7 @@
       @if (step() === 'search' || step() === 'outbound-results' || step() === 'inbound-results') {
         <div class="panel">
           <div class="panel-header">
-            <span>&#9992;</span>
+            <lucide-icon name="plane" [size]="16" />
             @if (step() === 'inbound-results') { Return Flights }
             @else if (step() === 'outbound-results') { Outbound Flights }
             @else { Flights }
@@ -169,7 +169,7 @@
 
             @if (step() === 'search') {
               <div class="empty-state">
-                <div class="empty-icon">✈</div>
+                <div class="empty-icon"><lucide-icon name="plane" [size]="32" /></div>
                 <h3>Search for flights</h3>
                 <p>Fill in the search form and click "Search Flights" to find available options.</p>
               </div>
@@ -189,7 +189,7 @@
                 </div>
               } @else if (outboundFlightGroups().length === 0) {
                 <div class="no-results">
-                  <span class="no-results-icon">&#128683;</span>
+                  <lucide-icon name="ban" [size]="32" class="no-results-icon" />
                   <p>No flights found for this route and date. Try a different date.</p>
                 </div>
               } @else {
@@ -259,7 +259,7 @@
 
               @if (inboundFlightGroups().length === 0) {
                 <div class="no-results">
-                  <span class="no-results-icon">&#128683;</span>
+                  <lucide-icon name="ban" [size]="32" class="no-results-icon" />
                   <p>No return flights found for this route and date. Try a different date.</p>
                 </div>
               } @else {
@@ -335,7 +335,7 @@
       @if (step() === 'passengers' || step() === 'seats' || step() === 'products' || step() === 'payment') {
         <div class="panel booking-panel fade-in">
           <div class="panel-header booking-panel-header">
-            <span>&#128203;</span> Booking Details
+            <lucide-icon name="clipboard-list" [size]="16" /> Booking Details
             <button class="back-btn-header" (click)="backToResults()">&#8592; Flights</button>
           </div>
 
@@ -348,7 +348,7 @@
                 <span class="accordion-title">Passenger Details</span>
                 <span class="accordion-meta">{{ totalPax() }} pax</span>
                 @if (step() === 'seats' || step() === 'products' || step() === 'payment') {
-                  <span class="accordion-done">&#10003;</span>
+                  <lucide-icon name="check" [size]="14" />
                 }
                 <span class="accordion-chevron">&#8250;</span>
               </button>
@@ -470,7 +470,7 @@
                   </span>
                 }
                 @if (step() === 'products' || step() === 'payment') {
-                  <span class="accordion-done">&#10003;</span>
+                  <lucide-icon name="check" [size]="14" />
                 }
                 <span class="accordion-chevron">&#8250;</span>
               </button>
@@ -480,8 +480,8 @@
 
                   @if (seatsError()) {
                     <div class="error-banner" role="alert">
-                      <span>&#9888;</span> {{ seatsError() }}
-                      <button class="error-close" (click)="seatsError.set('')" aria-label="Dismiss">&#10005;</button>
+                      <lucide-icon name="triangle-alert" [size]="14" /> {{ seatsError() }}
+                      <button class="error-close" (click)="seatsError.set('')" aria-label="Dismiss"><lucide-icon name="x" [size]="14" /></button>
                     </div>
                   }
 
@@ -494,7 +494,7 @@
                           {{ pax.givenName || paxLabel(pax.type) + ' ' + (i + 1) }}
                           @if (basket()?.flights?.length) {
                             @let allSelected = basket()!.flights.every(f => getSelectedSeatForPaxFlight(pax.passengerId, f.basketItemId));
-                            @if (allSelected) { &#10003; }
+                            @if (allSelected) { <lucide-icon name="check" [size]="12" /> }
                           }
                         </button>
                       }
@@ -522,7 +522,7 @@
                       </div>
                     } @else if (entry.error) {
                       <div class="sm-error">
-                        <span>&#9888;</span> {{ entry.error }}
+                        <lucide-icon name="triangle-alert" [size]="14" /> {{ entry.error }}
                       </div>
                     } @else if (activeSeatCabin(); as cabin) {
                       <div class="sm-wrap">
@@ -532,7 +532,7 @@
                           <div class="sm-selection-indicator">
                             Selecting for: <strong>{{ pax.givenName }} {{ pax.surname }}</strong>
                             @if (getSelectedSeatForPaxFlight(pax.passengerId, entry.flight.basketItemId); as sel) {
-                              <span class="sm-selected-seat">&#10003; Seat {{ sel.seatOffer.seatNumber }}</span>
+                              <span class="sm-selected-seat"><lucide-icon name="check" [size]="12" /> Seat {{ sel.seatOffer.seatNumber }}</span>
                             }
                           </div>
                         }
@@ -610,7 +610,7 @@
                   <span class="accordion-meta">{{ formatAmount(productTotal(), basket()!.currency) }}</span>
                 }
                 @if (step() === 'payment') {
-                  <span class="accordion-done">&#10003;</span>
+                  <lucide-icon name="check" [size]="14" />
                 }
                 <span class="accordion-chevron">&#8250;</span>
               </button>
@@ -620,8 +620,8 @@
 
                   @if (productsError()) {
                     <div class="error-banner" role="alert">
-                      <span>&#9888;</span> {{ productsError() }}
-                      <button class="error-close" (click)="productsError.set('')" aria-label="Dismiss">&#10005;</button>
+                      <lucide-icon name="triangle-alert" [size]="14" /> {{ productsError() }}
+                      <button class="error-close" (click)="productsError.set('')" aria-label="Dismiss"><lucide-icon name="x" [size]="14" /></button>
                     </div>
                   }
 
@@ -661,7 +661,7 @@
                                     <div class="prod-pax-row"
                                       (click)="toggleProduct(product, pax.passengerId, null)">
                                       <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, null)">
-                                        @if (isProductSelected(product.productId, pax.passengerId, null)) { &#10003; }
+                                        @if (isProductSelected(product.productId, pax.passengerId, null)) { <lucide-icon name="check" [size]="12" /> }
                                       </div>
                                       <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
                                     </div>
@@ -672,7 +672,7 @@
                                       <div class="prod-pax-row"
                                         (click)="toggleProduct(product, pax.passengerId, flight.inventoryId)">
                                         <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, flight.inventoryId)">
-                                          @if (isProductSelected(product.productId, pax.passengerId, flight.inventoryId)) { &#10003; }
+                                          @if (isProductSelected(product.productId, pax.passengerId, flight.inventoryId)) { <lucide-icon name="check" [size]="12" /> }
                                         </div>
                                         <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
                                         <span class="prod-pax-segment">{{ flight.origin }}&#8202;&#8594;&#8202;{{ flight.destination }}</span>
@@ -775,12 +775,12 @@
                     <button class="pay-method-btn"
                       [class.active]="payMethod() === 'CreditCard'"
                       (click)="payMethod.set('CreditCard')">
-                      &#128179; Credit Card
+                      <lucide-icon name="credit-card" [size]="15" /> Credit Card
                     </button>
                     <button class="pay-method-btn"
                       [class.active]="payMethod() === 'Cash'"
                       (click)="payMethod.set('Cash')">
-                      &#128181; Cash
+                      <lucide-icon name="banknote" [size]="15" /> Cash
                     </button>
                   </div>
 
@@ -877,14 +877,14 @@
                         </div>
                       </div>
 
-                      <p class="card-security-note">&#128274; Payment is encrypted. Card details are not stored.</p>
+                      <p class="card-security-note"><lucide-icon name="lock" [size]="13" /> Payment is encrypted. Card details are not stored.</p>
                     </div>
                   }
 
                   <!-- Cash info -->
                   @if (payMethod() === 'Cash') {
                     <div class="cash-info">
-                      <span class="cash-info-icon">&#128181;</span>
+                      <lucide-icon name="banknote" [size]="24" class="cash-info-icon" />
                       <div>
                         <p class="cash-info-title">Cash payment selected</p>
                         <p class="cash-info-desc">
@@ -903,7 +903,7 @@
                     @if (loading()) {
                       <span class="btn-spinner"></span> Processing&#8230;
                     } @else {
-                      &#128274; Confirm Booking
+                      <lucide-icon name="lock" [size]="15" /> Confirm Booking
                     }
                   </button>
 
@@ -920,7 +920,7 @@
         <div class="confirmed-pane fade-in">
           @if (confirmed(); as conf) {
             <div class="confirmed-card">
-              <div class="confirmed-check">&#10003;</div>
+              <div class="confirmed-check"><lucide-icon name="check" [size]="20" /></div>
               <h2 class="confirmed-title">
                 @if (isStandby()) { Standby Booking Confirmed } @else { Booking Confirmed }
               </h2>
@@ -938,9 +938,9 @@
                   <span class="pnr-value">{{ conf.bookingReference }}</span>
                   <button class="copy-btn" [class.copied]="copiedPnr() === conf.bookingReference" (click)="copyBookingRef(conf.bookingReference)" [title]="copiedPnr() === conf.bookingReference ? 'Copied!' : 'Copy booking reference'">
                     @if (copiedPnr() === conf.bookingReference) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="16" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="16" />
                     }
                   </button>
                 </span>
@@ -974,7 +974,7 @@
     <aside class="col col-basket">
       <div class="panel basket-panel">
         <div class="panel-header basket-panel-header">
-          <span>&#128722;</span> Basket
+          <lucide-icon name="shopping-cart" [size]="16" /> Basket
           @if (isStandby() && step() !== 'confirmed') {
             <span class="standby-chip">STANDBY</span>
           }
@@ -993,7 +993,7 @@
               </div>
             } @else {
               <div class="basket-empty">
-                <span class="basket-empty-icon">&#128722;</span>
+                <lucide-icon name="shopping-cart" [size]="32" class="basket-empty-icon" />
                 <p>No flights selected yet</p>
               </div>
             }
@@ -1087,14 +1087,14 @@
                   <span class="bpnr-value">{{ confirmed()!.bookingReference }}</span>
                   <button class="copy-btn" [class.copied]="copiedPnr() === confirmed()!.bookingReference" (click)="copyBookingRef(confirmed()!.bookingReference)" [title]="copiedPnr() === confirmed()!.bookingReference ? 'Copied!' : 'Copy booking reference'">
                     @if (copiedPnr() === confirmed()!.bookingReference) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="13" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="13" />
                     }
                   </button>
                 </span>
               </div>
-              <p class="basket-confirmed-status">&#10003; Booking confirmed</p>
+              <p class="basket-confirmed-status"><lucide-icon name="check" [size]="14" /> Booking confirmed</p>
               <p class="basket-confirmed-amount">
                 {{ formatAmount(confirmed()!.totalPrice, confirmed()!.currency) }}
               </p>

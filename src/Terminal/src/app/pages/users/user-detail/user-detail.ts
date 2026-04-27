@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-user-detail',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './user-detail.html',
   styleUrl: './user-detail.css',
 })

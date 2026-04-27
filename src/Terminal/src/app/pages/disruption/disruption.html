@@ -3,7 +3,7 @@
   <!-- Page header -->
   <div class="irops-header">
     <a [routerLink]="['/inventory']" class="back-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <lucide-icon name="chevron-left" [size]="16" />
       Back to Stock Keeper
     </a>
 
@@ -48,7 +48,7 @@
               <span class="btn-spinner-sm btn-spinner-sm-light"></span>
               Running…
             } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <lucide-icon name="play" [size]="13" />
               Run all
             }
           </button>
@@ -64,7 +64,7 @@
   <!-- Error -->
   @if (error()) {
     <div class="error-banner" role="alert">
-      <span>&#9888;</span> {{ error() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
     </div>
   }
 
@@ -101,9 +101,9 @@
                   {{ row.order.bookingReference }}
                   <button class="copy-btn" [class.copied]="copiedRef() === row.order.bookingReference" (click)="copyBookingRef(row.order.bookingReference, $event)" [title]="copiedRef() === row.order.bookingReference ? 'Copied!' : 'Copy booking reference'">
                     @if (copiedRef() === row.order.bookingReference) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="13" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="13" />
                     }
                   </button>
                 </span>
@@ -140,7 +140,7 @@
                   </span>
                 } @else if (row.rebookStatus === 'rebooked') {
                   <span class="rebook-status rebook-status-rebooked">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <lucide-icon name="check" [size]="12" />
                     Rebooked
                   </span>
                 } @else if (row.rebookStatus === 'failed') {
@@ -167,7 +167,7 @@
 
   @if (!loading() && rows().length === 0 && !error()) {
     <div class="irops-empty">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+      <lucide-icon name="circle-arrow-up" [size]="32" />
       <p>No confirmed bookings found on this flight.</p>
     </div>
   }
@@ -187,23 +187,23 @@
             {{ row.order.bookingReference }}
             <button class="copy-btn" [class.copied]="copiedRef() === row.order.bookingReference" (click)="copyBookingRef(row.order.bookingReference)" [title]="copiedRef() === row.order.bookingReference ? 'Copied!' : 'Copy booking reference'">
               @if (copiedRef() === row.order.bookingReference) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <lucide-icon name="check" [size]="13" />
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <lucide-icon name="copy" [size]="13" />
               }
             </button>
           </span>
         </p>
       </div>
-      <button class="modal-close" (click)="closeRebookModal()" aria-label="Close">&times;</button>
+      <button class="modal-close" (click)="closeRebookModal()" aria-label="Close"><lucide-icon name="x" [size]="16" /></button>
     </div>
 
     <div class="modal-body">
       @if (row.rebookStatus === 'rebooked') {
         <div class="rebook-result-success">
           <div class="rebook-result-icon rebook-result-icon-success">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-check"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <lucide-icon name="circle-arrow-up" [size]="28" />
+            <lucide-icon name="circle-check" [size]="28" class="icon-check" />
           </div>
           <h3 class="rebook-result-title">Order rebooked successfully</h3>
           <div class="rebook-result-detail-row">
@@ -227,7 +227,7 @@
       } @else {
         <div class="rebook-result-failed">
           <div class="rebook-result-icon rebook-result-icon-failed">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <lucide-icon name="circle-alert" [size]="28" />
           </div>
           <h3 class="rebook-result-title">Rebooking failed</h3>
           <p class="rebook-result-reason">{{ row.rebookResult?.failureReason ?? 'An unexpected error occurred.' }}</p>

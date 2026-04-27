@@ -1,9 +1,11 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { OrderService, OrderSummary } from '../../../services/order.service';
 
 @Component({
   selector: 'app-order-list',
+  imports: [LucideAngularModule],
   templateUrl: './order-list.html',
   styleUrl: './order-list.css',
 })

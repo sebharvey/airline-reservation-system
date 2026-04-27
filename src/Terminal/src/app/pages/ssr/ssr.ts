@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SsrService, SsrOption } from '../../services/ssr.service';
@@ -6,7 +7,7 @@ type CategoryFilter = 'all' | 'Meal' | 'Mobility' | 'Accessibility' | 'Medical' 
 
 @Component({
   selector: 'app-ssr',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './ssr.html',
   styleUrl: './ssr.css',
 })

@@ -88,7 +88,9 @@
 }
 
 .agent-icon {
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  color: #fff;
 }
 
 .agent-info {
@@ -121,8 +123,9 @@
 }
 
 .toggle-icon {
-  font-size: 0.95rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  color: #fff;
 }
 
 .toggle-track {
@@ -286,10 +289,19 @@
 }
 
 .nav-icon {
-  font-size: 1.1rem;
   width: 22px;
-  text-align: center;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+}
+
+.brand-plane {
+  display: inline-flex;
+  vertical-align: middle;
+  color: #fff;
+  margin-right: 2px;
 }
 
 .nav-label {

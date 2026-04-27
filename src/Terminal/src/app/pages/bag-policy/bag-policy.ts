@@ -1,10 +1,11 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BagPolicyService, BagPolicy, CreateBagPolicyRequest, UpdateBagPolicyRequest } from '../../services/bag-policy.service';
 
 @Component({
   selector: 'app-bag-policy',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './bag-policy.html',
   styleUrl: './bag-policy.css',
 })

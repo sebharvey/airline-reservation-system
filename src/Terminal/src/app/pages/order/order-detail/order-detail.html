@@ -3,7 +3,7 @@
   <!-- Header -->
   <div class="detail-header">
     <button class="back-btn" (click)="goBack()">
-      <span class="back-arrow">&larr;</span>
+      <lucide-icon name="arrow-left" [size]="16" class="back-arrow" />
       <span>Orders</span>
     </button>
 
@@ -23,10 +23,7 @@
         <span class="amount-label">Total</span>
       </div>
       <button class="detail-refresh-btn" (click)="loadOrder()" [disabled]="loading()" title="Refresh order">
-        <svg [class.spinning]="loading()" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-        </svg>
+        <lucide-icon name="rotate-ccw" [size]="15" [class.spinning]="loading()" />
         Refresh
       </button>
       <!-- TODO: Remove debug button when debug endpoint is removed -->
@@ -39,7 +36,7 @@
   <!-- Alerts -->
   @if (error()) {
     <div class="alert alert-error" role="alert">
-      <span>&#9888;</span> {{ error() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
     </div>
   }
 
@@ -67,9 +64,9 @@
               [title]="copied() ? 'Copied!' : 'Copy PNR'"
             >
               @if (copied()) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <lucide-icon name="check" [size]="13" />
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <lucide-icon name="copy" [size]="13" />
               }
             </button>
           </span>
@@ -463,7 +460,7 @@
 
         @if (ticketsError()) {
           <div class="alert alert-error" role="alert">
-            <span>&#9888;</span> {{ ticketsError() }}
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ ticketsError() }}
           </div>
         }
 
@@ -505,9 +502,9 @@
                           {{ ticket.eTicketNumber }}
                           <button class="copy-btn" [class.copied]="copiedText() === ticket.eTicketNumber" (click)="copyText(ticket.eTicketNumber, $event)" [title]="copiedText() === ticket.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
                             @if (copiedText() === ticket.eTicketNumber) {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              <lucide-icon name="check" [size]="13" />
                             } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              <lucide-icon name="copy" [size]="13" />
                             }
                           </button>
                         </span>
@@ -570,9 +567,9 @@
                           {{ ticket.eTicketNumber }}
                           <button class="copy-btn" [class.copied]="copiedText() === ticket.eTicketNumber" (click)="copyText(ticket.eTicketNumber, $event)" [title]="copiedText() === ticket.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
                             @if (copiedText() === ticket.eTicketNumber) {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              <lucide-icon name="check" [size]="13" />
                             } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              <lucide-icon name="copy" [size]="13" />
                             }
                           </button>
                         </span>
@@ -611,7 +608,7 @@
         <!-- ── EMD / MISC DOCUMENTS ── -->
         @if (documentsError()) {
           <div class="alert alert-error" role="alert">
-            <span>&#9888;</span> {{ documentsError() }}
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ documentsError() }}
           </div>
         }
 
@@ -651,9 +648,9 @@
                           {{ doc.documentNumber }}
                           <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber, $event)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
                             @if (copiedText() === doc.documentNumber) {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              <lucide-icon name="check" [size]="13" />
                             } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              <lucide-icon name="copy" [size]="13" />
                             }
                           </button>
                         </span>
@@ -725,9 +722,9 @@
                           {{ doc.documentNumber }}
                           <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber, $event)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
                             @if (copiedText() === doc.documentNumber) {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              <lucide-icon name="check" [size]="13" />
                             } @else {
-                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                              <lucide-icon name="copy" [size]="13" />
                             }
                           </button>
                         </span>
@@ -855,9 +852,9 @@
                   {{ pax.loyaltyNumber }}
                   <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyText(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
                     @if (copiedText() === pax.loyaltyNumber) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="13" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="13" />
                     }
                   </button>
                 </span>
@@ -883,7 +880,7 @@
                     @if (doc.expiryDate) {
                       <span class="doc-list-meta">Exp {{ formatDate(doc.expiryDate) }}</span>
                     }
-                    <svg xmlns="http://www.w3.org/2000/svg" class="doc-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    <lucide-icon name="chevron-right" [size]="16" class="doc-list-chevron" />
                   </button>
                 }
               </div>
@@ -1063,9 +1060,9 @@
                   {{ item.eTicketNumber }}
                   <button class="copy-btn" [class.copied]="copiedText() === item.eTicketNumber" (click)="copyText(item.eTicketNumber!)" [title]="copiedText() === item.eTicketNumber ? 'Copied!' : 'Copy e-ticket'">
                     @if (copiedText() === item.eTicketNumber) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="13" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="13" />
                     }
                   </button>
                 </span>
@@ -1189,7 +1186,7 @@
           </div>
         </div>
         @if (ssrError()) {
-          <div class="alert alert-error"><span>&#9888;</span> {{ ssrError() }}</div>
+          <div class="alert alert-error"><lucide-icon name="triangle-alert" [size]="14" /> {{ ssrError() }}</div>
         }
         <div class="modal-actions">
           <button class="remove-ssr-btn modal-remove-btn" [disabled]="ssrSaving()" (click)="removeSsr(item)">
@@ -1299,9 +1296,9 @@
             {{ t.eTicketNumber }}
             <button class="copy-btn" [class.copied]="copiedText() === t.eTicketNumber" (click)="copyText(t.eTicketNumber)" [title]="copiedText() === t.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
               @if (copiedText() === t.eTicketNumber) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <lucide-icon name="check" [size]="14" />
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <lucide-icon name="copy" [size]="14" />
               }
             </button>
           </span>
@@ -1577,9 +1574,9 @@
           {{ doc.documentNumber }}
           <button class="copy-btn" [class.copied]="copiedText() === doc.documentNumber" (click)="copyText(doc.documentNumber)" [title]="copiedText() === doc.documentNumber ? 'Copied!' : 'Copy document number'">
             @if (copiedText() === doc.documentNumber) {
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <lucide-icon name="check" [size]="14" />
             } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <lucide-icon name="copy" [size]="14" />
             }
           </button>
         </span>
@@ -1794,10 +1791,10 @@
       @if (ssrOptionsLoading()) {
         <div class="ssr-loading"><span class="spinner"></span><span>Loading service catalogue…</span></div>
       } @else if (ssrOptionsError()) {
-        <div class="alert alert-error"><span>&#9888;</span> {{ ssrOptionsError() }}</div>
+        <div class="alert alert-error"><lucide-icon name="triangle-alert" [size]="14" /> {{ ssrOptionsError() }}</div>
       } @else {
         @if (ssrError()) {
-          <div class="alert alert-error"><span>&#9888;</span> {{ ssrError() }}</div>
+          <div class="alert alert-error"><lucide-icon name="triangle-alert" [size]="14" /> {{ ssrError() }}</div>
         }
         <div class="ssr-modal-form-grid">
           <div class="edit-field">
@@ -1891,9 +1888,9 @@
                 [title]="copiedDebugTab() === 'order' ? 'Copied!' : 'Copy JSON'"
               >
                 @if (copiedDebugTab() === 'order') {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <lucide-icon name="check" [size]="13" />
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <lucide-icon name="copy" [size]="13" />
                 }
                 {{ copiedDebugTab() === 'order' ? 'Copied!' : 'Copy JSON' }}
               </button>
@@ -1914,9 +1911,9 @@
                 [title]="copiedDebugTab() === 'tickets' ? 'Copied!' : 'Copy JSON'"
               >
                 @if (copiedDebugTab() === 'tickets') {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <lucide-icon name="check" [size]="13" />
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <lucide-icon name="copy" [size]="13" />
                 }
                 {{ copiedDebugTab() === 'tickets' ? 'Copied!' : 'Copy JSON' }}
               </button>
@@ -1937,9 +1934,9 @@
                 [title]="copiedDebugTab() === 'documents' ? 'Copied!' : 'Copy JSON'"
               >
                 @if (copiedDebugTab() === 'documents') {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <lucide-icon name="check" [size]="13" />
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <lucide-icon name="copy" [size]="13" />
                 }
                 {{ copiedDebugTab() === 'documents' ? 'Copied!' : 'Copy JSON' }}
               </button>
