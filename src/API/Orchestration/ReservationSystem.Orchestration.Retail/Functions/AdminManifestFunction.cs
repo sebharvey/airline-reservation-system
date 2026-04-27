@@ -18,15 +18,18 @@ public sealed class AdminManifestFunction
 {
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly ILogger<AdminManifestFunction> _logger;
 
     public AdminManifestFunction(
         DeliveryServiceClient deliveryServiceClient,
         OrderServiceClient orderServiceClient,
+        OfferServiceClient offerServiceClient,
         ILogger<AdminManifestFunction> logger)
     {
         _deliveryServiceClient = deliveryServiceClient;
         _orderServiceClient = orderServiceClient;
+        _offerServiceClient = offerServiceClient;
         _logger = logger;
     }
 
@@ -116,6 +119,22 @@ public sealed class AdminManifestFunction
             }
         }
 
+        // 3. Release seat from inventory so the seatmap reflects availability (best-effort)
+        if (Guid.TryParse(body.InventoryId, out var inventoryGuid) &&
+            Guid.TryParse(body.OrderId, out var orderGuid) &&
+            !string.IsNullOrWhiteSpace(body.CabinCode))
+        {
+            try
+            {
+                await _offerServiceClient.ReleaseInventoryAsync(
+                    inventoryGuid, body.CabinCode, orderGuid, "Sold", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Release seat: inventory release failed for inventory {InventoryId}", body.InventoryId);
+            }
+        }
+
         _logger.LogInformation("Seat released for e-ticket {ETicketNumber} on booking {BookingRef}", body.ETicketNumber, body.BookingReference);
         return req.CreateResponse(HttpStatusCode.NoContent);
     }
@@ -192,4 +211,10 @@ file sealed class AdminSeatRequest
 
     [System.Text.Json.Serialization.JsonPropertyName("seatNumber")]
     public string? SeatNumber { get; init; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("orderId")]
+    public string? OrderId { get; init; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("cabinCode")]
+    public string? CabinCode { get; init; }
 }
