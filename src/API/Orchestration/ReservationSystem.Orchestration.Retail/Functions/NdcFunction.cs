@@ -7,6 +7,7 @@ using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderRetrieve;
+using ReservationSystem.Orchestration.Retail.Application.NdcSeatAvailability;
 using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Ndc;
@@ -16,11 +17,12 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 /// <summary>
 /// IATA NDC 21.3 channel endpoints.
 ///
-/// POST /v1/ndc/AirShopping    — search available flights and offers.
-/// POST /v1/ndc/OfferPrice     — validate and re-price a stored offer.
-/// POST /v1/ndc/ServiceList    — retrieve available SSR services (ancillaries).
-/// POST /v1/ndc/OrderCreate    — create a confirmed order from a stored offer.
-/// POST /v1/ndc/OrderRetrieve  — retrieve a confirmed order by booking reference and surname.
+/// POST /v1/ndc/AirShopping       — search available flights and offers.
+/// POST /v1/ndc/OfferPrice        — validate and re-price a stored offer.
+/// POST /v1/ndc/ServiceList       — retrieve available SSR services (ancillaries).
+/// POST /v1/ndc/OrderCreate       — create a confirmed order from a stored offer.
+/// POST /v1/ndc/OrderRetrieve     — retrieve a confirmed order by booking reference and surname.
+/// POST /v1/ndc/SeatAvailability  — retrieve the physical seatmap and per-seat pricing for an offer.
 ///
 /// All routes accept and return application/xml using the IATA NDC 21.3 schema.
 /// Errors are returned as application/xml with an NDC Errors element.
@@ -32,6 +34,7 @@ public sealed class NdcFunction
     private readonly NdcServiceListHandler _serviceListHandler;
     private readonly NdcOrderCreateHandler _orderCreateHandler;
     private readonly NdcOrderRetrieveHandler _orderRetrieveHandler;
+    private readonly NdcSeatAvailabilityHandler _seatAvailabilityHandler;
     private readonly ILogger<NdcFunction> _logger;
 
     public NdcFunction(
@@ -40,6 +43,7 @@ public sealed class NdcFunction
         NdcServiceListHandler serviceListHandler,
         NdcOrderCreateHandler orderCreateHandler,
         NdcOrderRetrieveHandler orderRetrieveHandler,
+        NdcSeatAvailabilityHandler seatAvailabilityHandler,
         ILogger<NdcFunction> logger)
     {
         _airShoppingHandler = airShoppingHandler;
@@ -47,6 +51,7 @@ public sealed class NdcFunction
         _serviceListHandler = serviceListHandler;
         _orderCreateHandler = orderCreateHandler;
         _orderRetrieveHandler = orderRetrieveHandler;
+        _seatAvailabilityHandler = seatAvailabilityHandler;
         _logger = logger;
     }
 
@@ -524,6 +529,109 @@ public sealed class NdcFunction
                 </Error>
               </Errors>
             </IATA_OrderRetrieveRS>
+            """;
+
+        var response = req.CreateResponse(status);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(xml, Encoding.UTF8);
+        return response;
+    }
+
+    // ── SeatAvailability ──────────────────────────────────────────────────────
+
+    [Function("NdcSeatAvailability")]
+    public async Task<HttpResponseData> SeatAvailability(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/ndc/SeatAvailability")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        // ── Read body ─────────────────────────────────────────────────────────
+        string requestBody;
+        try
+        {
+            using var reader = new StreamReader(req.Body, Encoding.UTF8);
+            requestBody = await reader.ReadToEndAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] Failed to read SeatAvailabilityRQ body");
+            return await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_READ", "Unable to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(requestBody))
+            return await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_EMPTY_BODY", "Request body must not be empty.");
+
+        // ── Parse SeatAvailabilityRQ ──────────────────────────────────────────
+        var command = NdcXmlParser.TryParseSeatAvailabilityRq(requestBody, out var parseError);
+        if (command is null)
+        {
+            _logger.LogWarning("[NDC] SeatAvailabilityRQ parse failed: {Error}", parseError);
+            return await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_PARSE", parseError ?? "Failed to parse SeatAvailabilityRQ.");
+        }
+
+        _logger.LogInformation("[NDC] SeatAvailability: OfferRefId={OfferRefId}", command.OfferRefId);
+
+        // ── Fetch seat availability ───────────────────────────────────────────
+        NdcSeatAvailabilityResult result;
+        try
+        {
+            result = await _seatAvailabilityHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] SeatAvailability failed for offer {OfferRefId}", command.OfferRefId);
+            return await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.InternalServerError,
+                "ERR_SEAT_AVAILABILITY", "An error occurred while retrieving seat availability.");
+        }
+
+        return result.Outcome switch
+        {
+            NdcSeatAvailabilityOutcome.OfferNotFound =>
+                await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.NotFound,
+                    "ERR_OFFER_NOT_FOUND", $"Offer {command.OfferRefId} was not found."),
+
+            NdcSeatAvailabilityOutcome.SeatmapNotFound =>
+                await XmlSeatAvailabilityErrorAsync(req, HttpStatusCode.NotFound,
+                    "ERR_SEATMAP_NOT_FOUND", "No seatmap is configured for the aircraft type on this flight."),
+
+            _ => await BuildSeatAvailabilityResponseAsync(req, result)
+        };
+    }
+
+    private static async Task<HttpResponseData> BuildSeatAvailabilityResponseAsync(
+        HttpRequestData req,
+        NdcSeatAvailabilityResult result)
+    {
+        var responseXml = NdcXmlBuilder.BuildSeatAvailabilityRS(result);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(responseXml, Encoding.UTF8);
+        return response;
+    }
+
+    private static async Task<HttpResponseData> XmlSeatAvailabilityErrorAsync(
+        HttpRequestData req,
+        HttpStatusCode status,
+        string code,
+        string message)
+    {
+        var xml = $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <IATA_SeatAvailabilityRS xmlns="http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS">
+              <Document>
+                <ReferenceVersion>21.3</ReferenceVersion>
+              </Document>
+              <Errors>
+                <Error>
+                  <Code>{System.Security.SecurityElement.Escape(code)}</Code>
+                  <DescText>{System.Security.SecurityElement.Escape(message)}</DescText>
+                  <LangCode>EN</LangCode>
+                </Error>
+              </Errors>
+            </IATA_SeatAvailabilityRS>
             """;
 
         var response = req.CreateResponse(status);
