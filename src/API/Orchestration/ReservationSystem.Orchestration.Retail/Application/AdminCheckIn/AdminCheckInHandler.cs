@@ -140,7 +140,7 @@ public sealed class AdminCheckInHandler
                 {
                     await _orderServiceClient.AddOrderNotesAsync(
                         command.BookingReference,
-                        BuildOrderNotes(ex.TimaticNotes, ticketToName),
+                        BuildOrderNotes(ex.TimaticNotes, ticketToName, ticketToPaxId),
                         ct);
                 }
                 catch (Exception notesEx)
@@ -163,7 +163,7 @@ public sealed class AdminCheckInHandler
             {
                 await _orderServiceClient.AddOrderNotesAsync(
                     command.BookingReference,
-                    BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason),
+                    BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason, ticketToPaxId),
                     ct);
             }
             catch (Exception notesEx)
@@ -184,7 +184,7 @@ public sealed class AdminCheckInHandler
             {
                 await _orderServiceClient.AddOrderNotesAsync(
                     command.BookingReference,
-                    BuildOrderNotes(checkInResult.TimaticNotes, ticketToName),
+                    BuildOrderNotes(checkInResult.TimaticNotes, ticketToName, ticketToPaxId),
                     ct);
             }
             catch (Exception notesEx)
@@ -258,7 +258,8 @@ public sealed class AdminCheckInHandler
     private static List<AdminCheckInOrderNote> BuildOverrideNotes(
         IReadOnlyList<AdminCheckInPassenger> passengers,
         IReadOnlyDictionary<string, string>? ticketToName,
-        string? overrideReason)
+        string? overrideReason,
+        IReadOnlyDictionary<string, string>? ticketToPaxId = null)
     {
         var reason = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
         var timestamp = DateTime.UtcNow.ToString("o");
@@ -269,18 +270,21 @@ public sealed class AdminCheckInHandler
             var subject = paxName is not null
                 ? $"{paxName} (ticket {p.TicketNumber})"
                 : $"ticket {p.TicketNumber}";
+            var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
             return new AdminCheckInOrderNote
             {
                 DateTime = timestamp,
                 Type     = "TIMATIC_OVERRIDE",
-                Message  = $"Timatic override by agent for {subject}: {reason}"
+                Message  = $"Timatic override by agent for {subject}: {reason}",
+                PaxId    = ExtractPaxIdInt(paxIdStr)
             };
         }).ToList();
     }
 
     private static List<AdminCheckInOrderNote> BuildOrderNotes(
         IReadOnlyList<AdminOciTimaticNote> notes,
-        IReadOnlyDictionary<string, string>? ticketToName = null)
+        IReadOnlyDictionary<string, string>? ticketToName = null,
+        IReadOnlyDictionary<string, string>? ticketToPaxId = null)
         => notes.Select(n =>
         {
             var checkLabel = n.CheckType switch
@@ -299,11 +303,20 @@ public sealed class AdminCheckInHandler
             var message = string.IsNullOrWhiteSpace(n.Detail)
                 ? $"{checkLabel} {statusText} for {subject}"
                 : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
+            var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
             return new AdminCheckInOrderNote
             {
                 DateTime = n.Timestamp,
                 Type     = "TIMATIC",
-                Message  = message
+                Message  = message,
+                PaxId    = ExtractPaxIdInt(paxIdStr)
             };
         }).ToList();
+
+    private static int? ExtractPaxIdInt(string? paxId)
+    {
+        if (string.IsNullOrEmpty(paxId)) return null;
+        var dash = paxId.LastIndexOf('-');
+        return dash >= 0 && int.TryParse(paxId[(dash + 1)..], out var n) ? n : null;
+    }
 }

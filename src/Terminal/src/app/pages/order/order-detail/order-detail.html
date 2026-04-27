@@ -445,6 +445,9 @@
                 <div class="note-type-badge">{{ note.type }}</div>
                 <div class="note-body">
                   <span class="note-message">{{ note.message }}</span>
+                  @if (note.paxId && paxNameByPaxId().get(note.paxId)) {
+                    <span class="note-pax muted">{{ paxNameByPaxId().get(note.paxId) }}</span>
+                  }
                   <span class="event-time muted">{{ formatDateTime(note.dateTime) }}</span>
                 </div>
               </div>

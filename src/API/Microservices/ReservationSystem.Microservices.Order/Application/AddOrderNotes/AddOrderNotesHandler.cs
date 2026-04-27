@@ -47,12 +47,14 @@ public sealed class AddOrderNotesHandler
 
         foreach (var note in command.Notes)
         {
-            notesArray.Add(new JsonObject
+            var obj = new JsonObject
             {
                 ["dateTime"] = note.DateTime,
                 ["type"]     = note.Type,
                 ["message"]  = note.Message
-            });
+            };
+            if (note.PaxId.HasValue) obj["paxId"] = note.PaxId.Value;
+            notesArray.Add(obj);
         }
 
         orderJson["notes"] = notesArray;
