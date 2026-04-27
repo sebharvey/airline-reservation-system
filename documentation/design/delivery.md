@@ -223,6 +223,9 @@ The operational source of truth for who is on a given flight. One row per passen
 | GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | SsrCodes | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`; written at booking confirmation and updated on SSR change |
+| Gender | VARCHAR(10) | Yes | | | IATA APIS gender code: `M` · `F` · `X`; null when not provided |
+| DateOfBirth | DATE | Yes | | | Passenger date of birth in ISO 8601 format; null when not provided |
+| PtcCode | VARCHAR(10) | No | `'ADT'` | | IATA Passenger Type Code: `ADT` · `CHD` · `INF` · `YTH` · `MIL` |
 | BookingType | VARCHAR(20) | No | `'Confirmed'` | | `Confirmed` · `Standby` — set at order creation; reflects whether the passenger holds a confirmed seat or is waitlisted |
 | DepartureTime | TIME | No | | | Local departure time; updated by Operations API on delay |
 | ArrivalTime | TIME | No | | | Local arrival time; updated by Operations API on delay |

@@ -108,6 +108,9 @@ export interface ManifestEntry {
   checkedIn: boolean;
   checkedInAt: string | null;
   ssrCodes: string[];
+  gender: string | null;
+  dateOfBirth: string | null;
+  ptcCode: string;
 }
 
 export interface FlightManifest {

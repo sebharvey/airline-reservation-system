@@ -72,7 +72,10 @@ public sealed class ManifestFunction
                 checkedInAt      = e.CheckedInAt,
                 ssrCodes         = string.IsNullOrEmpty(e.SsrCodes)
                     ? []
-                    : System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.SsrCodes) ?? []
+                    : System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.SsrCodes) ?? [],
+                gender           = e.Gender,
+                dateOfBirth      = e.DateOfBirth,
+                ptcCode          = e.PtcCode
             })
         });
     }

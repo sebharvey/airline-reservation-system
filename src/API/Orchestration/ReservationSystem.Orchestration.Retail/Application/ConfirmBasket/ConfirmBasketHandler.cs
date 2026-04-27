@@ -899,6 +899,8 @@ public sealed class ConfirmBasketHandler
                     GivenName = p.GivenName,
                     Surname = p.Surname,
                     Dob = p.Dob,
+                    Gender = p.Gender,
+                    PtcCode = p.PtcCode,
                     FareConstruction = fareConstruction,
                     FormOfPayment = formOfPayment
                 })
@@ -983,7 +985,10 @@ public sealed class ConfirmBasketHandler
                         ETicketNumber = ticket?.ETicketNumber ?? string.Empty,
                         SeatNumber    = string.IsNullOrEmpty(seat?.SeatNumber) ? null : seat.SeatNumber,
                         CabinCode     = segment.CabinCode,
-                        SeatPosition  = null
+                        SeatPosition  = null,
+                        Gender        = pax.Gender,
+                        DateOfBirth   = pax.Dob,
+                        PtcCode       = pax.PtcCode
                     };
                 }).ToList();
 
@@ -1087,7 +1092,9 @@ public sealed class ConfirmBasketHandler
                         PassengerId = p.TryGetProperty("passengerId", out var v) ? v.GetString() ?? string.Empty : string.Empty,
                         GivenName = p.TryGetProperty("givenName", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         Surname = p.TryGetProperty("surname", out v) ? v.GetString() ?? string.Empty : string.Empty,
-                        Dob = p.TryGetProperty("dob", out v) ? v.GetString() : null
+                        Dob = p.TryGetProperty("dob", out v) ? v.GetString() : null,
+                        Gender = p.TryGetProperty("gender", out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
+                        PtcCode = p.TryGetProperty("type", out v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "ADT" : "ADT"
                     });
                 }
             }
